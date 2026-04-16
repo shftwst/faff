@@ -47,12 +47,13 @@ An issue is ready when:
 - No big architectural questions to answer first
 - Not a dupe of something else
 - Categorised and/or belongs to a milestone
+- Has a spec attached to the issue
 
 For each, state why it's ready and offer to move it to Todo.
 
 ### 3. Almost ready (flag)
 
-Issues that are close but need one small thing — a blocker that's still In Progress, one unresolved question, an unclear acceptance criterion. Note what would unblock them.
+Issues that are close but need one small thing — a blocker that's still In Progress, one unresolved question, an unclear acceptance criterion, solid information in ticket but no spec attached. Note what would unblock them. For an issue that is ready but has no spec, suggest running `/faff-prep ISSUE-XX`
 
 ## Output
 

@@ -1,0 +1,7 @@
+{
+  "name": "faff",
+  "description": "For developers who hate project management but still need to ship. Tells you what to work on, scopes it so you can just build, and sets up your worktree. Works with Linear, GitHub Issues, Jira, or any issue tracker via MCP.",
+  "author": {
+    "name": "shftwst"
+  }
+}

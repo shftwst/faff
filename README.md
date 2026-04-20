@@ -22,6 +22,7 @@ A Claude Code plugin for developers who want to ship, not manage.
 | `/faff-tidy` | Tidy the backlog — find the mess AND surface what's ready to pick up |
 | `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
 | `/faff-workit ISSUE-XX` | Set up a worktree and start building |
+| `/faff-beep-boop` | Unattended run — drain the ready queue overnight, park anything ambiguous |
 
 ## How it works
 
@@ -35,7 +36,19 @@ A Claude Code plugin for developers who want to ship, not manage.
 2. **Prep** — explore the codebase, write a spec, attach it to the ticket
 3. **Workit** — spec is committed to a feature branch, worktree is ready, go
 
+Each step chains to the next with a yes/no gate. Say yes, keep moving. Say no, stop.
+
 No ceremonies. No standups with 12 people. Just you and your code.
+
+### Fire and forget
+
+`/faff-beep-boop` runs the whole pipeline without a human in the loop. Good for overnight, meetings, or anything you want off your plate.
+
+- Default: drains every Todo issue that already has a spec
+- `--full`: tidy, then prep every backlog issue, then build whatever's ready
+- `ISSUE-12 ISSUE-15`: just those
+
+Auto-merges when every acceptance criterion is verified, CI is green, and review passed. Otherwise the PR is left open with a clear reason. Anything ambiguous is parked and surfaced by `/faff-wtf` in the morning. Full audit trail under `.faff/runs/`.
 
 ## Setup
 
@@ -58,7 +71,13 @@ Optional:
 
 ## Planning Skills
 - spec: superpowers:brainstorming
+- plan: superpowers:writing-plans
+- parallel: superpowers:subagent-driven-development
+- review: gstack:review
+- ship: gstack:ship
 ```
+
+All planning slots are optional. Faff has sensible defaults for each — slots let you swap in your own.
 
 ## License
 

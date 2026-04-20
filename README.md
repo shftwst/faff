@@ -4,7 +4,9 @@ You don't like project management. Neither do we. But tickets pile up, context g
 
 Faff is the stuff you do before actual work — but automated. It reads your issue tracker, checks git, and tells you what matters. Then it scopes the work so you can just build.
 
-A Claude Code plugin for developers who want to ship, not manage.
+Made for developers who want to ship, not manage. 
+
+Lightweight with sensible defaults, but configurable enough to use your preferred heavy-weight skills when it matters.
 
 ## Install
 
@@ -19,10 +21,10 @@ A Claude Code plugin for developers who want to ship, not manage.
 |---------|-------------|
 | `/faff` | "What should I work on?" (default) |
 | `/faff-wtf` | Where to focus — what shipped, what's stuck, what's next |
-| `/faff-tidy` | Tidy the backlog — find the mess AND surface what's ready to pick up |
+| `/faff-tidy` | Tidy the backlog — find the mess, clean, and surface what's ready to pick up |
 | `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
 | `/faff-workit ISSUE-XX` | Set up a worktree and start building |
-| `/faff-beep-boop` | Unattended run — drain the ready queue overnight, park anything ambiguous |
+| `/faff-beep-boop` | Unattended run — drain the ready queue overnight, park anything ambiguous for morning review |
 
 ## How it works
 

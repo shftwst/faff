@@ -222,6 +222,32 @@ When in doubt, serialise. Parallelism is a speedup, not a correctness
 requirement — a false-positive collision is cheap; a false-negative is
 expensive.
 
+### D11. Parked-issue surfacing in faff-wtf
+
+faff-wtf (interactive mode) highlights issues parked by any prior
+autonomous run. This closes the loop between an overnight beep-boop run
+and the human catch-up the next day.
+
+Implementation:
+- On invocation, faff-wtf scans `.faff/runs/` for the most recent
+  beep-boop run summaries and checks the tracker for issues marked as
+  parked-by-faff (beep-boop writes a canonical tracker comment on park).
+- The output gets a new section, **Parked overnight**, surfaced above
+  "Do this":
+
+  ```
+  ### Parked overnight
+  - ISSUE-XX: [title] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
+  ```
+
+- For each parked issue, faff-wtf offers a yes/no gate to open the log,
+  re-run `/faff-prep`, or leave it parked.
+- If no parked issues, the section is omitted (per the existing "skip
+  empty sections" rule).
+
+Park cause summaries are one-line distillations pulled from the log
+entry; the full reasoning is in the log file for deep-dive.
+
 ## Files Affected
 
 **New:**
@@ -231,7 +257,7 @@ expensive.
 - `skills/faff/SKILL.md` — add universal rules (D4 cancelled/archived, D5
   logging, D6 configurable slots, D3 autonomous-mode contract link)
 - `skills/faff-wtf/SKILL.md` — yes/no chaining gates (D2), autonomous
-  default (D3)
+  default (D3), parked-issue surfacing (D11)
 - `skills/faff-tidy/SKILL.md` — yes/no chaining gates (D2), autonomous
   default (D3)
 - `skills/faff-prep/SKILL.md` — yes/no chaining gates (D2), hybrid C+B
@@ -271,3 +297,6 @@ expensive.
 9. beep-boop's conflict analysis runs before the build pass and partitions
    the ready set into parallel/serial groups per D10.
 10. beep-boop produces a summary at run end and posts to the tracker.
+11. faff-wtf surfaces a "Parked overnight" section listing any issues
+    parked by a prior autonomous run, each with a link to its log and a
+    yes/no gate to open the log, re-prep, or leave parked (D11).

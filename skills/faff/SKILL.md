@@ -23,9 +23,10 @@ All faff sub-skills read project-specific details from `CLAUDE.md`. They expect 
 - Git host details (org, repo)
 
 Optional but useful:
-- Milestones with target dates
 - Labels and their meanings
 - Working pattern notes
+
+**Never put mutable state in a consuming repo's `CLAUDE.md`.** That means no milestone lists, no target dates, no progress percentages, no issue snapshots, no "current cycle" notes — anything that can change in the tracker must be fetched live by the skill on every invocation. `CLAUDE.md` holds only stable identifiers (project IDs, team keys, repo slugs, label names) and stable preferences. If a sub-skill needs mutable data, the skill instructions must say "refetch from the tracker" and name the MCP tool to call.
 
 Faff auto-detects which issue tracker and git host MCP servers are available and adapts accordingly. It works with Linear, GitHub Issues, Jira, or any issue tracker exposed via MCP. If no tracker MCP is available, it falls back to git-only mode (commits, branches, PRs).
 

@@ -70,8 +70,7 @@ Optional:
 - **Labels:** `urgent` = drop everything, `blocked` = needs external input
 
 ## Planning Skills
-- spec: superpowers:brainstorming
-- plan: superpowers:writing-plans
+- spec: gstack:autoplan
 - parallel: superpowers:subagent-driven-development
 - review: gstack:review
 - ship: gstack:ship

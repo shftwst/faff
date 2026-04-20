@@ -13,6 +13,8 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 Reads project-specific details from `CLAUDE.md` — expects a **Project Tracking** section with issue tracker details (project ID, team key) and git host details (org, repo). Auto-detects which issue tracker and git host MCP servers are available.
 
+See the gateway (`skills/faff/SKILL.md`) for shared rules: ignoring cancelled/archived, `.faff/` logging, Planning Skills slots (`plan`, `review`, `ship` are all consulted by this skill), and the autonomous-mode contract.
+
 ### Worktree Hook
 
 Workit needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.claude/settings.json` for a WorktreeCreate hook. If none exists:
@@ -49,7 +51,7 @@ The user may provide an issue identifier, OR invoke with no arguments.
 
 **Step 1: Get Issue Details**
 
-Query the issue tracker for the issue. Extract:
+Query the issue tracker for the issue. If cancelled or archived per the shared rule, refuse and stop. Otherwise extract:
 - Issue identifier
 - Title
 - Current status
@@ -62,7 +64,7 @@ If the issue doesn't exist, tell the user and stop.
 Check the issue for an attached spec (the artifact produced by `/faff-prep`).
 
 - **Spec exists:** Issue is prepped. Proceed to step 3.
-- **No spec:** Issue hasn't been prepped. Tell the user to run `/faff-prep` first. Stop.
+- **No spec:** In interactive mode, yes/no gate: "No spec attached. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
 
 The gate ensures no one starts building without a validated spec.
 
@@ -71,7 +73,7 @@ The gate ensures no one starts building without a validated spec.
 Run `git worktree list` and check if a worktree for this issue already exists (match on the issue ID in the path).
 
 If a worktree already exists:
-- **Verify branch:** Compare the checked-out branch to the expected branch name. If they don't match, warn the user.
+- Verify the checked-out branch matches the expected branch name. Warn if not.
 - Tell the user the worktree exists and open it.
 - Skip to step 5 (status update). Spec was already committed on first workit.
 
@@ -86,8 +88,8 @@ If no worktree exists:
 
 Pull the spec content from the issue tracker and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes.
 
-For example if the user's preference is to use the `superpowers` skills, the file location would become:
-- Spec -> `docs/superpowers/specs/YYYY-MM-DD-<issue-id>-<slug>-design.md`
+Location example:
+- Spec → `docs/superpowers/specs/YYYY-MM-DD-<issue-id>-<slug>-design.md`
 
 Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use today's date for `YYYY-MM-DD`.
 
@@ -99,15 +101,130 @@ This commit happens once. If the user re-runs workit on the same issue (existing
 
 If the issue is not already In Progress, transition it.
 
-**Step 6: Present spec and hand off to building**
+**Step 6: Present spec and choose path**
 
-Validate the spec's freshness against the current codebase. Then present a summary of the spec — design approach, key decisions, acceptance criteria — and ask:
-- **"Build"** — proceed to building. The implementer chooses their own execution strategy (feed the spec into a planning skill, use subagent-driven development, build directly, etc.)
-- **"Review"** — walk through the spec before starting
-- **"Reprep"** — something changed, re-enter prep via `/faff-prep`
+Validate the spec's freshness against the current codebase. Then present a summary of the spec — design approach, key decisions, acceptance criteria — and offer a three-way choice (all branches invoke via the Skill tool on confirm):
+
+- **build** — proceed to Step 7 (build loop)
+- **review** — walk through the spec in detail before starting, then return here
+- **reprep** — something changed; invoke `/faff-prep ISSUE-XX` in respec mode via the Skill tool
+
+**Step 7: Build**
+
+Implementer chooses execution strategy. If a `plan` slot is configured in CLAUDE.md Planning Skills, optionally invoke it first to produce a step-by-step plan. Otherwise, build directly from the spec.
+
+During the build, if a decision arises that the spec doesn't resolve:
+- **Interactive mode:** ask the user.
+- **Autonomous mode:** see _Autonomous Mode_ below (invoke `/faff-prep` respec; if still ambiguous, park).
+
+**Step 8: AC verification (mandatory)**
+
+Before the PR is considered done, every acceptance criterion must be verified.
+
+For each AC in the spec:
+1. Identify or write an automated test covering it.
+2. Run the test — it must pass.
+3. If the AC requires live exercise (HTTP endpoint shape, CLI behaviour, filesystem side-effect, deployed service check), run the actual command (curl / bash / a real binary invocation) and capture the result.
+
+The PR description must include an AC checklist:
+
+```markdown
+## Acceptance Criteria
+- [x] AC 1 — <description>
+      Verified: `test/foo.test.ts::test_ac1` — passing
+- [x] AC 2 — <description>
+      Verified: `curl -s https://api.example.com/foo | jq .status` → `"ok"`
+- [ ] AC 3 — <description>
+      **Needs human verification:** requires visual inspection of layout
+- [ ] AC 4 — <description>
+      **Needs human verification:** requires production auth credentials
+```
+
+Tick each box as its verification passes, with a one-line note (test file reference, or command + observed result). ACs that cannot be auto-verified (visual, subjective, auth-required) remain unchecked with an inline note explaining why.
+
+This step runs in **both** interactive and autonomous modes.
+
+**Step 9: Review phase**
+
+Runs after AC verification, before the merge-confidence gate.
+
+- If `review` slot is configured in CLAUDE.md Planning Skills, invoke it. It should return a pass/fail signal plus any flagged items.
+- Otherwise, perform the faff built-in lightweight review:
+  - Read the diff
+  - Confirm every AC in the spec has a corresponding test reference
+  - Scan for obvious bugs (unused vars, commented-out blocks, uncaught promises, mismatched async/sync, leftover debug prints)
+
+Append the review result to the PR as a comment. Record pass/fail + the list of flagged items.
+
+**Step 10: Merge-confidence gate**
+
+Merge happens only when **all four** conditions hold:
+
+1. Every AC has a passing automated verification (Step 8 — all boxes that can be auto-ticked, are)
+2. CI is green
+3. Review step passed (Step 9)
+4. No flagged unresolved items in the review output
+
+**Decision:**
+
+- **All four hold:**
+  - If `ship` slot configured → invoke it as the delivery mechanism.
+  - Otherwise → vanilla `gh pr merge`.
+- **Any fail:** leave the PR open with:
+  - The AC checklist visible (with unticked items marked with their reason)
+  - The review comment visible
+  - CI status visible
+  - No merge. Return for human attention.
+
+In **interactive mode**, this gate fires when the user confirms "merge now" at post-PR time (Step 11). In **autonomous mode**, it fires automatically at the end of the build flow.
+
+**Step 11: Post-PR checks (interactive)**
+
+After the PR is posted, wait for CI builds to complete. Based on result and the gate in Step 10:
+
+- **Gate passes (auto-mergeable):** yes/no "All four gate conditions pass. Merge now? (y/n)". On confirm, invoke the ship path. On deny, leave PR open.
+- **Gate fails on CI:** "CI failed. Iterate on this PR? (y/n)". On confirm, keep going. On deny, yes/no "Pick next ticket via `/faff-wtf`? (y/n)".
+- **Gate fails on review or unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human.
+
+All subsequent chain points are yes/no gates (never passive "run /faff-wtf").
+
+**Step 12: Post workit checks**
+
+After build is complete and PR has been raised, offer a yes/no gate:
+
+> "Pick next ticket via `/faff-wtf`? (y/n)"
+
+On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
+
+## Autonomous Mode
+
+When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
+
+**Entry:** assumes issue exists, is not cancelled/archived, has a valid spec, and a dedicated worktree is already prepared (beep-boop handles worktree management per-issue to support parallel runs).
+
+**Flow:**
+1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).
+2. During Step 7, if a decision arises that the spec doesn't resolve, invoke `/faff-prep` in respec mode. If respec returns `parked` → park this issue (WIP commit + draft PR + tracker note + log) and return to caller.
+3. After build, run Step 8 (AC verification) — mandatory.
+4. Run Step 9 (review phase).
+5. Run Step 10 (merge-confidence gate) automatically:
+   - **All four conditions hold:** invoke ship path (configured `ship` skill or `gh pr merge`). Return `shipped`.
+   - **Any condition fails:** leave PR open, post an AC checklist comment and the review output. Return `pr-open-for-human`.
+6. Any unrecoverable error → park and return `errored`.
+
+**Park protocol:** shared — see `skills/faff/SKILL.md`. Summary: WIP commit, draft PR, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry.
+
+**Return values to caller (beep-boop):**
+- `shipped` — all four gate conditions held, PR merged
+- `pr-open-for-human` — build complete but gate failed on at least one condition (includes per-condition reason in the log)
+- `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
+- `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
+
+Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/workit.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-workit-ISSUE-XX.md`).
 
 ## Notes
 - Don't ask for confirmation before creating the worktree — the user said the issue ID, that's the intent.
 - The prep gate is non-negotiable. Even quick fixes benefit from a lightweight prep pass.
 - The spec is committed to the feature branch, not main. It only reaches main when the PR merges.
-- Any detailed implementation plans produced during the work are the implementer's concern — for example if the preference is to use `superpowers:writing-plans` they may commit them to `docs/superpowers/plans/` on the feature branch alongside the code, or not. Faff-workit doesn't prescribe this.
+- Any detailed implementation plans produced during the work are the implementer's concern — may commit alongside code (e.g. `docs/superpowers/plans/`), or not. Faff-workit doesn't prescribe this.
+- AC verification is not optional. A PR without a ticked-or-explained AC checklist is not complete.

@@ -180,13 +180,30 @@ In **interactive mode**, this gate fires when the user confirms "merge now" at p
 
 **Step 11: Post-PR checks (interactive)**
 
-After the PR is posted, wait for CI builds to complete. Based on result and the gate in Step 10:
+After the PR is posted, wait for CI builds to complete **synchronously in the same turn**. Based on result and the gate in Step 10:
 
 - **Gate passes (auto-mergeable):** yes/no "All four gate conditions pass. Merge now? (y/n)". On confirm, invoke the ship path. On deny, leave PR open.
 - **Gate fails on CI:** "CI failed. Iterate on this PR? (y/n)". On confirm, keep going. On deny, yes/no "Pick next ticket via `/faff-wtf`? (y/n)".
 - **Gate fails on review or unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human.
 
 All subsequent chain points are yes/no gates (never passive "run /faff-wtf").
+
+### How to actually wait for CI
+
+**Never say "I'll check CI once it reports" and end the turn.** Turns don't resume on their own — the user has to prompt you again, which defeats the point. Either you wait synchronously in-turn, or you tell the user CI is running and hand back control explicitly (without any promise to check later).
+
+Correct patterns:
+
+- **Block synchronously (preferred):** `gh pr checks <pr> --watch --interval 15` — blocks until all checks reach a terminal state, then exits with non-zero on failure. Wrap in `Bash` with a generous `timeout` (CI runs routinely take 5–15 minutes; allow 600000ms / 10 minutes at minimum, up to the Bash tool's max). If checks legitimately take longer than the tool max, poll in a loop: `gh pr checks <pr>` every 30–60s via `Bash`, until output shows no `pending` / `in_progress`.
+- **Hand back cleanly:** "CI is running. I'm stopping here — re-invoke `/faff-workit` or say 'check CI' when you want me to poll." This is the only acceptable way to exit without a CI result. Do **not** pair this with "I'll check once it reports" — you won't.
+
+Forbidden patterns:
+
+- "Waiting on CI. I'll check once it reports." — you can't. The turn is over.
+- "Checking CI in the background." — there is no background.
+- Ending the turn without a CI terminal state AND without an explicit handoff.
+
+If a CI wait is taking long enough that blocking the turn feels wasteful, **prefer the explicit handoff** over a fake promise. Surprising the user with silence is worse than telling them you're stopping.
 
 **Step 12: Post workit checks**
 
@@ -205,6 +222,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 **Flow:**
 1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).
 2. During Step 7, if a decision arises that the spec doesn't resolve, invoke `/faff-prep` in respec mode. If respec returns `parked` → park this issue (WIP commit + draft PR + tracker note + log) and return to caller.
+   - **Before invoking respec, verify the spec actually doesn't resolve it.** Parse for decision markers (`Chosen:`, `Decision:`, `**Chosen:**`, or equivalent conclusion lines), not topic keywords. A section that weighs "pino vs winston" and ends with `Chosen: pino` is closed — proceed with pino. A `confidence: high` self-rating on the spec closes every spec-internal decision. Only invoke respec when the spec has an explicit punt marker (`Punt:`, `needs human`, `TBD`, `(or X if Y is too much)`), assumes external state that doesn't exist, or crosses a cost/irreversibility threshold. See the gateway's Autonomous Mode Contract for the full rule.
 3. After build, run Step 8 (AC verification) — mandatory.
 4. Run Step 9 (review phase).
 5. Run Step 10 (merge-confidence gate) automatically:

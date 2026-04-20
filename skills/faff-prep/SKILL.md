@@ -28,7 +28,9 @@ If `CLAUDE.md` declares a `spec` slot in Planning Skills, faff-prep delegates sp
 
 When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, faff-prep produces a lightweight inline spec itself.
 
-**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output. Faff-prep uses this to gate fresh-spec production in autonomous mode. A skill that cannot self-rate is still usable in interactive mode; the autonomous path parks instead.
+**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined in _Spec Format Contract_ below. Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A skill that cannot self-rate is still usable in interactive mode; the autonomous path parks instead.
+
+When invoking a delegated spec skill, faff-prep passes the _Spec Format Contract_ as part of the instructions so the delegated skill produces markers the autonomous reader can rely on.
 
 ## What Prep Produces
 
@@ -38,6 +40,33 @@ A single artifact: the **spec**. It answers two questions:
 2. **How do we know it's done** — acceptance criteria, concrete and testable
 
 The spec is a high-level design document. It does **not** contain implementation-level details like step-by-step code changes, TDD cycles, or exact commands. Those belong to the implementation phase, where the implementer can feed the spec into their own planning/execution workflow (e.g., `superpowers:writing-plans`, `superpowers:subagent-driven-development`, or direct implementation).
+
+## Spec Format Contract
+
+Every spec faff-prep produces (delegated or inline, fresh or refreshed) must mark each non-trivial decision with one of the canonical markers below. This is the contract the autonomous reader in `/faff-workit` and `/faff-beep-boop` relies on — without it, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers.
+
+**Required markers (one per decision):**
+
+| Marker | Meaning | Example |
+|---|---|---|
+| `**Chosen:** X` or `**Decision:** X` | Closed. The spec has picked X. Implementer does X. Reader must not re-raise. | `**Chosen:** pino — structured JSON logs, smallest dep footprint of the shortlist.` |
+| `**Punt:** X or Y — needs human` | Open. The spec has explicitly deferred this to a human reviewer. Reader escalates. | `**Punt:** enforce via eslint rule or code-review checklist — needs human.` |
+| `**Assumes:** X exists` | External dependency. Reader validates presence before build; parks if absent. | `**Assumes:** ISSUE-42 has shipped the auth middleware.` |
+
+**Rules:**
+
+1. Every decision section (tradeoff tables, "X vs Y" comparisons, architecture picks) must conclude with exactly one marker. Prose rationale above the marker is encouraged; the marker is what the reader parses.
+2. A spec with a tradeoff table but no concluding marker is **invalid**. In autonomous mode, faff-prep parks rather than attaches. In interactive mode, faff-prep adds the missing marker before attaching (using the spec's own conclusion or flagging it inline if ambiguous).
+3. `Punt:` and `Assumes:` markers must appear in a top-level "Open Questions" or "Assumptions" section so the reader can enumerate them quickly.
+4. `Chosen:` / `Decision:` applies to any design choice: libraries, patterns, data shapes, naming, scope boundaries. If the spec weighs options and picks one, mark it.
+5. No topic-keyword contract. The reader matches on markers, not topic names. A section called "Logging" with `**Chosen:** pino` at the end is closed; a section called "Anything" with `**Punt:** A or B — needs human` is open.
+
+**Validation before attach:** faff-prep scans the spec for:
+- At least one canonical marker in any section that presents multiple options.
+- No dangling comparisons (tables or "vs" prose without a marker below).
+- `Punt:` and `Assumes:` entries grouped in their dedicated sections.
+
+In autonomous mode, validation failure → park. In interactive mode, validation failure → faff-prep adds the missing marker (drawing from the delegated skill's output or user-confirmed choice) before attach.
 
 ## Prep Gate
 
@@ -91,13 +120,16 @@ The ticket has no attached spec. Run the full prep workflow:
 If a `spec` skill is configured, invoke it with the issue context and explore findings. Read its output. Attach the content to the issue as a comment. Clean up the local file.
 
 If no `spec` skill is configured, produce an inline spec artifact:
-- Design decisions with rationale
+- Design decisions with rationale — **each closed with a `**Chosen:**` / `**Decision:**` marker per the _Spec Format Contract_**
 - Architecture and approach
 - Interface contracts (API endpoints, component props, data schemas)
-- Key technical decisions with pros/cons
+- Key technical decisions with pros/cons — **each concluded with a marker; open questions go in an "Open Questions" section using `**Punt:**`**
+- External prerequisites — listed in an "Assumptions" section using `**Assumes:**`
 - Risks, edge cases, what could go wrong
 - Acceptance criteria — concrete, testable conditions for done
 - If cross-boundary, recommend split
+
+Run the marker validation from _Spec Format Contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
 
 **→ Immediately attach spec to the issue as a comment.**
 - If the spec surfaced that the issue should be split, recommend the split
@@ -169,17 +201,20 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase
 - Changes are limited to shipped blockers, minor drift, or fresh context that doesn't invalidate the approach
 
-→ produce a refreshed spec with changes annotated, reattach to the issue, keep the issue where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated, **validate per the _Spec Format Contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach → **park** (not a safe auto-refresh).
+
+If the refreshed spec fails marker validation → **park** with cause "spec format contract violated — missing Chosen/Decision/Punt markers".
 
 ### Path 2 — Fresh-spec (no existing spec)
 
 Only available when a `spec` skill is configured (see Configuration).
 
-Invoke the configured spec skill. Inspect the `confidence:` self-rating at the end of its output.
+Invoke the configured spec skill (passing the _Spec Format Contract_ in the instructions). Inspect the `confidence:` self-rating at the end of its output, then run marker validation.
 
-- `confidence: high` → attach to issue, move to Todo, return `promoted`
+- `confidence: high` **and** marker validation passes → attach to issue, move to Todo, return `promoted`
+- `confidence: high` **but** marker validation fails → **park** with cause "spec format contract violated — missing Chosen/Decision/Punt markers"
 - `confidence: medium` → **park**
 - `confidence: low` → **park**
 

@@ -111,6 +111,19 @@ Universal rules in autonomous mode:
 - **Log every decision, input, and output** to `.faff/logs/…` per the layout above. The log must be sufficient to resume in a fresh conversation.
 - **Park on unexpected state.** Missing MCP tool, failed query, dirty worktree, genuine ambiguity — all trigger _park + log + continue_. Never abort the whole run on a single issue.
 - **Log entries always include:** what was expected, what was observed, what decision was taken, and why.
+- **Spec-closed decisions stay closed. Never re-litigate them.** When reading a spec in autonomous mode, parse for **decision markers**, not topic keywords:
+  - Sections ending with `Chosen: X`, `**Chosen:** X`, `Decision: X`, or equivalent conclusion markers are **closed**. Do the thing the spec chose. A "pino vs winston" rationale table that ends in `Chosen: pino` is not an open question — it is a locked decision.
+  - A spec self-rated `confidence: high` closes every spec-internal decision. Trust the contents. Park only on external unknowns.
+  - **Spec punts are explicit.** Markers include `Punt:`, `needs human`, `TBD`, `unresolved`, `(or X if Y is too much)`, "revisit", or any sentence presenting two options without picking one. Only these escalate.
+- **Valid autonomous parks (escalate to human):** (a) spec contains an explicit punt marker, (b) spec assumes external state that doesn't exist in the repo (missing dep, undefined seam, blocker issue not shipped), (c) cost/irreversibility threshold crossed (schema migration, breaking public API, data-loss risk, significant infra cost).
+- **Invalid autonomous parks (just proceed):** anything else. Stylistic second-guessing, "did the author really mean X?", topic-keyword matches on sections that the spec has already closed. If the spec has an answer, that is the answer.
+- **Never write a Bash command that will trigger an approval prompt.** Autonomous mode is pointless if a human has to babysit it. Before invoking `Bash`, check the command against these rules:
+  - Prefer dedicated tools (`Read`, `Grep`, `Glob`, `Edit`, `Write`) over shell equivalents (`cat`, `grep`, `find`, `sed`, `echo >`). They never trip approval heuristics.
+  - **Never** use `python3 -c`, `node -e`, `perl -e`, or similar `-c`/`-e` one-liners with multi-line bodies. If you need a script, `Write` it to `$TMPDIR/<name>.py` (or similar) and run the file.
+  - **Never** put `#` characters after a newline inside a quoted argument — path-validation heuristics flag this as arg-hiding even when the `#` is an inner-language comment.
+  - Avoid `&&`-chains longer than two commands, heredocs (`<<EOF`) passed to interpreters, and anything that looks like it's hiding intent.
+  - Rule of thumb: if the command is more than ~3 lines or needs a comment to explain itself, it's too clever — use file tools or a temp script instead.
+  - If the only way to do something is a command that will prompt, **park the unit of work** and log why. Do not attempt it and burn a human's attention.
 
 Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` section. Summary:
 

@@ -166,28 +166,44 @@ If any fail → leave PR open with checklist + review notes for a human.
 
 **Pipeline (full mode):**
 
-1. **Tidy pass** — autonomous tidy defaults (D3). Logs everything else.
-2. **WTF pass** — build ready-queue (Todo with spec, or specable via D3).
-3. **Spec pass (per candidate)** — apply faff-prep autonomous defaults
-   (D3): stale-refresh, or high-confidence fresh-spec, or park.
-4. **Conflict analysis** — run once over the final ready set (after spec
-   pass) and partition issues into independents (parallelisable) and
-   collision groups (serialised within group).
-   Independents run in parallel; serialised groups run sequentially inside
-   themselves but in parallel with other independents.
-5. **Build pass (per issue)** — invoke `/faff-workit` in autonomous mode
+The pipeline runs two independent queues end-to-end: a **prep queue** and
+a **build queue**. The prep queue drains first and always runs to
+completion, regardless of whether any of its output ends up build-ready.
+Overnight prep work is valuable on its own (specs attached to issues,
+issues moved to Todo or parked with explicit cause) even when the build
+queue ends up empty.
+
+1. **Tidy pass** — autonomous tidy defaults (D3). Log everything else.
+2. **Prep queue build** — gather every Backlog/unprepped issue that
+   isn't explicitly blocked, cancelled, or archived (D4).
+3. **Prep queue drain** — for each candidate, apply faff-prep autonomous
+   defaults (D3): stale-refresh, or high-confidence fresh-spec, or park.
+   Runs until the prep queue is empty. Never short-circuits on build-queue
+   state — prep output is always completed.
+4. **Build queue assembly** — collect every issue that has a valid spec
+   and meets readiness criteria (no open blockers, moved to Todo).
+5. **Conflict analysis** — run once over the build queue and partition
+   issues into independents (parallelisable) and collision groups
+   (serialised within group). Independents run in parallel; serialised
+   groups run sequentially inside themselves but in parallel with other
+   independents.
+6. **Build pass (per issue)** — invoke `/faff-workit` in autonomous mode
    against a dedicated worktree. Inherits D7 and D8.
-6. **Mid-build ambiguity** (within workit) — invoke `/faff-prep` respec.
+7. **Mid-build ambiguity** (within workit) — invoke `/faff-prep` respec.
    Still ambiguous → park.
-7. **Merge decision** (D8) — auto-merge on high confidence, leave PR
+8. **Merge decision** (D8) — auto-merge on high confidence, leave PR
    otherwise.
-8. **Loop** until the queue is drained or everything remaining is parked.
+9. **Build queue loop** until the build queue is drained or everything
+   remaining is parked.
+
+If the build queue is empty after step 4, skip steps 5–9 and go directly
+to reporting. Prep output still counts as a successful run.
 
 **Parallelism:** uses the configured `parallel` skill if set; otherwise
 sequential. Each parallel unit gets its own worktree.
 
-**Stopping condition:** queue-drain — the run ends when the ready queue is
-empty or all remaining issues are parked or blocked.
+**Stopping condition:** queue-drain — the run ends when both queues are
+drained or everything remaining is parked or blocked.
 
 **Reporting:** on completion, beep-boop writes `runs/…/summary.md` and
 posts a status update to the tracker. Summary lists: shipped, auto-merged,

@@ -211,7 +211,8 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 
 - **Never aborts the run on a single failure.** Park that issue, log, continue with the next unit of work.
 - **Never auto-splits tickets** or restructures the backlog beyond what tidy's autonomous defaults allow.
-- **Never auto-merges without the four-condition gate** (AC verified + CI green + review passed + no unresolved flags — see faff-workit Step 10).
+- **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-workit Step 10).
+- **Mid-run compaction is a resume, not a park.** If the session compacts during a build, the next turn reads `.faff/runs/<run-id>/` + the PR state and continues where it left off. See the gateway's Autonomous Mode Contract for the full rule on forbidden park reasons.
 - **Always leaves a complete audit trail** under `.faff/runs/<run-id>/`.
 - **Always tags parked issues** so `/faff-wtf` surfaces them next morning.
 

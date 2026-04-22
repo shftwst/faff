@@ -11,9 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-Reads project-specific details from `CLAUDE.md` — expects a **Project Tracking** section with issue tracker details (project ID, team key) and git host details (org, repo). Auto-detects which issue tracker and git host MCP servers are available.
-
-See the gateway (`skills/faff/SKILL.md`) for shared rules: ignoring cancelled/archived, `.faff/` logging, Planning Skills slots (`plan`, `review`, `ship` are all consulted by this skill), and the autonomous-mode contract.
+See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `plan`, `review`, and `ship` Planning Skill slots.
 
 ### Worktree Hook
 
@@ -61,10 +59,10 @@ If the issue doesn't exist, tell the user and stop.
 
 **Step 2: Check prep gate**
 
-Check the issue for an attached spec (the artifact produced by `/faff-prep`).
+Check the issue for an attached spec. Follow the shared **Spec discovery** rule in `skills/faff/SKILL.md` — look in tracker comments, the main description/body, and committed `docs/` paths. A hit in any of those counts as the spec.
 
 - **Spec exists:** Issue is prepped. Proceed to step 3.
-- **No spec:** In interactive mode, yes/no gate: "No spec attached. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
+- **No spec (none of the three sources):** In interactive mode, yes/no gate: "No spec found in comments, description, or docs. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
 
 The gate ensures no one starts building without a validated spec.
 
@@ -146,35 +144,44 @@ This step runs in **both** interactive and autonomous modes.
 
 **Step 9: Review phase**
 
-Runs after AC verification, before the merge-confidence gate.
+Runs after AC verification, before the merge-confidence gate. This step acts as the **autonomous human-review gate** — a senior-engineer stand-in that decides whether the PR is safe to auto-merge on green, or whether a human genuinely has to look.
 
-- If `review` slot is configured in CLAUDE.md Planning Skills, invoke it. It should return a pass/fail signal plus any flagged items.
-- Otherwise, perform the faff built-in lightweight review:
-  - Read the diff
+- If `review` slot is configured in CLAUDE.md Planning Skills, invoke it.
+- Otherwise, perform the faff built-in review (faff-workit playing the senior-engineer role):
+  - Read the full diff
   - Confirm every AC in the spec has a corresponding test reference
   - Scan for obvious bugs (unused vars, commented-out blocks, uncaught promises, mismatched async/sync, leftover debug prints)
+  - Sanity-check the change is within spec scope (no out-of-scope refactors smuggled in)
+  - Judge whether any decision in the diff requires human judgement that the spec didn't anticipate (product UX calls, security posture, irreversible external effects — see the Autonomous Mode Contract in `skills/faff/SKILL.md`)
 
-Append the review result to the PR as a comment. Record pass/fail + the list of flagged items.
+The review must return one of three signals:
+
+| Signal | Meaning | Autonomous action |
+|---|---|---|
+| `pass` | Diff matches spec, ACs covered, no flagged items. | Proceed to merge-confidence gate. Merge on green CI. |
+| `fail` | Fixable issues — failing tests, missing coverage, obvious bugs, scope creep. | Iterate autonomously: fix the flagged items, re-run tests, re-run review. Loop until `pass` or `needs-human`. |
+| `needs-human` | Genuine human judgement required — product call, security/privacy concern, irreversible side effect outside the PR flow, spec gap that respec couldn't close. | Flip PR to draft. Park per the shared park protocol. Do not auto-merge. |
+
+`needs-human` is reserved for things the merge-confidence gate can't catch. If `git revert` on the merge commit fully undoes the change, it is not `needs-human` — it is `pass` or `fail`. See the gateway's Autonomous Mode Contract for the full rule on what escalates vs. what proceeds.
+
+Append the review result to the PR as a comment. Record the signal, flagged items, and (for `needs-human`) the specific reason.
 
 **Step 10: Merge-confidence gate**
 
-Merge happens only when **all four** conditions hold:
+Merge happens only when **all three** conditions hold:
 
 1. Every AC has a passing automated verification (Step 8 — all boxes that can be auto-ticked, are)
 2. CI is green
-3. Review step passed (Step 9)
-4. No flagged unresolved items in the review output
+3. Review step (Step 9) returned `pass`
 
 **Decision:**
 
-- **All four hold:**
+- **All three hold:**
   - If `ship` slot configured → invoke it as the delivery mechanism.
   - Otherwise → vanilla `gh pr merge`.
-- **Any fail:** leave the PR open with:
-  - The AC checklist visible (with unticked items marked with their reason)
-  - The review comment visible
-  - CI status visible
-  - No merge. Return for human attention.
+- **Review returned `fail`:** iterate autonomously (fix flagged items, re-run tests, re-run review). This is not a park — it's a loop.
+- **Review returned `needs-human`:** flip PR to draft, park per the shared protocol. Leave the PR open with the AC checklist, review comment, and CI status visible.
+- **CI failed:** in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11.
 
 In **interactive mode**, this gate fires when the user confirms "merge now" at post-PR time (Step 11). In **autonomous mode**, it fires automatically at the end of the build flow.
 
@@ -222,19 +229,23 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 **Flow:**
 1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).
 2. During Step 7, if a decision arises that the spec doesn't resolve, invoke `/faff-prep` in respec mode. If respec returns `parked` → park this issue (WIP commit + draft PR + tracker note + log) and return to caller.
-   - **Before invoking respec, verify the spec actually doesn't resolve it.** Parse for decision markers (`Chosen:`, `Decision:`, `**Chosen:**`, or equivalent conclusion lines), not topic keywords. A section that weighs "pino vs winston" and ends with `Chosen: pino` is closed — proceed with pino. A `confidence: high` self-rating on the spec closes every spec-internal decision. Only invoke respec when the spec has an explicit punt marker (`Punt:`, `needs human`, `TBD`, `(or X if Y is too much)`), assumes external state that doesn't exist, or crosses a cost/irreversibility threshold. See the gateway's Autonomous Mode Contract for the full rule.
+   - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see `skills/faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 3. After build, run Step 8 (AC verification) — mandatory.
-4. Run Step 9 (review phase).
-5. Run Step 10 (merge-confidence gate) automatically:
-   - **All four conditions hold:** invoke ship path (configured `ship` skill or `gh pr merge`). Return `shipped`.
-   - **Any condition fails:** leave PR open, post an AC checklist comment and the review output. Return `pr-open-for-human`.
-6. Any unrecoverable error → park and return `errored`.
+4. Push the branch and open the PR as a **regular (non-draft) PR**. Regular PRs are the default in autonomous mode; the review step decides whether to keep it that way or flip to draft.
+5. Run Step 9 (review phase). Act on the three-valued signal:
+   - `pass` → proceed to Step 10 merge-confidence gate.
+   - `fail` → iterate: fix flagged items, re-run tests, re-run review. Loop until `pass` or `needs-human` (cap at 3 iterations; if still `fail` after 3, treat as `needs-human`).
+   - `needs-human` → flip PR to draft, park per the shared protocol. Return `pr-open-for-human`.
+6. Run Step 10 (merge-confidence gate) automatically:
+   - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), then invoke ship path on green (configured `ship` skill or `gh pr merge`). Return `shipped`.
+   - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
+7. Any unrecoverable error → park and return `errored`.
 
-**Park protocol:** shared — see `skills/faff/SKILL.md`. Summary: WIP commit, draft PR, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry.
+**Park protocol:** shared — see `skills/faff/SKILL.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
 
 **Return values to caller (beep-boop):**
-- `shipped` — all four gate conditions held, PR merged
-- `pr-open-for-human` — build complete but gate failed on at least one condition (includes per-condition reason in the log)
+- `shipped` — all three gate conditions held, PR merged (unblocks chained issues)
+- `pr-open-for-human` — review returned `needs-human`, or CI failed unrecoverably — PR is draft, awaiting human
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
 

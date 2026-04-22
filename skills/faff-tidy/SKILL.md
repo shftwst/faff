@@ -14,9 +14,7 @@ Tidy the backlog. Looks both ways in one pass:
 
 ## Configuration
 
-Reads project-specific details from `CLAUDE.md` — expects a **Project Tracking** section with issue tracker details (project ID, team key) and git host details (org, repo). Auto-detects which issue tracker and git host MCP servers are available.
-
-See the gateway (`skills/faff/SKILL.md`) for shared rules: ignoring cancelled/archived, `.faff/` logging, Planning Skills slots, and the autonomous-mode contract.
+See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
 
 ## Process
 
@@ -49,11 +47,11 @@ An issue is ready when:
 - No big architectural questions to answer first
 - Not a dupe of something else
 - Categorised and/or belongs to a milestone
-- Has a spec attached to the issue
+- Has a spec (per the shared **Spec discovery** rule — comments, description, or committed `docs/` all count)
 
 ### 3. Almost ready (flag)
 
-Issues that are close but need one small thing — a blocker that's still In Progress, one unresolved question, an unclear acceptance criterion, solid information in ticket but no spec attached.
+Issues that are close but need one small thing — a blocker that's still In Progress, one unresolved question, an unclear acceptance criterion, solid information in ticket but no spec in any of the discovery locations (comments / description / docs).
 
 ## Output and chaining
 

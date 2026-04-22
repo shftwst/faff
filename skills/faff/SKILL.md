@@ -50,7 +50,7 @@ Defaults when a slot is unset:
 | `spec` | Inline spec produced by faff-prep. In autonomous mode, the inline path parks instead (no self-rating available — see autonomous contract). |
 | `plan` | faff-workit builds directly from the spec without a formal plan step. |
 | `parallel` | faff-beep-boop runs sequentially. |
-| `review` | faff built-in lightweight review: diff read, AC-to-test coverage check, obvious-bug scan. |
+| `review` | faff built-in review: faff-workit plays the senior-engineer role — diff read, AC-to-test coverage, obvious-bug scan, scope check, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
 | `ship` | Vanilla `gh pr merge` after faff's merge-confidence gate passes. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
@@ -69,6 +69,16 @@ Every faff sub-skill excludes the following from every query, recommendation, co
 - Cancelled or archived projects themselves
 
 No exceptions. Cancelled/archived items are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by workit, never counted in beep-boop queues.
+
+### Spec discovery (where to look for an existing spec)
+
+Any faff sub-skill that asks "does this issue have a spec?" must check **all three** of the following, in order, and treat a hit in any of them as the spec:
+
+1. **Issue tracker comments / documents** — the default location faff-prep writes to during Phase 1 (pre-build). For Linear, this includes both inline comments and attached documents.
+2. **Issue tracker main description / body** — users sometimes paste or author the spec directly in the ticket body instead of a comment.
+3. **Committed docs** in the repo — e.g. `docs/superpowers/specs/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-workit commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
+
+Never assume "no spec attached" without checking all three. Finding a spec in any location is a positive — there is no requirement that it live in comments specifically. When multiple sources exist, prefer the most recently modified one and note the discrepancy in the log.
 
 ### `.faff/` logging directory
 
@@ -110,13 +120,23 @@ Universal rules in autonomous mode:
 - **Never prompt.** Every interactive gate has a pre-defined autonomous default. If there is no safe default for a decision, park the work unit and move on.
 - **Log every decision, input, and output** to `.faff/logs/…` per the layout above. The log must be sufficient to resume in a fresh conversation.
 - **Park on unexpected state.** Missing MCP tool, failed query, dirty worktree, genuine ambiguity — all trigger _park + log + continue_. Never abort the whole run on a single issue.
+- **"Ambiguity" means the spec is ambiguous — not that the session state is.** Things about your own runtime are never valid park reasons:
+  - Context compaction (current or anticipated) — the harness handles compaction; the `.faff/` logs + tracker + PR state make every work unit resumable across compactions. A compacted session is not an ambiguous one.
+  - Session length, turn count, "this will take many steps", "I've already done a lot this session" — none of these are ambiguities. Do the work.
+  - Worries about whether you'll remember earlier steps — you don't need to. The log captures what was decided; the tracker captures status; git captures diffs. Future-you (or a resumed session) reads state, it doesn't remember it.
+  - Beep-boop processes issues serially (or via the `parallel` slot). Each `/faff-workit` invocation is an independent unit — if compaction happens mid-build, resume from `.faff/runs/<run-id>/ISSUE-XX/workit.md` + the branch/PR state. This is a feature, not a risk.
+  - **Forbidden park reasons (explicit list):** "session may compact", "context is getting long", "too many turns", "too many issues left in the queue", "risk of another compaction", "mid-build compaction would be ambiguous". If one of these is the reason, **just proceed** — it's not a real park.
 - **Log entries always include:** what was expected, what was observed, what decision was taken, and why.
 - **Spec-closed decisions stay closed. Never re-litigate them.** When reading a spec in autonomous mode, parse for **decision markers**, not topic keywords:
   - Sections ending with `Chosen: X`, `**Chosen:** X`, `Decision: X`, or equivalent conclusion markers are **closed**. Do the thing the spec chose. A "pino vs winston" rationale table that ends in `Chosen: pino` is not an open question — it is a locked decision.
   - A spec self-rated `confidence: high` closes every spec-internal decision. Trust the contents. Park only on external unknowns.
   - **Spec punts are explicit.** Markers include `Punt:`, `needs human`, `TBD`, `unresolved`, `(or X if Y is too much)`, "revisit", or any sentence presenting two options without picking one. Only these escalate.
-- **Valid autonomous parks (escalate to human):** (a) spec contains an explicit punt marker, (b) spec assumes external state that doesn't exist in the repo (missing dep, undefined seam, blocker issue not shipped), (c) cost/irreversibility threshold crossed (schema migration, breaking public API, data-loss risk, significant infra cost).
-- **Invalid autonomous parks (just proceed):** anything else. Stylistic second-guessing, "did the author really mean X?", topic-keyword matches on sections that the spec has already closed. If the spec has an answer, that is the answer.
+- **The review skill is the autonomous human-review gate.** Every autonomous build lands as a **regular (ready-for-review) PR** and runs the configured `review` skill (or faff-workit's built-in review if none is configured) as a senior-engineer stand-in. The review's job is to decide whether this PR can merge on green, or whether a human actually has to look first. On pass → auto-merge when CI is green and ACs are verified. On `needs-human` → flip the PR to draft and park for human attention. On `fail` (fixable issues — failing tests, obvious bugs, missing test coverage) → iterate autonomously, re-run review, keep going until pass or `needs-human`. **Work that lands via PR is reversible by definition** — `git revert` exists. Pre-parking is wasteful when the review + merge-confidence gate already catches mistakes. Chained issues depend on earlier PRs merging; over-parking at the pre-PR stage breaks the pipeline.
+- **Valid autonomous parks (escalate to human pre-PR):** only three categories — (a) the spec contains an explicit punt marker, (b) the spec assumes external state that doesn't exist in the repo (missing dep, undefined seam, blocker issue not shipped), (c) the work cannot be fully reversed by `git revert` on the merge commit — i.e. it would execute a **side effect outside the PR flow** before the human reviews it.
+- **What "side effect outside the PR flow" actually means:** producing state changes that persist regardless of whether the PR lands. Examples: dropping or migrating production database tables, deleting or renaming S3 buckets / cloud resources, rotating or revoking secrets, sending emails or webhooks to real recipients, publishing packages to a registry, force-pushing to a protected branch, running one-off scripts against prod. These genuinely need pre-approval because the PR gate can't catch them after the fact.
+- **What is NOT a valid park, even if the CLAUDE.md topic list mentions it:** edits to files that only take effect after merge. This includes `netlify.toml`, `.github/workflows/*.yml`, `Dockerfile`, `package.json` dep bumps, migration SQL files (as long as they are not *executed* pre-merge), IaC definitions, CI config, build config. These all land via PR; the PR review is the gate. A CLAUDE.md rule like "modifying CI/CD requires confirmation" means *the PR review is the confirmation* — not a pre-park.
+- **Rule of thumb:** ask "if I merge this PR and it turns out wrong, can I fix it with `git revert` and a redeploy?" If yes → proceed, let the PR gate catch it. If no (because damage happened before or independent of the merge) → park.
+- **Invalid autonomous parks (just proceed):** anything outside the three valid categories above. Stylistic second-guessing, "did the author really mean X?", topic-keyword matches on sections that the spec has already closed, conflating "this touches sensitive files" with "this needs pre-approval". If the spec has an answer and the PR gate will catch mistakes, that is the answer.
 - **Never write a Bash command that will trigger an approval prompt.** Autonomous mode is pointless if a human has to babysit it. Before invoking `Bash`, check the command against these rules:
   - Prefer dedicated tools (`Read`, `Grep`, `Glob`, `Edit`, `Write`) over shell equivalents (`cat`, `grep`, `find`, `sed`, `echo >`). They never trip approval heuristics.
   - **Never** use `python3 -c`, `node -e`, `perl -e`, or similar `-c`/`-e` one-liners with multi-line bodies. If you need a script, `Write` it to `$TMPDIR/<name>.py` (or similar) and run the file.
@@ -132,7 +152,7 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 | faff-tidy | Auto-archive merged/cancelled + auto-reparent obvious orphans only. Everything else logged for morning review. |
 | faff-wtf | Return the ready-queue as a plain list. No focus recommendation. |
 | faff-prep | Stale-refresh when original design still holds; auto-spec from scratch only on high-confidence self-rating. Medium/low → park. Inline path parks (no self-rating available). |
-| faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review → merge-confidence gate. |
+| faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
 
 ### Park protocol (shared)
 

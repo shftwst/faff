@@ -13,9 +13,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-Reads project-specific details from `CLAUDE.md` — expects a **Project Tracking** section with issue tracker details (project ID, team key) and git host details (org, repo). Auto-detects which issue tracker and git host MCP servers are available.
-
-See the gateway (`skills/faff/SKILL.md`) for shared rules: ignoring cancelled/archived, `.faff/` logging, Planning Skills slots, and the autonomous-mode contract.
+See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
 
 ### Spec skill (optional)
 
@@ -105,9 +103,9 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ## Scenarios
 
-### Scenario A: Fresh prep (no existing spec on the ticket)
+### Scenario A: Fresh prep (no existing spec)
 
-The ticket has no attached spec. Run the full prep workflow:
+Apply the shared **Spec discovery** rule first (`skills/faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Only if **all three** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
 - Read the issue (title, description, ACs, dependencies, labels). Skip if cancelled or archived.
@@ -144,11 +142,11 @@ Yes/no gate:
 
 On confirm, invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conversation.
 
-### Scenario B: Resume (existing spec found on the ticket)
+### Scenario B: Resume (existing spec found)
 
-The ticket already has a spec attached from a previous prep session.
+The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (`skills/faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
 
-**Step 1: Restore working state** — pull the spec from the issue.
+**Step 1: Restore working state** — pull the spec from whichever source had it. If multiple sources exist, use the most recently modified one and note the others in the log.
 
 **Step 2: Validate freshness** — read the spec against the current codebase state. Check: have dependencies shipped since this was scoped? Has the codebase changed in ways that affect the spec? Are the technical decisions still valid? If stale: flag what changed and why it needs updating.
 

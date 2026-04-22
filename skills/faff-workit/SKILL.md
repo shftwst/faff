@@ -53,6 +53,26 @@ The user may provide an issue identifier, OR invoke with no arguments.
 
 ## Process
 
+**Step 0: Create step-by-step todos (mandatory — interactive and autonomous)**
+
+Before starting any work, use `TodoWrite` to create one todo per numbered step below — one todo per step, in order. Mark each `in_progress` when starting it and `completed` the moment it finishes. This is the forcing function that stops review, AC verification, or any other late step from being dropped when the build phase becomes a habit loop.
+
+Minimum todo set:
+
+- Step 1: Get issue details
+- Step 2: Check prep gate
+- Step 3: Check for existing worktree
+- Step 4: Commit spec to feature branch
+- Step 5: Move to In Progress
+- Step 6: Present spec and choose path (interactive) / proceed to build (autonomous)
+- Step 7: Build
+- Step 8: AC verification
+- Step 9: Review phase
+- Step 10: Merge-confidence gate
+- Step 11: Post-PR checks (interactive) / auto-merge on green (autonomous)
+
+Do not collapse these into one "implement the feature" todo. Every numbered step below, especially 8 / 9 / 10, must be a discrete todo that's visibly ticked off. Skipping a step without ticking its todo is a process failure.
+
 **Step 1: Get Issue Details**
 
 Query the issue tracker for the issue. If cancelled or archived per the shared rule, refuse and stop. Otherwise extract:
@@ -148,9 +168,11 @@ Tick each box as its verification passes, with a one-line note (test file refere
 
 This step runs in **both** interactive and autonomous modes.
 
-**Step 9: Review phase**
+**Step 9: Review phase (mandatory — interactive and autonomous)**
 
-Runs after AC verification, before the merge-confidence gate. This step acts as the **autonomous human-review gate** — a senior-engineer stand-in that decides whether the PR is safe to auto-merge on green, or whether a human genuinely has to look.
+Runs after AC verification, before the merge-confidence gate. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed and the PR is already open. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against.
+
+If this step is reached without being in the todo list, **stop and add it**, then run it before proceeding to Step 10 or 11.
 
 - If `review` slot is configured in CLAUDE.md Planning Skills, invoke it.
 - Otherwise, perform the faff built-in review (faff-workit playing the senior-engineer role):
@@ -171,6 +193,8 @@ The review must return one of three signals:
 `needs-human` is reserved for things the merge-confidence gate can't catch. If `git revert` on the merge commit fully undoes the change, it is not `needs-human` — it is `pass` or `fail`. See the gateway's Autonomous Mode Contract for the full rule on what escalates vs. what proceeds.
 
 Append the review result to the PR as a comment. Record the signal, flagged items, and (for `needs-human`) the specific reason.
+
+This step runs in **both** interactive and autonomous modes.
 
 **Step 10: Merge-confidence gate**
 
@@ -193,11 +217,13 @@ In **interactive mode**, this gate fires when the user confirms "merge now" at p
 
 **Step 11: Post-PR checks (interactive)**
 
+**Prerequisite check:** before running this step, verify Steps 8 and 9 have both been ticked off in the todo list. If either is missing, run the missing step now — do **not** offer a merge gate on top of skipped verification or review. This is the last line of defence against the review-skipped failure mode: even if the build loop dropped Step 9, this check must catch it before any "merge now?" prompt fires.
+
 After the PR is posted, wait for CI builds to complete **synchronously in the same turn**. Based on result and the gate in Step 10:
 
-- **Gate passes (auto-mergeable):** yes/no "All four gate conditions pass. Merge now? (y/n)". On confirm, invoke the ship path. On deny, leave PR open.
+- **Gate passes (auto-mergeable):** yes/no "All three gate conditions pass (ACs verified, CI green, review `pass`). Merge now? (y/n)". On confirm, invoke the ship path. On deny, leave PR open.
 - **Gate fails on CI:** "CI failed. Iterate on this PR? (y/n)". On confirm, keep going. On deny, yes/no "Pick next ticket via `/faff-wtf`? (y/n)".
-- **Gate fails on review or unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human.
+- **Gate fails on review (`fail` or `needs-human`) or unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human.
 
 All subsequent chain points are yes/no gates (never passive "run /faff-wtf").
 

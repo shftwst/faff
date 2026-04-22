@@ -56,7 +56,7 @@ Two independent queues, drained in order: **prep queue** first, **build queue** 
 
 ### 1. Tidy pass
 
-Invoke `/faff-tidy` in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans) and logs every other finding for morning review.
+Invoke `/faff-tidy` in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans, strip dead references, canonicalise overlooked specs, clear stale park labels) and tags stale-spec / superseded-spec issues so the prep queue picks them up in step 2. Logs remaining findings for morning review.
 
 ### 2. Prep queue build
 
@@ -65,6 +65,7 @@ Gather every issue that is:
 - Not explicitly blocked
 - In Backlog or similar pre-Todo state
 - Lacking a valid spec (no spec, or spec marked stale)
+- **Flagged by the tidy pass as a prep candidate** — issues tagged stale-spec (need refresh) or superseded-spec (need fresh spec). These are active issues already in Todo with a spec that's no longer valid; prep's stale-refresh or fresh-spec autonomous paths decide whether they rejoin the build queue or park for human attention.
 
 This is the prep queue.
 

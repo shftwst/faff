@@ -24,6 +24,8 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 ## Process
 
+**Tidy acts. It does not just list.** Any finding with a mechanical, unambiguous fix is applied — not reported as an observation for the human to do later. "X, Y, Z reference cancelled blocker W" is not a finding to surface; it is an instruction to strip the references. Surfacing cascading cancellations as prose in a summary, with no action taken, is the failure mode to avoid.
+
 Query all backlog issues from the issue tracker. **Exclude cancelled and archived per the shared rule.** Sort each into one of three buckets:
 
 ### 1. The mess (needs action)
@@ -33,8 +35,13 @@ Query all backlog issues from the issue tracker. **Exclude cancelled and archive
 - **Too broad:** Single issues spanning multiple domains that should be split
 - **Too big:** Single issues spanning too much effort that could be split
 - **Premature:** Issues depending on work or decisions that don't exist yet
-- **Stale:** Issues with stale specs/acceptance criteria
-- **Unblocked:** Issues blocked by something already Done/Cancelled
+- **Spec health** — run the shared **Spec discovery** rule per active issue, then classify:
+  - **Overlooked:** A spec exists but not in a canonical discovery location — e.g. draft in an old comment thread, a markdown file on a stale branch, an unlinked document. Or: the issue is in Todo (past the prep gate) but spec discovery finds nothing at all. **Action (mechanical):** move/link the spec to a canonical location (tracker comment or `docs/superpowers/specs/…`) so prep and workit can find it. If no spec exists anywhere but the issue is in Todo, demote the issue back to Backlog and flag for `/faff-prep` — crossing the prep gate without a discoverable spec is a broken state.
+  - **Stale:** Spec's design decisions no longer hold against the current codebase — deps listed in the spec have since shipped with different shapes, architecture has moved on, files the spec names have been renamed/deleted, or the spec predates a significant refactor. **Action:** in interactive mode, surface for `/faff-prep` in refresh mode. In autonomous mode, follow `/faff-prep` autonomous stale-refresh rules (refresh only if the original design still holds; else park).
+  - **Superseded:** Another ticket has since shipped that changes the approach this spec assumes — e.g. the spec planned to extend module X, but a subsequent PR replaced X with module Y. The spec is not just stale; its premise is wrong. **Action:** flag for human re-prep or cancellation (the work may no longer be wanted, or may need a completely different plan). Do not auto-refresh — the new direction requires human judgement.
+- **Dead references to cancelled/archived work (mechanical cleanup — strip the links).** Any active issue carrying a blocker / blockedBy / parent / sub-issue / related / dependency pointer to a cancelled or archived issue. The reference is always dead — a cancelled issue cannot unblock, parent, or depend on anything. Action: remove the link from the active issue. This is not a judgement call and is applied in both interactive and autonomous modes. Whether the active issue itself is still wanted after cleanup is a **separate** question (see "Orphaned by cascade" below).
+- **Orphaned by cascade:** Active issues whose rationale depended on a chain of now-cancelled work — e.g. "cost metric + alert on observability stack" when all four observability issues were cancelled in a mass sweep. After dead-reference cleanup these issues have no remaining justification. Flag for human judgement (cancel / redirect / leave as-is). Do not auto-cancel; the call belongs to the human.
+- **Unblocked:** Issues whose only remaining blockers are Done. After confirming the blocker actually produced what was needed, remove the (now-satisfied) blocker link and re-evaluate readiness.
 - **Missing deps:** Issues that clearly need something not listed in their blockers
 - **Dead weight:** Merged/cancelled issues still cluttering the backlog
 - **Aging:** Old issues that are likely never be worked upon
@@ -80,6 +87,8 @@ Every chain point is an explicit gate. No "you should run" language.
 When invoked autonomously (e.g. by `/faff-beep-boop` in `--full` mode), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
 
 **Auto-actions (applied without prompting):**
+- **Auto-strip dead references to cancelled/archived issues.** For every active issue, remove any link — blocker, blockedBy, parent, sub-issue, related, dependency — pointing at a cancelled or archived issue. This is mechanical and always safe; a cancelled issue cannot block or depend on anything. Post a single consolidated tracker comment per cascade (e.g. "After SHF-114 was cancelled, stripped blocker references from SHF-115/116/117/118/119"). Log every stripped link with the active issue id, the dead target id, and the link type.
+- **Auto-canonicalise overlooked specs.** When the **Spec discovery** rule finds a spec in a non-canonical location (old comment thread, stale branch, unlinked document), copy it to the canonical location — tracker comment on the issue, or `docs/superpowers/specs/…` if a feature branch exists for the issue. Log the move. If an issue is in Todo with no spec at any discovery location, demote to Backlog and log as "broken prep gate — no spec found"; do not invoke `/faff-prep` from tidy (that's `/faff-beep-boop --full`'s prep queue job).
 - **Auto-archive dead weight:** merged or cancelled issues still sitting in the backlog. Move to archive/closed state as the tracker supports.
 - **Auto-reparent obvious orphans:** a sub-issue whose parent is Done, Cancelled, or Archived. Reparent to the grandparent if one exists; otherwise remove the parent link.
 - **Auto-remove stale `parked-by-faff` labels.** Remove the label in two cases:
@@ -92,14 +101,20 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in `--full` mode), follow t
 
   For every auto-removal, log the issue id, original park reason, and the specific rule that invalidated it to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`. Post a tracker comment noting the removal and the reason.
 
+**Prep-queue candidates (handed to `/faff-beep-boop --full`'s prep queue; log-only otherwise):**
+- **Stale specs** — tag the issue so `/faff-beep-boop --full` picks it up during the prep queue drain. Prep's autonomous stale-refresh path decides the outcome: if the original design still holds → `refreshed` (stays Todo, becomes a build candidate); if an architectural change is needed → park. If prep refreshes to `confidence: high`, the issue automatically enters the build queue in the same run — a stale-spec issue can be refreshed and shipped in a single overnight pass with no human in the loop.
+- **Superseded specs** — tag the issue so the prep queue picks it up as a **fresh-spec** candidate (not a refresh — the original premise is wrong). Prep's autonomous fresh-spec path gates on confidence: `confidence: high` → `promoted` (enters build queue); `medium`/`low` → park for human attention. This is the same loop: if high-confidence fresh spec lands, beep-boop builds it in the same run; otherwise it's surfaced for the morning.
+- In ready-queue mode (`/faff-beep-boop` without `--full`) or in tidy invoked standalone, these become log-only — no prep queue is running to hand them to. Log as "needs refresh" / "needs fresh-spec" so the next `--full` run or interactive `/faff-prep` picks them up.
+
 **Log-only (no tracker changes in autonomous mode):**
-- Dupes, vagueness, too broad, too big, premature, stale, unblocked-by-done, missing deps, aging, not needed, uncategorised
+- Dupes, vagueness, too broad, too big, premature, unblocked-by-done, missing deps, aging, not needed, uncategorised
+- **Orphaned-by-cascade** — active issue whose rationale depended on a now-cancelled chain — surface for human judgement on cancel / redirect, never auto-cancel
 
 Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id, category, and recommended action. These surface in the morning via `/faff-wtf` for human review.
 
 **Never in autonomous mode:** auto-split, auto-merge tickets, delete issues, restructure labels, or change project assignments.
 
-**Return to caller (beep-boop):** `{ archived: N, reparented: N, park_labels_cleared: N, logged: N, findings_path: .faff/logs/… }`.
+**Return to caller (beep-boop):** `{ archived: N, reparented: N, refs_stripped: N, park_labels_cleared: N, logged: N, findings_path: .faff/logs/… }`.
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present

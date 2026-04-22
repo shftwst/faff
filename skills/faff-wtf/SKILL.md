@@ -59,7 +59,23 @@ Based on the above, recommend 2-3 specific things to focus on today:
 - Prioritise unblocked urgent/high items
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work
-- **Flag "fire and forget" candidates:** Issues suitable for autonomous Claude Code execution — things with clear acceptance criteria, no ambiguous design decisions, and no human judgement required.
+
+### 5b. Beep-boop queues (always render, even when empty)
+
+Show what `/faff-beep-boop` would pick up right now, partitioned the same way beep-boop itself would partition it. This section is **always present** in interactive-mode output — if a queue is empty, show the header with "(none)". The human should be able to see at a glance whether kicking off a `/faff-beep-boop` run is worth it.
+
+For each queue below, apply the shared **Spec discovery** rule and the autonomous-mode park criteria (three valid park categories only — see gateway). Do **not** pre-park issues for scope, chained dependencies, or in-queue blockers; beep-boop's conflict analysis will serialise those.
+
+**Build queue (ready for `/faff-beep-boop`):** Todo issues with a discoverable spec, not cancelled/archived, not blocked by work outside the current run's queue. Run the same conflict analysis beep-boop would (files/modules/scope-tags/in-queue blocker links) and present as:
+
+- **Independents** (parallel-safe): ISSUE-XX, ISSUE-YY, …
+- **Collision groups** (serialised within each group): [ISSUE-A → ISSUE-B], [ISSUE-C → ISSUE-D → ISSUE-E]
+
+Chained issues belong in collision groups, **not** in a separate "blocked" list. If A depends on in-queue B, write `[B → A]`, not "A blocked by B".
+
+**Prep queue (drained by the default `/faff-beep-boop` full pipeline):** Backlog/pre-Todo issues that are unblocked (or blocked only by in-queue work), with no discoverable spec or with a stale/superseded spec flagged by tidy. These are candidates `/faff-beep-boop` would push through `/faff-prep` before building. List as flat bullets — no conflict analysis needed at prep stage.
+
+**Fire-and-forget callout:** within the build queue, mark any issue whose spec is self-rated `confidence: high` and has no Punt/Assumes markers with a `★` — these are the lowest-risk targets for a quick autonomous run.
 
 ### 6. Risks and Flags
 - Anything overdue or slipping
@@ -83,7 +99,8 @@ After presenting the output:
 - **Full groom:** "Run a full groom via `/faff-tidy`? (y/n)".
 - **Parked overnight issue:** for each, offer three-way choice "open log / re-run `/faff-prep` / leave parked (log/reprep/leave)". On `log`, print the log file contents. On `reprep`, invoke `/faff-prep` via the Skill tool. On `leave`, move on.
 - **Ready to pick up candidate:** yes/no "Promote to Todo? (y/n)".
-- **Fire-and-forget candidates present:** yes/no "Run these autonomously via `/faff-beep-boop`? (y/n)" — if yes, invoke `/faff-beep-boop` with the chosen issue list.
+- **Build queue non-empty:** three-way "Build queue has N issues (M independents, K collision groups), plus P prep candidates. Run `/faff-beep-boop` (full pipeline — tidy + prep + build) / `/faff-beep-boop --ready` (build-only, the current build queue) / skip? (full/ready/skip)". On `full`, invoke `/faff-beep-boop`. On `ready`, invoke `/faff-beep-boop --ready`. On `skip`, move on.
+- **Prep queue non-empty with build queue empty:** yes/no "Nothing ready to build, but N prep candidates. Run `/faff-beep-boop` (default full pipeline) to drain the prep queue (will also build anything that lands at confidence: high)? (y/n)".
 
 Keep the tracker in sync with reality. No one starts building without a spec.
 
@@ -128,14 +145,28 @@ Source of truth is Linear. Snapshot below — re-query via `mcp__claude_ai_Linea
 ### Heads up
 - [Any risks, approaching deadlines, or flags]
 
-### Fire and forget
-- ISSUE-XX: [title] — [prompt to kick off autonomously]
+### Beep-boop queues
+
+**Build queue** (N ready, `/faff-beep-boop --ready` to build-only)
+
+Independents:
+- ISSUE-XX: [title] ★    ← ★ = fire-and-forget (confidence: high, no Punt/Assumes)
+- ISSUE-YY: [title]
+
+Collision groups (serialised within each):
+- [ISSUE-A → ISSUE-B]: [short reason — e.g. "both touch src/auth/"]
+- [ISSUE-C → ISSUE-D → ISSUE-E]: [reason]
+
+**Prep queue** (N candidates, drained by default `/faff-beep-boop`)
+- ISSUE-ZZ: [title] — [no spec | stale spec | superseded spec]
+
+(Render "(none)" under any empty subsection rather than omitting it.)
 
 ### Ready to pick up
 - ISSUE-XX: [title] — [why it's ready now]
 ```
 
-Skip any section that has nothing to report.
+Skip any section that has nothing to report — **except the Beep-boop queues section**, which is always rendered. If both queues are empty, write "Build queue: (none)" and "Prep queue: (none)" so the human can see the run would have no work.
 
 ## Autonomous Mode
 

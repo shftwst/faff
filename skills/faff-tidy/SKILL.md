@@ -78,11 +78,11 @@ Every chain point is an explicit gate. No "you should run" language.
 
 ## Autonomous Mode
 
-When invoked autonomously (e.g. by `/faff-beep-boop` in `--full` mode), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
+When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipeline mode), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
 
 **Auto-actions (applied without prompting):**
 - **Auto-strip dead references to cancelled/archived issues.** For every active issue, remove any link — blocker, blockedBy, parent, sub-issue, related, dependency — pointing at a cancelled or archived issue. This is mechanical and always safe; a cancelled issue cannot block or depend on anything. Post a single consolidated tracker comment per cascade (e.g. "After SHF-114 was cancelled, stripped blocker references from SHF-115/116/117/118/119"). Log every stripped link with the active issue id, the dead target id, and the link type.
-- **Auto-canonicalise overlooked specs.** When the **Spec discovery** rule finds a spec in a non-canonical location (old comment thread, stale branch, unlinked document), copy it to the canonical location — tracker comment on the issue, or `docs/superpowers/specs/…` if a feature branch exists for the issue. Log the move. If an issue is in Todo with no spec at any discovery location, demote to Backlog and log as "broken prep gate — no spec found"; do not invoke `/faff-prep` from tidy (that's `/faff-beep-boop --full`'s prep queue job).
+- **Auto-canonicalise overlooked specs.** When the **Spec discovery** rule finds a spec in a non-canonical location (old comment thread, stale branch, unlinked document), copy it to the canonical location — tracker comment on the issue, or `docs/superpowers/specs/…` if a feature branch exists for the issue. Log the move. If an issue is in Todo with no spec at any discovery location, demote to Backlog and log as "broken prep gate — no spec found"; do not invoke `/faff-prep` from tidy (that's `/faff-beep-boop`'s prep queue job in the default full pipeline).
 - **Auto-archive dead weight:** merged or cancelled issues still sitting in the backlog. Move to archive/closed state as the tracker supports.
 - **Auto-reparent obvious orphans:** a sub-issue whose parent is Done, Cancelled, or Archived. Reparent to the grandparent if one exists; otherwise remove the parent link.
 - **Auto-remove stale `parked-by-faff` labels.** Remove the label in two cases:
@@ -95,10 +95,10 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in `--full` mode), follow t
 
   For every auto-removal, log the issue id, original park reason, and the specific rule that invalidated it to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`. Post a tracker comment noting the removal and the reason.
 
-**Prep-queue candidates (handed to `/faff-beep-boop --full`'s prep queue; log-only otherwise):**
-- **Stale specs** — tag the issue so `/faff-beep-boop --full` picks it up during the prep queue drain. Prep's autonomous stale-refresh path decides the outcome: if the original design still holds → `refreshed` (stays Todo, becomes a build candidate); if an architectural change is needed → park. If prep refreshes to `confidence: high`, the issue automatically enters the build queue in the same run — a stale-spec issue can be refreshed and shipped in a single overnight pass with no human in the loop.
+**Prep-queue candidates (handed to `/faff-beep-boop`'s prep queue in the default full pipeline; log-only otherwise):**
+- **Stale specs** — tag the issue so `/faff-beep-boop` (default full pipeline) picks it up during the prep queue drain. Prep's autonomous stale-refresh path decides the outcome: if the original design still holds → `refreshed` (stays Todo, becomes a build candidate); if an architectural change is needed → park. If prep refreshes to `confidence: high`, the issue automatically enters the build queue in the same run — a stale-spec issue can be refreshed and shipped in a single overnight pass with no human in the loop.
 - **Superseded specs** — tag the issue so the prep queue picks it up as a **fresh-spec** candidate (not a refresh — the original premise is wrong). Prep's autonomous fresh-spec path gates on confidence: `confidence: high` → `promoted` (enters build queue); `medium`/`low` → park for human attention. This is the same loop: if high-confidence fresh spec lands, beep-boop builds it in the same run; otherwise it's surfaced for the morning.
-- In ready-queue mode (`/faff-beep-boop` without `--full`) or in tidy invoked standalone, these become log-only — no prep queue is running to hand them to. Log as "needs refresh" / "needs fresh-spec" so the next `--full` run or interactive `/faff-prep` picks them up.
+- In ready-queue mode (`/faff-beep-boop --ready`) or in tidy invoked standalone, these become log-only — no prep queue is running to hand them to. Log as "needs refresh" / "needs fresh-spec" so the next default `/faff-beep-boop` run or interactive `/faff-prep` picks them up.
 
 **Log-only (no tracker changes in autonomous mode):**
 - Dupes, vagueness, too broad, too big, premature, unblocked-by-done, missing deps, aging, not needed, uncategorised

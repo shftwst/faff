@@ -1,6 +1,6 @@
 ---
 name: faff-beep-boop
-description: "Chew through ready work unattended — overnight or fire-and-forget. Default: drain the Todo queue (all ready-with-spec issues). --full: also run tidy/prep autonomously. Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'."
+description: "Chew through ready work unattended — overnight or fire-and-forget. Default: full pipeline (tidy → prep queue drain → build queue drain). --ready: build-only pass over Todo issues that already have a spec. Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'."
 ---
 
 # Faff — Beep-Boop
@@ -24,13 +24,13 @@ Three forms:
 
 | Form | Behaviour |
 |---|---|
-| `/faff-beep-boop` | **Ready-queue mode** (default). Picks up all Todo issues with a spec. Skips tidy and prep. Just builds. |
-| `/faff-beep-boop --full` | **Full pipeline.** Tidy → prep queue drain → build queue drain. |
+| `/faff-beep-boop` | **Full pipeline (default).** Tidy → prep queue drain → build queue drain. The whole shebang. |
+| `/faff-beep-boop --ready` | **Ready-queue only.** Picks up all Todo issues with a spec. Skips tidy and prep. Just builds. Use when you've already prepped and specifically want a build-only pass. |
 | `/faff-beep-boop ISSUE-XX ISSUE-YY …` | **Explicit list.** Skips discovery; operates on the listed issues only. |
 
 All forms run non-interactively. No yes/no gates. The whole point is unattended execution.
 
-## Ready-queue mode (default)
+## Ready-queue mode (`--ready`)
 
 1. Query the tracker for every Todo issue that has a spec attached (per the shared ignore rule — skip cancelled/archived).
 2. **Conflict analysis** (see below) — partition the set into independents and collision groups.
@@ -38,9 +38,9 @@ All forms run non-interactively. No yes/no gates. The whole point is unattended 
 4. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
 5. **Report** (see below).
 
-Ready-queue mode never preps anything. If an issue lacks a spec, it's not in the queue.
+Ready-queue mode never preps anything. If an issue lacks a spec, it's not in the queue. Use it when you've already prepped and specifically want a build-only pass — otherwise prefer the default full pipeline, which also drains the prep queue.
 
-## Full mode (`--full`)
+## Full pipeline (default)
 
 Two independent queues, drained in order: **prep queue** first, **build queue** second. The prep queue always runs to completion regardless of whether the build queue ends up non-empty. Overnight prep is valuable on its own.
 
@@ -112,14 +112,18 @@ After the list is processed:
 
 Before the build pass, partition the ready set into **independents** (safe to build in parallel) and **collision groups** (must be serialised within the group, though parallel with other groups).
 
+**Critical framing:** conflict analysis is the mechanism that handles **in-queue dependencies**. Issue A depending on issue B, where B is in the same run's queue, is a collision group — not a park. "Serialise A behind B" is the answer. Parking A because "B isn't Done yet" when B is literally about to be built in this same run is the failure mode that breaks the pipeline: a chain of 5 issues all parking for "depends on earlier" means nothing ships. The chain is the whole point of overnight automation.
+
 Heuristics — issues are considered likely to collide when any of these hold:
 
 1. Their specs name the same files
 2. Their specs name the same module directory (shallow check — top-level directory match)
-3. One issue declares another in-flight issue as a blocker
+3. **One issue declares another in-queue issue as a blocker** — serialise the dependent behind the blocker. Both still build in this run.
 4. They share a scope tag / label that indicates a shared subsystem (per project conventions in `CLAUDE.md`)
 
 When in doubt, serialise. Parallelism is a speedup, not a correctness requirement — a false-positive collision costs a little time; a false-negative costs merge conflicts and broken builds.
+
+**What conflict analysis does NOT do:** it does not park issues. Everything that reached build-ready (spec present, not cancelled/archived, no external dependency missing from the run's combined queue) gets built — either as an independent or as an element of a serialised group. If you find yourself writing "park SHF-X because SHF-Y is Todo" during conflict analysis, stop: SHF-Y is Todo *in this run's queue*, so the correct action is `[SHF-Y, SHF-X]` as a serialised collision group, not a park.
 
 Output of conflict analysis:
 
@@ -213,6 +217,8 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Never aborts the run on a single failure.** Park that issue, log, continue with the next unit of work.
 - **Never auto-splits tickets** or restructures the backlog beyond what tidy's autonomous defaults allow.
 - **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-workit Step 10).
+- **Never parks work on "scope" or "capacity" grounds.** Every ready-with-spec issue gets attempted. "Too many to do in one session" is explicitly forbidden (see the gateway contract). The run ends when the queue drains or everything remaining is genuinely parked by the three valid categories — not by the orchestrator deciding to do fewer.
+- **Never parks chained issues for being chained.** Issue A depending on in-queue issue B is a collision group, not a park pair. If the whole queue is one serialised chain, build it as one serialised chain.
 - **Mid-run compaction is a resume, not a park.** If the session compacts during a build, the next turn reads `.faff/runs/<run-id>/` + the PR state and continues where it left off. See the gateway's Autonomous Mode Contract for the full rule on forbidden park reasons.
 - **Always leaves a complete audit trail** under `.faff/runs/<run-id>/`.
 - **Always tags parked issues** so `/faff-wtf` surfaces them next morning.

@@ -46,8 +46,8 @@ No ceremonies. No standups with 12 people. Just you and your code.
 
 `/faff-beep-boop` runs the whole pipeline without a human in the loop. Good for overnight, meetings, or anything you want off your plate.
 
-- Default: drains every Todo issue that already has a spec
-- `--full`: tidy, then prep every backlog issue, then build whatever's ready
+- Default: the whole shebang — tidy, then prep every backlog issue, then build whatever's ready
+- `--ready`: build-only pass over Todo issues that already have a spec
 - `ISSUE-12 ISSUE-15`: just those
 
 Auto-merges when every acceptance criterion is verified, CI is green, and review passed. Otherwise the PR is left open with a clear reason. Anything ambiguous is parked and surfaced by `/faff-wtf` in the morning. Full audit trail under `.faff/runs/`.

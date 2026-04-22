@@ -41,6 +41,9 @@ Query all backlog issues from the issue tracker. **Exclude cancelled and archive
 - **Not needed:** Issues that are not needed any longer
 - **Orphaned:** Issues without a parent project, or sub-issues with a Done/Cancelled parent issue
 - **Uncategorised:** Issues that don't belong to any categorisation/grouping/tagging mechanism, or that are clearly grouped incorrectly
+- **Stale park label:** Issues still carrying the `parked-by-faff` label (or tracker equivalent) that fall into either of two sub-cases:
+  - **State moved on:** issue is now In Progress, In Review, Done, Cancelled, or Archived. The label exists so `/faff-wtf` surfaces work that needs human attention; once a human has picked it up, merged it, or killed it, the label is noise.
+  - **Park reason no longer applies:** read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`. The park is invalid if (a) the reason matches a pattern now forbidden by the autonomous contract (session compaction, context length, topic-keyword match on a spec-closed decision, edits to files that only take effect after merge like CI/IaC/Dockerfile/netlify.toml), (b) the reason cited a specific blocker issue ID and that blocker is now Done/Merged/Cancelled, or (c) the reason cited a spec punt and the spec has since been updated to close that punt with a `Chosen:`/`Decision:` marker.
 
 For each, state the problem and recommend a specific action (split, merge, archive, update deps, clarify, promote, flag, tag, reparent).
 
@@ -79,6 +82,15 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in `--full` mode), follow t
 **Auto-actions (applied without prompting):**
 - **Auto-archive dead weight:** merged or cancelled issues still sitting in the backlog. Move to archive/closed state as the tracker supports.
 - **Auto-reparent obvious orphans:** a sub-issue whose parent is Done, Cancelled, or Archived. Reparent to the grandparent if one exists; otherwise remove the parent link.
+- **Auto-remove stale `parked-by-faff` labels.** Remove the label in two cases:
+  1. **State moved on:** issue is now In Progress, In Review, Done, Cancelled, or Archived. The label's only consumer is `/faff-wtf`; once a human has picked up, merged, or killed the issue, the label just adds noise.
+  2. **Park reason no longer applies and can be cleanly verified.** Read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`. Auto-remove when exactly one of these holds:
+     - The reason matches a pattern **now forbidden** by the autonomous contract (any of: session compaction, context length, too-many-turns, topic-keyword match on a spec-closed decision, edits to files that only take effect after merge like `netlify.toml` / `.github/workflows/*.yml` / `Dockerfile` / `package.json` dep bumps / IaC / migration SQL files that weren't executed pre-merge). These parks were never valid under the current rules — clear without prompting.
+     - The reason cited a specific blocker issue ID and that blocker is now Done, Merged, or Cancelled — live-fetch the blocker state from the tracker, don't rely on cached data.
+     - The reason cited a spec punt (`Punt:`, `needs human`, `TBD`, "or X if Y") and the spec now closes that same topic with a `Chosen:` / `Decision:` marker per the **Spec Format Contract**.
+  3. **Do not remove** when the park reason is subjective ("architectural change needed", "scope unclear"), vague, or missing. Those are judgement calls — leave the label on and log the finding as "stale park label — needs human" for the next `/faff-wtf`.
+
+  For every auto-removal, log the issue id, original park reason, and the specific rule that invalidated it to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`. Post a tracker comment noting the removal and the reason.
 
 **Log-only (no tracker changes in autonomous mode):**
 - Dupes, vagueness, too broad, too big, premature, stale, unblocked-by-done, missing deps, aging, not needed, uncategorised
@@ -87,7 +99,7 @@ Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id,
 
 **Never in autonomous mode:** auto-split, auto-merge tickets, delete issues, restructure labels, or change project assignments.
 
-**Return to caller (beep-boop):** `{ archived: N, reparented: N, logged: N, findings_path: .faff/logs/… }`.
+**Return to caller (beep-boop):** `{ archived: N, reparented: N, park_labels_cleared: N, logged: N, findings_path: .faff/logs/… }`.
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present

@@ -9,12 +9,6 @@ description: "Where to focus — what shipped, what's stuck, what to work on nex
 
 Pull current state from your issue tracker and git, figure out what matters, tell you what to do.
 
-## Chat naming
-
-**On invocation (interactive mode only):** clear the chat name with a bare `/rename` — WTF isn't tied to a single issue, so any previous name (from an earlier prep/workit session) becomes misleading.
-
-In autonomous mode, skip the rename.
-
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. WTF falls back to git-only mode if no tracker MCP is available.

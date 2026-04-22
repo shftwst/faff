@@ -9,6 +9,16 @@ Unattended end-to-end runs of the faff suite. Drives the other faff skills in **
 
 This skill is the orchestrator. It does not reimplement prep, build, or tidy — it invokes the existing faff sub-skills with the autonomous-mode signal set.
 
+## Chat naming
+
+**On invocation (always, regardless of mode):** set the chat name via `/rename beep-boop` before anything else.
+
+**Per-issue update (sequential runs):** immediately before invoking `/faff-workit` or `/faff-prep` for an issue, update the name via `/rename beep-boop: ISSUE-XX` so the chat list reflects the current unit of work. When the issue finishes (any return value — shipped, pr-open-for-human, parked, errored), rename back to plain `/rename beep-boop` before moving to the next issue.
+
+**Parallel runs** (via the `parallel` Planning Skill slot): the main chat is coordinating N concurrent worktrees, not working on a single issue. Keep the name as `/rename beep-boop` for the whole parallel batch. Each worktree's own chat (if the parallel skill spawns visible chats) handles its own per-issue rename.
+
+This takes precedence over any per-issue rename in sub-skills. Beep-boop owns the chat name for the full run — the autonomous-mode guard in `/faff-prep`, `/faff-workit`, `/faff-tidy`, and `/faff-wtf` means those sub-skills skip their own rename step when invoked under beep-boop.
+
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for shared rules (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol).

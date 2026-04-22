@@ -12,6 +12,12 @@ Tidy the backlog. Looks both ways in one pass:
 - **Down:** find the mess — dupes, vagueness, dead weight, stale specs, stale blockers, aging issues, orphans, uncategorised, splittable, blocked
 - **Up:** find issues that are actually ready and promote them to Todo, are parallelisable, or done
 
+## Chat naming
+
+**On invocation (interactive mode only):** clear the chat name with a bare `/rename` — tidy operates across the whole backlog, not a single issue, so any previous name becomes misleading.
+
+In autonomous mode (under `/faff-beep-boop --full`), skip the rename — beep-boop owns the chat name.
+
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.

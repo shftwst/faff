@@ -9,6 +9,12 @@ description: "Start building an issue — checks the spec exists, sets up a work
 
 Set you up to build. Checks the spec exists, creates a worktree, commits the spec to the feature branch, and gets out of your way.
 
+## Chat naming
+
+**On invocation (interactive mode only):** after Step 1 has fetched the issue title, set the chat name via `/rename ISSUE-XX: <title>` — e.g. `/rename SHF-75: auth middleware refresh`.
+
+In autonomous mode (invoked by `/faff-beep-boop`), **skip the rename** — beep-boop owns the chat name for the whole run.
+
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `plan`, `review`, and `ship` Planning Skill slots.

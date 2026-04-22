@@ -11,6 +11,12 @@ Turn a vague ticket into something buildable. Prep does the thinking so you can 
 
 Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but delegates spec production to the configured `spec` skill when available.
 
+## Chat naming
+
+**On invocation (interactive mode only):** set the chat name to the issue via `/rename ISSUE-XX: <title>` — e.g. `/rename SHF-75: auth middleware refresh`. Do this before Step 1.
+
+In autonomous mode (invoked by `/faff-beep-boop`), **skip the rename** — beep-boop owns the chat name for the whole run.
+
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.

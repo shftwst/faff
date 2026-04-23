@@ -267,6 +267,8 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
 7. Any unrecoverable error → park and return `errored`.
 
+**Bash discipline during build.** Workit is where most `Bash` calls happen (tests, lints, build commands, `gh` calls, git operations). Apply the gateway's **decompose, don't wrap** rule strictly (see `skills/faff/SKILL.md` Autonomous Mode Contract): no `$(...)`, backticks, `$((...))`, process substitution, heredoc-to-interpreter, or multi-step shell pipelines. One atomic binary invocation per `Bash` call; chain via separate tool calls. A single approval prompt here halts the whole beep-boop run — the cost of shell cleverness is always higher than the cost of an extra tool call.
+
 **Park protocol:** shared — see `skills/faff/SKILL.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
 
 **Return values to caller (beep-boop):**

@@ -141,16 +141,30 @@ Universal rules in autonomous mode:
 - **Rule of thumb:** ask "if I merge this PR and it turns out wrong, can I fix it with `git revert` and a redeploy?" If yes → proceed, let the PR gate catch it. If no (because damage happened before or independent of the merge) → park.
 - **Invalid autonomous parks (just proceed):** anything outside the three valid categories above. Stylistic second-guessing, "did the author really mean X?", topic-keyword matches on sections that the spec has already closed, conflating "this touches sensitive files" with "this needs pre-approval". If the spec has an answer and the PR gate will catch mistakes, that is the answer.
 - **Post-merge housekeeping failures never halt the queue.** Deleting a merged local branch, removing a worktree, returning to the main working directory, tracker-side status bumps, label cleanup — these are **post-ship housekeeping**, not load-bearing steps. The work that mattered (spec → build → review → CI → merge) is already done and persisted. If any of these housekeeping steps fails (permission error because the shell is still inside the worktree, branch currently checked out, tracker transition rejected, label already removed, etc.) — **skip the failing step, log it, move on to the next issue in the queue**. Never prompt. Never park the merged issue. Never ask the human to resolve it mid-run. Accumulate the skipped items in a per-run "human follow-ups" list that is surfaced in the final run summary (see `skills/faff-beep-boop/SKILL.md` Reporting). The golden rule: anything that happens *after* the PR is merged and cannot be undone by a human in a minute from the run summary is not worth halting the pipeline for.
-- **Never write a Bash command that will trigger an approval prompt.** Autonomous mode is pointless if a human has to babysit it. Before invoking `Bash`, check the command against these rules:
-  - **Decompose, don't wrap.** When an action is too complex for a single safe command, the answer is to break it into smaller atomic steps (separate tool calls, multiple simple `Bash` invocations) — **never** to wrap it in a script, heredoc, or clever one-liner to fit. If you find yourself reaching for `$(...)`, backticks, `$((...))`, command substitution, process substitution, heredoc-to-interpreter, or a multi-step shell pipeline, stop and ask: "can this be three `Read`/`Grep`/`Edit` calls instead?" — the answer is almost always yes. Approval heuristics fire on expansion and substitution because they can hide intent; the fix is to not use them, not to disguise them better.
-  - Prefer dedicated tools (`Read`, `Grep`, `Glob`, `Edit`, `Write`) over shell equivalents (`cat`, `grep`, `find`, `sed`, `echo >`). They never trip approval heuristics.
-  - **Never** use shell expansion or substitution inside a command that's doing anything else — `$(cmd)`, backticks, `$((...))`, `<(...)`, `>(...)`. Run the inner command separately, take the output, pass the literal value to the next command. One `Bash` call per step.
-  - **Never** use `python3 -c`, `node -e`, `perl -e`, or similar `-c`/`-e` one-liners with multi-line bodies. If you need a script, `Write` it to `$TMPDIR/<name>.py` (or similar) and run the file.
-  - **Never** put `#` characters after a newline inside a quoted argument — path-validation heuristics flag this as arg-hiding even when the `#` is an inner-language comment.
-  - **Never write tempfiles to `/tmp/` directly.** Use `$TMPDIR` (the environment variable the sandbox sets to a writable location). Writing to `/tmp/foo` will prompt; writing to `"$TMPDIR/foo"` will not. This applies to redirects (`> /tmp/foo`), explicit paths (`--output /tmp/foo`), and any tempfile in any language.
-  - Avoid `&&`-chains longer than two commands, heredocs (`<<EOF`) passed to interpreters, and anything that looks like it's hiding intent.
-  - Rule of thumb: if the command is more than ~3 lines, needs a comment to explain itself, or uses any shell feature beyond "run this binary with these literal args", it's too clever — decompose it.
-  - If a single atomic command still prompts (rare — usually means genuinely irreversible: force-push, `rm -rf`, destructive migration), **park the unit of work** and log why. Don't attempt it and burn a human's attention. Decomposition is the fix for complexity; parking is the fix for genuine irreversibility.
+- **Never write a Bash command that will trigger an approval prompt.** Autonomous mode is pointless if a human has to babysit it. Before invoking `Bash`, mechanically check the command against the list below. If it contains ANY banned construct, rewrite it as separate atomic calls — don't try to disguise the construct or argue why yours is different.
+
+  **Mental model first:** shell state does **not** persist between `Bash` tool invocations. Each call is a fresh shell. Variable assignments, `cd`, `export`, `set -e`, shell functions — none of it survives. If you catch yourself writing `FOO=...; do_something_with_$FOO`, you've already lost: the assignment is useless because the next `Bash` call won't see `$FOO` anyway. Compute values on **this** turn (via a separate `Bash` call or by calling `date`/`uuidgen`/etc. once and reading the output), then pass literal values into the next call. Do **not** try to persist state via `/tmp/` or `$TMPDIR` files as a substitute for shell-level state — that's the wrapper anti-pattern, and it hits the same sandbox prompts.
+
+  **Banned constructs (reject on sight, rewrite as atomic calls):**
+
+  | Pattern | Example that trips | Fix |
+  |---|---|---|
+  | Command substitution | `RUN_ID="$(date ...)"`, `` `cmd` `` | Call `date` in a separate `Bash` call, read its output, pass the literal string into the next call |
+  | Arithmetic expansion | `$(( x + 1 ))` | Compute in the host language (JS/TS/Python is what you're likely editing anyway) or hardcode |
+  | Process substitution | `<(cmd)`, `>(cmd)` | Capture output to `$TMPDIR/…` in one call, read it in the next |
+  | `;`-chains or `&&`-chains (>1 command) | `a ; b`, `a && b && c` | One `Bash` call per command |
+  | Variable assignment + use in same call | `X=foo; echo $X`, `FOO=bar cmd` (where you then reference `$FOO` later) | Pass literal value; shell state doesn't persist anyway |
+  | Heredoc into interpreter | `python3 <<EOF`, `bash <<EOF` | `Write` a file to `$TMPDIR/<name>.<ext>`, run the file |
+  | `-c` / `-e` with multi-line body | `python3 -c "..."`, `node -e "..."` | Same — `Write` a file, run the file |
+  | Writes to `/tmp/` directly | `> /tmp/foo`, `--output /tmp/bar` | Use `"$TMPDIR/foo"` — the sandbox only allows `$TMPDIR`, `/tmp/claude`, `/private/tmp/claude` |
+  | `#` after a newline inside a quoted arg | Multi-line quoted string with a `#` comment | Don't use multi-line quoted strings for commands; use a file |
+  | Any command >~3 lines or needing a comment to explain | Anything that doesn't fit "run binary X with literal args Y" | Decompose into separate calls or `Write` a script |
+
+  **Prefer dedicated tools over shell equivalents:** `Read` > `cat`/`head`/`tail`, `Grep` > `grep`/`rg`, `Glob` > `find`/`ls`, `Edit` > `sed`/`awk`, `Write` > `echo >`/heredoc. Dedicated tools never trip approval heuristics.
+
+  **Rule of thumb:** a good `Bash` call runs one binary with fully-literal arguments. If you're reaching for shell features (substitution, expansion, chaining, redirection to anywhere but `$TMPDIR`/project, flow control), you're wrapping — decompose.
+
+  **When a genuinely atomic command still prompts** (rare — usually means irreversible: force-push, `rm -rf` outside repo, destructive migration): **park the unit of work** and log why. Don't attempt it. Decomposition fixes complexity; parking fixes genuine irreversibility.
 
 Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` section. Summary:
 

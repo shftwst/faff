@@ -32,13 +32,14 @@ All forms run non-interactively. No yes/no gates. The whole point is unattended 
 
 ## Ready-queue mode (`--ready`)
 
-1. Query the tracker for every Todo issue that has a spec attached (per the shared ignore rule — skip cancelled/archived).
-2. **Conflict analysis** (see below) — partition the set into independents and collision groups.
-3. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves.
-4. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
-5. **Report** (see below).
+1. Query the tracker for every Todo issue (per the shared ignore rule — skip cancelled/archived).
+2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments/documents, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty `docs/superpowers/specs/` does **not** mean "no spec"; the tracker is the primary source.
+3. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
+4. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch.
+5. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
+6. **Report** (see below).
 
-Ready-queue mode never preps anything. If an issue lacks a spec, it's not in the queue. Use it when you've already prepped and specifically want a build-only pass — otherwise prefer the default full pipeline, which also drains the prep queue.
+Ready-queue mode never preps anything. If spec discovery finds nothing across all three sources, the issue is not in the queue (log it so `/faff-wtf` can surface it). Use `--ready` when you've already prepped and specifically want a build-only pass — otherwise prefer the default full pipeline, which also drains the prep queue.
 
 ## Full pipeline (default)
 
@@ -71,11 +72,13 @@ Runs until the prep queue is empty. **Never short-circuits on build-queue state.
 
 ### 4. Build queue assembly
 
-Collect every issue that now has a valid spec AND meets readiness (no open blockers, in Todo). This includes:
-- Issues already in Todo at the start of the run
-- Issues freshly moved to Todo by the prep queue
+Collect every issue that meets readiness (no open blockers, in Todo) **and has a spec discoverable per the shared Spec discovery rule** (gateway) — tracker comments/documents, tracker description/body, or committed `docs/`. Any hit counts. This includes:
+- Issues already in Todo at the start of the run (spec likely on the tracker)
+- Issues freshly moved to Todo by the prep queue (spec on the tracker by construction)
 
-Exclude anything parked during the prep queue (it has no valid spec or is flagged for human attention).
+Do not require a repo-side spec file at this stage — faff-workit commits the spec to `docs/` only at the start of the build. An absent `docs/superpowers/specs/*-<issue>-*.md` is not grounds for exclusion; the tracker is the pre-build source of truth.
+
+Exclude anything parked during the prep queue (no valid spec or flagged for human attention).
 
 ### 5. Conflict analysis
 

@@ -178,6 +178,11 @@ Duration: Xh Ym
 ## Errored: N
 - ISSUE-WW: title — MCP timeout during build
 
+## Human follow-ups: N
+- ISSUE-XX: delete local branch `feat/issue-xx` (cleanup skipped — shell was inside worktree)
+- ISSUE-YY: remove worktree `.worktrees/issue-yy` (cleanup skipped — permission denied)
+- ISSUE-ZZ: bump tracker status to Done (MCP returned 5xx during post-merge update)
+
 ## Prep queue summary (full mode only)
 - Refreshed: N
 - Promoted: N
@@ -187,6 +192,8 @@ Duration: Xh Ym
 ## Tidy findings (full mode only)
 See logs/YYYY-MM-DD/HHMMSS-tidy.md
 ```
+
+The **Human follow-ups** section captures post-merge housekeeping that was skipped so the run could continue — branch/worktree cleanup, tracker status bumps, label cleanup, shell return-to-main. See the gateway's Autonomous Mode Contract ("Post-merge housekeeping failures never halt the queue"). These are one-liners the human can clear in a minute the next morning; none of them block shipped work, so none of them justify stopping the pipeline.
 
 ### 2. Tracker status update
 
@@ -220,6 +227,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Never parks work on "scope" or "capacity" grounds.** Every ready-with-spec issue gets attempted. "Too many to do in one session" is explicitly forbidden (see the gateway contract). The run ends when the queue drains or everything remaining is genuinely parked by the three valid categories — not by the orchestrator deciding to do fewer.
 - **Never parks chained issues for being chained.** Issue A depending on in-queue issue B is a collision group, not a park pair. If the whole queue is one serialised chain, build it as one serialised chain.
 - **Mid-run compaction is a resume, not a park.** If the session compacts during a build, the next turn reads `.faff/runs/<run-id>/` + the PR state and continues where it left off. See the gateway's Autonomous Mode Contract for the full rule on forbidden park reasons.
+- **Post-merge housekeeping never halts the queue.** Branch delete, worktree remove, shell return-to-main, tracker bumps, label cleanup — if any of them fails, skip it, log it, accumulate it under _Human follow-ups_ in the run summary, and proceed to the next issue. Never prompt for confirmation. See the gateway's Autonomous Mode Contract for the principle.
 - **Always leaves a complete audit trail** under `.faff/runs/<run-id>/`.
 - **Always tags parked issues** so `/faff-wtf` surfaces them next morning.
 

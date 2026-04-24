@@ -160,6 +160,7 @@ Universal rules in autonomous mode:
   | `#` after a newline inside a quoted arg | Multi-line quoted string with a `#` comment | Don't use multi-line quoted strings for commands; use a file |
   | Any command >~3 lines or needing a comment to explain | Anything that doesn't fit "run binary X with literal args Y" | Decompose into separate calls or `Write` a script |
   | Paths containing `$` (Remix/React Router route files, etc.) | `grep -n "x" app/routes/app.\$id_.spec.ts` | Use the `Grep` tool — `$` in a path trips shell-expansion heuristics even when escaped |
+  | `cd` chained with `git` (or any other command) | `cd /path && git status && git diff` | Use `git -C /path status` and `git -C /path diff` as separate calls. Never chain `cd` with a command — the sandbox flags it as a bare-repository-attack pattern. For non-git commands, pass the absolute path as an argument, or let the working directory persist from a prior `cd`-only call |
 
   **Prefer dedicated tools over shell equivalents:** `Read` > `cat`/`head`/`tail`, **`Grep` > `grep`/`rg`** (especially for paths — any path with `$`, spaces, or glob metacharacters should go through the `Grep` tool), `Glob` > `find`/`ls`, `Edit` > `sed`/`awk`, `Write` > `echo >`/heredoc. Dedicated tools never trip approval heuristics.
 

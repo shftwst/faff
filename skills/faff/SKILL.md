@@ -159,8 +159,9 @@ Universal rules in autonomous mode:
   | Writes to `/tmp/` directly | `> /tmp/foo`, `--output /tmp/bar` | Use `"$TMPDIR/foo"` — the sandbox only allows `$TMPDIR`, `/tmp/claude`, `/private/tmp/claude` |
   | `#` after a newline inside a quoted arg | Multi-line quoted string with a `#` comment | Don't use multi-line quoted strings for commands; use a file |
   | Any command >~3 lines or needing a comment to explain | Anything that doesn't fit "run binary X with literal args Y" | Decompose into separate calls or `Write` a script |
+  | Paths containing `$` (Remix/React Router route files, etc.) | `grep -n "x" app/routes/app.\$id_.spec.ts` | Use the `Grep` tool — `$` in a path trips shell-expansion heuristics even when escaped |
 
-  **Prefer dedicated tools over shell equivalents:** `Read` > `cat`/`head`/`tail`, `Grep` > `grep`/`rg`, `Glob` > `find`/`ls`, `Edit` > `sed`/`awk`, `Write` > `echo >`/heredoc. Dedicated tools never trip approval heuristics.
+  **Prefer dedicated tools over shell equivalents:** `Read` > `cat`/`head`/`tail`, **`Grep` > `grep`/`rg`** (especially for paths — any path with `$`, spaces, or glob metacharacters should go through the `Grep` tool), `Glob` > `find`/`ls`, `Edit` > `sed`/`awk`, `Write` > `echo >`/heredoc. Dedicated tools never trip approval heuristics.
 
   **Rule of thumb:** a good `Bash` call runs one binary with fully-literal arguments. If you're reaching for shell features (substitution, expansion, chaining, redirection to anywhere but `$TMPDIR`/project, flow control), you're wrapping — decompose.
 

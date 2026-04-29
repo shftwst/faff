@@ -16,6 +16,14 @@ Tidy the backlog. Looks both ways in one pass:
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
 
+**Consuming-project CLAUDE.md is context.** Read the consuming project's `CLAUDE.md` (and any docs it points at) before tidying. Treat it as clues to organisation and current workstream priority — what areas the project cares about right now, what's been deprioritised, naming conventions for groupings. Use this to inform priority calls when ordering ready/promotion suggestions and to spot mis-grouping in "Uncategorised".
+
+**Cancelled work is noise — ignore it entirely.** Do not surface cancelled entities — issues, or whatever the tracker calls higher-level groupings — in any summary, finding, or bucket. The only exception: if a **cancelled ancestor** (parent, grandparent, or any higher-level container, regardless of what the tracker calls it) still has **non-cancelled descendants**, ask the human (interactive) or log for human review (autonomous) whether those descendants should be cancelled too. Never auto-cancel.
+
+**Never offer to add labels.** Labelling is `/faff-prep`'s job. Tidy does not suggest, apply, or chain into label changes — not for "Uncategorised", not for spec health, not anywhere. If categorisation is genuinely missing, flag the issue for `/faff-prep` instead.
+
+**Description ≠ spec.** A populated issue description is **not** a spec. Spec discovery means a real spec exists per the shared **Spec discovery** rule (canonical tracker comment, committed `docs/superpowers/specs/…`, or equivalent). Never suggest promoting an issue to Todo on the strength of a description alone — that's a `/faff-prep` candidate, not a ready issue.
+
 ## Process
 
 **Tidy acts. It does not just list.** Any finding with a mechanical, unambiguous fix is applied — not reported as an observation for the human to do later. "X, Y, Z reference cancelled blocker W" is not a finding to surface; it is an instruction to strip the references. Surfacing cascading cancellations as prose in a summary, with no action taken, is the failure mode to avoid.
@@ -41,12 +49,13 @@ Query all backlog issues from the issue tracker. **Exclude cancelled and archive
 - **Aging:** Old issues that are likely never be worked upon
 - **Not needed:** Issues that are not needed any longer
 - **Orphaned:** Issues without a parent project, or sub-issues with a Done/Cancelled parent issue
-- **Uncategorised:** Issues that don't belong to any categorisation/grouping/tagging mechanism, or that are clearly grouped incorrectly
+- **Descendants of cancelled ancestors:** Active issues with any cancelled ancestor in the chain (immediate parent or further up — whatever container types the tracker uses). Surface for human decision: cancel them, reparent them, or leave standalone. Never auto-cancel.
+- **Uncategorised:** Issues that are clearly mis-grouped against the consuming project's CLAUDE.md / docs (wrong parent, wrong ancestor, wrong grouping). Surface as a flag for `/faff-prep` — **never propose labels here**.
 - **Stale park label:** Issues still carrying the `parked-by-faff` label (or tracker equivalent) that fall into either of two sub-cases:
   - **State moved on:** issue is now In Progress, In Review, Done, Cancelled, or Archived. The label exists so `/faff-wtf` surfaces work that needs human attention; once a human has picked it up, merged it, or killed it, the label is noise.
   - **Park reason no longer applies:** read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`. The park is invalid if (a) the reason matches a pattern now forbidden by the autonomous contract (session compaction, context length, topic-keyword match on a spec-closed decision, edits to files that only take effect after merge like CI/IaC/Dockerfile/netlify.toml), (b) the reason cited a specific blocker issue ID and that blocker is now Done/Merged/Cancelled, or (c) the reason cited a spec punt and the spec has since been updated to close that punt with a `Chosen:`/`Decision:` marker.
 
-For each, state the problem and recommend a specific action (split, merge, archive, update deps, clarify, promote, flag, tag, reparent).
+For each, state the problem and recommend a specific action (split, merge, archive, update deps, clarify, promote, flag for `/faff-prep`, reparent). **Never recommend label changes** — that's `/faff-prep`.
 
 ### 2. Ready to pick up (promote to Todo)
 
@@ -56,12 +65,26 @@ An issue is ready when:
 - The deliverable is concrete, not hand-wavy
 - No big architectural questions to answer first
 - Not a dupe of something else
-- Categorised and/or belongs to a milestone
-- Has a spec (per the shared **Spec discovery** rule — comments, description, or committed `docs/` all count)
+- **Has a real spec** per the shared **Spec discovery** rule (canonical tracker comment, committed `docs/superpowers/specs/…`, or equivalent). A populated description is **not** a spec — issues with only a description are **never** ready; they go to "Almost ready" for `/faff-prep`.
+
+**Order ready issues by priority, then by chainable unlock value.** Once the readiness gate is passed, rank promotion candidates with this lexicographic order:
+
+1. **Priority** is king. Priority can live on the issue itself or on any ancestor (parent, grandparent, or higher — whatever the tracker calls those containers) — **respect both**. If the issue has explicit priority, use it; otherwise inherit from the nearest ancestor that does. When the consuming project's CLAUDE.md highlights a current workstream, weight issues in that workstream higher.
+2. **Chainable unlock value** breaks ties (and matters even more in automation). Within a priority band, prefer issues that unblock the most downstream work — count direct + transitive dependents (issues whose blockers list this one, recursively). An issue that unlocks a chain of five others beats an isolated issue of the same priority. This is especially important for `/faff-beep-boop`: shipping the unlocking issue first means the next autonomous pass has more ready candidates to chew through.
+
+Present ready issues in this order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
 ### 3. Almost ready (flag)
 
-Issues that are close but need one small thing — a blocker that's still In Progress, one unresolved question, an unclear acceptance criterion, solid information in ticket but no spec in any of the discovery locations (comments / description / docs).
+Issues that are close but need one small thing — a blocker that's still In Progress, one unresolved question, an unclear acceptance criterion, **or solid info in the description but no spec in any canonical discovery location** (description alone never counts — those go here, for `/faff-prep`).
+
+### 4. Stuck in prep — needs human decision
+
+Issues currently carrying the `parked-by-faff` label (or tracker equivalent) where the park is **still valid** — i.e. the autonomous-mode auto-removal rules above did **not** clear it, because the park reason is genuinely subjective or judgement-bound: an architectural call to make, scope to decide, a punt the spec didn't close, an explicit "needs human" marker. These are real blockers on a human, not noise.
+
+For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md` and surface it concisely so the human knows what decision is being asked of them.
+
+**Order this bucket the same way as Ready** — priority first (issue or any ancestor, respect both), then chainable unlock value (how much downstream work resolving this would unblock). A parked issue that's gating a chain of five others should be top of the human's attention list, especially in autonomous runs where unblocking it lets `/faff-beep-boop` chew through the chain on the next pass.
 
 ## Output and chaining
 
@@ -70,9 +93,10 @@ Present findings grouped by bucket. Skip any bucket with no findings.
 After presenting, drive action via yes/no gates (never passive suggestions):
 
 - **Mess fixes:** "Apply the recommended actions for the mess? (y/n, or 'pick' to choose per issue)". On confirm, apply them.
+- **Stuck-in-prep → resolve:** "N issues are parked waiting on a human decision, ordered by priority then chainable unlock value. Walk through them now? (y/n, or 'pick')". On confirm, present each with its park reason and the decision being asked, then offer to remove the park label / re-run `/faff-prep` once the human commits to a direction.
 - **Almost-ready → prep:** "N issues are almost ready — missing a spec. Run `/faff-prep` on all / pick some / skip? (all/pick/skip)". On `all` or `pick`, invoke `/faff-prep` via the Skill tool for the chosen issues.
-- **Ready → promote:** "N issues are ready for Todo. Promote all / pick some / skip? (all/pick/skip)". On confirm, move them.
-- **After promotion → build:** "Start building one of these now via `/faff-workit`? (y/n)". On confirm, ask which and invoke.
+- **Ready → promote:** "N issues are ready for Todo, ordered by priority then chainable unlock value. Promote all / pick some / skip? (all/pick/skip)". On confirm, move them.
+- **After promotion → build:** "Start building one of these now via `/faff-workit`? (y/n)". On confirm, ask which (default to top of the priority + unlock-value order) and invoke.
 
 Every chain point is an explicit gate. No "you should run" language.
 
@@ -101,15 +125,22 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 - In ready-queue mode (`/faff-beep-boop --ready`) or in tidy invoked standalone, these become log-only — no prep queue is running to hand them to. Log as "needs refresh" / "needs fresh-spec" so the next default `/faff-beep-boop` run or interactive `/faff-prep` picks them up.
 
 **Log-only (no tracker changes in autonomous mode):**
-- Dupes, vagueness, too broad, too big, premature, unblocked-by-done, missing deps, aging, not needed, uncategorised
+- Dupes, vagueness, too broad, too big, premature, unblocked-by-done, missing deps, aging, not needed, uncategorised (mis-grouping flagged for `/faff-prep`, never as a label suggestion)
 - **Orphaned-by-cascade** — active issue whose rationale depended on a now-cancelled chain — surface for human judgement on cancel / redirect, never auto-cancel
+- **Descendants of cancelled ancestors** — active issues under any cancelled ancestor in the tracker hierarchy — surface for human decision (cancel / reparent / leave), never auto-cancel
+- **Stuck in prep (still-valid parks)** — issues whose park label survived auto-cleanup because the park reason is subjective/judgement-bound. Log each with: issue id, park reason, priority (issue or ancestor), and chainable unlock count. Sort the log by priority then unlock count so `/faff-wtf` and the morning human reviewer see the highest-leverage decisions first.
 
 Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id, category, and recommended action. These surface in the morning via `/faff-wtf` for human review.
 
-**Never in autonomous mode:** auto-split, auto-merge tickets, delete issues, restructure labels, or change project assignments.
+**Never in autonomous mode:** auto-split, auto-merge tickets, delete issues, add/remove/restructure labels (that's `/faff-prep`'s domain), change ancestor/grouping assignments, auto-cancel descendants of cancelled ancestors, or promote an issue to Todo on the strength of a description alone.
 
 **Return to caller (beep-boop):** `{ archived: N, reparented: N, refs_stripped: N, park_labels_cleared: N, logged: N, findings_path: .faff/logs/… }`.
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
 - Fix the mess first, then promote — a ready issue that's actually a dupe shouldn't get promoted
+- Cancelled work is invisible to tidy except for the "non-cancelled descendants of cancelled ancestors" prompt
+- Description ≠ spec. Ever.
+- Labels are `/faff-prep`'s job. Tidy never proposes them.
+- Promotion order = readiness gate → priority (issue-level OR any ancestor, respect both) → chainable unlock value (how much downstream work it unblocks; matters most for automation)
+- Same priority + unlock-value ordering applies to the "Stuck in prep — needs human decision" bucket — surface the highest-leverage parks first

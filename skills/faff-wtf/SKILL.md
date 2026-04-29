@@ -13,6 +13,15 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. WTF falls back to git-only mode if no tracker MCP is available.
 
+**Shared work-ordering rule.** Anywhere this skill suggests, ranks, or recommends work — "Coming Up", "Today's Focus", "Ready to pick up", "Build queue" independents, parked-overnight triage — apply the same lexicographic order used by `/faff-tidy`:
+
+1. **Priority** (issue-level OR any ancestor in the tracker hierarchy — parent, grandparent, or higher container, whatever the tracker calls it; respect both, inherit from the nearest ancestor that has a value)
+2. **Chainable unlock value** — count of direct + transitive dependents (issues whose blockers list this one). An issue gating a chain of five beats an isolated issue at the same priority. Especially important for surfacing what's worth firing `/faff-beep-boop` at.
+
+When the consuming project's CLAUDE.md flags a current workstream, weight issues in that workstream up.
+
+**Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues should rise to the top of "Coming Up" / "Today's Focus" / "Ready to pick up" because they represent *just-realised* potential the human/automation hasn't acted on yet.
+
 ## What it does
 
 Run through these sections in order:
@@ -27,8 +36,8 @@ Run through these sections in order:
 ### 2. Issue Tracker State
 - **In Progress:** Issues currently being worked on
 - **Blocked:** Issues that are blocked and why
-- **Recently Completed:** Issues closed since last briefing (last 24-48 hours)
-- **Coming Up:** Next highest-priority unstarted issues based on dependencies being clear
+- **Recently Completed:** Issues closed since last briefing (last 24-48 hours). For each, list any issues it just **unblocked** (dependents whose last remaining blocker was this one). These newly-unlocked issues are the freshly-realised potential of the recent shipping.
+- **Coming Up:** Next unstarted issues to surface, ordered per the shared work-ordering rule (priority, then chainable unlock value). Issues unblocked in the last 24-48 hours bubble to the top of this list — they represent the highest-leverage uncaptured potential.
 
 Query using the project/team details from `CLAUDE.md`. Exclude cancelled and archived per the shared rule.
 
@@ -54,11 +63,12 @@ For each parked issue, surface:
 Skip this section entirely if there are no parked issues.
 
 ### 5. Today's Focus
-Based on the above, recommend 2-3 specific things to focus on today:
+Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the shared work-ordering rule** (priority → chainable unlock value):
 - **Never suggest cancelled or archived** issues or projects as candidates (shared rule)
-- Prioritise unblocked urgent/high items
+- Prefer issues unblocked in the last 24-48 hours — recent shipping has just put them in play and they're the freshest source of leverage
+- Within priority bands, prefer high chainable unlock value — picking up an issue that gates a chain of five beats an isolated issue at the same priority
 - Flag if something blocked needs attention first
-- Note any dependencies that are about to unblock downstream work
+- Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
 ### 5b. Beep-boop queues (always render, even when empty)
 
@@ -68,8 +78,8 @@ For each queue below, apply the shared **Spec discovery** rule and the autonomou
 
 **Build queue (ready for `/faff-beep-boop`):** Todo issues with a discoverable spec, not cancelled/archived, not blocked by work outside the current run's queue. Run the same conflict analysis beep-boop would (files/modules/scope-tags/in-queue blocker links) and present as:
 
-- **Independents** (parallel-safe): ISSUE-XX, ISSUE-YY, …
-- **Collision groups** (serialised within each group): [ISSUE-A → ISSUE-B], [ISSUE-C → ISSUE-D → ISSUE-E]
+- **Independents** (parallel-safe), ordered per the shared work-ordering rule (priority → chainable unlock value): ISSUE-XX, ISSUE-YY, …
+- **Collision groups** (serialised within each group, groups themselves ordered by the lead issue's priority + unlock value): [ISSUE-A → ISSUE-B], [ISSUE-C → ISSUE-D → ISSUE-E]
 
 Chained issues belong in collision groups, **not** in a separate "blocked" list. If A depends on in-queue B, write `[B → A]`, not "A blocked by B".
 
@@ -83,7 +93,7 @@ Chained issues belong in collision groups, **not** in a separate "blocked" list.
 - Items that have been in progress too long without movement
 
 ### 7. Ready to pick up (lightweight tidy)
-Quick scan for backlog issues that are now unblocked, well-prepped, and ready to pick up. Mention 1-2 candidates if any exist.
+Quick scan for backlog issues that are now unblocked, well-prepped, and ready to pick up. Apply the shared work-ordering rule (priority → chainable unlock value) and mention the top 1-2 candidates. Issues unblocked within the last 24-48 hours by recent shipping take precedence — they're the leverage that just appeared.
 
 ## Chaining
 
@@ -126,7 +136,7 @@ Source of truth is Linear. Snapshot below — re-query via `mcp__claude_ai_Linea
 (Repeat one table per project.)
 
 ### Shipped
-- ISSUE-XX: [title]
+- ISSUE-XX: [title] — unlocked: ISSUE-AA, ISSUE-BB (or "unlocked: none" if it gated nothing)
 
 ### In progress
 - ISSUE-XX: [title] — [brief status note]
@@ -138,7 +148,9 @@ Source of truth is Linear. Snapshot below — re-query via `mcp__claude_ai_Linea
 - ISSUE-XX: [title] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
 
 ### Do this
-1. [Most important thing and why]
+Ordered by priority → chainable unlock value. Items freshly unblocked by recent shipping bubble to the top.
+
+1. [Most important thing and why — note priority source (issue/ancestor) and unlock count if >0; flag with "(just unlocked)" if it became ready in the last 24-48h]
 2. [Second thing]
 3. [Third thing if applicable]
 
@@ -147,13 +159,13 @@ Source of truth is Linear. Snapshot below — re-query via `mcp__claude_ai_Linea
 
 ### Beep-boop queues
 
-**Build queue** (N ready, `/faff-beep-boop --ready` to build-only)
+**Build queue** (N ready, `/faff-beep-boop --ready` to build-only) — ordered by priority → chainable unlock value
 
 Independents:
 - ISSUE-XX: [title] ★    ← ★ = fire-and-forget (confidence: high, no Punt/Assumes)
-- ISSUE-YY: [title]
+- ISSUE-YY: [title] (unlocks 3)    ← annotate non-trivial unlock counts so the leverage is visible
 
-Collision groups (serialised within each):
+Collision groups (serialised within each; groups ordered by lead issue's priority + unlock value):
 - [ISSUE-A → ISSUE-B]: [short reason — e.g. "both touch src/auth/"]
 - [ISSUE-C → ISSUE-D → ISSUE-E]: [reason]
 
@@ -163,7 +175,7 @@ Collision groups (serialised within each):
 (Render "(none)" under any empty subsection rather than omitting it.)
 
 ### Ready to pick up
-- ISSUE-XX: [title] — [why it's ready now]
+- ISSUE-XX: [title] — [why it's ready now; flag "(just unlocked by ISSUE-YY)" if applicable, "(unlocks N)" if it gates downstream work]
 ```
 
 Skip any section that has nothing to report — **except the Beep-boop queues section**, which is always rendered. If both queues are empty, write "Build queue: (none)" and "Prep queue: (none)" so the human can see the run would have no work.
@@ -183,3 +195,5 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
 - Read working pattern notes from `CLAUDE.md` if available — respect the user's schedule when recommending focus
+- Work-ordering everywhere = priority (issue OR any ancestor) → chainable unlock value. Same rule as `/faff-tidy`.
+- Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"

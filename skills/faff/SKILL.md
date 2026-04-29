@@ -145,6 +145,12 @@ Universal rules in autonomous mode:
 
   **Rule 0 (check this first, every time): never invoke `grep`, `rg`, `find`, `ls`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo >` via `Bash`.** Use the dedicated tools — `Grep`, `Glob`, `Read`, `Edit`, `Write`. They never trip approval heuristics. This applies regardless of how innocent the path looks. The single biggest source of repeated halts is reaching for shell `grep` (often with `-B`/`-A` context flags, which `Grep` also supports) on paths containing `$`, spaces, or glob metacharacters. The fix is never to escape harder; it is always to use the `Grep` tool. Same logic for `find` → `Glob`, `cat`/`head`/`tail` → `Read`. If you're about to type any of those binaries into a `Bash` call, stop and switch tools.
 
+  **Rule 0.5: never invoke `cd` via `Bash`.** Shell state doesn't persist (see below), so `cd` alone is useless. `cd <dir> && <cmd>` is *worse* — the sandbox flags any `cd` chained with `git` (or anything else) as a "bare-repository-attack" pattern and prompts for approval. There is no legitimate single-call use of `cd` here. Use `git -C <dir> ...` for git, `--cwd <dir>` / `-C <dir>` flags for tools that support them, or pass absolute paths. If a tool genuinely requires the working directory to be set and offers no flag, write a script to `$TMPDIR/<name>.sh` that does the `cd` internally and run that file. **Exact prompts to recognise** (any `cd <dir> && <cmd>` pattern triggers one of these):
+  - "Compound commands with cd and git require approval to prevent bare repository attacks."
+  - "Compound command contains cd with write operation - manual approval required to prevent path resolution bypass."
+
+  If you've ever seen either, you've already broken Rule 0.5.
+
   **Mental model:** shell state does **not** persist between `Bash` tool invocations. Each call is a fresh shell. Variable assignments, `cd`, `export`, `set -e`, shell functions — none of it survives. If you catch yourself writing `FOO=...; do_something_with_$FOO`, you've already lost: the assignment is useless because the next `Bash` call won't see `$FOO` anyway. Compute values on **this** turn (via a separate `Bash` call or by calling `date`/`uuidgen`/etc. once and reading the output), then pass literal values into the next call. Do **not** try to persist state via `/tmp/` or `$TMPDIR` files as a substitute for shell-level state — that's the wrapper anti-pattern, and it hits the same sandbox prompts.
 
   **Banned constructs (reject on sight, rewrite as atomic calls):**
@@ -162,7 +168,6 @@ Universal rules in autonomous mode:
   | `#` after a newline inside a quoted arg | Multi-line quoted string with a `#` comment | Don't use multi-line quoted strings for commands; use a file |
   | Any command >~3 lines or needing a comment to explain | Anything that doesn't fit "run binary X with literal args Y" | Decompose into separate calls or `Write` a script |
   | Paths containing `$` (Remix/React Router route files, etc.) | `grep -n "x" app/routes/app.\$id_.spec.ts` | Use the `Grep` tool — `$` in a path trips shell-expansion heuristics even when escaped |
-  | `cd` chained with `git` (or any other command) | `cd /path && git status && git diff` | Use `git -C /path status` and `git -C /path diff` as separate calls. Never chain `cd` with a command — the sandbox flags it as a bare-repository-attack pattern. For non-git commands, pass the absolute path as an argument, or let the working directory persist from a prior `cd`-only call |
 
   **Rule of thumb:** a good `Bash` call runs one binary with fully-literal arguments — and that binary is **not** one of the search/read/edit binaries listed in Rule 0. If you're reaching for shell features (substitution, expansion, chaining, redirection to anywhere but `$TMPDIR`/project, flow control), you're wrapping — decompose.
 

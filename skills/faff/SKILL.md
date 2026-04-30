@@ -127,6 +127,12 @@ Before invoking `Bash`, mechanically check the command against the list below. I
 
 If you've ever seen either, you've already broken Rule 0.5.
 
+**Rule 0.6: never shell-parse a file.** Reading or transforming a file's contents — including tool-results cache files, MCP response caches, JSON of any size, log dumps, anything in `~/.claude/projects/.../tool-results/` — is **always** done with the `Read` tool (with `offset`/`limit` if the file is large) or `Grep` for content search. Never reach for `awk`, `sed`, `tr`, `jq`, `cut`, `sort | uniq`, or any pipeline that ingests a file path. The cost of running an MCP query a second time is lower than the cost of an approval prompt; if the data was already fetched, `Read` the cache file directly. **The "file is too big to Read" intuition is wrong** — `Read` supports `offset` and `limit` and works on any file. **Exact prompts to recognise:**
+- "Contains simple_expansion" (sandbox flag for any `$VAR` expansion in arguments — typical when piping shell-processed output through `$TMPDIR`)
+- Any prompt mentioning shell expansion, pipeline complexity, or text-processing utilities
+
+If your reflex is "I'll just `awk` this real quick," stop. There is no real quick. Use `Read`.
+
 **Mental model:** shell state does **not** persist between `Bash` tool invocations. Each call is a fresh shell. Variable assignments, `cd`, `export`, `set -e`, shell functions — none of it survives. If you catch yourself writing `FOO=...; do_something_with_$FOO`, you've already lost: the assignment is useless because the next `Bash` call won't see `$FOO` anyway. Compute values on **this** turn (via a separate `Bash` call or by calling `date`/`uuidgen`/etc. once and reading the output), then pass literal values into the next call. Do **not** try to persist state via `/tmp/` or `$TMPDIR` files as a substitute for shell-level state — that's the wrapper anti-pattern, and it hits the same sandbox prompts.
 
 **Banned constructs (reject on sight, rewrite as atomic calls):**
@@ -136,7 +142,7 @@ If you've ever seen either, you've already broken Rule 0.5.
 | Command substitution | `RUN_ID="$(date ...)"`, `` `cmd` `` | Call `date` in a separate `Bash` call, read its output, pass the literal string into the next call |
 | Arithmetic expansion | `$(( x + 1 ))` | Compute in the host language (JS/TS/Python is what you're likely editing anyway) or hardcode |
 | Process substitution | `<(cmd)`, `>(cmd)` | Capture output to `$TMPDIR/…` in one call, read it in the next |
-| `;`-chains or `&&`-chains (>1 command) | `a ; b`, `a && b && c` | One `Bash` call per command |
+| `;`-chains, `&&`-chains, or `\|`-pipelines (>1 command) | `a ; b`, `a && b && c`, `a \| b`, `cmd \| tee file` | One `Bash` call per command. For pipelines reading a file, use `Read`/`Grep` instead — never `awk file \| tr`, `cat file \| jq`, `sort file \| uniq`, etc. (see Rule 0.6) |
 | Variable assignment + use in same call | `X=foo; echo $X`, `FOO=bar cmd` (where you then reference `$FOO` later) | Pass literal value; shell state doesn't persist anyway |
 | Heredoc into interpreter | `python3 <<EOF`, `bash <<EOF` | `Write` a file to `$TMPDIR/<name>.<ext>`, run the file |
 | `-c` / `-e` with multi-line body | `python3 -c "..."`, `node -e "..."` | Same — `Write` a file, run the file |

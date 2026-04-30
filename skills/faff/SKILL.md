@@ -115,6 +115,26 @@ Logs are plain markdown — agent-readable and human-readable. A log must contai
 
 ### Bash command hygiene (universal)
 
+<!--
+  PROPAGATE-TO: when adding, removing, or renumbering rules in this section
+  (Rule 0, 0.5, 0.6, …) or restructuring its heading, also update every faff
+  sub-skill — they all carry an inline summary of these rules at point of use:
+    - skills/faff-prep/SKILL.md     → "## Bash discipline (mandatory)"
+    - skills/faff-tidy/SKILL.md     → "## Bash discipline (mandatory)"
+    - skills/faff-wtf/SKILL.md      → "## Bash discipline (mandatory)"
+    - skills/faff-workit/SKILL.md   → "Bash discipline during build" (build-phase customised)
+    - skills/faff-beep-boop/SKILL.md → autonomous bullet "No Bash approval prompts anywhere in the run"
+  Why duplicate: pointers fail when sections move (this happened on
+  2026-04-30 when Rules 0/0.5 were lifted out of "Autonomous Mode Contract"
+  into "Bash command hygiene" — every sub-skill's pointer became stale).
+  The duplication is bounded: each sub-skill carries a SUMMARY (rule names
+  + canonical trap), not the full prose. Drift surface is rule names/numbers
+  only. Reference rules by stable name (e.g. "Rule 0.5"), never by section
+  heading. Approval prompts break flow in interactive mode and halt the run
+  in autonomous mode — the rule applies universally, every faff skill, no
+  exceptions.
+-->
+
 These rules apply to **every** faff invocation — interactive and autonomous alike. The premise is simple: if a simpler, atomic command does the same job without tripping an approval prompt, that is the default behaviour. Don't write a command that requires the human to authorise it when an equivalent one wouldn't. Approval prompts in interactive mode aren't "free" — they break the human's flow, force them to context-switch, and accumulate as friction across a session. In autonomous mode the same prompt halts the whole run. Either way, the fix is the same: write commands that don't need approval.
 
 Before invoking `Bash`, mechanically check the command against the list below. If it contains ANY banned construct, rewrite it as separate atomic calls — don't try to disguise the construct or argue why yours is different.
@@ -143,6 +163,7 @@ If your reflex is "I'll just `awk` this real quick," stop. There is no real quic
 | Arithmetic expansion | `$(( x + 1 ))` | Compute in the host language (JS/TS/Python is what you're likely editing anyway) or hardcode |
 | Process substitution | `<(cmd)`, `>(cmd)` | Capture output to `$TMPDIR/…` in one call, read it in the next |
 | `;`-chains, `&&`-chains, or `\|`-pipelines (>1 command) | `a ; b`, `a && b && c`, `a \| b`, `cmd \| tee file` | One `Bash` call per command. For pipelines reading a file, use `Read`/`Grep` instead — never `awk file \| tr`, `cat file \| jq`, `sort file \| uniq`, etc. (see Rule 0.6) |
+| Cross-worktree file/git peek — the canonical multi-rule trap | `cd /path/to/worktree && git show HEAD:file \| head -80` (violates Rules 0, 0.5, **and** the `&&`/pipeline ban — all in one line) | `git -C /path/to/worktree show HEAD:file` as a single atomic call. Drop the `head` — let Bash return the full output and truncate in your own context. If the file is genuinely huge, redirect to `"$TMPDIR/peek"` in one call and `Read` it with `limit` in the next. **Never** `cd && git`, **never** `\| head`. |
 | Variable assignment + use in same call | `X=foo; echo $X`, `FOO=bar cmd` (where you then reference `$FOO` later) | Pass literal value; shell state doesn't persist anyway |
 | Heredoc into interpreter | `python3 <<EOF`, `bash <<EOF` | `Write` a file to `$TMPDIR/<name>.<ext>`, run the file |
 | `-c` / `-e` with multi-line body | `python3 -c "..."`, `node -e "..."` | Same — `Write` a file, run the file |

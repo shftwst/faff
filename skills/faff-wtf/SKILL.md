@@ -22,6 +22,17 @@ When the consuming project's CLAUDE.md flags a current workstream, weight issues
 
 **Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues should rise to the top of "Coming Up" / "Today's Focus" / "Ready to pick up" because they represent *just-realised* potential the human/automation hasn't acted on yet.
 
+## Bash discipline (mandatory)
+
+These rules apply to every `Bash` call in this skill — interactive and autonomous alike. Approval prompts break the user's flow in interactive mode and halt the run in autonomous mode; the fix is the same either way. Canonical: `skills/faff/SKILL.md` → **Bash command hygiene**. Mechanical reminders, restated here so they're visible at point of use:
+
+- **Rule 0:** never `grep`/`rg`/`find`/`ls`/`cat`/`head`/`tail`/`sed`/`awk`/`echo >` via `Bash`. Use `Grep`/`Glob`/`Read`/`Edit`/`Write`. They never trip approval.
+- **Rule 0.5:** never `cd` via `Bash`, **especially never `cd <dir> && git ...`** — the sandbox flags this as a "bare-repository-attack" pattern by name. Use `git -C <dir> ...` for git, or pass absolute paths.
+- **Rule 0.6:** never shell-parse a file. No `awk file`, `sed file`, `jq file`, `cat file | …`. Use `Read` (with `offset`/`limit`) or `Grep`.
+- **No `&&`-chains, `;`-chains, `|`-pipelines, `$(...)`, backticks, `$((...))`, process substitution, heredoc-to-interpreter, or multi-step shell.** One atomic binary invocation per `Bash` call; chain via separate tool calls.
+
+Canonical trap: `cd /path && git show HEAD:file | head -80` violates Rules 0, 0.5, **and** the `&&`/pipeline ban in one line. Fix: `git -C /path show HEAD:file` as one atomic call (no `head` — let Bash return the output and truncate in your own context).
+
 ## What it does
 
 Run through these sections in order:

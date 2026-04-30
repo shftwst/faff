@@ -26,6 +26,17 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **Comments are mandatory in spec discovery.** `/faff-prep` writes specs to tracker comments by default — comments are the **most common** place a spec lives before it's worked. A tidy run that classifies issues based on descriptions only and notes "comments not checked / may already have spec comments" is a **broken run** — it systematically mis-classifies the common case as "almost ready / needs prep". Before any issue is bucketed for spec health or readiness, you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). If the run includes too many issues to comment-fetch each one individually, batch-fetch or scope the run smaller — never substitute description-only sampling. Output that hedges with "I sampled descriptions, not comments" is not acceptable; complete the discovery and re-classify before reporting.
 
+## Bash discipline (mandatory)
+
+These rules apply to every `Bash` call in this skill — interactive and autonomous alike. Approval prompts break the user's flow in interactive mode and halt the run in autonomous mode; the fix is the same either way. Canonical: `skills/faff/SKILL.md` → **Bash command hygiene**. Mechanical reminders, restated here so they're visible at point of use:
+
+- **Rule 0:** never `grep`/`rg`/`find`/`ls`/`cat`/`head`/`tail`/`sed`/`awk`/`echo >` via `Bash`. Use `Grep`/`Glob`/`Read`/`Edit`/`Write`. They never trip approval.
+- **Rule 0.5:** never `cd` via `Bash`, **especially never `cd <dir> && git ...`** — the sandbox flags this as a "bare-repository-attack" pattern by name. Use `git -C <dir> ...` for git, or pass absolute paths.
+- **Rule 0.6:** never shell-parse a file. No `awk file`, `sed file`, `jq file`, `cat file | …`. Use `Read` (with `offset`/`limit`) or `Grep`.
+- **No `&&`-chains, `;`-chains, `|`-pipelines, `$(...)`, backticks, `$((...))`, process substitution, heredoc-to-interpreter, or multi-step shell.** One atomic binary invocation per `Bash` call; chain via separate tool calls.
+
+Canonical trap: `cd /path && git show HEAD:file | head -80` violates Rules 0, 0.5, **and** the `&&`/pipeline ban in one line. Fix: `git -C /path show HEAD:file` as one atomic call (no `head` — let Bash return the output and truncate in your own context).
+
 ## Process
 
 **Tidy acts. It does not just list.** Any finding with a mechanical, unambiguous fix is applied — not reported as an observation for the human to do later. "X, Y, Z reference cancelled blocker W" is not a finding to surface; it is an instruction to strip the references. Surfacing cascading cancellations as prose in a summary, with no action taken, is the failure mode to avoid.

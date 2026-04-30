@@ -74,7 +74,7 @@ In autonomous mode, validation failure → park. In interactive mode, validation
 
 ### Phase 1: Prep (issue tracker only)
 
-During prep, the spec lives **only on the issue tracker** as a comment/document. Nothing is committed to the repo. This means:
+During prep, the spec lives **only on the issue tracker** as a comment. Nothing is committed to the repo. This means:
 - No noisy commits, PRs, or CI runs for planning work
 - The spec can be revised and replaced freely
 - If the session crashes, the spec is preserved on the issue
@@ -146,16 +146,27 @@ On confirm, invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conver
 
 The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (`skills/faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
 
-**Step 1: Restore working state** — pull the spec from whichever source had it. If multiple sources exist, use the most recently modified one and note the others in the log.
+**Step 1: Restore working state** — pull the spec from whichever source had it. If multiple sources exist, use the most recently modified one and note the others in the log. **Note the spec comment's timestamp** — you'll use it in the next step.
 
-**Step 2: Validate freshness** — read the spec against the current codebase state. Check: have dependencies shipped since this was scoped? Has the codebase changed in ways that affect the spec? Are the technical decisions still valid? If stale: flag what changed and why it needs updating.
+**Step 2a: Scan comments since the spec for substantive thread changes.** Fetch all comments on the issue (whichever tracker MCP is configured) and look at every comment posted **after** the spec comment. Categorise each:
+- **Challenge** — questions, pushback, or new constraints that contradict or undermine a decision in the spec ("this won't work because…", "we now need to support X", "Y was deprecated since you wrote this").
+- **Resolution** — decisions or answers that close out a Punt/Assumes/TBD marker in the spec, or otherwise commit to a direction the spec left open.
+- **Context** — substantive information that doesn't challenge or resolve but is worth knowing while building: a relevant link, a related discovery, a constraint to watch out for, a stakeholder note. Doesn't force re-prep but **must be surfaced** to the user (interactive) or carried into the spec annotations (autonomous refresh) so it doesn't get lost.
+- **Noise** — status pings, "+1", "any update?", unrelated chatter. Ignore.
+
+If any challenge or resolution exists, the spec is **out of date** even if the codebase hasn't moved — the conversation has. Treat this exactly like a stale-spec finding: the spec must be re-prepped (or refreshed) to incorporate the comment thread before any build can proceed. Context-only comments do not force re-prep but should be appended to the spec as an annotation block (and shown in the brief). Log each challenge / resolution / context entry with its commenter, timestamp, and a one-line summary.
+
+**Step 2b: Validate freshness against the codebase** — read the spec against the current code state. Check: have dependencies shipped since this was scoped? Has the codebase changed in ways that affect the spec? Are the technical decisions still valid? If stale: flag what changed and why it needs updating.
 
 **Step 3: Brief the user** — present a concise summary:
 - What this ticket is about
 - The proposed design approach (from the spec)
 - Key technical decisions already made
-- Artifact state: fresh or stale, and why
+- **Comment-thread state since the spec** — list any challenges, resolutions, and context items found in Step 2a (or "none" if clean). Context items are surfaced too so the user sees them; they don't block build by themselves.
+- Artifact state: fresh / fresh-with-context / stale-by-codebase / stale-by-discussion / both, and why
 - Estimated scope/complexity
+
+If Step 2a surfaced challenges or resolutions, the default action is **iterate** — the user shouldn't be offered `build` until the spec absorbs the thread. Context-only threads do not force iterate; the user can still pick `build` knowing the context.
 
 Then offer a three-way choice (not passive text):
 
@@ -195,13 +206,15 @@ Two allowed auto-spec paths:
 
 ### Path 1 — Stale-refresh (existing spec on the ticket)
 
+**Always run the post-spec comment scan first** (Scenario B Step 2a in the interactive flow): fetch all comments after the spec, classify each as challenge / resolution / context / noise. Treat any challenge or resolution as a freshness trigger equivalent to codebase drift. Context-only threads are not a freshness trigger on their own, but **must be carried into the refreshed spec as an annotation block** so the information survives — never silently drop them.
+
 If an existing spec is present and:
-- The original design decisions still hold against the current codebase
-- Changes are limited to shipped blockers, minor drift, or fresh context that doesn't invalidate the approach
+- The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
+- Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated, **validate per the _Spec Format Contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **validate per the _Spec Format Contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
 
-If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach → **park** (not a safe auto-refresh).
+If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 
 If the refreshed spec fails marker validation → **park** with cause "spec format contract violated — missing Chosen/Decision/Punt markers".
 

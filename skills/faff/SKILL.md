@@ -74,11 +74,13 @@ No exceptions. Cancelled/archived items are invisible to faff — they are never
 
 Any faff sub-skill that asks "does this issue have a spec?" must check **all three** of the following, in order, and treat a hit in any of them as the spec:
 
-1. **Issue tracker comments / documents** — the default location faff-prep writes to during Phase 1 (pre-build). For Linear, this includes both inline comments and attached documents.
+1. **Issue tracker comments** — **the default and most common location**. faff-prep writes the spec as a comment on the issue during Phase 1 (pre-build). **Most specs live here**, not in the description.
 2. **Issue tracker main description / body** — users sometimes paste or author the spec directly in the ticket body instead of a comment.
 3. **Committed docs** in the repo — e.g. `docs/superpowers/specs/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-workit commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
 
-Never assume "no spec attached" without checking all three. Finding a spec in any location is a positive — there is no requirement that it live in comments specifically. When multiple sources exist, prefer the most recently modified one and note the discrepancy in the log.
+**Comments are not optional.** Because faff-prep writes specs to comments by default, any spec-discovery pass that only inspects descriptions is **invalid output** — it will systematically miss the most common case and produce false "no spec" findings. Before classifying any issue as "no spec / almost ready / needs prep", you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). Sampling descriptions and noting "comments not checked" is **not** acceptable — re-fetch and complete the check before reporting.
+
+Never assume "no spec attached" without checking all three. Finding a spec in any location is a positive. When multiple sources exist, prefer the most recently modified one and note the discrepancy in the log.
 
 ### `.faff/` logging directory
 

@@ -33,7 +33,7 @@ All forms run non-interactively. No yes/no gates. The whole point is unattended 
 ## Ready-queue mode (`--ready`)
 
 1. Query the tracker for every Todo issue (per the shared ignore rule — skip cancelled/archived).
-2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments/documents, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty `docs/superpowers/specs/` does **not** mean "no spec"; the tracker is the primary source.
+2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty `docs/superpowers/specs/` does **not** mean "no spec"; the tracker is the primary source.
 3. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
 4. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch.
 5. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
@@ -72,7 +72,7 @@ Runs until the prep queue is empty. **Never short-circuits on build-queue state.
 
 ### 4. Build queue assembly
 
-Collect every issue that meets readiness (no open blockers, in Todo) **and has a spec discoverable per the shared Spec discovery rule** (gateway) — tracker comments/documents, tracker description/body, or committed `docs/`. Any hit counts. This includes:
+Collect every issue that meets readiness (no open blockers, in Todo) **and has a spec discoverable per the shared Spec discovery rule** (gateway) — tracker comments, tracker description/body, or committed `docs/`. Any hit counts. This includes:
 - Issues already in Todo at the start of the run (spec likely on the tracker)
 - Issues freshly moved to Todo by the prep queue (spec on the tracker by construction)
 

@@ -28,7 +28,7 @@ Run through these sections in order:
 
 ### 1. Timeline Check
 - Read project context from `CLAUDE.md` (tracker details, milestones)
-- **Always re-fetch milestones and their completeness live** — never rely on cached snapshots or values written into `CLAUDE.md`. Source of truth is the tracker. For Linear, call `mcp__claude_ai_Linear__list_milestones` per project ID to pull current milestone target dates and progress percentages.
+- **Always re-fetch milestones and their completeness live** — never rely on cached snapshots or values written into `CLAUDE.md`. Source of truth is the tracker. Call whichever tracker MCP is configured (use its list-milestones equivalent — autodetect from the available MCP, don't hardcode) per project / workstream id to pull current milestone target dates and progress percentages.
 - Calculate where we are relative to milestone target dates
 - Flag if any milestone is at risk based on remaining work vs time
 - Render one table per project with columns `Milestone | Target | Progress` (see Output Format)
@@ -125,7 +125,7 @@ Keep it concise and scannable. Use this structure:
 
 ### Milestones
 
-Source of truth is Linear. Snapshot below — re-query via `mcp__claude_ai_Linear__list_milestones` per project ID for the live view.
+Source of truth is the configured issue tracker. Snapshot below — re-query via the tracker MCP's list-milestones equivalent per project / workstream id for the live view.
 
 #### [Project Name]
 

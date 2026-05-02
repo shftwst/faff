@@ -63,7 +63,7 @@ Query using the project/team details from `CLAUDE.md`. Exclude cancelled and arc
 Scan for issues parked by a prior autonomous run (typically `/faff-beep-boop`).
 
 Sources:
-- Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist)
+- Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist). Use `Bash(ls "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers).
 - Tracker query for issues tagged `parked-by-faff` (or the tracker's equivalent label that beep-boop writes on park)
 
 For each parked issue, surface:

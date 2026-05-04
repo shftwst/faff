@@ -26,9 +26,11 @@ If `CLAUDE.md` declares a `spec` slot in Planning Skills, faff-prep delegates sp
 
 When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, faff-prep produces a lightweight inline spec itself.
 
-**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined in _Spec Format Contract_ below. Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A skill that cannot self-rate is still usable in interactive mode; the autonomous path parks instead.
+**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined in _Spec Format Contract_ below. Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
 
 When invoking a delegated spec skill, faff-prep passes the _Spec Format Contract_ as part of the instructions so the delegated skill produces markers the autonomous reader can rely on.
+
+**Inline path is autonomous-capable.** When no `spec` skill is configured (or the configured one can't self-rate), faff-prep produces the inline spec itself and self-rates it — it has full visibility into the explore findings, the Spec Format Contract, and the resulting markers, so it can honestly assess whether the spec is high/medium/low confidence. The inline path is never a park reason on its own; the same confidence gate applied to delegated output also applies to the inline output.
 
 ## Bash discipline (mandatory)
 
@@ -76,6 +78,55 @@ Every spec faff-prep produces (delegated or inline, fresh or refreshed) must mar
 - `Punt:` and `Assumes:` entries grouped in their dedicated sections.
 
 In autonomous mode, validation failure → park. In interactive mode, validation failure → faff-prep adds the missing marker (drawing from the delegated skill's output or user-confirmed choice) before attach.
+
+## Inline-spec subagent review (mandatory, all sizes)
+
+When faff-prep produces an inline spec (i.e. no `spec` skill is configured, or the configured one is unavailable), dispatch a clean-context subagent to review the freshly generated spec against the codebase **before** attaching it to the tracker. This applies in **both** interactive and autonomous mode, **regardless of issue size**, and it runs in addition to marker validation and self-rating — not instead of them.
+
+**Why:** by the time the inline spec is drafted, the prep agent's context is saturated with explore findings, rationale-as-it-was-being-formed, and the framing it locked in early. That context makes it hard to spot: missed conventions in the codebase, decisions that don't fit the existing architecture, vague or untestable ACs, `**Punt:**` items that the codebase actually answers, `**Assumes:**` entries that aren't true, or scope creep that crept in mid-drafting. A reviewer with fresh context — given only the spec and the codebase — sees the spec the way `/faff-workit` will see it. Catching these issues at prep is an order of magnitude cheaper than catching them mid-build, and the cost of one subagent dispatch is negligible relative to the cost of building from a flawed spec — true for an XS spec just as much as for an XL one.
+
+**No size threshold.** Don't skip the review for "small" issues. Small specs go wrong in the same ways large ones do (vague ACs, false `**Assumes:**`, missed convention) — they're just shorter, which makes the review faster, not unnecessary. If you find yourself reasoning "this is a one-line change, the review is overkill", that's the same capacity-shaped rationalisation banned by the gateway's forbidden-park-reasons list. Just dispatch.
+
+**Dispatch.** Use the `Agent` tool with `subagent_type: Explore` (read-only — the reviewer must not edit the spec; it returns findings, prep applies them).
+
+The subagent prompt must include:
+
+1. The full spec content (markers and all).
+2. The issue title, description, and any blocked-by/dependency context.
+3. The explicit review brief — paraphrased, not copy-pasted from a template:
+   - "You are reviewing a freshly drafted spec against the codebase. You have **clean context** — use it. Read the spec, then explore the codebase to verify each claim it makes."
+   - Specific checks to run (see "What the reviewer must check" below).
+   - Output format: structured findings, one entry per issue spotted, each with severity (`blocker` / `major` / `minor`) and a one-line proposed fix or open question.
+4. An instruction to keep the review under ~400 words of findings — prep needs signal, not a second draft of the spec.
+
+**What the reviewer must check** (the prompt should enumerate these explicitly so the subagent doesn't drift into general code review):
+
+- **Codebase fit.** Does each `**Chosen:**` decision match how the codebase already does similar things? Flag decisions that introduce a new pattern when an established one exists, or that ignore an existing utility/abstraction the spec author seems to have missed.
+- **Assumes-validity.** For every `**Assumes:**` entry, can the reviewer confirm the assumed thing actually exists in the repo (file, dep, function, branch state)? Flag any that don't.
+- **Punt-resolvability.** For every `**Punt:**` entry, is the answer actually findable in the codebase? Sometimes the spec author punted on something the code already decides — in which case the punt should be a `**Chosen:**`.
+- **AC testability.** Is each AC concrete and testable? Flag anything vague ("works correctly", "is performant") or anything that lacks a clear pass condition.
+- **Scope creep.** Does the spec promise things outside the issue's stated intent? Flag anything that reads like an opportunistic refactor smuggled into the spec.
+- **Missing surface.** Are there obvious code paths or edge cases the spec doesn't address that the codebase shows are relevant (existing tests, neighbouring features, error-handling conventions)?
+- **Interface mismatch.** Do the proposed interface contracts (API shapes, component props, data schemas) match how callers in the codebase already work?
+
+**Acting on the findings:**
+
+| Finding severity | Interactive mode | Autonomous mode |
+|---|---|---|
+| `blocker` (spec is wrong about a fact in the codebase, contains an Assumes that doesn't hold, or the Chosen decision contradicts established convention without acknowledging it) | Surface to user, revise inline before attach | Revise the spec to address the finding (apply the proposed fix, or convert the affected `**Chosen:**` to a `**Punt:**` with the conflict noted). Re-self-rate. If the revision drops confidence to medium/low, follow the standard gate (park). If a blocker can't be fixed without architectural reframing, **park** with cause "subagent review surfaced unresolvable blocker — needs human" |
+| `major` (vague AC, scope creep, missed edge case) | Surface to user, fix or note inline | Fix in the spec where mechanical (tighten an AC, drop an out-of-scope item); leave as `**Punt:**` with the reviewer's note where judgement is needed. Self-rating may downgrade accordingly |
+| `minor` (style, naming, would-be-nice clarification) | Optionally fix; otherwise log and move on | Fold into the spec where trivial; otherwise log and proceed |
+
+**Self-rating downgrade rule:** if the subagent review surfaces ≥1 `blocker` or ≥3 `major` findings, the inline spec **cannot** be self-rated `high` regardless of how the prep agent felt about it pre-review. Cap at `medium` minimum, which (in autonomous mode) means park. This stops the prep agent from rationalising past honest findings. Applies to every inline spec, regardless of size.
+
+**Logging.** Append the subagent's full output to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`), then append the resolution decisions (which findings were applied, which were left as `**Punt:**`, which were dismissed and why). The audit trail must show that the review ran and what was done with it — a missing review log on an inline spec is itself a process failure.
+
+**Why mandatory and not optional:** "optional" review steps degrade to "skipped" review steps. If a future invocation is tempted to skip this on capacity grounds ("this issue is small", "the explore was thorough enough", "the spec is only three lines"), refuse the temptation — the same logic that bans capacity-based parks (see `skills/faff/SKILL.md` Autonomous Mode Contract) applies here.
+
+**When NOT to run it:**
+
+- Delegated `spec` skill output (the delegated skill is responsible for its own quality bar — its self-rating gates on it).
+- Stale-refresh path (Path 1 in autonomous): the original spec was already vetted; refresh changes are scoped, not whole-cloth.
 
 ## Prep Gate
 
@@ -139,6 +190,8 @@ If no `spec` skill is configured, produce an inline spec artifact:
 - If cross-boundary, recommend split
 
 Run the marker validation from _Spec Format Contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
+
+**Before attaching (inline spec only, all sizes):** dispatch the clean-context subagent review per _Inline-spec subagent review_ above. Apply its findings (revise, downgrade self-rating, or park) before moving to attach.
 
 **→ Immediately attach spec to the issue as a comment.**
 - If the spec surfaced that the issue should be split, recommend the split
@@ -231,16 +284,22 @@ If the refreshed spec fails marker validation → **park** with cause "spec form
 
 ### Path 2 — Fresh-spec (no existing spec)
 
-Only available when a `spec` skill is configured (see Configuration).
+Available in **both** delegated and inline modes — autonomous never parks merely because no `spec` skill is configured.
 
-Invoke the configured spec skill (passing the _Spec Format Contract_ in the instructions). Inspect the `confidence:` self-rating at the end of its output, then run marker validation.
+**If a `spec` skill is configured:** invoke it (passing the _Spec Format Contract_ in the instructions). Read the `confidence:` self-rating at the end of its output, then run marker validation.
+
+**If no `spec` skill is configured (or the configured one can't self-rate):** produce the inline spec yourself per Scenario A Step 2 (explore findings → design decisions with `**Chosen:**`/`**Decision:**` markers, open questions in `**Punt:**`, prerequisites in `**Assumes:**`, ACs). Then run the same marker validation. **Dispatch the clean-context subagent review per _Inline-spec subagent review_ above** (mandatory for every inline spec, regardless of size) and apply its findings (revise the spec, fold blockers, leave open questions as `**Punt:**`) before self-rating. Self-rating is a deliberate honest assessment based on:
+
+- `high` — the explore phase surfaced clear answers, every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` markers escalate genuine product/architecture questions, and the ACs are concrete and testable.
+- `medium` — the spec is mostly clean but has 1–2 `**Punt:**` markers on substantive choices, or one or more decisions where the rationale feels thin and a human would likely want to weigh in.
+- `low` — multiple `**Punt:**` markers, or the explore phase couldn't pin down the underlying intent of the ticket, or core architecture is genuinely unclear.
+
+Apply the same gate to either output:
 
 - `confidence: high` **and** marker validation passes → attach to issue, move to Todo, return `promoted`
 - `confidence: high` **but** marker validation fails → **park** with cause "spec format contract violated — missing Chosen/Decision/Punt markers"
-- `confidence: medium` → **park**
-- `confidence: low` → **park**
-
-If no `spec` skill is configured, the inline-spec path is **not available** in autonomous mode (no self-rating to gate on). **Park** with cause "no spec skill configured — inline path requires human authorship".
+- `confidence: medium` → **park** with cause "medium confidence — needs human review of open punts"
+- `confidence: low` → **park** with cause "low confidence — explore could not resolve core questions"
 
 ### Park protocol
 

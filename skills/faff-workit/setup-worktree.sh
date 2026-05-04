@@ -37,6 +37,14 @@ for f in .env .env.local .env.development .env.production.local .claude/settings
   fi
 done
 
+# Skip install when requested — e.g. when running inside a Linux container
+# with a macOS bind-mounted worktree, installing would write platform-wrong binaries.
+if [ "${SKIP_NPM_PACKAGES_INSTALL:-}" = "1" ]; then
+  echo "$(date '+%H:%M:%S') [worktree] SKIP_NPM_PACKAGES_INSTALL=1 — skipping install." >&2
+  echo "$WORKTREE_PATH"
+  exit 0
+fi
+
 # Run project setup if a setup command exists in package.json
 if [ -f "$WORKTREE_PATH/package.json" ]; then
   # Detect package manager

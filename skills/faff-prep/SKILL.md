@@ -72,6 +72,21 @@ Every spec faff-prep produces (delegated or inline, fresh or refreshed) must mar
 4. `Chosen:` / `Decision:` applies to any design choice: libraries, patterns, data shapes, naming, scope boundaries. If the spec weighs options and picks one, mark it.
 5. No topic-keyword contract. The reader matches on markers, not topic names. A section called "Logging" with `**Chosen:** pino` at the end is closed; a section called "Anything" with `**Punt:** A or B — needs human` is open.
 
+**Writing style: skimmable, not coded**
+
+The marker contract above governs structure. This rule governs prose. A reader skimming the spec — without holding the source ADR, parent ticket, or blocker list in their head — must be able to follow what each section is about on first pass.
+
+Concrete prohibitions:
+
+- **No invented labelling schemes.** Don't introduce ad-hoc codes like `X1`, `F2`, `R3`, `W2a`, `Phase 4` and then cross-reference them throughout the spec. They force the reader to hold the full list in memory to decode any single line. If you need to refer back to earlier work, restate the subject ("the audit-error-registry relocation", "the cleanup PR for the entitlements route") rather than using a code.
+- **Ticket numbers are fine** — `#123`, `SHF-247`, `ENG-42` are real, stable identifiers. The rule bans codes the spec invents, not codes that exist in the tracker. When citing a related ticket, prefer `SHF-247 (audit-error registry relocation)` over either `SHF-247` alone or `F5` alone.
+- **Restate subjects on every cross-reference.** "F5 shim", "PR 4's deletions", "Phase 6", "test classes #1–#9" are opaque. Spell out what each is — "the audit-error-registry shim", "the webhook-route cleanup PR", "the cleanup phase", "the cross-tenant isolation tests".
+- **Inherited codes from the source ADR or parent ticket are the most common offender.** If ADR-0016 uses `F1...F8` to label foundation phases, the spec must translate each into a descriptive subject before referencing it. The ADR is one document; the spec is another. The reader of the spec may not have the ADR open.
+- **Descriptive lead columns in tables.** A row reading `PR 4 / W2 / in-app syncBilling impl / shim from W1` requires the reader to remember what `W2` and `W1` mean. Lead with a descriptive column ("Cleanup PR for the syncBilling webhook") or break into named subsections instead of relying on the code grid.
+- **Prefer standalone prose sentences over compressed bullet walls.** Three sentences that each make sense in isolation beat a five-bullet wall whose meaning depends on having read the preceding section.
+
+This rule applies equally to the inline path and to delegated `spec` skill output (faff-prep passes this contract to the delegated skill).
+
 **Validation before attach:** faff-prep scans the spec for:
 - At least one canonical marker in any section that presents multiple options.
 - No dangling comparisons (tables or "vs" prose without a marker below).
@@ -105,6 +120,7 @@ The subagent prompt must include:
 - **Assumes-validity.** For every `**Assumes:**` entry, can the reviewer confirm the assumed thing actually exists in the repo (file, dep, function, branch state)? Flag any that don't.
 - **Punt-resolvability.** For every `**Punt:**` entry, is the answer actually findable in the codebase? Sometimes the spec author punted on something the code already decides — in which case the punt should be a `**Chosen:**`.
 - **AC testability.** Is each AC concrete and testable? Flag anything vague ("works correctly", "is performant") or anything that lacks a clear pass condition.
+- **Skimmability.** Does the spec invent labelling schemes (`X1`, `F2`, `R3`, `W2a`, `Phase 4`) and cross-reference them throughout? Does any section assume the reader is holding the source ADR, parent ticket, or blocker list in their head? Flag every invented code that should be a descriptive subject ("the audit-error-registry shim" rather than "F5") — and flag inherited codes from a source ADR that the spec propagated wholesale instead of translating. Tracker ticket numbers (`#123`, `SHF-247`) are not the target — they're stable identifiers, not invented codes.
 - **Scope creep.** Does the spec promise things outside the issue's stated intent? Flag anything that reads like an opportunistic refactor smuggled into the spec.
 - **Missing surface.** Are there obvious code paths or edge cases the spec doesn't address that the codebase shows are relevant (existing tests, neighbouring features, error-handling conventions)?
 - **Interface mismatch.** Do the proposed interface contracts (API shapes, component props, data schemas) match how callers in the codebase already work?

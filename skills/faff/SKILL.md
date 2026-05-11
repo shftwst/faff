@@ -246,6 +246,66 @@ A wall of small visuals is the same problem as a wall of text. Each rendered sec
 - **Queue partition grid:** at most 10 rows visible; rest collapses to "(+ N more)" with the full list in the log
 - **Workstream lane:** at most 7 initiatives in the live view; rest in log
 
+## Synthesis contract
+
+Every issue rendered in any faff output — wtf's "Do this", whereto's workstreams, tidy's findings, beep-boop's queues, anywhere — carries three elements:
+
+1. **Tracker ID** — breadcrumb for traceability
+2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
+3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
+
+### Canonical rendering
+
+```
+ISSUE-XX — Pino instrumentation across the request path
+  Wire structured logging into every API handler so request-scoped fields
+  (user id, trace id, route) attach automatically. Once this lands, the
+  three downstream alerting tickets can build on a real log schema.
+```
+
+In tight tabular contexts (queues, ready lists), compress the gloss to a clause:
+
+```
+ISSUE-XX   Pino instrumentation — wires structured logging into all handlers · unlocks 3 alerting tickets
+```
+
+In high-density visualisations (queue partition grids, chain diagrams), show only the gloss subject; the unlock consequence lives in a one-line footnote keyed by ID.
+
+### Generation source order
+
+In order of preference:
+
+1. The spec's one-line summary if it has one
+2. The issue title plus the first 2-3 sentences of the spec
+3. The issue title plus the description if no spec exists
+
+The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SHF-217 dep chain", "as discussed") is replaced with what was actually meant.
+
+### Unlock-chain language
+
+Reserved for issues with ≥2 direct dependents, or any dependent that itself gates ≥2 issues (chain-of-3). Written in **consequence not count** form:
+
+- ✅ "Once this lands, the three downstream alerting tickets can build on a real log schema."
+- ❌ "Unlocks 3 issues."
+
+If the unlock chain is just 1 isolated dependent, skip the consequence line entirely — counting it is noise.
+
+### Honesty escape hatch
+
+If the spec is genuinely ambiguous, the gloss says so explicitly:
+
+> _Spec ambiguous: extend the existing logger vs. swap for pino; gloss reflects the title only._
+
+A reliable-but-thin gloss beats a confident-sounding-but-wrong one.
+
+### Caching
+
+Glosses generated for a given issue id during one invocation are reused within that invocation. **Not cached across invocations** — tracker state changes, and the "always pull fresh" rule wins.
+
+### Consumption
+
+Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references this contract via `See gateway → Synthesis contract` rather than re-stating.
+
 ## Routing
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).

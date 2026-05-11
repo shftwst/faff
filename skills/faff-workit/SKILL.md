@@ -254,7 +254,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 
 **Flow:**
 1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).
-2. During Step 7, if a decision arises that the spec doesn't resolve, invoke `/faff-prep` in respec mode. If respec returns `parked` → park this issue (WIP commit + draft PR + tracker note + log) and return to caller.
+2. During Step 7, if a decision arises that the spec doesn't resolve, run resolve-attempt first (see Resolve-attempt before park section below). If resolve-attempt proceeds, log to `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` and write the audit-trail tracker comment, then continue. If resolve-attempt fails, invoke `/faff-prep` respec. If respec is still ambiguous, park.
    - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see `skills/faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 3. After build, run Step 8 (AC verification) — mandatory.
 4. Push the branch and open the PR as a **regular (non-draft) PR**. Regular PRs are the default in autonomous mode; the review step decides whether to keep it that way or flip to draft.
@@ -266,6 +266,30 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), then invoke ship path on green (configured `ship` skill or `gh pr merge`). Return `shipped`.
    - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
 7. Any unrecoverable error → park and return `errored`.
+
+### Resolve-attempt before park
+
+In autonomous mode, before parking on `needs-decision-first` / `gap-blocked` / `circular-blocked` verdicts (read from `.faff/runs/<run-id>/automation-verdicts.md` if available, otherwise compute inline per gateway → **Automation-routing contract**), run a **resolve-attempt** as specified in gateway → **Autonomous Mode Contract → Resolve-attempt before park**.
+
+Behaviour per verdict (full rules in gateway):
+
+- `needs-decision-first` — re-read the Punt section, check codebase conventions, check spec-internal `Chosen:` markers, check related shipped issues. Proceed if a single clear answer falls out with high confidence; park if multiple defensible answers or the choice is architectural.
+- `gap-blocked` — determine whether the named external dep is load-bearing or precautionary. Proceed if precautionary; park if load-bearing.
+- `circular-blocked` — determine whether one cycle edge is defensive-not-load-bearing. Proceed by serialising the remaining edges if so; park if every edge is load-bearing.
+
+`repeat-parked` gets **no** resolve-attempt — the pattern itself is the signal. Always park.
+
+**Bounded.** Read at most 3 files outside the spec's named scope. Beyond that → park.
+
+**Audit trail (always).** When a resolve-attempt proceeds, write a tracker comment on the issue using this format:
+
+> _Faff autonomous resolve-attempt:_ The spec flagged this as `[verdict + marker]` but [the reasoning from codebase / spec / context]. Proceeding with [the inferred answer]. **If this is wrong, comment on this PR before merge and faff will re-park.**
+
+Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original marker, files inspected, reasoning, inferred answer.
+
+**Calibration write.** If the PR is subsequently flipped to draft by a human comment, or reverted post-merge within 7 days, write to `.faff/calibration/wrong-inferences/<ISSUE-ID>.md` (or `.faff/calibration/post-merge-reverts/<ISSUE-ID>.md`) per gateway → **Autonomous Mode Contract → Calibration log**. This is the calibration evidence loop.
+
+**What this does NOT do.** Does not bypass existing safety boundaries. Side-effects-outside-PR-flow still park unconditionally. Destructive operations still park unconditionally.
 
 **Park protocol:** shared — see `skills/faff/SKILL.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
 

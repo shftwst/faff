@@ -306,6 +306,87 @@ Glosses generated for a given issue id during one invocation are reused within t
 
 Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references this contract via `See gateway → Synthesis contract` rather than re-stating.
 
+## Structural diagnostics contract
+
+The pass `/faff-tidy` runs to detect issues with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs. Findings are consumed by other faff sub-skills.
+
+### Detection categories
+
+| Category | What | How |
+|---|---|---|
+| **Dependency cycles** | Blocker graph cycle of any length (A→B→A; A→B→C→A; longer) | Tarjan / DFS-with-coloring pass over the full active-issue blocker graph. Cancelled/archived already filtered per the **Ignore cancelled and archived** rule. |
+| **Ghost-project pointers** | An issue spec or description names a tracker container (project, initiative, milestone — whatever the tracker calls it) that does not exist | String-match against the live container list from the tracker MCP |
+| **Repeat-park patterns** | Active issue parked 3+ times in last 21 days (configurable in `CLAUDE.md`) with the same root-cause class | Reads last 50 `.faff/runs/*/summary.md` files; classifies each park by root-cause class enum (see below) |
+| **Splittable specs** | Spec describes two structurally independent concerns AND each concern is a valid ticket-sized unit | LLM inspection — restricted to specs already flagged stale/challenged by existing tidy logic (don't sweep every spec every run) |
+| **Orphaned + repeat-parked** | Cross-reference of existing orphaned-by-cascade detection with repeat-park | Set intersection of the two finding sets |
+
+Detection is conservative. False positives in this phase are expensive — the human gets a recommendation that's wrong and has to override. **When in doubt, don't flag.**
+
+### Root-cause class enum
+
+Used by repeat-park detection. Deliberately coarse so the same underlying problem ("the spec doesn't say whether to migrate or fork the table") matches across runs even when the literal park-note text varies.
+
+- `punt-not-closed` — park reason cites a Punt marker the spec didn't close
+- `gap` — park reason cites an external state that doesn't exist
+- `cycle` — park reason cites a dep cycle
+- `spec-ambiguous-external` — park reason cites an external decision the spec can't make alone
+- `other` — everything else (rarely matches across runs; effectively prevents false-positive repeat-park flagging)
+
+### Level-2 mechanical fixes (auto-applied in autonomous; offered in interactive)
+
+These are the new mechanical mutations introduced in Spec 1, applied per the existing Level-2 boundary in the **Autonomous Mode Contract**.
+
+| Detection | Mechanical fix |
+|---|---|
+| Cycle where one edge is defensive-not-load-bearing (the spec for A doesn't actually reference B's output) | Strip the defensive edge. Log the cycle, the stripped edge, the reasoning. |
+| Ghost-project pointer where the named container **clearly maps** to an existing container by name proximity (e.g. spec says "logging-cleanup project", tracker has "Logging cleanup") | Repoint the issue to the existing container. Log the move. |
+| Repeat-park (3+ runs, same root-cause class), issue still in Todo | Demote to Backlog, tag with `repeat-parked` (or tracker equivalent). Log the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue. |
+
+Two detection categories surface only — do **not** auto-apply (waits for Spec 2 / delivery-lead mode):
+
+- **Splittable specs** — interactive: offer to chain to `/faff-prep --split`. Autonomous Level-2: log only.
+- **Orphaned-by-cascade + repeat-parked** — surface only. Cancelling is destructive; always human.
+
+### Output section
+
+Tidy renders a `### Structural diagnostics` section when any finding exists. Format follows the **Visualisation-over-prose contract** — cycles use the cycle bracket (≤3 edges) or cycle box (4+ edges) form. Example:
+
+```
+### Structural diagnostics
+
+Cycles (1)
+  [ISSUE-AA → ISSUE-BB → ISSUE-CC → ISSUE-AA]
+  ISSUE-AA  Onboarding redirect — needs session state from BB
+  ISSUE-BB  Auth refresh — needs profile data from CC
+  ISSUE-CC  Profile init — claims to need redirect path from AA, but spec doesn't reference it
+  Recommendation: strip the CC→AA edge (defensive-only). Auto-applied in this run.
+
+Ghost-project pointers (1)
+  ISSUE-XX names "Audit lite" project — no such project exists in tracker.
+  Closest match: "Audit lite reliability" (live, 4 issues). Repointed in this run.
+
+Repeat-parks (2) ⚠
+  ISSUE-VV  Storage migration — parked 4 times, all on "schema versioning Punt" (same root cause).
+            Demoted to Backlog. Resolve the Punt via /faff-prep --refresh and re-promote.
+  ISSUE-WW  Webhook retry — parked 3 times on "billing-events gap" (same root cause).
+            Demoted to Backlog. Decide whether the dep is real; file the gap issue or descope.
+
+Splittable specs (1) — surfaced only, not auto-split
+  ISSUE-YY  Settings page rewrite — spec covers (a) URL routing changes and
+            (b) form-state refactor. The two have no overlapping files and could
+            ship independently. Run /faff-prep --split to break out.
+
+Orphaned + repeat-parked (1) ⚠
+  ISSUE-ZZ  Old auth fallback — parent project cancelled 6 weeks ago,
+            issue parked 3 times since. Is this still wanted?
+```
+
+### Consumption by other sub-skills
+
+- `/faff-wtf` always renders the structural-diagnostics summary in the morning brief, even if empty (`Structural diagnostics: clean ✓`). Repeat-parks and orphaned+repeat-parked surface in **Heads up** prominently.
+- `/faff-beep-boop` consumes cycle and ghost-project findings when computing automation-routing verdicts (see **Automation-routing contract**) — an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
+- `/faff-whereto` consumes ghost-project pointers as evidence for its Phase 7 risk findings.
+
 ## Routing
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).

@@ -19,17 +19,6 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
-## Bash discipline (mandatory)
-
-These rules apply to every `Bash` call in this skill — interactive and autonomous alike. Approval prompts break the user's flow in interactive mode and halt the run in autonomous mode; the fix is the same either way. Canonical: `skills/faff/SKILL.md` → **Bash command hygiene**. Mechanical reminders, restated here so they're visible at point of use:
-
-- **Rule 0:** never `grep`/`rg`/`find`/`ls`/`cat`/`head`/`tail`/`sed`/`awk`/`echo >` via `Bash`. Use `Grep`/`Glob`/`Read`/`Edit`/`Write`. They never trip approval.
-- **Rule 0.5:** never `cd` via `Bash`, **especially never `cd <dir> && git ...`** — the sandbox flags this as a "bare-repository-attack" pattern by name. Use `git -C <dir> ...` for git, or pass absolute paths.
-- **Rule 0.6:** never shell-parse a file. No `awk file`, `sed file`, `jq file`, `cat file | …`. Use `Read` (with `offset`/`limit`) or `Grep`.
-- **No `&&`-chains, `;`-chains, `|`-pipelines, `$(...)`, backticks, `$((...))`, process substitution, heredoc-to-interpreter, or multi-step shell.** One atomic binary invocation per `Bash` call; chain via separate tool calls.
-
-Canonical trap: `cd /path && git show HEAD:file | head -80` violates Rules 0, 0.5, **and** the `&&`/pipeline ban in one line. Fix: `git -C /path show HEAD:file` as one atomic call (no `head` — let Bash return the output and truncate in your own context).
-
 ## What it does
 
 **Always pull the whole roadmap picture fresh from the issue tracker. A roadmap with stale data cannot be trusted.**

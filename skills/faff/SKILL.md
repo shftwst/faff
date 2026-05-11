@@ -114,69 +114,6 @@ Logs are plain markdown — agent-readable and human-readable. A log must contai
 
 **Gitignore:** `.faff/` is added to `.gitignore` on first write if not already present. Users may un-ignore to commit logs if they want.
 
-### Bash command hygiene (universal)
-
-<!--
-  PROPAGATE-TO: when adding, removing, or renumbering rules in this section
-  (Rule 0, 0.5, 0.6, …) or restructuring its heading, also update every faff
-  sub-skill — they all carry an inline summary of these rules at point of use:
-    - skills/faff-prep/SKILL.md     → "## Bash discipline (mandatory)"
-    - skills/faff-tidy/SKILL.md     → "## Bash discipline (mandatory)"
-    - skills/faff-wtf/SKILL.md      → "## Bash discipline (mandatory)"
-    - skills/faff-workit/SKILL.md   → "Bash discipline during build" (build-phase customised)
-    - skills/faff-beep-boop/SKILL.md → autonomous bullet "No Bash approval prompts anywhere in the run"
-  Why duplicate: pointers fail when sections move (this happened on
-  2026-04-30 when Rules 0/0.5 were lifted out of "Autonomous Mode Contract"
-  into "Bash command hygiene" — every sub-skill's pointer became stale).
-  The duplication is bounded: each sub-skill carries a SUMMARY (rule names
-  + canonical trap), not the full prose. Drift surface is rule names/numbers
-  only. Reference rules by stable name (e.g. "Rule 0.5"), never by section
-  heading. Approval prompts break flow in interactive mode and halt the run
-  in autonomous mode — the rule applies universally, every faff skill, no
-  exceptions.
--->
-
-These rules apply to **every** faff invocation — interactive and autonomous alike. The premise is simple: if a simpler, atomic command does the same job without tripping an approval prompt, that is the default behaviour. Don't write a command that requires the human to authorise it when an equivalent one wouldn't. Approval prompts in interactive mode aren't "free" — they break the human's flow, force them to context-switch, and accumulate as friction across a session. In autonomous mode the same prompt halts the whole run. Either way, the fix is the same: write commands that don't need approval.
-
-Before invoking `Bash`, mechanically check the command against the list below. If it contains ANY banned construct, rewrite it as separate atomic calls — don't try to disguise the construct or argue why yours is different.
-
-**Rule 0 (check this first, every time): never invoke `grep`, `rg`, `find`, `ls`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo >` via `Bash`.** Use the dedicated tools — `Grep`, `Glob`, `Read`, `Edit`, `Write`. They never trip approval heuristics. This applies regardless of how innocent the path looks. The single biggest source of repeated halts is reaching for shell `grep` (often with `-B`/`-A` context flags, which `Grep` also supports) on paths containing `$`, spaces, or glob metacharacters. The fix is never to escape harder; it is always to use the `Grep` tool. Same logic for `find` → `Glob`, `cat`/`head`/`tail` → `Read`. If you're about to type any of those binaries into a `Bash` call, stop and switch tools.
-
-**Rule 0.5: never invoke `cd` via `Bash`.** Shell state doesn't persist (see below), so `cd` alone is useless. `cd <dir> && <cmd>` is *worse* — the sandbox flags any `cd` chained with `git` (or anything else) as a "bare-repository-attack" pattern and prompts for approval. There is no legitimate single-call use of `cd` here. Use `git -C <dir> ...` for git, `--cwd <dir>` / `-C <dir>` flags for tools that support them, or pass absolute paths. If a tool genuinely requires the working directory to be set and offers no flag, write a script to `$TMPDIR/<name>.sh` that does the `cd` internally and run that file. **Exact prompts to recognise** (any `cd <dir> && <cmd>` pattern triggers one of these):
-- "Compound commands with cd and git require approval to prevent bare repository attacks."
-- "Compound command contains cd with write operation - manual approval required to prevent path resolution bypass."
-
-If you've ever seen either, you've already broken Rule 0.5.
-
-**Rule 0.6: never shell-parse a file.** Reading or transforming a file's contents — including tool-results cache files, MCP response caches, JSON of any size, log dumps, anything in `~/.claude/projects/.../tool-results/` — is **always** done with the `Read` tool (with `offset`/`limit` if the file is large) or `Grep` for content search. Never reach for `awk`, `sed`, `tr`, `jq`, `cut`, `sort | uniq`, or any pipeline that ingests a file path. The cost of running an MCP query a second time is lower than the cost of an approval prompt; if the data was already fetched, `Read` the cache file directly. **The "file is too big to Read" intuition is wrong** — `Read` supports `offset` and `limit` and works on any file. **Exact prompts to recognise:**
-- "Contains simple_expansion" (sandbox flag for any `$VAR` expansion in arguments — typical when piping shell-processed output through `$TMPDIR`)
-- Any prompt mentioning shell expansion, pipeline complexity, or text-processing utilities
-
-If your reflex is "I'll just `awk` this real quick," stop. There is no real quick. Use `Read`.
-
-**Mental model:** shell state does **not** persist between `Bash` tool invocations. Each call is a fresh shell. Variable assignments, `cd`, `export`, `set -e`, shell functions — none of it survives. If you catch yourself writing `FOO=...; do_something_with_$FOO`, you've already lost: the assignment is useless because the next `Bash` call won't see `$FOO` anyway. Compute values on **this** turn (via a separate `Bash` call or by calling `date`/`uuidgen`/etc. once and reading the output), then pass literal values into the next call. Do **not** try to persist state via `/tmp/` or `$TMPDIR` files as a substitute for shell-level state — that's the wrapper anti-pattern, and it hits the same sandbox prompts.
-
-**Banned constructs (reject on sight, rewrite as atomic calls):**
-
-| Pattern | Example that trips | Fix |
-|---|---|---|
-| Command substitution | `RUN_ID="$(date ...)"`, `` `cmd` `` | Call `date` in a separate `Bash` call, read its output, pass the literal string into the next call |
-| Arithmetic expansion | `$(( x + 1 ))` | Compute in the host language (JS/TS/Python is what you're likely editing anyway) or hardcode |
-| Process substitution | `<(cmd)`, `>(cmd)` | Capture output to `$TMPDIR/…` in one call, read it in the next |
-| `;`-chains, `&&`-chains, or `\|`-pipelines (>1 command) | `a ; b`, `a && b && c`, `a \| b`, `cmd \| tee file` | One `Bash` call per command. For pipelines reading a file, use `Read`/`Grep` instead — never `awk file \| tr`, `cat file \| jq`, `sort file \| uniq`, etc. (see Rule 0.6) |
-| Cross-worktree file/git peek — the canonical multi-rule trap | `cd /path/to/worktree && git show HEAD:file \| head -80` (violates Rules 0, 0.5, **and** the `&&`/pipeline ban — all in one line) | `git -C /path/to/worktree show HEAD:file` as a single atomic call. Drop the `head` — let Bash return the full output and truncate in your own context. If the file is genuinely huge, redirect to `"$TMPDIR/peek"` in one call and `Read` it with `limit` in the next. **Never** `cd && git`, **never** `\| head`. |
-| Variable assignment + use in same call | `X=foo; echo $X`, `FOO=bar cmd` (where you then reference `$FOO` later) | Pass literal value; shell state doesn't persist anyway |
-| Heredoc into interpreter | `python3 <<EOF`, `bash <<EOF` | `Write` a file to `$TMPDIR/<name>.<ext>`, run the file |
-| `-c` / `-e` with multi-line body | `python3 -c "..."`, `node -e "..."` | Same — `Write` a file, run the file |
-| Writes to `/tmp/` directly | `> /tmp/foo`, `--output /tmp/bar` | Use `"$TMPDIR/foo"` — the sandbox only allows `$TMPDIR`, `/tmp/claude`, `/private/tmp/claude` |
-| `#` after a newline inside a quoted arg | Multi-line quoted string with a `#` comment | Don't use multi-line quoted strings for commands; use a file |
-| Any command >~3 lines or needing a comment to explain | Anything that doesn't fit "run binary X with literal args Y" | Decompose into separate calls or `Write` a script |
-| Paths containing `$` (Remix/React Router route files, etc.) | `grep -n "x" app/routes/app.\$id_.spec.ts` | Use the `Grep` tool — `$` in a path trips shell-expansion heuristics even when escaped |
-
-**Rule of thumb:** a good `Bash` call runs one binary with fully-literal arguments — and that binary is **not** one of the search/read/edit binaries listed in Rule 0. If you're reaching for shell features (substitution, expansion, chaining, redirection to anywhere but `$TMPDIR`/project, flow control), you're wrapping — decompose.
-
-**When a genuinely atomic command still prompts** (rare — usually means irreversible: force-push, `rm -rf` outside repo, destructive migration): in interactive mode, surface the command and reasoning to the user and let them approve. In autonomous mode, **park the unit of work** and log why. Don't attempt it without authorisation. Decomposition fixes complexity; approval (interactive) or parking (autonomous) is the correct response to genuine irreversibility.
-
 ### Autonomous Mode Contract
 
 Faff sub-skills can be invoked in **autonomous mode** (primarily by `/faff-beep-boop`). The mode is signalled in-conversation at the top of the invocation: _"running in autonomous mode, skip all prompts, park on ambiguity, log everything"_.
@@ -209,7 +146,6 @@ Universal rules in autonomous mode:
 - **Rule of thumb:** ask "if I merge this PR and it turns out wrong, can I fix it with `git revert` and a redeploy?" If yes → proceed, let the PR gate catch it. If no (because damage happened before or independent of the merge) → park.
 - **Invalid autonomous parks (just proceed):** anything outside the three valid categories above. Stylistic second-guessing, "did the author really mean X?", topic-keyword matches on sections that the spec has already closed, conflating "this touches sensitive files" with "this needs pre-approval". If the spec has an answer and the PR gate will catch mistakes, that is the answer.
 - **Post-merge housekeeping failures never halt the queue.** Deleting a merged local branch, removing a worktree, returning to the main working directory, tracker-side status bumps, label cleanup — these are **post-ship housekeeping**, not load-bearing steps. The work that mattered (spec → build → review → CI → merge) is already done and persisted. If any of these housekeeping steps fails (permission error because the shell is still inside the worktree, branch currently checked out, tracker transition rejected, label already removed, etc.) — **skip the failing step, log it, move on to the next issue in the queue**. Never prompt. Never park the merged issue. Never ask the human to resolve it mid-run. Accumulate the skipped items in a per-run "human follow-ups" list that is surfaced in the final run summary (see `skills/faff-beep-boop/SKILL.md` Reporting). The golden rule: anything that happens *after* the PR is merged and cannot be undone by a human in a minute from the run summary is not worth halting the pipeline for.
-- **Bash hygiene is mandatory** — see the **Bash command hygiene** shared rule above. Those rules apply universally, but they are especially load-bearing here: a single approval prompt halts the run, where in interactive mode it would only break the user's flow. Same rules, higher cost when broken. The autonomous-specific tail: when a genuinely atomic command still prompts, **park** rather than attempt — there is no human to approve it.
 
 Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` section. Summary:
 

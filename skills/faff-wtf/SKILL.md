@@ -32,6 +32,8 @@ A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong
 
 ## What it does
 
+**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location).
+
 Run through these sections in order:
 
 ### 1. Timeline Check
@@ -80,20 +82,27 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 
 ### 5b. Beep-boop queues (always render, even when empty)
 
-Show what `/faff-beep-boop` would pick up right now, partitioned the same way beep-boop itself would partition it. This section is **always present** in interactive-mode output — if a queue is empty, show the header with "(none)". The human should be able to see at a glance whether kicking off a `/faff-beep-boop` run is worth it.
+Show what `/faff-beep-boop` would pick up right now, computed per the **Automation-routing contract** (gateway). This section is **always present** — even with empty queues, render the headers with "(none)" so the human can see at a glance whether kicking off a run is worth it.
 
-For each queue below, apply the shared **Spec discovery** rule and the autonomous-mode park criteria (three valid park categories only — see gateway). Do **not** pre-park issues for scope, chained dependencies, or in-queue blockers; beep-boop's conflict analysis will serialise those.
+**Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). Collision groups are serialised within themselves and ordered by their lead issue's priority+unlock-value.
 
-**Build queue (ready for `/faff-beep-boop`):** Todo issues with a discoverable spec, not cancelled/archived, not blocked by work outside the current run's queue. Run the same conflict analysis beep-boop would (files/modules/scope-tags/in-queue blocker links) and present as:
+**Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
 
-- **Independents** (parallel-safe), ordered per the shared work-ordering rule (priority → chainable unlock value): ISSUE-XX, ISSUE-YY, …
-- **Collision groups** (serialised within each group, groups themselves ordered by the lead issue's priority + unlock value): [ISSUE-A → ISSUE-B], [ISSUE-C → ISSUE-D → ISSUE-E]
+**Prep queue (drained by default `/faff-beep-boop` full pipeline).** Backlog/pre-Todo issues unblocked (or blocked only by in-queue work), with no discoverable spec or a stale/superseded spec flagged by tidy. List as flat bullets — no conflict analysis needed at prep stage. Apply the synthesis contract for the gloss.
 
-Chained issues belong in collision groups, **not** in a separate "blocked" list. If A depends on in-queue B, write `[B → A]`, not "A blocked by B".
+### 5c. Structural diagnostics (always render — at least the status line)
 
-**Prep queue (drained by the default `/faff-beep-boop` full pipeline):** Backlog/pre-Todo issues that are unblocked (or blocked only by in-queue work), with no discoverable spec or with a stale/superseded spec flagged by tidy. These are candidates `/faff-beep-boop` would push through `/faff-prep` before building. List as flat bullets — no conflict analysis needed at prep stage.
+Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for structural-diagnostics findings. If no tidy ran this pass, compute inline. Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings per gateway → **Structural diagnostics contract** output format.
 
-**Fire-and-forget callout:** within the build queue, mark any issue whose spec is self-rated `confidence: high` and has no Punt/Assumes markers with a `★` — these are the lowest-risk targets for a quick autonomous run.
+Repeat-parks and orphaned+repeat-parked findings additionally surface in `### 7. Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump.
+
+### 5d. Calibration signals (rendered only when threshold crossed)
+
+Read `.faff/calibration/` summary (computed by tidy if it ran, otherwise inline) and surface any signals that crossed the threshold (default ≥4 events of the same root-cause class in the last 14 days, configurable in `CLAUDE.md`). See gateway → **Autonomous Mode Contract → Calibration log**.
+
+Each signal renders as a paragraph with the count, pattern, period, and three suggested next actions. Signals are advisory — the user decides whether to act.
+
+Skip this section entirely if no signals crossed the threshold.
 
 ### 6. Risks and Flags
 - Anything overdue or slipping
@@ -144,46 +153,72 @@ Source of truth is the configured issue tracker. Snapshot below — re-query via
 (Repeat one table per project.)
 
 ### Shipped
-- ISSUE-XX: [title] — unlocked: ISSUE-AA, ISSUE-BB (or "unlocked: none" if it gated nothing)
+- ISSUE-XX  [synthesis gloss for the shipped issue] · unlocked: ISSUE-AA, ISSUE-BB ([synthesis gloss for the unlocked issues])
 
 ### In progress
-- ISSUE-XX: [title] — [brief status note]
+- ISSUE-XX  [synthesis gloss] — [brief status note]
 
 ### Blocked
-- ISSUE-XX: [title] — blocked by [reason]
+- ISSUE-XX  [synthesis gloss] — blocked by [reason]
 
 ### Parked overnight
-- ISSUE-XX: [title] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
+- ISSUE-XX  [synthesis gloss] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
 
 ### Do this
 Ordered by priority → chainable unlock value. Items freshly unblocked by recent shipping bubble to the top.
 
-1. [Most important thing and why — note priority source (issue/ancestor) and unlock count if >0; flag with "(just unlocked)" if it became ready in the last 24-48h]
-2. [Second thing]
-3. [Third thing if applicable]
+1. ISSUE-XX  [synthesis gloss + unlock-chain consequence in plain English]. (Priority source: issue/ancestor; "just unlocked by ISSUE-YY" if applicable.)
+2. ISSUE-YY  …
+3. ISSUE-ZZ  …
 
 ### Heads up
+- Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
+- Orphaned + repeat-parked ⚠: ISSUE-ZZ  [gloss] — parent project cancelled; parked 3 times; is this still wanted?
 - [Any risks, approaching deadlines, or flags]
 
 ### Beep-boop queues
 
-**Build queue** (N ready, `/faff-beep-boop --ready` to build-only) — ordered by priority → chainable unlock value
+**Build queue** (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
 
-Independents:
-- ISSUE-XX: [title] ★    ← ★ = fire-and-forget (confidence: high, no Punt/Assumes)
-- ISSUE-YY: [title] (unlocks 3)    ← annotate non-trivial unlock counts so the leverage is visible
+  fire-and-forget
+    ISSUE-XX  [synthesis gloss] · unlocks 3 alerting tickets
+    ISSUE-YY  [synthesis gloss]
 
-Collision groups (serialised within each; groups ordered by lead issue's priority + unlock value):
-- [ISSUE-A → ISSUE-B]: [short reason — e.g. "both touch src/auth/"]
-- [ISSUE-C → ISSUE-D → ISSUE-E]: [reason]
+  likely-fire [ISSUE-A → ISSUE-B] (both touch src/auth/)
+    ISSUE-A   [synthesis gloss]
+    ISSUE-B   [synthesis gloss]
+
+**Needs your call before automation can pick up:**
+
+  needs-decision-first
+    ISSUE-ZZ  [synthesis gloss] — Punt in spec: [decision asked] (decide in N min)
+
+  gap-blocked
+    ISSUE-WW  [synthesis gloss] — spec assumes [named gap]; [recommended fix]
+
+  circular-blocked
+    ISSUE-AA  [synthesis gloss] — sits in cycle [AA → BB → CC → AA]; recommend [break-edge]
+
+  repeat-parked ⚠
+    ISSUE-VV  [synthesis gloss] (parked N runs with same root cause: [class]). Decide.
 
 **Prep queue** (N candidates, drained by default `/faff-beep-boop`)
-- ISSUE-ZZ: [title] — [no spec | stale spec | superseded spec]
+- ISSUE-ZZ  [synthesis gloss] — [no spec | stale spec | superseded spec]
 
 (Render "(none)" under any empty subsection rather than omitting it.)
 
+### Structural diagnostics
+
+Structural diagnostics: clean ✓
+
+(Or, when findings exist, render the full block per gateway → Structural diagnostics contract output format.)
+
+### Calibration signals
+
+(Skipped when no signals threshold-crossed; otherwise render each signal as a paragraph.)
+
 ### Ready to pick up
-- ISSUE-XX: [title] — [why it's ready now; flag "(just unlocked by ISSUE-YY)" if applicable, "(unlocks N)" if it gates downstream work]
+- ISSUE-XX  [synthesis gloss] — [why it's ready now; flag "(just unlocked by ISSUE-YY)" if applicable, "(unlocks N)" if it gates downstream work]
 ```
 
 Skip any section that has nothing to report — **except the Beep-boop queues section**, which is always rendered. If both queues are empty, write "Build queue: (none)" and "Prep queue: (none)" so the human can see the run would have no work.
@@ -194,7 +229,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 
 **Output:** a plain ready-queue list — issue id, title, readiness flag (`ready` or `needs-prep`). No focus recommendation, no "Do this", no "Heads up", no chat-style prose.
 
-**Return to caller (beep-boop):** `{ ready: [...], needs_prep: [...], blocked: [...] }`.
+**Return to caller (beep-boop):** `{ ready: [...], needs_prep: [...], blocked: [...], verdicts: { fire_and_forget: [...], likely_fire: [...], needs_decision_first: [...], gap_blocked: [...], circular_blocked: [...], repeat_parked: [...] }, structural_diagnostics_findings: N, calibration_signals: N }`.
 
 **No chaining gates in autonomous mode** — beep-boop decides what to do with the queue. No remediation offers for parked issues either; triage is the human's job, not beep-boop's.
 
@@ -205,3 +240,6 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 - Read working pattern notes from `CLAUDE.md` if available — respect the user's schedule when recommending focus
 - Work-ordering everywhere = priority (issue OR any ancestor) → chainable unlock value. Same rule as `/faff-tidy`.
 - Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"
+- Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
+- Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.
+- Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks always surface in `### Heads up`, not just in the diagnostics dump.

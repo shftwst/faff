@@ -91,16 +91,32 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
 .faff/
   logs/
     YYYY-MM-DD/
-      HHMMSS-<skill>[-<context>].md     # one file per skill invocation
+      HHMMSS-<skill>[-<context>].md         # one file per skill invocation
+      HHMMSS-tidy-verdicts.md               # standalone-tidy automation verdict cache
   runs/
-    YYYY-MM-DD-beep-boop-HH-MM-SS/      # grouped per beep-boop run
+    YYYY-MM-DD-beep-boop-HH-MM-SS/          # grouped per beep-boop run
       summary.md
+      automation-verdicts.md                # verdict cache for this run
+      conflict-analysis.md
       ISSUE-XX/
         prep.md
         workit.md
+        resolve-attempt.md                  # if autonomous resolve-attempt ran
         ac-verification.md
+        park.md                             # if parked
       ...
+  calibration/                              # append-only; never authoritative
+    over-cautious-parks/
+      <ISSUE-ID>.md
+    wrong-inferences/
+      <ISSUE-ID>.md
+    post-merge-reverts/
+      <ISSUE-ID>.md
 ```
+
+The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about over-cautious parks, wrong inferences, and post-merge reverts so resolve-attempt rules and verdict gates can evolve with data. See **Autonomous Mode Contract → Calibration log** for capture rules and the synthesis-and-surface flow.
+
+The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verdicts.md` equivalent) lets other sub-skills read the verdict computed by `/faff-tidy` without recomputing within a single pass. Across passes, always recompute — same "always pull fresh" rule that governs spec discovery.
 
 Each log entry captures:
 

@@ -1,6 +1,6 @@
 ---
 name: faff-tidy
-description: "Groom the backlog in both directions — find problems (dupes, vague tickets, stale blockers, dead weight) and promote ready issues to Todo. Trigger for: 'tidy' / 'clean up' / 'backlog' / 'groom' / 'mess'."
+description: "Groom the backlog in both directions — find problems (dupes, vague tickets, stale blockers, dead weight), surface structural diagnostics (cycles, ghost-project pointers, repeat-parks, splittable specs), and promote ready issues to Todo. Trigger for: 'tidy' / 'clean up' / 'backlog' / 'groom' / 'mess'."
 ---
 
 # Faff — Tidy
@@ -98,9 +98,55 @@ For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/
 
 **Order this bucket the same way as Ready** — priority first (issue or any ancestor, respect both), then chainable unlock value (how much downstream work resolving this would unblock). A parked issue that's gating a chain of five others should be top of the human's attention list, especially in autonomous runs where unblocking it lets `/faff-beep-boop` chew through the chain on the next pass.
 
+### 5. Structural diagnostics
+
+A separate pass that examines the **shape of the backlog itself**, not individual issues. Detects four categories of structural problem and applies Level-2 mechanical fixes where the resolution is unambiguous. See gateway → **Structural diagnostics contract** for the full definitions, root-cause class enum, and Level-2 mechanical fix rules.
+
+Categories detected:
+
+- **Dependency cycles** — blocker graph cycles of any length, computed over the full active-issue graph (Tarjan / DFS-with-coloring).
+- **Ghost-project pointers** — issue specs or descriptions naming a tracker container (project, initiative, milestone) that does not exist.
+- **Repeat-park patterns** — active issues parked 3+ times in the last 21 days (configurable in `CLAUDE.md`) with the same root-cause class.
+- **Splittable specs** — specs that cover two structurally independent concerns, each a valid ticket-sized unit. Restricted to specs already flagged stale/challenged — do not sweep every spec every run.
+- **Orphaned + repeat-parked** — cross-reference of orphaned-by-cascade with repeat-park; the combination is a strong "is this still wanted?" signal.
+
+Also computes the **automation-routing verdict** (see gateway → **Automation-routing contract**) for every Todo+spec'd issue and writes it to `.faff/runs/<run-id>/automation-verdicts.md` (full pipeline) or `.faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` (standalone). Other sub-skills (`/faff-wtf`, `/faff-beep-boop`) read this file rather than recomputing within the same pass.
+
+Level-2 mechanical fixes (auto-applied in autonomous; offered in interactive):
+
+| Detection | Mechanical fix |
+|---|---|
+| Cycle with one defensive-not-load-bearing edge | Strip the defensive edge; log cycle, stripped edge, reasoning |
+| Ghost-project pointer with clear name-match to existing container | Repoint to existing container; log the move |
+| Repeat-park (3+ same root-cause), issue still in Todo | Demote to Backlog; tag `repeat-parked` (or tracker equivalent); log the demotion |
+
+Surface-only (do **not** auto-apply in Level 2):
+
+- **Splittable specs** — interactive: chain-offer `/faff-prep --split`; autonomous: log only
+- **Orphaned + repeat-parked** — surface only (cancelling is destructive; always human)
+
+Output rendered in the new `### Structural diagnostics` section of tidy's output (see Output format below).
+
+### 6. Calibration signals
+
+Read `.faff/calibration/` at end of every tidy pass. See gateway → **Autonomous Mode Contract → Calibration log** for the three capture points and the immutability invariant.
+
+Surface signals when threshold crossed (default ≥4 events of the same root-cause class in the last 14 days, configurable in `CLAUDE.md`):
+
+> _Calibration signal:_ Your autonomous mode parked 4 issues in the last 14 days flagged `needs-decision-first` on `Punt: pino vs winston`. All 4 completed interactively without questions. The codebase has used pino since SHF-92 shipped (3 months ago). Consider: (a) extending the resolve-attempt rules to recognise this pattern, (b) running `/faff-prep --refresh` on the affected issues to update their specs with `Chosen: pino`, or (c) ignore — no change.
+
+Signals are **advisory only**. Tidy never auto-applies rule changes based on calibration data — the user (or future spec iterations) reads the signal and decides whether to act.
+
 ## Output and chaining
 
 Present findings grouped by bucket. Skip any bucket with no findings.
+
+Output renders two new sections in addition to the existing buckets:
+
+- `### Structural diagnostics` — present when the structural-diagnostics phase found anything (cycles, ghost pointers, repeat-parks, splittable specs, orphaned+repeat-parked). Format follows gateway → **Visualisation-over-prose contract** — cycles render as the cycle bracket (≤3 edges) or cycle box (4+ edges) form. Skip the section if no findings.
+- `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip the section if no signals.
+
+Both sections precede the existing buckets in tidy's output.
 
 After presenting, drive action via yes/no gates (never passive suggestions):
 
@@ -109,6 +155,9 @@ After presenting, drive action via yes/no gates (never passive suggestions):
 - **Almost-ready → prep:** "N issues are almost ready — missing a spec. Run `/faff-prep` on all / pick some / skip? (all/pick/skip)". On `all` or `pick`, invoke `/faff-prep` via the Skill tool for the chosen issues.
 - **Ready → promote:** "N issues are ready for Todo, ordered by priority then chainable unlock value. Promote all / pick some / skip? (all/pick/skip)". On confirm, move them.
 - **After promotion → build:** "Start building one of these now via `/faff-workit`? (y/n)". On confirm, ask which (default to top of the priority + unlock-value order) and invoke.
+- **Structural diagnostics found cycles or ghost pointers (mechanical fixes auto-applied):** "Auto-applied N mechanical fixes (M cycles stripped, K ghost pointers repointed, L repeat-parks demoted). Review the log? (y/n)" — on confirm, print the structural-diagnostics findings + log path.
+- **Structural diagnostics surfaced splittable specs:** "N specs look splittable. Walk through them now via `/faff-prep --split`? (y/n, or 'pick')". On confirm, invoke `/faff-prep --split` via the Skill tool for each chosen issue. (Note: `/faff-prep --split` is implemented in Spec 2; Spec 1 chain-offers it but the underlying mode is Spec 2 work. Until Spec 2 lands, the gate logs the surfaced issues for human attention.)
+- **Calibration signal threshold crossed:** "N calibration signal(s) surfaced. Show details? (y/n)" — on confirm, print the signal block(s) with the recommended actions.
 
 Every chain point is an explicit gate. No "you should run" language.
 
@@ -130,6 +179,9 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
   3. **Do not remove** when the park reason is subjective ("architectural change needed", "scope unclear"), vague, or missing. Those are judgement calls — leave the label on and log the finding as "stale park label — needs human" for the next `/faff-wtf`.
 
   For every auto-removal, log the issue id, original park reason, and the specific rule that invalidated it to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`. Post a tracker comment noting the removal and the reason.
+- **Strip defensive-only edges in dep cycles.** Detected by structural diagnostics. When one edge of a cycle is determined to be defensive-not-load-bearing (the spec for the parent doesn't reference the child's output), strip that edge. Log the cycle, stripped edge, and reasoning per gateway → **Structural diagnostics contract**.
+- **Repoint ghost-project pointers with clear name-match.** When an issue's spec or description names a tracker container that doesn't exist, and a live container's name clearly maps to the missing reference (string proximity), repoint the issue. Log the move.
+- **Demote `repeat-parked` Todos to Backlog.** When an active issue has parked 3+ times in the lookback window (default 21 days) with the same root-cause class, demote from Todo to Backlog and tag with `repeat-parked` (or tracker equivalent). Logs the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue.
 
 **Prep-queue candidates (handed to `/faff-beep-boop`'s prep queue in the default full pipeline; log-only otherwise):**
 - **Stale specs** — tag the issue so `/faff-beep-boop` (default full pipeline) picks it up during the prep queue drain. Prep's autonomous stale-refresh path decides the outcome: if the original design still holds → `refreshed` (stays Todo, becomes a build candidate); if an architectural change is needed → park. If prep refreshes to `confidence: high`, the issue automatically enters the build queue in the same run — a stale-spec issue can be refreshed and shipped in a single overnight pass with no human in the loop.
@@ -142,12 +194,14 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 - **Orphaned-by-cascade** — active issue whose rationale depended on a now-cancelled chain — surface for human judgement on cancel / redirect, never auto-cancel
 - **Descendants of cancelled ancestors** — active issues under any cancelled ancestor in the tracker hierarchy — surface for human decision (cancel / reparent / leave), never auto-cancel
 - **Stuck in prep (still-valid parks)** — issues whose park label survived auto-cleanup because the park reason is subjective/judgement-bound. Log each with: issue id, park reason, priority (issue or ancestor), and chainable unlock count. Sort the log by priority then unlock count so `/faff-wtf` and the morning human reviewer see the highest-leverage decisions first.
+- **Splittable specs** — surface only in Spec 1; do not auto-split. Splitting lands in Spec 2 (delivery-lead mode).
+- **Orphaned-by-cascade + repeat-parked combination** — strong "is this still wanted?" signal; cancelling is destructive; always surface for human.
 
 Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id, category, and recommended action. These surface in the morning via `/faff-wtf` for human review.
 
 **Never in autonomous mode:** auto-split, auto-merge tickets, delete issues, add/remove/restructure labels (that's `/faff-prep`'s domain), change ancestor/grouping assignments, auto-cancel descendants of cancelled ancestors, or promote an issue to Todo on the strength of a description alone.
 
-**Return to caller (beep-boop):** `{ archived: N, reparented: N, refs_stripped: N, park_labels_cleared: N, logged: N, findings_path: .faff/logs/… }`.
+**Return to caller (beep-boop):** `{ archived: N, reparented: N, refs_stripped: N, park_labels_cleared: N, cycles_stripped: N, ghost_pointers_repointed: N, repeat_parks_demoted: N, splittables_surfaced: N, orphaned_repeat_parked_surfaced: N, calibration_signals: N, automation_verdicts_path: .faff/runs/<run-id>/automation-verdicts.md, logged: N, findings_path: .faff/logs/… }`.
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present

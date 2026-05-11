@@ -487,7 +487,7 @@ When computing `likely-fire`, the verdict computation **anticipates** the collis
 
 ### Display format (consumed by `/faff-wtf` and `/faff-beep-boop`)
 
-Replaces the previous `★ fire-and-forget` annotation. Renders via the **Visualisation-over-prose contract** → queue partition grid (form 7.2(c)). Compact form:
+Replaces the previous `★ fire-and-forget` annotation. Renders via the **Visualisation-over-prose contract** → queue partition grid (form (c)). Compact form:
 
 ```
 Build queue (4 ready · 2 fire-and-forget · 2 likely-fire serialised)

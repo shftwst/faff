@@ -173,6 +173,79 @@ When a faff skill's flow leads naturally into another faff skill, it offers the 
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
+## Visualisation-over-prose contract
+
+When output describes **structure** (chain, partition, cycle, queue, workstream layout, fire/blocked gate map, dep graph), render it as a compact visual. Reserve prose for diagnosis, decision, and "do this next" recommendation.
+
+Test: if a reader can point at the visual and ask "is this right?" without re-reading prose, it's the right form.
+
+### Canonical visual forms
+
+Sub-skills pick from this catalogue. Inventing new visual forms inline is forbidden — if a skill needs a sixth form, this section gains it first.
+
+**(a) Cycle bracket** (3+ items inline)
+
+```
+[ISSUE-AA → ISSUE-BB → ISSUE-CC → ISSUE-AA]
+```
+
+Used for any dep cycle, any collision-group serialisation, any "X depends on Y" chain rendered inline. 3+ items only — for a 2-item dep, use plain prose.
+
+**(b) Cycle box** (4+ edges or branching)
+
+```
+ISSUE-AA ──► ISSUE-BB ──► ISSUE-CC
+   ▲                          │
+   └──────────────────────────┘
+```
+
+Used when the cycle has 4+ edges or when branching makes the bracket form unreadable.
+
+**(c) Queue partition grid**
+
+```
+fire-and-forget (independents)        likely-fire (serialised)
+  ISSUE-XX                              [ISSUE-A → ISSUE-B]   src/auth/
+  ISSUE-YY                              [ISSUE-C → ISSUE-D]   db migrations
+```
+
+Used in wtf's "Build queue" section and beep-boop's summary. Each cell has the ID + the synthesis gloss (one line per ID — see **Synthesis contract**).
+
+**(d) Workstream lane** (already in `/faff-whereto`; canonicalised here)
+
+```
+Initiative — Audit-lite reliability
+
+Now    Logging cleanup            [started]   ISSUE-XX, ISSUE-YY
+Next   Audit log retention        [planned]   ISSUE-ZZ
+Later  (no project planned)       ⚠ structural gap
+```
+
+**(e) Gate fire-status table** (already in `/faff-whereto`; canonicalised here)
+
+```
+| Gate                            | Currently fireable? | Notes                            |
+|---------------------------------|---------------------|----------------------------------|
+| Logging → Audit retention       | Yes                 | once SHF-217 ships               |
+| Audit retention → Audit lite    | ⚠ Blocked           | downstream project doesn't exist |
+```
+
+### When prose still wins
+
+Three carve-outs where prose stays:
+
+1. **The synthesis gloss itself** (see **Synthesis contract**) — the plain-English one-liner is the whole point; a glyph won't help.
+2. **Diagnosis lines** — "Recommendation: strip the CC→AA edge (defensive-only)." A visual can't carry "what to do".
+3. **TL;DR** — `/faff-whereto`'s Phase 8 stays prose. Skim-in-10-seconds is the job; visuals at the top invert that.
+
+### Density caps
+
+A wall of small visuals is the same problem as a wall of text. Each rendered section caps:
+
+- **Cycle visualisations:** at most 3 per output; if there are more cycles, list the rest as ID-only one-liners with "(see structural diagnostics log)"
+- **Queue partition grid:** at most 10 rows visible; rest collapses to "(+ N more)" with the full list in the log
+- **Workstream lane:** at most 7 initiatives in the live view; rest in log
+
 ## Routing
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).

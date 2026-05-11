@@ -19,6 +19,8 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
+**Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per gateway → **Visualisation-over-prose contract** — preserved as-is.
+
 ## What it does
 
 **Always pull the whole roadmap picture fresh from the issue tracker. A roadmap with stale data cannot be trusted.**
@@ -126,6 +128,9 @@ Apply the same work-ordering rule used by `/faff-tidy` and `/faff-wtf`: priority
 The output of Phases 1-6 surfaces risks that aren't visible from any single initiative or issue. Call them out explicitly. Typical categories:
 
 - **Ghost project**: an initiative description names a Next or Later project in prose, but no project actually exists in the tracker. The chain can't fire through a ghost. State the gap as "the description names X, no project exists" — do not name or reconstruct any cancelled/deleted predecessor (per Phase 1).
+- **Cross-reference with `/faff-tidy` structural diagnostics.** If a `/faff-tidy` run produced a `### Structural diagnostics` block in this pass (read the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`), import its ghost-project findings, dep cycle findings, and repeat-park findings into this phase's risk list. The two skills detect overlapping signals — tidy finds ghost pointers from *issue-side* references; whereto finds them from *initiative-side description* parsing. Combining both gives the full picture without re-implementing detection here.
+
+If no tidy ran this pass, whereto computes its own ghost-project scan (initiative-description-side only) as it already does — but the tidy-found issue-side ghost pointers are absent. Flag this in the output: "No tidy this pass — issue-side ghost-pointer detection skipped. Run `/faff-tidy` for full structural coverage."
 - **Independence not verified**: a Now project has N issues that beep-boop is supposed to drain in parallel, but no one has confirmed they're actually independent. Recommend a `/faff-tidy` pass before queuing overnight runs.
 - **Single-project Later (intentional vs accidental)**: Later horizons are often deliberately collapsed to one project (the methodology doc usually explains why — uncertainty about productised shape until Now ships). Flag whether each single-project Later is intentional (cite the methodology) or just under-planned.
 - **Parked issue waiting on missing trigger**: a parked issue's unpark condition is "when [specific upstream] ships", but [specific upstream] doesn't exist as a planned project. The park is structurally permanent until the gap closes.

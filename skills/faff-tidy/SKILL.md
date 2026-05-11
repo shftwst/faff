@@ -100,7 +100,7 @@ For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/
 
 ### 5. Structural diagnostics
 
-A separate pass that examines the **shape of the backlog itself**, not individual issues. Detects four categories of structural problem and applies Level-2 mechanical fixes where the resolution is unambiguous. See gateway → **Structural diagnostics contract** for the full definitions, root-cause class enum, and Level-2 mechanical fix rules.
+A separate pass that examines the **shape of the backlog itself**, not individual issues. Detects five categories of structural problem and applies Level-2 mechanical fixes where the resolution is unambiguous. See gateway → **Structural diagnostics contract** for the full definitions, root-cause class enum, and Level-2 mechanical fix rules.
 
 Categories detected:
 

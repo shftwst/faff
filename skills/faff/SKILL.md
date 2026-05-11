@@ -157,6 +157,54 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 | faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (delegated **or** inline) only on high-confidence self-rating. Medium/low → park. Missing `spec` slot is **not** a park reason — inline path self-rates and uses the same gate. |
 | faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
 
+### Resolve-attempt before park
+
+Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing contract**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments).
+
+`repeat-parked` does **not** get a resolve-attempt — the pattern itself signals that a human needs to act.
+
+**Why this exists.** Interactive Claude routinely completes work that autonomous Claude parks, because the autonomous gate is over-literal: it checks for a marker (`Punt:`, `TBD`, `needs human`) and parks on the marker's existence. Interactive Claude reads the same marker, evaluates whether the answer is actually obvious from the codebase, and proceeds. The resolve-attempt gives autonomous mode the same evaluative step, with a safety log.
+
+**Per-verdict resolve rules:**
+
+| Verdict | Resolve-attempt | Proceed if | Park if |
+|---|---|---|---|
+| `needs-decision-first` (Punt marker) | Re-read the Punt section. Check whether the codebase already exhibits a clear convention for the alternatives offered. Check whether `Chosen:` markers elsewhere in the spec imply the answer. Check whether related shipped issues constrained the choice. | A single clear answer falls out with high confidence | Multiple defensible answers, or the choice is architectural (user-facing API, schema, security) |
+| `gap-blocked` (external dep doesn't exist) | Re-read the dependency claim. Determine whether the named dep is **load-bearing** (the work can't proceed without it) or **precautionary** (the spec mentioned it but the work can complete without). | Dep is precautionary — work can proceed; the dep can be filed as a future issue | Dep is load-bearing — actually needed for the work to compile / pass tests |
+| `circular-blocked` (in dep cycle) | Re-read each edge of the cycle. Determine whether breaking one specific edge is mechanically obvious — e.g. "A blocks B" was added defensively but A's spec doesn't actually depend on B's output. | A break-edge is unambiguous (spec doesn't load-bear on it) — proceed by serialising remaining edges as a collision group | Every edge looks load-bearing — the cycle is real and a human has to redesign |
+
+**Boundedness.** The attempt reads at most **3 files outside the spec's named scope**. Beyond that, treat as park. Keeps cost contained and avoids rabbit-hole investigations.
+
+**Audit trail.** A proceeding resolve-attempt **always writes a tracker comment** in this format:
+
+> _Faff autonomous resolve-attempt:_ The spec flagged this as `Punt: cron vs queue-driven send` but the codebase uses cron in every other scheduled-job site (`src/jobs/*`). Proceeding with cron. **If this is wrong, comment on this PR before merge and faff will re-park.**
+
+This makes the inference reviewable. The human sees what was decided and why; the PR can be flipped back to draft if the call was wrong; the merge-confidence gate is the backstop.
+
+**What resolve-attempt does NOT do.** It does not bypass existing autonomous safety boundaries. Side-effects-outside-PR-flow (per the rules above) still park unconditionally. Destructive operations still park unconditionally. The resolve-attempt only applies to the three verdicts above, where over-literal marker matching is the dominant park-cause.
+
+### Calibration log
+
+Captures evidence about over-cautious parks, wrong inferences, and post-merge reverts so the resolve-attempt rules and verdict gates can evolve with data.
+
+**Capture points (append-only):**
+
+| Event | Path | Captured |
+|---|---|---|
+| Autonomous-park then interactive-complete-no-questions | `.faff/calibration/over-cautious-parks/<issue-id>.md` | Park reason, root-cause class, what the interactive resolution actually was (read from the commit / PR) |
+| Autonomous-resolve-attempt then human-overrode | `.faff/calibration/wrong-inferences/<issue-id>.md` | Original marker, inferred answer, human's correction |
+| Autonomous-shipped then post-merge-reverted within 7 days | `.faff/calibration/post-merge-reverts/<issue-id>.md` | Shipped commit SHA, revert commit SHA, the diff between them, any comments on the revert |
+
+**Synthesis and surfacing.** Every `/faff-tidy` run (or the equivalent step within `/faff-wtf` when no tidy ran this pass) reads the calibration log and surfaces patterns when they cross a threshold:
+
+> _Calibration signal:_ Your autonomous mode parked 4 issues in the last 14 days flagged `needs-decision-first` on `Punt: pino vs winston`. All 4 completed interactively without questions. The codebase has used pino since SHF-92 shipped (3 months ago). Consider: (a) extending the resolve-attempt rules to recognise this pattern, (b) running `/faff-prep --refresh` on the affected issues to update their specs with `Chosen: pino`, or (c) ignore — no change.
+
+Surfaced signals are **advisory** — they suggest a fix but never auto-apply rule changes.
+
+**Critical invariant.** The calibration log is **append-only and never authoritative**. A skill never reads calibration to make a current decision; only humans (or the skills' future iterations) read it to evolve the rules.
+
+**Threshold (configurable in `CLAUDE.md`):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days. Tune as needed once real data accumulates.
+
 ### Park protocol (shared)
 
 Every faff skill that can park work follows the same protocol:

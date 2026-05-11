@@ -387,6 +387,66 @@ Orphaned + repeat-parked (1) ⚠
 - `/faff-beep-boop` consumes cycle and ghost-project findings when computing automation-routing verdicts (see **Automation-routing contract**) — an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
 - `/faff-whereto` consumes ghost-project pointers as evidence for its Phase 7 risk findings.
 
+## Automation-routing contract
+
+Every Todo issue with a discoverable spec gets exactly one **verdict** that says whether `/faff-beep-boop` will run it autonomously and, if not, why. Computed once per faff pass, consumed everywhere.
+
+### Six verdicts
+
+| Verdict | Definition | What `/faff-beep-boop` does |
+|---|---|---|
+| `fire-and-forget` | Spec `confidence: high`, no Punt/Assumes markers, no in-queue blocker, conflict analysis says independent, no repeat-park history | Builds in next autonomous run, parallel-safe |
+| `likely-fire` | Spec `confidence: high` but in a collision group with other in-queue work | Builds in next autonomous run, serialised within its group |
+| `needs-decision-first` | Spec contains explicit `Punt:` / `needs human` / `TBD` / "or X if Y" marker that is **not** spec-closed | Resolve-attempt (see **Autonomous Mode Contract** → resolve-attempt); if attempt fails, skipped and surfaced in wtf with the specific decision asked |
+| `gap-blocked` | Spec assumes external state (tracker issue, project, dep) that doesn't exist | Resolve-attempt; if fails, skipped and surfaced with the named gap |
+| `circular-blocked` | Issue sits in a dep cycle detected by **Structural diagnostics contract** | Resolve-attempt; if fails, skipped and surfaced with the cycle visualised |
+| `repeat-parked` | Parked 3+ times in autonomous runs with the same root-cause class (see Structural diagnostics) | **Skipped — no resolve-attempt.** The pattern itself is the signal that a human needs to act. Surfaced prominently in wtf. |
+
+### Computation locus
+
+The verdict is computed in `/faff-tidy`'s structural diagnostics phase, written to:
+
+- `.faff/runs/<run-id>/automation-verdicts.md` when invoked by `/faff-beep-boop` (full pipeline)
+- `.faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` when tidy runs standalone
+
+Other sub-skills (`/faff-wtf`, `/faff-beep-boop`) read this file rather than recomputing — but only within a single faff pass; across passes, always recompute (the "always pull fresh" rule wins, same logic as spec discovery).
+
+`/faff-wtf` invoked standalone (no preceding tidy this pass) computes verdicts inline using the same logic.
+
+### Build-queue admission
+
+`/faff-beep-boop` admits to the build queue **only** `fire-and-forget` and `likely-fire` (the latter into collision groups). All other verdicts route out of the build queue with a one-line reason captured in the run summary. They appear in `/faff-wtf`'s morning brief, not silently dropped.
+
+### Conflict-analysis integration
+
+When computing `likely-fire`, the verdict computation **anticipates** the collision-group serialisation conflict analysis would do anyway. An issue's verdict is `likely-fire` (not `fire-and-forget`) precisely when conflict analysis will serialise it. This makes morning briefs honest — the human sees up front which issues will run in parallel vs. which queue behind a predecessor.
+
+### Display format (consumed by `/faff-wtf` and `/faff-beep-boop`)
+
+Replaces the previous `★ fire-and-forget` annotation. Renders via the **Visualisation-over-prose contract** → queue partition grid (form 7.2(c)). Compact form:
+
+```
+Build queue (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
+  fire-and-forget
+    ISSUE-XX  Pino instrumentation — wires structured logging into all handlers · unlocks 3 alerting tickets
+    ISSUE-YY  Rate-limit middleware — caps per-IP requests on auth routes
+  likely-fire [ISSUE-A → ISSUE-B] (both touch src/auth/)
+    ISSUE-A   Session refresh — extends JWT lifetime when active
+    ISSUE-B   Logout sweep — purges sessions on password change
+
+Needs your call before automation can pick up:
+  needs-decision-first
+    ISSUE-ZZ  Email digest — Punt in spec: cron vs. queue-driven send? (decide in 2 min)
+  gap-blocked
+    ISSUE-WW  Billing webhook retry — spec assumes a "webhook-events" project that doesn't exist; file it or scope the dep down
+  circular-blocked
+    ISSUE-AA  Onboarding redirect — sits in cycle [AA → BB → CC → AA]; recommend breaking AA→BB by inlining the auth state
+  repeat-parked ⚠
+    ISSUE-VV  Storage migration (parked 4 runs with same Punt: schema versioning unresolved). Decide.
+```
+
+The synthesis gloss (see **Synthesis contract**) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the visualisation contract.
+
 ## Routing
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).

@@ -34,10 +34,11 @@ All forms run non-interactively. No yes/no gates. The whole point is unattended 
 
 1. Query the tracker for every Todo issue (per the shared ignore rule — skip cancelled/archived).
 2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty `docs/superpowers/specs/` does **not** mean "no spec"; the tracker is the primary source.
-3. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
-4. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch.
-5. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
-6. **Report** (see below).
+3. **Compute the automation-routing verdict** for every spec-gated candidate (gateway → **Automation-routing contract**). Admit only candidates with verdict `fire-and-forget` or `likely-fire` to the build queue. Route the other four verdicts (`needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`) out of the build queue with a one-line reason captured in the run summary.
+4. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
+5. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch.
+6. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
+7. **Report** (see below).
 
 Ready-queue mode never preps anything. If spec discovery finds nothing across all three sources, the issue is not in the queue (log it so `/faff-wtf` can surface it). Use `--ready` when you've already prepped and specifically want a build-only pass — otherwise prefer the default full pipeline, which also drains the prep queue.
 
@@ -73,10 +74,15 @@ Runs until the prep queue is empty. **Never short-circuits on build-queue state.
 ### 4. Build queue assembly
 
 Collect every issue that meets readiness (no open blockers, in Todo) **and has a spec discoverable per the shared Spec discovery rule** (gateway) — tracker comments, tracker description/body, or committed `docs/`. Any hit counts. This includes:
+
 - Issues already in Todo at the start of the run (spec likely on the tracker)
 - Issues freshly moved to Todo by the prep queue (spec on the tracker by construction)
 
 Do not require a repo-side spec file at this stage — faff-workit commits the spec to `docs/` only at the start of the build. An absent `docs/superpowers/specs/*-<issue>-*.md` is not grounds for exclusion; the tracker is the pre-build source of truth.
+
+**Compute the automation-routing verdict** for every spec-gated candidate. The verdict is normally already in `.faff/runs/<run-id>/automation-verdicts.md` from the tidy pass in step 1 — read it from there to avoid recomputation. **Admit only** `fire-and-forget` and `likely-fire` verdicts to the build queue.
+
+Issues routed out of the build queue (the other four verdicts) are captured for the run summary's "Routed out" section — they appear in `/faff-wtf`'s next morning brief with the verdict-specific diagnosis.
 
 Exclude anything parked during the prep queue (no valid spec or flagged for human attention).
 
@@ -116,6 +122,8 @@ After the list is processed:
 Before the build pass, partition the ready set into **independents** (safe to build in parallel) and **collision groups** (must be serialised within the group, though parallel with other groups).
 
 **Critical framing:** conflict analysis is the mechanism that handles **in-queue dependencies**. Issue A depending on issue B, where B is in the same run's queue, is a collision group — not a park. "Serialise A behind B" is the answer. Parking A because "B isn't Done yet" when B is literally about to be built in this same run is the failure mode that breaks the pipeline: a chain of 5 issues all parking for "depends on earlier" means nothing ships. The chain is the whole point of overnight automation.
+
+**Verdict integration.** When the automation-routing verdict is computed (by tidy in full pipeline, or inline in `--ready` mode), `likely-fire` is assigned precisely to issues that conflict analysis will serialise into a collision group with another in-queue issue. This means conflict analysis here is **confirming** the partition the verdict already implies — not reclassifying. Output of conflict analysis is the concrete (independents, groups) partition; the verdict was the up-front signal.
 
 Heuristics — issues are considered likely to collide when any of these hold:
 
@@ -169,6 +177,30 @@ On run completion, produce:
 Mode: [ready-queue | full | explicit-list]
 Duration: Xh Ym
 
+## Build queue verdicts at admission
+- fire-and-forget: N
+- likely-fire: N
+(admitted: N total)
+
+## Routed out (not built — needs human action)
+
+needs-decision-first (N)
+- ISSUE-AA  [synthesis gloss] — Punt in spec: [decision asked]
+
+gap-blocked (N)
+- ISSUE-BB  [synthesis gloss] — spec assumes [named gap]
+
+circular-blocked (N)
+- ISSUE-CC  [synthesis gloss] — in cycle [CC → DD → EE → CC]
+
+repeat-parked ⚠ (N)
+- ISSUE-DD  [synthesis gloss] — parked N runs same root cause: [class]
+
+## Resolve-attempts
+- Attempted: N
+- Succeeded (proceeded with audit trail): N
+- Failed (parked): N
+
 ## Shipped (auto-merged): N
 - ISSUE-XX: title (PR #nnn)
 
@@ -198,7 +230,7 @@ See logs/YYYY-MM-DD/HHMMSS-tidy.md
 
 The **Human follow-ups** section captures post-merge housekeeping that was skipped so the run could continue — branch/worktree cleanup, tracker status bumps, label cleanup, shell return-to-main. See the gateway's Autonomous Mode Contract ("Post-merge housekeeping failures never halt the queue"). These are one-liners the human can clear in a minute the next morning; none of them block shipped work, so none of them justify stopping the pipeline.
 
-**The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of: Shipped / PR open for human review / Parked / Errored. Do **not** invent additional sections — "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass" are all banned. They are euphemisms for "Parked on capacity grounds", which is forbidden. If the report you're about to write contains one of those headings, the run is incomplete: re-enter the build pass and dispatch the queue. The only thing legitimately reported as "ready for next run" is the prep-queue / tidy output that genuinely won't be touched by this run because the run is build-only (`--ready` mode) — never the build queue itself.
+**The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of: Shipped / PR open for human review / Parked / Errored / Routed out (not built). The "Routed out" bucket is the build-queue-admission verdict surfacing — issues that were spec-gated successfully but whose verdict was not `fire-and-forget` / `likely-fire` so they didn't enter the build pass. Do **not** invent additional sections — "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass" are all banned. They are euphemisms for "Parked on capacity grounds", which is forbidden. If the report you're about to write contains one of those headings, the run is incomplete: re-enter the build pass and dispatch the queue. The only thing legitimately reported as "ready for next run" is the prep-queue / tidy output that genuinely won't be touched by this run because the run is build-only (`--ready` mode) — never the build queue itself.
 
 ### 2. Tracker status update
 
@@ -236,6 +268,8 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Post-merge housekeeping never halts the queue.** Branch delete, worktree remove, shell return-to-main, tracker bumps, label cleanup — if any of them fails, skip it, log it, accumulate it under _Human follow-ups_ in the run summary, and proceed to the next issue. Never prompt for confirmation. See the gateway's Autonomous Mode Contract for the principle.
 - **Always leaves a complete audit trail** under `.faff/runs/<run-id>/`.
 - **Always tags parked issues** so `/faff-wtf` surfaces them next morning.
+- **Build-queue admission is verdict-gated.** Only `fire-and-forget` and `likely-fire` verdicts enter the build queue. Other verdicts route out with a per-issue reason in the run summary's "Routed out" section. This is the same content `/faff-wtf` surfaces in the morning brief — no work is silently dropped.
+- **Resolve-attempt before park.** Per the gateway → **Autonomous Mode Contract → Resolve-attempt before park**, `needs-decision-first` / `gap-blocked` / `circular-blocked` issues get one bounded inference attempt to derive an answer from local context before parking. Successes proceed with a tracker-comment audit trail; failures park. `repeat-parked` gets no resolve-attempt — the pattern is the signal.
 
 ## Notes
 

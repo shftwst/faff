@@ -33,6 +33,14 @@ These rules apply to every `Bash` call in this skill — interactive and autonom
 
 Canonical trap: `cd /path && git show HEAD:file | head -80` violates Rules 0, 0.5, **and** the `&&`/pipeline ban in one line. Fix: `git -C /path show HEAD:file` as one atomic call (no `head` — let Bash return the output and truncate in your own context).
 
+## Always pull the whole picture fresh from the issue tracker
+
+**A catch-up with stale data cannot be trusted.**
+
+Every invocation re-fetches every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, every status field, every recent activity timestamp. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `CLAUDE.md`. No reading a prior `.faff/logs/` file as a substitute for live data.
+
+A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong**. The reader trusts "What's up" as a coherent moment-in-time picture. If a PR merged, a status changed, a blocker resolved, or an issue got parked between partial fetches, the focus recommendation and beep-boop queue analysis produce confidently incorrect output — and the human acts on it. Better slow-and-correct than fast-and-lying. If the fetch budget is too high, scope the run smaller (single project) — never use partial freshness across a wider scope.
+
 ## What it does
 
 Run through these sections in order:

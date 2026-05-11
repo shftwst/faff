@@ -1,6 +1,6 @@
 ---
 name: faff
-description: "Gateway — routes to the right faff sub-skill. Use /faff-wtf to figure out what to focus on, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
+description: "Gateway — routes to the right faff sub-skill. Use /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
 ---
 
 # Faff
@@ -10,6 +10,7 @@ The stuff you do before actual work — but automated. This is a gateway — inv
 | Command | Triggers |
 |---------|----------|
 | `/faff-wtf` | "Where to focus", "What should I work on?", "what's happening", "catch me up", "where are we", "where we at", "the 411", "lowdown" |
+| `/faff-whereto` | "Roadmap", "where are we going", "explain the backlog", "do these join up", "workstream view", "strategy view", "what are the chains", "big picture", "walk me through the plan" |
 | `/faff-tidy` | "Tidy the backlog", "clean up", "groom", "mess" |
 | `/faff-prep ISSUE-XX` | "Prep this", "spec this out", "what does this ticket need?", "scope", "acceptance criteria" |
 | `/faff-workit ISSUE-XX` | "Work on", "Start this", "take on", "pick up", "let's build", "fire up" |
@@ -216,6 +217,7 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 |---|---|
 | faff-tidy | Auto-archive merged/cancelled + auto-reparent obvious orphans only. Everything else logged for morning review. |
 | faff-wtf | Return the ready-queue as a plain list. No focus recommendation. |
+| faff-whereto | Return the structured roadmap synthesis (initiatives, workstreams, chain join-up, fireable/blocked gates, structural risks). Read-only — never writes to the tracker. |
 | faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (delegated **or** inline) only on high-confidence self-rating. Medium/low → park. Missing `spec` slot is **not** a park reason — inline path self-rates and uses the same gate. |
 | faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
 

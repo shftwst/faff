@@ -37,6 +37,14 @@ These rules apply to every `Bash` call in this skill — interactive and autonom
 
 Canonical trap: `cd /path && git show HEAD:file | head -80` violates Rules 0, 0.5, **and** the `&&`/pipeline ban in one line. Fix: `git -C /path show HEAD:file` as one atomic call (no `head` — let Bash return the output and truncate in your own context).
 
+## Always pull the whole backlog fresh from the issue tracker
+
+**A tidy pass run against stale data cannot be trusted.**
+
+Every invocation re-fetches every active issue, every blocker link in both directions, every comment thread on every issue being classified, every status field, every parent/ancestor relationship, every label. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `CLAUDE.md`. No reading a prior `.faff/logs/` file as a substitute.
+
+A tidy run that mixes fresh-now data with 30-minute-old data is **silently destructive** — worse than wtf's silent-incorrectness, because tidy *acts*. If an issue's blocker resolved between partial fetches, tidy may strip a now-needed link. If a spec comment was added between fetches, tidy may classify the issue as "no spec / needs prep" and trigger unnecessary work. If a parent project status changed, tidy may flag the issue as orphaned by cascade when it isn't. The acting-on-stale-data failure mode is the one thing tidy must never do. Better slow-and-correct than fast-and-mutating-the-tracker-on-bad-data. If the fetch budget is too high, scope the run smaller (single project, single workstream) — never use partial freshness across a wider scope.
+
 ## Process
 
 **Tidy acts. It does not just list.** Any finding with a mechanical, unambiguous fix is applied — not reported as an observation for the human to do later. "X, Y, Z reference cancelled blocker W" is not a finding to surface; it is an instruction to strip the references. Surfacing cascading cancellations as prose in a summary, with no action taken, is the failure mode to avoid.

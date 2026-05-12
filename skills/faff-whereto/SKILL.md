@@ -21,6 +21,8 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per gateway → **Visualisation-over-prose contract** — preserved as-is.
 
+**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the first line of output is `Delivery-lead view: on`. Phase 1 (Now/Next/Later) re-sequences inside each horizon by **value × risk × dep-aware order** (gateway → **Delivery-lead methodology** principles 2 + 7) instead of tracker priority + chainable-unlock-value alone. Phase 7 (Risks) gains methodology findings from principles 1, 5, 6, 7 alongside existing Spec 1 risks. Skipped silently when the mode is off.
+
 ## What it does
 
 **Always pull the whole roadmap picture fresh from the issue tracker. A roadmap with stale data cannot be trusted.**
@@ -69,6 +71,8 @@ Later  [project name]            [backlog]   ISSUE-MM, ISSUE-NN, ...
 Below each initiative's block, add one line of recent grounding: "ISSUE-XX (just merged) belongs here — [one-sentence why]" or "SHF-YY (just parked) sits here". This anchors the roadmap in this week's actual movement so the reader can see the structure is alive, not a frozen document.
 
 If an initiative is missing a horizon (no Next, no Later) — call it out as **⚠ Structural gap**: `Next: (no project planned)`. Do not silently render an empty row; the gap is the finding. **Do not reference cancelled or deleted predecessor containers** — they don't exist for this skill (see Phase 1). The gap is "no project here", not "previous project was cancelled". (Phase 4 explores whether the gap is load-bearing.)
+
+**Delivery-lead re-sequencing (when `mode: delivery-lead` is active).** Within each horizon, re-order the workstream/issue list by value × risk × dep-aware order per gateway → **Delivery-lead methodology** principles 2 + 7. The horizon assignment itself is unchanged — only the order inside each horizon shifts. The synthesis gloss for each item carries the value-and-risk reasoning when the new order differs materially from the default Spec 1 order.
 
 ### 4. Dependency chain — does everything join up?
 
@@ -131,6 +135,15 @@ The output of Phases 1-6 surfaces risks that aren't visible from any single init
 - **Cross-reference with `/faff-tidy` structural diagnostics.** If a `/faff-tidy` run produced a `### Structural diagnostics` block in this pass (read the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`), import its ghost-project findings, dep cycle findings, and repeat-park findings into this phase's risk list. The two skills detect overlapping signals — tidy finds ghost pointers from *issue-side* references; whereto finds them from *initiative-side description* parsing. Combining both gives the full picture without re-implementing detection here.
 
 If no tidy ran this pass, whereto computes its own ghost-project scan (initiative-description-side only) as it already does — but the tidy-found issue-side ghost pointers are absent. Flag this in the output: "No tidy this pass — issue-side ghost-pointer detection skipped. Run `/faff-tidy` for full structural coverage."
+
+**Delivery-methodology findings (when `mode: delivery-lead` is active).** In addition to the Spec 1 risk categories, surface findings from gateway → **Delivery-lead methodology** principles 1, 5, 6, 7:
+
+- **Activity-named workstreams** (principle 1): workstreams named by activity / sprint / quarter / team / technology rather than outcome.
+- **Mixed-purpose workstreams** (principle 5): a workstream containing tickets describing two or more distinct outcomes.
+- **Hidden deps** (principle 6): a spec referencing another ticket's output without a declared blocker link.
+- **Risk-backloaded initiatives** (principle 7): a high-risk integration / unproven approach / external dep sequenced near the end of an initiative.
+
+Each finding renders its full diagnosis (what's there / why it's a problem / what to do) per the methodology's diagnosis templates. Findings interleave with the existing Spec 1 risks, ordered by severity (impact × scope).
 - **Independence not verified**: a Now project has N issues that beep-boop is supposed to drain in parallel, but no one has confirmed they're actually independent. Recommend a `/faff-tidy` pass before queuing overnight runs.
 - **Single-project Later (intentional vs accidental)**: Later horizons are often deliberately collapsed to one project (the methodology doc usually explains why — uncertainty about productised shape until Now ships). Flag whether each single-project Later is intentional (cite the methodology) or just under-planned.
 - **Parked issue waiting on missing trigger**: a parked issue's unpark condition is "when [specific upstream] ships", but [specific upstream] doesn't exist as a planned project. The park is structurally permanent until the gap closes.

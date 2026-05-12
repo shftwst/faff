@@ -9,6 +9,8 @@ Unattended end-to-end runs of the faff suite. Drives the other faff skills in **
 
 This skill is the orchestrator. It does not reimplement prep, build, or tidy — it invokes the existing faff sub-skills with the autonomous-mode signal set.
 
+**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the run summary's first line is `Delivery-lead view: on` and the build-queue order uses **value × risk × dep-aware ordering** (gateway → **Delivery-lead methodology** principles 2 + 7) instead of Spec 1's priority + chainable-unlock-value alone. **No WIP gating** — principle 3 is explicitly scoped to human flow; autonomous queues are unbounded. Admission stays governed by the Spec 1 verdict gate (admit `fire-and-forget` + `likely-fire`, route out the other four verdicts). Skipped silently when the mode is off.
+
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for shared rules (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol).
@@ -36,7 +38,7 @@ All forms run non-interactively. No yes/no gates. The whole point is unattended 
 2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty `docs/superpowers/specs/` does **not** mean "no spec"; the tracker is the primary source.
 3. **Compute the automation-routing verdict** for every spec-gated candidate (gateway → **Automation-routing contract**). Admit only candidates with verdict `fire-and-forget` or `likely-fire` to the build queue. Route the other four verdicts (`needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`) out of the build queue with a one-line reason captured in the run summary.
 4. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
-5. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch.
+5. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch. Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When `mode: delivery-lead` is active, this ordering is reframed as value × risk × dep-aware ordering per gateway → **Delivery-lead methodology** principles 2 + 7 — the Spec 1 inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 6. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
 7. **Report** (see below).
 
@@ -92,7 +94,7 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 ### 6. Build pass
 
-Invoke `/faff-workit` in autonomous mode per issue, respecting the partition (parallel where safe, serial within collision groups).
+Invoke `/faff-workit` in autonomous mode per issue, respecting the partition (parallel where safe, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When `mode: delivery-lead` is active, this ordering is reframed as value × risk × dep-aware ordering per gateway → **Delivery-lead methodology** principles 2 + 7 — the Spec 1 inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 
 ### 7. Loop
 
@@ -172,10 +174,20 @@ On run completion, produce:
 
 ### 1. `.faff/runs/<run-id>/summary.md`
 
+When `mode: delivery-lead` is active, the first line of the summary file is the literal string:
+
+    Delivery-lead view: on
+
+(followed by the existing summary layout below). When the mode is off, this line is omitted and the file starts with the `# Beep-Boop Run …` heading as normal.
+
 ```markdown
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
 Mode: [ready-queue | full | explicit-list]
 Duration: Xh Ym
+
+## Delivery-lead view (rendered only when mode: delivery-lead is active)
+
+(One-line summary of how the lens shaped this run — e.g. "Re-ordered 2 collision groups for value-aware sequencing; no methodology violations surfaced." Or list the structural diagnoses surfaced during the run, one per line, with the relevant principle cited.)
 
 ## Build queue verdicts at admission
 - fire-and-forget: N
@@ -270,6 +282,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Always tags parked issues** so `/faff-wtf` surfaces them next morning.
 - **Build-queue admission is verdict-gated.** Only `fire-and-forget` and `likely-fire` verdicts enter the build queue. Other verdicts route out with a per-issue reason in the run summary's "Routed out" section. This is the same content `/faff-wtf` surfaces in the morning brief — no work is silently dropped.
 - **Resolve-attempt before park.** Per the gateway → **Autonomous Mode Contract → Resolve-attempt before park**, `needs-decision-first` / `gap-blocked` / `circular-blocked` issues get one bounded inference attempt to derive an answer from local context before parking. Successes proceed with a tracker-comment audit trail; failures park. `repeat-parked` gets no resolve-attempt — the pattern is the signal.
+- **Autonomous WIP is unbounded.** Per gateway → **Delivery-lead methodology** principle 3, the WIP cap is human-flow-only. `/faff-beep-boop` is **never** gated on a WIP cap — the whole point of automating is to remove human-flow constraints from machine throughput. PRs awaiting human review are queued for human attention but do not count against any cap inside beep-boop. Admission stays governed by the Spec 1 verdict gate.
 
 ## Notes
 

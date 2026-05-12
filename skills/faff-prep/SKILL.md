@@ -11,6 +11,8 @@ Turn a vague ticket into something buildable. Prep does the thinking so you can 
 
 Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but delegates spec production to the configured `spec` skill when available.
 
+**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the first line of output is `Delivery-lead view: on` and a `## Delivery critique` block is appended to the spec output (after the main spec body, before any chaining gates). Skipped silently when the mode is off.
+
 ## Configuration
 
 See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
@@ -40,6 +42,19 @@ A single artifact: the **spec**. It answers two questions:
 2. **How do we know it's done** — acceptance criteria, concrete and testable
 
 The spec is a high-level design document. It does **not** contain implementation-level details like step-by-step code changes, TDD cycles, or exact commands. Those belong to the implementation phase, where the implementer can feed the spec into their own planning/execution workflow (e.g., `superpowers:writing-plans`, `superpowers:subagent-driven-development`, or direct implementation).
+
+**Delivery critique block (rendered only when `mode: delivery-lead` is active).**
+
+After the main spec body, append a `## Delivery critique` section answering, for the issue being prepped:
+
+- **Right-sized?** (principle 4) Does the scope fit a single 1–3 day unit? Does the spec cover two structurally independent concerns? If yes to the latter, recommend a split. If the issue is paired with a sibling that always ships together, recommend a merge.
+- **Workstream fit?** (principles 1 + 5) Is the issue in an outcome-named workstream? Is that workstream cohesive (single outcome)? If either fails, recommend the regrouping move.
+- **Deps surfaced?** (principle 6) Does the spec reference any other ticket's output (by ID or clear paraphrase) without a declared blocker link? If yes, flag each implicit dep with the recommended action (link it, or remove the reference).
+- **Risk profile?** (principle 7) Does the issue introduce novel-integration / external-dep / unproven-approach risk that warrants a de-risking spike before the full scope is committed? If yes, recommend the spike.
+
+Each answer renders the relevant diagnosis from the methodology's principle (full what's there / why / what to do shape) when there's something to surface; "No issues" when the principle's check passes.
+
+In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique block is written to the spec but does **not** block confidence-high promotion. It surfaces in the next `/faff-wtf` for the human.
 
 ## Spec Format Contract
 
@@ -320,3 +335,7 @@ Return to caller one of:
 - `promoted` — fresh spec attached, issue moved to Todo
 - `parked` — see park cause in log
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
+
+## Notes
+
+- When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a `## Delivery critique` block on every prepped spec. The critique surfaces principles 1, 4, 5, 6, 7 findings for the issue. In autonomous prep, the critique is written to the spec but does not block confidence-high promotion.

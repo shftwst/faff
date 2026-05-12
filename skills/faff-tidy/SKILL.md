@@ -26,6 +26,8 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **Comments are mandatory in spec discovery.** `/faff-prep` writes specs to tracker comments by default — comments are the **most common** place a spec lives before it's worked. A tidy run that classifies issues based on descriptions only and notes "comments not checked / may already have spec comments" is a **broken run** — it systematically mis-classifies the common case as "almost ready / needs prep". Before any issue is bucketed for spec health or readiness, you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). If the run includes too many issues to comment-fetch each one individually, batch-fetch or scope the run smaller — never substitute description-only sampling. Output that hedges with "I sampled descriptions, not comments" is not acceptable; complete the discovery and re-classify before reporting.
 
+**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the first line of output is `Delivery-lead view: on` and a new bucket 7 (Delivery-methodology findings) is added — surface-only, no auto-actions. Skipped silently when the mode is off.
+
 ## Always pull the whole backlog fresh from the issue tracker
 
 **A tidy pass run against stale data cannot be trusted.**
@@ -139,16 +141,34 @@ Surface signals when threshold crossed (default ≥4 events of the same root-cau
 
 Signals are **advisory only**. Tidy never auto-applies rule changes based on calibration data — the user (or future spec iterations) reads the signal and decides whether to act.
 
+### 7. Delivery-methodology findings (rendered only when `mode: delivery-lead` is active)
+
+A surface-only pass applying gateway → **Delivery-lead methodology** principles 1, 4, 5, 6. No mechanical fixes auto-applied in 2a — every finding is surfaced for human action.
+
+Categories detected:
+
+- **Activity-named workstreams** (principle 1): a workstream's name is a category, sprint, quarter, team, or technology layer rather than a user-facing outcome. Examples: "Bugs Q2", "Tech debt", "Refactors", "Backend cleanup". Detect by tokenising the workstream name and matching against an activity-name pattern set (see below).
+- **Oversized tickets** (principle 4): a single ticket whose spec covers two or more structurally independent concerns (each a valid 1–3 day unit). Restricted to tickets already past spec-gate (otherwise no spec to inspect).
+- **Mixed-purpose workstreams** (principle 5): a workstream's tickets describe two or more distinct outcomes. Detect by reading ticket titles + glosses across the workstream and looking for two or more outcome clusters.
+- **Hidden deps** (principle 6): a ticket's spec references another ticket's output (by ID or clear paraphrase) without that other ticket being a declared blocker. Detect by parsing spec text for ticket-ID mentions and paraphrase patterns.
+
+**Activity-name pattern set** for principle 1 detection: workstream name contains any of: a sprint identifier ("Q1"/"Q2"/"Q3"/"Q4", "sprint <N>", "week <N>"), a category word ("Bugs", "Tech debt", "Refactors", "Cleanup", "Maintenance", "Chores", "Misc"), a team name (best-effort match against the consuming project's CLAUDE.md if it names teams), or a technology layer name without an outcome qualifier ("Backend", "Frontend", "Database", "Infrastructure" — match only if no outcome word follows).
+
+Each finding renders its full diagnosis (what's there / why it's a problem / what to do) per the methodology's diagnosis templates. No auto-actions in 2a — these are pure surfacing for human action. The 2b spec adds mechanical fixes (auto-rename, auto-split, auto-regroup, file gap issues).
+
+Output rendered in the new `### Delivery-methodology findings` section of tidy's output (see Output format below). Skip the entire bucket 7 if `mode: delivery-lead` is not active.
+
 ## Output and chaining
 
 Present findings grouped by bucket. Skip any bucket with no findings.
 
-Output renders two new sections in addition to the existing buckets:
+Output renders three new sections in addition to the existing buckets:
 
-- `### Structural diagnostics` — present when the structural-diagnostics phase found anything (cycles, ghost pointers, repeat-parks, splittable specs, orphaned+repeat-parked). Format follows gateway → **Visualisation-over-prose contract** — cycles render as the cycle bracket (≤3 edges) or cycle box (4+ edges) form. Skip the section if no findings.
-- `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip the section if no signals.
+- `### Structural diagnostics` — present when Spec 1's structural-diagnostics phase found anything. Format follows gateway → **Visualisation-over-prose contract**. Skip if no findings.
+- `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip if no signals.
+- `### Delivery-methodology findings` — present only when `mode: delivery-lead` is active **and** bucket 7 surfaced anything. Lists findings grouped by principle (activity-named workstreams / oversized tickets / mixed-purpose workstreams / hidden deps), each with the full diagnosis. No auto-actions; the human reads, decides, acts.
 
-Both sections precede the existing buckets in tidy's output.
+All three sections precede the existing buckets in tidy's output. When `mode: delivery-lead` is active, the first line of output is also `Delivery-lead view: on`.
 
 After presenting, drive action via yes/no gates (never passive suggestions):
 
@@ -160,6 +180,7 @@ After presenting, drive action via yes/no gates (never passive suggestions):
 - **Structural diagnostics found cycles or ghost pointers (mechanical fixes auto-applied):** "Auto-applied N mechanical fixes (M cycles stripped, K ghost pointers repointed, L repeat-parks demoted). Review the log? (y/n)" — on confirm, print the structural-diagnostics findings + log path.
 - **Structural diagnostics surfaced splittable specs:** "N specs look splittable. Walk through them now via `/faff-prep --split`? (y/n, or 'pick')". On confirm, invoke `/faff-prep --split` via the Skill tool for each chosen issue. (Note: `/faff-prep --split` is implemented in Spec 2; Spec 1 chain-offers it but the underlying mode is Spec 2 work. Until Spec 2 lands, the gate logs the surfaced issues for human attention.)
 - **Calibration signal threshold crossed:** "N calibration signal(s) surfaced. Show details? (y/n)" — on confirm, print the signal block(s) with the recommended actions.
+- **Delivery-methodology findings (surface-only in 2a):** "N delivery-methodology findings surfaced (activity-named workstreams / oversized tickets / mixed-purpose workstreams / hidden deps). Walk through them now? (y/n, or 'pick')". On confirm, present each with its diagnosis and the recommended action — the human applies the fix (rename, split, regroup, link). No auto-actions in 2a.
 
 Every chain point is an explicit gate. No "you should run" language.
 
@@ -215,3 +236,4 @@ Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id,
 - Labels are `/faff-prep`'s job. Tidy never proposes them.
 - Promotion order = readiness gate → priority (issue-level OR any ancestor, respect both) → chainable unlock value (how much downstream work it unblocks; matters most for automation)
 - Same priority + unlock-value ordering applies to the "Stuck in prep — needs human decision" bucket — surface the highest-leverage parks first
+- When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a new bucket 7 (Delivery-methodology findings). Surface-only in 2a — no mechanical fixes auto-applied; 2b adds them.

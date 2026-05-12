@@ -511,6 +511,127 @@ Needs your call before automation can pick up:
 
 The synthesis gloss (see **Synthesis contract**) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the visualisation contract.
 
+## Delivery-lead methodology
+
+An opt-in lens. When active, every relevant sub-skill applies an embedded agile-delivery methodology to diagnose backlog problems, explain them in plain English, and recommend fixes. **Surface-only in this spec** — no autonomous tracker mutations are introduced by the lens itself.
+
+The methodology is **fixed and embedded here**. There is no user-written methodology doc. There is no per-skill config. The user opts into the lens; faff brings the methodology.
+
+### Configuration
+
+In the consuming project's `CLAUDE.md`:
+
+```markdown
+## Faff mode
+
+mode: delivery-lead     # off | delivery-lead
+```
+
+- Absent block or `mode: off` → faff behaves exactly per Spec 1.
+- `mode: delivery-lead` → every sub-skill applies the methodology on top of its Spec 1 behaviour.
+
+Mode is binary, project-level, and applies equally to interactive and autonomous invocations. There is no per-invocation override.
+
+### Rendering
+
+When the mode is active, every sub-skill renders the line `Delivery-lead view: on` at the top of its output (or run summary, for `/faff-beep-boop`). This is informational — it tells the human and any downstream skill that the lens is on.
+
+### The seven principles
+
+Each principle has: the rule, why it matters, what the violation looks like in tracker shape, and a diagnosis template sub-skills use when surfacing it. Diagnosis bracketed `[placeholder]` values are filled in by the rendering sub-skill — they are not unspecified items in this contract.
+
+#### Principle 1: Outcome-named workstreams, not activity-named
+
+**Rule.** Workstreams (whatever the tracker calls them — initiatives, projects, milestones, epics) are named by the user-facing or business outcome they produce. "Alerting overhaul." "Auth hardening." "Onboarding speed-up." Not by activity type — "Bugs", "Refactors", "Tech debt", "Q2 sprint 3".
+
+**Why.** Activity-named workstreams hide priority (every bug is in "Bugs", so which matters?), conflate unrelated work (a critical auth bug and a typo fix in the same bucket), and break sequencing (you can't sequence "Refactors" — there's no shared outcome to optimise toward).
+
+**Violation shape.** A workstream's name is a category, a sprint, a quarter, a team, or a technology layer rather than a deliverable.
+
+**Diagnosis template.** _"Workstream '[name]' is activity-named. This makes sequencing inside it meaningless — there's no shared outcome these tickets share. Consider regrouping them by outcome: which user-facing change does each one belong to?"_
+
+#### Principle 2: Sequence by value × risk, not by ticket order
+
+**Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone.
+
+**Why.** Tracker priority is noisy and stakeholder-influenced. Optimising for value-per-week shipped is the actual goal of a delivery practice. Risk-aware sequencing means de-risking earlier so unknown work doesn't surface at the worst moment.
+
+**Violation shape.** Current sequencing order (the `## Do this` or build-queue order) is materially different from a value × risk × dep-aware order. Specifically: an issue that unlocks N value-shipping tickets is sitting behind an isolated cleanup; or a high-risk integration is sequenced last; or a quick value win is buried below months of prep work.
+
+**Diagnosis template.** _"Current sequencing would ship value at week N. Value-aware sequencing (ISSUE-A → ISSUE-B → ISSUE-C first) would ship value at week M. The blocker is that ISSUE-X (currently first) creates no shipped value on its own — it unlocks the same downstream as ISSUE-A, but ISSUE-A also ships standalone value."_
+
+#### Principle 3: WIP cap (humans only — autonomous work is unbounded)
+
+**Rule.** *Human* in-flight work (issues a person is actively building) is capped at 3. Autonomous work (e.g. `/faff-beep-boop` runs) is **not WIP-capped** — the whole point of automating is to remove human-flow constraints from machine throughput. WIP applies to items a person juggles, not to items the machine ships overnight.
+
+**Why.** Too much *human* in-flight breaks flow — context-switching eats throughput, a finished item ships value, a half-finished one doesn't. None of that applies to autonomous runs: each task runs in an isolated context with no cognitive cost. A PR awaiting human review is queued for human attention but does not count against the human's in-flight WIP — the human reviews one at a time and that review attention is a separate flow concern.
+
+**Violation shape.** Human-driven in-flight count > 3 — or any new pull recommendation surfaced to a human when their count is already at 3. Autonomous build queues never violate this principle by construction.
+
+**Diagnosis template (human-facing only).** _"WIP at N (cap 3). Flow > throughput. Finish ISSUE-X or ISSUE-Y before pulling new work. Recommending [next item] only after one in-flight item ships."_
+
+Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
+
+#### Principle 4: Right-sized tickets
+
+**Rule.** A ticket is a 1–3 day unit of work. Larger units split. Smaller units merge if they always ship together.
+
+**Why.** Tickets that fit a day or three give honest sequencing and accurate burn-down. Ticket-as-epic hides progress (it sits "In Progress" for two weeks signalling nothing); ticket-as-micro fragments the picture.
+
+**Violation shape.** A ticket whose spec covers two structurally independent concerns (each a valid 1–3 day unit) — split candidate. A ticket whose spec is one sentence with no clear deliverable — vague candidate (already flagged by Spec 1). A pair of always-ship-together tickets — merge candidate.
+
+**Diagnosis template.** _"ISSUE-X looks too big — its spec covers [concern A] and [concern B], which are independent. Splitting into two tickets gives honest sequencing and lets [concern A] ship without waiting on [concern B]."_
+
+#### Principle 5: Cohesive workstreams
+
+**Rule.** A workstream encodes one outcome. Mixed-purpose workstreams (multiple outcomes bundled, or one outcome plus a catch-all) are smell.
+
+**Why.** A workstream is a sequencing and grouping unit — if it has two outcomes, you can't sequence inside it (the right order for outcome A is different from outcome B), and the workstream's "done" is meaningless.
+
+**Violation shape.** Tickets within a single workstream describe two or more distinct outcomes; or a single workstream has a clear primary outcome plus several "while we're at it" tickets.
+
+**Diagnosis template.** _"Workstream '[name]' contains [outcome A] and [outcome B]. These have different sequencing inside the workstream and different completion criteria. Consider splitting."_
+
+#### Principle 6: Surface dependencies
+
+**Rule.** Every load-bearing dependency between tickets is named explicitly via the tracker's blocker/blockedBy relationship. Implicit deps (assumed by humans, not encoded in the tracker) are unfinished thinking.
+
+**Why.** Implicit deps cause silent regression — a ticket gets pulled "ready" when it actually needs another ticket's output. Spec 1's automation-routing relies on the blocker graph being honest.
+
+**Violation shape.** A spec references work in another ticket (by ID or by clear paraphrase) without that other ticket being a declared blocker. Or a workstream's tickets clearly depend on a non-workstream ticket without a link.
+
+**Diagnosis template.** _"ISSUE-X's spec references ISSUE-Y's output but there's no blocker link. If the dep is real, link it (so /faff-beep-boop and /faff-wtf can sequence honestly); if not, the reference in the spec should go away."_
+
+#### Principle 7: Risk-aware sequencing
+
+**Rule.** Higher-risk work — novel integrations, unproven approaches, dependencies on external teams — is sequenced early or de-risked separately. The unknown does not all land at the end.
+
+**Why.** Risk piled at the end means schedule estimates are lies. Early-de-risking gives the team time to course-correct before commitment.
+
+**Violation shape.** The work most likely to surprise (large new integration, unfamiliar territory, external dep) is sequenced near the end of an initiative. Or no risk de-risking work exists — everything assumes the plan holds.
+
+**Diagnosis template.** _"Initiative '[name]' sequences ISSUE-Z (a new [integration / approach / external dep]) last. If ISSUE-Z surprises, the surprise lands at the worst time. Consider pulling it forward, or splitting a small de-risking spike before committing to the full ISSUE-Z scope."_
+
+### Per-skill consumption
+
+Pointers to where each sub-skill applies the methodology. Details live in each sub-skill's `SKILL.md`.
+
+- **`/faff-wtf`** — adds `### Delivery view` section after `### Today's Focus`. Surfaces principle 3 (WIP) and the top 1–2 structural diagnoses from principles 1, 5, 6, 7. `### Today's Focus` is WIP-aware per principle 3.
+- **`/faff-whereto`** — Phase 1 (Now/Next/Later) re-sequenced inside each horizon by principles 2 + 7. Phase 7 (Risks the structure surfaces) gains findings from principles 1, 5, 6, 7 alongside existing Spec 1 risks.
+- **`/faff-tidy`** — new findings phase (parallel to Spec 1's structural diagnostics) surfacing delivery-methodology violations from principles 1, 4, 5, 6. Surface-only.
+- **`/faff-prep`** — appends `## Delivery critique` block to spec output. Checks principles 1, 4, 5, 6, 7 per issue.
+- **`/faff-beep-boop`** — build-queue ordering uses principles 2 + 7 in place of Spec 1's priority + chainable-unlock-value alone. No WIP gating (principle 3 is human-flow-only); admission stays governed by the Spec 1 verdict gate. Run summary gains `## Delivery-lead view` listing diagnoses surfaced during the run.
+
+### Tone discipline
+
+Diagnoses are **educational, not preachy**. The user opted in because they want to learn what good delivery looks like by watching faff apply it. Every diagnosis follows the shape:
+
+1. **What's there.** Describe the situation factually.
+2. **Why it's a problem.** Name the concrete consequence.
+3. **What to do about it.** Recommend a specific action.
+
+Never: *"You're doing this wrong."* / *"Best practice is..."* / *"You should..."*. Describe the situation and its consequence; the user decides what to do. The methodology is opinionated; the voice is not.
+
 ## Routing
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).

@@ -32,7 +32,7 @@ A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong
 
 ## What it does
 
-**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location).
+**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When `mode: delivery-lead` (gateway → **Delivery-lead methodology**) is active, the first line of output is `Delivery-lead view: on` and a new `### Delivery view` section sits after `### Today's Focus`.
 
 Run through these sections in order:
 
@@ -79,6 +79,18 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 - Within priority bands, prefer high chainable unlock value — picking up an issue that gates a chain of five beats an isolated issue at the same priority
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
+
+### 5a. Delivery view (rendered only when `mode: delivery-lead` is active)
+
+A diagnostic frame over the current backlog state, applied per gateway → **Delivery-lead methodology**. Three sub-blocks, in this order, each skipped if it has nothing to surface:
+
+**WIP status (principle 3).** Compute current human in-flight count (issues in In Progress + In Review states that are not opened by `/faff-beep-boop`). Render: "WIP at N (cap 3)." If N ≥ 3, append the principle 3 diagnosis: "Finish ISSUE-X or ISSUE-Y before pulling new work." When WIP is at cap, `### Today's Focus` recommends **completion of in-flight only** — explicitly no new starts. When WIP is below cap, allow recommending up to `(3 − N)` new starts.
+
+**Sequencing diagnosis (principle 2).** If the current sequencing of `### Do this` (the `### Today's Focus` ranked list) is materially different from a value × risk × dep-aware order, surface the gap using the principle 2 diagnosis template. "Materially different" = the value-aware top-1 is not the currently displayed top-1. If they match, skip.
+
+**Top 1–2 structural problems (principles 1, 5, 6, 7).** Surface at most two findings from these four principles, ordered by severity (impact on shipped value × number of tickets affected). Each finding renders its full diagnosis (what's there / why it's a problem / what to do). If more findings exist, end with: "(more in `/faff-tidy`)" — `/faff-tidy` is the firehose; this section is the highlight.
+
+Skip the entire `### 5a` subsection if `mode: delivery-lead` is not active.
 
 ### 5b. Beep-boop queues (always render, even when empty)
 
@@ -135,6 +147,14 @@ Keep the tracker in sync with reality. No one starts building without a spec.
 
 Keep it concise and scannable. Use this structure:
 
+(when `mode: delivery-lead` is active, the first line is)
+
+```
+Delivery-lead view: on
+```
+
+(followed by the standard layout below)
+
 ```
 ## What's up — [date]
 
@@ -170,6 +190,16 @@ Ordered by priority → chainable unlock value. Items freshly unblocked by recen
 1. ISSUE-XX  [synthesis gloss + unlock-chain consequence in plain English]. (Priority source: issue/ancestor; "just unlocked by ISSUE-YY" if applicable.)
 2. ISSUE-YY  …
 3. ISSUE-ZZ  …
+
+### Delivery view (rendered only when mode: delivery-lead is active)
+
+WIP at 2 (cap 3). Below cap — recommending one new start.
+
+Sequencing: current order would ship value at week 6. Value-aware ordering (ISSUE-A → ISSUE-B first) would ship at week 3. ISSUE-X (currently first) creates no standalone value; ISSUE-A unlocks the same downstream and ships value itself.
+
+Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared outcome. Consider regrouping by user-facing change.
+
+(more in /faff-tidy)
 
 ### Heads up
 - Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
@@ -243,3 +273,6 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
 - Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.
 - Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks always surface in `### Heads up`, not just in the diagnostics dump.
+- When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a `### 5a. Delivery view` section after Today's Focus. Both are skipped silently when the mode is off.
+- WIP recommendations are human-facing only. Autonomous in-flight work (issues `/faff-beep-boop` is currently building or has a PR open for) does not count against the human's WIP cap — the human reviews one PR at a time.
+- The Delivery view is the highlight, not the firehose. At most two structural findings; `/faff-tidy` surfaces the full set.

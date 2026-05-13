@@ -32,6 +32,46 @@ Three forms:
 
 All forms run non-interactively. No yes/no gates. The whole point is unattended execution.
 
+All forms also accept two optional **cost-budget flags** that can be combined; the run stops when either fires. See `## Budget flags` below.
+
+## Budget flags
+
+Two composable flags cap the cost of a run. Pass either, both, or neither. Both work with all three invocation forms (default full pipeline, `--ready`, explicit-list).
+
+| Flag | Caps | Semantic |
+|---|---|---|
+| `--until HH:MM` | Wall-clock time | Stop dispatching new units once local time reaches HH:MM. 24-hour format. Past times interpret as next-day same time (so `--until 06:00` started at 23:00 means 06:00 tomorrow). |
+| `--max N` | Build attempts | Stop dispatching new build issues once N attempts have been launched. Counts every build-queue dispatch regardless of outcome (Shipped / PR-open / Parked / Errored). Does **not** count issues routed out at the verdict gate (they never got a `/faff-workit` invocation). Does **not** count prep dispatches. |
+
+### Phase scope
+
+- **`--until`** gates **both phases**. Between prep candidates AND between build issues, the orchestrator checks the wall clock. If HH:MM passes mid-prep-drain, no new prep dispatches; in-flight prep finishes; the build phase is skipped entirely (entering it would trip the same gate). If HH:MM passes mid-wave, no new build issues launched; in-flight builds drain; wave re-entry is skipped.
+- **`--max N`** gates **build only**. Prep dispatches don't consume the count. The gate is checked before every build-issue launch and at every wave boundary.
+
+### When the check fires
+
+Between units, never mid-unit. Specifically:
+
+- After every prep return, before launching the next prep candidate.
+- After every build return (or before every launch in parallel mode), before dispatching the next build issue in the same wave.
+- At every wave boundary, before re-assembling the next wave's build queue.
+
+In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-workit` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). In parallel mode, up to `parallelism` issues may finish after the budget fires; that's expected.
+
+### Launch-counted, not terminal-state-counted
+
+`--max N` fires when the count of **launched** build attempts reaches N, not the count of returned terminal states. In sequential mode the two are identical. In parallel mode, counting launches prevents the `parallelism - 1` overshoot you'd get from waiting for the Nth terminal state — every launch eventually terminates, so terminal-state count converges to exactly N anyway (or to whatever was launched when `--until` fired first, if both budgets are set).
+
+### Unreached issues
+
+Issues that reached build-ready (spec present, verdict-admitted, partitioned by conflict analysis) but were never dispatched because the budget fired land in a new **Unreached (budget hit)** bucket in the run summary. They are **not parked** — they retain Todo + spec state and the next run picks them up. No tracker comment is added (their state is unchanged from run start).
+
+Un-prepped Backlog candidates whose prep dispatch never fired because `--until` cut prep short do **not** appear in `Unreached`. They remain in Backlog (their pre-run state, unchanged); the prep-queue summary just has smaller counts than possible. The next run picks them up.
+
+### Default behaviour (no flags)
+
+If neither flag is passed, behaviour is unchanged from the no-budget run. The run ends by queue emptiness or all-remaining-parked, exactly as before.
+
 ## Ready-queue mode (`--ready`)
 
 1. Query the tracker for every Todo issue (per the shared ignore rule — skip cancelled/archived).
@@ -104,8 +144,9 @@ Keep building until the wave's build queue is drained or everything remaining is
 
 After the wave drains, re-check the tracker for work newly unlocked by issues that just shipped. Faff's promotion rule is that **only specced items live in Todo**, but Todo can hold specced-and-blocked items too — so a chain unlock can land in either bucket. Wave re-entry scans both, and every newly-unblocked item routes through narrow prep. Prep is the single mechanism that handles spec generation, in-place refresh, and the Backlog→Todo move; the orchestrator does no tracker state moves of its own.
 
-1. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
-2. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start), invoke **narrow prep**: `/faff-prep` autonomous on just that issue. Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
+1. **Budget check.** If `--until HH:MM` is set and the wall clock has passed HH:MM, OR `--max N` is set and N build attempts have been launched, exit to reporting with `Stop reason: budget-hit (--until …)` or `budget-hit (--max N)` accordingly. The wave re-entry step is the last point at which the budget gate fires for the run; if it fires here, the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary.
+2. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
+3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start), invoke **narrow prep**: `/faff-prep` autonomous on just that issue. Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
    - **Backlog, unspecced** (was blocked from being specced): prep generates a fresh spec and, on high confidence, promotes to Todo (`promoted`).
    - **Backlog, specced** (was specced but never promoted, or was demoted): prep confirms the spec is still valid (or refreshes if stale — upstream work just shipped) and promotes (`refreshed` or `promoted`).
    - **Todo, specced** (was specced-and-blocked, now unblocked): prep confirms or refreshes the spec — staleness matters here since the upstream work just landed; the item stays in Todo (`refreshed`).
@@ -113,13 +154,13 @@ After the wave drains, re-check the tracker for work newly unlocked by issues th
    In all three cases prep may instead return `parked` (low confidence) or `errored` — those items are logged and skipped for the rest of the run.
 
    This is the mechanism that brings mid-run-unlocked chains into the build queue **and** keeps specs honest against upstream work that has just shipped. **Do not** re-run full tidy — tidy fires once at the top of the run.
-3. Re-run step 4 (build queue assembly). The Todo set now includes any items prep just promoted.
-4. If the new build queue is empty, exit to reporting.
-5. Otherwise run steps 5–7 again (conflict analysis → build pass → wave drain), then return to step 8.
+4. Re-run step 4 (build queue assembly). The Todo set now includes any items prep just promoted.
+5. If the new build queue is empty, exit to reporting.
+6. Otherwise run steps 5–7 again (conflict analysis → build pass → wave drain), then return to step 8.
 
 Termination is by queue emptiness: each wave shrinks the pool of unreached issues and parked issues stay parked, so the loop converges. No iteration cap.
 
-Log each wave's admissions, drain count, and exit reason under `.faff/runs/<run-id>/wave-N/`.
+Log each wave's admissions, drain count, and exit reason under `.faff/runs/<run-id>/wave-N/`. Exit reasons are `drained` (queue empty after build pass), `all-parked` (every remaining issue parked or errored), or `budget-hit` (budget gate fired during or at the boundary of this wave).
 
 **Why this exists:** chains unlocked mid-run (`ISSUE-A` ships → `ISSUE-B`'s blocker clears) are picked up here. The chain's downstream items live in Backlog (per the promotion rule above), which is why prep is the entry point — the orchestrator does not move state directly. Chains visible at first assembly are still handled by step 5's conflict analysis as collision groups — wave re-entry catches the rest.
 
@@ -208,6 +249,7 @@ When `mode: delivery-lead` is active, the first line of the summary file is the 
 Mode: [ready-queue | full | explicit-list]
 Duration: Xh Ym
 Waves: N
+Stop reason: queue-drained | all-remaining-parked | budget-hit (--until HH:MM) | budget-hit (--max N)
 
 ## Delivery-lead view (rendered only when mode: delivery-lead is active)
 
@@ -249,6 +291,9 @@ repeat-parked ⚠ (N)
 ## Errored: N
 - ISSUE-WW: title — MCP timeout during build
 
+## Unreached (budget hit): N
+- ISSUE-VV: title — admitted to build queue, not dispatched (--until 06:00 fired before launch)
+
 ## Human follow-ups: N
 - ISSUE-XX: delete local branch `feat/issue-xx` (cleanup skipped — shell was inside worktree)
 - ISSUE-YY: remove worktree `.worktrees/issue-yy` (cleanup skipped — permission denied)
@@ -266,7 +311,7 @@ See logs/YYYY-MM-DD/HHMMSS-tidy.md
 
 The **Human follow-ups** section captures post-merge housekeeping that was skipped so the run could continue — branch/worktree cleanup, tracker status bumps, label cleanup, shell return-to-main. See the gateway's Autonomous Mode Contract ("Post-merge housekeeping failures never halt the queue"). These are one-liners the human can clear in a minute the next morning; none of them block shipped work, so none of them justify stopping the pipeline.
 
-**The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of: Shipped / PR open for human review / Parked / Errored / Routed out (not built). The "Routed out" bucket is the build-queue-admission verdict surfacing — issues that were spec-gated successfully but whose verdict was not `fire-and-forget` / `likely-fire` so they didn't enter the build pass. Do **not** invent additional sections — "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass" are all banned. They are euphemisms for "Parked on capacity grounds", which is forbidden. If the report you're about to write contains one of those headings, the run is incomplete: re-enter the build pass and dispatch the queue. The only thing legitimately reported as "ready for next run" is the prep-queue / tidy output that genuinely won't be touched by this run because the run is build-only (`--ready` mode) — never the build queue itself.
+**The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of: Shipped / PR open for human review / Parked / Errored / Routed out (not built) / Unreached (budget hit). The "Routed out" bucket is the build-queue-admission verdict surfacing — issues that were spec-gated successfully but whose verdict was not `fire-and-forget` / `likely-fire` so they didn't enter the build pass. The "Unreached (budget hit)" bucket appears **only** when `--until` or `--max` was passed and fired with non-empty build-queue remaining; it captures issues that reached build-ready but were not dispatched before the budget fire (see `## Budget flags`). Do **not** invent additional sections — "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass" are all banned. They are euphemisms for "Parked on capacity grounds", which is forbidden. If the report you're about to write contains one of those headings AND no budget flag was set, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a user-set budget firing.
 
 ### 2. Tracker status update
 
@@ -278,11 +323,19 @@ Print the summary in the conversation at the end of the run.
 
 ## Stopping condition
 
-Queue-drain only. The run ends when:
-- The build queue is empty AND (in full mode) the prep queue is empty, OR
-- Everything remaining is in a parked/errored state
+The run ends when **any** of:
 
-Time-boxed runs (`--until HH:MM`) and count-capped runs (`--max N`) are **out of scope** for this first cut. May be added later.
+- The build queue is empty AND (in full mode) the prep queue is empty (`Stop reason: queue-drained` — the normal exit).
+- Everything remaining is in a parked / errored state, with no further dispatches possible (`Stop reason: all-remaining-parked`).
+- A user-set budget fires: `--until HH:MM` reaches its time, or `--max N` reaches its launch count (`Stop reason: budget-hit (--until …)` or `budget-hit (--max N)`).
+
+On budget-hit, in-flight units complete naturally — see `## Budget flags` for the full mechanics. Issues admitted to the build queue but not yet dispatched are reported under `## Unreached (budget hit)` in the run summary; they retain Todo + spec state and will be picked up by the next run. This is the **only** legitimate way for the run to end with a non-empty build queue; the "Never defers a queue to the next run" guarantee is otherwise binding (see `## Guarantees`).
+
+`Stop reason` is determined by which condition fires first:
+
+- If a budget was set AND fired during the run, `Stop reason = budget-hit (...)` regardless of whether the run "would have" exited as `queue-drained` on the next check. Surface the budget — the user wants to know whether their budget was binding or moot.
+- If both budgets fire on the same check, name the one that fired first; if simultaneous, name both.
+- Otherwise, `Stop reason = queue-drained` or `all-remaining-parked` per the conditions above.
 
 ## Autonomous-mode signal to sub-skills
 
@@ -299,6 +352,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-workit Step 10).
 - **Never parks work on "scope" or "capacity" grounds.** Every ready-with-spec issue gets attempted. "Too many to do in one session" is explicitly forbidden (see the gateway contract). The run ends when the queue drains or everything remaining is genuinely parked by the three valid categories — not by the orchestrator deciding to do fewer.
 - **Never "defers" a queue to the next run.** Identifying a build queue (independents + collision groups, waves mapped) and then ending the run with that queue undispatched is **the same failure as parking it**, regardless of the wording in the summary. Phrases like "12-issue build queue not dispatched this conversation", "queue unblocked, ready for next pass", "deferred to next /faff-beep-boop", "single-conversation context budget" are all banned summaries — they describe a run that bailed on the build pass after doing the analysis. If conflict analysis surfaced a non-empty build queue, the build pass **must** be entered; the run is not complete until the queue drains, every remaining issue is in one of the three valid park categories, or the harness terminates the session externally. Compaction mid-build is a resume from `.faff/runs/<run-id>/`, not a reason to stop short.
+- **User-set budgets are the one legitimate stop-short.** If `--until HH:MM` or `--max N` fires, the run stops with any unreached build-queue issues reported under `## Unreached (budget hit)` in the summary, and the `Stop reason` line names the flag that fired. This is **not** a deferral by the orchestrator — the user chose the budget. Unreached issues are not parked; they stay in Todo with their specs, ready for the next run or human attention. See `## Budget flags` for full mechanics.
 - **Always wave-loops until queue stability.** The build phase is wave-based — after each wave's queue drains, the orchestrator re-assembles to pick up work unlocked by issues that just shipped. The run ends only when a wave assembles to an empty build queue. Termination is by emptiness; there is no iteration cap.
 - **Never parks chained issues for being chained.** Issue A depending on in-queue issue B is a collision group, not a park pair. If the whole queue is one serialised chain, build it as one serialised chain.
 - **Mid-run compaction is a resume, not a park.** If the session compacts during a build, the next turn reads `.faff/runs/<run-id>/` + the PR state and continues where it left off. See the gateway's Autonomous Mode Contract for the full rule on forbidden park reasons.

@@ -46,7 +46,7 @@ Ready-queue mode never preps anything. If spec discovery finds nothing across al
 
 ## Full pipeline (default)
 
-Two independent queues, drained in order: **prep queue** first, **build queue** second. The prep queue always runs to completion regardless of whether the build queue ends up non-empty. Overnight prep is valuable on its own.
+Two independent phases. The **prep queue** drains fully first. Then the **build phase** runs as one or more **waves**: each wave assembles a build queue from the current Todo+spec set, drains it, and re-checks for work newly unlocked by issues that just shipped. The prep queue always runs to completion regardless of whether any wave ends up non-empty. Overnight prep is valuable on its own.
 
 ### 1. Tidy pass
 
@@ -75,7 +75,7 @@ Runs until the prep queue is empty. **Never short-circuits on build-queue state.
 
 ### 4. Build queue assembly
 
-Collect every issue that meets readiness (no open blockers, in Todo) **and has a spec discoverable per the shared Spec discovery rule** (gateway) — tracker comments, tracker description/body, or committed `docs/`. Any hit counts. This includes:
+Collect every issue that meets readiness (in Todo, with no open *external* blockers — in-queue dependencies are handled by conflict analysis as collision groups, not exclusions) **and has a spec discoverable per the shared Spec discovery rule** (gateway) — tracker comments, tracker description/body, or committed `docs/`. Any hit counts. This includes:
 
 - Issues already in Todo at the start of the run (spec likely on the tracker)
 - Issues freshly moved to Todo by the prep queue (spec on the tracker by construction)
@@ -96,13 +96,36 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 Invoke `/faff-workit` in autonomous mode per issue, respecting the partition (parallel where safe, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When `mode: delivery-lead` is active, this ordering is reframed as value × risk × dep-aware ordering per gateway → **Delivery-lead methodology** principles 2 + 7 — the Spec 1 inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 
-### 7. Loop
+### 7. Wave drain
 
-Keep building until the build queue is drained or everything remaining is parked. Each build return is aggregated.
+Keep building until the wave's build queue is drained or everything remaining is parked. Each build return is aggregated. This is the inner drain loop — when a wave's queue is exhausted, control passes to step 8 (wave re-entry).
 
-### 8. Skip-build short-circuit
+### 8. Wave re-entry
 
-If the build queue is empty after assembly (step 4), skip steps 5–7 and proceed directly to reporting. Prep output still counts as a successful run.
+After the wave drains, re-check the tracker for work newly unlocked by issues that just shipped. Faff's promotion rule is that **only specced items live in Todo**, but Todo can hold specced-and-blocked items too — so a chain unlock can land in either bucket. Wave re-entry scans both, and every newly-unblocked item routes through narrow prep. Prep is the single mechanism that handles spec generation, in-place refresh, and the Backlog→Todo move; the orchestrator does no tracker state moves of its own.
+
+1. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
+2. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start), invoke **narrow prep**: `/faff-prep` autonomous on just that issue. Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
+   - **Backlog, unspecced** (was blocked from being specced): prep generates a fresh spec and, on high confidence, promotes to Todo (`promoted`).
+   - **Backlog, specced** (was specced but never promoted, or was demoted): prep confirms the spec is still valid (or refreshes if stale — upstream work just shipped) and promotes (`refreshed` or `promoted`).
+   - **Todo, specced** (was specced-and-blocked, now unblocked): prep confirms or refreshes the spec — staleness matters here since the upstream work just landed; the item stays in Todo (`refreshed`).
+
+   In all three cases prep may instead return `parked` (low confidence) or `errored` — those items are logged and skipped for the rest of the run.
+
+   This is the mechanism that brings mid-run-unlocked chains into the build queue **and** keeps specs honest against upstream work that has just shipped. **Do not** re-run full tidy — tidy fires once at the top of the run.
+3. Re-run step 4 (build queue assembly). The Todo set now includes any items prep just promoted.
+4. If the new build queue is empty, exit to reporting.
+5. Otherwise run steps 5–7 again (conflict analysis → build pass → wave drain), then return to step 8.
+
+Termination is by queue emptiness: each wave shrinks the pool of unreached issues and parked issues stay parked, so the loop converges. No iteration cap.
+
+Log each wave's admissions, drain count, and exit reason under `.faff/runs/<run-id>/wave-N/`.
+
+**Why this exists:** chains unlocked mid-run (`ISSUE-A` ships → `ISSUE-B`'s blocker clears) are picked up here. The chain's downstream items live in Backlog (per the promotion rule above), which is why prep is the entry point — the orchestrator does not move state directly. Chains visible at first assembly are still handled by step 5's conflict analysis as collision groups — wave re-entry catches the rest.
+
+### 9. Wave-1 empty short-circuit
+
+If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and proceed directly to reporting. No subsequent waves run — there's nothing for shipped work to chain on. Prep output still counts as a successful run.
 
 ## Explicit-list mode
 
@@ -184,6 +207,7 @@ When `mode: delivery-lead` is active, the first line of the summary file is the 
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
 Mode: [ready-queue | full | explicit-list]
 Duration: Xh Ym
+Waves: N
 
 ## Delivery-lead view (rendered only when mode: delivery-lead is active)
 
@@ -275,6 +299,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-workit Step 10).
 - **Never parks work on "scope" or "capacity" grounds.** Every ready-with-spec issue gets attempted. "Too many to do in one session" is explicitly forbidden (see the gateway contract). The run ends when the queue drains or everything remaining is genuinely parked by the three valid categories — not by the orchestrator deciding to do fewer.
 - **Never "defers" a queue to the next run.** Identifying a build queue (independents + collision groups, waves mapped) and then ending the run with that queue undispatched is **the same failure as parking it**, regardless of the wording in the summary. Phrases like "12-issue build queue not dispatched this conversation", "queue unblocked, ready for next pass", "deferred to next /faff-beep-boop", "single-conversation context budget" are all banned summaries — they describe a run that bailed on the build pass after doing the analysis. If conflict analysis surfaced a non-empty build queue, the build pass **must** be entered; the run is not complete until the queue drains, every remaining issue is in one of the three valid park categories, or the harness terminates the session externally. Compaction mid-build is a resume from `.faff/runs/<run-id>/`, not a reason to stop short.
+- **Always wave-loops until queue stability.** The build phase is wave-based — after each wave's queue drains, the orchestrator re-assembles to pick up work unlocked by issues that just shipped. The run ends only when a wave assembles to an empty build queue. Termination is by emptiness; there is no iteration cap.
 - **Never parks chained issues for being chained.** Issue A depending on in-queue issue B is a collision group, not a park pair. If the whole queue is one serialised chain, build it as one serialised chain.
 - **Mid-run compaction is a resume, not a park.** If the session compacts during a build, the next turn reads `.faff/runs/<run-id>/` + the PR state and continues where it left off. See the gateway's Autonomous Mode Contract for the full rule on forbidden park reasons.
 - **Post-merge housekeeping never halts the queue.** Branch delete, worktree remove, shell return-to-main, tracker bumps, label cleanup — if any of them fails, skip it, log it, accumulate it under _Human follow-ups_ in the run summary, and proceed to the next issue. Never prompt for confirmation. See the gateway's Autonomous Mode Contract for the principle.

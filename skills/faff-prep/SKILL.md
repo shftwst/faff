@@ -286,11 +286,44 @@ The spec is **never** committed during prep. It only enters the repo when buildi
 
 When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-workit` mid-build for respec), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
 
-Two allowed auto-spec paths:
+Two allowed auto-spec paths. Both invoke the shared subroutine documented immediately below at the points named in their respective sections.
+
+### Shared subroutine: already-shipped scan + premise-superseded gate
+
+Both autonomous paths invoke this subroutine at the explicit step boundary documented in their sections. The subroutine asks: *given Done sibling tickets in the same project, is this spec's premise still load-bearing?* The answer routes the spec down park / narrow / proceed.
+
+**1. Already-shipped scan.** Four steps:
+
+1. **Extract surface-area signals** from the candidate spec and the issue: named file paths, top-level module / directory names, named subsystems (e.g. *"audit workflow"*, *"prompt substrate"*, *"HMAC envelope"*). Heuristic — false positives cost a few tokens, false negatives miss matches.
+2. **Query Done tickets in the same project (and initiative when one is named).** Use whichever tracker MCP is configured (per gateway auto-detect, no hardcoded tool names). Filter to Done / Completed / Closed. Match on the surface-area signals from step 1, plus name proximity to the candidate spec's title or subsystem labels.
+3. **Pull a one-line summary of each match** — title plus the first line of description or the most recent significant comment.
+4. **Emit findings under a new section** `## Already shipped against this surface` in the candidate spec. If no matches, omit the section.
+
+Surface-area extraction is heuristic. Tune toward **recall** — false positives cost human review time but do not produce wrong parks; false negatives miss real overlaps and let prep elaborate stale-premise specs. When surface-area signals miss, fall back to querying Done tickets in the same initiative by name.
+
+**2. Premise-superseded gate.** After the scan emits findings, prep evaluates: *given the `## Already shipped against this surface` findings, is the spec's stated motivation still load-bearing?* Three outcomes:
+
+- **Substantially delivered** — significant portion of the premise is already covered by Done tickets. → **Park** with cause `premise-superseded`. The park comment **must** cite at least one Done ticket ID and the matched surface area or subsystem name. Without that evidence the cause is invalid and prep must not use it (it degrades into a forbidden capacity excuse per gateway → Autonomous Mode Contract).
+- **Partially delivered** — some of the premise is covered, but a real delta remains. → **Narrow** the spec to the remaining delta. Explicitly call out what's already done so the implementer doesn't redo it; note this in the `## Already shipped against this surface` section. Proceed with the rest of the path on the narrowed scope.
+- **Premise still holds** — no substantial coverage by Done work. → **Proceed** unchanged. The `## Already shipped against this surface` section may still appear with related-but-not-superseding findings as reader context.
+
+The substantial / partial / not-at-all judgement is the prep agent's call, backed by the explicit audit trail (the cited Done tickets and matched surface area) so a reviewer can check the call.
+
+**Orthogonal to the existing confidence gate.** This gate fires *before* the confidence + marker validation gate at the end of Path 2 below (the `confidence: high / medium / low` bullets). Both gates must pass for the spec to attach. They evaluate different signals at different points — the premise gate asks "is the spec's motivation still load-bearing?", the confidence gate asks "is the spec internally well-formed?". Neither subsumes the other.
+
+**Park-protocol compatibility.** `premise-superseded` parks apply the standard `parked-by-faff` label per the shared park protocol below. Downstream surfacers (`/faff-wtf`, `/faff-beep-boop`) carry the cause string transparently — no special handling there.
 
 ### Path 1 — Stale-refresh (existing spec on the ticket)
 
 **Always run the post-spec comment scan first** (Scenario B Step 2a in the interactive flow): fetch all comments after the spec, classify each as challenge / resolution / context / noise. Treat any challenge or resolution as a freshness trigger equivalent to codebase drift. Context-only threads are not a freshness trigger on their own, but **must be carried into the refreshed spec as an annotation block** so the information survives — never silently drop them.
+
+**Then run the shared already-shipped scan + premise-superseded gate** (documented above). Outcomes apply to Path 1 as follows:
+
+- **Park (substantially delivered)** — exit Path 1 immediately. Park with cause `premise-superseded`, citing Done ticket IDs and matched surface area in the park comment.
+- **Narrow (partially delivered)** — the spec narrows to the remaining delta. **The Path 1 subagent-review exemption is preserved** for the narrow case (the original spec was already vetted; narrowing is a scoped reduction, not whole-cloth, matching the same rationale as the existing exemption documented in _Inline-spec subagent review_'s `When NOT to run it` list). The narrowing rationale and cited Done tickets in the `## Already shipped against this surface` section are the audit trail. Continue with the rest of Path 1 on the narrowed scope.
+- **Proceed (premise holds)** — continue unchanged.
+
+If the narrowing crosses architectural lines (e.g. the remaining delta requires a different module structure than the original spec assumed), defer to the existing architectural-change park rule below — park rather than reattach.
 
 If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
@@ -306,9 +339,21 @@ If the refreshed spec fails marker validation → **park** with cause "spec form
 
 Available in **both** delegated and inline modes — autonomous never parks merely because no `spec` skill is configured.
 
-**If a `spec` skill is configured:** invoke it (passing the _Spec Format Contract_ in the instructions). Read the `confidence:` self-rating at the end of its output, then run marker validation.
+**Step 1 — produce the spec.** Either:
 
-**If no `spec` skill is configured (or the configured one can't self-rate):** produce the inline spec yourself per Scenario A Step 2 (explore findings → design decisions with `**Chosen:**`/`**Decision:**` markers, open questions in `**Punt:**`, prerequisites in `**Assumes:**`, ACs). Then run the same marker validation. **Dispatch the clean-context subagent review per _Inline-spec subagent review_ above** (mandatory for every inline spec, regardless of size) and apply its findings (revise the spec, fold blockers, leave open questions as `**Punt:**`) before self-rating. Self-rating is a deliberate honest assessment based on:
+- **(delegated)** If a `spec` skill is configured: invoke it, passing the _Spec Format Contract_ in the instructions. The skill returns the spec body plus a `confidence:` self-rating at the end of its output.
+- **(inline)** If no `spec` skill is configured (or the configured one can't self-rate): produce the inline spec yourself per Scenario A Step 2 (explore findings → design decisions with `**Chosen:**`/`**Decision:**` markers, open questions in `**Punt:**`, prerequisites in `**Assumes:**`, ACs).
+
+**Step 2 — run the shared already-shipped scan + premise-superseded gate** (documented above) on the just-produced spec. Outcomes apply to Path 2 as follows:
+
+- **Park (substantially delivered)** — exit Path 2 immediately. Park with cause `premise-superseded`, citing Done ticket IDs and matched surface area in the park comment.
+- **Narrow (partially delivered)** — the spec narrows to the remaining delta. Continue with Step 3 on the narrowed scope. (Inline path: the subagent review in Step 3 fires on the narrowed spec — Path 2's review is mandatory regardless of how the spec arrived at its final scope.)
+- **Proceed (premise holds)** — continue with Step 3 unchanged.
+
+**Step 3 — validate and review the spec.** Run marker validation per _Spec Format Contract_. Then:
+
+- **(delegated)** The spec skill already produced a `confidence:` self-rating in Step 1. No additional subagent review (the delegated skill is responsible for its own quality bar).
+- **(inline)** **Dispatch the clean-context subagent review per _Inline-spec subagent review_ above** (mandatory for every inline spec, regardless of size) and apply its findings (revise the spec, fold blockers, leave open questions as `**Punt:**`) before self-rating. Self-rating is a deliberate honest assessment based on:
 
 - `high` — the explore phase surfaced clear answers, every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` markers escalate genuine product/architecture questions, and the ACs are concrete and testable.
 - `medium` — the spec is mostly clean but has 1–2 `**Punt:**` markers on substantive choices, or one or more decisions where the rationale feels thin and a human would likely want to weigh in.

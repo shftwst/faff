@@ -64,12 +64,21 @@ These rules apply to every faff sub-skill. Sub-skills point at this section rath
 
 Every faff sub-skill excludes the following from every query, recommendation, count, and output:
 
-- Cancelled issues
+- Cancelled issues (and any issue in the tracker's cancellation state category — see **What counts as cancelled** below)
 - Archived issues
 - Issues whose parent project is cancelled or archived
 - Cancelled or archived projects themselves
 
-No exceptions. Cancelled/archived items are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by workit, never counted in beep-boop queues.
+**What counts as cancelled.** The literal "Cancelled" state name isn't the only one — trackers group multiple sibling states under a cancellation category, and all of them are treated as cancelled for faff's purposes. Detection is **category-driven first, name-based fallback**:
+
+- **Linear** — any workflow state in the `cancelled` state category. By default this includes `Cancelled`, `Duplicate`, and any team-defined custom states placed in that category. Read the state-category field returned by the Linear MCP (state objects expose a `type` or `stateCategory` of `cancelled`); fall back to a name-based match against `Cancelled`, `Duplicate`, `Won't Fix` if category metadata is unavailable.
+- **GitHub Issues** — closed issues with `state_reason = not_planned` (this covers closed-as-not-planned, including closed-as-duplicate).
+- **Jira** — issues resolved with a cancellation-category resolution (`Won't Do`, `Duplicate`, `Cannot Reproduce`, or team-defined equivalents in the same category).
+- **Other trackers** — fall back to a name-based match against `Cancelled`, `Duplicate`, `Won't Fix`, `Won't Do`, `Cannot Reproduce`. If the tracker exposes state categories, prefer the category-driven check.
+
+This widened definition fixes a real failure: a tidy run that suggests cancelling tickets already in Linear's Duplicate state is recommending a no-op at best, and a status-signage downgrade at worst (Duplicate → Cancelled preserves the `duplicate-of` relation but loses the self-documenting status text).
+
+No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by workit, never counted in beep-boop queues.
 
 ### Spec discovery (where to look for an existing spec)
 

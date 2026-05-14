@@ -157,6 +157,8 @@ Three to five sentences max. Lead with how many outcomes are in flight, whether 
 
 ## Output Format
 
+Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+
 ```
 ## Roadmap — [date]
 

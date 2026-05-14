@@ -302,6 +302,45 @@ Three carve-outs where prose stays:
 2. **Diagnosis lines** — "Recommendation: strip the CC→AA edge (defensive-only)." A visual can't carry "what to do".
 3. **TL;DR** — `/faff-whereto`'s Phase 8 stays prose. Skim-in-10-seconds is the job; visuals at the top invert that.
 
+### Tabular data: markdown tables vs definition lists
+
+Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.
+
+**Scope:** this rule applies to **user-facing terminal output** emitted by faff sub-skills (`/faff-tidy` diagnostics, `/faff-wtf` morning briefs, `/faff-whereto` roadmap renders, `/faff-beep-boop`'s in-conversation summary, etc.). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
+
+**Drop the markdown table when any of:**
+
+1. Any cell exceeds ~30 characters.
+2. Any cell contains multi-sentence prose.
+3. Total table width (cells + separators) likely exceeds ~80–120 chars.
+
+When none of these fire, markdown tables remain the right choice — they're compact and scannable for short-label tabular data (verdict counts, status counts, single-word rows).
+
+**Use definition-list / key:value blocks instead.** Each conceptual table row becomes a block of `Key: value` lines separated by the unicode box-drawing rule `────────────────────────────────────────` (`─` × 40). The lead-in line names the row's primary identifier; subsequent lines carry the columns. Example — broken markdown table on the left, definition-list rewrite on the right:
+
+```
+| Ticket | Title                   | State | Scope                                   |
+|--------|-------------------------|-------|-----------------------------------------|
+| SHF-X  | Prompt substrate retar… | Done  | Different — moved prompts, not stage l… |
+| SHF-Y  | HMAC envelope + BG wo…  | Done  | Different — wrapper layer, not stage l… |
+```
+
+Rewritten:
+
+```
+Ticket: SHF-X
+Title: Prompt substrate retarget (move *.prompt.md + codegen)
+State: Done
+Scope: Different — moved prompts, not stage logic
+────────────────────────────────────────
+Ticket: SHF-Y
+Title: HMAC envelope + BG worker relocation
+State: Done
+Scope: Different — wrapper layer, not stage logic
+```
+
+The separator is unicode `─` × 40, not markdown `---`. Markdown `---` renders as `<hr>` in some contexts and is often invisible in terminal chat panes — the unicode rule reads consistently across renderers.
+
 ### Density caps
 
 A wall of small visuals is the same problem as a wall of text. Each rendered section caps:

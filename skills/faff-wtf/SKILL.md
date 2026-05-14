@@ -145,6 +145,8 @@ Keep the tracker in sync with reality. No one starts building without a spec.
 
 ## Output Format
 
+Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+
 Keep it concise and scannable. Use this structure:
 
 (when `mode: delivery-lead` is active, the first line is)

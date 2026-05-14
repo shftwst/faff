@@ -234,6 +234,8 @@ This is what `/faff-wtf` looks for to surface parked issues in the morning.
 
 ## Reporting
 
+Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+
 On run completion, produce:
 
 ### 1. `.faff/runs/<run-id>/summary.md`

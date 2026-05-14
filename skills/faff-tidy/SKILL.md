@@ -160,6 +160,8 @@ Output rendered in the new `### Delivery-methodology findings` section of tidy's
 
 ## Output and chaining
 
+Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+
 Present findings grouped by bucket. Skip any bucket with no findings.
 
 Output renders three new sections in addition to the existing buckets:

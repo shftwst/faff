@@ -219,6 +219,7 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 - **Stuck in prep (still-valid parks)** — issues whose park label survived auto-cleanup because the park reason is subjective/judgement-bound. Log each with: issue id, park reason, priority (issue or ancestor), and chainable unlock count. Sort the log by priority then unlock count so `/faff-wtf` and the morning human reviewer see the highest-leverage decisions first.
 - **Splittable specs** — surface only in Spec 1; do not auto-split. Splitting lands in Spec 2 (delivery-lead mode).
 - **Orphaned-by-cascade + repeat-parked combination** — strong "is this still wanted?" signal; cancelling is destructive; always surface for human.
+- **Methodology-finding relation recommendations** — when a spec comment, methodology critique, or delivery-lead diagnosis names a recommended `blocks` / `blocked-by` relation (e.g. *"Spec recommends blocker link until SHF-X fully merges"*), tidy never auto-creates the relation. Log as a finding with: source ticket, recommended target, the verbatim recommendation text, and a current-state snapshot of the target (open / Done / Cancelled / Archived; close date if applicable). The finding surfaces in `/faff-wtf`'s next morning brief; the human reviews and creates the relation manually if still applicable.
 
 Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id, category, and recommended action. These surface in the morning via `/faff-wtf` for human review.
 

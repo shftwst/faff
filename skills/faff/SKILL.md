@@ -420,7 +420,7 @@ Every faff sub-skill that names an issue in output applies this contract. Each s
 
 ## Structural diagnostics contract
 
-The pass `/faff-tidy` runs to detect issues with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs. Findings are consumed by other faff sub-skills.
+The pass `/faff-tidy` runs to detect issues with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps. Findings are consumed by other faff sub-skills.
 
 ### Detection categories
 
@@ -430,6 +430,7 @@ The pass `/faff-tidy` runs to detect issues with the **shape of the backlog itse
 | **Ghost-project pointers** | An issue spec or description names a tracker container (project, initiative, milestone — whatever the tracker calls it) that does not exist | String-match against the live container list from the tracker MCP |
 | **Repeat-park patterns** | Active issue parked 3+ times in last 21 days (configurable in `CLAUDE.md`) with the same root-cause class | Reads last 50 `.faff/runs/*/summary.md` files; classifies each park by root-cause class enum (see below) |
 | **Splittable specs** | Spec describes two structurally independent concerns AND each concern is a valid ticket-sized unit | LLM inspection — restricted to specs already flagged stale/challenged by existing tidy logic (don't sweep every spec every run) |
+| **Chain gaps** | Any active ticket whose spec's implementation advice references work no ticket tracks — the chain from current state to fulfilling the spec's purpose is broken because some piece of the implied work has no ticket to carry it. Four sub-types: **sub-ticket gap** (umbrella's spec enumerates multiple remaining deliverables — multi-PR, multi-phase, numbered steps — but no Todo / In Progress / In Review sub-ticket exists for the next deliverable; `/faff-workit` has nothing to pick up to advance the umbrella); **upstream gap** (spec names a prerequisite — "blocked by X", "needs Y first", "assumes Z has shipped" — that has no ticket); **downstream gap** (spec names follow-up work — "subsequent PR will...", "leaves W for later", "after this, wire up V" — that has no ticket); **peer gap** (spec implementation advice describes parallel work that must also happen for the change to be useful — consumer wire-up, integration changes, related refactor — that has no ticket). | (1) Active ticket (Todo / In Progress / In Review) with a discoverable spec. (2) Parse the spec's implementation-advice section(s) for: multi-deliverable enumeration markers ("PR 1 / PR 2", "PR A / PR B", "Phase 1 / Phase 2", "Step N of M", "follow-up PR", numbered/bulleted lists with PR-shaped action verbs — sub-ticket gap); upstream-dependency phrases ("blocked by", "needs X first", "assumes Y has shipped", "depends on Z", "prerequisite" — upstream gap); follow-up phrases ("subsequent PR", "follow-up ticket", "leaves W for later", "after this", "next phase" — downstream gap); parallel-work phrases ("consumer-side changes in X", "also needs Y in the same workstream", "integration changes in service Z", "related refactor" — peer gap). (3) For each referenced work unit, search the active-ticket graph for a match: sub-ticket of this ticket (sub-ticket gap); tracked blocker / upstream ticket whose title/description matches the prereq (upstream gap); follow-up ticket linked via "blocks" or whose title matches (downstream gap); sibling/peer ticket in the same workstream matching the description (peer gap). (4) If no match → chain gap. (5) For sub-ticket gaps additionally check: count enumerated deliverables `E`, count `C` = (sub-tickets in any state) + (merged PRs directly referencing the parent ID); flag when `E > C` AND no sub-ticket is in Todo / In Progress / In Review. Conservative: skip when the spec is unitary, when the referenced work is in scope for the current PR, when the reference is illustrative rather than load-bearing, when the spec explicitly disclaims ("future work — not ticketed by design"), and when an actionable next-step ticket already exists. Complements delivery-methodology principle 6 (hidden deps), which catches the *inverse* — referenced work that *does* have a ticket but is missing a declared blocker link. |
 | **Orphaned + repeat-parked** | Cross-reference of existing orphaned-by-cascade detection with repeat-park | Set intersection of the two finding sets |
 
 Detection is conservative. False positives in this phase are expensive — the human gets a recommendation that's wrong and has to override. **When in doubt, don't flag.**
@@ -454,9 +455,10 @@ These are the new mechanical mutations introduced in Spec 1, applied per the exi
 | Ghost-project pointer where the named container **clearly maps** to an existing container by name proximity (e.g. spec says "logging-cleanup project", tracker has "Logging cleanup") | Repoint the issue to the existing container. Log the move. |
 | Repeat-park (3+ runs, same root-cause class), issue still in Todo | Demote to Backlog, tag with `repeat-parked` (or tracker equivalent). Log the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue. |
 
-Two detection categories surface only — do **not** auto-apply (waits for Spec 2 / delivery-lead mode):
+Three detection categories surface only in default mode — do **not** auto-apply (one of them, chain gaps, *does* auto-apply once delivery-lead mode is on; see below):
 
 - **Splittable specs** — interactive: offer to chain to `/faff-prep --split`. Autonomous Level-2: log only.
+- **Chain gaps** — *default mode:* interactive surfaces each gap with the active ticket, sub-type (sub-ticket / upstream / downstream / peer), the referenced work, what's already covered (sub-ticket gaps only — sub-tickets + merged PRs by direct ref), the un-ticketed remainder, and the recommended action: for sub-ticket gaps chain-offer `/faff-prep --split` over the parent; for upstream / downstream / peer offer "file gap issue" (create the missing ticket with the appropriate relationship — blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer). Autonomous Level-2: log only. *Delivery-lead mode (interactive or autonomous):* **auto-create the missing ticket(s) per sub-type** — sub-ticket gaps: one Backlog sub-ticket per un-ticketed deliverable, parent set to the umbrella; upstream gaps: one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it; downstream gaps: one Backlog ticket for the follow-up + link "blocked-by" the active ticket; peer gaps: one Backlog ticket for the parallel work in the same workstream/parent. All created tickets: title from the spec reference line, description = the referenced prose + back-link to the source ticket, status `Backlog`, tag `faff-chain-gap-fill` so `/faff-prep`'s next queue pass picks them up. Log every created ticket with id, sub-type, source spec line, and the relationship target (parent / blocker / blocked-by / sibling). Skip auto-create and downgrade to surface-only when the reference is ambiguous (no clear deliverable per line, no nameable target for the relationship, prose-y rather than action-verb-led) — phantom tickets are expensive to clean up.
 - **Orphaned-by-cascade + repeat-parked** — surface only. Cancelling is destructive; always human.
 
 ### Output section
@@ -487,6 +489,28 @@ Splittable specs (1) — surfaced only, not auto-split
   ISSUE-YY  Settings page rewrite — spec covers (a) URL routing changes and
             (b) form-state refactor. The two have no overlapping files and could
             ship independently. Run /faff-prep --split to break out.
+
+Chain gaps (4) ⚠ — surfaced only in default mode, auto-ticketed in delivery-lead mode
+  ISSUE-AA  Mastra audit pipeline lift — umbrella, In Progress.
+            Sub-ticket gap: spec enumerates 8 deliverables (PR 1–2 shipped via
+            #243/#244, PR 3 carved out as ISSUE-BB and shipped). 5 un-ticketed:
+            consumer wire-up (audit-pipeline-background.ts), 3 per-stage lifts
+            (captureScreenshot/extractColors/generatePalette), default flip.
+            No Todo or In Progress sub-ticket exists — /faff-workit has nothing
+            to pick up next. Recommendation: chain to /faff-prep --split to
+            carve the remaining 5.
+  ISSUE-CC  Profile init refresh — Todo.
+            Upstream gap: spec assumes "auth refresh has shipped" prereq, but no
+            ticket exists for that work. Recommendation: file the prerequisite +
+            add blocker link CC → new-prereq.
+  ISSUE-DD  Settings page rewrite — In Progress.
+            Downstream gap: spec ends "subsequent PR will migrate the legacy
+            /settings/* redirects" — no follow-up ticket exists.
+            Recommendation: file the follow-up + link blocked-by ISSUE-DD.
+  ISSUE-EE  Stripe webhook retry — Todo.
+            Peer gap: spec implementation advice references "consumer-side changes
+            needed in billing-events service" — no peer ticket in the same
+            workstream. Recommendation: file the peer ticket + tag the workstream.
 
 Orphaned + repeat-parked (1) ⚠
   ISSUE-ZZ  Old auth fallback — parent project cancelled 6 weeks ago,

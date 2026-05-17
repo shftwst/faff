@@ -106,7 +106,7 @@ Show what `/faff-beep-boop` would pick up right now, computed per the **Automati
 
 Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for structural-diagnostics findings. If no tidy ran this pass, compute inline. Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings per gateway → **Structural diagnostics contract** output format.
 
-Repeat-parks and orphaned+repeat-parked findings additionally surface in `### 7. Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump.
+Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type — sub-ticket / upstream / downstream / peer) additionally surface in `### 7. Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump. Chain gaps are first-class Heads-up material: when a ticket's spec references work no ticket tracks, picking up the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next. Tag each Heads-up chain-gap entry with the sub-type so the human can scan-read.
 
 ### 5d. Calibration signals (rendered only when threshold crossed)
 
@@ -206,6 +206,9 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 ### Heads up
 - Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
 - Orphaned + repeat-parked ⚠: ISSUE-ZZ  [gloss] — parent project cancelled; parked 3 times; is this still wanted?
+- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-workit can't advance it. (Delivery-lead mode auto-carves; default chain-offers /faff-prep --split.)
+- Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (Delivery-lead mode files the prereq + adds blocker link; default offers "file gap issue".)
+- Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (Delivery-lead mode files the peer + tags the workstream; default offers "file gap issue".)
 - [Any risks, approaching deadlines, or flags]
 
 ### Beep-boop queues
@@ -274,7 +277,7 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 - Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
 - Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.
-- Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks always surface in `### Heads up`, not just in the diagnostics dump.
+- Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks, orphaned+repeat-parked, and chain gaps (any sub-type — sub-ticket / upstream / downstream / peer) always surface in `### Heads up`, not just in the diagnostics dump — a chain gap means a focus pick on the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next, and the human needs that visible before picking it up.
 - When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a `### 5a. Delivery view` section after Today's Focus. Both are skipped silently when the mode is off.
 - WIP recommendations are human-facing only. Autonomous in-flight work (issues `/faff-beep-boop` is currently building or has a PR open for) does not count against the human's WIP cap — the human reviews one PR at a time.
 - The Delivery view is the highlight, not the firehose. At most two structural findings; `/faff-tidy` surfaces the full set.

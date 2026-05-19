@@ -26,6 +26,7 @@ All faff sub-skills read project-specific details from `CLAUDE.md`. They expect 
 Optional but useful:
 - Labels and their meanings
 - Working pattern notes
+- **Appetite for destruction** (`appetite: low | medium | high`, default `medium`) — tunes how aggressively autonomous mode self-resolves vs. escalates. Lives in the `Project Tracking` section of CLAUDE.md. Stable preference, not mutable state. See **Autonomous Mode Contract → Appetite for destruction** for what each level changes.
 
 **Never put mutable state in a consuming repo's `CLAUDE.md`.** That means no milestone lists, no target dates, no progress percentages, no issue snapshots, no "current cycle" notes — anything that can change in the tracker must be fetched live by the skill on every invocation. `CLAUDE.md` holds only stable identifiers (project IDs, team keys, repo slugs, label names) and stable preferences. If a sub-skill needs mutable data, the skill instructions must say "refetch from the tracker" and name the MCP tool to call.
 
@@ -179,8 +180,41 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 | faff-tidy | Auto-archive merged/cancelled + auto-reparent obvious orphans only. Everything else logged for morning review. |
 | faff-wtf | Return the ready-queue as a plain list. No focus recommendation. |
 | faff-whereto | Return the structured roadmap synthesis (initiatives, workstreams, chain join-up, fireable/blocked gates, structural risks). Read-only — never writes to the tracker. |
-| faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (delegated **or** inline) only on high-confidence self-rating. Medium/low → park. Missing `spec` slot is **not** a park reason — inline path self-rates and uses the same gate. |
+| faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (delegated **or** inline) when self-rating clears the appetite-aware confidence gate (see **Appetite for destruction**). At `medium` appetite (default): `high` proceeds, `medium/low` park. At `high` appetite: `high` proceeds; `medium` runs resolve-attempt + decision-doc + proceeds; `low` parks. Missing `spec` slot is **not** a park reason — inline path self-rates and uses the same gate. |
 | faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
+
+### Appetite for destruction
+
+A project-level dial in CLAUDE.md (`Project Tracking → appetite: low | medium | high`, default `medium`) that tunes how aggressively autonomous mode self-resolves ambiguities vs. escalates to the human. The name signals the underlying tradeoff: more autonomous decisions ship faster but accept a small rate of "wrong call, revert it" — projects that need ground-truth-perfect at every step set `low`; projects that want the pipeline to chew through work between human reviews set `high`.
+
+The reason this dial exists: the autonomous pipeline's value collapses when it brings every minor call back to the human. A pipeline that parks on every `confidence: medium`, every Punt, every gap-blocked verdict, demands the same input from the human as building the thing manually would — except now they have to also context-switch into "interpret faff's parks" mode each time. The human's control over project direction lives in the **spec** (front-loaded, considered architecture); past the spec gate, autonomous mode's job is to execute the spec's intent and document its calls. `appetite` lets the user adjust where that line sits.
+
+**low — maximum caution.** Park on any ambiguity. `confidence: medium` parks. `confidence: low` parks. Resolve-attempt does not run on Punt markers — every Punt parks. Use when the project is regulated, security-sensitive, or the human wants to vet every architectural call.
+
+**medium (default) — the existing contract.** `confidence: high` admits to autonomous build. `confidence: medium` parks for human review. `confidence: low` parks. Resolve-attempt runs on the three verdicts (`needs-decision-first`, `gap-blocked`, `circular-blocked`) per the per-verdict resolve rules table with conservative thresholds.
+
+**high — "sort it out yourself."** The pipeline makes calls and documents them; only escalates for genuinely irreversible or architecturally significant decisions. Mechanically:
+
+- `confidence: medium` **no longer parks**. It runs a resolve-attempt that reads the codebase, applies the project's CLAUDE.md conventions, picks the most defensible answer, and documents the call in the spec as a `Decision (faff-resolved, appetite: high):` line before proceeding to build. `confidence: low` still parks.
+- Punt-marker resolve-attempt thresholds widen: a single **defensible** answer proceeds (vs the medium-appetite "single clear answer"). Resolve-attempt budget grows from 3 to 5 files outside spec scope.
+- `gap-blocked` proceeds when the gap can be worked around — the missing piece is filed as a follow-up ticket via the chain-gap auto-create path, and current work compiles without it.
+- `circular-blocked` proceeds when any edge in the cycle is non-load-bearing (existing contract requires the break-edge to be unambiguous; `high` accepts the most plausible break-edge with audit trail).
+- Chain-gap auto-create runs even outside delivery-lead mode at `high` appetite, as long as the un-ticketed remainder is identifiable. `high` drops the default-mode surface-only safety net.
+
+**What `high` does NOT change:**
+
+- The four valid escalation categories — explicit Punt with no resolve-attempt answer, missing external state that's load-bearing, side-effect-outside-PR-flow, premise-superseded by already-merged work — still escalate. High appetite shrinks how aggressively we interpret "ambiguous" or "missing"; it doesn't remove the floor.
+- **Spec quality.** Front-loaded prep still aims for `confidence: high` with considered architecture. Appetite tunes the autonomous-build gate, not the spec-writing rigour. `fire-and-forget` admission still requires `confidence: high`; high appetite admits more `medium` specs after self-resolve, which routes them as `likely-fire` with the decision documented.
+- **Destructive / irreversible operations still park** regardless of appetite. Anything that can't be undone with `git revert` and a redeploy still escalates — production data, secrets, external messaging, irreversible cloud-resource changes.
+- **User-explicit "ask first" rules** in Planning Skills, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
+
+**Audit trail.** Every appetite-influenced decision writes a tracker comment in the same shape as the standard resolve-attempt, tagged `(appetite: high)`:
+
+> _Faff autonomous resolve-attempt (appetite: high):_ The spec rated this `confidence: medium` on the storage-layer choice between Redis and Postgres. The codebase uses Postgres for every other persistence site (`src/db/*`) and Redis only for caching in `src/cache.ts`. Proceeding with Postgres. **If this is wrong, comment on this PR before merge and faff will re-park.**
+
+**Calibration.** High-appetite decisions accumulate in `.faff/calibration/appetite-decisions/<issue-id>.md` (same shape as the existing calibration logs). If `appetite: high` produces an elevated rate of wrong-inferences or post-merge-reverts, the next `/faff-tidy` calibration-signal pass surfaces the pattern and recommends dialling back to `medium` for the affected work areas. This is how the human keeps directional control without micro-managing every call — they see what got decided across a run, not approve each one inline.
+
+**Switching appetite.** Set in CLAUDE.md once; takes effect on the next faff invocation. No per-issue overrides — global per project. To force escalation on a single decision regardless of appetite, use the existing Punt mechanism in the spec; explicit Punts are non-negotiable.
 
 ### Resolve-attempt before park
 
@@ -198,7 +232,9 @@ Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` v
 | `gap-blocked` (external dep doesn't exist) | Re-read the dependency claim. Determine whether the named dep is **load-bearing** (the work can't proceed without it) or **precautionary** (the spec mentioned it but the work can complete without). | Dep is precautionary — work can proceed; the dep can be filed as a future issue | Dep is load-bearing — actually needed for the work to compile / pass tests |
 | `circular-blocked` (in dep cycle) | Re-read each edge of the cycle. Determine whether breaking one specific edge is mechanically obvious — e.g. "A blocks B" was added defensively but A's spec doesn't actually depend on B's output. | A break-edge is unambiguous (spec doesn't load-bear on it) — proceed by serialising remaining edges as a collision group | Every edge looks load-bearing — the cycle is real and a human has to redesign |
 
-**Boundedness.** The attempt reads at most **3 files outside the spec's named scope**. Beyond that, treat as park. Keeps cost contained and avoids rabbit-hole investigations.
+**Boundedness.** The attempt reads at most **3 files outside the spec's named scope** at `medium` appetite (default). At `high` appetite the budget grows to **5 files**. Beyond the budget, treat as park. Keeps cost contained and avoids rabbit-hole investigations.
+
+**Appetite-aware thresholds.** At `appetite: high` (see **Appetite for destruction**), each row's "Proceed if" column widens — a single *defensible* answer is enough where `medium` appetite requires a single *clear* answer. The "Park if" thresholds narrow correspondingly: architectural calls still escalate, but stylistic or convention-following calls proceed with the audit-trail comment. At `appetite: low`, resolve-attempt does not run at all — every flagged verdict parks.
 
 **Audit trail.** A proceeding resolve-attempt **always writes a tracker comment** in this format:
 
@@ -219,6 +255,7 @@ Captures evidence about over-cautious parks, wrong inferences, and post-merge re
 | Autonomous-park then interactive-complete-no-questions | `.faff/calibration/over-cautious-parks/<issue-id>.md` | Park reason, root-cause class, what the interactive resolution actually was (read from the commit / PR) |
 | Autonomous-resolve-attempt then human-overrode | `.faff/calibration/wrong-inferences/<issue-id>.md` | Original marker, inferred answer, human's correction |
 | Autonomous-shipped then post-merge-reverted within 7 days | `.faff/calibration/post-merge-reverts/<issue-id>.md` | Shipped commit SHA, revert commit SHA, the diff between them, any comments on the revert |
+| Appetite-influenced decision (at `appetite: high`, autonomous proceeded on `confidence: medium` or widened-threshold resolve-attempt) | `.faff/calibration/appetite-decisions/<issue-id>.md` | The verdict, the spec marker, the inferred answer, the audit-trail comment posted, and the merge outcome (pass / human-overrode / post-merge-reverted) once known. Pairs with the wrong-inferences and post-merge-reverts captures above for the cross-cut "is `high` over-shooting?" tidy signal. |
 
 **Synthesis and surfacing.** Every `/faff-tidy` run (or the equivalent step within `/faff-wtf` when no tidy ran this pass) reads the calibration log and surfaces patterns when they cross a threshold:
 

@@ -13,9 +13,9 @@ Pull the live tracker state and the project's backlog-organisation methodology, 
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
+See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
 
-**Methodology doc.** This skill leans on the consuming project's backlog-organisation methodology (initiative shapes, workstream horizons, success-metric expectations). Default location: `docs/operations/backlog-organization.md`. If `CLAUDE.md` names a different path under `Project Tracking → Backlog methodology`, use that. If neither exists, fall back to inferring from tracker structure (initiatives + projects with status fields) and flag in the output that no methodology doc was found — the synthesis is then best-effort.
+**Methodology doc.** This skill leans on the consuming project's backlog-organisation methodology (initiative shapes, workstream horizons, success-metric expectations). Default location: `docs/operations/backlog-organization.md`. If `.faffrc` names a different path under `tracking.backlog_methodology`, use that. If neither exists, fall back to inferring from tracker structure (initiatives + projects with status fields) and flag in the output that no methodology doc was found — the synthesis is then best-effort.
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
@@ -27,7 +27,7 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **Always pull the whole roadmap picture fresh from the issue tracker. A roadmap with stale data cannot be trusted.**
 
-Every phase pulls **live** state — never from a cached snapshot, never from a value written into `CLAUDE.md`, never from a previous run's `.faff/logs/` output, never from a partial fetch carried over from earlier in the conversation. Every invocation re-fetches every initiative, every project under every initiative, every issue under every project, every blocker link, every status field. No incremental refreshes. No "I already pulled this 10 minutes ago." No reusing summaries.
+Every phase pulls **live** state — never from a cached snapshot, never from a value written into `.faffrc`, never from a previous run's `.faff/logs/` output, never from a partial fetch carried over from earlier in the conversation. Every invocation re-fetches every initiative, every project under every initiative, every issue under every project, every blocker link, every status field. No incremental refreshes. No "I already pulled this 10 minutes ago." No reusing summaries.
 
 The reason: a roadmap that mixes a fresh-now piece with a 30-minute-old piece is **silently wrong**. The reader trusts the document as a single coherent snapshot. If a project shipped in the last 10 minutes, or a status changed, or a blocker resolved, and the roadmap reflects pre-change state for some sections and post-change for others, the chain analysis (Phase 4) and gate analysis (Phase 5) produce confidently incorrect findings. Better to be slow and correct than fast and lying. If the fetch budget is too high, the answer is to scope the run to a single initiative — never to use partial freshness.
 

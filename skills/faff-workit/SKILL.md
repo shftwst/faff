@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `plan`, `review`, and `ship` Planning Skill slots.
+See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `plan`, `review`, and `ship` Planning Skill slots.
 
 ### Worktree Hook
 
@@ -106,10 +106,17 @@ If no worktree exists:
 
 Pull the spec content from the issue tracker and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes.
 
-Location:
-- Spec → `<spec-docs-path>/YYYY-MM-DD-<issue-id>-<slug>-design.md`
+Resolve and create the target directory mechanically with the bundled resolver (see the gateway's **Spec docs location**):
 
-Resolve `<spec-docs-path>` from the **Spec docs path** key in the `CLAUDE.md` Project Tracking section (see the gateway's **Spec docs location**). When the key is absent, apply the default-resolution rule: use `docs/specs/` if `docs/` exists at the repo root, else `doc/specs/` if `doc/` exists, else create `docs/` and use `docs/specs/` (prefer `docs/` if both exist). Create the `specs/` subdirectory if it doesn't exist. Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use today's date for `YYYY-MM-DD`.
+```bash
+dir=$(~/.claude/skills/faff/faffrc spec-docs-path --create)
+```
+
+This reads `tracking.spec_docs_path` from `.faffrc` and, when unset, applies the default rule (`docs/specs` if `docs/` exists, else `doc/specs` if `doc/` exists, else creates `docs/` and uses `docs/specs`). Commit the spec to:
+
+- `$dir/YYYY-MM-DD-<issue-id>-<slug>-design.md`
+
+Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use today's date for `YYYY-MM-DD`.
 
 Commit message: `docs(<issue-id>): add spec for <issue title>`
 
@@ -129,7 +136,7 @@ Validate the spec's freshness against the current codebase. Then present a summa
 
 **Step 7: Build**
 
-Implementer chooses execution strategy. If a `plan` slot is configured in CLAUDE.md Planning Skills, optionally invoke it first to produce a step-by-step plan. Otherwise, build directly from the spec.
+Implementer chooses execution strategy. If a `plan` slot is configured under `planning_skills` in `.faffrc`, optionally invoke it first to produce a step-by-step plan. Otherwise, build directly from the spec.
 
 During the build, if a decision arises that the spec doesn't resolve:
 - **Interactive mode:** ask the user.
@@ -168,7 +175,7 @@ Runs after AC verification, before the merge-confidence gate. **This step is non
 
 If this step is reached without being in the todo list, **stop and add it**, then run it before proceeding to Step 10 or 11.
 
-- If `review` slot is configured in CLAUDE.md Planning Skills, invoke it.
+- If a `review` slot is configured under `planning_skills` in `.faffrc`, invoke it.
 - Otherwise, perform the faff built-in review (faff-workit playing the senior-engineer role):
   - Read the full diff
   - Confirm every AC in the spec has a corresponding test reference

@@ -18,29 +18,60 @@ The stuff you do before actual work — but automated. This is a gateway — inv
 
 ## Configuration (shared across all sub-skills)
 
-All faff sub-skills read project-specific details from `CLAUDE.md`. They expect a **Project Tracking** section with at minimum:
+All faff sub-skills read their configuration from a **`.faffrc`** file at the repo root. Three filename forms are accepted, all parsed as YAML: **`.faffrc.yaml`**, **`.faffrc.yml`**, or the extensionless **`.faffrc`**. **Exactly one may exist** — if more than one is present at the repo root, faff stops with an error and asks you to consolidate to a single file rather than silently picking one. Any key the file doesn't set falls back to faff's built-in default; a missing `.faffrc` altogether means all defaults apply. (Template files are exempt: any name containing `.example` is never counted or loaded.)
 
-- Issue tracker details (project ID, team key, etc.)
-- Git host details (org, repo)
+`CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
-Optional but useful:
-- Labels and their meanings
-- Working pattern notes
-- **Appetite for destruction** (`appetite: low | medium | high`, default `medium`) — tunes how aggressively autonomous mode self-resolves vs. escalates. Lives in the `Project Tracking` section of CLAUDE.md. Stable preference, not mutable state. See **Autonomous Mode Contract → Appetite for destruction** for what each level changes.
-- Spec docs path — where `/faff-workit` commits specs in the repo (see **Spec docs location** below)
+**Resolver.** A bundled helper — `~/.claude/skills/faff/faffrc` (run with `python3` if not executable) — performs file resolution and parsing mechanically so sub-skills don't hand-parse YAML:
 
-**Never put mutable state in a consuming repo's `CLAUDE.md`.** That means no milestone lists, no target dates, no progress percentages, no issue snapshots, no "current cycle" notes — anything that can change in the tracker must be fetched live by the skill on every invocation. `CLAUDE.md` holds only stable identifiers (project IDs, team keys, repo slugs, label names) and stable preferences. If a sub-skill needs mutable data, the skill instructions must say "refetch from the tracker" and name the MCP tool to call.
+- `faffrc path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
+- `faffrc get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faffrc get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
+- `faffrc spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
 
-Faff auto-detects which issue tracker and git host MCP servers are available and adapts accordingly. It works with Linear, GitHub Issues, Jira, or any issue tracker exposed via MCP. If no tracker MCP is available, it falls back to git-only mode (commits, branches, PRs).
+It uses PyYAML when installed and otherwise a built-in parser for the documented subset. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (`mode`, `working_patterns`) can also be read this way but gain less from it.
+
+Full schema (every key optional unless noted; shown with example values):
+
+```yaml
+# .faffrc.yaml — faff configuration, repo root
+tracking:
+  tracker: linear            # linear | github | jira | … (autodetected from available MCP if omitted)
+  team_key: SHF              # tracker team/board key
+  project_id: "abc-123"      # tracker project/team id
+  repo: shftwst/faff         # org/repo slug
+  git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
+  spec_docs_path: docs/specs/                                   # where faff-workit commits specs (see Spec docs location)
+  backlog_methodology: docs/operations/backlog-organization.md  # methodology doc used by faff-whereto
+  working_patterns: |        # free-text scheduling / working-pattern notes (read by faff-wtf)
+    Deep-work mornings; avoid recommending large builds after 4pm.
+
+planning_skills:             # optional delegation slots; each has a faff default when unset
+  spec: superpowers:brainstorming                    # used by faff-prep
+  plan: superpowers:writing-plans                    # used inside faff-workit
+  parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency
+  review: gstack:review                              # pre-PR review inside faff-workit
+  ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit
+
+mode: delivery-lead          # off (default) | delivery-lead — see Delivery-lead methodology
+
+calibration:
+  repeat_park_window_days: 14         # signal lookback for calibration thresholds
+  repeat_park_threshold: 4            # ≥N same-root-cause park events in the window → surface a signal
+  repeat_park_demote_window_days: 21  # lookback for the Todo→Backlog demotion rule
+  repeat_park_demote_threshold: 3     # ≥N parks in that window → demote a repeat-parked Todo
+```
+
+**Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
+
+Faff auto-detects which issue tracker and git host MCP servers are available and adapts accordingly — `tracking.tracker` / `tracking.git_host` only pin the choice when autodetection is ambiguous. It works with Linear, GitHub Issues, Jira, or any tracker exposed via MCP. If no tracker MCP is available, it falls back to git-only mode (commits, branches, PRs).
 
 ### Spec docs location
 
-When `/faff-workit` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-workit artifact lifecycle). The in-repo directory is configurable via a `Spec docs path` key in the **Project Tracking** section of `CLAUDE.md`:
+When `/faff-workit` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-workit artifact lifecycle). The in-repo directory is configurable via the `tracking.spec_docs_path` key in `.faffrc`:
 
-```markdown
-## Project Tracking
-...
-- **Spec docs path:** docs/specs/
+```yaml
+tracking:
+  spec_docs_path: docs/specs/
 ```
 
 - **Default when unset:** a `specs/` directory inside the repo's docs folder, resolved at use time:
@@ -53,19 +84,19 @@ When `/faff-workit` starts a build it commits the spec into the repo so it ships
 - The filename within it is unchanged: `YYYY-MM-DD-<issue-id>-<slug>-design.md`.
 - This only relocates the spec **within the same repo** — the spec still lands on the feature branch and ships with the PR. It is not a pointer to a separate repository.
 
-Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
+Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. The `faffrc spec-docs-path [--create]` resolver applies this exact rule — sub-skills call it rather than re-deriving the path. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
 
 ### Planning Skills (optional delegation slots)
 
-Faff delegates specialised work to configured skills. Slots live in a `Planning Skills` section of `CLAUDE.md`. All slots are optional — each has a sensible faff default when unset.
+Faff delegates specialised work to configured skills. Slots live under the `planning_skills:` key in `.faffrc`. All slots are optional — each has a sensible faff default when unset.
 
-```markdown
-## Planning Skills
-- spec: superpowers:brainstorming                      # used by faff-prep
-- plan: superpowers:writing-plans                      # used inside faff-workit, optional
-- parallel: superpowers:dispatching-parallel-agents    # used by faff-beep-boop for concurrency, optional
-- review: gstack:review                                # pre-PR review inside faff-workit, optional
-- ship: gstack:land-and-deploy                         # merge/deploy mechanism inside faff-workit, optional
+```yaml
+planning_skills:
+  spec: superpowers:brainstorming                    # used by faff-prep
+  plan: superpowers:writing-plans                    # used inside faff-workit, optional
+  parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
+  review: gstack:review                              # pre-PR review inside faff-workit, optional
+  ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
 Defaults when a slot is unset:
@@ -288,7 +319,7 @@ Surfaced signals are **advisory** — they suggest a fix but never auto-apply ru
 
 **Critical invariant.** The calibration log is **append-only and never authoritative**. A skill never reads calibration to make a current decision; only humans (or the skills' future iterations) read it to evolve the rules.
 
-**Threshold (configurable in `CLAUDE.md`):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days. Tune as needed once real data accumulates.
+**Threshold (configurable in `.faffrc`):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days. Tune as needed once real data accumulates.
 
 ### Park protocol (shared)
 
@@ -513,7 +544,7 @@ The pass `/faff-tidy` runs to detect issues with the **shape of the backlog itse
 |---|---|---|
 | **Dependency cycles** | Blocker graph cycle of any length (A→B→A; A→B→C→A; longer) | Tarjan / DFS-with-coloring pass over the full active-issue blocker graph. Cancelled/archived already filtered per the **Ignore cancelled and archived** rule. |
 | **Ghost-project pointers** | An issue spec or description names a tracker container (project, initiative, milestone — whatever the tracker calls it) that does not exist | String-match against the live container list from the tracker MCP |
-| **Repeat-park patterns** | Active issue parked 3+ times in last 21 days (configurable in `CLAUDE.md`) with the same root-cause class | Reads last 50 `.faff/runs/*/summary.md` files; classifies each park by root-cause class enum (see below) |
+| **Repeat-park patterns** | Active issue parked 3+ times in last 21 days (configurable in `.faffrc`) with the same root-cause class | Reads last 50 `.faff/runs/*/summary.md` files; classifies each park by root-cause class enum (see below) |
 | **Splittable specs** | Spec describes two structurally independent concerns AND each concern is a valid ticket-sized unit | LLM inspection — restricted to specs already flagged stale/challenged by existing tidy logic (don't sweep every spec every run) |
 | **Chain gaps** | Any active ticket whose spec's implementation advice references work no ticket tracks — the chain from current state to fulfilling the spec's purpose is broken because some piece of the implied work has no ticket to carry it. Four sub-types: **sub-ticket gap** (umbrella's spec enumerates multiple remaining deliverables — multi-PR, multi-phase, numbered steps — but no Todo / In Progress / In Review sub-ticket exists for the next deliverable; `/faff-workit` has nothing to pick up to advance the umbrella); **upstream gap** (spec names a prerequisite — "blocked by X", "needs Y first", "assumes Z has shipped" — that has no ticket); **downstream gap** (spec names follow-up work — "subsequent PR will...", "leaves W for later", "after this, wire up V" — that has no ticket); **peer gap** (spec implementation advice describes parallel work that must also happen for the change to be useful — consumer wire-up, integration changes, related refactor — that has no ticket). | (1) Active ticket (Todo / In Progress / In Review) with a discoverable spec. (2) Parse the spec's implementation-advice section(s) for: multi-deliverable enumeration markers ("PR 1 / PR 2", "PR A / PR B", "Phase 1 / Phase 2", "Step N of M", "follow-up PR", numbered/bulleted lists with PR-shaped action verbs — sub-ticket gap); upstream-dependency phrases ("blocked by", "needs X first", "assumes Y has shipped", "depends on Z", "prerequisite" — upstream gap); follow-up phrases ("subsequent PR", "follow-up ticket", "leaves W for later", "after this", "next phase" — downstream gap); parallel-work phrases ("consumer-side changes in X", "also needs Y in the same workstream", "integration changes in service Z", "related refactor" — peer gap). (3) For each referenced work unit, search the active-ticket graph for a match: sub-ticket of this ticket (sub-ticket gap); tracked blocker / upstream ticket whose title/description matches the prereq (upstream gap); follow-up ticket linked via "blocks" or whose title matches (downstream gap); sibling/peer ticket in the same workstream matching the description (peer gap). (4) If no match → chain gap. (5) For sub-ticket gaps additionally check: count enumerated deliverables `E`, count `C` = (sub-tickets in any state) + (merged PRs directly referencing the parent ID); flag when `E > C` AND no sub-ticket is in Todo / In Progress / In Review. Conservative: skip when the spec is unitary, when the referenced work is in scope for the current PR, when the reference is illustrative rather than load-bearing, when the spec explicitly disclaims ("future work — not ticketed by design"), and when an actionable next-step ticket already exists. Complements delivery-methodology principle 6 (hidden deps), which catches the *inverse* — referenced work that *does* have a ticket but is missing a declared blocker link. |
 | **Orphaned + repeat-parked** | Cross-reference of existing orphaned-by-cascade detection with repeat-park | Set intersection of the two finding sets |
@@ -676,15 +707,13 @@ The methodology is **fixed and embedded here**. There is no user-written methodo
 
 ### Configuration
 
-In the consuming project's `CLAUDE.md`:
+Top-level `mode` key in `.faffrc`:
 
-```markdown
-## Faff mode
-
+```yaml
 mode: delivery-lead     # off | delivery-lead
 ```
 
-- Absent block or `mode: off` → faff behaves exactly per Spec 1.
+- Absent key or `mode: off` → faff behaves exactly per Spec 1.
 - `mode: delivery-lead` → every sub-skill applies the methodology on top of its Spec 1 behaviour.
 
 Mode is binary, project-level, and applies equally to interactive and autonomous invocations. There is no per-invocation override.

@@ -11,7 +11,7 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. WTF falls back to git-only mode if no tracker MCP is available.
+See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. WTF falls back to git-only mode if no tracker MCP is available.
 
 **Shared work-ordering rule.** Anywhere this skill suggests, ranks, or recommends work — "Coming Up", "Today's Focus", "Ready to pick up", "Build queue" independents, parked-overnight triage — apply the same lexicographic order used by `/faff-tidy`:
 
@@ -26,7 +26,7 @@ When the consuming project's CLAUDE.md flags a current workstream, weight issues
 
 **A catch-up with stale data cannot be trusted.**
 
-Every invocation re-fetches every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, every status field, every recent activity timestamp. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `CLAUDE.md`. No reading a prior `.faff/logs/` file as a substitute for live data.
+Every invocation re-fetches every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, every status field, every recent activity timestamp. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `.faffrc` or any static file. No reading a prior `.faff/logs/` file as a substitute for live data.
 
 A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong**. The reader trusts "What's up" as a coherent moment-in-time picture. If a PR merged, a status changed, a blocker resolved, or an issue got parked between partial fetches, the focus recommendation and beep-boop queue analysis produce confidently incorrect output — and the human acts on it. Better slow-and-correct than fast-and-lying. If the fetch budget is too high, scope the run smaller (single project) — never use partial freshness across a wider scope.
 
@@ -37,8 +37,8 @@ A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong
 Run through these sections in order:
 
 ### 1. Timeline Check
-- Read project context from `CLAUDE.md` (tracker details, milestones)
-- **Always re-fetch milestones and their completeness live** — never rely on cached snapshots or values written into `CLAUDE.md`. Source of truth is the tracker. Call whichever tracker MCP is configured (use its list-milestones equivalent — autodetect from the available MCP, don't hardcode) per project / workstream id to pull current milestone target dates and progress percentages.
+- Read tracker/project config from `.faffrc` (`tracking`); milestones are always fetched live, never from config
+- **Always re-fetch milestones and their completeness live** — never rely on cached snapshots or values written into `.faffrc`. Source of truth is the tracker. Call whichever tracker MCP is configured (use its list-milestones equivalent — autodetect from the available MCP, don't hardcode) per project / workstream id to pull current milestone target dates and progress percentages.
 - Calculate where we are relative to milestone target dates
 - Flag if any milestone is at risk based on remaining work vs time
 - Render one table per project with columns `Milestone | Target | Progress` (see Output Format)
@@ -49,7 +49,7 @@ Run through these sections in order:
 - **Recently Completed:** Issues closed since last briefing (last 24-48 hours). For each, list any issues it just **unblocked** (dependents whose last remaining blocker was this one). These newly-unlocked issues are the freshly-realised potential of the recent shipping.
 - **Coming Up:** Next unstarted issues to surface, ordered per the shared work-ordering rule (priority, then chainable unlock value). Issues unblocked in the last 24-48 hours bubble to the top of this list — they represent the highest-leverage uncaptured potential.
 
-Query using the project/team details from `CLAUDE.md`. Exclude cancelled and archived per the shared rule.
+Query using the project/team details from `.faffrc` (`tracking.project_id` / `tracking.team_key`). Exclude cancelled and archived per the shared rule.
 
 ### 3. Git Activity
 - **Recent Commits:** Last 24-48 hours of commits on active branches
@@ -110,7 +110,7 @@ Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type �
 
 ### 5d. Calibration signals (rendered only when threshold crossed)
 
-Read `.faff/calibration/` summary (computed by tidy if it ran, otherwise inline) and surface any signals that crossed the threshold (default ≥4 events of the same root-cause class in the last 14 days, configurable in `CLAUDE.md`). See gateway → **Autonomous Mode Contract → Calibration log**.
+Read `.faff/calibration/` summary (computed by tidy if it ran, otherwise inline) and surface any signals that crossed the threshold (default ≥4 events of the same root-cause class in the last 14 days, configurable in `.faffrc`). See gateway → **Autonomous Mode Contract → Calibration log**.
 
 Each signal renders as a paragraph with the count, pattern, period, and three suggested next actions. Signals are advisory — the user decides whether to act.
 
@@ -272,7 +272,7 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
-- Read working pattern notes from `CLAUDE.md` if available — respect the user's schedule when recommending focus
+- Read working pattern notes from `.faffrc` (`tracking.working_patterns`) if available — respect the user's schedule when recommending focus
 - Work-ordering everywhere = priority (issue OR any ancestor) → chainable unlock value. Same rule as `/faff-tidy`.
 - Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.

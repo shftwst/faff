@@ -14,7 +14,7 @@ Tidy the backlog. Looks both ways in one pass:
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
+See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
 
 **Consuming-project CLAUDE.md is context.** Read the consuming project's `CLAUDE.md` (and any docs it points at) before tidying. Treat it as clues to organisation and current workstream priority — what areas the project cares about right now, what's been deprioritised, naming conventions for groupings. Use this to inform priority calls when ordering ready/promotion suggestions and to spot mis-grouping in "Uncategorised".
 
@@ -32,7 +32,7 @@ See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Track
 
 **A tidy pass run against stale data cannot be trusted.**
 
-Every invocation re-fetches every active issue, every blocker link in both directions, every comment thread on every issue being classified, every status field, every parent/ancestor relationship, every label. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `CLAUDE.md`. No reading a prior `.faff/logs/` file as a substitute.
+Every invocation re-fetches every active issue, every blocker link in both directions, every comment thread on every issue being classified, every status field, every parent/ancestor relationship, every label. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `.faffrc` or any static file. No reading a prior `.faff/logs/` file as a substitute.
 
 **Never narrow scope to a prior skill's surfaced subset.** Specifically forbidden: scoping the fetch to "issues `/faff-wtf` just surfaced" (e.g. `parked-by-faff` + Todo), to a prior tidy's findings list, or to any other pre-filtered subset from earlier in the conversation. Tidy's scope is **every active issue in the team / project** — full stop. The wtf surface is a *briefing* drawn from a slice of the backlog; tidy is grooming the **whole** backlog and must independently fetch it. Narrowing this way produces silent false-clean reports — categories tidy is supposed to detect (dupes, orphans, cycles, ghost pointers) cannot be found in a subset that already excluded them. If the active-issue count makes a full fetch genuinely too expensive, scope the run smaller along a **structural** axis (single project, single workstream) and announce that scope explicitly — never inherit scope from another skill's filter.
 
@@ -110,7 +110,7 @@ Categories detected:
 
 - **Dependency cycles** — blocker graph cycles of any length, computed over the full active-issue graph (Tarjan / DFS-with-coloring).
 - **Ghost-project pointers** — issue specs or descriptions naming a tracker container (project, initiative, milestone) that does not exist.
-- **Repeat-park patterns** — active issues parked 3+ times in the last 21 days (configurable in `CLAUDE.md`) with the same root-cause class.
+- **Repeat-park patterns** — active issues parked 3+ times in the last 21 days (configurable in `.faffrc`) with the same root-cause class.
 - **Splittable specs** — specs that cover two structurally independent concerns, each a valid ticket-sized unit. Restricted to specs already flagged stale/challenged — do not sweep every spec every run.
 - **Chain gaps** — any active ticket whose spec's implementation advice references work no ticket tracks, breaking the chain from current state to fulfilling the spec's purpose. Four sub-types: **sub-ticket gap** (umbrella's enumerated deliverables un-ticketed; `/faff-workit` has nothing to pick up to advance the umbrella), **upstream gap** (spec names a prerequisite that has no ticket — "blocked by X", "needs Y first", "assumes Z has shipped"), **downstream gap** (spec names follow-up work that has no ticket — "subsequent PR will...", "leaves W for later", "after this, wire up V"), **peer gap** (spec implementation advice describes parallel work that must also happen but has no ticket — consumer wire-up, integration changes, related refactor). The most insidious failure: a tidy that reports a clean queue while the active-ticket graph can't actually deliver on the specs sitting in front of it because some piece of the implied work isn't ticketed. Run this every pass — every tidy invocation must independently check chain reachability for every active ticket, regardless of what the previous pass found. Detection is conservative: skip unitary specs with no external references, skip when an actionable next-step exists, skip illustrative references, skip explicitly-disclaimed "future work — not ticketed by design". Cross-reference: complements delivery-methodology principle 6 (hidden deps), which catches the inverse — referenced work that *does* have a ticket but is missing a declared blocker link.
 - **Orphaned + repeat-parked** — cross-reference of orphaned-by-cascade with repeat-park; the combination is a strong "is this still wanted?" signal.
@@ -143,7 +143,7 @@ Output rendered in the new `### Structural diagnostics` section of tidy's output
 
 Read `.faff/calibration/` at end of every tidy pass. See gateway → **Autonomous Mode Contract → Calibration log** for the three capture points and the immutability invariant.
 
-Surface signals when threshold crossed (default ≥4 events of the same root-cause class in the last 14 days, configurable in `CLAUDE.md`):
+Surface signals when threshold crossed (default ≥4 events of the same root-cause class in the last 14 days, configurable in `.faffrc`):
 
 > _Calibration signal:_ Your autonomous mode parked 4 issues in the last 14 days flagged `needs-decision-first` on `Punt: pino vs winston`. All 4 completed interactively without questions. The codebase has used pino since SHF-92 shipped (3 months ago). Consider: (a) extending the resolve-attempt rules to recognise this pattern, (b) running `/faff-prep --refresh` on the affected issues to update their specs with `Chosen: pino`, or (c) ignore — no change.
 

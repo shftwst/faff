@@ -15,7 +15,7 @@ This skill is the orchestrator. It does not reimplement prep, build, or tidy —
 
 See the gateway (`skills/faff/SKILL.md`) for shared rules (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol).
 
-Beep-boop uses these Planning Skills slots from `CLAUDE.md` when set:
+Beep-boop uses these `planning_skills` slots from `.faffrc` when set:
 
 - `parallel` — for concurrent build execution across independent issues. Unset → sequential.
 - `spec`, `plan`, `review`, `ship` — passed through to the sub-skills; beep-boop doesn't use them directly.
@@ -218,7 +218,7 @@ Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`
 
 ## Parallel execution
 
-If `parallel` slot is configured in CLAUDE.md Planning Skills, invoke it to run the independents concurrently (each in its own worktree). Collision groups become sequential sub-tasks within a parallel slot.
+If a `parallel` slot is configured under `planning_skills` in `.faffrc`, invoke it to run the independents concurrently (each in its own worktree). Collision groups become sequential sub-tasks within a parallel slot.
 
 If unset, run sequentially across the whole build queue.
 

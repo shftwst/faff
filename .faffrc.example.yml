@@ -1,0 +1,46 @@
+# .faffrc.example.yml — faff configuration template.
+#
+# Copy this to `.faffrc.yaml`, `.faffrc.yml`, or `.faffrc` at your repo root and
+# edit. The `.example` file is a template only — faff never loads it as config.
+# Keep exactly ONE real config file — having more than one form at the repo root
+# is an error (faff refuses to guess which wins).
+#
+# Every key is optional; anything you omit falls back to faff's built-in default.
+# Holds stable config only — never mutable tracker state (no milestones, dates,
+# progress, or issue snapshots; those are fetched live on every invocation).
+
+tracking:
+  tracker: linear            # linear | github | jira | … (autodetected from the available MCP if omitted)
+  team_key: SHF              # tracker team / board key
+  project_id: "abc-123"      # tracker project / team id
+  repo: org/repo             # org/repo slug
+  git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
+
+  # Where /faff-workit commits the spec inside the repo (ships in the same PR as the code).
+  # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
+  # else docs/specs (creating docs/). Path is relative to the repo root.
+  spec_docs_path: docs/specs/
+
+  # Methodology doc used by /faff-whereto. Default: docs/operations/backlog-organization.md
+  backlog_methodology: docs/operations/backlog-organization.md
+
+  # Free-text scheduling / working-pattern notes; /faff-wtf respects these when recommending focus.
+  working_patterns: |
+    Deep-work mornings; avoid recommending large builds after 4pm.
+
+# Optional delegation slots. Each has a sensible faff default when unset.
+planning_skills:
+  spec: superpowers:brainstorming                    # used by /faff-prep
+  plan: superpowers:writing-plans                    # used inside /faff-workit
+  parallel: superpowers:dispatching-parallel-agents  # used by /faff-beep-boop for concurrency
+  review: gstack:review                              # pre-PR review inside /faff-workit
+  ship: gstack:land-and-deploy                       # merge / deploy mechanism inside /faff-workit
+
+# Delivery-lead methodology lens. off (default) | delivery-lead
+mode: off
+
+calibration:
+  repeat_park_window_days: 14         # signal lookback for calibration thresholds
+  repeat_park_threshold: 4            # ≥N same-root-cause park events in the window → surface a signal
+  repeat_park_demote_window_days: 21  # lookback for the Todo→Backlog demotion rule
+  repeat_park_demote_threshold: 3     # ≥N parks in that window → demote a repeat-parked Todo

@@ -15,15 +15,15 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared CLAUDE.md `Project Tracking` / Planning Skills expectations, the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
+See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
 
 ### Spec skill (optional)
 
-If `CLAUDE.md` declares a `spec` slot in Planning Skills, faff-prep delegates spec production:
+If `.faffrc` declares a `spec` slot under `planning_skills`, faff-prep delegates spec production:
 
-```markdown
-## Planning Skills
-- spec: superpowers:brainstorming
+```yaml
+planning_skills:
+  spec: superpowers:brainstorming
 ```
 
 When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, faff-prep produces a lightweight inline spec itself.

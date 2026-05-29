@@ -165,7 +165,7 @@ During prep, the spec lives **only on the issue tracker** as a comment. Nothing 
 ### Phase 2: Build (committed to repo)
 
 When `/faff-workit` starts implementation, it pulls the spec from the issue and commits it to the feature branch as the first commit:
-- Spec → `docs/superpowers/specs/YYYY-MM-DD-<issue>-<name>-design.md`
+- Spec → `<spec-docs-path>/YYYY-MM-DD-<issue>-<name>-design.md` — `<spec-docs-path>` is the configured **Spec docs path** (default `docs/specs/`; see the gateway's **Spec docs location**)
 
 It ships with the PR alongside the code it describes.
 
@@ -277,8 +277,8 @@ At any point, the user (or `/faff-workit` mid-build) can say "reprep this" or "u
 | Phase | Location | Purpose |
 |-------|----------|---------|
 | Prep | Issue tracker (comments) | Persistent, survives across sessions. Source of truth until build begins. |
-| Build | Feature branch (e.g. `docs/superpowers/specs/`) | Committed by `/faff-workit` as first commit. Ships with the PR. |
-| Merged | Main branch (e.g. `docs/superpowers/specs/`) | Living documentation of design intent. |
+| Build | Feature branch, under the configured **Spec docs path** (default `docs/specs/`) | Committed by `/faff-workit` as first commit. Ships with the PR. |
+| Merged | Main branch, under the configured **Spec docs path** (default `docs/specs/`) | Living documentation of design intent. |
 
 The spec is **never** committed during prep. It only enters the repo when building begins.
 

@@ -27,10 +27,33 @@ Optional but useful:
 - Labels and their meanings
 - Working pattern notes
 - **Appetite for destruction** (`appetite: low | medium | high`, default `medium`) — tunes how aggressively autonomous mode self-resolves vs. escalates. Lives in the `Project Tracking` section of CLAUDE.md. Stable preference, not mutable state. See **Autonomous Mode Contract → Appetite for destruction** for what each level changes.
+- Spec docs path — where `/faff-workit` commits specs in the repo (see **Spec docs location** below)
 
 **Never put mutable state in a consuming repo's `CLAUDE.md`.** That means no milestone lists, no target dates, no progress percentages, no issue snapshots, no "current cycle" notes — anything that can change in the tracker must be fetched live by the skill on every invocation. `CLAUDE.md` holds only stable identifiers (project IDs, team keys, repo slugs, label names) and stable preferences. If a sub-skill needs mutable data, the skill instructions must say "refetch from the tracker" and name the MCP tool to call.
 
 Faff auto-detects which issue tracker and git host MCP servers are available and adapts accordingly. It works with Linear, GitHub Issues, Jira, or any issue tracker exposed via MCP. If no tracker MCP is available, it falls back to git-only mode (commits, branches, PRs).
+
+### Spec docs location
+
+When `/faff-workit` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-workit artifact lifecycle). The in-repo directory is configurable via a `Spec docs path` key in the **Project Tracking** section of `CLAUDE.md`:
+
+```markdown
+## Project Tracking
+...
+- **Spec docs path:** docs/specs/
+```
+
+- **Default when unset:** a `specs/` directory inside the repo's docs folder, resolved at use time:
+  1. If `docs/` exists at the repo root → `docs/specs/`.
+  2. Else if `doc/` exists at the repo root → `doc/specs/`.
+  3. Else → create `docs/` and use `docs/specs/`.
+  
+  If both `docs/` and `doc/` exist, prefer `docs/`. Create the `specs/` subdirectory if it's missing.
+- The value is a directory **relative to the repo root**. A trailing slash is optional.
+- The filename within it is unchanged: `YYYY-MM-DD-<issue-id>-<slug>-design.md`.
+- This only relocates the spec **within the same repo** — the spec still lands on the feature branch and ships with the PR. It is not a pointer to a separate repository.
+
+Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
 
 ### Planning Skills (optional delegation slots)
 
@@ -87,7 +110,7 @@ Any faff sub-skill that asks "does this issue have a spec?" must check **all thr
 
 1. **Issue tracker comments** — **the default and most common location**. faff-prep writes the spec as a comment on the issue during Phase 1 (pre-build). **Most specs live here**, not in the description.
 2. **Issue tracker main description / body** — users sometimes paste or author the spec directly in the ticket body instead of a comment.
-3. **Committed docs** in the repo — e.g. `docs/superpowers/specs/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-workit commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
+3. **Committed docs** in the repo — under the configured **spec-docs path** (default `docs/specs/`; see **Spec docs location**), e.g. `<spec-docs-path>/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-workit commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
 
 **Comments are not optional.** Because faff-prep writes specs to comments by default, any spec-discovery pass that only inspects descriptions is **invalid output** — it will systematically miss the most common case and produce false "no spec" findings. Before classifying any issue as "no spec / almost ready / needs prep", you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). Sampling descriptions and noting "comments not checked" is **not** acceptable — re-fetch and complete the check before reporting.
 

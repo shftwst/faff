@@ -106,10 +106,10 @@ If no worktree exists:
 
 Pull the spec content from the issue tracker and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes.
 
-Location example:
-- Spec → `docs/superpowers/specs/YYYY-MM-DD-<issue-id>-<slug>-design.md`
+Location:
+- Spec → `<spec-docs-path>/YYYY-MM-DD-<issue-id>-<slug>-design.md`
 
-Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use today's date for `YYYY-MM-DD`.
+Resolve `<spec-docs-path>` from the **Spec docs path** key in the `CLAUDE.md` Project Tracking section (see the gateway's **Spec docs location**). When the key is absent, apply the default-resolution rule: use `docs/specs/` if `docs/` exists at the repo root, else `doc/specs/` if `doc/` exists, else create `docs/` and use `docs/specs/` (prefer `docs/` if both exist). Create the `specs/` subdirectory if it doesn't exist. Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use today's date for `YYYY-MM-DD`.
 
 Commit message: `docs(<issue-id>): add spec for <issue title>`
 

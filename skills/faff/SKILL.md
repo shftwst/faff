@@ -96,6 +96,8 @@ planning_skills:
   plan: superpowers:writing-plans                    # used inside faff-workit, optional
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
+  adversarial_review: local:ollama-review            # second-opinion review via different model, optional
+  holdout_tests: local:ollama-holdout                # holdout test generation via different model, optional
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -107,9 +109,11 @@ Defaults when a slot is unset:
 | `plan` | faff-workit builds directly from the spec without a formal plan step. |
 | `parallel` | faff-beep-boop runs sequentially. |
 | `review` | faff built-in review: faff-workit plays the senior-engineer role — diff read, AC-to-test coverage, obvious-bug scan, scope check, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
+| `adversarial_review` | Skipped. When set, a second review pass runs after the primary review using a different model/tool (e.g. a local LLM via Ollama). Catches correlated blind spots by bringing independent training biases. Emits `pass` / `fail` / `needs-human` — merged with the primary review verdict (worst signal wins). |
+| `holdout_tests` | Skipped. When set, holdout scenarios are generated at **prep time** (faff-prep) from the spec's acceptance criteria and stored as a separate issue comment marked `<!-- faff:holdout-scenarios -->`. Scenarios use pseudocode test format (setup/action/assert). At **gate time** (faff-workit Step 9b), the scenarios are read from the issue, translated into the project's test framework, and executed. Results posted as a PR comment but **never committed** — keeping them out of the codebase preserves independence across build cycles. The build agent does not read the holdout comment during implementation. |
 | `ship` | Vanilla `gh pr merge` after faff's merge-confidence gate passes. |
 
-`review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
+`review`, `adversarial_review`, `holdout_tests`, and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
 
 ## Shared Rules
 

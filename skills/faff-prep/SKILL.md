@@ -214,6 +214,42 @@ Run the marker validation from _Spec Format Contract_ before attaching. In inter
 **Before attaching (inline spec only, all sizes):** dispatch the clean-context subagent review per _Inline-spec subagent review_ above. Apply its findings (revise, downgrade self-rating, or park) before moving to attach.
 
 **→ Immediately attach spec to the issue as a comment.**
+
+**→ Holdout scenario generation (optional — runs only when configured)**
+
+If a `holdout_tests` slot is configured under `planning_skills` in `.faffrc`, generate holdout scenarios immediately after attaching the spec. The holdout scenarios are derived from the spec's acceptance criteria / Definition of Done — edge cases, adversarial inputs, boundary conditions, and failure modes that the build agent should not see during implementation.
+
+Attach the holdout scenarios as a **separate comment** on the same issue, prefixed with the marker `<!-- faff:holdout-scenarios -->`. This marker is how the gate runner finds them later. The build agent's instructions say to read the spec comment only — the holdout comment is invisible to it by convention.
+
+**Format: pseudocode test cases.** Each scenario is a structured block with setup/action/assert — close enough to executable that translation to the project's test framework is mechanical, but not coupled to a specific language or framework. Example:
+
+```markdown
+<!-- faff:holdout-scenarios -->
+## Holdout scenarios for ISSUE-42
+
+### Edge: empty input
+- setup: no items in the collection
+- action: call aggregate()
+- assert: returns empty result, not null/error
+
+### Boundary: max capacity
+- setup: collection at MAX_SIZE
+- action: call add(item)
+- assert: rejects with CapacityError, collection unchanged
+
+### Adversarial: malformed payload
+- setup: valid session
+- action: call process({ id: null, data: undefined })
+- assert: returns validation error, does not throw/crash
+```
+
+Scenario names should follow the pattern `<category>: <description>` where category is one of: `Edge`, `Boundary`, `Adversarial`, `Failure`, `Concurrency`, `Regression`.
+
+If the `holdout_tests` slot delegates to an external skill (e.g. a local LLM via Ollama), invoke it with the spec content and read its output. If no delegation, generate inline.
+
+If unset, skip — no holdout comment is written.
+
+**→ Post-holdout:**
 - If the spec surfaced that the issue should be split, recommend the split
 - If there are open questions, note them and leave the issue in backlog
 - If clean, **move the issue to Todo** — it's prepped and ready to be picked up

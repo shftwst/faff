@@ -34,6 +34,8 @@ planning_skills:
   plan: superpowers:writing-plans                    # used inside /faff-workit
   parallel: superpowers:dispatching-parallel-agents  # used by /faff-beep-boop for concurrency
   review: gstack:review                              # pre-PR review inside /faff-workit
+  adversarial_review:                                # optional second-opinion review via a different model (e.g. local LLM)
+  holdout_tests:                                     # optional holdout test generation via a different model
   ship: gstack:land-and-deploy                       # merge / deploy mechanism inside /faff-workit
 
 # Delivery-lead methodology lens. off (default) | delivery-lead

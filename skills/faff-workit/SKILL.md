@@ -197,13 +197,62 @@ Append the review result to the PR as a comment. Record the signal, flagged item
 
 This step runs in **both** interactive and autonomous modes.
 
+**Step 9a: Adversarial review (optional — runs only when configured)**
+
+If an `adversarial_review` slot is configured under `planning_skills` in `.faffrc`, invoke it after the primary review (Step 9) returns `pass`. If Step 9 returned `fail` or `needs-human`, skip this step — fix/park first.
+
+The adversarial review exists to catch correlated blind spots. It sends the diff to a different model or tool (e.g. a local LLM) that has independent training biases from the model that wrote the code and ran the primary review. This is not a repeat of Step 9 — it is a structurally independent second opinion.
+
+The delegated skill receives the full diff (`git diff main...HEAD`) and the spec. It must return one of the same three signals: `pass` / `fail` / `needs-human`.
+
+**Verdict merging:** the worst signal between Step 9 and Step 9a wins. If the primary review returned `pass` but the adversarial review returns `fail`, the merged verdict is `fail` — iterate autonomously (fix, re-run primary review, re-run adversarial review). If either returns `needs-human`, the merged verdict is `needs-human`.
+
+Append the adversarial review result to the PR as a separate comment, clearly labelled as an adversarial/second-opinion review.
+
+If unset, this step is skipped entirely — no fallback behaviour, no inline default. Missing slot is not a park reason.
+
+This step runs in **both** interactive and autonomous modes.
+
+**Step 9b: Holdout test execution (optional — runs only when configured)**
+
+If a `holdout_tests` slot is configured under `planning_skills` in `.faffrc`, invoke it after all reviews pass (Step 9 and, if configured, Step 9a both returned `pass`). If either review has not passed, skip this step.
+
+**Holdout scenarios were generated at prep time** and stored as a separate comment on the issue, marked with `<!-- faff:holdout-scenarios -->`. The build agent does not read this comment during implementation — it reads the spec comment only.
+
+At gate time, the gate runner:
+
+1. Fetches the holdout comment from the issue (scan comments for the `<!-- faff:holdout-scenarios -->` marker)
+2. Generates executable test code from the scenarios — the delegated skill receives the holdout scenarios, the full diff (`git diff main...HEAD`), the spec, and the existing test files
+3. Writes test files to `.faff/runs/<run-id>/holdout-tests/` and executes them locally
+
+Results are posted as a PR comment containing:
+
+1. **Pass/fail summary** — which tests passed, which failed, and why
+2. **Full test source** — the complete generated test code in a collapsible `<details>` block, so any team member can copy, run, and verify independently
+
+**The tests are never committed to the branch or the codebase** — this preserves independence across build cycles (if the primary model could see prior holdout tests, it could fit to them). The PR comment serves as the shareable audit trail.
+
+**The holdout scenarios are stable across the build cycle.** They were generated once at prep time and persist on the issue. If a holdout test fails and the build iterates (fix → re-review), the same scenarios produce the same tests against the updated code — they are not regenerated. This prevents non-deterministic test generation from masking real failures by producing a different, easier set on retry.
+
+Holdout test files in `.faff/runs/` are cleaned up when the run directory is cleaned up (after merge or park). The PR comment and the issue comment are the permanent records.
+
+If any generated test fails when run, treat it the same as a `fail` from review — iterate autonomously (fix the code, re-run primary review, re-run the same holdout tests). Up to 3 iterations, then `needs-human`.
+
+If no holdout comment is found on the issue, log a warning and skip — do not fail the gate. This covers cases where prep ran before `holdout_tests` was configured.
+
+If unset, this step is skipped entirely — no fallback behaviour, no inline default. Missing slot is not a park reason.
+
+This step runs in **both** interactive and autonomous modes.
+
 **Step 10: Merge-confidence gate**
 
-Merge happens only when **all three** conditions hold:
+Merge happens only when **all** conditions hold:
 
 1. Every AC has a passing automated verification (Step 8 — all boxes that can be auto-ticked, are)
 2. CI is green
 3. Review step (Step 9) returned `pass`
+4. If `adversarial_review` configured: Step 9a returned `pass`
+5. If `holdout_tests` configured: generated tests pass
 
 **Decision:**
 

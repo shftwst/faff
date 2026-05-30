@@ -140,12 +140,14 @@ No exceptions. Cancelled/archived items (across every state above) are invisible
 Any faff sub-skill that asks "does this issue have a spec?" must check **all three** of the following, in order, and treat a hit in any of them as the spec:
 
 1. **Issue tracker comments** — **the default and most common location**. faff-prep writes the spec as a comment on the issue during Phase 1 (pre-build). **Most specs live here**, not in the description.
-2. **Issue tracker main description / body** — users sometimes paste or author the spec directly in the ticket body instead of a comment.
+2. **Issue tracker main description / body** — counts **only** when the body holds an actual formalised spec (the structured artefact faff-prep produces: context, approach, acceptance criteria), e.g. someone authored or pasted a real spec into the ticket body instead of a comment. A plain description — requirements, context, or notes, **however clear or well-defined** — is **not** a spec and does **not** count here.
 3. **Committed docs** in the repo — under the configured **spec-docs path** (default `docs/specs/`; see **Spec docs location**), e.g. `<spec-docs-path>/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-workit commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
 
 **Comments are not optional.** Because faff-prep writes specs to comments by default, any spec-discovery pass that only inspects descriptions is **invalid output** — it will systematically miss the most common case and produce false "no spec" findings. Before classifying any issue as "no spec / almost ready / needs prep", you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). Sampling descriptions and noting "comments not checked" is **not** acceptable — re-fetch and complete the check before reporting.
 
 Never assume "no spec attached" without checking all three. Finding a spec in any location is a positive. When multiple sources exist, prefer the most recently modified one and note the discrepancy in the log.
+
+**A description is never a spec — no exceptions.** However clear, detailed, or well-defined a ticket's description is, it does not satisfy the spec gate and must be formalised into a spec via `/faff-prep` before any build. No faff sub-skill may offer to build straight from a description, skip prep because "the description is already clear," or treat well-defined requirements as a substitute for the spec. Well-defined is a reason prep will be *fast*, not a reason to skip it. The spec is the durable, reviewable artefact the build is gated on; the description is not.
 
 ### `.faff/` logging directory
 

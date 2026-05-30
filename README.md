@@ -80,6 +80,34 @@ Optional:
 
 All planning slots are optional. Faff has sensible defaults for each — slots let you swap in your own.
 
+## faffter-dark-* (experimental)
+
+The `faffter-dark-*` skills are experimental additions that plug into faff's existing `planning_skills` slots to move towards a dark factory workflow — fully autonomous build pipelines with independent verification at every gate.
+
+| Skill | Slot | What it does |
+|---|---|---|
+| `faffter-dark-nlspec` | `spec` | Full nlspec-format spec generation — formal type definitions, pseudocode procedures, closed-loop DoD, appendices. Heavier than the built-in lite arc. |
+| `faffter-dark-adversarial-review` | `adversarial_review` | Sends the diff to a different LLM for a structurally independent second opinion. Catches correlated blind spots the primary model misses. |
+| `faffter-dark-holdout` | `holdout_tests` | Generates holdout test scenarios at prep time (stored on the issue), translates and executes them at gate time. Tests the build agent has never seen. |
+
+These skills delegate to an external LLM (Ollama, vLLM, OpenAI, Gemini, Anthropic, OpenRouter) configured per-slot in `.faffrc`:
+
+```yaml
+faffter_dark:
+  adversarial:
+    provider: ollama
+    model: llama3.1:70b
+    host: http://localhost:11434
+  holdout:
+    provider: gemini
+    model: gemini-2.5-pro
+    api_key_env: GEMINI_API_KEY
+```
+
+The core principle is **independence** — use a different model from whatever wrote the code. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
+
+All three are optional. When unconfigured, faff skips the step entirely — no fallback, no degradation, no park.
+
 ## License
 
 MIT

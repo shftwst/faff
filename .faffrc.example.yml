@@ -10,39 +10,61 @@
 # progress, or issue snapshots; those are fetched live on every invocation).
 
 tracking:
-  tracker: linear            # linear | github | jira | … (autodetected from the available MCP if omitted)
-  team_key: SHF              # tracker team / board key
-  project_id: "abc-123"      # tracker project / team id
-  repo: org/repo             # org/repo slug
-  git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
+    tracker: linear # linear | github | jira | … (autodetected from the available MCP if omitted)
+    team_key: SHF # tracker team / board key
+    project_id: "abc-123" # tracker project / team id
+    repo: org/repo # org/repo slug
+    git_host: github # github | gitlab | gitea | … (autodetected if omitted)
 
-  # Where /faff-workit commits the spec inside the repo (ships in the same PR as the code).
-  # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
-  # else docs/specs (creating docs/). Path is relative to the repo root.
-  spec_docs_path: docs/specs/
+    # Where /faff-workit commits the spec inside the repo (ships in the same PR as the code).
+    # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
+    # else docs/specs (creating docs/). Path is relative to the repo root.
+    spec_docs_path: docs/specs/
 
-  # Methodology doc used by /faff-whereto. Default: docs/operations/backlog-organization.md
-  backlog_methodology: docs/operations/backlog-organization.md
+    # Methodology doc used by /faff-whereto. Default: docs/operations/backlog-organization.md
+    backlog_methodology: docs/operations/backlog-organization.md
 
-  # Free-text scheduling / working-pattern notes; /faff-wtf respects these when recommending focus.
-  working_patterns: |
-    Deep-work mornings; avoid recommending large builds after 4pm.
+    # Free-text scheduling / working-pattern notes; /faff-wtf respects these when recommending focus.
+    working_patterns: |
+        Deep-work mornings; avoid recommending large builds after 4pm.
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 planning_skills:
-  spec: superpowers:brainstorming                    # used by /faff-prep
-  plan: superpowers:writing-plans                    # used inside /faff-workit
-  parallel: superpowers:dispatching-parallel-agents  # used by /faff-beep-boop for concurrency
-  review: gstack:review                              # pre-PR review inside /faff-workit
-  adversarial_review:                                # optional second-opinion review via a different model (e.g. local LLM)
-  holdout_tests:                                     # optional holdout test generation via a different model
-  ship: gstack:land-and-deploy                       # merge / deploy mechanism inside /faff-workit
+    spec: # optional used by /faff-prep
+    plan: # optional used inside /faff-workit
+    parallel: # optional used by /faff-beep-boop for concurrency
+    review: # optional pre-PR review inside /faff-workit
+    adversarial_review: # optional second-opinion review via a different model (e.g. local LLM)
+    holdout_tests: # optional holdout test generation via a different model
+    ship: # optional merge / deploy mechanism inside /faff-workit
+
+# How aggressively autonomous mode self-resolves ambiguities vs escalates to human.
+# low: escalate everything ambiguous. medium (default): high-confidence proceeds, medium/low parks.
+# high: medium-confidence runs a resolve-attempt + documents the call, only low parks.
+appetite: medium
 
 # Delivery-lead methodology lens. off (default) | delivery-lead
 mode: off
 
+# faffter-dark: LLM provider config for adversarial review and holdout test generation.
+# Used by faffter-dark-adversarial-review and faffter-dark-holdout skills.
+# Each sub-key can use a different provider/model — independence is the point.
+faffter_dark:
+    adversarial:
+        provider: ollama           # ollama | vllm | openai | gemini | anthropic | openrouter
+        model: llama3.1:70b        # provider-specific model identifier
+        host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
+        api_key_env:               # env var name holding the API key (not the key itself)
+        timeout: 120               # seconds
+    holdout:
+        provider: ollama           # ollama | vllm | openai | gemini | anthropic | openrouter
+        model: llama3.1:70b        # provider-specific model identifier
+        host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
+        api_key_env:               # env var name holding the API key (not the key itself)
+        timeout: 120               # seconds
+
 calibration:
-  repeat_park_window_days: 14         # signal lookback for calibration thresholds
-  repeat_park_threshold: 4            # ≥N same-root-cause park events in the window → surface a signal
-  repeat_park_demote_window_days: 21  # lookback for the Todo→Backlog demotion rule
-  repeat_park_demote_threshold: 3     # ≥N parks in that window → demote a repeat-parked Todo
+    repeat_park_window_days: 14 # signal lookback for calibration thresholds
+    repeat_park_threshold: 4 # ≥N same-root-cause park events in the window → surface a signal
+    repeat_park_demote_window_days: 21 # lookback for the Todo→Backlog demotion rule
+    repeat_park_demote_threshold: 3 # ≥N parks in that window → demote a repeat-parked Todo

@@ -96,8 +96,8 @@ planning_skills:
   plan: superpowers:writing-plans                    # used inside faff-workit, optional
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
-  adversarial_review: local:ollama-review            # second-opinion review via different model, optional
-  holdout_tests: local:ollama-holdout                # holdout test generation via different model, optional
+  adversarial_review: faffter-dark-adversarial-review # second-opinion review via different model, optional
+  holdout_tests: faffter-dark-holdout                 # holdout test generation via different model, optional
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -105,7 +105,7 @@ Defaults when a slot is unset:
 
 | Slot | Default |
 |---|---|
-| `spec` | Inline spec produced by faff-prep. Same default in interactive and autonomous — autonomous self-rates the inline spec against the Spec Format Contract and applies the same confidence gate it would to a delegated skill's output. Missing slot is **not** a park reason. |
+| `spec` | Inline spec produced by faff-prep using the lite nlspec arc (WHY/WHAT/HOW/DONE). Same default in interactive and autonomous — autonomous self-rates the inline spec against the Spec Format Contract and applies the same confidence gate it would to a delegated skill's output. For the full nlspec format (formal type definitions, pseudocode procedures, appendices, integration smoke tests), set `spec: faffter-dark-nlspec`. Missing slot is **not** a park reason. |
 | `plan` | faff-workit builds directly from the spec without a formal plan step. |
 | `parallel` | faff-beep-boop runs sequentially. |
 | `review` | faff built-in review: faff-workit plays the senior-engineer role — diff read, AC-to-test coverage, obvious-bug scan, scope check, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |

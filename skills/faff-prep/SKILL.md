@@ -199,14 +199,26 @@ Apply the shared **Spec discovery** rule first (`skills/faff/SKILL.md`) — chec
 
 If a `spec` skill is configured, invoke it with the issue context and explore findings. Read its output. Attach the content to the issue as a comment. Clean up the local file.
 
-If no `spec` skill is configured, produce an inline spec artifact:
-- Design decisions with rationale — **each closed with a `**Chosen:**` / `**Decision:**` marker per the _Spec Format Contract_**
-- Architecture and approach
-- Interface contracts (API endpoints, component props, data schemas)
-- Key technical decisions with pros/cons — **each concluded with a marker; open questions go in an "Open Questions" section using `**Punt:**`**
-- External prerequisites — listed in an "Assumptions" section using `**Assumes:**`
+If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** — four phases that progress from motivation to verifiable done:
+
+**1. WHY** — Problem statement and scope
+- One paragraph: status quo → pain → what this change does about it
+- Design principles (if any non-obvious constraints apply) as bold-lead sentences
+- Out of scope — what this issue deliberately does NOT do, with a one-line note on where each exclusion could be added later (extension point)
+
+**2. WHAT** — Data and interfaces
+- Type shapes, API surfaces, component props, data schemas — whatever the build agent needs to know exists
+- Key technical decisions with pros/cons — **each concluded with a `**Chosen:**` / `**Decision:**` marker per the _Spec Format Contract_**
+- Open questions go in an "Open Questions" section using `**Punt:**`
+- External prerequisites in an "Assumptions" section using `**Assumes:**`
+
+**3. HOW** — Behavior
+- Architecture and approach — how the pieces connect
+- Pseudocode at ambiguity points — anywhere prose alone could be interpreted two ways, add a setup/action/assert or step-by-step block
 - Risks, edge cases, what could go wrong
-- Acceptance criteria — concrete, testable conditions for done
+
+**4. DONE** — Definition of Done (closed-loop)
+- A testable checklist that **mirrors the body sections 1:1**. Every WHY/WHAT/HOW section that introduces a requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded requirements.
 - If cross-boundary, recommend split
 
 Run the marker validation from _Spec Format Contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.

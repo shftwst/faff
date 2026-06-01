@@ -9,7 +9,7 @@ Unattended end-to-end runs of the faff suite. Drives the other faff skills in **
 
 This skill is the orchestrator. It does not reimplement prep, build, or tidy — it invokes the existing faff sub-skills with the autonomous-mode signal set.
 
-**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the run summary's first line is `Delivery-lead view: on` and the build-queue order uses **value × risk × dep-aware ordering** (gateway → **Delivery-lead methodology** principles 2 + 7) instead of Spec 1's priority + chainable-unlock-value alone. **No WIP gating** — principle 3 is explicitly scoped to human flow; autonomous queues are unbounded. Admission stays governed by the Spec 1 verdict gate (admit `fire-and-forget` + `likely-fire`, route out the other four verdicts). Skipped silently when the mode is off.
+**Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the run summary's first line is `Methodology: [skill-name]` and the build-queue order uses the methodology skill's sequencing logic (e.g. value x risk x dep-aware ordering) instead of priority + chainable-unlock-value alone. **No WIP gating** — autonomous queues are unbounded regardless of methodology. Admission stays governed by the verdict gate (admit `fire-and-forget` + `likely-fire`, route out the other four verdicts). Skipped silently when no methodology is configured.
 
 ## Configuration
 
@@ -78,7 +78,7 @@ If neither flag is passed, behaviour is unchanged from the no-budget run. The ru
 2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty spec-docs path (the configured **Spec docs path**, default `docs/specs/`) does **not** mean "no spec"; the tracker is the primary source.
 3. **Compute the automation-routing verdict** for every spec-gated candidate (gateway → **Automation-routing contract**). Admit only candidates with verdict `fire-and-forget` or `likely-fire` to the build queue. Route the other four verdicts (`needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`) out of the build queue with a one-line reason captured in the run summary.
 4. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
-5. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch. Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When `mode: delivery-lead` is active, this ordering is reframed as value × risk × dep-aware ordering per gateway → **Delivery-lead methodology** principles 2 + 7 — the Spec 1 inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
+5. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch. Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 6. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
 7. **Report** (see below).
 
@@ -134,7 +134,7 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 ### 6. Build pass
 
-Invoke `/faff-workit` in autonomous mode per issue, respecting the partition (parallel where safe, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When `mode: delivery-lead` is active, this ordering is reframed as value × risk × dep-aware ordering per gateway → **Delivery-lead methodology** principles 2 + 7 — the Spec 1 inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
+Invoke `/faff-workit` in autonomous mode per issue, respecting the partition (parallel where safe, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 
 ### 7. Wave drain
 
@@ -240,11 +240,11 @@ On run completion, produce:
 
 ### 1. `.faff/runs/<run-id>/summary.md`
 
-When `mode: delivery-lead` is active, the first line of the summary file is the literal string:
+When a `methodology` skill is configured, the first line of the summary file is the literal string:
 
-    Delivery-lead view: on
+    Methodology: [skill-name]
 
-(followed by the existing summary layout below). When the mode is off, this line is omitted and the file starts with the `# Beep-Boop Run …` heading as normal.
+(followed by the existing summary layout below). When no methodology is configured, this line is omitted and the file starts with the `# Beep-Boop Run …` heading as normal.
 
 ```markdown
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
@@ -253,7 +253,7 @@ Duration: Xh Ym
 Waves: N
 Stop reason: queue-drained | all-remaining-parked | budget-hit (--until HH:MM) | budget-hit (--max N)
 
-## Delivery-lead view (rendered only when mode: delivery-lead is active)
+## Methodology findings (rendered only when a methodology skill is configured)
 
 (One-line summary of how the lens shaped this run — e.g. "Re-ordered 2 collision groups for value-aware sequencing; no methodology violations surfaced." Or list the structural diagnoses surfaced during the run, one per line, with the relevant principle cited.)
 
@@ -363,7 +363,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Always tags parked issues** so `/faff-wtf` surfaces them next morning.
 - **Build-queue admission is verdict-gated.** Only `fire-and-forget` and `likely-fire` verdicts enter the build queue. Other verdicts route out with a per-issue reason in the run summary's "Routed out" section. This is the same content `/faff-wtf` surfaces in the morning brief — no work is silently dropped.
 - **Resolve-attempt before park.** Per the gateway → **Autonomous Mode Contract → Resolve-attempt before park**, `needs-decision-first` / `gap-blocked` / `circular-blocked` issues get one bounded inference attempt to derive an answer from local context before parking. Successes proceed with a tracker-comment audit trail; failures park. `repeat-parked` gets no resolve-attempt — the pattern is the signal.
-- **Autonomous WIP is unbounded.** Per gateway → **Delivery-lead methodology** principle 3, the WIP cap is human-flow-only. `/faff-beep-boop` is **never** gated on a WIP cap — the whole point of automating is to remove human-flow constraints from machine throughput. PRs awaiting human review are queued for human attention but do not count against any cap inside beep-boop. Admission stays governed by the Spec 1 verdict gate.
+- **Autonomous WIP is unbounded.** The WIP cap (if the methodology defines one) is human-flow-only. `/faff-beep-boop` is **never** gated on a WIP cap — the whole point of automating is to remove human-flow constraints from machine throughput. PRs awaiting human review are queued for human attention but do not count against any cap inside beep-boop. Admission stays governed by the verdict gate.
 
 ## Notes
 

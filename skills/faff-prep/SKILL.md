@@ -11,7 +11,7 @@ Turn a vague ticket into something buildable. Prep does the thinking so you can 
 
 Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but delegates spec production to the configured `spec` skill when available.
 
-**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the first line of output is `Delivery-lead view: on` and a `## Delivery critique` block is appended to the spec output (after the main spec body, before any chaining gates). Skipped silently when the mode is off.
+**Methodology lens.** When a `methodology` skill is configured under `planning_skills` in `.faffrc`, the first line of output is `Methodology: [skill-name]` and a `## Methodology critique` block is appended to the spec output (after the main spec body, before any chaining gates). Skipped silently when no methodology is configured.
 
 ## Configuration
 
@@ -43,7 +43,7 @@ A single artifact: the **spec**. It answers two questions:
 
 The spec is a high-level design document. It does **not** contain implementation-level details like step-by-step code changes, TDD cycles, or exact commands. Those belong to the implementation phase, where the implementer can feed the spec into their own planning/execution workflow (e.g., `superpowers:writing-plans`, `superpowers:subagent-driven-development`, or direct implementation).
 
-**Delivery critique block (rendered only when `mode: delivery-lead` is active).**
+**Methodology critique block (rendered only when a `methodology` skill is configured).**
 
 After the main spec body, append a `## Delivery critique` section answering, for the issue being prepped:
 
@@ -431,4 +431,4 @@ Return to caller one of:
 
 ## Notes
 
-- When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a `## Delivery critique` block on every prepped spec. The critique surfaces principles 1, 4, 5, 6, 7 findings for the issue. In autonomous prep, the critique is written to the spec but does not block confidence-high promotion.
+- When a `methodology` skill is configured under `planning_skills` in `.faffrc`, the output gains a `Methodology: [skill-name]` first line and a `## Methodology critique` block on every prepped spec. The critique invokes the methodology skill for issue-level findings. In autonomous prep, the critique is written to the spec but does not block confidence-high promotion.

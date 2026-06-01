@@ -26,7 +26,7 @@ See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration 
 
 **Comments are mandatory in spec discovery.** `/faff-prep` writes specs to tracker comments by default — comments are the **most common** place a spec lives before it's worked. A tidy run that classifies issues based on descriptions only and notes "comments not checked / may already have spec comments" is a **broken run** — it systematically mis-classifies the common case as "almost ready / needs prep". Before any issue is bucketed for spec health or readiness, you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). If the run includes too many issues to comment-fetch each one individually, batch-fetch or scope the run smaller — never substitute description-only sampling. Output that hedges with "I sampled descriptions, not comments" is not acceptable; complete the discovery and re-classify before reporting.
 
-**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the first line of output is `Delivery-lead view: on` and a new bucket 7 (Delivery-methodology findings) is added — surface-only, no auto-actions. Skipped silently when the mode is off.
+**Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]` and a new bucket 7 (Methodology findings) is added — surface-only, no auto-actions. Skipped silently when no methodology is configured.
 
 ## Always pull the whole backlog fresh from the issue tracker
 
@@ -125,10 +125,10 @@ Level-2 mechanical fixes (auto-applied in autonomous; offered in interactive):
 | Ghost-project pointer with clear name-match to existing container | Repoint to existing container; log the move |
 | Repeat-park (3+ same root-cause), issue still in Todo | Demote to Backlog; tag `repeat-parked` (or tracker equivalent); log the demotion |
 
-Surface-only in default mode (chain gaps lift to a mechanical action in delivery-lead mode — see below):
+Surface-only in default mode (chain gaps lift to a mechanical action when a methodology skill is configured — see below):
 
 - **Splittable specs** — interactive: chain-offer `/faff-prep --split`; autonomous: log only
-- **Chain gaps** — *default mode:* interactive surfaces each gap with active ticket + sub-type (sub-ticket / upstream / downstream / peer) + referenced work + recommended action. For sub-ticket gaps, chain-offer `/faff-prep --split` over the parent with the un-ticketed remainder pre-supplied. For upstream / downstream / peer gaps, offer "file gap issue" (create the missing ticket with the appropriate relationship to the active ticket). Autonomous logs only. *Delivery-lead mode (`mode: delivery-lead` active, see gateway → **Delivery-lead methodology**) — auto-create the missing ticket(s) per sub-type* in both interactive and autonomous runs:
+- **Chain gaps** — *default mode:* interactive surfaces each gap with active ticket + sub-type (sub-ticket / upstream / downstream / peer) + referenced work + recommended action. For sub-ticket gaps, chain-offer `/faff-prep --split` over the parent with the un-ticketed remainder pre-supplied. For upstream / downstream / peer gaps, offer "file gap issue" (create the missing ticket with the appropriate relationship to the active ticket). Autonomous logs only. *When a methodology skill is configured — auto-create the missing ticket(s) per sub-type* in both interactive and autonomous runs:
   - **Sub-ticket gap:** one Backlog sub-ticket per un-ticketed deliverable on the parent.
   - **Upstream gap:** one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it.
   - **Downstream gap:** one Backlog ticket for the follow-up + link it as "blocked-by" the active ticket.
@@ -149,9 +149,9 @@ Surface signals when threshold crossed (default ≥4 events of the same root-cau
 
 Signals are **advisory only**. Tidy never auto-applies rule changes based on calibration data — the user (or future spec iterations) reads the signal and decides whether to act.
 
-### 7. Delivery-methodology findings (rendered only when `mode: delivery-lead` is active)
+### 7. Methodology findings (rendered only when a `methodology` skill is configured)
 
-A surface-only pass applying gateway → **Delivery-lead methodology** principles 1, 4, 5, 6. No mechanical fixes auto-applied in 2a — every finding is surfaced for human action.
+A surface-only pass — invoke the configured methodology skill with the backlog state. No mechanical fixes auto-applied in 2a — every finding is surfaced for human action.
 
 Categories detected:
 
@@ -164,7 +164,7 @@ Categories detected:
 
 Each finding renders its full diagnosis (what's there / why it's a problem / what to do) per the methodology's diagnosis templates. No auto-actions in 2a — these are pure surfacing for human action. The 2b spec adds mechanical fixes (auto-rename, auto-split, auto-regroup, file gap issues).
 
-Output rendered in the new `### Delivery-methodology findings` section of tidy's output (see Output format below). Skip the entire bucket 7 if `mode: delivery-lead` is not active.
+Output rendered in the new `### Methodology findings` section of tidy's output (see Output format below). Skip the entire bucket 7 if no `methodology` skill is configured.
 
 ## Output and chaining
 
@@ -176,9 +176,9 @@ Output renders three new sections in addition to the existing buckets:
 
 - `### Structural diagnostics` — present when Spec 1's structural-diagnostics phase found anything. Format follows gateway → **Visualisation-over-prose contract**. Skip if no findings.
 - `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip if no signals.
-- `### Delivery-methodology findings` — present only when `mode: delivery-lead` is active **and** bucket 7 surfaced anything. Lists findings grouped by principle (activity-named workstreams / oversized tickets / mixed-purpose workstreams / hidden deps), each with the full diagnosis. No auto-actions; the human reads, decides, acts.
+- `### Methodology findings` — present only when a `methodology` skill is configured **and** bucket 7 surfaced anything. Lists findings grouped by principle, each with the full diagnosis. No auto-actions; the human reads, decides, acts.
 
-All three sections precede the existing buckets in tidy's output. When `mode: delivery-lead` is active, the first line of output is also `Delivery-lead view: on`.
+All three sections precede the existing buckets in tidy's output. When a `methodology` skill is configured, the first line of output is also `Methodology: [skill-name]`.
 
 After presenting, drive action via yes/no gates (never passive suggestions):
 
@@ -190,9 +190,9 @@ After presenting, drive action via yes/no gates (never passive suggestions):
 - **Structural diagnostics found cycles or ghost pointers (mechanical fixes auto-applied):** "Auto-applied N mechanical fixes (M cycles stripped, K ghost pointers repointed, L repeat-parks demoted). Review the log? (y/n)" — on confirm, print the structural-diagnostics findings + log path.
 - **Structural diagnostics surfaced splittable specs:** "N specs look splittable. Walk through them now via `/faff-prep --split`? (y/n, or 'pick')". On confirm, invoke `/faff-prep --split` via the Skill tool for each chosen issue. (Note: `/faff-prep --split` is implemented in Spec 2; Spec 1 chain-offers it but the underlying mode is Spec 2 work. Until Spec 2 lands, the gate logs the surfaced issues for human attention.)
 - **Structural diagnostics surfaced chain gaps (default mode):** "N chain gap(s) across M ticket(s) — spec'd work no ticket tracks (sub-ticket / upstream / downstream / peer). Walk through them now? (y/n, or 'pick')". On confirm, present each with: the active ticket, sub-type, referenced work, what's covered (sub-ticket gaps only), what's un-ticketed, and the recommended action. Chain-offer `/faff-prep --split` for sub-ticket gaps; offer "file gap issue" for upstream / downstream / peer (creates a Backlog ticket with the appropriate relationship — blocker / blocked-by / sibling — to the active ticket).
-- **Structural diagnostics surfaced chain gaps (delivery-lead mode):** "Auto-created N ticket(s) to fill chain gaps across M active ticket(s) (e.g. SHF-AA: 5 sub-ticket-gap deliverables → 5 Backlog sub-tickets; SHF-CC: upstream prereq created + blocker link). Review the log? (y/n)" — on confirm, print the chain-gap findings + the created-ticket list (id, sub-type, source spec line, relationship target) + log path. In autonomous + delivery-lead the auto-create runs without a gate; the gate above is interactive-only post-action confirmation.
+- **Structural diagnostics surfaced chain gaps (methodology configured):** "Auto-created N ticket(s) to fill chain gaps across M active ticket(s) (e.g. SHF-AA: 5 sub-ticket-gap deliverables → 5 Backlog sub-tickets; SHF-CC: upstream prereq created + blocker link). Review the log? (y/n)" — on confirm, print the chain-gap findings + the created-ticket list (id, sub-type, source spec line, relationship target) + log path. In autonomous + methodology-configured the auto-create runs without a gate; the gate above is interactive-only post-action confirmation.
 - **Calibration signal threshold crossed:** "N calibration signal(s) surfaced. Show details? (y/n)" — on confirm, print the signal block(s) with the recommended actions.
-- **Delivery-methodology findings (surface-only in 2a):** "N delivery-methodology findings surfaced (activity-named workstreams / oversized tickets / mixed-purpose workstreams / hidden deps). Walk through them now? (y/n, or 'pick')". On confirm, present each with its diagnosis and the recommended action — the human applies the fix (rename, split, regroup, link). No auto-actions in 2a.
+- **Methodology findings (surface-only in 2a):** "N methodology findings surfaced. Walk through them now? (y/n, or 'pick')". On confirm, present each with its diagnosis and the recommended action — the human applies the fix (rename, split, regroup, link). No auto-actions in 2a.
 
 Every chain point is an explicit gate. No "you should run" language.
 
@@ -229,16 +229,16 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 - **Orphaned-by-cascade** — active issue whose rationale depended on a now-cancelled chain — surface for human judgement on cancel / redirect, never auto-cancel
 - **Descendants of cancelled ancestors** — active issues under any cancelled ancestor in the tracker hierarchy — surface for human decision (cancel / reparent / leave), never auto-cancel
 - **Stuck in prep (still-valid parks)** — issues whose park label survived auto-cleanup because the park reason is subjective/judgement-bound. Log each with: issue id, park reason, priority (issue or ancestor), and chainable unlock count. Sort the log by priority then unlock count so `/faff-wtf` and the morning human reviewer see the highest-leverage decisions first.
-- **Splittable specs** — surface only in Spec 1; do not auto-split. Splitting lands in Spec 2 (delivery-lead mode).
-- **Chain gaps** — *default autonomous mode:* log only, one entry per gap with active ticket id, sub-type (sub-ticket / upstream / downstream / peer), source spec line, referenced work, and (for sub-ticket gaps) enumerated-deliverable count + covered count (sub-tickets + merged PRs by direct ref) + un-ticketed-remainder breakdown. Never auto-create tickets in default mode. *Delivery-lead autonomous mode:* auto-create the missing ticket(s) per sub-type with the appropriate relationship — parent for sub-ticket gaps, blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer. Title from the spec reference line, description = referenced prose + back-link to source ticket, status `Backlog`, tag `faff-chain-gap-fill`. Log every created ticket id + sub-type + source spec line + relationship target. Downgrade to log-only when the reference is ambiguous (no clear deliverable, no nameable relationship target, prose-y rather than action-verb-led). Post one consolidated tracker comment per active ticket — example for the umbrella case: "Auto-carved 5 un-ticketed deliverables from SHF-AA's spec into sub-tickets SHF-XX/YY/ZZ/WW/VV — see chain-gap detection in `/faff-tidy` logs." Example for the cross-ticket case: "Chain-gap auto-fill on SHF-CC: created SHF-XX (upstream prereq, now blocking CC) and SHF-YY (downstream follow-up, blocked-by CC) from spec references — see `/faff-tidy` logs for sources."
+- **Splittable specs** — surface only in structural mode; do not auto-split. Splitting lands when a methodology skill is configured.
+- **Chain gaps** — *default autonomous mode:* log only, one entry per gap with active ticket id, sub-type (sub-ticket / upstream / downstream / peer), source spec line, referenced work, and (for sub-ticket gaps) enumerated-deliverable count + covered count (sub-tickets + merged PRs by direct ref) + un-ticketed-remainder breakdown. Never auto-create tickets in default mode. *When a methodology skill is configured (autonomous mode):* auto-create the missing ticket(s) per sub-type with the appropriate relationship — parent for sub-ticket gaps, blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer. Title from the spec reference line, description = referenced prose + back-link to source ticket, status `Backlog`, tag `faff-chain-gap-fill`. Log every created ticket id + sub-type + source spec line + relationship target. Downgrade to log-only when the reference is ambiguous (no clear deliverable, no nameable relationship target, prose-y rather than action-verb-led). Post one consolidated tracker comment per active ticket — example for the umbrella case: "Auto-carved 5 un-ticketed deliverables from SHF-AA's spec into sub-tickets SHF-XX/YY/ZZ/WW/VV — see chain-gap detection in `/faff-tidy` logs." Example for the cross-ticket case: "Chain-gap auto-fill on SHF-CC: created SHF-XX (upstream prereq, now blocking CC) and SHF-YY (downstream follow-up, blocked-by CC) from spec references — see `/faff-tidy` logs for sources."
 - **Orphaned-by-cascade + repeat-parked combination** — strong "is this still wanted?" signal; cancelling is destructive; always surface for human.
-- **Methodology-finding relation recommendations** — when a spec comment, methodology critique, or delivery-lead diagnosis names a recommended `blocks` / `blocked-by` relation (e.g. *"Spec recommends blocker link until SHF-X fully merges"*), tidy never auto-creates the relation. Log as a finding with: source ticket, recommended target, the verbatim recommendation text, and a current-state snapshot of the target (open / Done / Cancelled / Archived; close date if applicable). The finding surfaces in `/faff-wtf`'s next morning brief; the human reviews and creates the relation manually if still applicable.
+- **Methodology-finding relation recommendations** — when a spec comment or methodology diagnosis names a recommended `blocks` / `blocked-by` relation (e.g. *"Spec recommends blocker link until SHF-X fully merges"*), tidy never auto-creates the relation. Log as a finding with: source ticket, recommended target, the verbatim recommendation text, and a current-state snapshot of the target (open / Done / Cancelled / Archived; close date if applicable). The finding surfaces in `/faff-wtf`'s next morning brief; the human reviews and creates the relation manually if still applicable.
 
 Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id, category, and recommended action. These surface in the morning via `/faff-wtf` for human review.
 
 **Never in autonomous mode:** auto-split, auto-merge tickets, delete issues, add/remove/restructure labels (that's `/faff-prep`'s domain), change ancestor/grouping assignments, auto-cancel descendants of cancelled ancestors, or promote an issue to Todo on the strength of a description alone.
 
-**Return to caller (beep-boop):** `{ archived: N, reparented: N, refs_stripped: N, park_labels_cleared: N, cycles_stripped: N, ghost_pointers_repointed: N, repeat_parks_demoted: N, splittables_surfaced: N, chain_gaps_surfaced: { subticket: N, upstream: N, downstream: N, peer: N }, chain_gap_tickets_created: { subticket: N, upstream: N, downstream: N, peer: N }, orphaned_repeat_parked_surfaced: N, calibration_signals: N, automation_verdicts_path: .faff/runs/<run-id>/automation-verdicts.md, logged: N, findings_path: .faff/logs/… }`. `chain_gap_tickets_created` is non-zero only in delivery-lead mode; in default mode all chain gaps land in `chain_gaps_surfaced` instead.
+**Return to caller (beep-boop):** `{ archived: N, reparented: N, refs_stripped: N, park_labels_cleared: N, cycles_stripped: N, ghost_pointers_repointed: N, repeat_parks_demoted: N, splittables_surfaced: N, chain_gaps_surfaced: { subticket: N, upstream: N, downstream: N, peer: N }, chain_gap_tickets_created: { subticket: N, upstream: N, downstream: N, peer: N }, orphaned_repeat_parked_surfaced: N, calibration_signals: N, automation_verdicts_path: .faff/runs/<run-id>/automation-verdicts.md, logged: N, findings_path: .faff/logs/… }`. `chain_gap_tickets_created` is non-zero only when a methodology skill is configured; in default mode all chain gaps land in `chain_gaps_surfaced` instead.
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
@@ -250,4 +250,4 @@ Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id,
 - Labels are `/faff-prep`'s job. Tidy never proposes them.
 - Promotion order = readiness gate → priority (issue-level OR any ancestor, respect both) → chainable unlock value (how much downstream work it unblocks; matters most for automation)
 - Same priority + unlock-value ordering applies to the "Stuck in prep — needs human decision" bucket — surface the highest-leverage parks first
-- When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a new bucket 7 (Delivery-methodology findings). Surface-only in 2a — no mechanical fixes auto-applied; 2b adds them.
+- When a `methodology` skill is configured, the output gains a `Methodology: [skill-name]` first line and a new bucket 7 (Methodology findings). Surface-only in 2a — no mechanical fixes auto-applied; 2b adds them.

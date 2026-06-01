@@ -21,7 +21,7 @@ See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration 
 
 **Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per gateway → **Visualisation-over-prose contract** — preserved as-is.
 
-**Delivery-lead lens.** When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the first line of output is `Delivery-lead view: on`. Phase 1 (Now/Next/Later) re-sequences inside each horizon by **value × risk × dep-aware order** (gateway → **Delivery-lead methodology** principles 2 + 7) instead of tracker priority + chainable-unlock-value alone. Phase 7 (Risks) gains methodology findings from principles 1, 5, 6, 7 alongside existing Spec 1 risks. Skipped silently when the mode is off.
+**Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]`. Phase 1 (Now/Next/Later) re-sequences inside each horizon using the methodology skill's sequencing logic (e.g. value x risk x dep-aware order) instead of tracker priority + chainable-unlock-value alone. Phase 7 (Risks) gains methodology findings alongside existing structural risks. Skipped silently when no methodology is configured.
 
 ## What it does
 
@@ -72,7 +72,7 @@ Below each initiative's block, add one line of recent grounding: "ISSUE-XX (just
 
 If an initiative is missing a horizon (no Next, no Later) — call it out as **⚠ Structural gap**: `Next: (no project planned)`. Do not silently render an empty row; the gap is the finding. **Do not reference cancelled or deleted predecessor containers** — they don't exist for this skill (see Phase 1). The gap is "no project here", not "previous project was cancelled". (Phase 4 explores whether the gap is load-bearing.)
 
-**Delivery-lead re-sequencing (when `mode: delivery-lead` is active).** Within each horizon, re-order the workstream/issue list by value × risk × dep-aware order per gateway → **Delivery-lead methodology** principles 2 + 7. The horizon assignment itself is unchanged — only the order inside each horizon shifts. The synthesis gloss for each item carries the value-and-risk reasoning when the new order differs materially from the default Spec 1 order.
+**Methodology re-sequencing (when a `methodology` skill is configured).** Within each horizon, invoke the methodology skill for sequencing guidance. The horizon assignment itself is unchanged — only the order inside each horizon shifts. The synthesis gloss for each item carries the sequencing reasoning when the new order differs materially from the default structural order.
 
 ### 4. Dependency chain — does everything join up?
 
@@ -136,7 +136,7 @@ The output of Phases 1-6 surfaces risks that aren't visible from any single init
 
 If no tidy ran this pass, whereto computes its own ghost-project scan (initiative-description-side only) as it already does — but the tidy-found issue-side ghost pointers are absent. Flag this in the output: "No tidy this pass — issue-side ghost-pointer detection skipped. Run `/faff-tidy` for full structural coverage."
 
-**Delivery-methodology findings (when `mode: delivery-lead` is active).** In addition to the Spec 1 risk categories, surface findings from gateway → **Delivery-lead methodology** principles 1, 5, 6, 7:
+**Methodology findings (when a `methodology` skill is configured).** In addition to structural risk categories, invoke the methodology skill and surface its findings:
 
 - **Activity-named workstreams** (principle 1): workstreams named by activity / sprint / quarter / team / technology rather than outcome.
 - **Mixed-purpose workstreams** (principle 5): a workstream containing tickets describing two or more distinct outcomes.

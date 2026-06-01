@@ -32,7 +32,7 @@ A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong
 
 ## What it does
 
-**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When `mode: delivery-lead` (gateway → **Delivery-lead methodology**) is active, the first line of output is `Delivery-lead view: on` and a new `### Delivery view` section sits after `### Today's Focus`.
+**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]` and a new `### Methodology findings` section sits after `### Today's Focus`.
 
 Run through these sections in order:
 
@@ -80,9 +80,9 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
-### 5a. Delivery view (rendered only when `mode: delivery-lead` is active)
+### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 
-A diagnostic frame over the current backlog state, applied per gateway → **Delivery-lead methodology**. Three sub-blocks, in this order, each skipped if it has nothing to surface:
+A diagnostic frame over the current backlog state, produced by the configured `methodology` skill. Three sub-blocks, in this order, each skipped if it has nothing to surface:
 
 **WIP status (principle 3).** Compute current human in-flight count (issues in In Progress + In Review states that are not opened by `/faff-beep-boop`). Render: "WIP at N (cap 3)." If N ≥ 3, append the principle 3 diagnosis: "Finish ISSUE-X or ISSUE-Y before pulling new work." When WIP is at cap, `### Today's Focus` recommends **completion of in-flight only** — explicitly no new starts. When WIP is below cap, allow recommending up to `(3 − N)` new starts.
 
@@ -90,7 +90,7 @@ A diagnostic frame over the current backlog state, applied per gateway → **Del
 
 **Top 1–2 structural problems (principles 1, 5, 6, 7).** Surface at most two findings from these four principles, ordered by severity (impact on shipped value × number of tickets affected). Each finding renders its full diagnosis (what's there / why it's a problem / what to do). If more findings exist, end with: "(more in `/faff-tidy`)" — `/faff-tidy` is the firehose; this section is the highlight.
 
-Skip the entire `### 5a` subsection if `mode: delivery-lead` is not active.
+Skip the entire `### 5a` subsection if no `methodology` skill is configured.
 
 ### 5b. Beep-boop queues (always render, even when empty)
 
@@ -149,10 +149,10 @@ Tabular output follows the gateway's _Tabular data: markdown tables vs definitio
 
 Keep it concise and scannable. Use this structure:
 
-(when `mode: delivery-lead` is active, the first line is)
+(when a `methodology` skill is configured, the first line is)
 
 ```
-Delivery-lead view: on
+Methodology: [skill-name]
 ```
 
 (followed by the standard layout below)
@@ -193,7 +193,7 @@ Ordered by priority → chainable unlock value. Items freshly unblocked by recen
 2. ISSUE-YY  …
 3. ISSUE-ZZ  …
 
-### Delivery view (rendered only when mode: delivery-lead is active)
+### Methodology findings (rendered only when a methodology skill is configured)
 
 WIP at 2 (cap 3). Below cap — recommending one new start.
 
@@ -206,9 +206,9 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 ### Heads up
 - Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
 - Orphaned + repeat-parked ⚠: ISSUE-ZZ  [gloss] — parent project cancelled; parked 3 times; is this still wanted?
-- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-workit can't advance it. (Delivery-lead mode auto-carves; default chain-offers /faff-prep --split.)
-- Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (Delivery-lead mode files the prereq + adds blocker link; default offers "file gap issue".)
-- Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (Delivery-lead mode files the peer + tags the workstream; default offers "file gap issue".)
+- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-workit can't advance it. (Methodology skill may auto-carve; default chain-offers /faff-prep --split.)
+- Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (Methodology skill may file the prereq + add blocker link; default offers "file gap issue".)
+- Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (Methodology skill may file the peer + tag the workstream; default offers "file gap issue".)
 - [Any risks, approaching deadlines, or flags]
 
 ### Beep-boop queues
@@ -278,6 +278,6 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
 - Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.
 - Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks, orphaned+repeat-parked, and chain gaps (any sub-type — sub-ticket / upstream / downstream / peer) always surface in `### Heads up`, not just in the diagnostics dump — a chain gap means a focus pick on the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next, and the human needs that visible before picking it up.
-- When `mode: delivery-lead` is active (gateway → **Delivery-lead methodology**), the output gains a `Delivery-lead view: on` first line and a `### 5a. Delivery view` section after Today's Focus. Both are skipped silently when the mode is off.
+- When a `methodology` skill is configured, the output gains a `Methodology: [skill-name]` first line and a `### 5a. Methodology findings` section after Today's Focus. Both are skipped silently when no methodology is configured.
 - WIP recommendations are human-facing only. Autonomous in-flight work (issues `/faff-beep-boop` is currently building or has a PR open for) does not count against the human's WIP cap — the human reviews one PR at a time.
-- The Delivery view is the highlight, not the firehose. At most two structural findings; `/faff-tidy` surfaces the full set.
+- The Methodology findings section is the highlight, not the firehose. At most two structural findings; `/faff-tidy` surfaces the full set.

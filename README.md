@@ -89,24 +89,25 @@ The `faffter-dark-*` skills are experimental additions that plug into faff's exi
 | `faffter-dark-nlspec` | `spec` | Full nlspec-format spec generation — formal type definitions, pseudocode procedures, closed-loop DoD, appendices. Heavier than the built-in lite arc. |
 | `faffter-dark-adversarial-review` | `adversarial_review` | Sends the diff to a different LLM for a structurally independent second opinion. Catches correlated blind spots the primary model misses. |
 | `faffter-dark-holdout` | `holdout_tests` | Generates holdout test scenarios at prep time (stored on the issue), translates and executes them at gate time. Tests the build agent has never seen. |
+| `faffter-dark-methodology-agile-delivery` | `methodology` | Agile delivery methodology lens — seven principles (outcome-named workstreams, value x risk sequencing, WIP caps, right-sized tickets, cohesive workstreams, surfaced deps, risk-aware ordering). Replaces the old `mode: delivery-lead` config. |
 
-These skills delegate to an external LLM (Ollama, vLLM, OpenAI, Gemini, Anthropic, OpenRouter) configured per-slot in `.faffrc`:
+Some of these skills (`adversarial-review`, `holdout`) can be configured to use a different model, with provider settings per-slot in `.faffrc`:
 
 ```yaml
 faffter_dark:
   adversarial:
-    provider: ollama
-    model: llama3.1:70b
-    host: http://localhost:11434
-  holdout:
     provider: gemini
     model: gemini-2.5-pro
     api_key_env: GEMINI_API_KEY
+  holdout:
+    provider: openrouter
+    model: meta-llama/llama-3.1-70b
+    api_key_env: OPENROUTER_API_KEY
 ```
 
 The core principle is **independence** — use a different model from whatever wrote the code. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
 
-All three are optional. When unconfigured, faff skips the step entirely — no fallback, no degradation, no park.
+These are pluggable skills that either add new behaviour (adversarial review, holdout tests) or change the default behaviour of faff (nlspec replaces the lite spec format, agile-delivery replaces structural-only diagnostics). Some slots skip when unset; others have a built-in default that the skill replaces. See the gateway docs for per-slot defaults.
 
 ## License
 

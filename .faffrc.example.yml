@@ -36,15 +36,13 @@ planning_skills:
     review: # optional pre-PR review inside /faff-workit
     adversarial_review: # optional second-opinion review via a different model (e.g. local LLM)
     holdout_tests: # optional holdout test generation via a different model
+    methodology: # optional diagnostic lens over backlog (default: structural only)
     ship: # optional merge / deploy mechanism inside /faff-workit
 
 # How aggressively autonomous mode self-resolves ambiguities vs escalates to human.
 # low: escalate everything ambiguous. medium (default): high-confidence proceeds, medium/low parks.
 # high: medium-confidence runs a resolve-attempt + documents the call, only low parks.
 appetite: medium
-
-# Delivery-lead methodology lens. off (default) | delivery-lead
-mode: off
 
 # faffter-dark: LLM provider config for adversarial review and holdout test generation.
 # Used by faffter-dark-adversarial-review and faffter-dark-holdout skills.

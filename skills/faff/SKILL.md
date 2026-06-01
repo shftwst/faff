@@ -52,7 +52,7 @@ planning_skills:             # optional delegation slots; each has a faff defaul
   review: gstack:review                              # pre-PR review inside faff-workit
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit
 
-mode: delivery-lead          # off (default) | delivery-lead — see Delivery-lead methodology
+# mode: delivery-lead is DEPRECATED — use planning_skills.methodology instead
 
 calibration:
   repeat_park_window_days: 14         # signal lookback for calibration thresholds
@@ -98,6 +98,7 @@ planning_skills:
   review: gstack:review                              # pre-PR review inside faff-workit, optional
   adversarial_review: faffter-dark-adversarial-review # second-opinion review via different model, optional
   holdout_tests: faffter-dark-holdout                 # holdout test generation via different model, optional
+  methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -111,6 +112,7 @@ Defaults when a slot is unset:
 | `review` | faff built-in review: faff-workit plays the senior-engineer role — diff read, AC-to-test coverage, obvious-bug scan, scope check, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
 | `adversarial_review` | Skipped. When set, a second review pass runs after the primary review using a different model/tool (e.g. a local LLM via Ollama). Catches correlated blind spots by bringing independent training biases. Emits `pass` / `fail` / `needs-human` — merged with the primary review verdict (worst signal wins). |
 | `holdout_tests` | Skipped. When set, holdout scenarios are generated at **prep time** (faff-prep) from the spec's acceptance criteria and stored as a separate issue comment marked `<!-- faff:holdout-scenarios -->`. Scenarios use pseudocode test format (setup/action/assert). At **gate time** (faff-workit Step 9b), the scenarios are read from the issue, translated into the project's test framework, and executed. Results posted as a PR comment but **never committed** — keeping them out of the codebase preserves independence across build cycles. The build agent does not read the holdout comment during implementation. |
+| `methodology` | Structural (default). Faff applies pure structural diagnostics — chain gaps, stale blockers, dupes, splittable specs — without an opinionated delivery methodology overlay. When set, the configured skill provides a diagnostic lens (principles, diagnosis templates, rendering rules) that sub-skills invoke on top of structural analysis. The skill returns findings; sub-skills render them. |
 | `ship` | Vanilla `gh pr merge` after faff's merge-confidence gate passes. |
 
 `review`, `adversarial_review`, `holdout_tests`, and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
@@ -259,7 +261,7 @@ The reason this dial exists: the autonomous pipeline's value collapses when it b
 - Punt-marker resolve-attempt thresholds widen: a single **defensible** answer proceeds (vs the medium-appetite "single clear answer"). Resolve-attempt budget grows from 3 to 5 files outside spec scope.
 - `gap-blocked` proceeds when the gap can be worked around — the missing piece is filed as a follow-up ticket via the chain-gap auto-create path, and current work compiles without it.
 - `circular-blocked` proceeds when any edge in the cycle is non-load-bearing (existing contract requires the break-edge to be unambiguous; `high` accepts the most plausible break-edge with audit trail).
-- Chain-gap auto-create runs even outside delivery-lead mode at `high` appetite, as long as the un-ticketed remainder is identifiable. `high` drops the default-mode surface-only safety net.
+- Chain-gap auto-create runs even without a methodology skill at `high` appetite, as long as the un-ticketed remainder is identifiable. `high` drops the default-mode surface-only safety net.
 
 **What `high` does NOT change:**
 
@@ -577,10 +579,10 @@ These are the new mechanical mutations introduced in Spec 1, applied per the exi
 | Ghost-project pointer where the named container **clearly maps** to an existing container by name proximity (e.g. spec says "logging-cleanup project", tracker has "Logging cleanup") | Repoint the issue to the existing container. Log the move. |
 | Repeat-park (3+ runs, same root-cause class), issue still in Todo | Demote to Backlog, tag with `repeat-parked` (or tracker equivalent). Log the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue. |
 
-Three detection categories surface only in default mode — do **not** auto-apply (one of them, chain gaps, *does* auto-apply once delivery-lead mode is on; see below):
+Three detection categories surface only in default mode — do **not** auto-apply (one of them, chain gaps, *does* auto-apply when a methodology skill is configured; see below):
 
 - **Splittable specs** — interactive: offer to chain to `/faff-prep --split`. Autonomous Level-2: log only.
-- **Chain gaps** — *default mode:* interactive surfaces each gap with the active ticket, sub-type (sub-ticket / upstream / downstream / peer), the referenced work, what's already covered (sub-ticket gaps only — sub-tickets + merged PRs by direct ref), the un-ticketed remainder, and the recommended action: for sub-ticket gaps chain-offer `/faff-prep --split` over the parent; for upstream / downstream / peer offer "file gap issue" (create the missing ticket with the appropriate relationship — blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer). Autonomous Level-2: log only. *Delivery-lead mode (interactive or autonomous):* **auto-create the missing ticket(s) per sub-type** — sub-ticket gaps: one Backlog sub-ticket per un-ticketed deliverable, parent set to the umbrella; upstream gaps: one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it; downstream gaps: one Backlog ticket for the follow-up + link "blocked-by" the active ticket; peer gaps: one Backlog ticket for the parallel work in the same workstream/parent. All created tickets: title from the spec reference line, description = the referenced prose + back-link to the source ticket, status `Backlog`, tag `faff-chain-gap-fill` so `/faff-prep`'s next queue pass picks them up. Log every created ticket with id, sub-type, source spec line, and the relationship target (parent / blocker / blocked-by / sibling). Skip auto-create and downgrade to surface-only when the reference is ambiguous (no clear deliverable per line, no nameable target for the relationship, prose-y rather than action-verb-led) — phantom tickets are expensive to clean up.
+- **Chain gaps** — *default mode:* interactive surfaces each gap with the active ticket, sub-type (sub-ticket / upstream / downstream / peer), the referenced work, what's already covered (sub-ticket gaps only — sub-tickets + merged PRs by direct ref), the un-ticketed remainder, and the recommended action: for sub-ticket gaps chain-offer `/faff-prep --split` over the parent; for upstream / downstream / peer offer "file gap issue" (create the missing ticket with the appropriate relationship — blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer). Autonomous Level-2: log only. *When a methodology skill is configured (interactive or autonomous):* **auto-create the missing ticket(s) per sub-type** — sub-ticket gaps: one Backlog sub-ticket per un-ticketed deliverable, parent set to the umbrella; upstream gaps: one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it; downstream gaps: one Backlog ticket for the follow-up + link "blocked-by" the active ticket; peer gaps: one Backlog ticket for the parallel work in the same workstream/parent. All created tickets: title from the spec reference line, description = the referenced prose + back-link to the source ticket, status `Backlog`, tag `faff-chain-gap-fill` so `/faff-prep`'s next queue pass picks them up. Log every created ticket with id, sub-type, source spec line, and the relationship target (parent / blocker / blocked-by / sibling). Skip auto-create and downgrade to surface-only when the reference is ambiguous (no clear deliverable per line, no nameable target for the relationship, prose-y rather than action-verb-led) — phantom tickets are expensive to clean up.
 - **Orphaned-by-cascade + repeat-parked** — surface only. Cancelling is destructive; always human.
 
 ### Output section
@@ -612,7 +614,7 @@ Splittable specs (1) — surfaced only, not auto-split
             (b) form-state refactor. The two have no overlapping files and could
             ship independently. Run /faff-prep --split to break out.
 
-Chain gaps (4) ⚠ — surfaced only in default mode, auto-ticketed in delivery-lead mode
+Chain gaps (4) ⚠ — surfaced only in default mode, auto-ticketed when methodology configured
   ISSUE-AA  Mastra audit pipeline lift — umbrella, In Progress.
             Sub-ticket gap: spec enumerates 8 deliverables (PR 1–2 shipped via
             #243/#244, PR 3 carved out as ISSUE-BB and shipped). 5 un-ticketed:
@@ -705,24 +707,20 @@ Needs your call before automation can pick up:
 
 The synthesis gloss (see **Synthesis contract**) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the visualisation contract.
 
-## Delivery-lead methodology
+## Delivery-lead methodology (DEPRECATED — moved to faffter-dark-methodology-agile-delivery)
 
-An opt-in lens. When active, every relevant sub-skill applies an embedded agile-delivery methodology to diagnose backlog problems, explain them in plain English, and recommend fixes. **Surface-only in this spec** — no autonomous tracker mutations are introduced by the lens itself.
+This section is retained for backwards compatibility. The methodology has been extracted into a pluggable skill at `skills/faffter-dark-methodology-agile-delivery/SKILL.md`.
 
-The methodology is **fixed and embedded here**. There is no user-written methodology doc. There is no per-skill config. The user opts into the lens; faff brings the methodology.
+**Migration:** replace `mode: delivery-lead` with `planning_skills.methodology: faffter-dark-methodology-agile-delivery` in `.faffrc`. The old `mode` key is still honoured (mapped internally to the methodology slot) but will be removed in a future version.
 
 ### Configuration
 
-Top-level `mode` key in `.faffrc`:
-
 ```yaml
-mode: delivery-lead     # off | delivery-lead
+planning_skills:
+  methodology: faffter-dark-methodology-agile-delivery   # or any other methodology skill
 ```
 
-- Absent key or `mode: off` → faff behaves exactly per Spec 1.
-- `mode: delivery-lead` → every sub-skill applies the methodology on top of its Spec 1 behaviour.
-
-Mode is binary, project-level, and applies equally to interactive and autonomous invocations. There is no per-invocation override.
+When the `methodology` slot is set, every sub-skill invokes it for diagnostic findings on top of structural analysis. When unset, faff applies pure structural diagnostics only.
 
 ### Rendering
 

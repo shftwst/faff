@@ -1,0 +1,132 @@
+# faffter-dark-methodology-agile-delivery
+
+Agile delivery methodology lens. When plugged into faff's `methodology` slot, every sub-skill applies these seven principles to diagnose backlog problems, explain them in plain English, and recommend fixes. Surface-only — no autonomous tracker mutations.
+
+Configure in `.faffrc`:
+
+```yaml
+planning_skills:
+  methodology: faffter-dark-methodology-agile-delivery
+```
+
+## How sub-skills consume this
+
+Each sub-skill that supports a methodology lens invokes this skill with its context (issues, sequencing, backlog state). This skill returns structured findings. The sub-skill renders them in its output.
+
+**Contract between sub-skills and this skill:**
+
+- Sub-skill provides: the relevant issues, their state, sequencing, workstream grouping, dependency graph
+- This skill returns: findings (principle violated, diagnosis, recommended action)
+- Sub-skill renders: findings in a `### Methodology findings` section (or skill-specific equivalent)
+
+When this slot is unset, sub-skills skip the methodology pass entirely — pure structural diagnostics only.
+
+## Rendering
+
+When active, every sub-skill renders the line `Methodology: delivery-lead` at the top of its output. This tells the human and any downstream skill that the lens is on.
+
+## The seven principles
+
+Each principle has: the rule, why it matters, what the violation looks like in tracker shape, and a diagnosis template sub-skills use when surfacing it. Bracketed `[placeholder]` values are filled by the rendering sub-skill.
+
+### Principle 1: Outcome-named workstreams, not activity-named
+
+**Rule.** Workstreams (initiatives, projects, milestones, epics — whatever the tracker calls them) are named by the user-facing or business outcome they produce. "Alerting overhaul." "Auth hardening." "Onboarding speed-up." Not by activity type — "Bugs", "Refactors", "Tech debt", "Q2 sprint 3".
+
+**Why.** Activity-named workstreams hide priority (every bug is in "Bugs", so which matters?), conflate unrelated work (a critical auth bug and a typo fix in the same bucket), and break sequencing (you can't sequence "Refactors" — there's no shared outcome to optimise toward).
+
+**Violation shape.** A workstream's name is a category, a sprint, a quarter, a team, or a technology layer rather than a deliverable.
+
+**Diagnosis template.** _"Workstream '[name]' is activity-named. This makes sequencing inside it meaningless — there's no shared outcome these tickets share. Consider regrouping them by outcome: which user-facing change does each one belong to?"_
+
+### Principle 2: Sequence by value x risk, not by ticket order
+
+**Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone.
+
+**Why.** Tracker priority is noisy and stakeholder-influenced. Optimising for value-per-week shipped is the actual goal of a delivery practice. Risk-aware sequencing means de-risking earlier so unknown work doesn't surface at the worst moment.
+
+**Violation shape.** Current sequencing order is materially different from a value x risk x dep-aware order. Specifically: an issue that unlocks N value-shipping tickets is sitting behind an isolated cleanup; or a high-risk integration is sequenced last; or a quick value win is buried below months of prep work.
+
+**Diagnosis template.** _"Current sequencing would ship value at week N. Value-aware sequencing (ISSUE-A -> ISSUE-B -> ISSUE-C first) would ship value at week M. The blocker is that ISSUE-X (currently first) creates no shipped value on its own — it unlocks the same downstream as ISSUE-A, but ISSUE-A also ships standalone value."_
+
+### Principle 3: WIP cap (humans only — autonomous work is unbounded)
+
+**Rule.** Human in-flight work (issues a person is actively building) is capped at 3. Autonomous work (e.g. `/faff-beep-boop` runs) is **not WIP-capped** — the whole point of automating is to remove human-flow constraints from machine throughput.
+
+**Why.** Too much human in-flight breaks flow — context-switching eats throughput, a finished item ships value, a half-finished one doesn't. None of that applies to autonomous runs: each task runs in an isolated context with no cognitive cost. A PR awaiting human review is queued for human attention but does not count against the human's in-flight WIP.
+
+**Violation shape.** Human-driven in-flight count > 3 — or any new pull recommendation surfaced to a human when their count is already at 3.
+
+**Diagnosis template.** _"WIP at N (cap 3). Flow > throughput. Finish ISSUE-X or ISSUE-Y before pulling new work. Recommending [next item] only after one in-flight item ships."_
+
+Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
+
+### Principle 4: Right-sized tickets
+
+**Rule.** A ticket is a 1-3 day unit of work. Larger units split. Smaller units merge if they always ship together.
+
+**Why.** Tickets that fit a day or three give honest sequencing and accurate burn-down. Ticket-as-epic hides progress (it sits "In Progress" for two weeks signalling nothing); ticket-as-micro fragments the picture.
+
+**Violation shape.** A ticket whose spec covers two structurally independent concerns (each a valid 1-3 day unit) — split candidate. A ticket whose spec is one sentence with no clear deliverable — vague candidate. A pair of always-ship-together tickets — merge candidate.
+
+**Diagnosis template.** _"ISSUE-X looks too big — its spec covers [concern A] and [concern B], which are independent. Splitting into two tickets gives honest sequencing and lets [concern A] ship without waiting on [concern B]."_
+
+### Principle 5: Cohesive workstreams
+
+**Rule.** A workstream encodes one outcome. Mixed-purpose workstreams (multiple outcomes bundled, or one outcome plus a catch-all) are smell.
+
+**Why.** A workstream is a sequencing and grouping unit — if it has two outcomes, you can't sequence inside it (the right order for outcome A is different from outcome B), and the workstream's "done" is meaningless.
+
+**Violation shape.** Tickets within a single workstream describe two or more distinct outcomes; or a single workstream has a clear primary outcome plus several "while we're at it" tickets.
+
+**Diagnosis template.** _"Workstream '[name]' contains [outcome A] and [outcome B]. These have different sequencing inside the workstream and different completion criteria. Consider splitting."_
+
+### Principle 6: Surface dependencies
+
+**Rule.** Every load-bearing dependency between tickets is named explicitly via the tracker's blocker/blockedBy relationship. Implicit deps (assumed by humans, not encoded in the tracker) are unfinished thinking.
+
+**Why.** Implicit deps cause silent regression — a ticket gets pulled "ready" when it actually needs another ticket's output. Automation routing relies on the blocker graph being honest.
+
+**Violation shape.** A spec references work in another ticket (by ID or by clear paraphrase) without that other ticket being a declared blocker. Or a workstream's tickets clearly depend on a non-workstream ticket without a link.
+
+**Diagnosis template.** _"ISSUE-X's spec references ISSUE-Y's output but there's no blocker link. If the dep is real, link it (so automation can sequence honestly); if not, the reference in the spec should go away."_
+
+### Principle 7: Risk-aware sequencing
+
+**Rule.** Higher-risk work — novel integrations, unproven approaches, dependencies on external teams — is sequenced early or de-risked separately. The unknown does not all land at the end.
+
+**Why.** Risk piled at the end means schedule estimates are lies. Early-de-risking gives the team time to course-correct before commitment.
+
+**Violation shape.** The work most likely to surprise (large new integration, unfamiliar territory, external dep) is sequenced near the end of an initiative. Or no risk de-risking work exists — everything assumes the plan holds.
+
+**Diagnosis template.** _"Initiative '[name]' sequences ISSUE-Z (a new [integration / approach / external dep]) last. If ISSUE-Z surprises, the surprise lands at the worst time. Consider pulling it forward, or splitting a small de-risking spike before committing to the full ISSUE-Z scope."_
+
+## Per-skill consumption
+
+Which principles each sub-skill applies:
+
+| Sub-skill | Principles applied | What it does with them |
+|---|---|---|
+| `/faff-wtf` | 3, 1, 5, 6, 7 | `### Methodology findings` section after Today's Focus. P3 (WIP) gates pull recommendations. |
+| `/faff-whereto` | 2, 7, 1, 5, 6 | Re-sequences inside each horizon by value x risk. Surfaces violations in the risk phase. |
+| `/faff-tidy` | 1, 4, 5, 6 | New findings bucket. Surface-only — no auto-actions. |
+| `/faff-prep` | 1, 4, 5, 6, 7 | `## Methodology critique` appended to spec output. Does not block confidence-high promotion. |
+| `/faff-beep-boop` | 2, 7 | Build-queue ordering uses value x risk. No WIP gating (P3 is human-only). Run summary lists diagnoses. |
+
+## Tone discipline
+
+Diagnoses are **educational, not preachy**. The user opted in because they want to learn what good delivery looks like. Every diagnosis follows:
+
+1. **What's there.** Describe the situation factually.
+2. **Why it's a problem.** Name the concrete consequence.
+3. **What to do about it.** Recommend a specific action.
+
+Never: "You're doing this wrong." / "Best practice is..." / "You should...". Describe the situation and its consequence; the user decides. The methodology is opinionated; the voice is not.
+
+## Rules
+
+- This skill is **read-only**. It never creates projects, re-parents issues, closes gaps, or mutates tracker state. Findings go to the rendering sub-skill; humans act on them.
+- Findings must be grounded in observable tracker state — not speculation about intent or future plans.
+- Each finding must name the specific issues/workstreams involved (by tracker ID + descriptive gloss).
+- Findings that repeat across runs without human action are surfaced at most once per `/faff-wtf` invocation — don't nag.
+- This skill does not override structural diagnostics (chain gaps, stale blockers, dupes). It adds to them.

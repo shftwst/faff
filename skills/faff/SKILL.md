@@ -250,6 +250,10 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
       <ISSUE-ID>.md
     post-merge-reverts/
       <ISSUE-ID>.md
+    appetite-decisions/                     # high/full proceeded on medium confidence
+      <ISSUE-ID>.md
+    held-decisions/                         # low/medium held a medium-confidence spec for human
+      <ISSUE-ID>.md
 ```
 
 The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about autonomous decisions (over-cautious parks, wrong inferences, post-merge reverts, appetite-influenced proceeds, and medium-confidence holds) so resolve-attempt rules and verdict gates can evolve with data. See **Autonomous Mode Contract → Calibration log** for capture rules and the synthesis-and-surface flow.
@@ -443,6 +447,16 @@ faff-core fixes a small set of **internal contracts** — the verdict states, vo
 
 **Dividing principle:** anything the faff-* pipeline branches on, counts, gates on, or admits → internal (fixed, here). Anything about format, parsing, presentation, or producer-specific translation → adaptor (slot, swappable).
 
+### Contract loading & conformance (how a skill actually gets these definitions)
+
+Skills load independently. When you enter via a slash command (`/faff-workit`), as a delegated slot, or invoke an adaptor standalone, **this gateway file is not automatically in context** — a bare `see gateway → §X` reference is inert until something loads it. So the contracts below are made available and enforced by three mechanisms, not by hope:
+
+1. **Consumers load on entry.** Every fixed faff-* consumer (workit, tidy, beep-boop, wtf, prep, whereto, noodle) reads this gateway file on entry when it isn't already in context. The definitions then sit in the conversation, so any slot the consumer subsequently delegates to inherits them ambiently — the contract is present without the slot skill having to fetch it.
+2. **Standalone reads on demand.** An adaptor invoked directly (e.g. "validate the spec for SHF-123") has no consumer above it, so it reads this file itself before applying a contract. Adaptors therefore **refer back** to the gateway rather than carrying an authoritative copy.
+3. **New adaptors are authored to conform.** `faffter-dark-authoring-adaptors` is the author/validate skill that ensures any *new* slot occupant carries the correct refer-back prose and maps onto the fixed contract — so the binding survives a swap.
+
+**Conformance clause (binding on every slot occupant).** Any skill occupying an adaptor slot — the shipped default *or* a third-party replacement — **must** map its output onto the fixed contract defined in this section. The contract is the gateway's, never the adaptor's: an adaptor owns its dialect (markers, envelope, assignment rules, format) and nothing else. A slot occupant that redefines, narrows, or extends the fixed vocabulary/classes/verdicts is non-conformant by definition. Where an adaptor's `SKILL.md` recaps a fixed contract for readability, that recap is **non-normative** — if it ever diverges from this section, this section wins.
+
 ### Review verdict (fixed) → `review_adaptor`
 
 **Internal contract (fixed):** a review returns exactly one of three states — `pass` / `fail` / `needs-human`. Their semantics, the **revert test** that separates `fail` (revert-reversible defect) from `needs-human` (effect persists after revert), and the rule that a malformed/unparseable verdict coerces to `needs-human` (never silently to `pass`) are all fixed here. faff-workit's post-build gate branches proceed / iterate / park on these three states directly.
@@ -465,6 +479,15 @@ faff-core fixes a small set of **internal contracts** — the verdict states, vo
 
 Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `language_adaptor` slot (default `faffidavit-language`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `language_adaptor`; the catalogue is closed there, not extended inline. References elsewhere to "gateway → Synthesis contract" resolve to this slot.
 
+### Producer slots vs adaptor slots (what to swap, when)
+
+Two of the four contracts above pair a **producer** doing-slot with an **adaptor** slot — and they swap independently:
+
+- **Producer slots** (`intake`, `spec`, `review`) *do the work* and emit native output. Swap one to change *how the work is done* (a different spec-explorer, a different reviewer). A swapped producer does **not** need to match the fixed contract's surface syntax — its paired adaptor (`spec_adaptor` / `review_adaptor`) is what maps its native output onto the fixed classes/states the pipeline branches on.
+- **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
+
+**Rule of thumb for an L3 swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake`, `parallel`, and `ship` are pure producer/mechanism slots with no paired adaptor — they emit a documented brief (`intake` → the discovery brief, see `faffter-noon-intake`) or perform a mechanism (`parallel`, `ship`) and need no translation layer. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
+
 ### Legacy contract aliases
 
 Sub-skills written before this restructure cross-reference the contracts by their old names. Those names are **not** headings anywhere; they resolve to the sections above:
@@ -477,11 +500,27 @@ Sub-skills written before this restructure cross-reference the contracts by thei
 
 When renaming any contract section, update this table — it is the single place the legacy names are reconciled.
 
-## Backlog diagnostics — the `methodology` slot
+## The `methodology` slot
 
-Detecting problems with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps — is the `backlog-diagnostics` output, owned by the `methodology` slot. The default is `faffter-noon-methodology-structural`, whose `backlog-diagnostics` always fires regardless of config (it is the structural baseline every faff pass depends on). See that skill's `SKILL.md` for the detection categories, mechanical fixes, and rendered output.
+The `methodology` slot is a **diagnostic lens** over backlog and build state. Unlike the four adaptor slots above, it has no single fixed verdict — instead it answers a set of **named outputs**, each requested by name by a faff-* sub-skill. This section is the canonical contract for that named-output set: a swapped methodology must answer the **required** outputs to keep the suite working; the optional ones degrade gracefully when unanswered. The default is `faffter-noon-methodology-structural`; `faffter-dark-methodology-agile-delivery` is the opinionated alternative. Both answer the same set — that set is defined *here*, not inferred from either default.
 
-Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** (the fixed internal contract above): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`. The `routing_adaptor` slot performs the assignment.
+**Named-output contract:**
+
+| Output | Requested by | Required? | In → out |
+|---|---|---|---|
+| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-whereto | **Always fires** | active-issue graph → structural findings (cycles, ghost-projects, repeat-parks, splittable specs, chain gaps). The structural baseline every pass depends on; two of its findings feed the routing verdict (see below). |
+| `pick-ordering` | faff-wtf, faff-beep-boop | **Required** | a set of issues → the same set ordered by the methodology's sequencing rule. |
+| `promotion-readiness` | faff-tidy, faff-prep | **Required** | an issue + its spec/blocker state → promote / demote / hold decision with reasons. |
+| `build-queue` | faff-beep-boop | **Required** | routed-in issues + conflict analysis → admission-filtered, ordered, wave-partitioned queue. |
+| `ticket-shaping` | faff-noodle | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-noodle falls back to one ticket per brief item. |
+| `standup-digest` | faff-wtf | Optional | recent + ready + heads-up state → a brief. Unanswered → faff-wtf renders the ready-queue plainly. |
+| `horizon-assignment` | faff-whereto | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-whereto degrades to a flat structural roadmap. |
+
+**Standard envelope (every output).** Inputs a caller always supplies: the relevant issues, their state, sequencing, workstream grouping, and the dependency graph. Every output returns its named answer plus structured findings the caller can render, and a `Methodology: <name>` banner line for display. A methodology **does not know or describe its callers** — it answers the request from the state it's given; it never writes to the tracker (that's the orchestrator lane).
+
+**Appetite.** Every output respects the suite-wide `appetite` dial (see **Appetite for destruction**) — the per-level behaviour lives in the configured methodology skill, not here.
+
+Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** (the fixed internal contract above): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`. The `routing_adaptor` slot performs the assignment. See the default methodology's `SKILL.md` for each output's detection categories, mechanical fixes, and rendered form.
 
 ## Routing
 

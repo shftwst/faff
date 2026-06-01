@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `review` and `ship` Planning Skill slots.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict + spec-readiness contracts** workit branches on. Loading it here means any slot workit delegates to inherits these ambiently. Workit consults the `review` and `ship` Planning Skill slots.
 
 ### Worktree Hook
 

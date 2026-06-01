@@ -13,7 +13,7 @@ Pull the live tracker state and the project's backlog-organisation methodology, 
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Loading it here means the `methodology` slot whereto delegates to inherits these ambiently.
 
 **Methodology doc.** This skill leans on the consuming project's backlog-organisation methodology (initiative shapes, workstream horizons, success-metric expectations). Default location: `docs/operations/backlog-organization.md`. If `.faffrc` names a different path under `tracking.backlog_methodology`, use that. If neither exists, fall back to inferring from tracker structure (initiatives + projects with status fields) and flag in the output that no methodology doc was found — the synthesis is then best-effort.
 

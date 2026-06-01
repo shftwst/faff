@@ -18,9 +18,11 @@ The review-verdict contract itself is a faff-core invariant and lives in the gat
 
 This skill does not get to change any of that. What it owns is the *envelope and translation* — how a reviewer's native output is shaped and parsed into those fixed states. That is what makes the slot swappable: a third-party reviewer plugs in behind a different adaptor, and faff-workit still branches on the same three states.
 
-## The three states (fixed — recap for translation)
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-workit` reads the gateway on entry), so when you run as the `review_adaptor` slot it is already in context. If you are invoked **standalone** (normalising a review block on demand), **Read `skills/faff/SKILL.md` → _Core contracts and adaptor slots → Review verdict_ now** before mapping. Refer back to it; the recap below is non-normative and the gateway wins on any conflict.
 
-The adaptor must map every reviewer's output onto exactly one of these. Defined fully in the gateway; recapped here so the mapping is unambiguous:
+## The three states (non-normative recap for translation)
+
+The adaptor must map every reviewer's output onto exactly one of these. The authoritative definition is the gateway's; this table recaps it so the mapping is unambiguous (gateway wins on any conflict):
 
 | Verdict | Meaning | What the caller does |
 |---|---|---|

@@ -11,7 +11,7 @@ planning_skills:
 
 ## Outputs
 
-This skill fills the `methodology` slot, so it answers the same named outputs as the default methodology (`ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`) — but through the seven-principle lens rather than pure graph structure. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
+This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
 Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: delivery-lead` for the caller to display.
 

@@ -146,6 +146,7 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 | `faffter-dark-nlspec` | `spec` | Full nlspec-format spec generation — formal type definitions, pseudocode procedures, closed-loop DoD, appendices. Heavier than the built-in lite arc. |
 | `faffter-dark-adversarial-review` | `review` | Two-phase review: runs `faffter-noon-review` first, then sends the diff to a different LLM for a structurally independent second opinion. Replaces the default review. |
 | `faffter-dark-methodology-agile-delivery` | `methodology` | Agile delivery methodology lens — seven principles (outcome-named workstreams, value x risk sequencing, WIP caps, right-sized tickets, cohesive workstreams, surfaced deps, risk-aware ordering). Replaces the old `mode: delivery-lead` config. |
+| `faffter-dark-authoring-adaptors` | — (tooling) | Author/validate skill for slot occupants. Scaffolds a new adaptor/producer/methodology with the correct refer-back prose + contract mapping, and validates that an existing slot skill conforms. A development-time tool, not a pipeline slot. |
 
 Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc`:
 
@@ -204,7 +205,7 @@ planning_skills:
   review_adaptor: yourorg:critic-adaptor   # maps onto pass/fail/needs-human
 ```
 
-An adaptor does three things: **names** the fixed contract (gateway → _Core contracts and adaptor slots_; never redefines it), **translates** native output into it (`APPROVED → pass`, honouring the coercion rule — an unparseable verdict goes to `needs-human`, never silently to `pass`), and **validates** (returns `pass`/`fail` + violations so the pipeline never acts on a malformed result). Any `faffidavit-*` skill is a copyable template: `## Internal contract (fixed — see gateway)` → `## Adaptor` → `## Validate`.
+An adaptor does three things: **names** the fixed contract (gateway → _Core contracts and adaptor slots_; never redefines it), **translates** native output into it (`APPROVED → pass`, honouring the coercion rule — an unparseable verdict goes to `needs-human`, never silently to `pass`), and **validates** (returns `pass`/`fail` + violations so the pipeline never acts on a malformed result). It also carries **refer-back prose** so it can find the contract when invoked standalone (skills load independently — the gateway isn't always in context). Don't hand-roll this: run **`faffter-dark-authoring-adaptors`** — it scaffolds a conformant skill with the refer-back prose and contract mapping in place, and validates an existing one against the conformance checklist. Any `faffidavit-*` skill is also a copyable template: `## Internal contract (fixed — see gateway)` → `## Adaptor` → `## Validate`.
 
 `language_adaptor` is the exception — no fixed contract behind it (rendering is human-facing; nothing branches on how output looks), so swap `faffidavit-language` to change house style end to end.
 

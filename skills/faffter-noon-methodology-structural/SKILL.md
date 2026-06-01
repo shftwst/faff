@@ -17,7 +17,7 @@ When two issues have equal priority, the one that unlocks more downstream work g
 
 ## Outputs
 
-Each output is a named capability a caller requests by name. This skill does not know or describe its callers — it answers the request from the graph. The answer is always graph-derived, never opinion-derived.
+Each output is a named capability a caller requests by name. This skill does not know or describe its callers — it answers the request from the graph. The answer is always graph-derived, never opinion-derived. The canonical set of named outputs (which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**; the sections below are this skill's structural implementation of that contract.
 
 ### `pick-ordering`
 

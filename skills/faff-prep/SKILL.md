@@ -15,7 +15,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed spec-readiness contract** prep gates on. Loading it here means the `spec` and `spec_adaptor` slots prep delegates to inherit these ambiently.
 
 ### Spec skill (optional)
 

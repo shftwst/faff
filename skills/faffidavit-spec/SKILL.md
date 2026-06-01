@@ -19,6 +19,8 @@ The spec-readiness contract itself is a faff-core invariant and lives in the gat
 
 An autonomous reader needs to parse specs mechanically against that fixed classification — without it, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers. This skill does not get to change the classification or the gate. What it owns is the *dialect* — the concrete markers that encode closed/open/external, the writing style that keeps a spec parseable, and the confidence line's format. That is what makes the slot swappable: a third-party spec format plugs in behind a different adaptor that maps its structure onto the same three classes + confidence, and faff-prep still gates the same way.
 
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-prep` reads the gateway on entry), so when you run as the `spec_adaptor` slot it is already in context. If you are invoked **standalone** ("validate the spec for SHF-123"), **Read `skills/faff/SKILL.md` → _Core contracts and adaptor slots → Spec readiness_ now** before validating. The bullets above are a non-normative recap; the gateway wins on any conflict.
+
 ## Two faces
 
 - **Define** (reference): the canonical markers, marker rules, and writing style below. Producers read this and conform; consumers read it to parse specs mechanically.
@@ -76,8 +78,8 @@ confidence: high | medium | low
 
 | Level | Meaning | faff-prep gate |
 |---|---|---|
-| `high` | Explore surfaced clear answers; every non-trivial decision has a `**Chosen:**` marker with rationale; no `**Punt:**` escalates a genuine product/architecture question; ACs are concrete and testable. | Attach + promote to Todo. |
-| `medium` | Mostly clean but 1–2 `**Punt:**` markers on substantive choices, or a decision whose rationale is thin enough a human would want to weigh in. | Park — needs human review of open punts. |
+| `high` | Explore surfaced clear answers; every non-trivial decision has a `**Chosen:**` marker with rationale; no `**Punt:**` escalates a genuine product/architecture question; ACs are concrete and testable. | Attach + promote to Todo (build-eligible). |
+| `medium` | Mostly clean but 1–2 `**Punt:**` markers on substantive choices, or a decision whose rationale is thin enough a human would want to weigh in. | Attach with the rating **retained**, move to Todo — never auto-admitted to the build queue. Routes out as `needs-decision-first`; whether an autonomous run then proceeds is appetite-modulated (see gateway → **Spec readiness** + **Appetite for destruction**). |
 | `low` | Multiple `**Punt:**` markers, or explore couldn't pin down the ticket's intent, or core architecture is genuinely unclear. | Park — explore could not resolve core questions. |
 
 The line is mandatory and orthogonal to marker validation: a spec can have every marker present (passes validation) yet rate `medium`/`low`. Both the marker check and the confidence gate must pass for an autonomous attach.

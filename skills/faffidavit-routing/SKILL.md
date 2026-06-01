@@ -17,9 +17,11 @@ The automation-routing contract itself is a faff-core invariant and lives in the
 
 These are the stable boundary between the `methodology` slot and three consumers — `/faff-beep-boop`'s admission gate, `/faff-wtf`'s morning brief, `/faff-workit`'s park logic. Whatever methodology detects the backlog problems, the verdict words that gate admission stay fixed in the gateway. This skill does not get to change them. What it owns is *assignment + display* — how an issue is mapped onto a verdict, and how verdicts are rendered.
 
-## The six verdicts (fixed — recap for assignment)
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-tidy` / `/faff-beep-boop` / `/faff-wtf` read the gateway on entry), so when you run as the `routing_adaptor` slot it is already in context. If you are invoked **standalone** ("why wouldn't SHF-123 fire?"), **Read `skills/faff/SKILL.md` → _Core contracts and adaptor slots → Automation-routing verdict_ now** before assigning. Refer back to it; never treat the recap below as the source of truth.
 
-The adaptor assigns exactly one per Todo issue with a discoverable spec. Defined fully in the gateway; recapped here so assignment is unambiguous:
+## The six verdicts (non-normative recap for assignment)
+
+The adaptor assigns exactly one per Todo issue with a discoverable spec. The authoritative definition is the gateway's; this table is a **non-normative** recap for assignment (gateway wins on any conflict). The columns this adaptor owns are the *assignment conditions* and *consumer behaviour*; the verdict names and their meaning are the gateway's:
 
 | Verdict | Definition | What `/faff-beep-boop` does |
 |---|---|---|

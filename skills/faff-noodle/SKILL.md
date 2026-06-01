@@ -12,6 +12,10 @@ One skill, two starting points — **not** separate commands per item type:
 - **Kick off an empty project** — greenfield. No tracker project yet, or an empty repo. Produces an initial structure: workstreams/containers and the first tickets to reach a usable v0.
 - **Capture a new feature, bug, or ticket** — single-item. An existing project. Produces one well-formed ticket (or a small set, if it genuinely splits), placed in the right workstream.
 
+## Configuration
+
+**Load the gateway first.** This skill is usually entered directly (slash command), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the ignore-cancelled/archived rule, `.faff/` logging layout, and the slot contracts this skill applies. Loading it here means the `intake` and `methodology` slots noodle delegates to inherit these ambiently.
+
 ## Lane
 
 `/faff-noodle` runs in the **orchestrator lane** (see gateway → Agent Lanes): it talks to the human, runs discovery, reads the tracker, and creates tickets. It does **not** write code and does **not** produce specs — speccing is `/faff-prep`'s job, per ticket, later. The division is deliberate: ideation and ticket-shaping are orchestration; the spec is the build contract.

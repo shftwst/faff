@@ -13,7 +13,7 @@ This skill is the orchestrator. It does not reimplement prep, build, or tidy —
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for shared rules (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol).
+**Load the gateway first.** Beep-boop is the autonomous entry point and is usually entered directly, so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol, and the **fixed automation-routing admission rule** the queue gates on). Loading it here means every skill the run delegates to (tidy, prep, workit, and their slots) inherits these ambiently.
 
 Beep-boop uses these `planning_skills` slots from `.faffrc` when set:
 

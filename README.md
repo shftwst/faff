@@ -150,75 +150,50 @@ These are pluggable skills that either add new behaviour (adversarial review) or
 
 ## Appendix: skill families, qualifiers, and swapping
 
-If you only ever run the slash commands, you can ignore all of this. It's here for when you want to point a slot at your own skill, a third-party skill, or write an adaptor so something foreign plugs in cleanly.
+Skip this unless you want to point a slot at your own or a third-party skill.
 
-### The naming, decoded
+### The naming
 
-Every skill name is `family[-qualifier]-function`. The family prefix tells you what *kind* of thing it is; the qualifier (where present) tells you which *variant*; the function is the job.
+Every name is `family[-qualifier]-function`.
 
-| Family | Reads as | What it is | The "what" / "how" |
-|---|---|---|---|
-| `faff-*` | the faff you do before work | Pipeline + orchestration. The human-facing slash commands. | The **what**: defines the sequence, gates between steps, talks to you and the tracker. Delegates the actual doing. |
-| `faffter-*` | what comes *after* faff | Doing-skills. Take inputs, return outputs. Produce a spec, run a review, analyse a backlog. | The **how**: the actual work a slot performs. |
-| `faffidavit-*` | an *affidavit* — a sworn attestation | Adaptors over faff-core's fixed contracts. Translate a doing-skill's native output into the contract the pipeline branches on, and attest conformance. | The **boundary**: the stable shape the pipeline reads, regardless of which doing-skill ran. |
-
-### Qualifiers
-
-Only `faffter-*` carries a qualifier, and it encodes *how load-bearing / how safe* the variant is:
-
-| Qualifier | Reads as | Meaning |
+| Family | Reads as | What it is |
 |---|---|---|
-| `faffter-noon-*` | broad daylight | Ships **on by default**. The behaviour you get out of the box, safe and conservative. `faffter-noon-spec`, `faffter-noon-review`, `faffter-noon-methodology-structural`. |
-| `faffter-dark-*` | the dark factory | **Override / experimental.** Replaces a default or fills an optional slot, moving toward unattended ("lights-out") operation. Heavier, more opinionated, sometimes calls out to other models. `faffter-dark-nlspec`, `faffter-dark-adversarial-review`, `faffter-dark-methodology-agile-delivery`. |
+| `faff-*` | the faff before work | Pipeline. The slash commands — sequence, gates, tracker/human talk. Delegates the doing. (The "what".) |
+| `faffter-*` | *after* faff | Doing-skills. Inputs in, outputs out — produce a spec, run a review, analyse a backlog. (The "how".) |
+| `faffidavit-*` | an *affidavit*, an attestation | Adaptors. Translate a doing-skill's output into the contract the pipeline branches on, and attest conformance. (The stable boundary.) |
 
-The trailing function (`-spec`, `-review`, `-methodology-structural`, `-nlspec`, …) names the slot the skill fills or the job it does. Two skills with the same function fill the same slot — `faffter-noon-spec` and `faffter-dark-nlspec` are both `spec` producers; you pick one.
+The `faffter-*` qualifier says how safe the variant is: **`-noon-*`** (broad daylight) ships on by default, conservative; **`-dark-*`** (the dark factory) is an override/experimental swap-in, heavier and lights-out-leaning. The trailing function (`-spec`, `-review`, …) names the slot — same function, same slot: `faffter-noon-spec` and `faffter-dark-nlspec` are both `spec` producers, pick one.
 
-### The two kinds of slot
+### Two kinds of slot
 
-Faff has **doing-slots** and **adaptor-slots**, and they swap differently.
+- **Doing-slots** (`spec`, `review`, `methodology`, `parallel`, `ship`) hold a skill that *does work*. Swap to change behaviour.
+- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
 
-- **Doing-slots** (`spec`, `review`, `methodology`, `parallel`, `ship`) hold a skill that *does work*. Swap them to change behaviour — a different spec format, a stricter reviewer, a different methodology lens.
-- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`) hold a skill that *translates and attests*. The thing it translates *into* — the verdict states, the vocabularies, the classifications the pipeline gates on — is a **fixed internal contract in faff-core** and does not move. Swap the adaptor to change the surface dialect (the envelope, the markers, the display), never the contract.
+The pipeline hardcodes the contract so it always has something stable to branch on; the slot holds the translator so anyone's output can be made to fit.
 
-This separation is the whole point: the pipeline hardcodes the contract, so it always has something stable to branch on; the slot holds the translator, so anyone's output can be made to fit.
-
-### Swapping in a third-party doing-skill
-
-Point the slot at any skill — yours, a marketplace one, anything invokable:
+### Swap in a third-party doing-skill
 
 ```yaml
 planning_skills:
   spec: gstack:autoplan        # third-party spec producer
   review: gstack:review        # third-party reviewer
-  methodology: yourorg:roadmap-lens
 ```
 
-Requirements:
+It must **honour the slot's contract** — a `spec` maps decisions onto closed/open/external + a confidence line; a `review` resolves to `pass`/`fail`/`needs-human`. The faffidavit adaptor enforces this; output already in the house dialect passes straight through. A missing slot is never a park reason — unset means "use ours".
 
-1. **It must honour the slot's contract.** A `spec` producer must emit decisions that map onto closed/open/external + a confidence line. A `review` skill must resolve to `pass` / `fail` / `needs-human`. The faffidavit adaptor for that slot is what enforces this — if the third-party output already speaks the house dialect, the default adaptor passes it straight through.
-2. **A missing slot is never a park reason.** Every slot has a built-in default; unset just means "use ours."
+### Write an adaptor (when foreign output doesn't fit)
 
-That's it for skills that already produce conforming output. The interesting case is when they don't.
-
-### Writing an adaptor (when foreign output doesn't fit)
-
-If a third-party doing-skill's native output *doesn't* speak the house dialect — its reviewer emits `APPROVED` / `REJECTED` / `BLOCKED` instead of `pass` / `fail` / `needs-human`, say — you don't touch faff-core and you don't fork the pipeline. You write an adaptor and point the adaptor-slot at it:
+If the third-party output speaks a different dialect — a reviewer emitting `APPROVED`/`REJECTED`/`BLOCKED` — don't touch faff-core or fork the pipeline. Point the adaptor-slot at a translator:
 
 ```yaml
 planning_skills:
-  review: somevendor:critic         # emits APPROVED/REJECTED/BLOCKED
-  review_adaptor: yourorg:critic-adaptor   # maps that onto pass/fail/needs-human
+  review: somevendor:critic                # emits APPROVED/REJECTED/BLOCKED
+  review_adaptor: yourorg:critic-adaptor   # maps onto pass/fail/needs-human
 ```
 
-An adaptor skill does exactly three things:
+An adaptor does three things: **names** the fixed contract (gateway → _Core contracts and adaptor slots_; never redefines it), **translates** native output into it (`APPROVED → pass`, honouring the coercion rule — an unparseable verdict goes to `needs-human`, never silently to `pass`), and **validates** (returns `pass`/`fail` + violations so the pipeline never acts on a malformed result). Any `faffidavit-*` skill is a copyable template: `## Internal contract (fixed — see gateway)` → `## Adaptor` → `## Validate`.
 
-1. **Names the fixed contract it serves** — points at the gateway's _Core contracts and adaptor slots_ section for the invariant (the verdict states, the six routing verdicts, the closed/open/external classification). It does **not** redefine these.
-2. **Translates** the producer's native output into that contract — `APPROVED → pass`, `REJECTED → fail`, `BLOCKED → needs-human`, honouring the fixed tie-break and coercion rules (e.g. a verdict it can't parse coerces to `needs-human`, never silently to `pass`).
-3. **Validates** — returns `pass` / `fail` + violations when the output can't be made to conform, so the pipeline never acts on a malformed verdict.
-
-Read any `faffidavit-*` skill as a worked template: each opens with an `## Internal contract (fixed — see gateway)` pointer, then an `## Adaptor (this skill's dialect)` section, then `## Validate`. Copy that shape, swap the translation rules, and your foreign skill plugs into the same pipeline the defaults run on.
-
-`language_adaptor` is the one slot with **no** fixed contract behind it — rendering is human-facing only, nothing in the pipeline branches on how output *looks* — so its adaptor is swappable end to end. Replace `faffidavit-language` to change house style wholesale without touching anything the pipeline depends on.
+`language_adaptor` is the exception — no fixed contract behind it (rendering is human-facing; nothing branches on how output looks), so swap `faffidavit-language` to change house style end to end.
 
 ## License
 

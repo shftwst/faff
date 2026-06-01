@@ -195,6 +195,10 @@ An adaptor does three things: **names** the fixed contract (gateway → _Core co
 
 `language_adaptor` is the exception — no fixed contract behind it (rendering is human-facing; nothing branches on how output looks), so swap `faffidavit-language` to change house style end to end.
 
+## Credits
+
+The nlspec format used by `faffter-dark-nlspec` draws on [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie, licensed under Apache 2.0. See `NOTICE`.
+
 ## License
 
 Apache 2.0

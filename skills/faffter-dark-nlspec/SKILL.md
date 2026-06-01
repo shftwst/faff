@@ -2,6 +2,8 @@
 
 Full nlspec-format spec generation, usable as a delegated `spec` skill in faff-prep.
 
+The nlspec format draws on [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie (Apache 2.0). See the repository's `NOTICE`.
+
 Configure in `.faffrc`:
 
 ```yaml

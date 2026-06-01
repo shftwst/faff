@@ -123,10 +123,48 @@ Diagnoses are **educational, not preachy**. The user opted in because they want 
 
 Never: "You're doing this wrong." / "Best practice is..." / "You should...". Describe the situation and its consequence; the user decides. The methodology is opinionated; the voice is not.
 
+## Appetite integration
+
+This skill reads the suite-wide `appetite` setting from `.faffrc` (gateway → **Appetite for destruction**). Appetite governs how much this skill acts vs. surfaces:
+
+**low — surface only.**
+- All findings are informational. No tracker mutations. No reordering.
+- The human reads, decides, acts.
+- Equivalent to "show me what you'd recommend but don't touch anything."
+
+**medium — surface + limited action.**
+- Findings are surfaced with recommended actions.
+- Chain-gap tickets auto-created (when the gap is unambiguous).
+- Build-queue ordering informed by methodology but doesn't override explicit priority.
+- No auto-splits, no reprioritisation, no demotions.
+
+**high (default) — surface + act.**
+- **Auto-split** oversized tickets (principle 4) — creates the sub-tickets, links them, logs the action. Never deletes the parent.
+- **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides structural ordering when materially different.
+- **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-methodology-fill`.
+- **Flag stalled work for demotion** — issues stuck In Progress with no commits for N days get surfaced with a demotion recommendation. At high appetite, the demotion executes (In Progress → Backlog) with a tracker comment explaining why.
+- Every action is documented: tracker comment on the affected issue, log entry in `.faff/logs/`.
+
+**full — complete autonomy.**
+Everything `high` does, plus:
+- **Auto-merge** always-ship-together tickets (principle 4) — combines them into one, links the originals as "merged into", logs the action.
+- **Reparent** misplaced tickets — moves tickets to the workstream where they belong based on outcome alignment (principle 5).
+- **Demote without flagging first** — stalled work demotes immediately (In Progress → Backlog) rather than flagging then waiting a cycle.
+- **Methodology owns sequencing entirely** — explicit priority is an input signal, not a veto. Value x risk x deps determines the order.
+- **Resolve all methodology findings in a single pass** — no "surface now, act next run" cycle. Findings are acted on in the same invocation they're detected.
+- Still logs every action. Still never cancels or deletes.
+
+**What no appetite level does:**
+- Cancel, delete, or reduce scope (irreversible).
+- Override user-explicit "ask first" rules.
+- Skip adversarial review or holdout tests.
+- Act without evidence (every action traces to a principle + observable tracker state).
+
 ## Rules
 
-- This skill is **read-only**. It never creates projects, re-parents issues, closes gaps, or mutates tracker state. Findings go to the rendering sub-skill; humans act on them.
 - Findings must be grounded in observable tracker state — not speculation about intent or future plans.
 - Each finding must name the specific issues/workstreams involved (by tracker ID + descriptive gloss).
 - Findings that repeat across runs without human action are surfaced at most once per `/faff-wtf` invocation — don't nag.
 - This skill does not override structural diagnostics (chain gaps, stale blockers, dupes). It adds to them.
+- At `low` and `medium` appetite, this skill is **read-only** — it never mutates tracker state.
+- At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues. All mutations logged.

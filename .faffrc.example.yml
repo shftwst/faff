@@ -39,10 +39,13 @@ planning_skills:
     methodology: # optional diagnostic lens over backlog (default: structural only)
     ship: # optional merge / deploy mechanism inside /faff-workit
 
-# How aggressively autonomous mode self-resolves ambiguities vs escalates to human.
-# low: escalate everything ambiguous. medium (default): high-confidence proceeds, medium/low parks.
-# high: medium-confidence runs a resolve-attempt + documents the call, only low parks.
-appetite: medium
+# Suite-wide autonomy dial. Controls how much agency the entire pipeline has —
+# build decisions, methodology actions, backlog management, and pluggable skills.
+# low: surface everything, act on nothing. medium (default): act on high-confidence,
+# park ambiguity. high: act on defensible calls, auto-split, reorder by value, file gaps.
+# full: complete autonomy — resolve everything, never park unless genuinely unknowable
+# or irreversible. Adversarial review and holdout tests still gate — they're the safety net.
+appetite: high
 
 # faffter-dark: LLM provider config for adversarial review and holdout test generation.
 # Used by faffter-dark-adversarial-review and faffter-dark-holdout skills.

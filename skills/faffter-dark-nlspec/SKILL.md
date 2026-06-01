@@ -177,7 +177,7 @@ confidence: high | medium | low
 - **medium** — some `**Punt:**` items exist but are non-blocking, or the explore findings were ambiguous in places
 - **low** — significant unknowns, architectural uncertainty, or the issue may need splitting
 
-This line is consumed by faff-prep for its gate decision (autonomous mode: medium/low → park). Faff-prep strips it before attaching the spec to the issue — downstream consumers (faff-workit, faff-beep-boop) never see it. It is a signal back to the caller, not part of the spec.
+This line is consumed by faff-prep for its gate decision (autonomous mode: `high` → promote; `medium` → attach + flag for review; `low` → park) and is **retained on the attached spec** — downstream consumers (faff-workit, faff-beep-boop, and faff-tidy's spec-health pass) read it as durable provenance and a re-spec signal; a retained `confidence: medium` maps to the `needs-decision-first` routing verdict. It is both a signal to the caller and a lasting property of the spec.
 
 ## Rules
 

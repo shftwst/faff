@@ -1,6 +1,6 @@
 ---
 name: faff-beep-boop
-description: "Chew through ready work unattended — overnight or fire-and-forget. Default: full pipeline (tidy → prep queue drain → build queue drain). --ready: build-only pass over Todo issues that already have a spec. Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'."
+description: "Chew through ready work unattended — overnight or fire-and-forget. Default: full pipeline (tidy → prep queue drain → build queue drain). Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'."
 ---
 
 # Faff — Beep-Boop
@@ -22,12 +22,11 @@ Beep-boop uses these `planning_skills` slots from `.faffrc` when set:
 
 ## Invocation
 
-Three forms:
+Two forms:
 
 | Form | Behaviour |
 |---|---|
 | `/faff-beep-boop` | **Full pipeline (default).** Tidy → prep queue drain → build queue drain. The whole shebang. |
-| `/faff-beep-boop --ready` | **Ready-queue only.** Picks up all Todo issues with a spec. Skips tidy and prep. Just builds. Use when you've already prepped and specifically want a build-only pass. |
 | `/faff-beep-boop ISSUE-XX ISSUE-YY …` | **Explicit list.** Skips discovery; operates on the listed issues only. |
 
 All forms run non-interactively. No yes/no gates. The whole point is unattended execution.
@@ -36,7 +35,7 @@ All forms also accept two optional **cost-budget flags** that can be combined; t
 
 ## Budget flags
 
-Two composable flags cap the cost of a run. Pass either, both, or neither. Both work with all three invocation forms (default full pipeline, `--ready`, explicit-list).
+Two composable flags cap the cost of a run. Pass either, both, or neither. Both work with both invocation forms (default full pipeline, explicit-list).
 
 | Flag | Caps | Semantic |
 |---|---|---|
@@ -72,18 +71,6 @@ Un-prepped Backlog candidates whose prep dispatch never fired because `--until` 
 
 If neither flag is passed, behaviour is unchanged from the no-budget run. The run ends by queue emptiness or all-remaining-parked, exactly as before.
 
-## Ready-queue mode (`--ready`)
-
-1. Query the tracker for every Todo issue (per the shared ignore rule — skip cancelled/archived).
-2. **Spec-gate every candidate using the shared Spec discovery rule** (see gateway). Check **all three** locations for each Todo issue: tracker comments, tracker description/body, and committed `docs/` in the repo. A hit in **any** of them counts. **Do not short-circuit on the repo check alone** — during the pre-build phase, specs normally live on the tracker (faff-prep writes there; faff-workit moves them into `docs/` only when it starts building). An empty spec-docs path (the configured **Spec docs path**, default `docs/specs/`) does **not** mean "no spec"; the tracker is the primary source.
-3. **Compute the automation-routing verdict** for every spec-gated candidate (gateway → **Automation-routing contract**). Admit only candidates with verdict `fire-and-forget` or `likely-fire` to the build queue. Route the other four verdicts (`needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`) out of the build queue with a one-line reason captured in the run summary.
-4. **Conflict analysis** (see below) — partition the set of spec-gated issues into independents and collision groups.
-5. **Build pass** — invoke `/faff-workit` in autonomous mode per issue. Independents in parallel (via the configured `parallel` skill, if set), collision groups serialised within themselves. Workit pulls the spec from wherever discovery found it and commits it to `docs/` as the first commit on the build branch. Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
-6. Aggregate returns (`shipped` / `pr-open-for-human` / `parked` / `errored`).
-7. **Report** (see below).
-
-Ready-queue mode never preps anything. If spec discovery finds nothing across all three sources, the issue is not in the queue (log it so `/faff-wtf` can surface it). Use `--ready` when you've already prepped and specifically want a build-only pass — otherwise prefer the default full pipeline, which also drains the prep queue.
-
 ## Full pipeline (default)
 
 Two independent phases. The **prep queue** drains fully first. Then the **build phase** runs as one or more **waves**: each wave assembles a build queue from the current Todo+spec set, drains it, and re-checks for work newly unlocked by issues that just shipped. The prep queue always runs to completion regardless of whether any wave ends up non-empty. Overnight prep is valuable on its own.
@@ -108,7 +95,8 @@ This is the prep queue.
 For each candidate, invoke `/faff-prep` in autonomous mode. Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
 - `refreshed` — spec updated, issue stays in Todo (contributes to build queue)
 - `promoted` — fresh high-confidence spec, moved to Todo (contributes to build queue)
-- `parked` — medium/low confidence or architectural change needed; tracker tagged, log written
+- `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; it joins the candidate set but its verdict is `needs-decision-first`, so it routes out of the build queue and surfaces in the morning brief rather than auto-building
+- `parked` — low confidence, contract violation, or architectural change needed; tracker tagged, log written
 - `errored` — treated as parked for reporting
 
 Runs until the prep queue is empty. **Never short-circuits on build-queue state.**
@@ -179,6 +167,7 @@ For each listed issue:
 - If spec present → queue for build.
 
 After the list is processed:
+- **Compute the automation-routing verdict** inline for every spec-gated issue (gateway → **Automation-routing contract**) — there is no tidy pass to read a cached verdict from. Admit only `fire-and-forget` and `likely-fire`; route the other four verdicts out with a one-line reason in the run summary's "Routed out" section.
 - Conflict analysis on the set that reached build-ready.
 - Build pass per the shared flow.
 - Report.
@@ -189,7 +178,7 @@ Before the build pass, partition the ready set into **independents** (safe to bu
 
 **Critical framing:** conflict analysis is the mechanism that handles **in-queue dependencies**. Issue A depending on issue B, where B is in the same run's queue, is a collision group — not a park. "Serialise A behind B" is the answer. Parking A because "B isn't Done yet" when B is literally about to be built in this same run is the failure mode that breaks the pipeline: a chain of 5 issues all parking for "depends on earlier" means nothing ships. The chain is the whole point of overnight automation.
 
-**Verdict integration.** When the automation-routing verdict is computed (by tidy in full pipeline, or inline in `--ready` mode), `likely-fire` is assigned precisely to issues that conflict analysis will serialise into a collision group with another in-queue issue. This means conflict analysis here is **confirming** the partition the verdict already implies — not reclassifying. Output of conflict analysis is the concrete (independents, groups) partition; the verdict was the up-front signal.
+**Verdict integration.** When the automation-routing verdict is computed (by tidy in the full pipeline, or inline in explicit-list mode), `likely-fire` is assigned precisely to issues that conflict analysis will serialise into a collision group with another in-queue issue. This means conflict analysis here is **confirming** the partition the verdict already implies — not reclassifying. Output of conflict analysis is the concrete (independents, groups) partition; the verdict was the up-front signal.
 
 Heuristics — issues are considered likely to collide when any of these hold:
 
@@ -248,7 +237,7 @@ When a `methodology` skill is configured, the first line of the summary file is 
 
 ```markdown
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
-Mode: [ready-queue | full | explicit-list]
+Mode: [full | explicit-list]
 Duration: Xh Ym
 Waves: N
 Stop reason: queue-drained | all-remaining-parked | budget-hit (--until HH:MM) | budget-hit (--max N)

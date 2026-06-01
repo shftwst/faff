@@ -95,11 +95,11 @@ The subagent prompt must include:
 
 | Finding severity | Interactive mode | Autonomous mode |
 |---|---|---|
-| `blocker` (spec is wrong about a fact in the codebase, contains an Assumes that doesn't hold, or the Chosen decision contradicts established convention without acknowledging it) | Surface to user, revise inline before attach | Revise the spec to address the finding (apply the proposed fix, or convert the affected `**Chosen:**` to a `**Punt:**` with the conflict noted). Re-self-rate. If the revision drops confidence to medium/low, follow the standard gate (park). If a blocker can't be fixed without architectural reframing, **park** with cause "subagent review surfaced unresolvable blocker — needs human" |
+| `blocker` (spec is wrong about a fact in the codebase, contains an Assumes that doesn't hold, or the Chosen decision contradicts established convention without acknowledging it) | Surface to user, revise inline before attach | Revise the spec to address the finding (apply the proposed fix, or convert the affected `**Chosen:**` to a `**Punt:**` with the conflict noted). Re-self-rate. If the revision drops confidence to medium/low, follow the standard confidence gate below (`medium` → attach + retain rating for review; `low` → park). If a blocker can't be fixed without architectural reframing, **park** with cause "subagent review surfaced unresolvable blocker — needs human" |
 | `major` (vague AC, scope creep, missed edge case) | Surface to user, fix or note inline | Fix in the spec where mechanical (tighten an AC, drop an out-of-scope item); leave as `**Punt:**` with the reviewer's note where judgement is needed. Self-rating may downgrade accordingly |
 | `minor` (style, naming, would-be-nice clarification) | Optionally fix; otherwise log and move on | Fold into the spec where trivial; otherwise log and proceed |
 
-**Self-rating downgrade rule:** if the subagent review surfaces ≥1 `blocker` or ≥3 `major` findings, the inline spec **cannot** be self-rated `high` regardless of how the prep agent felt about it pre-review. Cap at `medium` minimum, which (in autonomous mode) means park. This stops the prep agent from rationalising past honest findings. Applies to every inline spec, regardless of size.
+**Self-rating downgrade rule:** if the subagent review surfaces ≥1 `blocker` or ≥3 `major` findings, the inline spec **cannot** be self-rated `high` regardless of how the prep agent felt about it pre-review. Cap at `medium` minimum, which (in autonomous mode) means the spec attaches with the rating retained but is **not** build-admitted — it routes out as `needs-decision-first` for human triage rather than auto-building. This stops the prep agent from rationalising past honest findings. Applies to every inline spec, regardless of size.
 
 **Logging.** Append the subagent's full output to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`), then append the resolution decisions (which findings were applied, which were left as `**Punt:**`, which were dismissed and why). The audit trail must show that the review ran and what was done with it — a missing review log on an inline spec is itself a process failure.
 
@@ -174,11 +174,12 @@ Run the marker validation from the _spec contract_ before attaching. In interact
 
 **Step 3: Chain to build**
 
-Yes/no gate:
+Yes/no gate — confidence-aware:
 
-> "Prepped and moved to Todo. Start building now via `/faff-workit`? (y/n)"
+> **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-workit`? (y/n)"
+> **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
 
-On confirm, invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conversation.
+On `high` confirm (or `medium` → `build`), invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve`, walk the open punts with the user and re-attach. On `leave`, stop — the flagged spec stays on the tracker for later.
 
 ### Scenario B: Resume (existing spec found)
 
@@ -315,9 +316,9 @@ Available in **both** delegated and inline modes — autonomous never parks mere
 
 Apply the same gate to either output:
 
-- `confidence: high` **and** marker validation passes → attach to issue, move to Todo, return `promoted`
+- `confidence: high` **and** marker validation passes → attach to issue (rating retained on the spec), move to Todo, return `promoted`
 - `confidence: high` **but** marker validation fails → **park** with cause "spec contract violated — missing Chosen/Decision/Punt markers"
-- `confidence: medium` → **park** with cause "medium confidence — needs human review of open punts"
+- `confidence: medium` → attach to issue **with the `confidence: medium` line retained**, move to Todo, return `promoted-needs-review`. Do **not** strip the rating — it is the re-spec signal: the routing verdict for a retained `medium` is `needs-decision-first` (gateway), so an autonomous run gives it a resolve-attempt and otherwise surfaces it in `/faff-wtf` rather than auto-building. The spec is visible on the tracker for a human to read, resolve the open punts, and bump to `high`.
 - `confidence: low` → **park** with cause "low confidence — explore could not resolve core questions"
 
 ### Park protocol
@@ -331,8 +332,9 @@ Follow the shared park protocol (see `skills/faff/SKILL.md`):
 
 Return to caller one of:
 - `refreshed` — spec updated, issue stays in Todo
-- `promoted` — fresh spec attached, issue moved to Todo
-- `parked` — see park cause in log
+- `promoted` — fresh high-confidence spec attached, issue moved to Todo (build-eligible)
+- `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; visible for human triage but **not** build-admitted — its routing verdict is `needs-decision-first`
+- `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 
 ## Notes

@@ -14,8 +14,8 @@ planning_skills:
 The spec-readiness contract itself is a faff-core invariant and lives in the gateway (_Core contracts and adaptor slots → Spec readiness_), **not** here. Fixed there, and unaffected by swapping this slot:
 
 - every non-trivial decision is classified **closed** / **open** / **external-dependency**,
-- a **confidence rating** (`high` / `medium` / `low`) is present, and
-- faff-prep gates its autonomous decision on confidence (medium/low → park) while beep-boop routes on the open/external classification (→ `needs-decision-first` / `gap-blocked`).
+- a **confidence rating** (`high` / `medium` / `low`) is present and **retained on the attached spec** (durable provenance + re-spec signal, not stripped), and
+- faff-prep gates its autonomous decision on confidence (`high` → promote; `medium` → attach with the rating retained, routes out as `needs-decision-first`; `low` → park) while beep-boop routes on the open/external classification (→ `needs-decision-first` / `gap-blocked`).
 
 An autonomous reader needs to parse specs mechanically against that fixed classification — without it, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers. This skill does not get to change the classification or the gate. What it owns is the *dialect* — the concrete markers that encode closed/open/external, the writing style that keeps a spec parseable, and the confidence line's format. That is what makes the slot swappable: a third-party spec format plugs in behind a different adaptor that maps its structure onto the same three classes + confidence, and faff-prep still gates the same way.
 

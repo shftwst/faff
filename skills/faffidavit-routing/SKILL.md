@@ -25,7 +25,7 @@ The adaptor assigns exactly one per Todo issue with a discoverable spec. Defined
 |---|---|---|
 | `fire-and-forget` | Spec `confidence: high`, no Punt/Assumes markers, no in-queue blocker, conflict analysis says independent, no repeat-park history | Builds in next autonomous run, parallel-safe |
 | `likely-fire` | Spec `confidence: high` but in a collision group with other in-queue work | Builds in next autonomous run, serialised within its group |
-| `needs-decision-first` | Spec contains an explicit `Punt:` / `needs human` / `TBD` / "or X if Y" marker that is **not** spec-closed | Resolve-attempt; if it fails, skipped and surfaced in wtf with the specific decision asked |
+| `needs-decision-first` | Spec contains an explicit `Punt:` / `needs human` / `TBD` / "or X if Y" marker that is **not** spec-closed, **or** the spec carries `confidence: medium` (the retained rating is itself the human-call signal — thin rationale or open punts) | Resolve-attempt; if it fails, skipped and surfaced in wtf with the specific decision asked (for a bare `medium` with no explicit marker, "confirm or bump the spec") |
 | `gap-blocked` | Spec assumes external state (tracker issue, project, dep) that doesn't exist | Resolve-attempt; if it fails, skipped and surfaced with the named gap |
 | `circular-blocked` | Issue sits in a dep cycle detected by the methodology slot's `backlog-diagnostics` | Resolve-attempt; if it fails, skipped and surfaced with the cycle visualised |
 | `repeat-parked` | Parked 3+ times in autonomous runs with the same root-cause class | **Skipped — no resolve-attempt.** The pattern itself is the signal that a human needs to act. Surfaced prominently in wtf. |
@@ -80,7 +80,7 @@ The synthesis gloss (gateway → Synthesis contract, owned by the `language_adap
 **Checks:**
 
 1. Exactly one verdict per spec-gated issue, drawn from the closed six.
-2. The verdict is consistent with its inputs — e.g. `fire-and-forget` requires `confidence: high` and no open markers; `circular-blocked` requires a cycle finding from `backlog-diagnostics`; `repeat-parked` requires ≥3 same-root-cause parks.
+2. The verdict is consistent with its inputs — e.g. `fire-and-forget` and `likely-fire` require `confidence: high` and no open markers; any spec below `confidence: high` is never build-admitted (a bare `confidence: medium` maps to `needs-decision-first`); `circular-blocked` requires a cycle finding from `backlog-diagnostics`; `repeat-parked` requires ≥3 same-root-cause parks.
 3. `repeat-parked` carries no resolve-attempt (the pattern is the signal).
 
 **Output:**

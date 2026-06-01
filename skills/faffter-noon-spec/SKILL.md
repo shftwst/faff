@@ -63,7 +63,7 @@ confidence: high | medium | low
 
 The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Core contracts and adaptor slots → Spec readiness_); the line's format is owned by the `spec_adaptor` slot (default `faffidavit-spec` → _Confidence self-rating_). Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = non-blocking `**Punt:**` items or patchy explore findings; `low` = significant unknowns or possible split.
 
-This line is consumed by faff-prep for its autonomous gate decision (medium/low → park). faff-prep strips it before attaching — downstream consumers never see it. It is a signal back to the caller, not part of the spec.
+This line is consumed by faff-prep for its autonomous gate decision (`high` → promote; `medium` → attach + flag for human review; `low` → park) and is **retained on the attached spec** — it is durable provenance and a re-spec signal, not stripped. `/faff-tidy`'s spec-health pass reads the retained rating and reconciles it against later comments and codebase drift; the routing verdict treats a retained `confidence: medium` as `needs-decision-first`. It is both a signal to the caller and a lasting property of the spec.
 
 ## Rules
 

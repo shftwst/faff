@@ -302,7 +302,7 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 | faff-tidy | Auto-archive merged/cancelled + auto-reparent obvious orphans only. Everything else logged for morning review. |
 | faff-wtf | Return the ready-queue as a plain list. No focus recommendation. |
 | faff-whereto | Return the structured roadmap synthesis (initiatives, workstreams, chain join-up, fireable/blocked gates, structural risks). Read-only — never writes to the tracker. |
-| faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (delegated **or** inline) when self-rating clears the appetite-aware confidence gate (see **Appetite for destruction**). At `medium` appetite: `high` proceeds, `medium/low` park. At `high` appetite (default): `high` proceeds; `medium` runs resolve-attempt + decision-doc + proceeds; `low` parks. Missing `spec` slot is **not** a park reason — inline path self-rates and uses the same gate. |
+| faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (delegated **or** inline) when self-rating clears the appetite-aware confidence gate (see **Appetite for destruction**). `high` → attach + promote (build-eligible). `medium` → attach with the rating retained (Todo, routes out as `needs-decision-first`); whether an autonomous build then proceeds is appetite-modulated per the matrix above — `low`/`medium` surface for human, `high` (default) resolve-attempt → proceed if defensible, `full` proceed. `low` confidence parks. Missing `spec` slot is **not** a park reason — inline path self-rates and uses the same gate. |
 | faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
 
 ### Appetite for destruction
@@ -326,7 +326,7 @@ Each skill that accepts appetite **documents its own per-level response** in its
 
 | | low | medium | high (default) | full |
 |---|---|---|---|---|
-| `confidence: medium` spec | Park | Park | Resolve-attempt → proceed if defensible | Proceed — resolve inline, document, don't park |
+| `confidence: medium` spec | Attach (rating retained), surface — not built | Attach (rating retained), surface — not built | Resolve-attempt → proceed if defensible | Proceed — resolve inline, document, don't park |
 | `confidence: low` spec | Park | Park | Park | Resolve-attempt → proceed if any defensible path exists; park only if genuinely unknowable |
 | Punt markers | Park (no resolve-attempt) | Resolve-attempt with conservative thresholds | Resolve-attempt with widened thresholds | Resolve all Punts — pick the most defensible answer, document, proceed. No Punt parks. |
 | `gap-blocked` verdict | Park | Resolve-attempt per verdict rules | Proceed if gap can be worked around | Proceed — file the gap ticket and continue regardless |
@@ -438,13 +438,25 @@ faff-core fixes a small set of **internal contracts** — the verdict states, vo
 
 ### Spec readiness (fixed) → `spec_adaptor`
 
-**Internal contract (fixed):** every non-trivial decision is classified as **closed** / **open** / **external-dependency**, and a **confidence rating** (`high` / `medium` / `low`) is present. faff-prep gates its autonomous decision on confidence (medium/low → park); beep-boop routes on open/external markers (→ `needs-decision-first` / `gap-blocked`).
+**Internal contract (fixed):** every non-trivial decision is classified as **closed** / **open** / **external-dependency**, and a **confidence rating** (`high` / `medium` / `low`) is present and **retained on the attached spec** — it is durable provenance and a re-spec signal, not a transient gate token that gets stripped. faff-prep's autonomous gate: `high` → promote (build-eligible); `medium` → attach with the rating retained, move to Todo, surface for human triage — **never** auto-admitted to the build queue; `low` → park. A retained `medium` rating maps to the `needs-decision-first` routing verdict (the rating itself is the human-call signal — see the routing contract above), so an autonomous run gives it a resolve-attempt and otherwise surfaces it in `/faff-wtf` rather than building it unattended. faff-tidy's spec-health pass reads the retained rating and reconciles it against post-spec comments and codebase drift.
 
 **Adaptor slot:** `spec_adaptor` (default `faffidavit-spec`) — the concrete markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the skimmable writing-style rules, the confidence line's format, and the mapping from a producer's native structure into closed/open/external. Swap it to adapt a third-party spec format; faff-prep still gates on the same classification + confidence.
 
 ### Rendering — no internal contract → `language_adaptor`
 
 Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `language_adaptor` slot (default `faffidavit-language`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `language_adaptor`; the catalogue is closed there, not extended inline. References elsewhere to "gateway → Synthesis contract" resolve to this slot.
+
+### Legacy contract aliases
+
+Sub-skills written before this restructure cross-reference the contracts by their old names. Those names are **not** headings anywhere; they resolve to the sections above:
+
+| Legacy reference | Resolves to |
+|---|---|
+| `gateway → Automation-routing contract` | **Automation-routing verdict (fixed) → `routing_adaptor`** |
+| `gateway → Root-cause class enum` | the root-cause class enum inside **Automation-routing verdict (fixed)** |
+| `gateway → Synthesis contract` | the synthesis issue-gloss inside **Rendering → `language_adaptor`** |
+
+When renaming any contract section, update this table — it is the single place the legacy names are reconciled.
 
 ## Backlog diagnostics — the `methodology` slot
 

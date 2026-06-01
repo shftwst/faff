@@ -135,7 +135,7 @@ After presenting the output:
 - **Full groom:** "Run a full groom via `/faff-tidy`? (y/n)".
 - **Parked overnight issue:** for each, offer three-way choice "open log / re-run `/faff-prep` / leave parked (log/reprep/leave)". On `log`, print the log file contents. On `reprep`, invoke `/faff-prep` via the Skill tool. On `leave`, move on.
 - **Ready to pick up candidate:** yes/no "Promote to Todo? (y/n)".
-- **Build queue non-empty:** three-way "Build queue has N issues (M independents, K collision groups), plus P prep candidates. Run `/faff-beep-boop` (full pipeline — tidy + prep + build) / `/faff-beep-boop --ready` (build-only, the current build queue) / skip? (full/ready/skip)". On `full`, invoke `/faff-beep-boop`. On `ready`, invoke `/faff-beep-boop --ready`. On `skip`, move on.
+- **Build queue non-empty:** yes/no "Build queue has N issues (M independents, K collision groups), plus P prep candidates. Run `/faff-beep-boop` (full pipeline — tidy + prep + build)? (y/n)". On confirm, invoke `/faff-beep-boop`. On deny, move on.
 - **Prep queue non-empty with build queue empty:** yes/no "Nothing ready to build, but N prep candidates. Run `/faff-beep-boop` (default full pipeline) to drain the prep queue (will also build anything that lands at confidence: high)? (y/n)".
 
 Keep the tracker in sync with reality. No one starts building without a spec.

@@ -80,9 +80,27 @@ Optional:
 
 All planning slots are optional. Faff has sensible defaults for each — slots let you swap in your own.
 
-## faffter-dark-* (experimental)
+## Skill tiers
 
-The `faffter-dark-*` skills are experimental additions that plug into faff's existing `planning_skills` slots to move towards a dark factory workflow — fully autonomous build pipelines with independent verification at every gate.
+Faff has three tiers of skills:
+
+| Tier | Naming | Role |
+|---|---|---|
+| **faff-*** | Pipeline | Human-facing commands and orchestration. The "what." |
+| **faffter-noon-*** | Default behaviours | The extracted default implementations. The "how" that ships out of the box. |
+| **faffter-dark-*** | Overrides / experimental | Alternative implementations that replace defaults or fill optional slots. |
+
+The faff-* skills are pure orchestrators — they define the sequence and contract, then delegate to whichever faffter-noon or faffter-dark skill is configured. A methodology is one coherent lens (not split by function) because its principles interact across grooming, standup, roadmapping, and build ordering.
+
+### faffter-noon-* (defaults)
+
+| Skill | Slot | What it does |
+|---|---|---|
+| `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
+
+### faffter-dark-* (experimental)
+
+Pluggable skills that either add new behaviour or change the default behaviour of faff, moving towards a dark factory workflow.
 
 | Skill | Slot | What it does |
 |---|---|---|

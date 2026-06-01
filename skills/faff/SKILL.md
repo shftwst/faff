@@ -93,12 +93,12 @@ Faff delegates specialised work to configured skills. Slots live under the `plan
 ```yaml
 planning_skills:
   spec: superpowers:brainstorming                    # used by faff-prep
-  plan: superpowers:writing-plans                    # used inside faff-workit, optional
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
   adversarial_review: faffter-dark-adversarial-review # second-opinion review via different model, optional
   holdout_tests: faffter-dark-holdout                 # holdout test generation via different model, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
+  spec_format: faffter-noon-spec              # spec marker contract and writing rules
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -107,11 +107,11 @@ Defaults when a slot is unset:
 | Slot | Default |
 |---|---|
 | `spec` | Inline spec produced by faff-prep using the lite nlspec arc (WHY/WHAT/HOW/DONE). Same default in interactive and autonomous — autonomous self-rates the inline spec against the Spec Format Contract and applies the same confidence gate it would to a delegated skill's output. For the full nlspec format (formal type definitions, pseudocode procedures, appendices, integration smoke tests), set `spec: faffter-dark-nlspec`. Missing slot is **not** a park reason. |
-| `plan` | faff-workit builds directly from the spec without a formal plan step. |
 | `parallel` | faff-beep-boop runs sequentially. |
-| `review` | faff built-in review: faff-workit plays the senior-engineer role — diff read, AC-to-test coverage, obvious-bug scan, scope check, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
+| `review` | `faffter-noon-review` (implicit default). Senior-engineer review: diff read, AC coverage check, obvious-bug scan, scope validation, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
 | `adversarial_review` | Skipped. When set, a second review pass runs after the primary review using a different model/tool (e.g. a local LLM via Ollama). Catches correlated blind spots by bringing independent training biases. Emits `pass` / `fail` / `needs-human` — merged with the primary review verdict (worst signal wins). |
 | `holdout_tests` | Skipped. When set, holdout scenarios are generated at **prep time** (faff-prep) from the spec's acceptance criteria and stored as a separate issue comment marked `<!-- faff:holdout-scenarios -->`. Scenarios use pseudocode test format (setup/action/assert). At **gate time** (faff-workit Step 9b), the scenarios are read from the issue, translated into the project's test framework, and executed. Results posted as a PR comment but **never committed** — keeping them out of the codebase preserves independence across build cycles. The build agent does not read the holdout comment during implementation. |
+| `spec_format` | `faffter-noon-spec` (implicit default). The canonical marker contract (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), writing style rules (no invented labelling schemes, restate subjects), validation criteria, and the lite nlspec arc structure. All spec producers must satisfy this; all spec consumers depend on it. |
 | `methodology` | `faffter-noon-methodology-structural` (implicit default). Pure structural analysis — ordering by priority + unlock value, gating on decision closure, detecting graph-level problems. No opinionated delivery philosophy. When set to an alternative (e.g. `faffter-dark-methodology-agile-delivery`), the configured skill provides a diagnostic lens that sub-skills invoke **on top of** structural analysis. Structural diagnostics always fire; methodology findings are additive. |
 | `ship` | Vanilla `gh pr merge` after faff's merge-confidence gate passes. |
 

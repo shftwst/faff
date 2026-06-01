@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `plan`, `review`, and `ship` Planning Skill slots.
+See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Workit consults the `review` and `ship` Planning Skill slots.
 
 ### Worktree Hook
 
@@ -136,7 +136,7 @@ Validate the spec's freshness against the current codebase. Then present a summa
 
 **Step 7: Build**
 
-Implementer chooses execution strategy. If a `plan` slot is configured under `planning_skills` in `.faffrc`, optionally invoke it first to produce a step-by-step plan. Otherwise, build directly from the spec.
+Implementer chooses execution strategy. Build directly from the spec.
 
 During the build, if a decision arises that the spec doesn't resolve:
 - **Interactive mode:** ask the user.

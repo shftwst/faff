@@ -1,0 +1,124 @@
+# faffter-noon-review
+
+The default code review. Faff-workit plays the senior-engineer role — reads the diff, checks AC coverage, scans for bugs, validates scope, and flags decisions that need a human.
+
+This is the implicit default when no `review` slot is configured. Extracted here so it can be referenced, tested, and swapped for a delegated skill (e.g. `gstack:review`) or an alternative faffter-dark review.
+
+```yaml
+planning_skills:
+  review: faffter-noon-review   # the default — explicit for clarity
+```
+
+## When it runs
+
+Invoked by faff-workit Step 9 after the build is complete and tests pass. Runs in both interactive and autonomous modes.
+
+## Input
+
+Faff-workit provides:
+
+- The full diff: `git diff main...HEAD`
+- The spec (committed to `docs/specs/` on the feature branch)
+- The test results (pass/fail, coverage if available)
+- The AC checklist from Step 8 (which ACs were auto-verified, which need human)
+
+## Output
+
+A single signal plus findings:
+
+```
+signal: pass | fail | needs-human
+
+## Findings
+
+### [category]: [title]
+[description]
+```
+
+## The five review passes
+
+### 1. AC coverage
+
+Every acceptance criterion in the spec must have a corresponding test reference or observable verification in the diff. Check:
+
+- Does a test file exercise this AC? (grep for AC keywords, assert the behaviour described)
+- If not testable (visual, UX, subjective) — is it marked as needing human verification in Step 8?
+- Missing coverage for a testable AC → finding (`fail`)
+
+### 2. Obvious bugs
+
+Scan the diff for common defects:
+
+- Unused variables or imports introduced by this diff
+- Commented-out code blocks (leftover debugging)
+- Uncaught promises / unhandled async errors
+- Mismatched async/sync patterns (awaiting non-async, fire-and-forget on something that should be awaited)
+- Leftover debug prints (console.log, print(), debugger statements)
+- Obvious null/undefined access without guards (where the spec doesn't say "assume non-null")
+- Resource opens without corresponding closes on error paths
+
+Any finding here → `fail` (fixable, iterate)
+
+### 3. Scope check
+
+The diff must be within the spec's scope:
+
+- Changes only touch files/modules the spec addresses or that are necessary plumbing for the spec's goals
+- No out-of-scope refactors smuggled in (renaming unrelated code, adding unrelated features, "while I'm here" cleanups)
+- No dependency additions not mentioned in the spec
+- Scope violations → `fail` with recommendation to revert the out-of-scope changes
+
+### 4. Spec fidelity
+
+The implementation matches the spec's intent, not just its letter:
+
+- If the spec says `**Chosen:** X`, the code implements X (not Y with a comment saying "X was too hard")
+- If the spec has pseudocode, the implementation follows the same logic (not a shortcut that skips steps)
+- If the spec names error handling behaviour, those error paths exist
+- Spec divergence → `fail` (either fix the code or update the spec if the divergence is justified)
+
+### 5. Human-judgement flag
+
+Does any decision in the diff require human judgement that the spec didn't anticipate?
+
+- Product/UX calls the spec didn't address (new user-facing copy, visual layout decisions, behaviour when the spec is silent)
+- Security posture changes (new auth boundaries, changed permission models, secrets handling)
+- Irreversible external effects (messages sent, data deleted, external API calls that can't be undone)
+- Spec gap — the implementation had to make a call the spec doesn't cover, and that call is non-trivial
+
+If `git revert` on the merge commit fully undoes the change, it is **not** `needs-human`. Only flag when the effect persists after revert.
+
+Any finding here → `needs-human` (park, don't iterate)
+
+## Verdict rules
+
+- Any finding from pass 5 (human-judgement) → `needs-human`
+- Any finding from passes 1–4 → `fail` (iterate: fix, re-test, re-review)
+- No findings → `pass`
+
+## What faff-workit does with the result
+
+- `pass` → proceed to merge-confidence gate
+- `fail` → iterate autonomously (fix flagged items, re-run tests, re-run review). Loop until `pass` or `needs-human`.
+- `needs-human` → flip PR to draft, park per shared protocol
+
+Result is appended to the PR as a comment with signal, findings, and (for `needs-human`) the specific reason.
+
+## Appetite integration
+
+| | low | medium | high (default) | full |
+|---|---|---|---|---|
+| Scope strictness | Strict — any out-of-scope line is a `fail` | Strict | Allows trivial adjacent cleanups (typo fixes, import sorting in touched files) | Same as high — review quality doesn't loosen |
+| Bug scan depth | Standard | Standard | Standard | Standard |
+| Human-judgement threshold | Conservative — lower bar for `needs-human` | Standard | Standard | Standard |
+
+Note: review quality does not loosen at high/full appetite. The review is the primary quality gate — weakening it defeats its purpose. Appetite governs what happens *after* review (how aggressively to iterate on failures), not the review's sensitivity.
+
+## Rules
+
+- Never pass a diff that introduces a regression in existing tests.
+- Never pass a diff that adds dead code (code with no execution path from the feature).
+- The review is the diff vs the spec — not the diff vs "what I think good code looks like." If the spec says do X and the code does X correctly, it passes even if you'd have done it differently.
+- Findings must be specific and actionable: file, line, what's wrong, what to do. "This might be a problem" is not a finding.
+- When in doubt between `fail` and `pass`, choose `fail` — iteration is cheap, shipping a bug is not.
+- When in doubt between `fail` and `needs-human`, choose `fail` — only escalate when the code literally cannot proceed without a human decision.

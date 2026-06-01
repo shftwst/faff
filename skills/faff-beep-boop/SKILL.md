@@ -255,6 +255,7 @@ Stop reason: queue-drained | all-remaining-parked | budget-hit (--until HH:MM) |
 
 needs-decision-first (N)
 - ISSUE-AA  [synthesis gloss] — Punt in spec: [decision asked]
+- ISSUE-QQ  [synthesis gloss] — confidence: medium (spec thin on [area]); attached for review, not built
 
 gap-blocked (N)
 - ISSUE-BB  [synthesis gloss] — spec assumes [named gap]
@@ -265,10 +266,14 @@ circular-blocked (N)
 repeat-parked ⚠ (N)
 - ISSUE-DD  [synthesis gloss] — parked N runs same root cause: [class]
 
-## Resolve-attempts
+## Resolve-attempts (appetite high/full)
 - Attempted: N
 - Succeeded (proceeded with audit trail): N
 - Failed (parked): N
+
+### Proceeded on medium confidence: N
+> These shipped autonomously on an inferred answer. The audit-trail comment is on each PR — review before merge if you disagree; faff re-parks on a dissenting comment. Full record in `.faff/calibration/appetite-decisions/`.
+- ISSUE-PP  [synthesis gloss] — inferred [answer] from [evidence]; PR #nnn (audit comment posted)
 
 ## Shipped (auto-merged): N
 - ISSUE-XX: title (PR #nnn)
@@ -293,6 +298,7 @@ repeat-parked ⚠ (N)
 ## Prep queue summary (full mode only)
 - Refreshed: N
 - Promoted: N
+- Promoted (needs review, medium confidence): N
 - Parked: N
 - Errored: N
 

@@ -252,7 +252,7 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
       <ISSUE-ID>.md
 ```
 
-The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about over-cautious parks, wrong inferences, and post-merge reverts so resolve-attempt rules and verdict gates can evolve with data. See **Autonomous Mode Contract → Calibration log** for capture rules and the synthesis-and-surface flow.
+The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about autonomous decisions (over-cautious parks, wrong inferences, post-merge reverts, appetite-influenced proceeds, and medium-confidence holds) so resolve-attempt rules and verdict gates can evolve with data. See **Autonomous Mode Contract → Calibration log** for capture rules and the synthesis-and-surface flow.
 
 The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verdicts.md` equivalent) lets other sub-skills read the verdict computed by `/faff-tidy` without recomputing within a single pass. Across passes, always recompute — same "always pull fresh" rule that governs spec discovery.
 
@@ -397,6 +397,7 @@ Captures evidence about over-cautious parks, wrong inferences, and post-merge re
 | Autonomous-resolve-attempt then human-overrode | `.faff/calibration/wrong-inferences/<issue-id>.md` | Original marker, inferred answer, human's correction |
 | Autonomous-shipped then post-merge-reverted within 7 days | `.faff/calibration/post-merge-reverts/<issue-id>.md` | Shipped commit SHA, revert commit SHA, the diff between them, any comments on the revert |
 | Appetite-influenced decision (at `appetite: high`, autonomous proceeded on `confidence: medium` or widened-threshold resolve-attempt) | `.faff/calibration/appetite-decisions/<issue-id>.md` | The verdict, the spec marker, the inferred answer, the audit-trail comment posted, and the merge outcome (pass / human-overrode / post-merge-reverted) once known. Pairs with the wrong-inferences and post-merge-reverts captures above for the cross-cut "is `high` over-shooting?" tidy signal. |
+| Medium-confidence held for human (at `appetite: low`/`medium`, a `confidence: medium` spec was attached + surfaced, not built) | `.faff/calibration/held-decisions/<issue-id>.md` | The verdict, the spec marker + thin area, the appetite at the time, and the human's eventual resolution (resolved-as-flagged / changed-direction / waved-through-no-change) once known. The symmetric counterpart to `appetite-decisions` — pairs with it for the cross-cut "is `low`/`medium` *under*-shooting — holding things the human just rubber-stamps?" tidy signal. |
 
 **Synthesis and surfacing.** Every `/faff-tidy` run (or the equivalent step within `/faff-wtf` when no tidy ran this pass) reads the calibration log and surfaces patterns when they cross a threshold:
 

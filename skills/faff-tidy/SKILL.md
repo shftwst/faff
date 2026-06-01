@@ -142,7 +142,7 @@ Output rendered in the new `### Structural diagnostics` section of tidy's output
 
 ### 6. Calibration signals
 
-Read `.faff/calibration/` at end of every tidy pass. See gateway → **Autonomous Mode Contract → Calibration log** for the three capture points and the immutability invariant.
+Read `.faff/calibration/` at end of every tidy pass. See gateway → **Autonomous Mode Contract → Calibration log** for the capture points and the immutability invariant.
 
 Surface signals when threshold crossed (default ≥4 events of the same root-cause class in the last 14 days, configurable in `.faffrc`):
 

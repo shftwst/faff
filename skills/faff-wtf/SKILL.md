@@ -95,7 +95,7 @@ Show what `/faff-beep-boop` would pick up right now, computed per the **Automati
 
 **Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (`language_adaptor` slot, default `faffidavit-language` — form (c)). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). Collision groups are serialised within themselves and ordered by their lead issue's priority+unlock-value.
 
-**Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
+**Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `needs-decision-first` has **two causes** — name which one in the diagnosis: a spec `**Punt:**` (show the decision being asked), or a retained `confidence: medium` rating (prep attached the spec for review rather than auto-building — show the rating explicitly and the area the spec was thin on). A medium-confidence spec with no open punt would otherwise render with an empty diagnosis; surfacing the rating is the whole point — it tells the human "give this a once-over" even when there's no single decision to make. `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
 
 **Prep queue (drained by default `/faff-beep-boop` full pipeline).** Backlog/pre-Todo issues unblocked (or blocked only by in-queue work), with no discoverable spec or a stale/superseded spec flagged by tidy. List as flat bullets — no conflict analysis needed at prep stage. Apply the synthesis contract for the gloss.
 
@@ -224,6 +224,7 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 
   needs-decision-first
     ISSUE-ZZ  [synthesis gloss] — Punt in spec: [decision asked] (decide in N min)
+    ISSUE-QQ  [synthesis gloss] — confidence: medium (spec thin on [area]); prep attached for review
 
   gap-blocked
     ISSUE-WW  [synthesis gloss] — spec assumes [named gap]; [recommended fix]

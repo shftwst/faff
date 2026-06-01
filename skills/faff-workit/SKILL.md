@@ -146,10 +146,14 @@ During the build, if a decision arises that the spec doesn't resolve:
 
 Before the PR is considered done, every acceptance criterion must be verified.
 
+**Find the project's test command first — don't guess the runner.** Resolve it once from what the repo actually uses, in this order: the consuming project's `CLAUDE.md` (if it documents a test / lint command), then `package.json` scripts (`test`, `lint`), a `Makefile` target, `pyproject.toml` / `pytest.ini` / `tox.ini`, `Cargo.toml`, `go.mod`, or the CI config (`.github/workflows/*` — whatever it invokes is the source of truth). Record the exact command(s) in the log and PR so the verification is reproducible. If no runner can be found at all, that's a `needs-human` signal for Step 9 — not a silent skip or an assumed `npm test`.
+
 For each AC in the spec:
 1. Identify or write an automated test covering it.
-2. Run the test — it must pass.
+2. Run the test with the resolved command — it must pass.
 3. If the AC requires live exercise (HTTP endpoint shape, CLI behaviour, filesystem side-effect, deployed service check), run the actual command (curl / bash / a real binary invocation) and capture the result.
+
+After the per-AC tests pass, run the **full suite + lint once** with the resolved command before opening the PR. A green per-AC test doesn't prove you didn't break something elsewhere; the full run is the local backstop before CI.
 
 The PR description must include an AC checklist:
 

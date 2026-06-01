@@ -234,7 +234,7 @@ This is what `/faff-wtf` looks for to surface parked issues in the morning.
 
 ## Reporting
 
-Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `language` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffter-noon-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 On run completion, produce:
 
@@ -255,7 +255,7 @@ Stop reason: queue-drained | all-remaining-parked | budget-hit (--until HH:MM) |
 
 ## Methodology findings (rendered only when a methodology skill is configured)
 
-(One-line summary of how the lens shaped this run — e.g. "Re-ordered 2 collision groups for value-aware sequencing; no methodology violations surfaced." Or list the structural diagnoses surfaced during the run, one per line, with the relevant principle cited.)
+(One-line summary of how the lens shaped this run — e.g. "Re-ordered 2 collision groups for value-aware sequencing; no methodology violations surfaced." Or list the diagnoses the methodology surfaced during the run, one per line, as it returned them.)
 
 ## Build queue verdicts at admission
 - fire-and-forget: N

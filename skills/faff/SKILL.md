@@ -97,19 +97,21 @@ planning_skills:
   review: gstack:review                              # pre-PR review inside faff-workit, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
   spec_format: faffter-noon-spec              # spec marker contract and writing rules
+  language: faffter-noon-language             # rendering contract — visual vs prose, density caps
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
-Defaults when a slot is unset:
+Each slot has a built-in default when unset. The default skill owns its own behaviour contract — see that skill's `SKILL.md`. A missing slot is **never** a park reason.
 
-| Slot | Default |
-|---|---|
-| `spec` | Inline spec produced by faff-prep using the lite nlspec arc (WHY/WHAT/HOW/DONE). Same default in interactive and autonomous — autonomous self-rates the inline spec against the Spec Format Contract and applies the same confidence gate it would to a delegated skill's output. For the full nlspec format (formal type definitions, pseudocode procedures, appendices, integration smoke tests), set `spec: faffter-dark-nlspec`. Missing slot is **not** a park reason. |
-| `parallel` | faff-beep-boop runs sequentially. |
-| `review` | `faffter-noon-review` (implicit default). Senior-engineer review: diff read, AC coverage check, obvious-bug scan, scope validation, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
-| `spec_format` | `faffter-noon-spec` (implicit default). The canonical marker contract (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), writing style rules (no invented labelling schemes, restate subjects), validation criteria, and the lite nlspec arc structure. All spec producers must satisfy this; all spec consumers depend on it. |
-| `methodology` | `faffter-noon-methodology-structural` (implicit default). Pure structural analysis — ordering by priority + unlock value, gating on decision closure, detecting graph-level problems. No opinionated delivery philosophy. When set to an alternative (e.g. `faffter-dark-methodology-agile-delivery`), the configured skill provides a diagnostic lens that sub-skills invoke **on top of** structural analysis. Structural diagnostics always fire; methodology findings are additive. |
-| `ship` | Vanilla `gh pr merge` after faff's merge-confidence gate passes. |
+| Slot | Default when unset | Purpose |
+|---|---|---|
+| `spec` | inline (faff-prep) | Produces the spec. |
+| `parallel` | none (sequential) | Concurrency for faff-beep-boop. |
+| `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits `pass` / `fail` / `needs-human`. |
+| `spec_format` | `faffter-noon-spec` | The marker contract and writing rules every spec producer satisfies and every consumer depends on. |
+| `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |
+| `language` | `faffter-noon-language` | The rendering contract — when to draw a visual vs prose, the canonical visual forms, table-vs-list rule, density caps. |
+| `ship` | vanilla `gh pr merge` | Merge/deploy mechanism inside faff-workit. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
 
@@ -305,9 +307,18 @@ A suite-wide dial (`appetite: low | medium | high | full` in `.faffrc`, default 
 
 The reason this dial exists: the autonomous pipeline's value collapses when it brings every minor call back to the human. A pipeline that parks on every `confidence: medium`, every Punt, every gap-blocked verdict, every methodology finding, demands the same input from the human as building the thing manually would — except now they have to also context-switch into "interpret faff's parks" mode each time. The human's control over project direction lives in the **spec** (front-loaded, considered architecture); past the spec gate, appetite governs how much the pipeline executes without checking back.
 
-Every faff sub-skill and every pluggable skill reads the current appetite level. Skills that accept appetite document what changes at each level. The table below is the suite-wide contract:
+Every faff sub-skill and every pluggable skill reads the current appetite level. The four levels:
 
-#### Build pipeline (faff-prep, faff-workit, faff-beep-boop)
+| Level | Intent |
+|---|---|
+| `low` | Conservative — park on anything non-obvious; minimal autonomous agency. |
+| `medium` | Cautious — proceed only when the call is clear; otherwise park. |
+| `high` (default) | Confident — proceed on defensible calls with an audit trail; park architectural/irreversible only. |
+| `full` | Maximum agency — resolve everything resolvable, document, proceed; only the hard floor below ever stops it. |
+
+Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The one table the gateway keeps is the appetite-modulation of the gateway-owned shared contracts (resolve-attempt and automation-routing):
+
+#### Build pipeline (modulation of the resolve-attempt + automation-routing contracts)
 
 | | low | medium | high (default) | full |
 |---|---|---|---|---|
@@ -318,21 +329,7 @@ Every faff sub-skill and every pluggable skill reads the current appetite level.
 | `circular-blocked` verdict | Park | Resolve-attempt (unambiguous break-edge only) | Accept most plausible break-edge | Break the cycle at any plausible edge, document, proceed |
 | Chain-gap auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if remainder is identifiable | Always — every identifiable gap gets a ticket |
 
-#### Methodology (when configured)
-
-| | low | medium | high (default) | full |
-|---|---|---|---|---|
-| Findings | Surface only — human reads, decides, acts | Surface findings. Auto-create chain-gap tickets. No splits, no reprioritisation. | Act on findings — auto-split, reorder, file gaps, flag stalled work. | **Full agency** — act on all findings immediately. Demote stalled work. Reprioritise by value delivery. Reparent misplaced tickets. Merge always-ship-together tickets. |
-| Sequencing | Structural ordering only (priority + unlock value) | Methodology informs ordering but doesn't override explicit priority | Methodology-driven ordering overrides default when materially different | Methodology owns the order entirely. Explicit priority is input, not override. |
-| Scope changes | Never | Never | Auto-split only | Auto-split + auto-merge (combine always-ship-together tickets). Still never cancel or delete. |
-
-#### Review
-
-| | low | medium | high (default) | full |
-|---|---|---|---|---|
-| Review (including adversarial phase if configured) | Runs. Standard verdict rules. 1 major from adversarial → `needs-human` | Runs. Standard verdict rules | Runs. Standard verdict rules | Runs. Standard verdict rules. **Never loosened** — review quality is non-negotiable. |
-
-Note: the review does **not** loosen even at `full`. It exists precisely to catch what the pipeline misses — the last line of defence when everything else is autonomous.
+The methodology slot's per-level response lives in the configured methodology skill. The review slot's per-level response lives in the configured review skill — note that review quality never loosens at any level (see the hard floor below).
 
 #### What appetite NEVER changes (hard floor — applies at ALL levels including `full`)
 
@@ -417,117 +414,9 @@ When a faff skill's flow leads naturally into another faff skill, it offers the 
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
-## Visualisation-over-prose contract
+## Rendering — the `language` slot
 
-When output describes **structure** (chain, partition, cycle, queue, workstream layout, fire/blocked gate map, dep graph), render it as a compact visual. Reserve prose for diagnosis, decision, and "do this next" recommendation.
-
-Test: if a reader can point at the visual and ask "is this right?" without re-reading prose, it's the right form.
-
-### Canonical visual forms
-
-Sub-skills pick from this catalogue. Inventing new visual forms inline is forbidden — if a skill needs a sixth form, this section gains it first.
-
-**(a) Cycle bracket** (3+ items inline)
-
-```
-[ISSUE-AA → ISSUE-BB → ISSUE-CC → ISSUE-AA]
-```
-
-Used for any dep cycle, any collision-group serialisation, any "X depends on Y" chain rendered inline. 3+ items only — for a 2-item dep, use plain prose.
-
-**(b) Cycle box** (4+ edges or branching)
-
-```
-ISSUE-AA ──► ISSUE-BB ──► ISSUE-CC
-   ▲                          │
-   └──────────────────────────┘
-```
-
-Used when the cycle has 4+ edges or when branching makes the bracket form unreadable.
-
-**(c) Queue partition grid**
-
-```
-fire-and-forget (independents)        likely-fire (serialised)
-  ISSUE-XX                              [ISSUE-A → ISSUE-B]   src/auth/
-  ISSUE-YY                              [ISSUE-C → ISSUE-D]   db migrations
-```
-
-Used in wtf's "Build queue" section and beep-boop's summary. Each cell has the ID + the synthesis gloss (one line per ID — see **Synthesis contract**).
-
-**(d) Workstream lane** (already in `/faff-whereto`; canonicalised here)
-
-```
-Initiative — Audit-lite reliability
-
-Now    Logging cleanup            [started]   ISSUE-XX, ISSUE-YY
-Next   Audit log retention        [planned]   ISSUE-ZZ
-Later  (no project planned)       ⚠ structural gap
-```
-
-**(e) Gate fire-status table** (already in `/faff-whereto`; canonicalised here)
-
-```
-| Gate                            | Currently fireable? | Notes                            |
-|---------------------------------|---------------------|----------------------------------|
-| Logging → Audit retention       | Yes                 | once SHF-217 ships               |
-| Audit retention → Audit lite    | ⚠ Blocked           | downstream project doesn't exist |
-```
-
-### When prose still wins
-
-Three carve-outs where prose stays:
-
-1. **The synthesis gloss itself** (see **Synthesis contract**) — the plain-English one-liner is the whole point; a glyph won't help.
-2. **Diagnosis lines** — "Recommendation: strip the CC→AA edge (defensive-only)." A visual can't carry "what to do".
-3. **TL;DR** — `/faff-whereto`'s Phase 8 stays prose. Skim-in-10-seconds is the job; visuals at the top invert that.
-
-### Tabular data: markdown tables vs definition lists
-
-Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.
-
-**Scope:** this rule applies to **user-facing terminal output** emitted by faff sub-skills (`/faff-tidy` diagnostics, `/faff-wtf` morning briefs, `/faff-whereto` roadmap renders, `/faff-beep-boop`'s in-conversation summary, etc.). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
-
-**Drop the markdown table when any of:**
-
-1. Any cell exceeds ~30 characters.
-2. Any cell contains multi-sentence prose.
-3. Total table width (cells + separators) likely exceeds ~80–120 chars.
-
-When none of these fire, markdown tables remain the right choice — they're compact and scannable for short-label tabular data (verdict counts, status counts, single-word rows).
-
-**Use definition-list / key:value blocks instead.** Each conceptual table row becomes a block of `Key: value` lines separated by the unicode box-drawing rule `────────────────────────────────────────` (`─` × 40). The lead-in line names the row's primary identifier; subsequent lines carry the columns. Example — broken markdown table on the left, definition-list rewrite on the right:
-
-```
-| Ticket | Title                   | State | Scope                                   |
-|--------|-------------------------|-------|-----------------------------------------|
-| SHF-X  | Prompt substrate retar… | Done  | Different — moved prompts, not stage l… |
-| SHF-Y  | HMAC envelope + BG wo…  | Done  | Different — wrapper layer, not stage l… |
-```
-
-Rewritten:
-
-```
-Ticket: SHF-X
-Title: Prompt substrate retarget (move *.prompt.md + codegen)
-State: Done
-Scope: Different — moved prompts, not stage logic
-────────────────────────────────────────
-Ticket: SHF-Y
-Title: HMAC envelope + BG worker relocation
-State: Done
-Scope: Different — wrapper layer, not stage logic
-```
-
-The separator is unicode `─` × 40, not markdown `---`. Markdown `---` renders as `<hr>` in some contexts and is often invisible in terminal chat panes — the unicode rule reads consistently across renderers.
-
-### Density caps
-
-A wall of small visuals is the same problem as a wall of text. Each rendered section caps:
-
-- **Cycle visualisations:** at most 3 per output; if there are more cycles, list the rest as ID-only one-liners with "(see structural diagnostics log)"
-- **Queue partition grid:** at most 10 rows visible; rest collapses to "(+ N more)" with the full list in the log
-- **Workstream lane:** at most 7 initiatives in the live view; rest in log
+How sub-skills turn structure into output (visual-vs-prose split, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) is the **rendering contract**, owned by the `language` slot. The default is `faffter-noon-language` — see that skill's `SKILL.md`. Any sub-skill that emits user-facing output renders through the configured `language` skill; the catalogue of visual forms is closed there, not extended inline.
 
 ## Synthesis contract
 
@@ -614,110 +503,21 @@ Glosses generated for a given issue id during one invocation are reused within t
 
 Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references this contract via `See gateway → Synthesis contract` rather than re-stating.
 
-## Structural diagnostics contract
+## Backlog diagnostics — the `methodology` slot
 
-The pass `/faff-tidy` runs to detect issues with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps. Findings are consumed by other faff sub-skills.
+Detecting problems with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps — is the `backlog-diagnostics` output, owned by the `methodology` slot. The default is `faffter-noon-methodology-structural`, whose `backlog-diagnostics` always fires regardless of config (it is the structural baseline every faff pass depends on). See that skill's `SKILL.md` for the detection categories, mechanical fixes, and rendered output.
 
-### Detection categories
+Two findings from `backlog-diagnostics` feed the **Automation-routing contract** below: an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
 
-| Category | What | How |
-|---|---|---|
-| **Dependency cycles** | Blocker graph cycle of any length (A→B→A; A→B→C→A; longer) | Tarjan / DFS-with-coloring pass over the full active-issue blocker graph. Cancelled/archived already filtered per the **Ignore cancelled and archived** rule. |
-| **Ghost-project pointers** | An issue spec or description names a tracker container (project, initiative, milestone — whatever the tracker calls it) that does not exist | String-match against the live container list from the tracker MCP |
-| **Repeat-park patterns** | Active issue parked 3+ times in last 21 days (configurable in `.faffrc`) with the same root-cause class | Reads last 50 `.faff/runs/*/summary.md` files; classifies each park by root-cause class enum (see below) |
-| **Splittable specs** | Spec describes two structurally independent concerns AND each concern is a valid ticket-sized unit | LLM inspection — restricted to specs already flagged stale/challenged by existing tidy logic (don't sweep every spec every run) |
-| **Chain gaps** | Any active ticket whose spec's implementation advice references work no ticket tracks — the chain from current state to fulfilling the spec's purpose is broken because some piece of the implied work has no ticket to carry it. Four sub-types: **sub-ticket gap** (umbrella's spec enumerates multiple remaining deliverables — multi-PR, multi-phase, numbered steps — but no Todo / In Progress / In Review sub-ticket exists for the next deliverable; `/faff-workit` has nothing to pick up to advance the umbrella); **upstream gap** (spec names a prerequisite — "blocked by X", "needs Y first", "assumes Z has shipped" — that has no ticket); **downstream gap** (spec names follow-up work — "subsequent PR will...", "leaves W for later", "after this, wire up V" — that has no ticket); **peer gap** (spec implementation advice describes parallel work that must also happen for the change to be useful — consumer wire-up, integration changes, related refactor — that has no ticket). | (1) Active ticket (Todo / In Progress / In Review) with a discoverable spec. (2) Parse the spec's implementation-advice section(s) for: multi-deliverable enumeration markers ("PR 1 / PR 2", "PR A / PR B", "Phase 1 / Phase 2", "Step N of M", "follow-up PR", numbered/bulleted lists with PR-shaped action verbs — sub-ticket gap); upstream-dependency phrases ("blocked by", "needs X first", "assumes Y has shipped", "depends on Z", "prerequisite" — upstream gap); follow-up phrases ("subsequent PR", "follow-up ticket", "leaves W for later", "after this", "next phase" — downstream gap); parallel-work phrases ("consumer-side changes in X", "also needs Y in the same workstream", "integration changes in service Z", "related refactor" — peer gap). (3) For each referenced work unit, search the active-ticket graph for a match: sub-ticket of this ticket (sub-ticket gap); tracked blocker / upstream ticket whose title/description matches the prereq (upstream gap); follow-up ticket linked via "blocks" or whose title matches (downstream gap); sibling/peer ticket in the same workstream matching the description (peer gap). (4) If no match → chain gap. (5) For sub-ticket gaps additionally check: count enumerated deliverables `E`, count `C` = (sub-tickets in any state) + (merged PRs directly referencing the parent ID); flag when `E > C` AND no sub-ticket is in Todo / In Progress / In Review. Conservative: skip when the spec is unitary, when the referenced work is in scope for the current PR, when the reference is illustrative rather than load-bearing, when the spec explicitly disclaims ("future work — not ticketed by design"), and when an actionable next-step ticket already exists. Complements delivery-methodology principle 6 (hidden deps), which catches the *inverse* — referenced work that *does* have a ticket but is missing a declared blocker link. |
-| **Orphaned + repeat-parked** | Cross-reference of existing orphaned-by-cascade detection with repeat-park | Set intersection of the two finding sets |
+### Root-cause class enum (shared taxonomy)
 
-Detection is conservative. False positives in this phase are expensive — the human gets a recommendation that's wrong and has to override. **When in doubt, don't flag.**
-
-### Root-cause class enum
-
-Used by repeat-park detection. Deliberately coarse so the same underlying problem ("the spec doesn't say whether to migrate or fork the table") matches across runs even when the literal park-note text varies.
+This enum is gateway-owned because it is shared across two consumers: repeat-park detection in the methodology's `backlog-diagnostics`, and the calibration log. Deliberately coarse so the same underlying problem ("the spec doesn't say whether to migrate or fork the table") matches across runs even when the literal park-note text varies.
 
 - `punt-not-closed` — park reason cites a Punt marker the spec didn't close
 - `gap` — park reason cites an external state that doesn't exist
 - `cycle` — park reason cites a dep cycle
 - `spec-ambiguous-external` — park reason cites an external decision the spec can't make alone
 - `other` — everything else (rarely matches across runs; effectively prevents false-positive repeat-park flagging)
-
-### Level-2 mechanical fixes (auto-applied in autonomous; offered in interactive)
-
-These are the new mechanical mutations introduced in Spec 1, applied per the existing Level-2 boundary in the **Autonomous Mode Contract**.
-
-| Detection | Mechanical fix |
-|---|---|
-| Cycle where one edge is defensive-not-load-bearing (the spec for A doesn't actually reference B's output) | Strip the defensive edge. Log the cycle, the stripped edge, the reasoning. |
-| Ghost-project pointer where the named container **clearly maps** to an existing container by name proximity (e.g. spec says "logging-cleanup project", tracker has "Logging cleanup") | Repoint the issue to the existing container. Log the move. |
-| Repeat-park (3+ runs, same root-cause class), issue still in Todo | Demote to Backlog, tag with `repeat-parked` (or tracker equivalent). Log the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue. |
-
-Three detection categories surface only in default mode — do **not** auto-apply (one of them, chain gaps, *does* auto-apply when a methodology skill is configured; see below):
-
-- **Splittable specs** — interactive: offer to chain to `/faff-prep --split`. Autonomous Level-2: log only.
-- **Chain gaps** — *default mode:* interactive surfaces each gap with the active ticket, sub-type (sub-ticket / upstream / downstream / peer), the referenced work, what's already covered (sub-ticket gaps only — sub-tickets + merged PRs by direct ref), the un-ticketed remainder, and the recommended action: for sub-ticket gaps chain-offer `/faff-prep --split` over the parent; for upstream / downstream / peer offer "file gap issue" (create the missing ticket with the appropriate relationship — blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer). Autonomous Level-2: log only. *When a methodology skill is configured (interactive or autonomous):* **auto-create the missing ticket(s) per sub-type** — sub-ticket gaps: one Backlog sub-ticket per un-ticketed deliverable, parent set to the umbrella; upstream gaps: one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it; downstream gaps: one Backlog ticket for the follow-up + link "blocked-by" the active ticket; peer gaps: one Backlog ticket for the parallel work in the same workstream/parent. All created tickets: title from the spec reference line, description = the referenced prose + back-link to the source ticket, status `Backlog`, tag `faff-chain-gap-fill` so `/faff-prep`'s next queue pass picks them up. Log every created ticket with id, sub-type, source spec line, and the relationship target (parent / blocker / blocked-by / sibling). Skip auto-create and downgrade to surface-only when the reference is ambiguous (no clear deliverable per line, no nameable target for the relationship, prose-y rather than action-verb-led) — phantom tickets are expensive to clean up.
-- **Orphaned-by-cascade + repeat-parked** — surface only. Cancelling is destructive; always human.
-
-### Output section
-
-Tidy renders a `### Structural diagnostics` section when any finding exists. Format follows the **Visualisation-over-prose contract** — cycles use the cycle bracket (≤3 edges) or cycle box (4+ edges) form. Example:
-
-```
-### Structural diagnostics
-
-Cycles (1)
-  [ISSUE-AA → ISSUE-BB → ISSUE-CC → ISSUE-AA]
-  ISSUE-AA  Onboarding redirect — needs session state from BB
-  ISSUE-BB  Auth refresh — needs profile data from CC
-  ISSUE-CC  Profile init — claims to need redirect path from AA, but spec doesn't reference it
-  Recommendation: strip the CC→AA edge (defensive-only). Auto-applied in this run.
-
-Ghost-project pointers (1)
-  ISSUE-XX names "Audit lite" project — no such project exists in tracker.
-  Closest match: "Audit lite reliability" (live, 4 issues). Repointed in this run.
-
-Repeat-parks (2) ⚠
-  ISSUE-VV  Storage migration — parked 4 times, all on "schema versioning Punt" (same root cause).
-            Demoted to Backlog. Resolve the Punt via /faff-prep --refresh and re-promote.
-  ISSUE-WW  Webhook retry — parked 3 times on "billing-events gap" (same root cause).
-            Demoted to Backlog. Decide whether the dep is real; file the gap issue or descope.
-
-Splittable specs (1) — surfaced only, not auto-split
-  ISSUE-YY  Settings page rewrite — spec covers (a) URL routing changes and
-            (b) form-state refactor. The two have no overlapping files and could
-            ship independently. Run /faff-prep --split to break out.
-
-Chain gaps (4) ⚠ — surfaced only in default mode, auto-ticketed when methodology configured
-  ISSUE-AA  Mastra audit pipeline lift — umbrella, In Progress.
-            Sub-ticket gap: spec enumerates 8 deliverables (PR 1–2 shipped via
-            #243/#244, PR 3 carved out as ISSUE-BB and shipped). 5 un-ticketed:
-            consumer wire-up (audit-pipeline-background.ts), 3 per-stage lifts
-            (captureScreenshot/extractColors/generatePalette), default flip.
-            No Todo or In Progress sub-ticket exists — /faff-workit has nothing
-            to pick up next. Recommendation: chain to /faff-prep --split to
-            carve the remaining 5.
-  ISSUE-CC  Profile init refresh — Todo.
-            Upstream gap: spec assumes "auth refresh has shipped" prereq, but no
-            ticket exists for that work. Recommendation: file the prerequisite +
-            add blocker link CC → new-prereq.
-  ISSUE-DD  Settings page rewrite — In Progress.
-            Downstream gap: spec ends "subsequent PR will migrate the legacy
-            /settings/* redirects" — no follow-up ticket exists.
-            Recommendation: file the follow-up + link blocked-by ISSUE-DD.
-  ISSUE-EE  Stripe webhook retry — Todo.
-            Peer gap: spec implementation advice references "consumer-side changes
-            needed in billing-events service" — no peer ticket in the same
-            workstream. Recommendation: file the peer ticket + tag the workstream.
-
-Orphaned + repeat-parked (1) ⚠
-  ISSUE-ZZ  Old auth fallback — parent project cancelled 6 weeks ago,
-            issue parked 3 times since. Is this still wanted?
-```
-
-### Consumption by other sub-skills
-
-- `/faff-wtf` always renders the structural-diagnostics summary in the morning brief, even if empty (`Structural diagnostics: clean ✓`). Repeat-parks and orphaned+repeat-parked surface in **Heads up** prominently.
-- `/faff-beep-boop` consumes cycle and ghost-project findings when computing automation-routing verdicts (see **Automation-routing contract**) — an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
-- `/faff-whereto` consumes ghost-project pointers as evidence for its Phase 7 risk findings.
 
 ## Automation-routing contract
 
@@ -731,12 +531,12 @@ Every Todo issue with a discoverable spec gets exactly one **verdict** that says
 | `likely-fire` | Spec `confidence: high` but in a collision group with other in-queue work | Builds in next autonomous run, serialised within its group |
 | `needs-decision-first` | Spec contains explicit `Punt:` / `needs human` / `TBD` / "or X if Y" marker that is **not** spec-closed | Resolve-attempt (see **Autonomous Mode Contract** → resolve-attempt); if attempt fails, skipped and surfaced in wtf with the specific decision asked |
 | `gap-blocked` | Spec assumes external state (tracker issue, project, dep) that doesn't exist | Resolve-attempt; if fails, skipped and surfaced with the named gap |
-| `circular-blocked` | Issue sits in a dep cycle detected by **Structural diagnostics contract** | Resolve-attempt; if fails, skipped and surfaced with the cycle visualised |
-| `repeat-parked` | Parked 3+ times in autonomous runs with the same root-cause class (see Structural diagnostics) | **Skipped — no resolve-attempt.** The pattern itself is the signal that a human needs to act. Surfaced prominently in wtf. |
+| `circular-blocked` | Issue sits in a dep cycle detected by the methodology slot's `backlog-diagnostics` | Resolve-attempt; if fails, skipped and surfaced with the cycle visualised |
+| `repeat-parked` | Parked 3+ times in autonomous runs with the same root-cause class (see **Root-cause class enum**) | **Skipped — no resolve-attempt.** The pattern itself is the signal that a human needs to act. Surfaced prominently in wtf. |
 
 ### Computation locus
 
-The verdict is computed in `/faff-tidy`'s structural diagnostics phase, written to:
+The verdict is computed in `/faff-tidy`'s backlog-diagnostics phase, written to:
 
 - `.faff/runs/<run-id>/automation-verdicts.md` when invoked by `/faff-beep-boop` (full pipeline)
 - `.faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` when tidy runs standalone
@@ -755,7 +555,7 @@ When computing `likely-fire`, the verdict computation **anticipates** the collis
 
 ### Display format (consumed by `/faff-wtf` and `/faff-beep-boop`)
 
-Replaces the previous `★ fire-and-forget` annotation. Renders via the **Visualisation-over-prose contract** → queue partition grid (form (c)). Compact form:
+Replaces the previous `★ fire-and-forget` annotation. Renders via the `language` slot → queue partition grid (form (c)). Compact form:
 
 ```
 Build queue (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
@@ -778,121 +578,6 @@ Needs your call before automation can pick up:
 ```
 
 The synthesis gloss (see **Synthesis contract**) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the visualisation contract.
-
-## Delivery-lead methodology (DEPRECATED — moved to faffter-dark-methodology-agile-delivery)
-
-This section is retained for backwards compatibility. The methodology has been extracted into a pluggable skill at `skills/faffter-dark-methodology-agile-delivery/SKILL.md`.
-
-**Migration:** replace `mode: delivery-lead` with `planning_skills.methodology: faffter-dark-methodology-agile-delivery` in `.faffrc`. The old `mode` key is still honoured (mapped internally to the methodology slot) but will be removed in a future version.
-
-### Configuration
-
-```yaml
-planning_skills:
-  methodology: faffter-dark-methodology-agile-delivery   # or any other methodology skill
-```
-
-When the `methodology` slot is set, every sub-skill invokes it for diagnostic findings on top of structural analysis. When unset, faff applies pure structural diagnostics only.
-
-### Rendering
-
-When the mode is active, every sub-skill renders the line `Delivery-lead view: on` at the top of its output (or run summary, for `/faff-beep-boop`). This is informational — it tells the human and any downstream skill that the lens is on.
-
-### The seven principles
-
-Each principle has: the rule, why it matters, what the violation looks like in tracker shape, and a diagnosis template sub-skills use when surfacing it. Diagnosis bracketed `[placeholder]` values are filled in by the rendering sub-skill — they are not unspecified items in this contract.
-
-#### Principle 1: Outcome-named workstreams, not activity-named
-
-**Rule.** Workstreams (whatever the tracker calls them — initiatives, projects, milestones, epics) are named by the user-facing or business outcome they produce. "Alerting overhaul." "Auth hardening." "Onboarding speed-up." Not by activity type — "Bugs", "Refactors", "Tech debt", "Q2 sprint 3".
-
-**Why.** Activity-named workstreams hide priority (every bug is in "Bugs", so which matters?), conflate unrelated work (a critical auth bug and a typo fix in the same bucket), and break sequencing (you can't sequence "Refactors" — there's no shared outcome to optimise toward).
-
-**Violation shape.** A workstream's name is a category, a sprint, a quarter, a team, or a technology layer rather than a deliverable.
-
-**Diagnosis template.** _"Workstream '[name]' is activity-named. This makes sequencing inside it meaningless — there's no shared outcome these tickets share. Consider regrouping them by outcome: which user-facing change does each one belong to?"_
-
-#### Principle 2: Sequence by value × risk, not by ticket order
-
-**Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone.
-
-**Why.** Tracker priority is noisy and stakeholder-influenced. Optimising for value-per-week shipped is the actual goal of a delivery practice. Risk-aware sequencing means de-risking earlier so unknown work doesn't surface at the worst moment.
-
-**Violation shape.** Current sequencing order (the `## Do this` or build-queue order) is materially different from a value × risk × dep-aware order. Specifically: an issue that unlocks N value-shipping tickets is sitting behind an isolated cleanup; or a high-risk integration is sequenced last; or a quick value win is buried below months of prep work.
-
-**Diagnosis template.** _"Current sequencing would ship value at week N. Value-aware sequencing (ISSUE-A → ISSUE-B → ISSUE-C first) would ship value at week M. The blocker is that ISSUE-X (currently first) creates no shipped value on its own — it unlocks the same downstream as ISSUE-A, but ISSUE-A also ships standalone value."_
-
-#### Principle 3: WIP cap (humans only — autonomous work is unbounded)
-
-**Rule.** *Human* in-flight work (issues a person is actively building) is capped at 3. Autonomous work (e.g. `/faff-beep-boop` runs) is **not WIP-capped** — the whole point of automating is to remove human-flow constraints from machine throughput. WIP applies to items a person juggles, not to items the machine ships overnight.
-
-**Why.** Too much *human* in-flight breaks flow — context-switching eats throughput, a finished item ships value, a half-finished one doesn't. None of that applies to autonomous runs: each task runs in an isolated context with no cognitive cost. A PR awaiting human review is queued for human attention but does not count against the human's in-flight WIP — the human reviews one at a time and that review attention is a separate flow concern.
-
-**Violation shape.** Human-driven in-flight count > 3 — or any new pull recommendation surfaced to a human when their count is already at 3. Autonomous build queues never violate this principle by construction.
-
-**Diagnosis template (human-facing only).** _"WIP at N (cap 3). Flow > throughput. Finish ISSUE-X or ISSUE-Y before pulling new work. Recommending [next item] only after one in-flight item ships."_
-
-Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
-
-#### Principle 4: Right-sized tickets
-
-**Rule.** A ticket is a 1–3 day unit of work. Larger units split. Smaller units merge if they always ship together.
-
-**Why.** Tickets that fit a day or three give honest sequencing and accurate burn-down. Ticket-as-epic hides progress (it sits "In Progress" for two weeks signalling nothing); ticket-as-micro fragments the picture.
-
-**Violation shape.** A ticket whose spec covers two structurally independent concerns (each a valid 1–3 day unit) — split candidate. A ticket whose spec is one sentence with no clear deliverable — vague candidate (already flagged by Spec 1). A pair of always-ship-together tickets — merge candidate.
-
-**Diagnosis template.** _"ISSUE-X looks too big — its spec covers [concern A] and [concern B], which are independent. Splitting into two tickets gives honest sequencing and lets [concern A] ship without waiting on [concern B]."_
-
-#### Principle 5: Cohesive workstreams
-
-**Rule.** A workstream encodes one outcome. Mixed-purpose workstreams (multiple outcomes bundled, or one outcome plus a catch-all) are smell.
-
-**Why.** A workstream is a sequencing and grouping unit — if it has two outcomes, you can't sequence inside it (the right order for outcome A is different from outcome B), and the workstream's "done" is meaningless.
-
-**Violation shape.** Tickets within a single workstream describe two or more distinct outcomes; or a single workstream has a clear primary outcome plus several "while we're at it" tickets.
-
-**Diagnosis template.** _"Workstream '[name]' contains [outcome A] and [outcome B]. These have different sequencing inside the workstream and different completion criteria. Consider splitting."_
-
-#### Principle 6: Surface dependencies
-
-**Rule.** Every load-bearing dependency between tickets is named explicitly via the tracker's blocker/blockedBy relationship. Implicit deps (assumed by humans, not encoded in the tracker) are unfinished thinking.
-
-**Why.** Implicit deps cause silent regression — a ticket gets pulled "ready" when it actually needs another ticket's output. Spec 1's automation-routing relies on the blocker graph being honest.
-
-**Violation shape.** A spec references work in another ticket (by ID or by clear paraphrase) without that other ticket being a declared blocker. Or a workstream's tickets clearly depend on a non-workstream ticket without a link.
-
-**Diagnosis template.** _"ISSUE-X's spec references ISSUE-Y's output but there's no blocker link. If the dep is real, link it (so /faff-beep-boop and /faff-wtf can sequence honestly); if not, the reference in the spec should go away."_
-
-#### Principle 7: Risk-aware sequencing
-
-**Rule.** Higher-risk work — novel integrations, unproven approaches, dependencies on external teams — is sequenced early or de-risked separately. The unknown does not all land at the end.
-
-**Why.** Risk piled at the end means schedule estimates are lies. Early-de-risking gives the team time to course-correct before commitment.
-
-**Violation shape.** The work most likely to surprise (large new integration, unfamiliar territory, external dep) is sequenced near the end of an initiative. Or no risk de-risking work exists — everything assumes the plan holds.
-
-**Diagnosis template.** _"Initiative '[name]' sequences ISSUE-Z (a new [integration / approach / external dep]) last. If ISSUE-Z surprises, the surprise lands at the worst time. Consider pulling it forward, or splitting a small de-risking spike before committing to the full ISSUE-Z scope."_
-
-### Per-skill consumption
-
-Pointers to where each sub-skill applies the methodology. Details live in each sub-skill's `SKILL.md`.
-
-- **`/faff-wtf`** — adds `### Delivery view` section after `### Today's Focus`. Surfaces principle 3 (WIP) and the top 1–2 structural diagnoses from principles 1, 5, 6, 7. `### Today's Focus` is WIP-aware per principle 3.
-- **`/faff-whereto`** — Phase 1 (Now/Next/Later) re-sequenced inside each horizon by principles 2 + 7. Phase 7 (Risks the structure surfaces) gains findings from principles 1, 5, 6, 7 alongside existing Spec 1 risks.
-- **`/faff-tidy`** — new findings phase (parallel to Spec 1's structural diagnostics) surfacing delivery-methodology violations from principles 1, 4, 5, 6. Surface-only.
-- **`/faff-prep`** — appends `## Delivery critique` block to spec output. Checks principles 1, 4, 5, 6, 7 per issue.
-- **`/faff-beep-boop`** — build-queue ordering uses principles 2 + 7 in place of Spec 1's priority + chainable-unlock-value alone. No WIP gating (principle 3 is human-flow-only); admission stays governed by the Spec 1 verdict gate. Run summary gains `## Delivery-lead view` listing diagnoses surfaced during the run.
-
-### Tone discipline
-
-Diagnoses are **educational, not preachy**. The user opted in because they want to learn what good delivery looks like by watching faff apply it. Every diagnosis follows the shape:
-
-1. **What's there.** Describe the situation factually.
-2. **Why it's a problem.** Name the concrete consequence.
-3. **What to do about it.** Recommend a specific action.
-
-Never: *"You're doing this wrong."* / *"Best practice is..."* / *"You should..."*. Describe the situation and its consequence; the user decides what to do. The methodology is opinionated; the voice is not.
 
 ## Routing
 

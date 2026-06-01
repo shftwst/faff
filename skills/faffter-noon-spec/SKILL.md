@@ -2,7 +2,7 @@
 
 The default spec format contract. Defines the canonical markers, writing style rules, and validation criteria that every spec must satisfy — regardless of which skill produced it.
 
-This is the shared contract between spec producers (faff-prep, faffter-dark-nlspec, any delegated `spec` skill) and spec consumers (faff-workit, faff-beep-boop). Extracted here so the contract is defined once and referenced everywhere.
+This is the shared contract between whatever produces a spec and whatever consumes one. Defined once here and referenced everywhere via the `spec_format` slot.
 
 ```yaml
 planning_skills:
@@ -11,7 +11,7 @@ planning_skills:
 
 ## Purpose
 
-The autonomous reader in faff-workit and faff-beep-boop needs to parse specs mechanically — identify which decisions are closed, which are open, which have external dependencies. Without this contract, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers.
+An autonomous reader needs to parse specs mechanically — identify which decisions are closed, which are open, which have external dependencies. Without this contract, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers.
 
 ## Canonical markers
 
@@ -67,24 +67,28 @@ Before attaching a spec (faff-prep runs this):
 
 ## Default spec structure (lite nlspec arc)
 
-When no `spec` skill is configured, faff-prep produces an inline spec following this structure:
+When no richer `spec` skill is configured, the inline spec follows this four-phase arc — motivation to verifiable done:
 
-1. **WHY** — Problem statement (status quo → pain → solution), design principles, out-of-scope with extension points
-2. **WHAT** — Types, APIs, interfaces. Each decision marked with canonical markers.
-3. **HOW** — Architecture, pseudocode at ambiguity points, risks and edge cases
-4. **DONE** — Closed-loop testable checklist mirroring body sections 1:1
+**1. WHY** — Problem statement and scope
+- One paragraph: status quo → pain → what this change does about it
+- Design principles (any non-obvious constraints) as bold-lead sentences
+- Out of scope — what this deliberately does NOT do, each with a one-line note on where it could be added later (extension point)
 
-This structure is the minimum. Delegated spec skills (like faffter-dark-nlspec) may produce richer output — as long as it satisfies the marker contract and writing style rules above.
+**2. WHAT** — Data and interfaces
+- Type shapes, API surfaces, component props, data schemas the build agent needs to know exist
+- Key technical decisions with pros/cons — each concluded with a canonical marker
+- Open questions in an "Open Questions" section (`**Punt:**`); external prerequisites in an "Assumptions" section (`**Assumes:**`)
 
-## Consumers
+**3. HOW** — Behaviour
+- Architecture and approach — how the pieces connect
+- Pseudocode at ambiguity points — anywhere prose alone could be read two ways, add a setup/action/assert or step-by-step block
+- Risks, edge cases, what could go wrong
 
-| Skill | How it uses this contract |
-|---|---|
-| **faff-prep** | Validates before attach. Passes contract to delegated spec skills. |
-| **faff-workit** | Reads markers to identify closed decisions (don't re-raise), open decisions (escalate), and assumptions (validate before build). |
-| **faff-beep-boop** | Uses markers in automation-routing verdict computation. `Punt:` → `needs-decision-first`. `Assumes:` with false assumption → `gap-blocked`. |
-| **faffter-noon-review** | Checks spec fidelity — does the code implement what `**Chosen:**` says? |
-| **faffter-dark-holdout** | Derives holdout scenarios from the DONE section. |
+**4. DONE** — Definition of Done (closed-loop)
+- A testable checklist mirroring the body sections 1:1. Every WHY/WHAT/HOW requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded ones.
+- If cross-boundary, recommend a split.
+
+This structure is the minimum. Richer spec skills (like faffter-dark-nlspec) may produce more — as long as they satisfy the marker contract and writing style rules above.
 
 ## Rules
 

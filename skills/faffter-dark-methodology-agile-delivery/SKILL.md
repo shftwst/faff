@@ -1,6 +1,6 @@
 # faffter-dark-methodology-agile-delivery
 
-Agile delivery methodology lens. When plugged into faff's `methodology` slot, every sub-skill applies these seven principles to diagnose backlog problems, explain them in plain English, and recommend fixes. Surface-only — no autonomous tracker mutations.
+Agile delivery methodology lens. Fills the `methodology` slot and answers requests for backlog/build outputs through seven delivery principles — diagnosing problems, explaining them in plain English, and recommending fixes. Surface-only at low/medium appetite — no autonomous tracker mutations.
 
 Configure in `.faffrc`:
 
@@ -9,21 +9,23 @@ planning_skills:
   methodology: faffter-dark-methodology-agile-delivery
 ```
 
-## How sub-skills consume this
+## Outputs
 
-Each sub-skill that supports a methodology lens invokes this skill with its context (issues, sequencing, backlog state). This skill returns structured findings. The sub-skill renders them in its output.
+This skill fills the `methodology` slot, so it answers the same named outputs as the default methodology (`pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`) — but through the seven-principle lens rather than pure graph structure. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
-**Contract between sub-skills and this skill:**
+Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: delivery-lead` for the caller to display.
 
-- Sub-skill provides: the relevant issues, their state, sequencing, workstream grouping, dependency graph
-- This skill returns: findings (principle violated, diagnosis, recommended action)
-- Sub-skill renders: findings in a `### Methodology findings` section (or skill-specific equivalent)
+How the principles map onto the outputs:
 
-When this slot is unset, sub-skills skip the methodology pass entirely — pure structural diagnostics only.
+| Output | Principles applied |
+|---|---|
+| `pick-ordering` / `build-queue` | 2 (value × risk), 7 (risk-aware) — override structural priority+unlock when materially different |
+| `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
+| `backlog-diagnostics` | 1 (outcome-named), 4, 5 (cohesive), 6 |
+| `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
+| `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 
-## Rendering
-
-When active, every sub-skill renders the line `Methodology: delivery-lead` at the top of its output. This tells the human and any downstream skill that the lens is on.
+The WIP cap (principle 3) applies to `standup-digest` only — never to `build-queue` (autonomous work is unbounded).
 
 ## The seven principles
 
@@ -101,18 +103,6 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 
 **Diagnosis template.** _"Initiative '[name]' sequences ISSUE-Z (a new [integration / approach / external dep]) last. If ISSUE-Z surprises, the surprise lands at the worst time. Consider pulling it forward, or splitting a small de-risking spike before committing to the full ISSUE-Z scope."_
 
-## Per-skill consumption
-
-Which principles each sub-skill applies:
-
-| Sub-skill | Principles applied | What it does with them |
-|---|---|---|
-| `/faff-wtf` | 3, 1, 5, 6, 7 | `### Methodology findings` section after Today's Focus. P3 (WIP) gates pull recommendations. |
-| `/faff-whereto` | 2, 7, 1, 5, 6 | Re-sequences inside each horizon by value x risk. Surfaces violations in the risk phase. |
-| `/faff-tidy` | 1, 4, 5, 6 | New findings bucket. Surface-only — no auto-actions. |
-| `/faff-prep` | 1, 4, 5, 6, 7 | `## Methodology critique` appended to spec output. Does not block confidence-high promotion. |
-| `/faff-beep-boop` | 2, 7 | Build-queue ordering uses value x risk. No WIP gating (P3 is human-only). Run summary lists diagnoses. |
-
 ## Tone discipline
 
 Diagnoses are **educational, not preachy**. The user opted in because they want to learn what good delivery looks like. Every diagnosis follows:
@@ -125,7 +115,7 @@ Never: "You're doing this wrong." / "Best practice is..." / "You should...". Des
 
 ## Appetite integration
 
-This skill reads the suite-wide `appetite` setting from `.faffrc` (gateway → **Appetite for destruction**). Appetite governs how much this skill acts vs. surfaces:
+This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite governs how much this skill acts vs. surfaces:
 
 **low — surface only.**
 - All findings are informational. No tracker mutations. No reordering.

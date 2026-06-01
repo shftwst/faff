@@ -19,7 +19,7 @@ See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration 
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
-**Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per gateway → **Visualisation-over-prose contract** — preserved as-is.
+**Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per the `language` slot (default `faffter-noon-language`) — preserved as-is.
 
 **Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]`. Phase 1 (Now/Next/Later) re-sequences inside each horizon using the methodology skill's sequencing logic (e.g. value x risk x dep-aware order) instead of tracker priority + chainable-unlock-value alone. Phase 7 (Risks) gains methodology findings alongside existing structural risks. Skipped silently when no methodology is configured.
 
@@ -136,14 +136,7 @@ The output of Phases 1-6 surfaces risks that aren't visible from any single init
 
 If no tidy ran this pass, whereto computes its own ghost-project scan (initiative-description-side only) as it already does — but the tidy-found issue-side ghost pointers are absent. Flag this in the output: "No tidy this pass — issue-side ghost-pointer detection skipped. Run `/faff-tidy` for full structural coverage."
 
-**Methodology findings (when a `methodology` skill is configured).** In addition to structural risk categories, invoke the methodology skill and surface its findings:
-
-- **Activity-named workstreams** (principle 1): workstreams named by activity / sprint / quarter / team / technology rather than outcome.
-- **Mixed-purpose workstreams** (principle 5): a workstream containing tickets describing two or more distinct outcomes.
-- **Hidden deps** (principle 6): a spec referencing another ticket's output without a declared blocker link.
-- **Risk-backloaded initiatives** (principle 7): a high-risk integration / unproven approach / external dep sequenced near the end of an initiative.
-
-Each finding renders its full diagnosis (what's there / why it's a problem / what to do) per the methodology's diagnosis templates. Findings interleave with the existing Spec 1 risks, ordered by severity (impact × scope).
+**Methodology findings (when a `methodology` skill is configured).** Request the `horizon-assignment` output from the methodology skill; alongside the horizon ordering it returns roadmap-level findings. Surface those here in addition to the structural risk categories. Each finding renders its full diagnosis (what's there / why it's a problem / what to do) as the methodology returns it. Findings interleave with the existing structural risks, ordered by severity (impact × scope).
 - **Independence not verified**: a Now project has N issues that beep-boop is supposed to drain in parallel, but no one has confirmed they're actually independent. Recommend a `/faff-tidy` pass before queuing overnight runs.
 - **Single-project Later (intentional vs accidental)**: Later horizons are often deliberately collapsed to one project (the methodology doc usually explains why — uncertainty about productised shape until Now ships). Flag whether each single-project Later is intentional (cite the methodology) or just under-planned.
 - **Parked issue waiting on missing trigger**: a parked issue's unpark condition is "when [specific upstream] ships", but [specific upstream] doesn't exist as a planned project. The park is structurally permanent until the gap closes.
@@ -157,7 +150,7 @@ Three to five sentences max. Lead with how many outcomes are in flight, whether 
 
 ## Output Format
 
-Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `language` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffter-noon-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 ```
 ## Roadmap — [date]

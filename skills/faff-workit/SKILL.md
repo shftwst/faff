@@ -175,15 +175,9 @@ Runs after AC verification, before the merge-confidence gate. **This step is non
 
 If this step is reached without being in the todo list, **stop and add it**, then run it before proceeding to Step 10 or 11.
 
-- If a `review` slot is configured under `planning_skills` in `.faffrc`, invoke it.
-- Otherwise, perform the faff built-in review (faff-workit playing the senior-engineer role):
-  - Read the full diff
-  - Confirm every AC in the spec has a corresponding test reference
-  - Scan for obvious bugs (unused vars, commented-out blocks, uncaught promises, mismatched async/sync, leftover debug prints)
-  - Sanity-check the change is within spec scope (no out-of-scope refactors smuggled in)
-  - Judge whether any decision in the diff requires human judgement that the spec didn't anticipate (product UX calls, security posture, irreversible external effects — see the Autonomous Mode Contract in `skills/faff/SKILL.md`)
+Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and verdict rules are that skill's concern, not faff-workit's. faff-workit owns only the sequencing around the result.
 
-The review must return one of three signals:
+The review returns one of three signals:
 
 | Signal | Meaning | Autonomous action |
 |---|---|---|

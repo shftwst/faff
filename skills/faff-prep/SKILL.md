@@ -30,8 +30,6 @@ When configured, faff-prep invokes this skill, captures its output, and manages 
 
 **Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined in _Spec Format Contract_ below. Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
 
-When invoking a delegated spec skill, faff-prep passes the _Spec Format Contract_ as part of the instructions so the delegated skill produces markers the autonomous reader can rely on.
-
 **Inline path is autonomous-capable.** When no `spec` skill is configured (or the configured one can't self-rate), faff-prep produces the inline spec itself and self-rates it — it has full visibility into the explore findings, the Spec Format Contract, and the resulting markers, so it can honestly assess whether the spec is high/medium/low confidence. The inline path is never a park reason on its own; the same confidence gate applied to delegated output also applies to the inline output.
 
 ## What Prep Produces
@@ -58,45 +56,9 @@ In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique
 
 ## Spec Format Contract
 
-Every spec faff-prep produces (delegated or inline, fresh or refreshed) must mark each non-trivial decision with one of the canonical markers below. This is the contract the autonomous reader in `/faff-workit` and `/faff-beep-boop` relies on — without it, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers.
+Every spec faff-prep produces (delegated or inline, fresh or refreshed) must satisfy the spec format contract defined by the `spec_format` slot (default `faffter-noon-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep is a producer — it conforms to that contract, it does not redefine it. References to "_Spec Format Contract_" elsewhere in this skill mean the slot's contract.
 
-**Required markers (one per decision):**
-
-| Marker | Meaning | Example |
-|---|---|---|
-| `**Chosen:** X` or `**Decision:** X` | Closed. The spec has picked X. Implementer does X. Reader must not re-raise. | `**Chosen:** pino — structured JSON logs, smallest dep footprint of the shortlist.` |
-| `**Punt:** X or Y — needs human` | Open. The spec has explicitly deferred this to a human reviewer. Reader escalates. | `**Punt:** enforce via eslint rule or code-review checklist — needs human.` |
-| `**Assumes:** X exists` | External dependency. Reader validates presence before build; parks if absent. | `**Assumes:** ISSUE-42 has shipped the auth middleware.` |
-
-**Rules:**
-
-1. Every decision section (tradeoff tables, "X vs Y" comparisons, architecture picks) must conclude with exactly one marker. Prose rationale above the marker is encouraged; the marker is what the reader parses.
-2. A spec with a tradeoff table but no concluding marker is **invalid**. In autonomous mode, faff-prep parks rather than attaches. In interactive mode, faff-prep adds the missing marker before attaching (using the spec's own conclusion or flagging it inline if ambiguous).
-3. `Punt:` and `Assumes:` markers must appear in a top-level "Open Questions" or "Assumptions" section so the reader can enumerate them quickly.
-4. `Chosen:` / `Decision:` applies to any design choice: libraries, patterns, data shapes, naming, scope boundaries. If the spec weighs options and picks one, mark it.
-5. No topic-keyword contract. The reader matches on markers, not topic names. A section called "Logging" with `**Chosen:** pino` at the end is closed; a section called "Anything" with `**Punt:** A or B — needs human` is open.
-
-**Writing style: skimmable, not coded**
-
-The marker contract above governs structure. This rule governs prose. A reader skimming the spec — without holding the source ADR, parent ticket, or blocker list in their head — must be able to follow what each section is about on first pass.
-
-Concrete prohibitions:
-
-- **No invented labelling schemes.** Don't introduce ad-hoc codes like `X1`, `F2`, `R3`, `W2a`, `Phase 4` and then cross-reference them throughout the spec. They force the reader to hold the full list in memory to decode any single line. If you need to refer back to earlier work, restate the subject ("the audit-error-registry relocation", "the cleanup PR for the entitlements route") rather than using a code.
-- **Ticket numbers are fine** — `#123`, `SHF-247`, `ENG-42` are real, stable identifiers. The rule bans codes the spec invents, not codes that exist in the tracker. When citing a related ticket, prefer `SHF-247 (audit-error registry relocation)` over either `SHF-247` alone or `F5` alone.
-- **Restate subjects on every cross-reference.** "F5 shim", "PR 4's deletions", "Phase 6", "test classes #1–#9" are opaque. Spell out what each is — "the audit-error-registry shim", "the webhook-route cleanup PR", "the cleanup phase", "the cross-tenant isolation tests".
-- **Inherited codes from the source ADR or parent ticket are the most common offender.** If ADR-0016 uses `F1...F8` to label foundation phases, the spec must translate each into a descriptive subject before referencing it. The ADR is one document; the spec is another. The reader of the spec may not have the ADR open.
-- **Descriptive lead columns in tables.** A row reading `PR 4 / W2 / in-app syncBilling impl / shim from W1` requires the reader to remember what `W2` and `W1` mean. Lead with a descriptive column ("Cleanup PR for the syncBilling webhook") or break into named subsections instead of relying on the code grid.
-- **Prefer standalone prose sentences over compressed bullet walls.** Three sentences that each make sense in isolation beat a five-bullet wall whose meaning depends on having read the preceding section.
-
-This rule applies equally to the inline path and to delegated `spec` skill output (faff-prep passes this contract to the delegated skill).
-
-**Validation before attach:** faff-prep scans the spec for:
-- At least one canonical marker in any section that presents multiple options.
-- No dangling comparisons (tables or "vs" prose without a marker below).
-- `Punt:` and `Assumes:` entries grouped in their dedicated sections.
-
-In autonomous mode, validation failure → park. In interactive mode, validation failure → faff-prep adds the missing marker (drawing from the delegated skill's output or user-confirmed choice) before attach.
+When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
 
 ## Inline-spec subagent review (mandatory, all sizes)
 
@@ -199,27 +161,7 @@ Apply the shared **Spec discovery** rule first (`skills/faff/SKILL.md`) — chec
 
 If a `spec` skill is configured, invoke it with the issue context and explore findings. Read its output. Attach the content to the issue as a comment. Clean up the local file.
 
-If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** — four phases that progress from motivation to verifiable done:
-
-**1. WHY** — Problem statement and scope
-- One paragraph: status quo → pain → what this change does about it
-- Design principles (if any non-obvious constraints apply) as bold-lead sentences
-- Out of scope — what this issue deliberately does NOT do, with a one-line note on where each exclusion could be added later (extension point)
-
-**2. WHAT** — Data and interfaces
-- Type shapes, API surfaces, component props, data schemas — whatever the build agent needs to know exists
-- Key technical decisions with pros/cons — **each concluded with a `**Chosen:**` / `**Decision:**` marker per the _Spec Format Contract_**
-- Open questions go in an "Open Questions" section using `**Punt:**`
-- External prerequisites in an "Assumptions" section using `**Assumes:**`
-
-**3. HOW** — Behavior
-- Architecture and approach — how the pieces connect
-- Pseudocode at ambiguity points — anywhere prose alone could be interpreted two ways, add a setup/action/assert or step-by-step block
-- Risks, edge cases, what could go wrong
-
-**4. DONE** — Definition of Done (closed-loop)
-- A testable checklist that **mirrors the body sections 1:1**. Every WHY/WHAT/HOW section that introduces a requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded requirements.
-- If cross-boundary, recommend split
+If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE) defined by the `spec_format` slot. Mark every decision with the canonical markers and mirror the DONE checklist 1:1 to the body, per that contract.
 
 Run the marker validation from _Spec Format Contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
 

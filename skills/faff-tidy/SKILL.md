@@ -104,7 +104,7 @@ For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/
 
 ### 5. Structural diagnostics
 
-A separate pass that examines the **shape of the backlog itself**, not individual issues. Detects six categories of structural problem and applies Level-2 mechanical fixes where the resolution is unambiguous. See gateway → **Structural diagnostics contract** for the full definitions, root-cause class enum, and Level-2 mechanical fix rules.
+A separate pass that examines the **shape of the backlog itself**, not individual issues. Request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-structural`) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Root-cause class enum** for the shared park-classification taxonomy it uses.
 
 Categories detected:
 
@@ -151,32 +151,23 @@ Signals are **advisory only**. Tidy never auto-applies rule changes based on cal
 
 ### 7. Methodology findings (rendered only when a `methodology` skill is configured)
 
-A surface-only pass — invoke the configured methodology skill with the backlog state. No mechanical fixes auto-applied in 2a — every finding is surfaced for human action.
+Request the `backlog-diagnostics` output from the configured methodology skill, passing the backlog state. The methodology decides which categories to detect and how; faff-tidy renders the findings it returns. Surface-only in 2a — no mechanical fixes auto-applied; every finding is surfaced for human action.
 
-Categories detected:
-
-- **Activity-named workstreams** (principle 1): a workstream's name is a category, sprint, quarter, team, or technology layer rather than a user-facing outcome. Examples: "Bugs Q2", "Tech debt", "Refactors", "Backend cleanup". Detect by tokenising the workstream name and matching against an activity-name pattern set (see below).
-- **Oversized tickets** (principle 4): a single ticket whose spec covers two or more structurally independent concerns (each a valid 1–3 day unit). Restricted to tickets already past spec-gate (otherwise no spec to inspect).
-- **Mixed-purpose workstreams** (principle 5): a workstream's tickets describe two or more distinct outcomes. Detect by reading ticket titles + glosses across the workstream and looking for two or more outcome clusters.
-- **Hidden deps** (principle 6): a ticket's spec references another ticket's output (by ID or clear paraphrase) without that other ticket being a declared blocker. Detect by parsing spec text for ticket-ID mentions and paraphrase patterns.
-
-**Activity-name pattern set** for principle 1 detection: workstream name contains any of: a sprint identifier ("Q1"/"Q2"/"Q3"/"Q4", "sprint <N>", "week <N>"), a category word ("Bugs", "Tech debt", "Refactors", "Cleanup", "Maintenance", "Chores", "Misc"), a team name (best-effort match against the consuming project's CLAUDE.md if it names teams), or a technology layer name without an outcome qualifier ("Backend", "Frontend", "Database", "Infrastructure" — match only if no outcome word follows).
-
-Each finding renders its full diagnosis (what's there / why it's a problem / what to do) per the methodology's diagnosis templates. No auto-actions in 2a — these are pure surfacing for human action. The 2b spec adds mechanical fixes (auto-rename, auto-split, auto-regroup, file gap issues).
+Each finding renders its full diagnosis (what's there / why it's a problem / what to do) as the methodology returns it. The 2b spec adds mechanical fixes (auto-rename, auto-split, auto-regroup, file gap issues).
 
 Output rendered in the new `### Methodology findings` section of tidy's output (see Output format below). Skip the entire bucket 7 if no `methodology` skill is configured.
 
 ## Output and chaining
 
-Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `language` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffter-noon-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 Present findings grouped by bucket. Skip any bucket with no findings.
 
 Output renders three new sections in addition to the existing buckets:
 
-- `### Structural diagnostics` — present when Spec 1's structural-diagnostics phase found anything. Format follows gateway → **Visualisation-over-prose contract**. Skip if no findings.
+- `### Structural diagnostics` — present when the methodology slot's `backlog-diagnostics` output found anything. Format follows the `language` slot (default `faffter-noon-language`). Skip if no findings.
 - `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip if no signals.
-- `### Methodology findings` — present only when a `methodology` skill is configured **and** bucket 7 surfaced anything. Lists findings grouped by principle, each with the full diagnosis. No auto-actions; the human reads, decides, acts.
+- `### Methodology findings` — present only when a `methodology` skill is configured **and** bucket 7 surfaced anything. Lists the findings the methodology returned, each with its full diagnosis. No auto-actions; the human reads, decides, acts.
 
 All three sections precede the existing buckets in tidy's output. When a `methodology` skill is configured, the first line of output is also `Methodology: [skill-name]`.
 
@@ -214,7 +205,7 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
   3. **Do not remove** when the park reason is subjective ("architectural change needed", "scope unclear"), vague, or missing. Those are judgement calls — leave the label on and log the finding as "stale park label — needs human" for the next `/faff-wtf`.
 
   For every auto-removal, log the issue id, original park reason, and the specific rule that invalidated it to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`. Post a tracker comment noting the removal and the reason.
-- **Strip defensive-only edges in dep cycles.** Detected by structural diagnostics. When one edge of a cycle is determined to be defensive-not-load-bearing (the spec for the parent doesn't reference the child's output), strip that edge. Log the cycle, stripped edge, and reasoning per gateway → **Structural diagnostics contract**.
+- **Strip defensive-only edges in dep cycles.** Detected by the methodology slot's `backlog-diagnostics`. When one edge of a cycle is determined to be defensive-not-load-bearing (the spec for the parent doesn't reference the child's output), strip that edge. Log the cycle, stripped edge, and reasoning per that output's mechanical-fix rules.
 - **Repoint ghost-project pointers with clear name-match.** When an issue's spec or description names a tracker container that doesn't exist, and a live container's name clearly maps to the missing reference (string proximity), repoint the issue. Log the move.
 - **Demote `repeat-parked` Todos to Backlog.** When an active issue has parked 3+ times in the lookback window (default 21 days) with the same root-cause class, demote from Todo to Backlog and tag with `repeat-parked` (or tracker equivalent). Logs the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue.
 

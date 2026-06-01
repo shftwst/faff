@@ -32,7 +32,7 @@ A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong
 
 ## What it does
 
-**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]` and a new `### Methodology findings` section sits after `### Today's Focus`.
+**Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (`language` slot, default `faffter-noon-language` — form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]` and a new `### Methodology findings` section sits after `### Today's Focus`.
 
 Run through these sections in order:
 
@@ -82,13 +82,10 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 
 ### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 
-A diagnostic frame over the current backlog state, produced by the configured `methodology` skill. Three sub-blocks, in this order, each skipped if it has nothing to surface:
+Request the `standup-digest` output from the configured `methodology` skill and render what it returns. The digest carries a WIP status, an optional sequencing diagnosis, and the top structural findings — the methodology decides their content; faff-wtf only places and trims them.
 
-**WIP status (principle 3).** Compute current human in-flight count (issues in In Progress + In Review states that are not opened by `/faff-beep-boop`). Render: "WIP at N (cap 3)." If N ≥ 3, append the principle 3 diagnosis: "Finish ISSUE-X or ISSUE-Y before pulling new work." When WIP is at cap, `### Today's Focus` recommends **completion of in-flight only** — explicitly no new starts. When WIP is below cap, allow recommending up to `(3 − N)` new starts.
-
-**Sequencing diagnosis (principle 2).** If the current sequencing of `### Do this` (the `### Today's Focus` ranked list) is materially different from a value × risk × dep-aware order, surface the gap using the principle 2 diagnosis template. "Materially different" = the value-aware top-1 is not the currently displayed top-1. If they match, skip.
-
-**Top 1–2 structural problems (principles 1, 5, 6, 7).** Surface at most two findings from these four principles, ordered by severity (impact on shipped value × number of tickets affected). Each finding renders its full diagnosis (what's there / why it's a problem / what to do). If more findings exist, end with: "(more in `/faff-tidy`)" — `/faff-tidy` is the firehose; this section is the highlight.
+- **WIP coupling.** When the digest reports WIP at cap, `### Today's Focus` recommends **completion of in-flight only** — no new starts. Below cap, allow up to the digest's remaining-headroom count of new starts.
+- **Highlight, not firehose.** Render at most two structural findings here, ordered by the digest's severity. If more exist, end with "(more in `/faff-tidy`)".
 
 Skip the entire `### 5a` subsection if no `methodology` skill is configured.
 
@@ -96,7 +93,7 @@ Skip the entire `### 5a` subsection if no `methodology` skill is configured.
 
 Show what `/faff-beep-boop` would pick up right now, computed per the **Automation-routing contract** (gateway). This section is **always present** — even with empty queues, render the headers with "(none)" so the human can see at a glance whether kicking off a run is worth it.
 
-**Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (gateway → **Visualisation-over-prose contract** form (c)). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). Collision groups are serialised within themselves and ordered by their lead issue's priority+unlock-value.
+**Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (`language` slot, default `faffter-noon-language` — form (c)). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). Collision groups are serialised within themselves and ordered by their lead issue's priority+unlock-value.
 
 **Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
 
@@ -104,7 +101,7 @@ Show what `/faff-beep-boop` would pick up right now, computed per the **Automati
 
 ### 5c. Structural diagnostics (always render — at least the status line)
 
-Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for structural-diagnostics findings. If no tidy ran this pass, compute inline. Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings per gateway → **Structural diagnostics contract** output format.
+Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics` findings. If no tidy ran this pass, request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-structural`). Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings in the format that output defines.
 
 Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type — sub-ticket / upstream / downstream / peer) additionally surface in `### 7. Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump. Chain gaps are first-class Heads-up material: when a ticket's spec references work no ticket tracks, picking up the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next. Tag each Heads-up chain-gap entry with the sub-type so the human can scan-read.
 
@@ -145,7 +142,7 @@ Keep the tracker in sync with reality. No one starts building without a spec.
 
 ## Output Format
 
-Tabular output follows the gateway's _Tabular data: markdown tables vs definition lists_ subsection of `## Visualisation-over-prose contract` — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `language` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffter-noon-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 Keep it concise and scannable. Use this structure:
 
@@ -246,7 +243,7 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 
 Structural diagnostics: clean ✓
 
-(Or, when findings exist, render the full block per gateway → Structural diagnostics contract output format.)
+(Or, when findings exist, render the full block in the format the methodology slot's `backlog-diagnostics` output defines.)
 
 ### Calibration signals
 

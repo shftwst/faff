@@ -111,6 +111,7 @@ The faff-* skills are pure orchestrators — they define the sequence and contra
 | `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
 | `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits pass/fail/needs-human. |
 | `faffter-noon-spec` | `spec_format` | The implicit default. Canonical marker contract (Chosen/Punt/Assumes), writing style rules, validation criteria, and the lite nlspec arc structure. All spec producers must satisfy this; all consumers depend on it. |
+| `faffter-noon-language` | `language` | The implicit default. Rendering contract — when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, and density caps. All sub-skills render user-facing output through this. |
 
 ### faffter-dark-* (experimental)
 

@@ -35,6 +35,7 @@ planning_skills:
     review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)
     methodology: # diagnostic lens over backlog (default: faffter-noon-methodology-structural)
     spec_format: # spec marker contract and writing rules (default: faffter-noon-spec)
+    language: # rendering contract — visual vs prose, table-vs-list, density caps (default: faffter-noon-language)
     ship: # optional merge / deploy mechanism inside /faff-workit
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —

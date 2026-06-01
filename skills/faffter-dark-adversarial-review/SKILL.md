@@ -2,7 +2,7 @@
 
 Two-phase code review: standard structural review (delegated to `faffter-noon-review`) followed by an adversarial second opinion via a different LLM. Catches correlated blind spots by bringing different training biases from the model that wrote the code.
 
-Plugs into the `review` slot — replaces the default review, not augments it. The hard signal it returns conforms to the `review_contract` slot (default `faffidavit-review`): `pass` / `fail` / `needs-human` in that envelope. The adversarial phase adds evidence, never a fourth verdict.
+Plugs into the `review` slot — replaces the default review, not augments it. The hard signal it returns conforms to the `review_adaptor` slot (default `faffidavit-review`): `pass` / `fail` / `needs-human` in that envelope. The adversarial phase adds evidence, never a fourth verdict.
 
 Configure in `.faffrc`:
 

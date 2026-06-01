@@ -9,7 +9,7 @@ planning_skills:
   spec: faffter-dark-nlspec
 ```
 
-When invoked, faff-prep passes the issue context, explore findings, and the spec contract (the `spec_contract` slot, default `faffidavit-spec`). This skill produces the spec body; faff-prep handles attachment, validation, and lifecycle.
+When invoked, faff-prep passes the issue context, explore findings, and the spec contract (the `spec_adaptor` slot, default `faffidavit-spec`). This skill produces the spec body; faff-prep handles attachment, validation, and lifecycle.
 
 ## Input
 
@@ -17,7 +17,7 @@ Faff-prep provides:
 
 - Issue title, description, acceptance criteria, labels, dependencies
 - Explore findings (codebase state, architecture, relevant files)
-- The spec contract from the `spec_contract` slot (canonical markers: `**Chosen:**`, `**Punt:**`, `**Assumes:**`)
+- The spec contract from the `spec_adaptor` slot (canonical markers: `**Chosen:**`, `**Punt:**`, `**Assumes:**`)
 - The writing style rules (skimmable, no invented labelling schemes)
 
 ## Output

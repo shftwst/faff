@@ -96,10 +96,10 @@ planning_skills:
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
-  spec_contract: faffidavit-spec              # spec marker + confidence contract + validator
-  review_contract: faffidavit-review          # review verdict vocabulary + envelope + validator
-  routing_contract: faffidavit-routing        # automation-routing verdicts + root-cause taxonomy + validator
-  language_contract: faffidavit-language        # rendering + synthesis contract + output normaliser
+  spec_adaptor: faffidavit-spec              # adaptor: markers + style + confidence line; maps a producer's spec onto the fixed closed/open/external + confidence contract
+  review_adaptor: faffidavit-review          # adaptor: output envelope; maps a reviewer's output onto the fixed pass/fail/needs-human contract
+  routing_adaptor: faffidavit-routing        # adaptor: verdict assignment + display; the six-verdict vocabulary + admission rule are fixed in the gateway
+  language_adaptor: faffidavit-language        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -109,12 +109,12 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 |---|---|---|
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
 | `parallel` | none (sequential) | Concurrency for faff-beep-boop. |
-| `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits the `review_contract` verdict. |
+| `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits the `review_adaptor` verdict. |
 | `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |
-| `spec_contract` | `faffidavit-spec` | The marker + writing + confidence contract every spec producer satisfies and every consumer depends on; validates specs on demand. |
-| `review_contract` | `faffidavit-review` | The review verdict vocabulary (`pass` / `fail` / `needs-human`), semantics, and output envelope every reviewer satisfies and faff-workit branches on; validates review output on demand. |
-| `routing_contract` | `faffidavit-routing` | The automation-routing six-verdict vocabulary + root-cause taxonomy + admission rule + display format; assigns and validates verdicts. |
-| `language_contract` | `faffidavit-language` | The rendering + synthesis contract — visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
+| `spec_adaptor` | `faffidavit-spec` | Adaptor over the fixed spec-readiness contract: the markers + writing style + confidence line that map a producer's spec onto closed/open/external + confidence; validates specs on demand. |
+| `review_adaptor` | `faffidavit-review` | Adaptor over the fixed review-verdict contract (`pass` / `fail` / `needs-human`, semantics, revert test — all in the gateway): the output envelope reviewers emit and faff-workit branches on; validates/normalises review output on demand. |
+| `routing_adaptor` | `faffidavit-routing` | Adaptor over the fixed automation-routing contract (six verdicts + admission rule + root-cause taxonomy — all in the gateway): verdict assignment + computation locus + display format; assigns and validates verdicts. |
+| `language_adaptor` | `faffidavit-language` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
 | `ship` | vanilla `gh pr merge` | Merge/deploy mechanism inside faff-workit. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
@@ -320,7 +320,7 @@ Every faff sub-skill and every pluggable skill reads the current appetite level.
 | `high` (default) | Confident — proceed on defensible calls with an audit trail; park architectural/irreversible only. |
 | `full` | Maximum agency — resolve everything resolvable, document, proceed; only the hard floor below ever stops it. |
 
-Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The one table the gateway keeps is the appetite-modulation of two shared contracts — resolve-attempt (gateway-owned) and automation-routing (the `routing_contract` slot):
+Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The one table the gateway keeps is the appetite-modulation of two shared contracts — resolve-attempt (gateway-owned) and automation-routing (the `routing_adaptor` slot):
 
 #### Build pipeline (modulation of the resolve-attempt + automation-routing contracts)
 
@@ -418,29 +418,39 @@ When a faff skill's flow leads naturally into another faff skill, it offers the 
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
-## Rendering — the `language_contract` slot
+## Core contracts and adaptor slots
 
-How sub-skills turn structure into output (visual-vs-prose split, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) is the **rendering contract**, owned by the `language_contract` slot. The default is `faffidavit-language` — see that skill's `SKILL.md`. Any sub-skill that emits user-facing output renders through the configured `language_contract` skill; the catalogue of visual forms is closed there, not extended inline.
+faff-core fixes a small set of **internal contracts** — the verdict states, vocabularies, and classifications the pipeline directly branches on, counts, gates on, or admits to a queue. These are invariant: they live here, in the gateway, and never move into a swappable skill. Each is paired with a pluggable **adaptor slot** whose job is to translate a producer's native output *into* the fixed internal contract and validate conformance. The default adaptor's native dialect is the house format; swapping an adaptor swaps the translator, never the contract.
 
-The **Synthesis contract** — how every issue named in output is glossed (tracker ID + one-sentence plain-English gloss + unlock-chain consequence), the humanisation rule, and the banned project-management shorthand — is also owned by the `language_contract` slot (it governs *how an issue is described*, the content sibling of the visual-vs-prose split). References elsewhere to "gateway → Synthesis contract" resolve there.
+**Dividing principle:** anything the faff-* pipeline branches on, counts, gates on, or admits → internal (fixed, here). Anything about format, parsing, presentation, or producer-specific translation → adaptor (slot, swappable).
+
+### Review verdict (fixed) → `review_adaptor`
+
+**Internal contract (fixed):** a review returns exactly one of three states — `pass` / `fail` / `needs-human`. Their semantics, the **revert test** that separates `fail` (revert-reversible defect) from `needs-human` (effect persists after revert), and the rule that a malformed/unparseable verdict coerces to `needs-human` (never silently to `pass`) are all fixed here. faff-workit's post-build gate branches proceed / iterate / park on these three states directly.
+
+**Adaptor slot:** `review_adaptor` (default `faffidavit-review`) — the output envelope (`signal:` line + `## Findings`) and the parsing/normalising of any reviewer's native output into the three states. Swap it to adapt a third-party reviewer; faff-workit still branches on the same three states.
+
+### Automation-routing verdict (fixed) → `routing_adaptor`
+
+**Internal contract (fixed):** the closed **six-verdict vocabulary** (`fire-and-forget`, `likely-fire`, `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`); the **build-queue admission rule** (only `fire-and-forget` + `likely-fire` ever enter the queue; all others route out with a one-line reason surfaced in wtf, never silently dropped); and the **root-cause class enum** (`punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`) shared by repeat-park detection and the calibration log. The verdict survives a `methodology` swap precisely because it is fixed here, not inside the methodology.
+
+**Adaptor slot:** `routing_adaptor` (default `faffidavit-routing`) — assigning a verdict from `backlog-diagnostics` findings + spec confidence + markers + park history, the computation locus (`/faff-tidy` writes per pass into `.faff/runs/<run-id>/automation-verdicts.md`; consumers read within a pass, recompute across passes), and the display format. References elsewhere to "gateway → Automation-routing contract" and "gateway → Root-cause class enum" resolve to this fixed contract; the `routing_adaptor` slot supplies assignment + display.
+
+### Spec readiness (fixed) → `spec_adaptor`
+
+**Internal contract (fixed):** every non-trivial decision is classified as **closed** / **open** / **external-dependency**, and a **confidence rating** (`high` / `medium` / `low`) is present. faff-prep gates its autonomous decision on confidence (medium/low → park); beep-boop routes on open/external markers (→ `needs-decision-first` / `gap-blocked`).
+
+**Adaptor slot:** `spec_adaptor` (default `faffidavit-spec`) — the concrete markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the skimmable writing-style rules, the confidence line's format, and the mapping from a producer's native structure into closed/open/external. Swap it to adapt a third-party spec format; faff-prep still gates on the same classification + confidence.
+
+### Rendering — no internal contract → `language_adaptor`
+
+Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `language_adaptor` slot (default `faffidavit-language`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `language_adaptor`; the catalogue is closed there, not extended inline. References elsewhere to "gateway → Synthesis contract" resolve to this slot.
 
 ## Backlog diagnostics — the `methodology` slot
 
 Detecting problems with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps — is the `backlog-diagnostics` output, owned by the `methodology` slot. The default is `faffter-noon-methodology-structural`, whose `backlog-diagnostics` always fires regardless of config (it is the structural baseline every faff pass depends on). See that skill's `SKILL.md` for the detection categories, mechanical fixes, and rendered output.
 
-Two findings from `backlog-diagnostics` feed the **Automation-routing contract** (the `routing_contract` slot, below): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
-
-## Automation-routing contract — the `routing_contract` slot
-
-Whether `/faff-beep-boop` will run an issue autonomously — and if not, why — is the **automation-routing contract**, owned by the `routing_contract` slot. The default is `faffidavit-routing`. It owns:
-
-- the closed **six-verdict vocabulary** (`fire-and-forget`, `likely-fire`, `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`),
-- the **root-cause class enum** — the shared park taxonomy (`punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`) used by repeat-park detection and the calibration log,
-- the **build-queue admission rule** (only `fire-and-forget` + `likely-fire` enter; all others route out with a one-line reason surfaced in wtf, never silently dropped),
-- the **computation locus** (`/faff-tidy` computes per pass into `.faff/runs/<run-id>/automation-verdicts.md`; consumers read that file within a pass, recompute across passes), and
-- the **display format** consumers render (via the `language_contract` slot → queue partition grid).
-
-See that skill's `SKILL.md` for the verdict definitions, root-cause classes, and display format. References elsewhere to "gateway → Automation-routing contract" and "gateway → Root-cause class enum" resolve to the `routing_contract` slot. The verdict survives a `methodology` swap precisely because it lives here, not inside the methodology.
+Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** (the fixed internal contract above): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`. The `routing_adaptor` slot performs the assignment.
 
 ## Routing
 

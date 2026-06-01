@@ -1,24 +1,32 @@
 # faffidavit-spec
 
-The spec contract — defines the canonical markers, writing-style rules, and validation criteria every spec must satisfy, and **validates** a spec against them on demand. A `faffidavit-*` skill: it both *defines* a conformance standard and *checks* conformance, so it earns its keep as an invokable skill rather than a passive document.
+The default **adaptor** for the `spec_adaptor` slot. It translates a spec producer's native output into faff-core's fixed spec-readiness contract — the concrete markers that encode the closed/open/external classification, the writing-style rules, the confidence line's format — and **validates** conformance on demand. A `faffidavit-*` skill: it both *defines* its dialect and *checks* conformance, so it earns its keep as an invokable skill rather than a passive document.
 
-This is the implicit default for the `spec_contract` slot. Every spec producer (`faffter-noon-spec`, `faffter-dark-nlspec`, any delegated `spec` skill) conforms to it; faff-prep delegates its pre-attach validation to it.
+Every spec producer (`faffter-noon-spec`, `faffter-dark-nlspec`, any delegated `spec` skill) conforms to it; faff-prep delegates its pre-attach validation to it.
 
 ```yaml
 planning_skills:
-  spec_contract: faffidavit-spec   # the default — explicit for clarity
+  spec_adaptor: faffidavit-spec   # the default — explicit for clarity
 ```
+
+## Internal contract (fixed — see gateway)
+
+The spec-readiness contract itself is a faff-core invariant and lives in the gateway (_Core contracts and adaptor slots → Spec readiness_), **not** here. Fixed there, and unaffected by swapping this slot:
+
+- every non-trivial decision is classified **closed** / **open** / **external-dependency**,
+- a **confidence rating** (`high` / `medium` / `low`) is present, and
+- faff-prep gates its autonomous decision on confidence (medium/low → park) while beep-boop routes on the open/external classification (→ `needs-decision-first` / `gap-blocked`).
+
+An autonomous reader needs to parse specs mechanically against that fixed classification — without it, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers. This skill does not get to change the classification or the gate. What it owns is the *dialect* — the concrete markers that encode closed/open/external, the writing style that keeps a spec parseable, and the confidence line's format. That is what makes the slot swappable: a third-party spec format plugs in behind a different adaptor that maps its structure onto the same three classes + confidence, and faff-prep still gates the same way.
 
 ## Two faces
 
 - **Define** (reference): the canonical markers, marker rules, and writing style below. Producers read this and conform; consumers read it to parse specs mechanically.
 - **Validate** (invokable): given a spec, return `pass` / `fail` plus a list of specific violations. Invoked by faff-prep before attach, and usable standalone — "validate the spec for SHF-123" or point it at a markdown file and get a report.
 
-## Why the contract exists
+## Canonical markers (this adaptor's dialect)
 
-An autonomous reader needs to parse specs mechanically — identify which decisions are closed, which are open, which have external dependencies. Without this contract, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers.
-
-## Canonical markers
+These markers are how *this* adaptor encodes the fixed closed/open/external classification. A different `spec_adaptor` may use a different surface syntax, as long as it maps onto the same three classes.
 
 Every spec must mark each non-trivial decision with exactly one of these:
 
@@ -60,7 +68,7 @@ The marker contract governs structure. This section governs prose. A reader skim
 
 ## Confidence self-rating
 
-Every spec ends with a single confidence line — the producer's self-assessment of whether the spec is buildable without a human, which faff-prep's autonomous gate branches on. It's part of the spec contract because every producer must emit it and faff-prep depends on it regardless of which producer ran:
+Every spec ends with a single confidence line — the producer's self-assessment of whether the spec is buildable without a human, which faff-prep's autonomous gate branches on. The three levels and the gate are fixed in the gateway (spec-readiness internal contract); this adaptor owns the *line's format* — its placement and exact token — so faff-prep can read it regardless of which producer ran:
 
 ```
 confidence: high | medium | low
@@ -104,7 +112,7 @@ signal: pass | fail
 
 ## Rules
 
-- This contract is non-negotiable for autonomous operation. A spec without markers cannot be autonomously built — the reader can't tell what's closed vs open.
-- The contract is deliberately minimal. It doesn't prescribe section names, document length, or level of detail. Only: mark your decisions, write readably, validate before attach.
-- Alternative spec producers must satisfy this contract. They may add structure on top but cannot omit the markers.
+- The closed/open/external classification and the confidence gate are fixed in the gateway, not here — non-negotiable for autonomous operation. A spec whose decisions can't be classified cannot be autonomously built; the reader can't tell what's closed vs open.
+- This adaptor's dialect is deliberately minimal. It doesn't prescribe section names, document length, or level of detail. Only: mark your decisions (in this dialect's markers), write readably, emit the confidence line, validate before attach.
+- Alternative spec producers conform via their own `spec_adaptor`. They may add structure on top but their output must map onto the same three classes + confidence; this default adaptor's markers are how the *default* producers do it.
 - Validation reports findings; it does not mutate the spec or decide what happens next. Sequencing (park, fix, attach) belongs to the caller.

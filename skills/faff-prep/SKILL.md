@@ -28,7 +28,7 @@ planning_skills:
 
 When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, the slot defaults to `faffter-noon-spec` (the lite nlspec arc); faff-prep can run that default inline itself.
 
-**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined by the `spec_contract` slot (default `faffidavit-spec`). Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
+**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined by the `spec_adaptor` slot (default `faffidavit-spec`). Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
 
 **Inline path is autonomous-capable.** When no `spec` skill is configured (or the configured one can't self-rate), faff-prep produces the inline spec itself (the default `faffter-noon-spec` lite arc) and self-rates it — it has full visibility into the explore findings, the spec contract, and the resulting markers, so it can honestly assess whether the spec is high/medium/low confidence. The inline path is never a park reason on its own; the same confidence gate applied to delegated output also applies to the inline output.
 
@@ -56,9 +56,9 @@ In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique
 
 ## Spec contract
 
-Every spec faff-prep produces (delegated or inline, fresh or refreshed) must satisfy the contract defined by the `spec_contract` slot (default `faffidavit-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep is a producer — it conforms to that contract, it does not redefine it. References to "_spec contract_" elsewhere in this skill mean the slot's contract.
+Every spec faff-prep produces (delegated or inline, fresh or refreshed) must satisfy the contract defined by the `spec_adaptor` slot (default `faffidavit-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep is a producer — it conforms to that contract, it does not redefine it. References to "_spec contract_" elsewhere in this skill mean the slot's contract.
 
-When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation is delegated to the `spec_contract` slot and runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
+When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation is delegated to the `spec_adaptor` slot and runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
 
 ## Inline-spec subagent review (mandatory, all sizes)
 
@@ -161,7 +161,7 @@ Apply the shared **Spec discovery** rule first (`skills/faff/SKILL.md`) — chec
 
 If a `spec` skill is configured, invoke it with the issue context and explore findings. Read its output. Attach the content to the issue as a comment. Clean up the local file.
 
-If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE) of the default `spec` producer (`faffter-noon-spec`). Mark every decision with the canonical markers and mirror the DONE checklist 1:1 to the body, per the `spec_contract` slot.
+If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE) of the default `spec` producer (`faffter-noon-spec`). Mark every decision with the canonical markers and mirror the DONE checklist 1:1 to the body, per the `spec_adaptor` slot.
 
 Run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
 

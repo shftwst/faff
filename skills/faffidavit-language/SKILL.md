@@ -1,17 +1,21 @@
 # faffidavit-language
 
-The rendering contract — defines how faff sub-skills turn structure into output (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps), and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
+The default **adaptor** for the `language_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps), and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
 
-This is the implicit default for the `language_contract` slot. Every sub-skill that emits user-facing output renders through it; it can be swapped for a house style.
+Every sub-skill that emits user-facing output renders through it; it can be swapped wholesale for a different house style.
 
 ```yaml
 planning_skills:
-  language_contract: faffidavit-language   # the default — explicit for clarity
+  language_adaptor: faffidavit-language   # the default — explicit for clarity
 ```
 
-## Why a contract, not a producer
+## No internal contract — a pure adaptor
 
-Unlike `spec` — which splits into a producer (`faffter-noon-spec`, issue → new spec) and a contract (`faffidavit-spec`, spec → pass/fail) — language has no separable generative act. There's no "render from nothing": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone language *producer* would have no natural caller. What language genuinely is, is a standard **referenced by many skills** (every sub-skill renders "according to" it) plus a standalone normalise act — exactly the contract shape. The "produce" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-language`.
+The other three adaptor slots (`review_adaptor`, `routing_adaptor`, `spec_adaptor`) each sit in front of a **fixed internal contract** in the gateway — verdict states, vocabularies, classifications the pipeline branches on. Rendering has none: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* — the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.
+
+## Why an adaptor, not a producer
+
+Unlike `spec` — which splits into a producer (`faffter-noon-spec`, issue → new spec) and an adaptor (`faffidavit-spec`, native spec → markers + pass/fail) — language has no separable generative act. There's no "render from nothing": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone language *producer* would have no natural caller. What language genuinely is, is a standard **referenced by many skills** (every sub-skill renders "according to" it) plus a standalone normalise act — exactly the adaptor shape. The "produce" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-language`.
 
 ## Two faces
 
@@ -91,7 +95,7 @@ Every issue rendered in any faff output — wtf's "Do this", whereto's workstrea
 2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
 3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
 
-This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split. References elsewhere to "gateway → Synthesis contract" resolve to the `language_contract` slot.
+This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split. References elsewhere to "gateway → Synthesis contract" resolve to the `language_adaptor` slot.
 
 ### Canonical rendering
 
@@ -168,7 +172,7 @@ Glosses generated for a given issue id during one invocation are reused within t
 
 ### Consumption
 
-Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references it via `See the language_contract slot → Synthesis` (or the legacy `gateway → Synthesis contract`, which resolves here) rather than re-stating.
+Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references it via `See the language_adaptor slot → Synthesis` (or the legacy `gateway → Synthesis contract`, which resolves here) rather than re-stating.
 
 ## Tabular data: markdown tables vs definition lists
 

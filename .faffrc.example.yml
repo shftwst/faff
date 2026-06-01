@@ -34,10 +34,10 @@ planning_skills:
     parallel: # optional used by /faff-beep-boop for concurrency
     review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)
     methodology: # diagnostic lens over backlog (default: faffter-noon-methodology-structural)
-    spec_contract: # spec marker + confidence contract + validator (default: faffidavit-spec)
-    review_contract: # review verdict vocabulary (pass/fail/needs-human) + envelope + validator (default: faffidavit-review)
-    routing_contract: # automation-routing verdicts + root-cause taxonomy + admission rule + validator (default: faffidavit-routing)
-    language_contract: # rendering + synthesis contract + output normaliser — visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-language)
+    spec_adaptor: # adaptor over the fixed spec-readiness contract — markers + style + confidence line, maps a producer's spec onto closed/open/external + confidence (default: faffidavit-spec)
+    review_adaptor: # adaptor over the fixed review-verdict contract — output envelope, maps a reviewer's output onto pass/fail/needs-human (default: faffidavit-review)
+    routing_adaptor: # adaptor over the fixed automation-routing contract — verdict assignment + display; the six verdicts + admission rule are fixed in faff-core (default: faffidavit-routing)
+    language_adaptor: # pure adaptor, no internal contract — rendering + synthesis + output normaliser: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-language)
     ship: # optional merge / deploy mechanism inside /faff-workit
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —

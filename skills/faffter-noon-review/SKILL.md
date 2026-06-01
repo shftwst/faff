@@ -9,7 +9,7 @@ planning_skills:
   review: faffter-noon-review   # the default — explicit for clarity
 ```
 
-The verdict vocabulary (`pass` / `fail` / `needs-human`), its semantics, and the output envelope are **not** defined here — they're owned by the `review_contract` slot (default `faffidavit-review`). This skill is a reviewer: it owns the five passes below and the mapping from its findings to a verdict. It conforms to the contract; it does not define it.
+The verdict vocabulary (`pass` / `fail` / `needs-human`) and its semantics are **not** defined here — they're the fixed review-verdict contract in the gateway. The output envelope is owned by the `review_adaptor` slot (default `faffidavit-review`). This skill is a reviewer: it owns the five passes below and the mapping from its findings to a verdict. It conforms to the contract; it does not define it.
 
 ## Why pre-PR
 
@@ -32,7 +32,7 @@ Faff-workit provides:
 
 ## Output
 
-A single signal plus findings, in the envelope defined by the `review_contract` slot (default `faffidavit-review`):
+A single signal plus findings, in the envelope defined by the `review_adaptor` slot (default `faffidavit-review`):
 
 ```
 signal: pass | fail | needs-human
@@ -100,7 +100,7 @@ Any finding here → `needs-human` (park, don't iterate)
 
 ## Verdict rules
 
-This maps *this reviewer's* five passes onto the contract's three verdicts. The verdicts' meaning and the revert test (`fail` vs `needs-human`) are owned by the `review_contract` slot.
+This maps *this reviewer's* five passes onto the contract's three verdicts. The verdicts' meaning and the revert test (`fail` vs `needs-human`) are part of the fixed review-verdict contract in the gateway; the `review_adaptor` slot owns the envelope this reviewer emits them in.
 
 - Any finding from pass 5 (human-judgement) → `needs-human`
 - Any finding from passes 1–4 → `fail` (iterate: fix, re-test, re-review)

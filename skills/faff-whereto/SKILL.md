@@ -19,7 +19,7 @@ See the gateway (`skills/faff/SKILL.md`) for the shared `.faffrc` configuration 
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
-**Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per the `language_contract` slot (default `faffidavit-language`) — preserved as-is.
+**Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per the `language_adaptor` slot (default `faffidavit-language`) — preserved as-is.
 
 **Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]`. Phase 1 (Now/Next/Later) re-sequences inside each horizon using the methodology skill's sequencing logic (e.g. value x risk x dep-aware order) instead of tracker priority + chainable-unlock-value alone. Phase 7 (Risks) gains methodology findings alongside existing structural risks. Skipped silently when no methodology is configured.
 
@@ -150,7 +150,7 @@ Three to five sentences max. Lead with how many outcomes are in flight, whether 
 
 ## Output Format
 
-Tabular output follows the `language_contract` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `language_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 ```
 ## Roadmap — [date]

@@ -19,15 +19,15 @@ The caller provides:
 
 - Issue title, description, acceptance criteria, labels, dependencies
 - Explore findings (codebase state, architecture, relevant files)
-- The spec contract from the `spec_contract` slot (default `faffidavit-spec`) — the canonical markers and writing-style rules this output must satisfy
+- The spec contract from the `spec_adaptor` slot (default `faffidavit-spec`) — the canonical markers and writing-style rules this output must satisfy
 
 ## Output
 
-A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller validates it against the `spec_contract` slot, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's `faffidavit-spec`) and does not handle attachment or lifecycle (that's faff-prep).
+A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller validates it against the `spec_adaptor` slot, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's `faffidavit-spec`) and does not handle attachment or lifecycle (that's faff-prep).
 
 ## The lite nlspec arc
 
-Motivation to verifiable done, in four phases. Every non-trivial decision carries a canonical marker (`**Chosen:**` / `**Punt:**` / `**Assumes:**`) per the `spec_contract` slot.
+Motivation to verifiable done, in four phases. Every non-trivial decision carries a canonical marker (`**Chosen:**` / `**Punt:**` / `**Assumes:**`) per the `spec_adaptor` slot.
 
 ### 1. WHY — Problem and scope
 
@@ -61,14 +61,14 @@ End the output with a confidence line on its own:
 confidence: high | medium | low
 ```
 
-The line, its three levels, and the gate each maps to are owned by the `spec_contract` slot (default `faffidavit-spec` → _Confidence self-rating_) — this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = non-blocking `**Punt:**` items or patchy explore findings; `low` = significant unknowns or possible split.
+The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Core contracts and adaptor slots → Spec readiness_); the line's format is owned by the `spec_adaptor` slot (default `faffidavit-spec` → _Confidence self-rating_). Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = non-blocking `**Punt:**` items or patchy explore findings; `low` = significant unknowns or possible split.
 
 This line is consumed by faff-prep for its autonomous gate decision (medium/low → park). faff-prep strips it before attaching — downstream consumers never see it. It is a signal back to the caller, not part of the spec.
 
 ## Rules
 
-- This is the **minimum** structure. Richer producers (like `faffter-dark-nlspec`) may add formal types, appendices, and rationale sections — as long as they satisfy the same `spec_contract`.
-- The canonical markers are mandatory and owned by the `spec_contract` slot — this skill uses them, it does not define them. If the contract is unavailable, fall back to `**Chosen:**` / `**Punt:**` / `**Assumes:**`.
+- This is the **minimum** structure. Richer producers (like `faffter-dark-nlspec`) may add formal types, appendices, and rationale sections — as long as they satisfy the same `spec_adaptor`.
+- The canonical markers are mandatory and owned by the `spec_adaptor` slot — this skill uses them, it does not define them. If the contract is unavailable, fall back to `**Chosen:**` / `**Punt:**` / `**Assumes:**`.
 - Pseudocode is language-agnostic. Do not write in a specific programming language — the build agent translates to the project's language.
 - The spec must be buildable by a coding agent with only the spec as context. If a section needs external knowledge not in the explore findings, mark it `**Assumes:**`.
-- Write to be skimmed: no invented labelling schemes, restate subjects on cross-reference (the writing-style rules live in the `spec_contract` slot and apply fully).
+- Write to be skimmed: no invented labelling schemes, restate subjects on cross-reference (the writing-style rules live in the `spec_adaptor` slot and apply fully).

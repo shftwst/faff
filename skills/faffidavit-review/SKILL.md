@@ -1,47 +1,38 @@
 # faffidavit-review
 
-The review-verdict contract — defines the three-valued review signal (`pass` / `fail` / `needs-human`), what each verdict means, the output envelope every reviewer returns, and **validates** a review skill's output against them on demand. A `faffidavit-*` skill: it both *defines* a conformance standard and *checks* conformance, so it's invokable rather than a passive document.
-
-This is the implicit default for the `review_contract` slot. Every reviewer — `faffter-noon-review`, `faffter-dark-adversarial-review`, or any delegated `review` skill (e.g. `gstack:review`) — conforms to it; faff-workit's Step 9 gate reads the verdict from it.
+The default **adaptor** for the `review_adaptor` slot. It translates a reviewer's native output into faff-core's fixed review-verdict contract — the output envelope every reviewer returns, the parsing/normalisation of raw output into the three fixed states — and **validates** conformance on demand. A `faffidavit-*` skill: it both *defines* its dialect and *checks* conformance, so it's invokable rather than a passive document.
 
 ```yaml
 planning_skills:
-  review_contract: faffidavit-review   # the default — explicit for clarity
+  review_adaptor: faffidavit-review   # the default — explicit for clarity
 ```
 
-## Why the contract exists
+## Internal contract (fixed — see gateway)
 
-The `review` slot is the most substitution-exposed slot in faff — it's the one users most want to point at their own reviewer. faff-workit's post-build gate branches on a three-valued signal: ship the PR, iterate the code, or park for a human. If the verdict vocabulary lived inside the default reviewer (`faffter-noon-review`), swapping the reviewer would take the contract with it and faff-workit would have nothing stable to branch on. This contract is the stable boundary: any reviewer in the slot emits this envelope; faff-workit reads it without knowing which reviewer produced it.
+The review-verdict contract itself is a faff-core invariant and lives in the gateway (_Core contracts and adaptor slots → Review verdict_), **not** here. Fixed there, and unaffected by swapping this slot:
 
-## Two faces
+- the three verdict states — `pass` / `fail` / `needs-human` — and their semantics,
+- the **revert test** that separates `fail` from `needs-human`,
+- the coercion rule (a malformed/unparseable verdict normalises to `needs-human`, never silently to `pass`), and
+- faff-workit's proceed / iterate / park branch on those three states.
 
-- **Define** (reference): the verdict vocabulary, the semantics of each verdict, and the output envelope below. Reviewers read this and conform; faff-workit reads it to branch mechanically.
-- **Validate** (invokable): given a reviewer's raw output, return `pass` / `fail` plus violations — a missing or unparseable `signal:` line, an unrecognised verdict word, findings that don't carry a location/action. Invoked when a delegated (third-party) reviewer's output needs adapting to the envelope, or standalone against any review block.
+This skill does not get to change any of that. What it owns is the *envelope and translation* — how a reviewer's native output is shaped and parsed into those fixed states. That is what makes the slot swappable: a third-party reviewer plugs in behind a different adaptor, and faff-workit still branches on the same three states.
 
-## The verdict vocabulary
+## The three states (fixed — recap for translation)
 
-A review returns exactly one of three signals:
+The adaptor must map every reviewer's output onto exactly one of these. Defined fully in the gateway; recapped here so the mapping is unambiguous:
 
 | Verdict | Meaning | What the caller does |
 |---|---|---|
 | `pass` | No findings that block. The diff satisfies the spec. | Proceed — raise the PR. |
 | `fail` | One or more **fixable** findings. The code can be corrected and re-reviewed. | Iterate: fix, re-test, re-review (bounded by appetite). |
-| `needs-human` | A finding that requires **human judgement** the spec didn't anticipate, and that **persists after revert**. | Park. Do not iterate. |
+| `needs-human` | A finding requiring **human judgement** the spec didn't anticipate, that **persists after revert**. | Park. Do not iterate. |
 
-### The revert test (fail vs needs-human)
+Tie-break direction (also fixed in the gateway): in doubt between `pass`/`fail` → `fail`; in doubt between `fail`/`needs-human` → `fail`. This adaptor preserves that direction when normalising; it never relaxes it.
 
-The line between `fail` and `needs-human` is the revert test: if `git revert` on the merge commit fully undoes the effect, it is **not** `needs-human` — it is `pass` or `fail`. `needs-human` is reserved for effects that persist after revert (irreversible external effects, security-posture changes, product/UX calls the spec is silent on). A reviewer that returns `needs-human` for a merely-buggy diff is non-conforming.
+## Adaptor (this skill's dialect)
 
-### Tie-break direction
-
-- When in doubt between `pass` and `fail` → `fail`. Iteration is cheap; shipping a bug is not.
-- When in doubt between `fail` and `needs-human` → `fail`. Only escalate when the code literally cannot proceed without a human decision.
-
-The contract owns this direction; it does not own *how a reviewer arrives at a verdict* (its passes, depth, and the mapping from its own findings to a verdict are the reviewer's concern).
-
-## Output envelope
-
-Every reviewer returns:
+The envelope every reviewer in this slot returns:
 
 ```
 signal: pass | fail | needs-human
@@ -56,7 +47,9 @@ signal: pass | fail | needs-human
 - `pass` may carry zero findings; `fail` and `needs-human` must carry at least one.
 - Each finding is **specific and actionable**: location + what's wrong + what to do. "This might be a problem" is not a finding.
 
-## Validation
+When a delegated (third-party) reviewer emits something other than this envelope, the adaptor's translation job is to map its native output onto a `signal:` line + findings — picking the state that honours the fixed semantics and tie-break direction above.
+
+## Validate
 
 Run when adapting a delegated reviewer's output, or on demand against any review block.
 
@@ -80,7 +73,6 @@ signal: pass | fail
 
 ## Rules
 
-- The vocabulary is closed: three verdicts, no more. A reviewer needing a fourth state is misusing the contract — fold it into one of the three.
-- The contract defines the verdict and the envelope; it does not define review depth, passes, or quality bar. Those belong to the reviewer in the `review` slot.
-- Sequencing (iterate / raise PR / park) belongs to faff-workit, not here. The contract says what each verdict *means*, not what happens next.
-- Validation reports or normalises; it never changes the verdict's substance, only its conformance to the envelope.
+- The vocabulary is closed at three states — that closure is fixed in the gateway, not here. A reviewer needing a fourth state is misusing the contract; fold it into one of the three.
+- This adaptor owns the envelope and the translation; it does not own review depth, passes, or the quality bar (those belong to the reviewer in the `review` slot), nor the verdict semantics or sequencing (those are fixed in the gateway / owned by faff-workit).
+- Validation reports or normalises; it never changes a verdict's substance, only its conformance to the envelope.

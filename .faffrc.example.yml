@@ -30,12 +30,12 @@ tracking:
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 planning_skills:
-    spec: # optional used by /faff-prep
+    spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)
     parallel: # optional used by /faff-beep-boop for concurrency
     review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)
     methodology: # diagnostic lens over backlog (default: faffter-noon-methodology-structural)
-    spec_format: # spec marker contract and writing rules (default: faffter-noon-spec)
-    language: # rendering contract — visual vs prose, table-vs-list, density caps (default: faffter-noon-language)
+    spec_contract: # spec marker contract + validator (default: faffidavit-spec)
+    language_contract: # rendering contract + output normaliser — visual vs prose, table-vs-list, density caps (default: faffidavit-language)
     ship: # optional merge / deploy mechanism inside /faff-workit
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —

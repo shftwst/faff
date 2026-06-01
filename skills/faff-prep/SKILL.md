@@ -26,11 +26,11 @@ planning_skills:
   spec: superpowers:brainstorming
 ```
 
-When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, faff-prep produces a lightweight inline spec itself.
+When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, the slot defaults to `faffter-noon-spec` (the lite nlspec arc); faff-prep can run that default inline itself.
 
-**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined in _Spec Format Contract_ below. Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
+**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined by the `spec_contract` slot (default `faffidavit-spec`). Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
 
-**Inline path is autonomous-capable.** When no `spec` skill is configured (or the configured one can't self-rate), faff-prep produces the inline spec itself and self-rates it — it has full visibility into the explore findings, the Spec Format Contract, and the resulting markers, so it can honestly assess whether the spec is high/medium/low confidence. The inline path is never a park reason on its own; the same confidence gate applied to delegated output also applies to the inline output.
+**Inline path is autonomous-capable.** When no `spec` skill is configured (or the configured one can't self-rate), faff-prep produces the inline spec itself (the default `faffter-noon-spec` lite arc) and self-rates it — it has full visibility into the explore findings, the spec contract, and the resulting markers, so it can honestly assess whether the spec is high/medium/low confidence. The inline path is never a park reason on its own; the same confidence gate applied to delegated output also applies to the inline output.
 
 ## What Prep Produces
 
@@ -54,11 +54,11 @@ Each answer renders the relevant diagnosis from the methodology's principle (ful
 
 In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique block is written to the spec but does **not** block confidence-high promotion. It surfaces in the next `/faff-wtf` for the human.
 
-## Spec Format Contract
+## Spec contract
 
-Every spec faff-prep produces (delegated or inline, fresh or refreshed) must satisfy the spec format contract defined by the `spec_format` slot (default `faffter-noon-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep is a producer — it conforms to that contract, it does not redefine it. References to "_Spec Format Contract_" elsewhere in this skill mean the slot's contract.
+Every spec faff-prep produces (delegated or inline, fresh or refreshed) must satisfy the contract defined by the `spec_contract` slot (default `faffidavit-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep is a producer — it conforms to that contract, it does not redefine it. References to "_spec contract_" elsewhere in this skill mean the slot's contract.
 
-When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
+When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation is delegated to the `spec_contract` slot and runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
 
 ## Inline-spec subagent review (mandatory, all sizes)
 
@@ -161,9 +161,9 @@ Apply the shared **Spec discovery** rule first (`skills/faff/SKILL.md`) — chec
 
 If a `spec` skill is configured, invoke it with the issue context and explore findings. Read its output. Attach the content to the issue as a comment. Clean up the local file.
 
-If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE) defined by the `spec_format` slot. Mark every decision with the canonical markers and mirror the DONE checklist 1:1 to the body, per that contract.
+If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE) of the default `spec` producer (`faffter-noon-spec`). Mark every decision with the canonical markers and mirror the DONE checklist 1:1 to the body, per the `spec_contract` slot.
 
-Run the marker validation from _Spec Format Contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
+Run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
 
 **Before attaching (inline spec only, all sizes):** dispatch the clean-context subagent review per _Inline-spec subagent review_ above. Apply its findings (revise, downgrade self-rating, or park) before moving to attach.
 
@@ -283,11 +283,11 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **validate per the _Spec Format Contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **validate per the _spec contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 
-If the refreshed spec fails marker validation → **park** with cause "spec format contract violated — missing Chosen/Decision/Punt markers".
+If the refreshed spec fails marker validation → **park** with cause "spec contract violated — missing Chosen/Decision/Punt markers".
 
 ### Path 2 — Fresh-spec (no existing spec)
 
@@ -295,7 +295,7 @@ Available in **both** delegated and inline modes — autonomous never parks mere
 
 **Step 1 — produce the spec.** Either:
 
-- **(delegated)** If a `spec` skill is configured: invoke it, passing the _Spec Format Contract_ in the instructions. The skill returns the spec body plus a `confidence:` self-rating at the end of its output.
+- **(delegated)** If a `spec` skill is configured: invoke it, passing the _spec contract_ in the instructions. The skill returns the spec body plus a `confidence:` self-rating at the end of its output.
 - **(inline)** If no `spec` skill is configured (or the configured one can't self-rate): produce the inline spec yourself per Scenario A Step 2 (explore findings → design decisions with `**Chosen:**`/`**Decision:**` markers, open questions in `**Punt:**`, prerequisites in `**Assumes:**`, ACs).
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (documented above) on the just-produced spec. Outcomes apply to Path 2 as follows:
@@ -304,7 +304,7 @@ Available in **both** delegated and inline modes — autonomous never parks mere
 - **Narrow (partially delivered)** — the spec narrows to the remaining delta. Continue with Step 3 on the narrowed scope. (Inline path: the subagent review in Step 3 fires on the narrowed spec — Path 2's review is mandatory regardless of how the spec arrived at its final scope.)
 - **Proceed (premise holds)** — continue with Step 3 unchanged.
 
-**Step 3 — validate and review the spec.** Run marker validation per _Spec Format Contract_. Then:
+**Step 3 — validate and review the spec.** Run marker validation per the _spec contract_. Then:
 
 - **(delegated)** The spec skill already produced a `confidence:` self-rating in Step 1. No additional subagent review (the delegated skill is responsible for its own quality bar).
 - **(inline)** **Dispatch the clean-context subagent review per _Inline-spec subagent review_ above** (mandatory for every inline spec, regardless of size) and apply its findings (revise the spec, fold blockers, leave open questions as `**Punt:**`) before self-rating. Self-rating is a deliberate honest assessment based on:
@@ -316,7 +316,7 @@ Available in **both** delegated and inline modes — autonomous never parks mere
 Apply the same gate to either output:
 
 - `confidence: high` **and** marker validation passes → attach to issue, move to Todo, return `promoted`
-- `confidence: high` **but** marker validation fails → **park** with cause "spec format contract violated — missing Chosen/Decision/Punt markers"
+- `confidence: high` **but** marker validation fails → **park** with cause "spec contract violated — missing Chosen/Decision/Punt markers"
 - `confidence: medium` → **park** with cause "medium confidence — needs human review of open punts"
 - `confidence: low` → **park** with cause "low confidence — explore could not resolve core questions"
 

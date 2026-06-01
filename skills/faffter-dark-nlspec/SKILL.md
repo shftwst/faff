@@ -9,7 +9,7 @@ planning_skills:
   spec: faffter-dark-nlspec
 ```
 
-When invoked, faff-prep passes the issue context, explore findings, and the Spec Format Contract. This skill produces the spec body; faff-prep handles attachment, validation, and lifecycle.
+When invoked, faff-prep passes the issue context, explore findings, and the spec contract (the `spec_contract` slot, default `faffidavit-spec`). This skill produces the spec body; faff-prep handles attachment, validation, and lifecycle.
 
 ## Input
 
@@ -17,7 +17,7 @@ Faff-prep provides:
 
 - Issue title, description, acceptance criteria, labels, dependencies
 - Explore findings (codebase state, architecture, relevant files)
-- The Spec Format Contract (canonical markers: `**Chosen:**`, `**Punt:**`, `**Assumes:**`)
+- The spec contract from the `spec_contract` slot (canonical markers: `**Chosen:**`, `**Punt:**`, `**Assumes:**`)
 - The writing style rules (skimmable, no invented labelling schemes)
 
 ## Output
@@ -72,7 +72,7 @@ RECORD UserSession:
 
 **API surfaces / component props / data schemas:** whatever the build agent needs to know about the shape of things. Use the type notation above where precision matters, prose where it doesn't.
 
-**Design decisions:** every tradeoff table, "X vs Y" comparison, or architecture pick must conclude with a canonical marker per the Spec Format Contract:
+**Design decisions:** every tradeoff table, "X vs Y" comparison, or architecture pick must conclude with a canonical marker per the spec contract:
 - `**Chosen:** X` / `**Decision:** X` — closed
 - `**Punt:** X or Y — needs human` — open, in "Open Questions" section
 - `**Assumes:** X exists` — external dependency, in "Assumptions" section
@@ -179,7 +179,7 @@ This line is consumed by faff-prep for its gate decision (autonomous mode: mediu
 
 ## Rules
 
-- The Spec Format Contract markers (`**Chosen:**`, `**Punt:**`, `**Assumes:**`) are mandatory — this skill adds structure around them, not instead of them.
+- The spec contract markers (`**Chosen:**`, `**Punt:**`, `**Assumes:**`) are mandatory — this skill adds structure around them, not instead of them.
 - The writing style rules from faff-prep (skimmable, no invented labelling schemes, restate subjects) apply fully.
 - Pseudocode is language-agnostic. Do not write in a specific programming language — the build agent translates to the project's language.
 - The spec must be buildable by a coding agent with only the spec as context. If a section requires external knowledge not in the explore findings, mark it `**Assumes:**`.

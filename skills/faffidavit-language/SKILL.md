@@ -1,13 +1,22 @@
-# faffter-noon-language
+# faffidavit-language
 
-The default rendering contract. Defines how faff sub-skills turn structure into output: when to draw a visual instead of prose, the catalogue of canonical visual forms, when prose still wins, the markdown-table-vs-definition-list rule, and density caps.
+The rendering contract — defines how faff sub-skills turn structure into output (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps), and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
 
-This is the implicit default for the `language` slot. Extracted here so the rendering rules are defined once and referenced everywhere, and so they can be swapped for a house style.
+This is the implicit default for the `language_contract` slot. Every sub-skill that emits user-facing output renders through it; it can be swapped for a house style.
 
 ```yaml
 planning_skills:
-  language: faffter-noon-language   # the default — explicit for clarity
+  language_contract: faffidavit-language   # the default — explicit for clarity
 ```
+
+## Why a contract, not a producer
+
+Unlike `spec` — which splits into a producer (`faffter-noon-spec`, issue → new spec) and a contract (`faffidavit-spec`, spec → pass/fail) — language has no separable generative act. There's no "render from nothing": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone language *producer* would have no natural caller. What language genuinely is, is a standard **referenced by many skills** (every sub-skill renders "according to" it) plus a standalone normalise act — exactly the contract shape. The "produce" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-language`.
+
+## Two faces
+
+- **Define** (reference): the visual-vs-prose split, the canonical visual forms, the table-vs-list rule, and the density caps below. Sub-skills read this and render accordingly.
+- **Validate / normalise** (invokable): given draft output, flag (or rewrite) violations — markdown tables that should be definition lists, structure narrated as prose that should be a visual, visual walls that breach the density caps. Invoked as a final pass, or standalone: "normalise this output to house style."
 
 ## Visualisation over prose
 
@@ -121,8 +130,17 @@ A wall of small visuals is the same problem as a wall of text. Each rendered sec
 - **Queue partition grid:** at most 10 rows visible; rest collapses to "(+ N more)" with the full list in the log
 - **Workstream lane:** at most 7 initiatives in the live view; rest in log
 
+## Validation / normalise
+
+Run as a final pass over draft output, or on demand against any block.
+
+**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows.
+
+**Output:** either a list of violations (`where → which rule → the fix`), or the normalised block with the fixes applied, depending on how the caller invokes it.
+
 ## Rules
 
 - The catalogue is closed. A skill that needs a new visual form adds it here first, then uses it — never invents one inline.
 - The visualisation/prose split is non-negotiable: structure is visual, judgement is prose. Don't narrate a graph; don't tabulate a recommendation.
 - These rules govern user-facing output only. They do not constrain `.faff/` logs or skill documentation.
+- Validation reports or normalises; it does not change what the output says, only how it's rendered.

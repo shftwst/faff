@@ -96,8 +96,8 @@ planning_skills:
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
-  spec_format: faffter-noon-spec              # spec marker contract and writing rules
-  language: faffter-noon-language             # rendering contract — visual vs prose, density caps
+  spec_contract: faffidavit-spec              # spec marker contract + validator
+  language_contract: faffidavit-language        # rendering contract + output normaliser
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -105,12 +105,12 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 
 | Slot | Default when unset | Purpose |
 |---|---|---|
-| `spec` | inline (faff-prep) | Produces the spec. |
+| `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
 | `parallel` | none (sequential) | Concurrency for faff-beep-boop. |
 | `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits `pass` / `fail` / `needs-human`. |
-| `spec_format` | `faffter-noon-spec` | The marker contract and writing rules every spec producer satisfies and every consumer depends on. |
+| `spec_contract` | `faffidavit-spec` | The marker contract + writing rules every spec producer satisfies and every consumer depends on; validates specs on demand. |
 | `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |
-| `language` | `faffter-noon-language` | The rendering contract — when to draw a visual vs prose, the canonical visual forms, table-vs-list rule, density caps. |
+| `language_contract` | `faffidavit-language` | The rendering contract — visual vs prose, canonical visual forms, table-vs-list rule, density caps; normalises output on demand. |
 | `ship` | vanilla `gh pr merge` | Merge/deploy mechanism inside faff-workit. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
@@ -414,9 +414,9 @@ When a faff skill's flow leads naturally into another faff skill, it offers the 
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
-## Rendering — the `language` slot
+## Rendering — the `language_contract` slot
 
-How sub-skills turn structure into output (visual-vs-prose split, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) is the **rendering contract**, owned by the `language` slot. The default is `faffter-noon-language` — see that skill's `SKILL.md`. Any sub-skill that emits user-facing output renders through the configured `language` skill; the catalogue of visual forms is closed there, not extended inline.
+How sub-skills turn structure into output (visual-vs-prose split, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) is the **rendering contract**, owned by the `language_contract` slot. The default is `faffidavit-language` — see that skill's `SKILL.md`. Any sub-skill that emits user-facing output renders through the configured `language_contract` skill; the catalogue of visual forms is closed there, not extended inline.
 
 ## Synthesis contract
 
@@ -555,7 +555,7 @@ When computing `likely-fire`, the verdict computation **anticipates** the collis
 
 ### Display format (consumed by `/faff-wtf` and `/faff-beep-boop`)
 
-Replaces the previous `★ fire-and-forget` annotation. Renders via the `language` slot → queue partition grid (form (c)). Compact form:
+Replaces the previous `★ fire-and-forget` annotation. Renders via the `language_contract` slot → queue partition grid (form (c)). Compact form:
 
 ```
 Build queue (4 ready · 2 fire-and-forget · 2 likely-fire serialised)

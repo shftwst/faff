@@ -159,13 +159,13 @@ Output rendered in the new `### Methodology findings` section of tidy's output (
 
 ## Output and chaining
 
-Tabular output follows the `language` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffter-noon-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `language_contract` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 Present findings grouped by bucket. Skip any bucket with no findings.
 
 Output renders three new sections in addition to the existing buckets:
 
-- `### Structural diagnostics` — present when the methodology slot's `backlog-diagnostics` output found anything. Format follows the `language` slot (default `faffter-noon-language`). Skip if no findings.
+- `### Structural diagnostics` — present when the methodology slot's `backlog-diagnostics` output found anything. Format follows the `language_contract` slot (default `faffidavit-language`). Skip if no findings.
 - `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip if no signals.
 - `### Methodology findings` — present only when a `methodology` skill is configured **and** bucket 7 surfaced anything. Lists the findings the methodology returned, each with its full diagnosis. No auto-actions; the human reads, decides, acts.
 
@@ -201,7 +201,7 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
   2. **Park reason no longer applies and can be cleanly verified.** Read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`. Auto-remove when exactly one of these holds:
      - The reason matches a pattern **now forbidden** by the autonomous contract (any of: session compaction, context length, too-many-turns, topic-keyword match on a spec-closed decision, edits to files that only take effect after merge like `netlify.toml` / `.github/workflows/*.yml` / `Dockerfile` / `package.json` dep bumps / IaC / migration SQL files that weren't executed pre-merge). These parks were never valid under the current rules — clear without prompting.
      - The reason cited a specific blocker issue ID and that blocker is now Done, Merged, or Cancelled — live-fetch the blocker state from the tracker, don't rely on cached data.
-     - The reason cited a spec punt (`Punt:`, `needs human`, `TBD`, "or X if Y") and the spec now closes that same topic with a `Chosen:` / `Decision:` marker per the **Spec Format Contract**.
+     - The reason cited a spec punt (`Punt:`, `needs human`, `TBD`, "or X if Y") and the spec now closes that same topic with a `Chosen:` / `Decision:` marker per the `spec_contract` slot (default `faffidavit-spec`).
   3. **Do not remove** when the park reason is subjective ("architectural change needed", "scope unclear"), vague, or missing. Those are judgement calls — leave the label on and log the finding as "stale park label — needs human" for the next `/faff-wtf`.
 
   For every auto-removal, log the issue id, original park reason, and the specific rule that invalidated it to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`. Post a tracker comment noting the removal and the reason.

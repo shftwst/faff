@@ -1,98 +1,76 @@
 # faffter-noon-spec
 
-The default spec format contract. Defines the canonical markers, writing style rules, and validation criteria that every spec must satisfy — regardless of which skill produced it.
+The default spec producer. Turns an issue plus explore findings into a buildable spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE). Lightweight by design — the minimum a coding agent needs to build without re-litigating decisions.
 
-This is the shared contract between whatever produces a spec and whatever consumes one. Defined once here and referenced everywhere via the `spec_format` slot.
+This is the implicit default for the `spec` slot when none is configured. It's the light counterpart to `faffter-dark-nlspec` (the heavy, formal full-nlspec producer): same slot, same contract, less ceremony. Extracted here so it can be invoked standalone, tested, and swapped.
 
 ```yaml
 planning_skills:
-  spec_format: faffter-noon-spec   # the default — explicit for clarity
+  spec: faffter-noon-spec   # the default — explicit for clarity
 ```
 
-## Purpose
+## When it runs
 
-An autonomous reader needs to parse specs mechanically — identify which decisions are closed, which are open, which have external dependencies. Without this contract, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers.
+Invoked by faff-prep as the configured `spec` skill (the default when the slot is unset). Can also be invoked standalone: "write the spec for SHF-123" produces the spec body for review without the tracker lifecycle.
 
-## Canonical markers
+## Input
 
-Every spec must mark each non-trivial decision with exactly one of these:
+The caller provides:
 
-| Marker | Meaning | Reader action |
-|---|---|---|
-| `**Chosen:** X` or `**Decision:** X` | Closed. The spec has picked X. | Implementer does X. Reader must not re-raise. |
-| `**Punt:** X or Y — needs human` | Open. Explicitly deferred to a human. | Reader escalates. Build cannot proceed past this without resolution. |
-| `**Assumes:** X exists` | External dependency. | Reader validates presence before build; parks if absent. |
+- Issue title, description, acceptance criteria, labels, dependencies
+- Explore findings (codebase state, architecture, relevant files)
+- The spec contract from the `spec_contract` slot (default `faffidavit-spec`) — the canonical markers and writing-style rules this output must satisfy
 
-## Marker rules
+## Output
 
-1. **One marker per decision section.** Every tradeoff table, "X vs Y" comparison, or architecture pick must conclude with exactly one marker. Prose rationale above the marker is encouraged; the marker is what the reader parses.
+A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller validates it against the `spec_contract` slot, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's `faffidavit-spec`) and does not handle attachment or lifecycle (that's faff-prep).
 
-2. **No marker = invalid spec.** A spec with a tradeoff table but no concluding marker is invalid. In autonomous mode, faff-prep parks rather than attaches. In interactive mode, faff-prep adds the missing marker before attaching.
+## The lite nlspec arc
 
-3. **Open items collected.** `Punt:` and `Assumes:` markers must appear in a top-level "Open Questions" or "Assumptions" section so the reader can enumerate them quickly.
+Motivation to verifiable done, in four phases. Every non-trivial decision carries a canonical marker (`**Chosen:**` / `**Punt:**` / `**Assumes:**`) per the `spec_contract` slot.
 
-4. **Applies to all design choices.** Libraries, patterns, data shapes, naming, scope boundaries. If the spec weighs options and picks one, mark it.
+### 1. WHY — Problem and scope
 
-5. **No topic-keyword contract.** The reader matches on markers, not section names. A section called "Logging" with `**Chosen:** pino` at the end is closed. A section called "Anything" with `**Punt:** A or B — needs human` is open.
+- One paragraph: status quo → pain → what this change does about it.
+- Design principles — any non-obvious constraints that should govern implementation, as bold-lead sentences. Omit when there are none.
+- Out of scope — what this deliberately does NOT do, each with a one-line note on where it could be added later (extension point).
 
-## Writing style: skimmable, not coded
+### 2. WHAT — Data and interfaces
 
-The marker contract governs structure. This section governs prose. A reader skimming the spec — without holding the source ADR, parent ticket, or blocker list in their head — must be able to follow what each section is about on first pass.
+- Type shapes, API surfaces, component props, data schemas the build agent needs to know exist. Prose where precision doesn't matter; a shape sketch where it does.
+- Key technical decisions with brief pros/cons — each concluded with a canonical marker.
+- Open questions collected in an "Open Questions" section (`**Punt:**`); external prerequisites in an "Assumptions" section (`**Assumes:**`).
 
-### Concrete prohibitions
+### 3. HOW — Behaviour
 
-**No invented labelling schemes.** Don't introduce ad-hoc codes like `X1`, `F2`, `R3`, `W2a`, `Phase 4` and then cross-reference them throughout the spec. They force the reader to hold the full list in memory to decode any single line. Restate the subject instead ("the audit-error-registry relocation", "the cleanup PR for the entitlements route").
+- Architecture and approach — how the pieces connect.
+- Pseudocode at ambiguity points — anywhere prose alone could be read two ways, add a setup/action/assert or step-by-step block.
+- Risks, edge cases, what could go wrong.
 
-**Ticket numbers are fine.** `#123`, `SHF-247`, `ENG-42` are real, stable identifiers. The rule bans codes the spec invents, not codes that exist in the tracker. Prefer `SHF-247 (audit-error registry relocation)` over `SHF-247` alone or `F5` alone.
+### 4. DONE — Definition of Done (closed-loop)
 
-**Restate subjects on every cross-reference.** "F5 shim", "PR 4's deletions", "Phase 6", "test classes #1–#9" are opaque. Spell out what each is.
-
-**Inherited codes from source ADRs are the most common offender.** If ADR-0016 uses `F1...F8` to label phases, the spec must translate each into a descriptive subject. The ADR is one document; the spec is another.
-
-**Descriptive lead columns in tables.** A row reading `PR 4 / W2 / in-app syncBilling impl / shim from W1` is unreadable. Lead with a descriptive column or break into named subsections.
-
-**Standalone prose over compressed bullet walls.** Three sentences that each make sense in isolation beat a five-bullet wall whose meaning depends on having read the preceding section.
-
-## Validation criteria
-
-Before attaching a spec (faff-prep runs this):
-
-1. At least one canonical marker in any section that presents multiple options.
-2. No dangling comparisons (tables or "vs" prose without a marker below).
-3. `Punt:` and `Assumes:` entries grouped in their dedicated sections.
-4. No invented labelling schemes (scan for patterns like single-letter+digit codes used as references).
-
-**Autonomous mode:** validation failure → park.
-**Interactive mode:** validation failure → fix the missing marker before attach.
-
-## Default spec structure (lite nlspec arc)
-
-When no richer `spec` skill is configured, the inline spec follows this four-phase arc — motivation to verifiable done:
-
-**1. WHY** — Problem statement and scope
-- One paragraph: status quo → pain → what this change does about it
-- Design principles (any non-obvious constraints) as bold-lead sentences
-- Out of scope — what this deliberately does NOT do, each with a one-line note on where it could be added later (extension point)
-
-**2. WHAT** — Data and interfaces
-- Type shapes, API surfaces, component props, data schemas the build agent needs to know exist
-- Key technical decisions with pros/cons — each concluded with a canonical marker
-- Open questions in an "Open Questions" section (`**Punt:**`); external prerequisites in an "Assumptions" section (`**Assumes:**`)
-
-**3. HOW** — Behaviour
-- Architecture and approach — how the pieces connect
-- Pseudocode at ambiguity points — anywhere prose alone could be read two ways, add a setup/action/assert or step-by-step block
-- Risks, edge cases, what could go wrong
-
-**4. DONE** — Definition of Done (closed-loop)
 - A testable checklist mirroring the body sections 1:1. Every WHY/WHAT/HOW requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded ones.
-- If cross-boundary, recommend a split.
+- Each item concrete enough to write a test against. "Works correctly" is not a DONE item; "returns 401 with body `{ error: \"session_expired\" }`" is.
+- If the work spans a structural boundary (two independent concerns), recommend a split instead of speccing both.
 
-This structure is the minimum. Richer spec skills (like faffter-dark-nlspec) may produce more — as long as they satisfy the marker contract and writing style rules above.
+## Confidence self-rating
+
+End the output with a confidence line on its own:
+
+```
+confidence: high | medium | low
+```
+
+- **high** — every decision is marked, no open questions remain, DONE mirrors the body completely.
+- **medium** — some `**Punt:**` items exist but are non-blocking, or the explore findings were ambiguous in places.
+- **low** — significant unknowns, architectural uncertainty, or the issue may need splitting.
+
+This line is consumed by faff-prep for its autonomous gate decision (medium/low → park). faff-prep strips it before attaching — downstream consumers never see it. It is a signal back to the caller, not part of the spec.
 
 ## Rules
 
-- This contract is non-negotiable for autonomous operation. A spec without markers cannot be autonomously built — the reader can't tell what's closed vs open.
-- The contract is deliberately minimal. It doesn't prescribe section names, document length, or level of detail. Only: mark your decisions, write readably, validate before attach.
-- Alternative spec format skills (faffter-dark-nlspec, custom skills) must satisfy this contract. They may add structure on top but cannot omit the markers.
-- The writing style rules apply equally to inline and delegated output. faff-prep passes this contract to delegated skills in their instructions.
+- This is the **minimum** structure. Richer producers (like `faffter-dark-nlspec`) may add formal types, appendices, and rationale sections — as long as they satisfy the same `spec_contract`.
+- The canonical markers are mandatory and owned by the `spec_contract` slot — this skill uses them, it does not define them. If the contract is unavailable, fall back to `**Chosen:**` / `**Punt:**` / `**Assumes:**`.
+- Pseudocode is language-agnostic. Do not write in a specific programming language — the build agent translates to the project's language.
+- The spec must be buildable by a coding agent with only the spec as context. If a section needs external knowledge not in the explore findings, mark it `**Assumes:**`.
+- Write to be skimmed: no invented labelling schemes, restate subjects on cross-reference (the writing-style rules live in the `spec_contract` slot and apply fully).

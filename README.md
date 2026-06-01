@@ -94,15 +94,16 @@ Isolation is by design — the implementor can't mark its own homework, the eval
 
 ## Skill tiers
 
-Faff has three tiers of skills:
+Faff has four tiers of skills:
 
 | Tier | Naming | Role |
 |---|---|---|
 | **faff-*** | Pipeline | Human-facing commands and orchestration. The "what." |
-| **faffter-noon-*** | Default behaviours | The extracted default implementations. The "how" that ships out of the box. |
-| **faffter-dark-*** | Overrides / experimental | Alternative implementations that replace defaults or fill optional slots. |
+| **faffter-noon-*** | Default behaviours | The extracted default doing-skills (produce / analyse / review). The "how" that ships out of the box. |
+| **faffter-dark-*** | Overrides / experimental | Alternative doing-skills that replace defaults or fill optional slots. |
+| **faffidavit-*** | Contracts | Contract-defining **and** validating skills. They define a conformance standard (markers, rendering rules) and validate output against it — invokable in their own right, not passive documents. |
 
-The faff-* skills are pure orchestrators — they define the sequence and contract, then delegate to whichever faffter-noon or faffter-dark skill is configured. A methodology is one coherent lens (not split by function) because its principles interact across grooming, standup, roadmapping, and build ordering.
+The faff-* skills are pure orchestrators — they define the sequence, then delegate to whichever faffter-noon, faffter-dark, or faffidavit skill is configured. The doing-skills (faffter-*) take inputs and return outputs; the contract-skills (faffidavit-*) define and check a standard the doing-skills conform to. A methodology is one coherent lens (not split by function) because its principles interact across grooming, standup, roadmapping, and build ordering.
 
 ### faffter-noon-* (defaults)
 
@@ -110,8 +111,16 @@ The faff-* skills are pure orchestrators — they define the sequence and contra
 |---|---|---|
 | `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
 | `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits pass/fail/needs-human. |
-| `faffter-noon-spec` | `spec_format` | The implicit default. Canonical marker contract (Chosen/Punt/Assumes), writing style rules, validation criteria, and the lite nlspec arc structure. All spec producers must satisfy this; all consumers depend on it. |
-| `faffter-noon-language` | `language` | The implicit default. Rendering contract — when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, and density caps. All sub-skills render user-facing output through this. |
+| `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
+
+### faffidavit-* (contracts)
+
+Contract-defining and validating skills. Each defines a conformance standard and validates against it on demand — usable standalone, not just inside the pipeline.
+
+| Skill | Slot | What it does |
+|---|---|---|
+| `faffidavit-spec` | `spec_contract` | The implicit default. Defines the canonical marker contract (Chosen/Punt/Assumes), marker rules, and skimmable writing style; validates any spec against them (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
+| `faffidavit-language` | `language_contract` | The implicit default. Defines the rendering contract — visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps; validates/normalises draft output against them. All sub-skills render through this. |
 
 ### faffter-dark-* (experimental)
 

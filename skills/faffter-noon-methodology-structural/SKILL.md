@@ -37,6 +37,19 @@ Order a set of issues by the core ordering rule. Issues gating the longest chain
 - Challenged spec: post-spec comment raises unresolved challenge → back to needs-prep
 - Stale spec: codebase drift invalidates approach → back to needs-refresh
 
+### `ticket-shaping`
+
+Turn a **discovery brief** (the `intake` slot's output — see `faffter-noon-intake`) into a structured set of proposed tickets. Requested by `/faff-noodle` after the intake conversation; the orchestrator creates the tickets this output proposes. This output **proposes** structure — it never writes to the tracker itself (that's the orchestrator lane).
+
+The structural lens shapes purely from what the brief states plus the live tracker graph — no opinion about value or right-sizing (that's what an opinionated methodology like `faffter-dark-methodology-agile-delivery` adds on top):
+
+- **greenfield brief** — one workstream/container candidate per stated capability (named after the capability, verbatim — the structural lens does not rename); within each, the first tickets needed to reach the brief's `First slice`. Sequence the workstreams and the tickets by the core ordering rule (priority — none yet, so creation/sequence order — then unlock value derived from the stated `Dependencies`). Emit a top-level container proposal when the tracker supports one (initiative/project) and the brief spans multiple capabilities.
+- **single-item brief** — one ticket from the `Item`, placed in the workstream named by `area`. If `split-sense: possibly-splittable`, propose the two tickets named after the two concerns and link them per the stated relationship; if `unitary`, one ticket. Never force a split the brief didn't flag.
+
+For every proposed ticket emit: title (from the capability/item, plain English — no invented codes), a description seeded from the relevant brief prose, the container/workstream it belongs under, declared blocker/blocked-by links derived from the brief's `Dependencies`, and a `Backlog` status. Carry the brief's `Open questions` onto the relevant ticket's description so `/faff-prep` picks them up. Tag created tickets `faff-noodle-intake` so the next prep pass recognises freshly-shaped work.
+
+Conservative, same as every structural output: when the brief is too thin to derive a defensible structure, propose fewer, larger tickets and surface what's missing rather than manufacturing speculative ones — the human (or a later `/faff-prep`) refines.
+
 ### `backlog-diagnostics`
 
 Detects problems with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps. This output always fires regardless of config: it is the structural baseline every faff pass depends on. Callers consume it directly (rendering it in a brief) or feed its cycle + ghost-project findings into the gateway's automation-routing contract.

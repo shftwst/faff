@@ -1,6 +1,6 @@
 ---
 name: faff
-description: "Gateway — routes to the right faff sub-skill. Use /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
+description: "Gateway — routes to the right faff sub-skill. Use /faff-noodle to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
 ---
 
 # Faff
@@ -9,6 +9,7 @@ The stuff you do before actual work — but automated. This is a gateway — inv
 
 | Command | Triggers |
 |---------|----------|
+| `/faff-noodle` | "New project", "kick off", "start something", "I've got an idea", "new feature", "add a feature", "file a bug", "capture this", "scope a new thing", "spitball" |
 | `/faff-wtf` | "Where to focus", "What should I work on?", "what's happening", "catch me up", "where are we", "where we at", "the 411", "lowdown" |
 | `/faff-whereto` | "Roadmap", "where are we going", "explain the backlog", "do these join up", "workstream view", "strategy view", "what are the chains", "big picture", "walk me through the plan" |
 | `/faff-tidy` | "Tidy the backlog", "clean up", "groom", "mess" |
@@ -46,6 +47,7 @@ tracking:
     Deep-work mornings; avoid recommending large builds after 4pm.
 
 planning_skills:             # optional delegation slots; each has a faff default when unset
+  intake: superpowers:brainstorming                  # used by faff-noodle for new-work discovery
   spec: superpowers:brainstorming                    # used by faff-prep
   plan: superpowers:writing-plans                    # used inside faff-workit
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency
@@ -92,6 +94,7 @@ Faff delegates specialised work to configured skills. Slots live under the `plan
 
 ```yaml
 planning_skills:
+  intake: superpowers:brainstorming                  # used by faff-noodle for new-work discovery, optional
   spec: superpowers:brainstorming                    # used by faff-prep
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
@@ -107,6 +110,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 
 | Slot | Default when unset | Purpose |
 |---|---|---|
+| `intake` | `faffter-noon-intake` | Runs new-work discovery for `/faff-noodle` and emits a discovery brief. A producer doing-skill. |
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
 | `parallel` | none (sequential) | Concurrency for faff-beep-boop. |
 | `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits the `review_adaptor` verdict. |
@@ -202,6 +206,8 @@ This widened definition fixes a real failure: a tidy run that suggests cancellin
 No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by workit, never counted in beep-boop queues.
 
 ### Spec discovery (where to look for an existing spec)
+
+**This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-workit, faff-wtf, faff-whereto, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the three checks below. Any divergence in a sub-skill is a bug, not a local override.
 
 Any faff sub-skill that asks "does this issue have a spec?" must check **all three** of the following, in order, and treat a hit in any of them as the spec:
 
@@ -412,6 +418,18 @@ Every faff skill that can park work follows the same protocol:
 4. Write to `.faff/logs/…` with the full context.
 5. Return control to the caller (beep-boop or interactive invoker).
 
+### Unpark protocol (shared)
+
+Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-whereto's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `parked-by-faff` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
+
+1. **Reason resolved → re-enter.** The unpark trigger is **always re-invoking the relevant skill on the issue**, never a separate "unpark" command. Which skill depends on the park cause:
+   - Spec-level park (open `**Punt:**`, ambiguous decision, `low`/retained-`medium` confidence) → re-run `/faff-prep` (or `/faff-prep --refresh`) once the human has answered in a comment. Prep re-rates; on `high` it promotes and clears the label.
+   - Build-level park (mid-build ambiguity flipped the PR to draft) → re-run `/faff-workit`; it resumes from `.faff/runs/<run-id>/ISSUE-XX/` + the draft PR.
+   - Structural park (`gap-blocked`, `circular-blocked`) → resolve the gap/cycle (file the missing ticket, break the edge), then the issue routes normally on the next tidy pass.
+2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes a stale `parked-by-faff` label without human action when the state moved on (issue now In Progress/In Review/Done/Cancelled) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
+
+**The label is the contract.** Removing the `parked-by-faff` label (by either path) is what returns the issue to normal routing — `/faff-wtf` stops surfacing it as a blocker, and the build queue reconsiders it on the next pass. Whoever clears a park (a skill on re-entry, or tidy's auto-removal) **must** remove the label and log the unpark with its cause. A resolved park that keeps its label is a bug: it lies to every downstream surfacer.
+
 ## Chaining pattern
 
 When a faff skill's flow leads naturally into another faff skill, it offers the next step via a yes/no gate (or a short-choice prompt where there is a real branch like Build/Review/Reprep). On confirm, it invokes the next skill via the `Skill` tool in the same conversation. On deny, it stops cleanly.
@@ -468,4 +486,4 @@ Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** 
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 
-If the user says something that maps to a specific sub-skill, invoke that sub-skill directly.
+If the user says something that maps to a specific sub-skill, invoke that sub-skill directly. New-work intent — "new project", "kick off", "I've got an idea", "add a feature", "file a bug" — maps to `/faff-noodle` (it's the only sub-skill that *creates* tickets; the rest act on tickets that already exist).

@@ -11,7 +11,7 @@ planning_skills:
 
 ## Outputs
 
-This skill fills the `methodology` slot, so it answers the same named outputs as the default methodology (`pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`) — but through the seven-principle lens rather than pure graph structure. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
+This skill fills the `methodology` slot, so it answers the same named outputs as the default methodology (`ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`) — but through the seven-principle lens rather than pure graph structure. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
 Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: delivery-lead` for the caller to display.
 
@@ -19,6 +19,7 @@ How the principles map onto the outputs:
 
 | Output | Principles applied |
 |---|---|
+| `ticket-shaping` | 1 (outcome-named workstreams, not the brief's literal capability names), 4 (right-sized — split a capability that's too big, merge always-together items), 6 (surface deps as explicit blocker links), 2 + 7 (sequence the proposed tickets by value × risk) |
 | `pick-ordering` / `build-queue` | 2 (value × risk), 7 (risk-aware) — override structural priority+unlock when materially different |
 | `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
 | `backlog-diagnostics` | 1 (outcome-named), 4, 5 (cohesive), 6 |

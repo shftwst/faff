@@ -15,11 +15,24 @@ Lightweight with sensible defaults, but configurable enough to use your preferre
 /plugin install faff@faff
 ```
 
+## Your first five minutes
+
+1. **Tell it where your stuff lives.** Drop a `.faffrc` at your repo root (see [Setup](#setup) — three lines is enough).
+2. **Got a new idea or an empty repo?** Run `/faff-noodle`. It chats through what you're building and turns it into tickets. Already have a backlog? Skip to step 3.
+3. **Not sure what to do?** Run `/faff-wtf` — it tells you what shipped, what's stuck, and what to pick up.
+4. **Picked something?** Run `/faff-prep ISSUE-XX` to turn it into a spec, then `/faff-workit ISSUE-XX` to build it.
+5. **Want it all done while you sleep?** Run `/faff-beep-boop` and check the results in the morning.
+
+Each step offers to chain into the next, so you can just keep saying yes. That's the whole loop.
+
+> The skills come in tiers — `faff-*` are the commands you type; the `faffter-*` and `faffidavit-*` ones are the swappable bits doing the work behind them. You can ignore all of that until you want to plug in your own tools — see [the appendix](#appendix-skill-families-qualifiers-and-swapping).
+
 ## Commands
 
 | Command | What it does |
 |---------|-------------|
 | `/faff` | "What should I work on?" (default) |
+| `/faff-noodle` | Start something new — kick off an empty project, or capture a feature/bug/idea, and turn it into a sensible set of tickets |
 | `/faff-wtf` | Where to focus — what shipped, what's stuck, what's next |
 | `/faff-tidy` | Tidy the backlog — find the mess, clean, and surface what's ready to pick up |
 | `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
@@ -29,14 +42,17 @@ Lightweight with sensible defaults, but configurable enough to use your preferre
 ## How it works
 
 ```
-"what should I work on?" → prep it → build it
-                             ↑            |
-                             └── reprep ←─┘
+new idea / project → tickets → "what should I work on?" → prep it → build it
+                                       ↑                                |
+                                       └────────── reprep ←─────────────┘
 ```
 
+0. **Noodle** — turn a new idea (or a whole new project) into a sensible set of tickets
 1. **WTF** — what shipped, what's blocked, what to focus on
 2. **Prep** — explore the codebase, write a spec, attach it to the ticket
 3. **Workit** — spec is committed to a feature branch, worktree is ready, go
+
+`/faff-noodle` is the front door: everything else acts on tickets that already exist — noodle is how they come to exist. It runs a discovery conversation, then shapes the result into tickets using your configured methodology.
 
 Each step chains to the next with a yes/no gate. Say yes, keep moving. Say no, stop.
 
@@ -53,31 +69,28 @@ Auto-merges when every acceptance criterion is verified, CI is green, and review
 
 ## Setup
 
-Works with Linear, GitHub Issues, Jira, or any issue tracker exposed via MCP. Falls back to git-only mode when no tracker is available.
+Works with Linear, GitHub Issues, Jira, or any tracker exposed via MCP. No tracker? It falls back to git-only mode.
 
-Add a **Project Tracking** section to your project's `CLAUDE.md`:
+Drop a `.faffrc` at your repo root telling it where your stuff lives:
 
-```markdown
-## Project Tracking
-
-- **Issue tracker:** Linear, team key `PROJ`
-- **Git host:** github.com/org/repo
+```yaml
+tracking:
+  tracker: linear        # or github, jira — autodetected if you skip it
+  team_key: PROJ
+  repo: org/repo
 ```
 
-Optional:
+That's the whole minimum. Everything else has a sensible default. Want to swap in your own skills for any step? Point a slot at them:
 
-```markdown
-- **Milestones:** v1.0 target 2026-05-01
-- **Labels:** `urgent` = drop everything, `blocked` = needs external input
-
-## Planning Skills
-- spec: gstack:autoplan
-- parallel: superpowers:subagent-driven-development
-- review: gstack:review
-- ship: gstack:ship
+```yaml
+planning_skills:
+  intake: superpowers:brainstorming   # how /faff-noodle runs discovery
+  spec: gstack:autoplan               # how /faff-prep writes specs
+  review: gstack:review               # pre-PR review
+  ship: gstack:land-and-deploy        # merge/deploy
 ```
 
-All planning slots are optional. Faff has sensible defaults for each — slots let you swap in your own.
+All slots are optional — unset just means "use ours". Copy `.faffrc.example.yml` for the full list of knobs.
 
 ## Agent lanes
 
@@ -110,6 +123,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 |---|---|---|
 | `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
 | `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits the `review_adaptor` verdict (pass/fail/needs-human). |
+| `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-noodle` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
 
 ### faffidavit-* (adaptors)
@@ -165,7 +179,7 @@ The `faffter-*` qualifier says how safe the variant is: **`-noon-*`** (broad day
 
 ### Two kinds of slot
 
-- **Doing-slots** (`spec`, `review`, `methodology`, `parallel`, `ship`) hold a skill that *does work*. Swap to change behaviour.
+- **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `parallel`, `ship`) hold a skill that *does work*. Swap to change behaviour.
 - **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
 
 The pipeline hardcodes the contract so it always has something stable to branch on; the slot holds the translator so anyone's output can be made to fit.

@@ -30,6 +30,7 @@ tracking:
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 planning_skills:
+    intake: # new-work discovery used by /faff-noodle (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
     spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)
     parallel: # optional used by /faff-beep-boop for concurrency
     review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)
@@ -42,8 +43,8 @@ planning_skills:
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —
 # build decisions, methodology actions, backlog management, and pluggable skills.
-# low: surface everything, act on nothing. medium (default): act on high-confidence,
-# park ambiguity. high: act on defensible calls, auto-split, reorder by value, file gaps.
+# low: surface everything, act on nothing. medium: act on high-confidence, park ambiguity.
+# high (default): act on defensible calls, auto-split, reorder by value, file gaps.
 # full: complete autonomy — resolve everything, never park unless genuinely unknowable
 # or irreversible. Adversarial review still gates — it's the safety net.
 appetite: high

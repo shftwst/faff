@@ -147,7 +147,7 @@ Everything `high` does, plus:
 **What no appetite level does:**
 - Cancel, delete, or reduce scope (irreversible).
 - Override user-explicit "ask first" rules.
-- Skip adversarial review or holdout tests.
+- Skip adversarial review.
 - Act without evidence (every action traces to a principle + observable tracker state).
 
 ## Rules

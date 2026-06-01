@@ -43,20 +43,13 @@ planning_skills:
 # low: surface everything, act on nothing. medium (default): act on high-confidence,
 # park ambiguity. high: act on defensible calls, auto-split, reorder by value, file gaps.
 # full: complete autonomy — resolve everything, never park unless genuinely unknowable
-# or irreversible. Adversarial review and holdout tests still gate — they're the safety net.
+# or irreversible. Adversarial review still gates — it's the safety net.
 appetite: high
 
-# faffter-dark: LLM provider config for adversarial review and holdout test generation.
-# Used by faffter-dark-adversarial-review and faffter-dark-holdout skills.
-# Each sub-key can use a different provider/model — independence is the point.
+# faffter-dark: LLM provider config for adversarial review.
+# Used by the faffter-dark-adversarial-review skill.
 faffter_dark:
     adversarial:
-        provider: ollama           # ollama | vllm | openai | gemini | anthropic | openrouter
-        model: llama3.1:70b        # provider-specific model identifier
-        host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
-        api_key_env:               # env var name holding the API key (not the key itself)
-        timeout: 120               # seconds
-    holdout:
         provider: ollama           # ollama | vllm | openai | gemini | anthropic | openrouter
         model: llama3.1:70b        # provider-specific model identifier
         host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers

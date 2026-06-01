@@ -121,10 +121,9 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 |---|---|---|
 | `faffter-dark-nlspec` | `spec` | Full nlspec-format spec generation — formal type definitions, pseudocode procedures, closed-loop DoD, appendices. Heavier than the built-in lite arc. |
 | `faffter-dark-adversarial-review` | `review` | Two-phase review: runs `faffter-noon-review` first, then sends the diff to a different LLM for a structurally independent second opinion. Replaces the default review. |
-| `faffter-dark-holdout` | — | Holdout test generation and execution. A specialisation that hooks into prep (scenario generation) and review (test execution). Not a pipeline slot — it extends prep and review when configured. |
 | `faffter-dark-methodology-agile-delivery` | `methodology` | Agile delivery methodology lens — seven principles (outcome-named workstreams, value x risk sequencing, WIP caps, right-sized tickets, cohesive workstreams, surfaced deps, risk-aware ordering). Replaces the old `mode: delivery-lead` config. |
 
-Some of these skills (`adversarial-review`, `holdout`) can be configured to use a different model, with provider settings per-slot in `.faffrc`:
+Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc`:
 
 ```yaml
 faffter_dark:
@@ -132,15 +131,11 @@ faffter_dark:
     provider: gemini
     model: gemini-2.5-pro
     api_key_env: GEMINI_API_KEY
-  holdout:
-    provider: openrouter
-    model: meta-llama/llama-3.1-70b
-    api_key_env: OPENROUTER_API_KEY
 ```
 
 The core principle is **independence** — use a different model from whatever wrote the code. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
 
-These are pluggable skills that either add new behaviour (adversarial review, holdout tests) or change the default behaviour of faff (nlspec replaces the lite spec format, agile-delivery replaces structural-only diagnostics). Some slots skip when unset; others have a built-in default that the skill replaces. See the gateway docs for per-slot defaults.
+These are pluggable skills that either add new behaviour (adversarial review) or change the default behaviour of faff (nlspec replaces the lite spec format, agile-delivery replaces structural-only diagnostics). Some slots skip when unset; others have a built-in default that the skill replaces. See the gateway docs for per-slot defaults.
 
 ## License
 

@@ -113,6 +113,64 @@ Defaults when a slot is unset:
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
 
+## Agent Lanes
+
+Faff operates across three segregated executor lanes. These are not personas — they are structurally isolated contexts with controlled visibility, ensuring separation of concerns and preventing the build agent from marking its own homework.
+
+### Orchestrator (outermost lane)
+
+**Visibility:** Issue tracker, project documentation, human dialogue, codebase (read-oriented).
+**Not concerned with:** Implementation detail, code-level decisions.
+
+Two functions:
+1. **External interface** — controls inputs and outputs between the project and the outside world: issue tracking, direct dialogue with the human, project-level reporting, stakeholder communication.
+2. **Pipeline sequencing** — owns the high-level delivery pipeline. Decides what runs when, sequences prep → build → review → ship, manages parks and escalations.
+
+Faff-* skills (wtf, whereto, tidy, beep-boop) operate primarily in this lane. They read the codebase for context but their job is orchestration, not implementation.
+
+### Implementor (innermost lane)
+
+**Visibility:** Codebase (full read/write), spec, architectural context, test suite.
+**Not concerned with:** Tracker state, project-level sequencing, stakeholder communication.
+
+The most active lane. Where development happens:
+- Architectural planning and technical decision-making
+- Spec interpretation and implementation
+- Code, tests, and documentation changes
+- Fix→review iteration loops
+
+Faff-workit's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next.
+
+### Evaluator (external lane)
+
+**Visibility:** Documentation, specification, stood-up environment (runtime access). **No codebase access.**
+**Not concerned with:** How the code works. Only whether the delivered artefact satisfies the spec from a business-value perspective.
+
+Quality control from the outside:
+- Can the feature be exercised in the running environment?
+- Does the behaviour match what the spec promised?
+- Are acceptance criteria met from a user's perspective (not a code perspective)?
+- Does the delivered value match the problem statement in WHY?
+
+This lane is intentionally blind to implementation — it evaluates outcomes, not code. A passing evaluator signal means the feature works as specified regardless of how it's built.
+
+### Lane isolation
+
+The lanes have **controlled visibility by design**, not by accident:
+
+| Lane | Codebase | Tracker | Spec | Environment | Human dialogue |
+|---|---|---|---|---|---|
+| Orchestrator | Read (context) | Full | Read | No | Yes |
+| Implementor | Full read/write | No | Read | Local dev | No (via orchestrator) |
+| Evaluator | **No** | No | Read | Runtime access | No (via orchestrator) |
+
+This isolation prevents:
+- The implementor gaming its own review (it can't see evaluator feedback until the orchestrator routes it)
+- The evaluator being biased by implementation approach (it can't see the code)
+- The orchestrator making implementation decisions (it sequences, doesn't build)
+
+Not all lanes are active in every flow. The evaluator lane is a future capability — documenting it here sets the architectural intent.
+
 ## Shared Rules
 
 These rules apply to every faff sub-skill. Sub-skills point at this section rather than re-stating.

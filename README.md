@@ -80,6 +80,18 @@ Optional:
 
 All planning slots are optional. Faff has sensible defaults for each — slots let you swap in your own.
 
+## Agent lanes
+
+Faff operates across three segregated executor lanes with controlled visibility:
+
+| Lane | Role | Sees | Doesn't see |
+|---|---|---|---|
+| **Orchestrator** | Pipeline sequencing, external interface (tracker, human, reporting) | Tracker, docs, codebase (read) | — |
+| **Implementor** | Architecture, spec interpretation, code, tests | Codebase (read/write), spec | Tracker, human dialogue |
+| **Evaluator** | Quality control from business-value perspective | Spec, running environment | Codebase |
+
+Isolation is by design — the implementor can't mark its own homework, the evaluator can't be biased by implementation approach. See the gateway docs for details.
+
 ## Skill tiers
 
 Faff has three tiers of skills:

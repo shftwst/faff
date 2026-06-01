@@ -175,9 +175,9 @@ Runs after AC verification, before the merge-confidence gate. **This step is non
 
 If this step is reached without being in the todo list, **stop and add it**, then run it before proceeding to Step 10 or 11.
 
-Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and verdict rules are that skill's concern, not faff-workit's. faff-workit owns only the sequencing around the result.
+Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-workit's. faff-workit owns only the sequencing around the result.
 
-The review returns one of three signals:
+The review returns one of three signals, in the envelope defined by the `review_contract` slot (default `faffidavit-review`) — which owns the verdict vocabulary, their semantics, and the revert test below. faff-workit branches on the verdict; it does not redefine it. If a delegated reviewer returns something off-envelope, normalise via `review_contract` first (a malformed verdict coerces to `needs-human`, never `pass`):
 
 | Signal | Meaning | Autonomous action |
 |---|---|---|
@@ -185,7 +185,7 @@ The review returns one of three signals:
 | `fail` | Fixable issues — failing tests, missing coverage, obvious bugs, scope creep. | Iterate autonomously: fix the flagged items, re-run tests, re-run review. Loop until `pass` or `needs-human`. |
 | `needs-human` | Genuine human judgement required — product call, security/privacy concern, irreversible side effect outside the PR flow, spec gap that respec couldn't close. | Flip PR to draft. Park per the shared park protocol. Do not auto-merge. |
 
-`needs-human` is reserved for things the merge-confidence gate can't catch. If `git revert` on the merge commit fully undoes the change, it is not `needs-human` — it is `pass` or `fail`. See the gateway's Autonomous Mode Contract for the full rule on what escalates vs. what proceeds.
+`needs-human` is reserved for things the merge-confidence gate can't catch. The revert test (if `git revert` on the merge commit fully undoes the change, it is not `needs-human` — it is `pass` or `fail`) is owned by the `review_contract` slot. See the gateway's Autonomous Mode Contract for the full rule on what escalates vs. what proceeds.
 
 Append the review result to the PR as a comment. Record the signal, flagged items, and (for `needs-human`) the specific reason.
 

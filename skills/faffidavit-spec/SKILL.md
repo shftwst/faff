@@ -58,6 +58,22 @@ The marker contract governs structure. This section governs prose. A reader skim
 
 **Standalone prose over compressed bullet walls.** Three sentences that each make sense in isolation beat a five-bullet wall whose meaning depends on having read the preceding section.
 
+## Confidence self-rating
+
+Every spec ends with a single confidence line — the producer's self-assessment of whether the spec is buildable without a human, which faff-prep's autonomous gate branches on. It's part of the spec contract because every producer must emit it and faff-prep depends on it regardless of which producer ran:
+
+```
+confidence: high | medium | low
+```
+
+| Level | Meaning | faff-prep gate |
+|---|---|---|
+| `high` | Explore surfaced clear answers; every non-trivial decision has a `**Chosen:**` marker with rationale; no `**Punt:**` escalates a genuine product/architecture question; ACs are concrete and testable. | Attach + promote to Todo. |
+| `medium` | Mostly clean but 1–2 `**Punt:**` markers on substantive choices, or a decision whose rationale is thin enough a human would want to weigh in. | Park — needs human review of open punts. |
+| `low` | Multiple `**Punt:**` markers, or explore couldn't pin down the ticket's intent, or core architecture is genuinely unclear. | Park — explore could not resolve core questions. |
+
+The line is mandatory and orthogonal to marker validation: a spec can have every marker present (passes validation) yet rate `medium`/`low`. Both the marker check and the confidence gate must pass for an autonomous attach.
+
 ## Validation
 
 Run before a spec is attached (faff-prep delegates this), or on demand against any spec.
@@ -68,6 +84,7 @@ Run before a spec is attached (faff-prep delegates this), or on demand against a
 2. No dangling comparisons (tables or "vs" prose without a marker below).
 3. `Punt:` and `Assumes:` entries grouped in their dedicated sections.
 4. No invented labelling schemes (scan for patterns like single-letter+digit codes used as references).
+5. A `confidence:` line is present and is exactly one of `high` / `medium` / `low`.
 
 **Output:**
 

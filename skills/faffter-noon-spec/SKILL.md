@@ -61,9 +61,7 @@ End the output with a confidence line on its own:
 confidence: high | medium | low
 ```
 
-- **high** — every decision is marked, no open questions remain, DONE mirrors the body completely.
-- **medium** — some `**Punt:**` items exist but are non-blocking, or the explore findings were ambiguous in places.
-- **low** — significant unknowns, architectural uncertainty, or the issue may need splitting.
+The line, its three levels, and the gate each maps to are owned by the `spec_contract` slot (default `faffidavit-spec` → _Confidence self-rating_) — this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = non-blocking `**Punt:**` items or patchy explore findings; `low` = significant unknowns or possible split.
 
 This line is consumed by faff-prep for its autonomous gate decision (medium/low → park). faff-prep strips it before attaching — downstream consumers never see it. It is a signal back to the caller, not part of the spec.
 

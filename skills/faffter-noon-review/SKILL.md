@@ -9,6 +9,8 @@ planning_skills:
   review: faffter-noon-review   # the default — explicit for clarity
 ```
 
+The verdict vocabulary (`pass` / `fail` / `needs-human`), its semantics, and the output envelope are **not** defined here — they're owned by the `review_contract` slot (default `faffidavit-review`). This skill is a reviewer: it owns the five passes below and the mapping from its findings to a verdict. It conforms to the contract; it does not define it.
+
 ## Why pre-PR
 
 In human-in-the-loop development, review happens either implicitly during pair programming (pre-PR) or as a PR review (post-PR). In an automated pipeline, raising a PR has real costs — CI minutes, potential failed test runs, idle time waiting for infrastructure. Faff runs review **before** the PR is raised: cheaper, faster, catches issues before burning CI time.
@@ -30,7 +32,7 @@ Faff-workit provides:
 
 ## Output
 
-A single signal plus findings:
+A single signal plus findings, in the envelope defined by the `review_contract` slot (default `faffidavit-review`):
 
 ```
 signal: pass | fail | needs-human
@@ -97,6 +99,8 @@ If `git revert` on the merge commit fully undoes the change, it is **not** `need
 Any finding here → `needs-human` (park, don't iterate)
 
 ## Verdict rules
+
+This maps *this reviewer's* five passes onto the contract's three verdicts. The verdicts' meaning and the revert test (`fail` vs `needs-human`) are owned by the `review_contract` slot.
 
 - Any finding from pass 5 (human-judgement) → `needs-human`
 - Any finding from passes 1–4 → `fail` (iterate: fix, re-test, re-review)

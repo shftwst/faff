@@ -83,6 +83,93 @@ Three carve-outs where prose stays:
 2. **Diagnosis lines** — "Recommendation: strip the CC→AA edge (defensive-only)." A visual can't carry "what to do".
 3. **TL;DR** — a skim-in-10-seconds summary stays prose. Visuals at the top invert that.
 
+## Synthesis — the issue-gloss contract
+
+Every issue rendered in any faff output — wtf's "Do this", whereto's workstreams, tidy's findings, beep-boop's queues, routing's verdict display, anywhere — carries three elements:
+
+1. **Tracker ID** — breadcrumb for traceability
+2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
+3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
+
+This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split. References elsewhere to "gateway → Synthesis contract" resolve to the `language_contract` slot.
+
+### Canonical rendering
+
+```
+ISSUE-XX — Pino instrumentation across the request path
+  Wire structured logging into every API handler so request-scoped fields
+  (user id, trace id, route) attach automatically. Once this lands, the
+  three downstream alerting tickets can build on a real log schema.
+```
+
+In tight tabular contexts (queues, ready lists), compress the gloss to a clause:
+
+```
+ISSUE-XX   Pino instrumentation — wires structured logging into all handlers · unlocks 3 alerting tickets
+```
+
+In high-density visualisations (queue partition grids, chain diagrams), show only the gloss subject; the unlock consequence lives in a one-line footnote keyed by ID.
+
+### Generation source order
+
+In order of preference:
+
+1. The spec's one-line summary if it has one
+2. The issue title plus the first 2-3 sentences of the spec
+3. The issue title plus the description if no spec exists
+
+The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SHF-217 dep chain", "as discussed") is replaced with what was actually meant.
+
+### Humanisation rule
+
+The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-0008", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
+
+**Banned in user-facing output:**
+
+| Banned form | Why | Use instead |
+|---|---|---|
+| "principle 6", "principle 4", "principle N" | Reader doesn't have the methodology spec open; the number is a private convention | Say what the principle is *about* in the sentence — "the spec references work that isn't ticketed" not "this violates principle 6" |
+| "ADR-0008", "ADR-N" | ADR ID is a stable identifier for traceability but can't replace explanation | Say what the ADR decides — "the audit pipeline ADR's wave-1 sign-off" not "ADR-0008" |
+| "trigger 4", "criterion 3", "gate 2" | Numbered conditions inside a document the reader hasn't opened | Say what the condition tests — "a real end-to-end run on a real subject" not "trigger 4" |
+| "PRs 3-N", "PR A..E", "step 5 of M" | Schematic counting where the reader can't tell what each PR does | Name each piece by what it ships — "the consumer wire-up PR, three per-stage lift PRs, and the default-flip PR" not "PRs 3-N" |
+| "SHF-307a..e", "SHF-XX/YY/ZZ" used as live IDs | Made-up IDs that don't exist; reader can't click through | Either use real IDs once they exist, or describe the work — "five sub-tickets, one per remaining piece" not "SHF-307a..e" |
+| "the parked-by-faff label was already cleared" (jargon as subject) | Reader doesn't know the label semantics | Say what happened in human terms — "the autonomous park was cleared two days ago when someone picked it up" |
+
+**Allowed:**
+
+- Real tracker IDs (ISSUE-XX, #PR-N) — stable, clickable, identify a specific thing.
+- Short self-explanatory category names that *describe* a finding kind ("sub-ticket gap", "upstream gap", "repeat-park", "chain gap") — they tell the reader what was found, not which internal rule was matched.
+- Principle / ADR / criterion references **alongside** plain-English explanation as traceability — "the spec assumes a wave-1 run has happened (the gate from the audit pipeline ADR)" — never standing in for explanation.
+
+**Test:** if a reader who has never opened the project's CLAUDE.md, methodology spec, or ADR archive can't follow the finding, the rule is broken. Rewrite.
+
+**Why this matters:** faff is a delivery lead, not a project manager. A delivery lead humanises work; a project manager codifies it to look valuable. We do the first. Every finding, every brief, every diagnosis renders the *substance* of what's going on, not the index entry that catalogues it.
+
+### Unlock-chain language
+
+Reserved for issues with ≥2 direct dependents, or any dependent that itself gates ≥2 issues (chain-of-3). Written in **consequence not count** form:
+
+- ✅ "Once this lands, the three downstream alerting tickets can build on a real log schema."
+- ❌ "Unlocks 3 issues."
+
+If the unlock chain is just 1 isolated dependent, skip the consequence line entirely — counting it is noise.
+
+### Honesty escape hatch
+
+If the spec is genuinely ambiguous, the gloss says so explicitly:
+
+> _Spec ambiguous: extend the existing logger vs. swap for pino; gloss reflects the title only._
+
+A reliable-but-thin gloss beats a confident-sounding-but-wrong one.
+
+### Caching
+
+Glosses generated for a given issue id during one invocation are reused within that invocation. **Not cached across invocations** — tracker state changes, and the "always pull fresh" rule wins.
+
+### Consumption
+
+Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references it via `See the language_contract slot → Synthesis` (or the legacy `gateway → Synthesis contract`, which resolves here) rather than re-stating.
+
 ## Tabular data: markdown tables vs definition lists
 
 Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.

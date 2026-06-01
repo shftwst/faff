@@ -96,8 +96,10 @@ planning_skills:
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
-  spec_contract: faffidavit-spec              # spec marker contract + validator
-  language_contract: faffidavit-language        # rendering contract + output normaliser
+  spec_contract: faffidavit-spec              # spec marker + confidence contract + validator
+  review_contract: faffidavit-review          # review verdict vocabulary + envelope + validator
+  routing_contract: faffidavit-routing        # automation-routing verdicts + root-cause taxonomy + validator
+  language_contract: faffidavit-language        # rendering + synthesis contract + output normaliser
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -107,10 +109,12 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 |---|---|---|
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
 | `parallel` | none (sequential) | Concurrency for faff-beep-boop. |
-| `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits `pass` / `fail` / `needs-human`. |
-| `spec_contract` | `faffidavit-spec` | The marker contract + writing rules every spec producer satisfies and every consumer depends on; validates specs on demand. |
+| `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits the `review_contract` verdict. |
 | `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |
-| `language_contract` | `faffidavit-language` | The rendering contract — visual vs prose, canonical visual forms, table-vs-list rule, density caps; normalises output on demand. |
+| `spec_contract` | `faffidavit-spec` | The marker + writing + confidence contract every spec producer satisfies and every consumer depends on; validates specs on demand. |
+| `review_contract` | `faffidavit-review` | The review verdict vocabulary (`pass` / `fail` / `needs-human`), semantics, and output envelope every reviewer satisfies and faff-workit branches on; validates review output on demand. |
+| `routing_contract` | `faffidavit-routing` | The automation-routing six-verdict vocabulary + root-cause taxonomy + admission rule + display format; assigns and validates verdicts. |
+| `language_contract` | `faffidavit-language` | The rendering + synthesis contract — visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
 | `ship` | vanilla `gh pr merge` | Merge/deploy mechanism inside faff-workit. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
@@ -316,7 +320,7 @@ Every faff sub-skill and every pluggable skill reads the current appetite level.
 | `high` (default) | Confident — proceed on defensible calls with an audit trail; park architectural/irreversible only. |
 | `full` | Maximum agency — resolve everything resolvable, document, proceed; only the hard floor below ever stops it. |
 
-Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The one table the gateway keeps is the appetite-modulation of the gateway-owned shared contracts (resolve-attempt and automation-routing):
+Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The one table the gateway keeps is the appetite-modulation of two shared contracts — resolve-attempt (gateway-owned) and automation-routing (the `routing_contract` slot):
 
 #### Build pipeline (modulation of the resolve-attempt + automation-routing contracts)
 
@@ -418,166 +422,25 @@ No faff skill uses passive "run `/faff-*` next" or "you should run" language. Ev
 
 How sub-skills turn structure into output (visual-vs-prose split, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) is the **rendering contract**, owned by the `language_contract` slot. The default is `faffidavit-language` — see that skill's `SKILL.md`. Any sub-skill that emits user-facing output renders through the configured `language_contract` skill; the catalogue of visual forms is closed there, not extended inline.
 
-## Synthesis contract
-
-Every issue rendered in any faff output — wtf's "Do this", whereto's workstreams, tidy's findings, beep-boop's queues, anywhere — carries three elements:
-
-1. **Tracker ID** — breadcrumb for traceability
-2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
-3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
-
-### Canonical rendering
-
-```
-ISSUE-XX — Pino instrumentation across the request path
-  Wire structured logging into every API handler so request-scoped fields
-  (user id, trace id, route) attach automatically. Once this lands, the
-  three downstream alerting tickets can build on a real log schema.
-```
-
-In tight tabular contexts (queues, ready lists), compress the gloss to a clause:
-
-```
-ISSUE-XX   Pino instrumentation — wires structured logging into all handlers · unlocks 3 alerting tickets
-```
-
-In high-density visualisations (queue partition grids, chain diagrams), show only the gloss subject; the unlock consequence lives in a one-line footnote keyed by ID.
-
-### Generation source order
-
-In order of preference:
-
-1. The spec's one-line summary if it has one
-2. The issue title plus the first 2-3 sentences of the spec
-3. The issue title plus the description if no spec exists
-
-The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SHF-217 dep chain", "as discussed") is replaced with what was actually meant.
-
-### Humanisation rule
-
-The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-0008", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
-
-**Banned in user-facing output:**
-
-| Banned form | Why | Use instead |
-|---|---|---|
-| "principle 6", "principle 4", "principle N" | Reader doesn't have the methodology spec open; the number is a private convention | Say what the principle is *about* in the sentence — "the spec references work that isn't ticketed" not "this violates principle 6" |
-| "ADR-0008", "ADR-N" | ADR ID is a stable identifier for traceability but can't replace explanation | Say what the ADR decides — "the audit pipeline ADR's wave-1 sign-off" not "ADR-0008" |
-| "trigger 4", "criterion 3", "gate 2" | Numbered conditions inside a document the reader hasn't opened | Say what the condition tests — "a real end-to-end run on a real subject" not "trigger 4" |
-| "PRs 3-N", "PR A..E", "step 5 of M" | Schematic counting where the reader can't tell what each PR does | Name each piece by what it ships — "the consumer wire-up PR, three per-stage lift PRs, and the default-flip PR" not "PRs 3-N" |
-| "SHF-307a..e", "SHF-XX/YY/ZZ" used as live IDs | Made-up IDs that don't exist; reader can't click through | Either use real IDs once they exist, or describe the work — "five sub-tickets, one per remaining piece" not "SHF-307a..e" |
-| "the parked-by-faff label was already cleared" (jargon as subject) | Reader doesn't know the label semantics | Say what happened in human terms — "the autonomous park was cleared two days ago when someone picked it up" |
-
-**Allowed:**
-
-- Real tracker IDs (ISSUE-XX, #PR-N) — stable, clickable, identify a specific thing.
-- Short self-explanatory category names that *describe* a finding kind ("sub-ticket gap", "upstream gap", "repeat-park", "chain gap") — they tell the reader what was found, not which internal rule was matched.
-- Principle / ADR / criterion references **alongside** plain-English explanation as traceability — "the spec assumes a wave-1 run has happened (the gate from the audit pipeline ADR)" — never standing in for explanation.
-
-**Test:** if a reader who has never opened the project's CLAUDE.md, methodology spec, or ADR archive can't follow the finding, the rule is broken. Rewrite.
-
-**Why this matters:** faff is a delivery lead, not a project manager. A delivery lead humanises work; a project manager codifies it to look valuable. We do the first. Every finding, every brief, every diagnosis renders the *substance* of what's going on, not the index entry that catalogues it.
-
-### Unlock-chain language
-
-Reserved for issues with ≥2 direct dependents, or any dependent that itself gates ≥2 issues (chain-of-3). Written in **consequence not count** form:
-
-- ✅ "Once this lands, the three downstream alerting tickets can build on a real log schema."
-- ❌ "Unlocks 3 issues."
-
-If the unlock chain is just 1 isolated dependent, skip the consequence line entirely — counting it is noise.
-
-### Honesty escape hatch
-
-If the spec is genuinely ambiguous, the gloss says so explicitly:
-
-> _Spec ambiguous: extend the existing logger vs. swap for pino; gloss reflects the title only._
-
-A reliable-but-thin gloss beats a confident-sounding-but-wrong one.
-
-### Caching
-
-Glosses generated for a given issue id during one invocation are reused within that invocation. **Not cached across invocations** — tracker state changes, and the "always pull fresh" rule wins.
-
-### Consumption
-
-Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references this contract via `See gateway → Synthesis contract` rather than re-stating.
+The **Synthesis contract** — how every issue named in output is glossed (tracker ID + one-sentence plain-English gloss + unlock-chain consequence), the humanisation rule, and the banned project-management shorthand — is also owned by the `language_contract` slot (it governs *how an issue is described*, the content sibling of the visual-vs-prose split). References elsewhere to "gateway → Synthesis contract" resolve there.
 
 ## Backlog diagnostics — the `methodology` slot
 
 Detecting problems with the **shape of the backlog itself** — dep cycles, ghost-project pointers, repeat-park patterns, splittable specs, chain gaps — is the `backlog-diagnostics` output, owned by the `methodology` slot. The default is `faffter-noon-methodology-structural`, whose `backlog-diagnostics` always fires regardless of config (it is the structural baseline every faff pass depends on). See that skill's `SKILL.md` for the detection categories, mechanical fixes, and rendered output.
 
-Two findings from `backlog-diagnostics` feed the **Automation-routing contract** below: an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
+Two findings from `backlog-diagnostics` feed the **Automation-routing contract** (the `routing_contract` slot, below): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
 
-### Root-cause class enum (shared taxonomy)
+## Automation-routing contract — the `routing_contract` slot
 
-This enum is gateway-owned because it is shared across two consumers: repeat-park detection in the methodology's `backlog-diagnostics`, and the calibration log. Deliberately coarse so the same underlying problem ("the spec doesn't say whether to migrate or fork the table") matches across runs even when the literal park-note text varies.
+Whether `/faff-beep-boop` will run an issue autonomously — and if not, why — is the **automation-routing contract**, owned by the `routing_contract` slot. The default is `faffidavit-routing`. It owns:
 
-- `punt-not-closed` — park reason cites a Punt marker the spec didn't close
-- `gap` — park reason cites an external state that doesn't exist
-- `cycle` — park reason cites a dep cycle
-- `spec-ambiguous-external` — park reason cites an external decision the spec can't make alone
-- `other` — everything else (rarely matches across runs; effectively prevents false-positive repeat-park flagging)
+- the closed **six-verdict vocabulary** (`fire-and-forget`, `likely-fire`, `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`),
+- the **root-cause class enum** — the shared park taxonomy (`punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`) used by repeat-park detection and the calibration log,
+- the **build-queue admission rule** (only `fire-and-forget` + `likely-fire` enter; all others route out with a one-line reason surfaced in wtf, never silently dropped),
+- the **computation locus** (`/faff-tidy` computes per pass into `.faff/runs/<run-id>/automation-verdicts.md`; consumers read that file within a pass, recompute across passes), and
+- the **display format** consumers render (via the `language_contract` slot → queue partition grid).
 
-## Automation-routing contract
-
-Every Todo issue with a discoverable spec gets exactly one **verdict** that says whether `/faff-beep-boop` will run it autonomously and, if not, why. Computed once per faff pass, consumed everywhere.
-
-### Six verdicts
-
-| Verdict | Definition | What `/faff-beep-boop` does |
-|---|---|---|
-| `fire-and-forget` | Spec `confidence: high`, no Punt/Assumes markers, no in-queue blocker, conflict analysis says independent, no repeat-park history | Builds in next autonomous run, parallel-safe |
-| `likely-fire` | Spec `confidence: high` but in a collision group with other in-queue work | Builds in next autonomous run, serialised within its group |
-| `needs-decision-first` | Spec contains explicit `Punt:` / `needs human` / `TBD` / "or X if Y" marker that is **not** spec-closed | Resolve-attempt (see **Autonomous Mode Contract** → resolve-attempt); if attempt fails, skipped and surfaced in wtf with the specific decision asked |
-| `gap-blocked` | Spec assumes external state (tracker issue, project, dep) that doesn't exist | Resolve-attempt; if fails, skipped and surfaced with the named gap |
-| `circular-blocked` | Issue sits in a dep cycle detected by the methodology slot's `backlog-diagnostics` | Resolve-attempt; if fails, skipped and surfaced with the cycle visualised |
-| `repeat-parked` | Parked 3+ times in autonomous runs with the same root-cause class (see **Root-cause class enum**) | **Skipped — no resolve-attempt.** The pattern itself is the signal that a human needs to act. Surfaced prominently in wtf. |
-
-### Computation locus
-
-The verdict is computed in `/faff-tidy`'s backlog-diagnostics phase, written to:
-
-- `.faff/runs/<run-id>/automation-verdicts.md` when invoked by `/faff-beep-boop` (full pipeline)
-- `.faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` when tidy runs standalone
-
-Other sub-skills (`/faff-wtf`, `/faff-beep-boop`) read this file rather than recomputing — but only within a single faff pass; across passes, always recompute (the "always pull fresh" rule wins, same logic as spec discovery).
-
-`/faff-wtf` invoked standalone (no preceding tidy this pass) computes verdicts inline using the same logic.
-
-### Build-queue admission
-
-`/faff-beep-boop` admits to the build queue **only** `fire-and-forget` and `likely-fire` (the latter into collision groups). All other verdicts route out of the build queue with a one-line reason captured in the run summary. They appear in `/faff-wtf`'s morning brief, not silently dropped.
-
-### Conflict-analysis integration
-
-When computing `likely-fire`, the verdict computation **anticipates** the collision-group serialisation conflict analysis would do anyway. An issue's verdict is `likely-fire` (not `fire-and-forget`) precisely when conflict analysis will serialise it. This makes morning briefs honest — the human sees up front which issues will run in parallel vs. which queue behind a predecessor.
-
-### Display format (consumed by `/faff-wtf` and `/faff-beep-boop`)
-
-Replaces the previous `★ fire-and-forget` annotation. Renders via the `language_contract` slot → queue partition grid (form (c)). Compact form:
-
-```
-Build queue (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
-  fire-and-forget
-    ISSUE-XX  Pino instrumentation — wires structured logging into all handlers · unlocks 3 alerting tickets
-    ISSUE-YY  Rate-limit middleware — caps per-IP requests on auth routes
-  likely-fire [ISSUE-A → ISSUE-B] (both touch src/auth/)
-    ISSUE-A   Session refresh — extends JWT lifetime when active
-    ISSUE-B   Logout sweep — purges sessions on password change
-
-Needs your call before automation can pick up:
-  needs-decision-first
-    ISSUE-ZZ  Email digest — Punt in spec: cron vs. queue-driven send? (decide in 2 min)
-  gap-blocked
-    ISSUE-WW  Billing webhook retry — spec assumes a "webhook-events" project that doesn't exist; file it or scope the dep down
-  circular-blocked
-    ISSUE-AA  Onboarding redirect — sits in cycle [AA → BB → CC → AA]; recommend breaking AA→BB by inlining the auth state
-  repeat-parked ⚠
-    ISSUE-VV  Storage migration (parked 4 runs with same Punt: schema versioning unresolved). Decide.
-```
-
-The synthesis gloss (see **Synthesis contract**) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the visualisation contract.
+See that skill's `SKILL.md` for the verdict definitions, root-cause classes, and display format. References elsewhere to "gateway → Automation-routing contract" and "gateway → Root-cause class enum" resolve to the `routing_contract` slot. The verdict survives a `methodology` swap precisely because it lives here, not inside the methodology.
 
 ## Routing
 

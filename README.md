@@ -110,7 +110,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 | Skill | Slot | What it does |
 |---|---|---|
 | `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
-| `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits pass/fail/needs-human. |
+| `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits the `review_contract` verdict (pass/fail/needs-human). |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
 
 ### faffidavit-* (contracts)
@@ -119,8 +119,10 @@ Contract-defining and validating skills. Each defines a conformance standard and
 
 | Skill | Slot | What it does |
 |---|---|---|
-| `faffidavit-spec` | `spec_contract` | The implicit default. Defines the canonical marker contract (Chosen/Punt/Assumes), marker rules, and skimmable writing style; validates any spec against them (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
-| `faffidavit-language` | `language_contract` | The implicit default. Defines the rendering contract — visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps; validates/normalises draft output against them. All sub-skills render through this. |
+| `faffidavit-spec` | `spec_contract` | The implicit default. Defines the canonical marker contract (Chosen/Punt/Assumes), marker rules, skimmable writing style, and the confidence self-rating; validates any spec against them (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
+| `faffidavit-review` | `review_contract` | The implicit default. Defines the three-valued review verdict (pass/fail/needs-human), its semantics (incl. the revert test), and the output envelope every reviewer returns; validates review output on demand. faff-workit branches on it without knowing which reviewer ran — the stable boundary that lets `review` be swapped for a third-party reviewer. |
+| `faffidavit-routing` | `routing_contract` | The implicit default. Defines the closed six-verdict automation-routing vocabulary (fire-and-forget / likely-fire / needs-decision-first / gap-blocked / circular-blocked / repeat-parked), the shared root-cause taxonomy, the build-queue admission rule, and the display format; assigns and validates verdicts. Survives a `methodology` swap because it lives here, not inside the methodology. |
+| `faffidavit-language` | `language_contract` | The implicit default. Defines the rendering contract — visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps — plus the synthesis contract (issue-gloss humanisation); validates/normalises draft output against them. All sub-skills render through this. |
 
 ### faffter-dark-* (experimental)
 

@@ -197,4 +197,4 @@ An adaptor does three things: **names** the fixed contract (gateway → _Core co
 
 ## License
 
-MIT
+Apache 2.0

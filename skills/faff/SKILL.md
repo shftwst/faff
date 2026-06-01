@@ -95,8 +95,6 @@ planning_skills:
   spec: superpowers:brainstorming                    # used by faff-prep
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency, optional
   review: gstack:review                              # pre-PR review inside faff-workit, optional
-  adversarial_review: faffter-dark-adversarial-review # second-opinion review via different model, optional
-  holdout_tests: faffter-dark-holdout                 # holdout test generation via different model, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
   spec_format: faffter-noon-spec              # spec marker contract and writing rules
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
@@ -109,13 +107,11 @@ Defaults when a slot is unset:
 | `spec` | Inline spec produced by faff-prep using the lite nlspec arc (WHY/WHAT/HOW/DONE). Same default in interactive and autonomous — autonomous self-rates the inline spec against the Spec Format Contract and applies the same confidence gate it would to a delegated skill's output. For the full nlspec format (formal type definitions, pseudocode procedures, appendices, integration smoke tests), set `spec: faffter-dark-nlspec`. Missing slot is **not** a park reason. |
 | `parallel` | faff-beep-boop runs sequentially. |
 | `review` | `faffter-noon-review` (implicit default). Senior-engineer review: diff read, AC coverage check, obvious-bug scan, scope validation, human-judgement flagging. Emits `pass` / `fail` / `needs-human`. |
-| `adversarial_review` | Skipped. When set, a second review pass runs after the primary review using a different model/tool (e.g. a local LLM via Ollama). Catches correlated blind spots by bringing independent training biases. Emits `pass` / `fail` / `needs-human` — merged with the primary review verdict (worst signal wins). |
-| `holdout_tests` | Skipped. When set, holdout scenarios are generated at **prep time** (faff-prep) from the spec's acceptance criteria and stored as a separate issue comment marked `<!-- faff:holdout-scenarios -->`. Scenarios use pseudocode test format (setup/action/assert). At **gate time** (faff-workit Step 9b), the scenarios are read from the issue, translated into the project's test framework, and executed. Results posted as a PR comment but **never committed** — keeping them out of the codebase preserves independence across build cycles. The build agent does not read the holdout comment during implementation. |
 | `spec_format` | `faffter-noon-spec` (implicit default). The canonical marker contract (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), writing style rules (no invented labelling schemes, restate subjects), validation criteria, and the lite nlspec arc structure. All spec producers must satisfy this; all spec consumers depend on it. |
 | `methodology` | `faffter-noon-methodology-structural` (implicit default). Pure structural analysis — ordering by priority + unlock value, gating on decision closure, detecting graph-level problems. No opinionated delivery philosophy. When set to an alternative (e.g. `faffter-dark-methodology-agile-delivery`), the configured skill provides a diagnostic lens that sub-skills invoke **on top of** structural analysis. Structural diagnostics always fire; methodology findings are additive. |
 | `ship` | Vanilla `gh pr merge` after faff's merge-confidence gate passes. |
 
-`review`, `adversarial_review`, `holdout_tests`, and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
+`review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
 
 ## Shared Rules
 
@@ -272,21 +268,20 @@ Every faff sub-skill and every pluggable skill reads the current appetite level.
 | Sequencing | Structural ordering only (priority + unlock value) | Methodology informs ordering but doesn't override explicit priority | Methodology-driven ordering overrides default when materially different | Methodology owns the order entirely. Explicit priority is input, not override. |
 | Scope changes | Never | Never | Auto-split only | Auto-split + auto-merge (combine always-ship-together tickets). Still never cancel or delete. |
 
-#### Adversarial review & holdout tests (when configured)
+#### Review
 
 | | low | medium | high (default) | full |
 |---|---|---|---|---|
-| Adversarial review | Runs. 1 major → `needs-human` | Runs. Standard verdict rules | Runs. Standard verdict rules | Runs. Standard verdict rules. **Never loosened** — the independent check is non-negotiable. |
-| Holdout test failures | 1 iteration then `needs-human` | Up to 3 iterations then `needs-human` | Up to 3 iterations then `needs-human` | Up to 5 iterations then `needs-human`. Still never skipped. |
+| Review (including adversarial phase if configured) | Runs. Standard verdict rules. 1 major from adversarial → `needs-human` | Runs. Standard verdict rules | Runs. Standard verdict rules | Runs. Standard verdict rules. **Never loosened** — review quality is non-negotiable. |
 
-Note: adversarial review and holdout tests do **not** loosen meaningfully even at `full`. They exist precisely to catch what the pipeline misses — they are the last line of defence when everything else is autonomous.
+Note: the review does **not** loosen even at `full`. It exists precisely to catch what the pipeline misses — the last line of defence when everything else is autonomous.
 
 #### What appetite NEVER changes (hard floor — applies at ALL levels including `full`)
 
 - **Destructive / irreversible operations still park.** Anything that can't be undone with `git revert` and a redeploy still escalates — production data, secrets, external messaging, irreversible cloud-resource changes.
 - **User-explicit "ask first" rules** in Planning Skills, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
 - **Cancellation / deletion** of issues or workstreams. No appetite level autonomously cancels or deletes. `full` adds scope (splits, merges, new tickets) but never removes it.
-- **Adversarial review and holdout tests run and gate.** `full` does not skip them or weaken their verdicts. If they fail, the pipeline iterates or parks — never overrides.
+- **Review runs and gates.** `full` does not skip or weaken the review. If it fails, the pipeline iterates or parks — never overrides.
 - **Spec quality.** Front-loaded prep still aims for `confidence: high`. `full` resolves more aggressively past the spec gate but doesn't lower the bar for what constitutes a good spec.
 
 **Audit trail.** Every appetite-influenced decision writes a tracker comment in the same shape as the standard resolve-attempt, tagged `(appetite: high)`:

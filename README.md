@@ -107,8 +107,8 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 | Skill | Slot | What it does |
 |---|---|---|
 | `faffter-dark-nlspec` | `spec` | Full nlspec-format spec generation — formal type definitions, pseudocode procedures, closed-loop DoD, appendices. Heavier than the built-in lite arc. |
-| `faffter-dark-adversarial-review` | `adversarial_review` | Sends the diff to a different LLM for a structurally independent second opinion. Catches correlated blind spots the primary model misses. |
-| `faffter-dark-holdout` | `holdout_tests` | Generates holdout test scenarios at prep time (stored on the issue), translates and executes them at gate time. Tests the build agent has never seen. |
+| `faffter-dark-adversarial-review` | `review` | Two-phase review: runs `faffter-noon-review` first, then sends the diff to a different LLM for a structurally independent second opinion. Replaces the default review. |
+| `faffter-dark-holdout` | — | Holdout test generation and execution. A specialisation that hooks into prep (scenario generation) and review (test execution). Not a pipeline slot — it extends prep and review when configured. |
 | `faffter-dark-methodology-agile-delivery` | `methodology` | Agile delivery methodology lens — seven principles (outcome-named workstreams, value x risk sequencing, WIP caps, right-sized tickets, cohesive workstreams, surfaced deps, risk-aware ordering). Replaces the old `mode: delivery-lead` config. |
 
 Some of these skills (`adversarial-review`, `holdout`) can be configured to use a different model, with provider settings per-slot in `.faffrc`:

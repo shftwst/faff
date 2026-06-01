@@ -1,17 +1,29 @@
 # faffter-dark-adversarial-review
 
-Adversarial review via a different LLM. Structurally independent second opinion on a diff — catches correlated blind spots by bringing different training biases from the model that wrote the code.
+Two-phase code review: standard structural review (delegated to `faffter-noon-review`) followed by an adversarial second opinion via a different LLM. Catches correlated blind spots by bringing different training biases from the model that wrote the code.
+
+Plugs into the `review` slot — replaces the default review, not augments it.
 
 Configure in `.faffrc`:
 
 ```yaml
 planning_skills:
-  adversarial_review: faffter-dark-adversarial-review
+  review: faffter-dark-adversarial-review
 ```
 
 ## When it runs
 
-Invoked by faff-workit Step 9a after the primary review (Step 9) returns `pass`. Never runs if the primary review failed or returned `needs-human`.
+Invoked by faff-workit Step 9 as the configured `review` skill.
+
+## Two phases
+
+### Phase 1: Standard review (delegated to faffter-noon-review)
+
+Runs the full `faffter-noon-review` five-pass review (AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging). If this returns `fail` or `needs-human`, return that signal immediately — no point running the adversarial pass on code that hasn't passed basic review.
+
+### Phase 2: Adversarial review (different LLM)
+
+Only runs if Phase 1 returned `pass`. Sends the diff to a structurally different model for an independent second opinion. This is not a repeat of Phase 1 — it targets what same-model review is likely to miss.
 
 ## Input
 
@@ -19,28 +31,36 @@ Faff-workit provides:
 
 - The full diff: `git diff main...HEAD`
 - The spec (from the issue comment)
-- The primary review result (for context, not for agreement — this skill must form its own opinion)
+- The Phase 1 review result (for context, not for agreement — Phase 2 must form its own opinion)
 
 ## Output
 
-A single verdict line followed by findings:
+Phase 1 returns a hard signal (`pass` / `fail` / `needs-human`) per `faffter-noon-review`.
+
+Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial reviewer may be a less capable model; its findings are hypotheses, not rulings.
 
 ```
-verdict: pass | fail | needs-human
-
-## Findings
+## Adversarial findings
 
 ### [severity]: [title]
-[description of the issue and why it matters]
+[description of the concern and why it might matter]
 ```
 
-Severities: `critical` (→ fail), `major` (→ fail if ≥2), `minor` (→ pass, noted), `observation` (→ pass, informational).
+Severities: `critical`, `major`, `minor`, `observation` — but these are the adversarial reviewer's assessment, not a gate decision.
 
-**Verdict rules:**
-- Any `critical` finding → `fail`
-- 2+ `major` findings → `fail`
-- 1 `major` finding → `needs-human`
-- Only `minor` / `observation` → `pass`
+## How findings are handled
+
+The adversarial findings are raised back to the **implementor** (the build agent). The implementor must:
+
+1. **Consider each finding** — read it, understand the concern
+2. **Prove or disprove with conviction** — check the code, the spec, the tests. Either demonstrate why the finding is a false positive (cite the specific line, test, or spec clause that addresses it) or acknowledge it as valid.
+3. **Log to tracker** — post a comment on the issue with each finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale)
+4. **Fix if necessary** — if any finding is valid and actionable, fix the code
+5. **Re-run primary review** — if fixes were made, re-run Phase 1 to confirm nothing regressed
+
+The adversarial review **never directly blocks the pipeline**. It produces signal that the implementor must address with evidence. A dismissed finding with weak rationale ("I don't think that's a problem") is itself a smell — the disposition must be specific and verifiable.
+
+This soft-signal design reflects that the adversarial model may produce lower-quality findings than the primary model. The value is in surfacing blind spots for consideration, not in gating on a potentially less capable reviewer's judgement.
 
 ## Review lens
 
@@ -112,14 +132,9 @@ The key principle is **independence from the primary model**. If Claude wrote th
 - Malformed response (no parseable verdict) → return `needs-human` with the raw response as a finding. Let a human decide.
 - Auth failure (bad/expired key) → return `needs-human` with the error. Don't retry with broken credentials.
 
-## What faff-workit does with the result
+## Output to faff-workit
 
-This skill returns the verdict + findings. Faff-workit:
-
-1. Merges the verdict with Step 9 (worst signal wins)
-2. Posts the findings as a PR comment labelled "Adversarial review (faffter-dark)"
-3. If merged verdict is `fail` → iterates (fix, re-run primary review, re-run adversarial review)
-4. If merged verdict is `needs-human` → parks
+Returns Phase 1's hard signal (`pass` / `fail` / `needs-human`) plus the adversarial findings and the implementor's dispositions. The adversarial phase does not alter the signal — it adds evidence that the implementor has addressed. Sequencing (iterate, raise PR, park) belongs to faff-workit.
 
 ## Rules
 

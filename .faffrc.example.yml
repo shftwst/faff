@@ -32,9 +32,7 @@ tracking:
 planning_skills:
     spec: # optional used by /faff-prep
     parallel: # optional used by /faff-beep-boop for concurrency
-    review: # optional pre-PR review inside /faff-workit
-    adversarial_review: # optional second-opinion review via a different model (e.g. local LLM)
-    holdout_tests: # optional holdout test generation via a different model
+    review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)
     methodology: # diagnostic lens over backlog (default: faffter-noon-methodology-structural)
     spec_format: # spec marker contract and writing rules (default: faffter-noon-spec)
     ship: # optional merge / deploy mechanism inside /faff-workit

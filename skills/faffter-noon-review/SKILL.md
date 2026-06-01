@@ -9,9 +9,15 @@ planning_skills:
   review: faffter-noon-review   # the default — explicit for clarity
 ```
 
+## Why pre-PR
+
+In human-in-the-loop development, review happens either implicitly during pair programming (pre-PR) or as a PR review (post-PR). In an automated pipeline, raising a PR has real costs — CI minutes, potential failed test runs, idle time waiting for infrastructure. Faff runs review **before** the PR is raised: cheaper, faster, catches issues before burning CI time.
+
+Review findings that would have surfaced as PR comments are reported to the tracker instead — no loss of information, just earlier and cheaper feedback.
+
 ## When it runs
 
-Invoked by faff-workit Step 9 after the build is complete and tests pass. Runs in both interactive and autonomous modes.
+Invoked by faff-workit Step 9 after the build is complete and local tests pass, **before** the PR is raised. Runs in both interactive and autonomous modes.
 
 ## Input
 
@@ -96,23 +102,20 @@ Any finding here → `needs-human` (park, don't iterate)
 - Any finding from passes 1–4 → `fail` (iterate: fix, re-test, re-review)
 - No findings → `pass`
 
-## What faff-workit does with the result
+## Output
 
-- `pass` → proceed to merge-confidence gate
-- `fail` → iterate autonomously (fix flagged items, re-run tests, re-run review). Loop until `pass` or `needs-human`.
-- `needs-human` → flip PR to draft, park per shared protocol
-
-Result is appended to the PR as a comment with signal, findings, and (for `needs-human`) the specific reason.
+Returns the signal (`pass` / `fail` / `needs-human`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-workit.
 
 ## Appetite integration
 
 | | low | medium | high (default) | full |
 |---|---|---|---|---|
-| Scope strictness | Strict — any out-of-scope line is a `fail` | Strict | Allows trivial adjacent cleanups (typo fixes, import sorting in touched files) | Same as high — review quality doesn't loosen |
+| Scope strictness | Strict — any out-of-scope line is a `fail` | Strict | Allows trivial adjacent cleanups (typo fixes, import sorting in touched files) | Same as high |
 | Bug scan depth | Standard | Standard | Standard | Standard |
 | Human-judgement threshold | Conservative — lower bar for `needs-human` | Standard | Standard | Standard |
+| Review→fix→review iterations before escalation | 1 | 3 | 5 | 10 |
 
-Note: review quality does not loosen at high/full appetite. The review is the primary quality gate — weakening it defeats its purpose. Appetite governs what happens *after* review (how aggressively to iterate on failures), not the review's sensitivity.
+Review quality (what counts as a finding) does not loosen at any appetite level. Appetite governs **persistence** — how many fix→review cycles the pipeline attempts before escalating to `needs-human`. At `low`, one failed iteration and it escalates. At `full`, it keeps trying up to 10 passes.
 
 ## Rules
 

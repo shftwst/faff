@@ -213,6 +213,8 @@ This isolation prevents:
 
 Not all lanes are active in every flow. The evaluator lane is a future capability — documenting it here sets the architectural intent.
 
+**Discovered work crosses lanes by record-and-file, never by the implementor writing the tracker.** When the implementor (faff-workit) finds concrete, separable out-of-scope work while building or reviewing, it **records** it (returns `discovered_scope` + writes a per-issue file) — it does **not** create the ticket. The orchestrator (faff-beep-boop autonomously, or the human via faff-workit's interactive gate) **files** it as a Backlog ticket. This is bottom-up source (b) — execution-discovered work — the tributary that lets the backlog self-extend from *doing*, not only from declaration. Its filing is appetite-gated (see **Appetite for destruction** → Execution-discovered auto-create).
+
 ## Shared Rules
 
 These rules apply to every faff sub-skill. Sub-skills point at this section rather than re-stating.
@@ -405,6 +407,9 @@ Each skill that accepts appetite **documents its own per-level response** in its
 | `gap-blocked` verdict | Park | Resolve-attempt per verdict rules | Proceed if gap can be worked around | Proceed — file the gap ticket and continue regardless |
 | `circular-blocked` verdict | Park | Resolve-attempt (unambiguous break-edge only) | Accept most plausible break-edge | Break the cycle at any plausible edge, document, proceed |
 | Chain-gap auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if remainder is identifiable | Always — every identifiable gap gets a ticket |
+| Execution-discovered auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if the item is concrete | Always — every concrete discovered item gets a ticket |
+
+The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-workit recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing `faff-chain-gap-fill` tickets before filing.
 
 The methodology slot's per-level response lives in the configured methodology skill. The review slot's per-level response lives in the configured review skill — note that review quality never loosens at any level (see the hard floor below).
 

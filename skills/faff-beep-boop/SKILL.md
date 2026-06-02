@@ -114,7 +114,7 @@ Do not require a repo-side spec file at this stage — faff-workit commits the s
 
 Issues routed out of the build queue (the other four verdicts) are captured for the run summary's "Routed out" section — they appear in `/faff-wtf`'s next morning brief with the verdict-specific diagnosis.
 
-**Record to the run ledger.** Append every admitted issue to `admitted`, and write each routed-out issue's `routed-out` outcome immediately, in `.faff/runs/<run-id>/run-ledger.json` (see _Run ledger_). The ledger is what step 10's `runcheck` audits — keep it current as the queue is assembled and drained.
+**Record to the run ledger.** Append every admitted issue to `admitted`, and write each routed-out issue's `routed-out` outcome immediately, in `.faff/runs/<run-id>/run-ledger.json` (see _Run ledger_). The ledger is what step 11's `runcheck` audits — keep it current as the queue is assembled and drained.
 
 Exclude anything parked during the prep queue (no valid spec or flagged for human attention).
 
@@ -158,7 +158,21 @@ Log each wave's admissions, drain count, and exit reason under `.faff/runs/<run-
 
 If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and proceed directly to reporting. No subsequent waves run — there's nothing for shipped work to chain on. Prep output still counts as a successful run.
 
-### 10. Run completeness check (mechanical)
+### 10. File discovered-scope tickets
+
+After the wave loop converges (and only when builds ran — the wave-1 short-circuit at step 9 skips this), collect the **discovered scope** `/faff-workit` recorded during the run and file the concrete items as Backlog tickets. This is bottom-up source (b) — execution-discovered work (gateway → **Agent Lanes**; `design/planning-loop.md`). It is the one step where beep-boop writes tickets **directly** rather than via tidy — legitimately, as the orchestrator lane (full tracker write).
+
+1. **Collect.** Glob `.faff/runs/<run-id>/*/discovered-scope.json` (each built issue's file; absent when it found nothing). Every built issue contributes regardless of its terminal outcome — a `shipped`, `pr-open`, or `parked` issue can all carry discovered scope.
+2. **Gate per item:**
+   - `vague` items → never filed. Aggregate for the run summary + the next `/faff-wtf` morning brief only.
+   - `concrete` items → **appetite-gated** (gateway → **Appetite for destruction**, _Execution-discovered auto-create_ row): `low` surfaces only; `medium` files only with an opinionated methodology; `high` (default) files every concrete item; `full` always files.
+3. **Dedup before creating.** Match each item's title/surface + relationship target against existing open tickets, **including `faff-chain-gap-fill` tickets tidy created this run** — a build often "discovers" a downstream the spec already named and tidy already filled. Skip duplicates; count them.
+4. **File** each surviving item per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_ — do not restate it): status `Backlog`, tag `faff-chain-gap-fill`, the recorded relationship link to the originating issue, and a "discovered during build of SHF-XX" provenance line in the description. The next run's tidy + prep pass picks them up — depth grows one layer per run.
+5. **Record** the filed count to the ledger's informational `discovered_scope_filed` field (see Run ledger) and log per-item (id, source issue, relationship, gate decision) under `.faff/runs/<run-id>/discovered-scope-filed.md`.
+
+Filed tickets are **new work, not admitted issues** — they sit outside runcheck's `admitted − outcomes` invariant and never affect run completeness. (Within-run convergence — prepping and building these in the *same* run until both bottom-up tributaries run dry — is a documented future extension, not done here; see `design/planning-loop.md`.)
+
+### 11. Run completeness check (mechanical)
 
 Before writing the run summary, run the bundled **runcheck** script — the mechanical backstop for the "never silently defer the queue" guarantee. It reads the run ledger and fails if any admitted issue has no terminal outcome:
 
@@ -172,10 +186,10 @@ Before writing the run summary, run the bundled **runcheck** script — the mech
 
 ## Run ledger (mechanical completeness)
 
-beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 10) and the Stop hook (below) rather than resting on prose alone:
+beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 11) and the Stop hook (below) rather than resting on prose alone:
 
 ```json
-{ "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" } }
+{ "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" }, "discovered_scope_filed": 0 }
 ```
 
 - **`admitted`** — every issue the verdict gate admits to the build queue (`fire-and-forget` + `likely-fire`). Append at step 4 (build queue assembly) and at every wave re-entry re-assembly (step 8.4). Explicit-list mode appends each admitted issue the same way.
@@ -183,9 +197,11 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 
 The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admitted issue with no recorded outcome is an undispatched queue, not a finished run.
 
+- **`discovered_scope_filed`** (informational) — the count of execution-discovered tickets filed at step 10. These are **new** tickets, not admitted build-queue issues, so they are **outside** the invariant above and never affect `runcheck`. The field exists so the count is auditable alongside the run summary.
+
 ### Stop hook (harness-enforced backstop)
 
-Step 10 is agent-run, so it shares the failure mode it guards against — a non-compliant run could skip it. The Stop hook closes that gap: it runs `runcheck --hook` outside the agent's control when the session ends and blocks Stop with a reason if the latest run left admitted issues undispatched. On first autonomous run, check `.claude/settings.json` for a faff Stop hook; if none exists, register:
+Step 11 is agent-run, so it shares the failure mode it guards against — a non-compliant run could skip it. The Stop hook closes that gap: it runs `runcheck --hook` outside the agent's control when the session ends and blocks Stop with a reason if the latest run left admitted issues undispatched. On first autonomous run, check `.claude/settings.json` for a faff Stop hook; if none exists, register:
 
 ```json
 {
@@ -333,6 +349,12 @@ repeat-parked ⚠ (N)
 
 ## Unreached (budget hit): N
 - ISSUE-VV: title — admitted to build queue, not dispatched (--until 06:00 fired before launch)
+
+## Discovered scope (execution-reported): N filed
+- ISSUE-XX → filed SHF-NN (downstream): "title" — discovered during build, Backlog/`faff-chain-gap-fill` (next run preps it)
+- Deduped (already tracked): N
+- Surfaced only (vague, or low appetite): N
+  - ISSUE-YY: "logging inconsistent across handlers" — vague, not filed
 
 ## Human follow-ups: N
 - ISSUE-XX: delete local branch `feat/issue-xx` (cleanup skipped — shell was inside worktree)

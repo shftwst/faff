@@ -146,6 +146,8 @@ During the build, if a decision arises that the spec doesn't resolve:
 - **Interactive mode:** ask the user.
 - **Autonomous mode:** see _Autonomous Mode_ below (invoke `/faff-prep` respec; if still ambiguous, park).
 
+If the build reveals concrete, separable work this PR shouldn't absorb (an unforeseen seam, an untracked dependency), **record it** as discovered scope (see Step 9 → _Discovered scope_) and carry on — don't expand this PR to cover it, and don't park for it.
+
 **Step 8: AC verification (mandatory)**
 
 Before the PR is considered done, every acceptance criterion must be verified.
@@ -195,7 +197,24 @@ The review returns one of three signals. The verdict vocabulary, their semantics
 
 Append the review result to the PR as a comment. Record the signal, flagged items, and (for `needs-human`) the specific reason.
 
+If the review names concrete, separable **out-of-scope** work — not a fixable defect in this diff — record it as discovered scope (see below) rather than looping on it. `fail` is for fixable items; out-of-this-PR follow-ups are discovered scope, not a review failure.
+
 This step runs in **both** interactive and autonomous modes.
+
+### Discovered scope (record, never file)
+
+While building and reviewing, workit often surfaces **concrete, separable work this PR should not absorb** — a seam the spec didn't foresee, an untracked dependency an AC exposed, a real out-of-scope concern the review flagged. The implementor lane **cannot create backlog tickets** (gateway → **Agent Lanes**); it **records** these so the orchestrator files them (autonomous: `/faff-beep-boop` after the build pass; interactive: via the gate in Step 12). This is bottom-up source (b) — see `design/planning-loop.md`.
+
+**What qualifies** — concrete, nameable, separable from this PR: a follow-up the build revealed is also needed, a prerequisite the spec assumed but no ticket tracks, a review finding that names real out-of-this-PR work. **What does not:** fixable-in-PR items (those loop via review `fail`), unverifiable ACs (human-verify flags, not new work), and vague impressions ("logging's inconsistent") — record those as `confidence: vague`, which only ever surface, never auto-file.
+
+**Capture** — append to `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` (outside beep-boop: `.faff/logs/YYYY-MM-DD/HHMMSS-workit-ISSUE-XX-discovered-scope.json`) during **Step 7 (build)** and **Step 9 (review)**. One array entry per item:
+
+```json
+{ "title": "...", "description": "...", "relationship": "blocker|blocked-by|peer|none",
+  "source": "build|review", "source_ref": "spec line / review finding", "confidence": "concrete|vague" }
+```
+
+`relationship` is to the issue being built (`blocker` = the discovered work must land first; `blocked-by` = it follows this PR; `peer` = parallel in the same workstream; `none` = independent). Recording is cheap and side-effect-free — it never blocks, loops, or parks the current build.
 
 **Step 10: Merge-confidence gate**
 
@@ -249,11 +268,10 @@ If a CI wait is taking long enough that blocking the turn feels wasteful, **pref
 
 **Step 12: Post workit checks**
 
-After build is complete and PR has been raised, offer a yes/no gate:
+After build is complete and PR has been raised:
 
-> "Pick next ticket via `/faff-wtf`? (y/n)"
-
-On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
+- **Discovered scope (only if `concrete` items were recorded in Step 9 → _Discovered scope_):** list them and offer a yes/no gate — "Found N out-of-scope item(s) while building: [titles]. File as Backlog tickets? (y/n)". On confirm, file each per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_): status `Backlog`, tag `faff-chain-gap-fill`, the recorded relationship link, and a "discovered during build of ISSUE-XX" provenance line + back-link. On deny, leave them in `discovered-scope.json` for a later pass. `vague` items are listed for awareness only — never offered for filing. (Interactive use has no orchestrator above workit, so the human confirming *is* the orchestrator authorising the file; autonomous runs file via beep-boop instead, never here.)
+- **Next ticket:** yes/no "Pick next ticket via `/faff-wtf`? (y/n)". On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
 
 ## Autonomous Mode
 
@@ -275,6 +293,8 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), then on green hand off to the `ship` producer (configured occupant or the default `faffter-noon-ship`) and map its native result through `ship_adaptor` (default `faffidavit-ship`) to the delivery outcome, then to a caller-facing return: `shipped` → `shipped` (worktree eligible for cleanup, chained issues unblock); `not-ready:<reason>` → park retry-later, return `pr-open-for-human`; `failed:<reason>` (including an unmappable result coerced to `failed`) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
    - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
 7. Any unrecoverable error → park and return `errored`.
+
+**Discovered scope** captured during Steps 7/9 stays in `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` and is reported in the `discovered_scope` return field. workit **never files** it — beep-boop's file-discovered-scope step does, after the build pass (gateway → **Agent Lanes**). This is independent of the terminal outcome: a `shipped`, `pr-open-for-human`, or `parked` issue can all carry discovered scope.
 
 ### Resolve-attempt before park
 
@@ -307,6 +327,12 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 - `pr-open-for-human` — review returned `needs-human`, CI failed unrecoverably, or the delivery outcome (the `ship` producer's result via `ship_adaptor`) was `not-ready` (deploy-readiness deferred, retry-later) / `failed` (merge or deploy error, or an unmappable result coerced to `failed`) — PR awaiting human
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
+
+Alongside the terminal token, workit reports **discovered scope** — it never files it (that's the orchestrator's job):
+
+- `discovered_scope: { concrete: N, vague: N, path: .faff/runs/<run-id>/ISSUE-XX/discovered-scope.json }`
+
+The four terminal tokens and the ledger-bucket mapping are **unchanged**; `discovered_scope` is an additional field beep-boop reads in its file-discovered-scope step (gateway → **Agent Lanes**: the implementor records, the orchestrator files). When workit captured nothing, `concrete` and `vague` are `0` and the file is absent.
 
 **Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-open-for-human`→`pr-open`**, `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
 

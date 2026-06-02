@@ -25,6 +25,8 @@ Every invocation re-fetches the whole picture live per the shared **Always pull 
 
 **Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When a `methodology` slot is configured, a `### Methodology findings` section sits after `### Today's Focus` (display convention: gateway → **The `methodology` slot**).
 
+**Two lanes, daily-driver first.** Sections 1–7 are the **L1 answer**: what shipped, what's stuck, your parked loose ends, and the 2–3 things to do today, plus a backlog-health read (methodology, structural diagnostics, calibration) drawn from tidy's cache. One section, the **automation preview** (§5b), answers a *different* question: is it worth handing the queue to `/faff-beep-boop`? It renders after the focus answer and never displaces it.
+
 Run through these sections in order:
 
 ### 1. Timeline Check
@@ -73,14 +75,7 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
-**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Above the focus picks, surface the **chains** themselves so the human can decide what's worth firing `/faff-beep-boop` at — this is the L3 "identify value chains to unlock" view. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
-
-```
-SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23   (3 issues, all currently blocked only by SHF-12)
-SHF-40  extract the billing client    →  unlocks SHF-41, SHF-42             (2 issues, parallel once SHF-40 ships)
-```
-
-Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (i.e. would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. This is the one place wtf tells the L3 user *which lever ships the most downstream value*, rather than leaving chain-spotting to them. Skip the block when nothing has unlock value ≥ 2.
+(The value-chains view — which ready issue ships the most downstream value if delegated — lives in the **automation preview**, §5b, not here. Today's Focus stays the L1 answer: a short, ordered list of what *you* pick up next.)
 
 ### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 
@@ -91,9 +86,18 @@ Request the `standup-digest` output from the configured `methodology` skill and 
 
 Skip the entire `### 5a` subsection if no `methodology` skill is configured.
 
-### 5b. Beep-boop queues (always render, even when empty)
+### 5b. Automation preview — is it worth firing `/faff-beep-boop`? (always render)
 
-Show what `/faff-beep-boop` would pick up right now, computed per the **Automation-routing contract** (gateway). This section is **always present** — even with empty queues, render the headers with "(none)" so the human can see at a glance whether kicking off a run is worth it.
+The **L3 delegation view**: which lever ships the most downstream value, and what an unattended run would pick up right now (computed per the **Automation-routing contract**, gateway). It answers a different question from Today's Focus above and never displaces it. **Always present** — even with empty queues, render the headers with "(none)" so the human can see at a glance whether a run is worth kicking off.
+
+**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Surface the **chains** so you can see which lever ships the most downstream value. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
+
+```
+SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23   (3 issues, all currently blocked only by SHF-12)
+SHF-40  extract the billing client    →  unlocks SHF-41, SHF-42             (2 issues, parallel once SHF-40 ships)
+```
+
+Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. Skip the block when nothing has unlock value ≥ 2.
 
 **Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). Collision groups are serialised within themselves and ordered by their lead issue's priority+unlock-value.
 
@@ -210,7 +214,10 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 - Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (Methodology skill may file the peer + tag the workstream; default offers "file gap issue".)
 - [Any risks, approaching deadlines, or flags]
 
-### Beep-boop queues
+### Automation preview — fire `/faff-beep-boop`?
+
+**Value chains to unlock** (when any ready issue gates ≥ 2)
+  SHF-12  add auth-token service  →  unlocks SHF-18 → SHF-19 → SHF-23  (3, blocked only by SHF-12)
 
 **Build queue** (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
 
@@ -256,7 +263,7 @@ Structural diagnostics: clean ✓
 - ISSUE-XX  [synthesis gloss] — [why it's ready now; flag "(just unlocked by ISSUE-YY)" if applicable, "(unlocks N)" if it gates downstream work]
 ```
 
-Skip any section that has nothing to report — **except the Beep-boop queues section**, which is always rendered. If both queues are empty, write "Build queue: (none)" and "Prep queue: (none)" so the human can see the run would have no work.
+Skip any section that has nothing to report — **except the automation preview (§5b)**, which is always rendered. If both queues are empty, write "Build queue: (none)" and "Prep queue: (none)" so the human can see the run would have no work.
 
 ## Autonomous Mode
 

@@ -28,15 +28,9 @@ Tidy the backlog. Looks both ways in one pass:
 
 **Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]` and a new bucket 7 (Methodology findings) is added — surface-only, no auto-actions. Skipped silently when no methodology is configured.
 
-## Always pull the whole backlog fresh from the issue tracker
+## Always pull fresh
 
-**A tidy pass run against stale data cannot be trusted.**
-
-Every invocation re-fetches every active issue, every blocker link in both directions, every comment thread on every issue being classified, every status field, every parent/ancestor relationship, every label. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `.faffrc` or any static file. No reading a prior `.faff/logs/` file as a substitute.
-
-**Never narrow scope to a prior skill's surfaced subset.** Specifically forbidden: scoping the fetch to "issues `/faff-wtf` just surfaced" (e.g. `parked-by-faff` + Todo), to a prior tidy's findings list, or to any other pre-filtered subset from earlier in the conversation. Tidy's scope is **every active issue in the team / project** — full stop. The wtf surface is a *briefing* drawn from a slice of the backlog; tidy is grooming the **whole** backlog and must independently fetch it. Narrowing this way produces silent false-clean reports — categories tidy is supposed to detect (dupes, orphans, cycles, ghost pointers) cannot be found in a subset that already excluded them. If the active-issue count makes a full fetch genuinely too expensive, scope the run smaller along a **structural** axis (single project, single workstream) and announce that scope explicitly — never inherit scope from another skill's filter.
-
-A tidy run that mixes fresh-now data with 30-minute-old data is **silently destructive** — worse than wtf's silent-incorrectness, because tidy *acts*. If an issue's blocker resolved between partial fetches, tidy may strip a now-needed link. If a spec comment was added between fetches, tidy may classify the issue as "no spec / needs prep" and trigger unnecessary work. If a parent project status changed, tidy may flag the issue as orphaned by cascade when it isn't. The acting-on-stale-data failure mode is the one thing tidy must never do. Better slow-and-correct than fast-and-mutating-the-tracker-on-bad-data. If the fetch budget is too high, scope the run smaller (single project, single workstream) — never use partial freshness across a wider scope.
+Every invocation re-fetches the whole active backlog live per the shared **Always pull fresh** rule (gateway): every active issue, both-direction blocker links, the comment thread on every issue being classified, status, ancestors, labels. Tidy is the **highest-stakes** case of that rule because **tidy acts**: a stale grooming pass strips a now-needed link, mis-classifies a freshly-specced issue as needs-prep, or flags a live issue as orphaned-by-cascade when it isn't. Acting on stale data is the one thing tidy must never do. Tidy's scope is **every active issue in the team / project** (or a smaller structural scope, announced explicitly); it never inherits another skill's already-filtered surface, including `/faff-wtf`'s briefing slice, since a pre-filtered subset hides the dupes, orphans, cycles, and ghost pointers tidy exists to find.
 
 ## Process
 
@@ -84,12 +78,7 @@ An issue is ready when:
 - Not a dupe of something else
 - **Has a real spec** per the shared **Spec discovery** rule (canonical tracker comment, committed under the configured spec-docs path — default `docs/specs/…` — or equivalent). A populated description is **not** a spec — issues with only a description are **never** ready; they go to "Almost ready" for `/faff-prep`.
 
-**Order ready issues by priority, then by chainable unlock value.** Once the readiness gate is passed, rank promotion candidates with this lexicographic order:
-
-1. **Priority** is king. Priority can live on the issue itself or on any ancestor (parent, grandparent, or higher — whatever the tracker calls those containers) — **respect both**. If the issue has explicit priority, use it; otherwise inherit from the nearest ancestor that does. When the consuming project's CLAUDE.md highlights a current workstream, weight issues in that workstream higher.
-2. **Chainable unlock value** breaks ties (and matters even more in automation). Within a priority band, prefer issues that unblock the most downstream work — count direct + transitive dependents (issues whose blockers list this one, recursively). An issue that unlocks a chain of five others beats an isolated issue of the same priority. This is especially important for `/faff-beep-boop`: shipping the unlocking issue first means the next autonomous pass has more ready candidates to chew through.
-
-Present ready issues in this order so the human (or `/faff-beep-boop`) picks up the right thing first.
+**Order ready issues by the shared Work-ordering rule** (gateway → **Work-ordering rule**): priority (issue or any ancestor, respect both) then chainable unlock value, with any configured `methodology` `pick-ordering` reframe applied within each priority band. Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
 ### 3. Almost ready (flag)
 
@@ -160,7 +149,7 @@ Output rendered in the new `### Methodology findings` section of tidy's output (
 
 ## Output and chaining
 
-Tabular output follows the `rendering_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-rendering`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `rendering_adaptor` slot's table-vs-definition-list rule (gateway → **Rendering → `rendering_adaptor`**; default `faffidavit-rendering`).
 
 Present findings grouped by bucket. Skip any bucket with no findings.
 

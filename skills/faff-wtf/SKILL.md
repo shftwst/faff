@@ -13,22 +13,13 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 **Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed automation-routing + spec-readiness contracts** wtf displays. Loading it here means any slot wtf delegates to inherits these ambiently. WTF falls back to git-only mode if no tracker MCP is available.
 
-**Shared work-ordering rule.** Anywhere this skill suggests, ranks, or recommends work — "Coming Up", "Today's Focus", "Ready to pick up", "Build queue" independents, parked-overnight triage — apply the same lexicographic order used by `/faff-tidy`:
-
-1. **Priority** (issue-level OR any ancestor in the tracker hierarchy — parent, grandparent, or higher container, whatever the tracker calls it; respect both, inherit from the nearest ancestor that has a value)
-2. **Chainable unlock value** — count of direct + transitive dependents (issues whose blockers list this one). An issue gating a chain of five beats an isolated issue at the same priority. Especially important for surfacing what's worth firing `/faff-beep-boop` at.
-
-When the consuming project's CLAUDE.md flags a current workstream, weight issues in that workstream up.
+**Shared work-ordering rule.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), apply the shared **Work-ordering rule** (gateway): priority (issue or any ancestor) then chainable unlock value, with any configured `methodology` `pick-ordering` reframe.
 
 **Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues should rise to the top of "Coming Up" / "Today's Focus" / "Ready to pick up" because they represent *just-realised* potential the human/automation hasn't acted on yet.
 
-## Always pull the whole picture fresh from the issue tracker
+## Always pull fresh
 
-**A catch-up with stale data cannot be trusted.**
-
-Every invocation re-fetches every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, every status field, every recent activity timestamp. No reusing the fetch from earlier in the same conversation. No trusting a snapshot in `.faffrc` or any static file. No reading a prior `.faff/logs/` file as a substitute for live data.
-
-A briefing that mixes fresh-now data with 30-minute-old data is **silently wrong**. The reader trusts "What's up" as a coherent moment-in-time picture. If a PR merged, a status changed, a blocker resolved, or an issue got parked between partial fetches, the focus recommendation and beep-boop queue analysis produce confidently incorrect output — and the human acts on it. Better slow-and-correct than fast-and-lying. If the fetch budget is too high, scope the run smaller (single project) — never use partial freshness across a wider scope.
+Every invocation re-fetches the whole picture live per the shared **Always pull fresh** rule (gateway): every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, status field, and recent-activity timestamp. A briefing built on a partial or cached fetch is silently wrong, and the human acts on it.
 
 ## What it does
 
@@ -153,7 +144,7 @@ Keep the tracker in sync with reality. No one starts building without a spec.
 
 ## Output Format
 
-Tabular output follows the `rendering_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-rendering`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `rendering_adaptor` slot's table-vs-definition-list rule (gateway → **Rendering → `rendering_adaptor`**; default `faffidavit-rendering`).
 
 Keep it concise and scannable. Use this structure:
 
@@ -282,7 +273,7 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
 - If the project's ambient context (e.g. `CLAUDE.md`) states working-pattern or scheduling preferences, respect them when timing recommendations — faff keeps no separate config channel for this; the human's stated preference is the source.
-- Work-ordering everywhere = priority (issue OR any ancestor) → chainable unlock value. Same rule as `/faff-tidy`.
+- Work-ordering everywhere follows the shared **Work-ordering rule** (gateway): priority (issue or any ancestor) → chainable unlock value.
 - Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
 - Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.

@@ -234,6 +234,23 @@ This widened definition fixes a real failure: a tidy run that suggests cancellin
 
 No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by workit, never counted in beep-boop queues.
 
+### Work-ordering rule (priority → chainable unlock value)
+
+The single canonical ordering for every place a faff sub-skill ranks, suggests, or promotes work: faff-tidy's Ready and Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / build-queue independents, faff-whereto's critical path, faff-beep-boop's independents ordering. Sub-skills reference this rule rather than restating it. Apply lexicographically:
+
+1. **Priority** is king. It can live on the issue itself or on any **ancestor** (parent, grandparent, or higher container, whatever the tracker calls it); respect both, inheriting from the nearest ancestor that has a value. When the consuming project's `CLAUDE.md` flags a current workstream, weight issues in that workstream up.
+2. **Chainable unlock value** breaks ties: the count of direct + transitive dependents (issues whose blockers list this one, recursively). An issue that unblocks a chain of five beats an isolated issue at the same priority. This matters most for automation, where shipping the unlocking issue first gives the next `/faff-beep-boop` pass more ready candidates.
+
+When a `methodology` slot is configured, its `pick-ordering` output reframes this within each priority band (e.g. value × risk × dep-aware); the structural inputs stay in the computation but no longer alone determine the order.
+
+### Always pull fresh (never act on stale tracker state)
+
+Every read-and-synthesise pass re-fetches live tracker state on every invocation: issues, blocker links (both directions), status fields, the comments a pass classifies on, milestones, parent/ancestor relationships. Never reuse a fetch from earlier in the same conversation, never trust a snapshot written into `.faffrc` or any static file, never read a prior `.faff/logs/` file as a substitute for live data. The one exception is the per-run `automation-verdicts.md` cache, read *within* a single pass and recomputed across passes (see **`.faff/` logging directory**).
+
+A pass that mixes fresh-now data with 30-minute-old data is **silently wrong**: the reader trusts the output as one coherent moment, so a status that changed, a PR that merged, or a blocker that resolved between partial fetches produces confidently incorrect output that a human or the queue then acts on. The failure escalates with how much the skill *acts*. A stale briefing misleads; a stale grooming pass (faff-tidy) or build-queue assembly (faff-beep-boop) mutates the tracker or ships code on bad data. Better slow-and-correct than fast-and-lying.
+
+If the fetch budget is genuinely too high, scope the run smaller along a **structural** axis (single project, single workstream) and announce that scope. Never use partial freshness across a wider scope, and never inherit a narrower scope from another skill's already-filtered surface (e.g. scoping tidy to "what wtf just surfaced").
+
 ### Spec discovery (where to look for an existing spec)
 
 **This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-workit, faff-wtf, faff-whereto, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the three checks below. Any divergence in a sub-skill is a bug, not a local override.

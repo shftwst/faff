@@ -25,11 +25,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 ## What it does
 
-**Always pull the whole roadmap picture fresh from the issue tracker. A roadmap with stale data cannot be trusted.**
-
-Every phase pulls **live** state — never from a cached snapshot, never from a value written into `.faffrc`, never from a previous run's `.faff/logs/` output, never from a partial fetch carried over from earlier in the conversation. Every invocation re-fetches every initiative, every project under every initiative, every issue under every project, every blocker link, every status field. No incremental refreshes. No "I already pulled this 10 minutes ago." No reusing summaries.
-
-The reason: a roadmap that mixes a fresh-now piece with a 30-minute-old piece is **silently wrong**. The reader trusts the document as a single coherent snapshot. If a project shipped in the last 10 minutes, or a status changed, or a blocker resolved, and the roadmap reflects pre-change state for some sections and post-change for others, the chain analysis (Phase 4) and gate analysis (Phase 5) produce confidently incorrect findings. Better to be slow and correct than fast and lying. If the fetch budget is too high, the answer is to scope the run to a single initiative — never to use partial freshness.
+**Always pull the whole roadmap fresh** per the shared **Always pull fresh** rule (gateway): every invocation re-fetches every initiative, every project under it, every issue, every blocker link and status field. A roadmap that mixes fresh and stale pieces is silently wrong, and the chain analysis (Phase 4) and gate analysis (Phase 5) then produce confidently incorrect findings on a document the reader trusts as one coherent snapshot. If the fetch budget is too high, scope to a single initiative, never to partial freshness.
 
 Run through these phases in order:
 
@@ -150,7 +146,7 @@ Three to five sentences max. Lead with how many outcomes are in flight, whether 
 
 ## Output Format
 
-Tabular output follows the `rendering_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-rendering`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `rendering_adaptor` slot's table-vs-definition-list rule (gateway → **Rendering → `rendering_adaptor`**; default `faffidavit-rendering`).
 
 ```
 ## Roadmap — [date]

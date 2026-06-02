@@ -1,1 +1,6 @@
 docs/
+
+# Local faff config (the .faffrc.example.yml template stays tracked)
+.faffrc
+.faffrc.yml
+.faffrc.yaml

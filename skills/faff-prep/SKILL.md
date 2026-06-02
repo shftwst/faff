@@ -211,7 +211,7 @@ Surface-area extraction is heuristic. Tune toward **recall** — false positives
 **2. Premise-superseded gate.** After the scan emits findings, prep evaluates: *given the `## Already shipped against this surface` findings, is the spec's stated motivation still load-bearing?* Three outcomes:
 
 - **Substantially delivered** — significant portion of the premise is already covered by Done tickets. → **Park** with cause `premise-superseded`. The park comment **must** cite at least one Done ticket ID and the matched surface area or subsystem name. Without that evidence the cause is invalid and prep must not use it (it degrades into a forbidden capacity excuse per gateway → Autonomous Mode Contract).
-- **Partially delivered** — some of the premise is covered, but a real delta remains. → **Narrow** the spec to the remaining delta. Explicitly call out what's already done so the implementer doesn't redo it; note this in the `## Already shipped against this surface` section. Proceed with the rest of the path on the narrowed scope.
+- **Partially delivered** — some of the premise is covered, but a real delta remains. → **Narrow** the spec to that delta, calling out what's already done (in the `## Already shipped against this surface` section) so the implementer doesn't redo it. The narrow is then handled **per the calling path**: a fresh-spec caller (Path 2) re-invokes the producer on the narrowed scope, so its clean-context self-review fires on the narrowed spec; a stale-refresh caller (Path 1) refreshes the already-vetted spec in place, so the self-review is **exempted** (a scoped reduction, not a whole-cloth redraft, matching the producer's own _Self-review before returning_ → _When NOT to run_ narrowing exemption). If the narrowing crosses architectural lines (the remaining delta needs a different module structure than the original spec assumed), **park** under the architectural-change rule instead of reattaching. Either way the cited Done tickets are the audit trail; continue the rest of the path on the narrowed scope.
 - **Premise still holds** — no substantial coverage by Done work. → **Proceed** unchanged. The `## Already shipped against this surface` section may still appear with related-but-not-superseding findings as reader context.
 
 The substantial / partial / not-at-all judgement is the prep agent's call, backed by the explicit audit trail (the cited Done tickets and matched surface area) so a reviewer can check the call.
@@ -224,13 +224,7 @@ The substantial / partial / not-at-all judgement is the prep agent's call, backe
 
 **Always run the post-spec comment scan first** (Scenario B Step 2a in the interactive flow): fetch all comments after the spec, classify each as challenge / resolution / context / noise. Treat any challenge or resolution as a freshness trigger equivalent to codebase drift. Context-only threads are not a freshness trigger on their own, but **must be carried into the refreshed spec as an annotation block** so the information survives — never silently drop them.
 
-**Then run the shared already-shipped scan + premise-superseded gate** (documented above). Outcomes apply to Path 1 as follows:
-
-- **Park (substantially delivered)** — exit Path 1 immediately. Park with cause `premise-superseded`, citing Done ticket IDs and matched surface area in the park comment.
-- **Narrow (partially delivered)** — the spec narrows to the remaining delta. **The clean-context self-review is exempted** for the narrow case: prep refreshes the already-vetted spec in place (a scoped reduction, not a whole-cloth redraft), so it does not re-invoke the producer — matching the producer's own _Self-review before returning_ → _When NOT to run_ exemption for narrowing-only refreshes. The narrowing rationale and cited Done tickets in the `## Already shipped against this surface` section are the audit trail. Continue with the rest of Path 1 on the narrowed scope.
-- **Proceed (premise holds)** — continue unchanged.
-
-If the narrowing crosses architectural lines (e.g. the remaining delta requires a different module structure than the original spec assumed), defer to the existing architectural-change park rule below — park rather than reattach.
+**Then run the shared already-shipped scan + premise-superseded gate** (above): **Park** (substantially delivered) exits Path 1 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues unchanged; **Narrow** (partially delivered) is handled per the subroutine — for Path 1 that means refreshing in place with the self-review exempted. Continue Path 1 on the narrowed scope.
 
 If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
@@ -248,11 +242,7 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 1 — produce the spec.** Invoke the `spec` slot, passing the _spec contract_ in the instructions. The producer runs its own clean-context self-review and returns the spec body, the review findings + resolutions, and a `confidence:` self-rating at the end of its output. (The self-review and the self-rating downgrade rule live in the producer — see `faffter-noon-spec/SKILL.md` → _Self-review before returning_.)
 
-**Step 2 — run the shared already-shipped scan + premise-superseded gate** (documented above) on the just-produced spec. Outcomes apply to Path 2 as follows:
-
-- **Park (substantially delivered)** — exit Path 2 immediately. Park with cause `premise-superseded`, citing Done ticket IDs and matched surface area in the park comment.
-- **Narrow (partially delivered)** — the spec narrows to the remaining delta. Re-invoke the producer on the narrowed scope (its self-review fires on the narrowed spec — the producer's review is mandatory regardless of how the spec arrived at its final scope), then continue with Step 3.
-- **Proceed (premise holds)** — continue with Step 3 unchanged.
+**Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 
 **Step 3 — validate and gate the spec.** Run marker validation per the _spec contract_. The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
 

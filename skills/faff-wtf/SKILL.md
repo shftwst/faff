@@ -82,6 +82,15 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 
 ### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 
+**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Above the focus picks, surface the **chains** themselves so the human can decide what's worth firing `/faff-beep-boop` at — this is the L2 "identify value chains to unlock" view. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
+
+```
+SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23   (3 issues, all currently blocked only by SHF-12)
+SHF-40  extract the billing client    →  unlocks SHF-41, SHF-42             (2 issues, parallel once SHF-40 ships)
+```
+
+Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (i.e. would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. This is the one place wtf tells the L2 user *which lever ships the most downstream value*, rather than leaving chain-spotting to them. Skip the block when nothing has unlock value ≥ 2.
+
 Request the `standup-digest` output from the configured `methodology` skill and render what it returns. The digest carries a WIP status, an optional sequencing diagnosis, and the top structural findings — the methodology decides their content; faff-wtf only places and trims them.
 
 - **WIP coupling.** When the digest reports WIP at cap, `### Today's Focus` recommends **completion of in-flight only** — no new starts. Below cap, allow up to the digest's remaining-headroom count of new starts.

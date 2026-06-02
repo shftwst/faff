@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict + spec-readiness contracts** workit branches on. Loading it here means any slot workit delegates to inherits these ambiently. Workit consults the `review` and `ship` Planning Skill slots.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict, spec-readiness, and delivery-outcome contracts** workit branches on. Loading it here means any slot workit delegates to inherits these ambiently. Workit consults the `review`/`review_adaptor` and `ship`/`ship_adaptor` Planning Skill slots.
 
 ### Worktree Hook
 
@@ -207,10 +207,11 @@ Merge happens only when **all** conditions hold:
 
 **Decision:**
 
-- **All three hold:**
-  - If `ship` slot configured → invoke it as the delivery mechanism.
-  - Otherwise → vanilla `gh pr merge`.
-  - **Under concurrent execution** (the `faffter-dark-concurrency-parallel` executor): merges are serialised and rebase-revalidated — before merging, rebase (or merge `main`) onto the PR branch and **re-confirm CI green on the rebased head**. A green that predates `main` moving is stale and must not merge. See that skill's _Rebase-before-merge_. (Sequential execution needs no rebase — each build already sees the prior merge.)
+- **All three hold (integrity floor passed):** these three conditions *are* the integrity floor — assert them here; this floor is **non-delegable** and is never re-run or weakened inside the `ship` producer or its adaptor. Then hand off to the `ship` producer (configured occupant, or the default `faffter-noon-ship`, which runs `gh pr merge`); map its native result through `ship_adaptor` (default `faffidavit-ship`) to the fixed delivery outcome, and **route on that** (a result the adaptor can't map coerces to `failed`, never `shipped` — gateway → _Delivery outcome_):
+  - `shipped` → merged/deployed. The worktree becomes eligible for cleanup (housekeeping, per gateway → **Worktree policy**) — the `ship` producer never touches it. Chained issues unblock. Done.
+  - `not-ready:<reason>` → the producer's deploy-readiness tier deferred the merge (only a deploy-capable producer yields this; the default never does). Leave the PR open and mergeable, record the reason, and park as **retry-later** — not a defect, not `needs-human`.
+  - `failed:<reason>` → merge conflict or deploy error (or an unmappable result coerced to `failed`). Treat as a post-build failure: autonomous → one fix attempt if obvious from the error, else park; interactive → surface and ask per Step 11.
+  - **Under concurrent execution** (the `faffter-dark-concurrency-parallel` executor): merges are serialised and rebase-revalidated — before handing to the `ship` producer, rebase (or merge `main`) onto the PR branch and **re-confirm CI green on the rebased head**. A green that predates `main` moving is stale and must not merge. See that skill's _Rebase-before-merge_. (Sequential execution needs no rebase — each build already sees the prior merge.)
 - **Review returned `fail`:** iterate autonomously (fix flagged items, re-run tests, re-run review). This is not a park — it's a loop.
 - **Review returned `needs-human`:** flip PR to draft, park per the shared protocol. Leave the PR open with the AC checklist, review comment, and CI status visible.
 - **CI failed:** first separate a flaky/infra failure from a real defect — **re-run the failed checks once** with no code change (re-trigger, then `gh pr checks <pr> --watch`). If they pass on the clean re-run, it was transient: proceed to the merge gate and **do not** spend the autonomous fix attempt on it. If they fail the same way again, it's real: in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11. (Persistent infra failures unrelated to the diff — runner outages, missing secrets — park as `errored`, not as a code defect.)
@@ -223,7 +224,7 @@ In **interactive mode**, this gate fires when the user confirms "merge now" at p
 
 After the PR is posted, wait for CI builds to complete **synchronously in the same turn**. Based on result and the gate in Step 10:
 
-- **Gate passes (auto-mergeable):** yes/no "All three gate conditions pass (ACs verified, CI green, review `pass`). Merge now? (y/n)". On confirm, invoke the ship path. On deny, leave PR open.
+- **Gate passes (auto-mergeable):** yes/no "All three gate conditions pass (ACs verified, CI green, review `pass`). Merge now? (y/n)". On confirm, hand off to the `ship` producer, map its result through `ship_adaptor`, and route on the resulting outcome (per Step 10). On deny, leave PR open.
 - **Gate fails on CI:** "CI failed. Iterate on this PR? (y/n)". On confirm, keep going. On deny, yes/no "Pick next ticket via `/faff-wtf`? (y/n)".
 - **Gate fails on review (`fail` or `needs-human`) or unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human.
 
@@ -271,7 +272,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - `fail` → iterate: fix flagged items, re-run tests, re-run review. Loop until `pass` or `needs-human` (cap at 3 iterations; if still `fail` after 3, treat as `needs-human`).
    - `needs-human` → flip PR to draft, park per the shared protocol. Return `pr-open-for-human`.
 6. Run Step 10 (merge-confidence gate) automatically:
-   - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), then invoke ship path on green (configured `ship` skill or `gh pr merge`). Return `shipped`.
+   - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), then on green hand off to the `ship` producer (configured occupant or the default `faffter-noon-ship`) and map its native result through `ship_adaptor` (default `faffidavit-ship`) to the delivery outcome, then to a caller-facing return: `shipped` → `shipped` (worktree eligible for cleanup, chained issues unblock); `not-ready:<reason>` → park retry-later, return `pr-open-for-human`; `failed:<reason>` (including an unmappable result coerced to `failed`) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
    - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
 7. Any unrecoverable error → park and return `errored`.
 
@@ -303,7 +304,7 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 
 **Return values to caller (beep-boop / the `concurrency` slot):**
 - `shipped` — all three gate conditions held, PR merged (unblocks chained issues)
-- `pr-open-for-human` — review returned `needs-human`, or CI failed unrecoverably — PR is draft, awaiting human
+- `pr-open-for-human` — review returned `needs-human`, CI failed unrecoverably, or the delivery outcome (the `ship` producer's result via `ship_adaptor`) was `not-ready` (deploy-readiness deferred, retry-later) / `failed` (merge or deploy error, or an unmappable result coerced to `failed`) — PR awaiting human
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
 

@@ -306,6 +306,7 @@ const REGISTRY = {
   "faffidavit-review": { type: "adaptor", slot: "review_adaptor" },
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
+  "faffidavit-ship": { type: "adaptor", slot: "ship_adaptor" },
   "faffter-noon-methodology-structural": { type: "methodology" },
   "faffter-dark-methodology-agile-delivery": { type: "methodology" },
   "faffter-noon-concurrency-sequential": { type: "mechanism" },
@@ -315,6 +316,7 @@ const REGISTRY = {
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-review": { type: "producer-review" },
   "faffter-dark-adversarial-review": { type: "producer-review" },
+  "faffter-noon-ship": { type: "producer-ship" },
 };
 const SKIP = new Set(["faffter-dark-authoring-adaptors"]);
 const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "promotion-readiness", "build-queue"];
@@ -355,6 +357,10 @@ function checksFor(meta, t) {
     case "producer-review":
       out.push([has("review_adaptor") || /pass[\s\S]*fail[\s\S]*needs-human/.test(t),
                 "maps onto the review-verdict contract (pass/fail/needs-human)"]);
+      break;
+    case "producer-ship":
+      out.push([has("ship_adaptor") || /shipped[\s\S]*not-ready[\s\S]*failed/.test(t),
+                "maps onto the delivery-outcome contract (shipped/not-ready/failed)"]);
       break;
   }
   return out;

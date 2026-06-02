@@ -77,7 +77,8 @@ planning_skills:             # optional delegation slots; each has a faff defaul
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-workit
-  ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit
+  ship: gstack:land-and-deploy                       # delivery producer inside faff-workit (default faffter-noon-ship)
+  ship_adaptor: faffidavit-ship                      # adaptor: maps the ship producer's native result onto shipped/not-ready/failed
 
 # mode: delivery-lead is DEPRECATED — use planning_skills.methodology instead
 
@@ -132,7 +133,8 @@ planning_skills:
   review_adaptor: faffidavit-review          # adaptor: output envelope; maps a reviewer's output onto the fixed pass/fail/needs-human contract
   routing_adaptor: faffidavit-routing        # adaptor: verdict assignment + display; the six-verdict vocabulary + admission rule are fixed in the gateway
   rendering_adaptor: faffidavit-rendering        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
-  ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
+  ship: gstack:land-and-deploy                       # delivery producer inside faff-workit, optional (default faffter-noon-ship)
+  ship_adaptor: faffidavit-ship              # adaptor: result envelope; maps a ship producer's native delivery result onto the fixed shipped/not-ready/failed contract
 ```
 
 Each slot has a built-in default when unset. The default skill owns its own behaviour contract — see that skill's `SKILL.md`. A missing slot is **never** a park reason.
@@ -148,7 +150,8 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 | `review_adaptor` | `faffidavit-review` | Adaptor over the fixed review-verdict contract (`pass` / `fail` / `needs-human`, semantics, revert test — all in the gateway): the output envelope reviewers emit and faff-workit branches on; validates/normalises review output on demand. |
 | `routing_adaptor` | `faffidavit-routing` | Adaptor over the fixed automation-routing contract (six verdicts + admission rule + root-cause taxonomy — all in the gateway): verdict assignment + computation locus + display format; assigns and validates verdicts. |
 | `rendering_adaptor` | `faffidavit-rendering` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
-| `ship` | vanilla `gh pr merge` | Merge/deploy mechanism inside faff-workit. |
+| `ship` | `faffter-noon-ship` | Delivery **producer** inside faff-workit Step 10 — runs deploy-readiness, merges/deploys, cleans up what it created, emitting a native delivery result. The default discharges it with a no-op readiness check + vanilla `gh pr merge`; swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) for real release mechanics. Its native result is mapped by `ship_adaptor`. |
+| `ship_adaptor` | `faffidavit-ship` | Adaptor over the fixed delivery-outcome contract (`shipped` / `not-ready` / `failed`, two-tier gate, coercion rule — all in the gateway): the result envelope and the mapping of the `ship` producer's native delivery result onto the three outcomes faff-workit routes on; validates/normalises on demand. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
 
@@ -521,7 +524,7 @@ Skills load independently. When you enter via a slash command (`/faff-workit`), 
 
 By default the conformance clause is enforced by convention + the dev-time `faffter-dark-authoring-adaptors` Validate face. Setting **`validate_slots: true`** in `.faffrc` turns that into a **runtime gate**: a sub-skill that delegates to a configured slot occupant validates it *before first use* in the run.
 
-- **Scope: non-default occupants only.** A slot left unset (using its shipped default), or set to the slot's documented default name, is **not** validated — the shipped defaults are conformant by construction. Validation fires only when the configured occupant differs from the slot's default (a third-party or user-authored skill). This covers every slot type the authoring tool knows — adaptors, producers, `methodology`, and the `concurrency`/`ship` mechanisms.
+- **Scope: non-default occupants only.** A slot left unset (using its shipped default), or set to the slot's documented default name, is **not** validated — the shipped defaults are conformant by construction. Validation fires only when the configured occupant differs from the slot's default (a third-party or user-authored skill). This covers every slot type the authoring tool knows — adaptors (including `ship_adaptor`), producers (including the `ship` producer), `methodology`, and the `concurrency` mechanism.
 - **How.** Invoke `faffter-dark-authoring-adaptors` → Validate face on the occupant (by name/path), passing the slot it occupies. It returns `pass` / `fail` + violations against the conformance checklist.
 - **Cache once per run.** Validate each distinct occupant **once** per session/run and cache the verdict — autonomous runs write it to `.faff/runs/<run-id>/slot-validation.md` (interactive: hold it in-session). Don't re-validate on every delegation.
 - **On `fail`:**
@@ -537,6 +540,20 @@ Per **Contract loading & conformance** above, every consumer already loads this 
 **Internal contract (fixed):** a review returns exactly one of three states — `pass` / `fail` / `needs-human`. Their semantics, the **revert test** that separates `fail` (revert-reversible defect) from `needs-human` (effect persists after revert), and the rule that a malformed/unparseable verdict coerces to `needs-human` (never silently to `pass`) are all fixed here. faff-workit's post-build gate branches proceed / iterate / park on these three states directly.
 
 **Adaptor slot:** `review_adaptor` (default `faffidavit-review`) — the output envelope (`signal:` line + `## Findings`) and the parsing/normalising of any reviewer's native output into the three states. Swap it to adapt a third-party reviewer; faff-workit still branches on the same three states.
+
+### Delivery outcome (fixed) → `ship_adaptor`
+
+**Internal contract (fixed):** delivery returns exactly one of three outcomes — `shipped` / `not-ready:<reason>` / `failed:<reason>`. Their semantics, the **two-tier gate** that precedes them, and the coercion rule (a malformed/unparseable result coerces to `failed`, never silently to `shipped`) are all fixed here. faff-workit's Step 10 routes proceed / park-retry-later / fail on these three states directly.
+
+- `shipped` — integrity floor and the producer's deploy-readiness both passed, the PR merged/deployed, deploy-side cleanup done. Chained issues unblock; workit reclaims the worktree.
+- `not-ready:<reason>` — deploy-readiness deferred the merge **without merging**. Not an error: the PR stays open and mergeable; workit parks it retry-later. Only a deploy-capable producer returns this; the default never does.
+- `failed:<reason>` — merge conflict or deploy error. workit surfaces it as a post-build failure.
+
+**The gate is two-tier, and only the lower tier is delegable.** The **integrity floor** — AC-verified + CI-green + review `pass` — is asserted by `/faff-workit` *before* delivery is invoked, and is **non-delegable**: neither the `ship` producer nor `ship_adaptor` may bypass, re-open, or weaken it (the same floor the `concurrency` contract forbids weakening). **Deploy-readiness** — deploy window, environment health, migration ordering, flag state — is the `ship` producer's **own** tier: it may *add* a "no" (→ `not-ready`), never *subtract* the floor's "no". The default's readiness check is a no-op pass.
+
+**Coercion (fixed):** if `ship_adaptor` cannot map the producer's native result onto one of the three outcomes — empty, garbled, an unrecognised token, or a `shipped` claim it can't corroborate — it normalises to `failed:<reason>`, **never** silently to `shipped`. This is the delivery-side mirror of the review verdict's "malformed → `needs-human`, never `pass`": when in doubt, fail safe toward *not having delivered*, never toward a phantom merge. It is what keeps a swapped-in producer safe even though a foreign deploy tool does not natively speak this vocabulary.
+
+**Adaptor slot:** `ship_adaptor` (default `faffidavit-ship`) — the result envelope and the parsing/normalising of the `ship` producer's native delivery result (a `gh`/CI/deploy tool's exit status and logs) into the three outcomes. Swap the `ship` *producer* to change *how* delivery happens (a real deploy occupant like `gstack:land-and-deploy`); swap `ship_adaptor` only when the producer's native result can't be mapped by the default. faff-workit still routes on the same three outcomes. The `ship` producer cleans up only what *it* created (release artefacts, temp deploy state) — **never** the worktree; teardown pairs with workit's setup (see **Worktree policy**). `/faff-workit` owns the routing and the worktree lifecycle; delivery decides and acts on its own tier only.
 
 ### Automation-routing verdict (fixed) → `routing_adaptor`
 
@@ -558,10 +575,10 @@ Rendering is purely human-facing: no pipeline code branches on, counts, or gates
 
 Two of the four contracts above pair a **producer** doing-slot with an **adaptor** slot — and they swap independently:
 
-- **Producer slots** (`intake`, `spec`, `review`) *do the work* and emit native output. Swap one to change *how the work is done* (a different spec-explorer, a different reviewer). A swapped producer does **not** need to match the fixed contract's surface syntax — its paired adaptor (`spec_adaptor` / `review_adaptor`) is what maps its native output onto the fixed classes/states the pipeline branches on.
-- **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
+- **Producer slots** (`intake`, `spec`, `review`, `ship`) *do the work* and emit native output. Swap one to change *how the work is done* (a different spec-explorer, a different reviewer, a different deploy mechanism). A swapped producer does **not** need to match the fixed contract's surface syntax — its paired adaptor (`spec_adaptor` / `review_adaptor` / `ship_adaptor`) is what maps its native output onto the fixed classes/states the pipeline branches on. (`intake` is the exception: it emits a documented brief directly, with no paired adaptor.)
+- **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `ship_adaptor`, `routing_adaptor`, `rendering_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
 
-**Rule of thumb for a slot swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake`, `concurrency`, and `ship` are pure producer/mechanism slots with no paired adaptor — they emit a documented brief (`intake` → the discovery brief, see `faffter-noon-intake`) or perform a mechanism (`concurrency` → executes the build pass over the conflict-analysis partition; `ship` → merge/deploy) and need no translation layer. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
+**Rule of thumb for a slot swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake` and `concurrency` are the slots with no paired adaptor — `intake` emits a documented brief directly (see `faffter-noon-intake`) and `concurrency` performs a mechanism (executes the build pass over the conflict-analysis partition, driving faff's own workit, which already speaks faff's vocabulary), so neither needs a translation layer. `ship` *is* paired (with `ship_adaptor`): its producer reads a foreign deploy tool's native output that must be translated onto the fixed delivery outcomes (see **Delivery outcome (fixed) → `ship_adaptor`**) — same shape as `review` + `review_adaptor`. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
 
 ### Legacy contract aliases
 
@@ -572,6 +589,7 @@ Sub-skills written before this restructure cross-reference the contracts by thei
 | `gateway → Automation-routing contract` | **Automation-routing verdict (fixed) → `routing_adaptor`** |
 | `gateway → Root-cause class enum` | the root-cause class enum inside **Automation-routing verdict (fixed)** |
 | `gateway → Synthesis contract` | the synthesis issue-gloss inside **Rendering → `rendering_adaptor`** |
+| `gateway → The ship slot contract` / `gateway → Mechanism slots → ship` | **Delivery outcome (fixed) → `ship_adaptor`** |
 
 When renaming any contract section, update this table — it is the single place the legacy names are reconciled.
 
@@ -602,9 +620,9 @@ Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** 
 
 **What a replacement methodology owes (the swap floor).** Because cycle and ghost-project detection feed the fixed routing verdict, a swapped-in methodology **must** answer `backlog-diagnostics` with at least that graph detection — a methodology that drops it silently breaks `circular-blocked` / `gap-blocked` routing for the whole suite. A methodology that doesn't want to reimplement graph analysis **composes the structural default**: it calls `faffter-noon-methodology-structural`'s `backlog-diagnostics` for the graph floor and adds its own findings on top (this is exactly what `faffter-dark-methodology-agile-delivery` does — it is *additive over* the structural baseline, not a from-scratch replacement of it). The other required outputs (`pick-ordering`, `promotion-readiness`, `build-queue`) may be answered wholesale or by re-ranking the structural baseline.
 
-## Mechanism slots (`concurrency`, `ship`)
+## Mechanism slot (`concurrency`)
 
-Two slots are pure **mechanisms** — they *perform an action* in the pipeline rather than produce a translatable artefact (`intake` produces a brief; the adaptors translate; methodology answers named outputs). A mechanism slot has **no paired adaptor** and **no named-output set**; its contract is the set of obligations its action must honour plus the fixed gateway invariants it may never weaken. This section is the **canonical, gateway-owned contract** for both, so it survives a swap — an occupant carries only its dialect/implementation and **refers back here** (per **Contract loading & conformance**), never an authoritative copy. The default occupant's `SKILL.md` documents *how the default* discharges the contract; it is not the source of the contract.
+The `concurrency` slot is a pure **mechanism** — it *performs an action* in the pipeline rather than producing a translatable artefact (`intake` produces a brief; the adaptors translate; methodology answers named outputs). A mechanism slot has **no paired adaptor** and **no named-output set**; its contract is the set of obligations its action must honour plus the fixed gateway invariants it may never weaken. (`ship` was formerly a mechanism here; it is now a producer paired with `ship_adaptor` — see **Delivery outcome (fixed) → `ship_adaptor`** — because its occupant reads a *foreign* deploy tool's output and must translate it onto the fixed outcomes, the condition the adaptor pattern exists for. `concurrency` stays a mechanism: it drives faff's *own* workit, which already returns faff's vocabulary, so it has no foreign output to translate.) This section is the **canonical, gateway-owned contract** for `concurrency`, so it survives a swap — an occupant carries only its dialect/implementation and **refers back here** (per **Contract loading & conformance**), never an authoritative copy. The default occupant's `SKILL.md` documents *how the default* discharges the contract; it is not the source of the contract.
 
 ### The `concurrency` slot contract (fixed)
 
@@ -620,12 +638,6 @@ Executes `/faff-beep-boop`'s build pass. Default `faffter-noon-concurrency-seque
 4. **Never weaken the merge gate.** AC-verified + CI-green + review `pass` is fixed here and in `/faff-workit`; a `concurrency` occupant controls *ordering and isolation* (and, for the parallel executor, rebase-before-merge re-validation), never *whether* the gate runs.
 
 **Output.** Every partition issue reaches a terminal state, all recorded in the ledger; control returns to beep-boop's wave drain. **Worktree isolation** (one worktree per build, never shared) is mandatory for any occupant that runs builds concurrently — see **Worktree policy**.
-
-### The `ship` slot contract (fixed)
-
-Merges/deploys a merge-ready PR inside `/faff-workit`'s Step 10. Default: vanilla `gh pr merge`.
-
-**Input.** A PR that has already passed the merge gate (AC-verified + CI-green + review `pass`). **Obligations:** (1) merge/deploy that PR via the occupant's mechanism; (2) **never merge a PR that hasn't passed the gate** — `ship` is the *mechanism*, not a second gate that can bypass the first; (3) surface failure (merge conflict, deploy error) back to faff-workit as a normal post-build failure, never silently. **Output.** The PR is merged (and deployed, if the occupant deploys); chained issues unblock.
 
 ## Routing
 

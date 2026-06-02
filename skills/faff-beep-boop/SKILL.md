@@ -110,7 +110,7 @@ Collect every issue that meets readiness (in Todo, with no open *external* block
 
 Do not require a repo-side spec file at this stage — faff-workit commits the spec to `docs/` only at the start of the build. An absent spec file under the configured **Spec docs path** (default `docs/specs/*-<issue>-*.md`) is not grounds for exclusion; the tracker is the pre-build source of truth.
 
-**Compute the automation-routing verdict** for every spec-gated candidate. The verdict is normally already in `.faff/runs/<run-id>/automation-verdicts.md` from the tidy pass in step 1 — read it from there to avoid recomputation. **Admit only** `fire-and-forget` and `likely-fire` verdicts to the build queue.
+**Compute the automation-routing verdict** for every spec-gated candidate. The verdict is normally already in `.faff/runs/<run-id>/automation-verdicts.md` from the tidy pass in step 1 — read it from there to avoid recomputation. Any candidate **not** in that cache — an issue prep promoted during a wave (step 8), or one whose spec was refreshed since the tidy pass — is computed **inline** at assembly and written back to the cache; the top-of-run cache only covers the issues tidy saw. **Admit only** `fire-and-forget` and `likely-fire` verdicts to the build queue.
 
 Issues routed out of the build queue (the other four verdicts) are captured for the run summary's "Routed out" section — they appear in `/faff-wtf`'s next morning brief with the verdict-specific diagnosis.
 

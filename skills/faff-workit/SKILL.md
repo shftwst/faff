@@ -179,9 +179,7 @@ This step runs in **both** interactive and autonomous modes.
 
 **Step 9: Review phase (mandatory — interactive and autonomous)**
 
-Runs after AC verification, before the merge-confidence gate. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed and the PR is already open. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against.
-
-If this step is reached without being in the todo list, **stop and add it**, then run it before proceeding to Step 10 or 11.
+Runs after AC verification, before the merge-confidence gate. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed and the PR is already open. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against. (Step 0 forces this into the todo list; Step 10's gate makes merge impossible without a `pass`, and Step 11 verifies it before any merge prompt — so a skipped review can't reach `main`.)
 
 Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-workit's. faff-workit owns only the sequencing around the result.
 

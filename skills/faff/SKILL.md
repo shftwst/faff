@@ -31,7 +31,7 @@ All faff sub-skills read their configuration from a **`.faffrc`** file at the re
 
 (`faff` is the `~/.claude/skills/faff/bin/faff` executable — shorthand once it's on `PATH`. The same CLI also hosts `faff runcheck` — the beep-boop ledger audit — and `faff validate-adapters` — the slot-skill conformance lint. One Node entrypoint for all bundled helpers; requires only `node`, no dependencies.)
 
-It uses PyYAML when installed and otherwise a built-in parser for the documented subset. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (`mode`, `working_patterns`) can also be read this way but gain less from it.
+It parses the documented YAML subset with a built-in parser — no dependencies. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (e.g. `appetite`) can also be read this way but gain less from it.
 
 Full schema (every key optional unless noted; shown with example values):
 
@@ -44,9 +44,6 @@ tracking:
   repo: shftwst/faff         # org/repo slug
   git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
   spec_docs_path: docs/specs/                                   # where faff-workit commits specs (see Spec docs location)
-  backlog_methodology: docs/operations/backlog-organization.md  # methodology doc used by faff-whereto
-  working_patterns: |        # free-text scheduling / working-pattern notes (read by faff-wtf)
-    Deep-work mornings; avoid recommending large builds after 4pm.
 
 planning_skills:             # optional delegation slots; each has a faff default when unset
   intake: superpowers:brainstorming                  # used by faff-noodle for new-work discovery

@@ -281,7 +281,7 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
-- Read working pattern notes from `.faffrc` (`tracking.working_patterns`) if available — respect the user's schedule when recommending focus
+- If the project's ambient context (e.g. `CLAUDE.md`) states working-pattern or scheduling preferences, respect them when timing recommendations — faff keeps no separate config channel for this; the human's stated preference is the source.
 - Work-ordering everywhere = priority (issue OR any ancestor) → chainable unlock value. Same rule as `/faff-tidy`.
 - Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.

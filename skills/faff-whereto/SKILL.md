@@ -7,7 +7,7 @@ description: "Roadmap synthesis — outcome initiatives, the workstreams under t
 
 > **Next steps:** `/faff-wtf` to drop down to today's focus · `/faff-tidy` if structural gaps need cleanup · `/faff-prep ISSUE-XX` to prep a critical-path issue
 
-Pull the live tracker state and the project's backlog-organisation methodology, synthesise an outcome → workstream → chain → gate roadmap, and tell the human whether the plan actually joins up.
+Pull the live tracker state, synthesise an outcome → workstream → chain → gate roadmap, and tell the human whether the plan actually joins up. The tracker is the sole source of structure — initiatives, project nesting, status, dates, and blocker links are read live and the roadmap's shape is deduced from them.
 
 `/faff-wtf` answers "what should I do this morning?" `/faff-whereto` answers "where is this whole project going, and is the path coherent end-to-end?" Different altitude.
 
@@ -15,7 +15,7 @@ Pull the live tracker state and the project's backlog-organisation methodology, 
 
 **Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Loading it here means the `methodology` slot whereto delegates to inherits these ambiently.
 
-**Methodology doc.** This skill leans on the consuming project's backlog-organisation methodology (initiative shapes, workstream horizons, success-metric expectations). Default location: `docs/operations/backlog-organization.md`. If `.faffrc` names a different path under `tracking.backlog_methodology`, use that. If neither exists, fall back to inferring from tracker structure (initiatives + projects with status fields) and flag in the output that no methodology doc was found — the synthesis is then best-effort.
+**Roadmap shape is deduced from the tracker.** faff does not read a project "methodology doc" and no `.faffrc` key points at one — config holds values, not prose, and a doc would drift from live state. The roadmap's shape is inferred from what the tracker actually holds: the initiatives/epics and how projects nest under them (initiative shape), project status + cycle membership + target dates (the Now / Next / Later horizons), initiative and project descriptions plus success-metric fields (the outcomes), and blocker links (the chains). The *normative* half — whether a success metric is healthy, whether a chain is coherent — is the `methodology` **slot's** job (see **Methodology lens** below), not a doc's.
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
@@ -35,7 +35,7 @@ Run through these phases in order:
 
 ### 1. Pull the live structure
 
-- Read the methodology doc (path per Configuration above) so you know what shape the project's roadmap is supposed to take — what an "initiative" is, what horizons (Now / Next / Later) mean here, what the project considers a healthy success-metric statement.
+- Establish the roadmap's shape from the tracker itself (per **Roadmap shape is deduced from the tracker** above): what the top-level outcome containers are, how projects nest under them, and how the status / cycle / target-date fields map onto Now / Next / Later horizons. There is no methodology doc to read — don't look for one.
 - Re-fetch the tracker's top-level outcome containers (Linear: initiatives; GitHub Projects: projects; Jira: epics or initiatives — autodetect from the available MCP, don't hardcode). For each: name, status, success metric / description.
 - For each initiative, fetch its child projects with their status (started/planned/backlog or the tracker's equivalent), description, and target dates.
 - For each project, fetch its issues with status, priority, and blocker links (both directions — what blocks me, what I block).
@@ -58,7 +58,7 @@ Use single-letter tags (A, B, C, …) for shorthand cross-reference in later pha
 
 ### 3. Workstreams (projects by initiative)
 
-For each initiative, render a Now / Next / Later breakdown. The methodology doc dictates the cap (typical: ≤3 projects per initiative, one per horizon). Include project status, and the issue ids that sit under it.
+For each initiative, render a Now / Next / Later breakdown. A healthy initiative typically holds ≤3 projects (about one per horizon); treat a materially larger count as a bloat signal for Phase 7, not a hard cap. Include project status, and the issue ids that sit under it.
 
 ```
 Initiative — [name]
@@ -109,7 +109,7 @@ A `⚠ Blocked structurally` gate means the downstream project doesn't exist —
 
 ### 6. Critical path
 
-Render the work in priority order, bucketed by horizon. Lead with the next ~few weeks (concrete issue ids in flight), then the next 1-3 months (the next-horizon projects), then the longer arc. **Do not give time estimates** beyond named horizons — the methodology specifies horizons, not weeks-until-X.
+Render the work in priority order, bucketed by horizon. Lead with the next ~few weeks (concrete issue ids in flight), then the next 1-3 months (the next-horizon projects), then the longer arc. **Do not give time estimates** beyond named horizons — report named horizons (deduced from tracker status / cycles), not weeks-until-X.
 
 ```
 Now (in flight):
@@ -138,7 +138,7 @@ If no tidy ran this pass, whereto computes its own ghost-project scan (initiativ
 
 **Methodology findings (when a `methodology` skill is configured).** Request the `horizon-assignment` output from the methodology skill; alongside the horizon ordering it returns roadmap-level findings. Surface those here in addition to the structural risk categories. Each finding renders its full diagnosis (what's there / why it's a problem / what to do) as the methodology returns it. Findings interleave with the existing structural risks, ordered by severity (impact × scope).
 - **Independence not verified**: a Now project has N issues that beep-boop is supposed to drain in parallel, but no one has confirmed they're actually independent. Recommend a `/faff-tidy` pass before queuing overnight runs.
-- **Single-project Later (intentional vs accidental)**: Later horizons are often deliberately collapsed to one project (the methodology doc usually explains why — uncertainty about productised shape until Now ships). Flag whether each single-project Later is intentional (cite the methodology) or just under-planned.
+- **Single-project Later (intentional vs accidental)**: Later horizons are often deliberately collapsed to one project — productised shape stays uncertain until Now ships. Use the tracker's own signals (the initiative/project description's stated rationale, status) to flag whether each single-project Later looks intentional or just under-planned.
 - **Parked issue waiting on missing trigger**: a parked issue's unpark condition is "when [specific upstream] ships", but [specific upstream] doesn't exist as a planned project. The park is structurally permanent until the gap closes.
 - **In-flight Now project with no recent commits**: a Now-horizon project has no commits in 14 days. Either the project is stalled or the status is stale.
 
@@ -155,7 +155,7 @@ Tabular output follows the `rendering_adaptor` slot's _Tabular data: markdown ta
 ```
 ## Roadmap — [date]
 
-[1-2 sentence framing: how many initiatives, how many active, how many parked. Source-of-truth note if methodology doc was/wasn't found.]
+[1-2 sentence framing: how many initiatives, how many active, how many parked.]
 
 ### Outcome initiatives
 
@@ -217,7 +217,7 @@ Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-whereto.md`. The log must inc
 ## Notes
 
 - This skill is **read-only**. It synthesises and recommends; it never mutates tracker state.
-- Methodology docs vary across projects. Don't assume the consuming project uses the same horizon labels (Now/Next/Later) as this skill's defaults — read the methodology doc first and use whatever labels it defines.
+- Horizon labels vary across trackers. Don't assume the consuming project uses Now/Next/Later — adopt whatever status/cycle vocabulary the tracker already uses (Phase 1), falling back to Now/Next/Later only as this skill's default labels.
 - "Initiative" is the term used here; some trackers call them objectives, programs, or themes. Adapt to the tracker's vocabulary in the output, not this skill's defaults.
 - The roadmap is a **synthesis**, not a plan. A plan tells you what to do; this tells you whether the plan you already have hangs together. If the chain doesn't join up, the answer is a planning session, not more execution.
-- Don't invent grouping codes (`X2a`, `Wave 1.3`, `Phase II.b`). Use whatever labels the tracker and methodology already use, full names on first reference, short tags only where the tag was already established.
+- Don't invent grouping codes (`X2a`, `Wave 1.3`, `Phase II.b`). Use whatever labels the tracker already uses, full names on first reference, short tags only where the tag was already established.

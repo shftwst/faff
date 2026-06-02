@@ -11,7 +11,7 @@
 
 tracking:
     tracker: linear # linear | github | jira | … (autodetected from the available MCP if omitted)
-    team_key: SHF # tracker team / board key
+    team_key: ABC # tracker team / board key
     project_id: "abc-123" # tracker project / team id
     repo: org/repo # org/repo slug
     git_host: github # github | gitlab | gitea | … (autodetected if omitted)
@@ -20,13 +20,6 @@ tracking:
     # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
     # else docs/specs (creating docs/). Path is relative to the repo root.
     spec_docs_path: docs/specs/
-
-    # Methodology doc used by /faff-whereto. Default: docs/operations/backlog-organization.md
-    backlog_methodology: docs/operations/backlog-organization.md
-
-    # Free-text scheduling / working-pattern notes; /faff-wtf respects these when recommending focus.
-    working_patterns: |
-        Deep-work mornings; avoid recommending large builds after 4pm.
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 planning_skills:
@@ -53,11 +46,11 @@ appetite: high
 # Used by the faffter-dark-adversarial-review skill.
 faffter_dark:
     adversarial:
-        provider: ollama           # ollama | vllm | openai | gemini | anthropic | openrouter
-        model: llama3.1:70b        # provider-specific model identifier
+        provider: ollama # ollama | vllm | openai | gemini | anthropic | openrouter
+        model: llama3.1:70b # provider-specific model identifier
         host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
-        api_key_env:               # env var name holding the API key (not the key itself)
-        timeout: 120               # seconds
+        api_key_env: # env var name holding the API key (not the key itself)
+        timeout: 120 # seconds
 
 calibration:
     repeat_park_window_days: 14 # signal lookback for calibration thresholds

@@ -15,7 +15,7 @@ Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill.
 
 ## Concurrency cap
 
-Read `concurrency_max` from `.faffrc` via the bundled resolver (`~/.claude/skills/faff/faffrc get concurrency_max -d 4`); default **4** when unset. Never exceed it — at most `concurrency_max` `/faff-workit` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
+Read `concurrency_max` from `.faffrc` via the bundled resolver (`~/.claude/skills/faff/faff config get concurrency_max -d 4`); default **4** when unset. Never exceed it — at most `concurrency_max` `/faff-workit` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
 
 ## Worktree isolation
 

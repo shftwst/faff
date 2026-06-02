@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""faff — the bundled CLI for the faff skill suite.
+
+Subcommands:
+  config <path|get|spec-docs-path|dump> ...   resolve / read .faffrc
+  runcheck [--hook] [RUN_DIR]                  audit a /faff-beep-boop run ledger
+  validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
+
+Each subcommand is implemented by a sibling module of the same concern
+(faffrc / runcheck / validate-adapters); this is the single public entrypoint.
+"""
+import importlib.machinery
+import importlib.util
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _load(fname):
+    # The sibling modules have no .py extension, so give importlib an explicit
+    # source-file loader rather than relying on extension-based inference.
+    path = os.path.join(HERE, fname)
+    loader = importlib.machinery.SourceFileLoader("faff_" + fname.replace("-", "_"), path)
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)
+    return mod
+
+
+def main(argv):
+    if not argv:
+        sys.stderr.write(__doc__)
+        return 2
+    sub, rest = argv[0], argv[1:]
+    if sub in ("-h", "--help", "help"):
+        sys.stdout.write(__doc__)
+        return 0
+    if sub == "config":
+        # faffrc.main expects args WITHOUT the progname (it's called as main(sys.argv[1:]))
+        return _load("faffrc").main(rest)
+    if sub == "runcheck":
+        # runcheck.main expects argv WITH a progname at [0]
+        return _load("runcheck").main(["faff-runcheck"] + rest)
+    if sub == "validate-adapters":
+        return _load("validate-adapters").main(["faff-validate-adapters"] + rest)
+    sys.stderr.write(f"faff: unknown subcommand '{sub}'\n\n{__doc__}")
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

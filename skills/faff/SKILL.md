@@ -23,11 +23,13 @@ All faff sub-skills read their configuration from a **`.faffrc`** file at the re
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
-**Resolver.** A bundled helper — `~/.claude/skills/faff/faffrc` (run with `python3` if not executable) — performs file resolution and parsing mechanically so sub-skills don't hand-parse YAML:
+**Resolver.** The bundled `faff` CLI — `~/.claude/skills/faff/faff` (run with `python3` if not executable) — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
 
-- `faffrc path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
-- `faffrc get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faffrc get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
-- `faffrc spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
+- `faff config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
+- `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
+- `faff config spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
+
+(The same `faff` CLI also hosts `faff runcheck` — the beep-boop ledger audit — and `faff validate-adapters` — the slot-skill conformance lint. One entrypoint for all bundled helpers.)
 
 It uses PyYAML when installed and otherwise a built-in parser for the documented subset. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (`mode`, `working_patterns`) can also be read this way but gain less from it.
 
@@ -89,7 +91,7 @@ tracking:
 - The filename within it is unchanged: `YYYY-MM-DD-<issue-id>-<slug>-design.md`.
 - This only relocates the spec **within the same repo** — the spec still lands on the feature branch and ships with the PR. It is not a pointer to a separate repository.
 
-Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. The `faffrc spec-docs-path [--create]` resolver applies this exact rule — sub-skills call it rather than re-deriving the path. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
+Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. The `faff config spec-docs-path [--create]` resolver applies this exact rule — sub-skills call it rather than re-deriving the path. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
 
 ### Planning Skills (optional delegation slots)
 

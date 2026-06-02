@@ -95,10 +95,10 @@ def main(argv):
     if "--skills-dir" in argv:
         skills_dir = argv[argv.index("--skills-dir") + 1]
     else:
-        # default: the skills/ dir two levels up from this script (repo layout),
-        # falling back to ./skills
+        # default: the bundled skills/ dir — this script lives at skills/faff/, so
+        # the skills root is its parent. Script-relative so it works from any cwd.
         here = os.path.dirname(os.path.abspath(__file__))
-        cand = os.path.abspath(os.path.join(here, "..", ".."))
+        cand = os.path.abspath(os.path.join(here, ".."))
         skills_dir = cand if os.path.isdir(os.path.join(cand, "faffidavit-spec")) else "skills"
 
     if not os.path.isdir(skills_dir):

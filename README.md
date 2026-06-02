@@ -128,14 +128,14 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 
 ### faffidavit-* (adaptors)
 
-Adaptor skills. Faff-core fixes the **internal contracts** the pipeline branches on — verdict states, vocabularies, classifications — in the gateway, where they never move. Each faffidavit skill is the **default adaptor** that sits in front of one of those fixed contracts: it translates a producer's native output *into* the contract and validates conformance. Swapping the slot swaps the translator, never the contract — which is what lets a third-party producer or reviewer plug in. `faffidavit-language` is the exception: rendering has no internal contract (it's human-facing only), so it's a pure adaptor swappable end to end. All are usable standalone, not just inside the pipeline.
+Adaptor skills. Faff-core fixes the **internal contracts** the pipeline branches on — verdict states, vocabularies, classifications — in the gateway, where they never move. Each faffidavit skill is the **default adaptor** that sits in front of one of those fixed contracts: it translates a producer's native output *into* the contract and validates conformance. Swapping the slot swaps the translator, never the contract — which is what lets a third-party producer or reviewer plug in. `faffidavit-rendering` is the exception: rendering has no internal contract (it's human-facing only), so it's a pure adaptor swappable end to end. All are usable standalone, not just inside the pipeline.
 
 | Skill | Slot | What it does |
 |---|---|---|
 | `faffidavit-spec` | `spec_adaptor` | The default adaptor over the fixed spec-readiness contract (closed/open/external classification + confidence, in the gateway). Owns the canonical markers (Chosen/Punt/Assumes), marker rules, skimmable writing style, and the confidence line's format; validates any spec (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
 | `faffidavit-review` | `review_adaptor` | The default adaptor over the fixed review-verdict contract (pass/fail/needs-human, semantics, revert test — in the gateway). Owns the output envelope every reviewer returns and normalises raw output onto the three states; validates review output on demand. Swap it to adapt a third-party reviewer — faff-workit still branches on the same three states. |
 | `faffidavit-routing` | `routing_adaptor` | The default adaptor over the fixed automation-routing contract (the closed six verdicts + admission rule + root-cause taxonomy — in the gateway). Owns verdict assignment, computation locus, and display format; assigns and validates verdicts. The contract survives a `methodology` swap because it lives in faff-core, not inside the methodology. |
-| `faffidavit-language` | `language_adaptor` | The default — and a **pure adaptor** with no internal contract behind it, since rendering is human-facing only. Owns the rendering style (visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps) plus the synthesis issue-gloss humanisation; validates/normalises draft output. All sub-skills render through this; swap it to change house style wholesale. |
+| `faffidavit-rendering` | `rendering_adaptor` | The default — and a **pure adaptor** with no internal contract behind it, since rendering is human-facing only. Owns the rendering style (visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps) plus the synthesis issue-gloss humanisation; validates/normalises draft output. All sub-skills render through this; swap it to change house style wholesale. |
 
 ### faffter-dark-* (experimental)
 
@@ -181,7 +181,7 @@ The `faffter-*` qualifier says how safe the variant is: **`-noon-*`** (broad day
 ### Two kinds of slot
 
 - **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `parallel`, `ship`) hold a skill that *does work*. Swap to change behaviour.
-- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
+- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
 
 The pipeline hardcodes the contract so it always has something stable to branch on; the slot holds the translator so anyone's output can be made to fit.
 
@@ -207,7 +207,7 @@ planning_skills:
 
 An adaptor does three things: **names** the fixed contract (gateway → _Core contracts and adaptor slots_; never redefines it), **translates** native output into it (`APPROVED → pass`, honouring the coercion rule — an unparseable verdict goes to `needs-human`, never silently to `pass`), and **validates** (returns `pass`/`fail` + violations so the pipeline never acts on a malformed result). It also carries **refer-back prose** so it can find the contract when invoked standalone (skills load independently — the gateway isn't always in context). Don't hand-roll this: run **`faffter-dark-authoring-adaptors`** — it scaffolds a conformant skill with the refer-back prose and contract mapping in place, and validates an existing one against the conformance checklist. Any `faffidavit-*` skill is also a copyable template: `## Internal contract (fixed — see gateway)` → `## Adaptor` → `## Validate`.
 
-`language_adaptor` is the exception — no fixed contract behind it (rendering is human-facing; nothing branches on how output looks), so swap `faffidavit-language` to change house style end to end.
+`rendering_adaptor` is the exception — no fixed contract behind it (rendering is human-facing; nothing branches on how output looks), so swap `faffidavit-rendering` to change house style end to end.
 
 ## Credits
 

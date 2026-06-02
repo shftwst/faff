@@ -83,7 +83,7 @@ Three detection categories never auto-apply mechanically (one of them, chain gap
 
 #### Output
 
-Render a `### Structural diagnostics` section when any finding exists. Format follows the configured `language_adaptor` slot — cycles use the cycle bracket (≤3 edges) or cycle box (4+ edges) form. Example:
+Render a `### Structural diagnostics` section when any finding exists. Format follows the configured `rendering_adaptor` slot — cycles use the cycle bracket (≤3 edges) or cycle box (4+ edges) form. Example:
 
 ```
 ### Structural diagnostics

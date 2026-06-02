@@ -5,7 +5,7 @@ description: "Author or validate a faff slot skill. Scaffolds a new adaptor/prod
 
 # faffter-dark-authoring-adaptors
 
-The author/validate skill for **slot occupants** — anything you plug into a `planning_skills` slot: an adaptor (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`), a producer (`intake`, `spec`, `review`), or a `methodology`. It exists to close the binding gap: slots are swappable, so a replacement skill must carry — *on its own* — the prose that lets it find and conform to the fixed contract it sits in front of. A shipped default does this by convention; a hand-written replacement easily forgets, and then nothing in the running system reminds it. This skill is that reminder, in two faces.
+The author/validate skill for **slot occupants** — anything you plug into a `planning_skills` slot: an adaptor (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`), a producer (`intake`, `spec`, `review`), or a `methodology`. It exists to close the binding gap: slots are swappable, so a replacement skill must carry — *on its own* — the prose that lets it find and conform to the fixed contract it sits in front of. A shipped default does this by convention; a hand-written replacement easily forgets, and then nothing in the running system reminds it. This skill is that reminder, in two faces.
 
 This is a `faffter-dark-*` skill — advanced tooling, not part of the day-to-day pipeline. You invoke it when writing or auditing a slot skill, not during normal faff use.
 
@@ -33,16 +33,16 @@ A slot occupant never owns the contract — it owns its *dialect* and maps onto 
 | `spec_adaptor` | Spec readiness — closed/open/external + confidence rating | decision markers, writing style, confidence-line format |
 | `review_adaptor` | Review verdict — `pass`/`fail`/`needs-human` + revert test + coercion rule | the output envelope, native→state translation |
 | `routing_adaptor` | Automation-routing verdict — the six verdicts + admission rule + root-cause enum | verdict assignment, computation locus, display format |
-| `language_adaptor` | **none** (pure adaptor) — rendering has no fixed contract | the entire rendering style; self-contained, no refer-back needed |
+| `rendering_adaptor` | **none** (pure adaptor) — rendering has no fixed contract | the entire rendering style; self-contained, no refer-back needed |
 | `methodology` | The `methodology` slot — the named-output contract (which outputs, required/optional, the envelope) | the lens (graph-structural, opinionated, …) that answers each output |
 | `intake` / `spec` / `review` (producers) | the paired adaptor maps their output; producers map onto **nothing** directly | how the work is done; output shaped so the paired adaptor can translate it |
 
-`language_adaptor` is the one exception — it carries no refer-back because there is no fixed contract behind it; it is the source of truth for rendering. Every other slot refers back.
+`rendering_adaptor` is the one exception — it carries no refer-back because there is no fixed contract behind it; it is the source of truth for rendering. Every other slot refers back.
 
 ## Conformance checklist (what Validate checks, what Author bakes in)
 
-1. **Names its slot and contract.** The skill states which slot it occupies and which gateway contract section it maps onto (from the table above). A `language_adaptor` states it has none.
-2. **Carries refer-back prose.** A "How this contract reaches you" note that: (a) says the invoking consumer loads the gateway so the contract is ambient when run as a slot, and (b) instructs **Read `skills/faff/SKILL.md` → _<the named §>_ now** when invoked standalone. (`language_adaptor` exempt.)
+1. **Names its slot and contract.** The skill states which slot it occupies and which gateway contract section it maps onto (from the table above). A `rendering_adaptor` states it has none.
+2. **Carries refer-back prose.** A "How this contract reaches you" note that: (a) says the invoking consumer loads the gateway so the contract is ambient when run as a slot, and (b) instructs **Read `~/.claude/skills/faff/SKILL.md` → _<the named §>_ now** when invoked standalone. (`rendering_adaptor` exempt.)
 3. **Recaps are non-normative.** Any restatement of the fixed vocabulary/classes/verdicts is explicitly marked non-normative with "gateway wins on any conflict." No copy is presented as authoritative.
 4. **Maps onto, never redefines.** The skill does not add, remove, narrow, or rename the fixed vocabulary/classes/verdicts/named-outputs. It only translates its native dialect onto them. (A reviewer needing a fourth verdict state, a spec format with a fourth decision class, a methodology dropping a required output → non-conformant.)
 5. **Has both faces where the slot expects them.** Adaptors define + validate. Producers produce + shape-to-adaptor. A methodology answers the required named outputs (`pick-ordering`, `promotion-readiness`, `build-queue`, plus `backlog-diagnostics` which always fires) and degrades gracefully on the optional ones.
@@ -58,7 +58,7 @@ Given the target slot + a one-line description, emit a skeleton:
 
 <one-line: what this <adaptor|producer|methodology> does and which slot it fills>
 
-## Internal contract (fixed — see gateway)   ← omit for language_adaptor / producers
+## Internal contract (fixed — see gateway)   ← omit for rendering_adaptor / producers
 Maps onto gateway → <named §>. Fixed there, unaffected by this swap: <one-line recap, non-normative>.
 
 **How this contract reaches you.** Loaded by the invoking consumer when run as a slot; if invoked

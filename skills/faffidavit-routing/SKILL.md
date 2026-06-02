@@ -53,7 +53,7 @@ Other sub-skills (`/faff-wtf`, `/faff-beep-boop`) read this file rather than rec
 
 ### Display format (consumed by `/faff-wtf` and `/faff-beep-boop`)
 
-Renders via the `language_adaptor` slot → queue partition grid (form (c)). Compact form:
+Renders via the `rendering_adaptor` slot → queue partition grid (form (c)). Compact form:
 
 ```
 Build queue (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
@@ -75,7 +75,7 @@ Needs your call before automation can pick up:
     ISSUE-VV  Storage migration (parked 4 runs with same Punt: schema versioning unresolved). Decide.
 ```
 
-The synthesis gloss (gateway → Synthesis contract, owned by the `language_adaptor` slot) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the rendering contract.
+The synthesis gloss (gateway → Synthesis contract, owned by the `rendering_adaptor` slot) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the rendering contract.
 
 ## Validate
 

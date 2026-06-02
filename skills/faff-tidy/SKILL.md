@@ -160,13 +160,13 @@ Output rendered in the new `### Methodology findings` section of tidy's output (
 
 ## Output and chaining
 
-Tabular output follows the `language_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `rendering_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-rendering`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 Present findings grouped by bucket. Skip any bucket with no findings.
 
 Output renders three new sections in addition to the existing buckets:
 
-- `### Structural diagnostics` — present when the methodology slot's `backlog-diagnostics` output found anything. Format follows the `language_adaptor` slot (default `faffidavit-language`). Skip if no findings.
+- `### Structural diagnostics` — present when the methodology slot's `backlog-diagnostics` output found anything. Format follows the `rendering_adaptor` slot (default `faffidavit-rendering`). Skip if no findings.
 - `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip if no signals.
 - `### Methodology findings` — present only when a `methodology` skill is configured **and** bucket 7 surfaced anything. Lists the findings the methodology returned, each with its full diagnosis. No auto-actions; the human reads, decides, acts.
 

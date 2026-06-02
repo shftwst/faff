@@ -223,7 +223,7 @@ This is what `/faff-wtf` looks for to surface parked issues in the morning.
 
 ## Reporting
 
-Tabular output follows the `language_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-language`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
+Tabular output follows the `rendering_adaptor` slot's _Tabular data: markdown tables vs definition lists_ rule (default `faffidavit-rendering`) — drop markdown tables for any cell over ~30 chars or any prose cell; use definition-list blocks with `─` × 40 separators instead.
 
 On run completion, produce:
 

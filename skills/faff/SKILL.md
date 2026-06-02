@@ -101,7 +101,7 @@ planning_skills:
   spec_adaptor: faffidavit-spec              # adaptor: markers + style + confidence line; maps a producer's spec onto the fixed closed/open/external + confidence contract
   review_adaptor: faffidavit-review          # adaptor: output envelope; maps a reviewer's output onto the fixed pass/fail/needs-human contract
   routing_adaptor: faffidavit-routing        # adaptor: verdict assignment + display; the six-verdict vocabulary + admission rule are fixed in the gateway
-  language_adaptor: faffidavit-language        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
+  rendering_adaptor: faffidavit-rendering        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit, optional
 ```
 
@@ -117,7 +117,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 | `spec_adaptor` | `faffidavit-spec` | Adaptor over the fixed spec-readiness contract: the markers + writing style + confidence line that map a producer's spec onto closed/open/external + confidence; validates specs on demand. |
 | `review_adaptor` | `faffidavit-review` | Adaptor over the fixed review-verdict contract (`pass` / `fail` / `needs-human`, semantics, revert test — all in the gateway): the output envelope reviewers emit and faff-workit branches on; validates/normalises review output on demand. |
 | `routing_adaptor` | `faffidavit-routing` | Adaptor over the fixed automation-routing contract (six verdicts + admission rule + root-cause taxonomy — all in the gateway): verdict assignment + computation locus + display format; assigns and validates verdicts. |
-| `language_adaptor` | `faffidavit-language` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
+| `rendering_adaptor` | `faffidavit-rendering` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
 | `ship` | vanilla `gh pr merge` | Merge/deploy mechanism inside faff-workit. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
@@ -474,16 +474,16 @@ Skills load independently. When you enter via a slash command (`/faff-workit`), 
 
 **Adaptor slot:** `spec_adaptor` (default `faffidavit-spec`) — the concrete markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the skimmable writing-style rules, the confidence line's format, and the mapping from a producer's native structure into closed/open/external. Swap it to adapt a third-party spec format; faff-prep still gates on the same classification + confidence.
 
-### Rendering — no internal contract → `language_adaptor`
+### Rendering — no internal contract → `rendering_adaptor`
 
-Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `language_adaptor` slot (default `faffidavit-language`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `language_adaptor`; the catalogue is closed there, not extended inline. References elsewhere to "gateway → Synthesis contract" resolve to this slot.
+Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `rendering_adaptor` slot (default `faffidavit-rendering`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `rendering_adaptor`; the catalogue is closed there, not extended inline. References elsewhere to "gateway → Synthesis contract" resolve to this slot.
 
 ### Producer slots vs adaptor slots (what to swap, when)
 
 Two of the four contracts above pair a **producer** doing-slot with an **adaptor** slot — and they swap independently:
 
 - **Producer slots** (`intake`, `spec`, `review`) *do the work* and emit native output. Swap one to change *how the work is done* (a different spec-explorer, a different reviewer). A swapped producer does **not** need to match the fixed contract's surface syntax — its paired adaptor (`spec_adaptor` / `review_adaptor`) is what maps its native output onto the fixed classes/states the pipeline branches on.
-- **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `language_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
+- **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
 
 **Rule of thumb for an L3 swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake`, `parallel`, and `ship` are pure producer/mechanism slots with no paired adaptor — they emit a documented brief (`intake` → the discovery brief, see `faffter-noon-intake`) or perform a mechanism (`parallel`, `ship`) and need no translation layer. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
 
@@ -495,7 +495,7 @@ Sub-skills written before this restructure cross-reference the contracts by thei
 |---|---|
 | `gateway → Automation-routing contract` | **Automation-routing verdict (fixed) → `routing_adaptor`** |
 | `gateway → Root-cause class enum` | the root-cause class enum inside **Automation-routing verdict (fixed)** |
-| `gateway → Synthesis contract` | the synthesis issue-gloss inside **Rendering → `language_adaptor`** |
+| `gateway → Synthesis contract` | the synthesis issue-gloss inside **Rendering → `rendering_adaptor`** |
 
 When renaming any contract section, update this table — it is the single place the legacy names are reconciled.
 

@@ -134,8 +134,9 @@ Yes/no gate — confidence-aware:
 
 > **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-workit`? (y/n)"
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
+> **`confidence: low`:** "Prepped at low confidence — explore couldn't resolve [the core question]. Resolve it together now, or park for later? (resolve/park)"
 
-On `high` confirm (or `medium` → `build`), invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve`, walk the open punts with the user and re-attach. On `leave`, stop — the flagged spec stays on the tracker for later.
+On `high` confirm (or `medium` → `build`), invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `parked-by-faff` and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
 
 ### Scenario B: Resume (existing spec found)
 
@@ -169,7 +170,7 @@ Then offer a three-way choice (not passive text):
 
 - **iterate** — revise the spec (loop back to Step 2 of Scenario A)
 - **build** — invoke `/faff-workit ISSUE-XX` via the Skill tool (only if spec is fresh)
-- **park** — stop here, spec stays on the issue
+- **park** — stop here; apply the shared Park / Unpark protocol (tag `parked-by-faff`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
 ### Scenario C: Starting an issue (deferred to workit)
 

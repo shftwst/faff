@@ -57,18 +57,20 @@ Query using the project/team details from `.faffrc` (`tracking.project_id` / `tr
 - **Branch Status:** Active feature branches and their state
 - **CI Status:** Any failing builds or checks
 
-### 4. Parked Overnight
+### 4. Parked work (any source)
 
 Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-workit` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual L1 user parks too, and that work must resurface here — not only beep-boop's.
 
-Sources:
-- Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist). Use `Bash(ls "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers).
-- Tracker query for issues tagged `parked-by-faff` (or the tracker's equivalent label that beep-boop writes on park)
+**The `parked-by-faff` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `parked-by-faff` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
+
+- **Tracker query for issues tagged `parked-by-faff`** (or the tracker's equivalent label) — the authoritative source; covers interactive *and* autonomous parks.
+- Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist) — used only to enrich autonomous parks with a log path. Use `Bash(ls "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers). A missing or unreadable run-log directory **never** suppresses this section — the label query still runs.
 
 For each parked issue, surface:
 - Issue id and title
-- One-line cause summary pulled from the log or the tracker comment
-- Path to the full log in `.faff/runs/…`
+- One-line cause summary pulled from the tracker park comment (or the log, when present)
+- How to unpark it — re-run the relevant skill per the gateway **Unpark protocol** (re-`/faff-prep` for a spec-level park, re-`/faff-workit` for a build-level park)
+- Path to the full log in `.faff/runs/…` when the park was autonomous
 
 Skip this section entirely if there are no parked issues (no `parked-by-faff`-labelled issues and no parked items in run logs).
 
@@ -80,8 +82,6 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
-### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
-
 **Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Above the focus picks, surface the **chains** themselves so the human can decide what's worth firing `/faff-beep-boop` at — this is the L2 "identify value chains to unlock" view. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
 
 ```
@@ -90,6 +90,8 @@ SHF-40  extract the billing client    →  unlocks SHF-41, SHF-42             (2
 ```
 
 Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (i.e. would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. This is the one place wtf tells the L2 user *which lever ships the most downstream value*, rather than leaving chain-spotting to them. Skip the block when nothing has unlock value ≥ 2.
+
+### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 
 Request the `standup-digest` output from the configured `methodology` skill and render what it returns. The digest carries a WIP status, an optional sequencing diagnosis, and the top structural findings — the methodology decides their content; faff-wtf only places and trims them.
 

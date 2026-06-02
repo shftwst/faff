@@ -163,7 +163,7 @@ If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and p
 Before writing the run summary, run the bundled **runcheck** script — the mechanical backstop for the "never silently defer the queue" guarantee. It reads the run ledger and fails if any admitted issue has no terminal outcome:
 
 ```
-~/.claude/skills/faff/faff runcheck   # audits the latest .faff/runs/* ledger
+~/.claude/skills/faff/bin/faff runcheck   # audits the latest .faff/runs/* ledger
 ```
 
 - **Exit 0 (clean)** — every admitted issue reached a terminal outcome. Proceed to reporting.
@@ -191,7 +191,7 @@ Step 10 is agent-run, so it shares the failure mode it guards against — a non-
 {
   "hooks": {
     "Stop": [
-      { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/faff/faff\" runcheck --hook" }
+      { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff\" runcheck --hook" }
     ]
   }
 }

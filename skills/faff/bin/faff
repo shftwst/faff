@@ -7,15 +7,13 @@
 //   validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
-// (`~/.claude/skills/faff/faff <subcommand>`); `node …/faff <subcommand>` also works.
-// The sibling package.json sets {"type":"module"} so Node treats this extensionless
-// file as ESM. Requires only Node — no deps.
+// (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
+// Plain CommonJS — no package.json, no dependencies, no install. Just a Node file.
 
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+const fs = require("node:fs");
+const path = require("node:path");
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
+const HERE = __dirname;
 
 // ---------------------------------------------------------------------------
 // shared: find the repo root (dir containing .git or .faff), else cwd
@@ -368,8 +366,8 @@ function cmdValidateAdapters(args) {
   if (di !== -1) {
     skillsDir = args[di + 1];
   } else {
-    // script-relative: faff lives in skills/faff/, so the skills root is its parent
-    const cand = path.resolve(HERE, "..");
+    // script-relative: faff lives at skills/faff/bin/, so the skills root is two up
+    const cand = path.resolve(HERE, "..", "..");
     skillsDir = fs.existsSync(path.join(cand, "faffidavit-spec")) ? cand : "skills";
   }
   if (!fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) {

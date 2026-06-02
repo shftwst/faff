@@ -139,6 +139,25 @@ planning_skills:
 
 All slots are optional — unset just means "use ours". Copy `.faffrc.example.yml` for the full list of knobs.
 
+## The `faff` CLI
+
+A small bundled command-line tool ships with the suite — `skills/faff/bin/faff`, a single dependency-free Node script (no `npm install`, no `node_modules`, no build — just `node`). The skills and hooks call it for themselves, but a few subcommands are handy to run by hand:
+
+```
+faff config get <dotted.key> [-d DEFAULT]   # read a value from your .faffrc
+faff config spec-docs-path [--create]       # resolve where specs are committed
+faff runcheck [--hook]                      # audit the latest beep-boop run ledger for undispatched work
+faff validate-adapters                      # lint the shipped slot skills for conformance drift (CI / pre-commit)
+```
+
+**Getting `faff` on your PATH.** `skills/scripts/link-skills.sh` (re-run any time) symlinks the executable to `~/.local/bin/faff`. If `~/.local/bin` isn't already on your `PATH`, add it:
+
+```
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+(Until then, call it by path: `~/.claude/skills/faff/bin/faff …`.)
+
 ## Agent lanes
 
 Faff operates across three segregated executor lanes with controlled visibility:

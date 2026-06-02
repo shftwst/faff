@@ -12,6 +12,10 @@
 # Discovery rule: any top-level dir in skills/ that contains a SKILL.md.
 # The scripts/ dir is excluded automatically.
 #
+# Also symlinks the bundled faff CLI (skills/faff/bin/faff) into ~/.local/bin/faff
+# so `faff config|runcheck|validate-adapters …` works bare; warns if ~/.local/bin
+# isn't on PATH. --unlink removes it; --status reports it.
+#
 # Safe to re-run. Uses `ln -sfn` to refresh existing symlinks.
 #
 # Flags:
@@ -41,6 +45,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SKILLS_ROOT/.." && pwd)"
 SRC_DIR="$SKILLS_ROOT"
+BIN_SRC="$SRC_DIR/faff/bin/faff"     # the bundled faff CLI executable
+BIN_DST="${HOME}/.local/bin/faff"    # symlinked here so `faff …` works on PATH
 
 DRY_RUN=0
 PRUNE=0
@@ -142,6 +148,12 @@ if [ "$STATUS" -eq 1 ]; then
   printf "  foreign symlinks:   %d\n" "$foreign_ct"
   printf "  dangling symlinks:  %d\n" "$dangling_ct"
   printf "  real blocking:      %d\n" "$real_ct"
+  echo
+  if [ -L "$BIN_DST" ] && [ "$(readlink "$BIN_DST")" = "$BIN_SRC" ]; then
+    echo "CLI: faff → $BIN_DST (linked)"
+  else
+    echo "CLI: faff not linked into $(dirname "$BIN_DST")"
+  fi
   exit 0
 fi
 
@@ -180,6 +192,13 @@ if [ "$UNLINK" -eq 1 ]; then
     esac
   done
   shopt -u nullglob
+
+  # also remove the ~/.local/bin/faff symlink if it points into this repo
+  if [ -L "$BIN_DST" ] && [ "$(readlink "$BIN_DST")" = "$BIN_SRC" ]; then
+    printf "  - %-30s (unlinking → %s)\n" "faff (CLI)" "$BIN_SRC"
+    [ "$DRY_RUN" -eq 0 ] && rm "$BIN_DST"
+    unlinked=$((unlinked + 1))
+  fi
 
   echo
   echo "Summary:"
@@ -269,6 +288,23 @@ if [ "$PRUNE" -eq 1 ]; then
     fi
   done
   shopt -u nullglob
+fi
+
+# Symlink the bundled faff CLI onto PATH so `faff …` works bare.
+if [ -f "$BIN_SRC" ]; then
+  echo
+  if [ "$DRY_RUN" -eq 0 ]; then
+    mkdir -p "$(dirname "$BIN_DST")"
+    ln -sfn "$BIN_SRC" "$BIN_DST"
+  fi
+  echo "CLI: $BIN_DST → $BIN_SRC"
+  case ":$PATH:" in
+    *":$(dirname "$BIN_DST"):"*) ;;
+    *)
+      echo "  ⚠  $(dirname "$BIN_DST") is not on your PATH — add it so \`faff\` resolves bare:"
+      echo "       export PATH=\"\$HOME/.local/bin:\$PATH\""
+      ;;
+  esac
 fi
 
 echo

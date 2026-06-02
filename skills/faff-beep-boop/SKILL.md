@@ -114,6 +114,8 @@ Do not require a repo-side spec file at this stage — faff-workit commits the s
 
 Issues routed out of the build queue (the other four verdicts) are captured for the run summary's "Routed out" section — they appear in `/faff-wtf`'s next morning brief with the verdict-specific diagnosis.
 
+**Record to the run ledger.** Append every admitted issue to `admitted`, and write each routed-out issue's `routed-out` outcome immediately, in `.faff/runs/<run-id>/run-ledger.json` (see _Run ledger_). The ledger is what step 10's `runcheck` audits — keep it current as the queue is assembled and drained.
+
 Exclude anything parked during the prep queue (no valid spec or flagged for human attention).
 
 ### 5. Conflict analysis
@@ -155,6 +157,47 @@ Log each wave's admissions, drain count, and exit reason under `.faff/runs/<run-
 ### 9. Wave-1 empty short-circuit
 
 If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and proceed directly to reporting. No subsequent waves run — there's nothing for shipped work to chain on. Prep output still counts as a successful run.
+
+### 10. Run completeness check (mechanical)
+
+Before writing the run summary, run the bundled **runcheck** script — the mechanical backstop for the "never silently defer the queue" guarantee. It reads the run ledger and fails if any admitted issue has no terminal outcome:
+
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/faff/runcheck"   # audits the latest .faff/runs/* ledger
+```
+
+- **Exit 0 (clean)** — every admitted issue reached a terminal outcome. Proceed to reporting.
+- **Exit 3 (undispatched)** — one or more admitted issues never reached a terminal state. The run is **not complete**: return to step 8 and dispatch them, or genuinely park them under a valid category, then re-run runcheck. **Do not** write a "complete" summary while runcheck fails — that is the deferred-queue anti-pattern (gateway → Autonomous Mode Contract), now caught mechanically rather than left to prose compliance.
+- **Exit 2 (no/malformed ledger)** — the ledger wasn't maintained; treat as a run-integrity error, reconstruct it from the per-issue dirs + verdict cache, then re-check.
+
+## Run ledger (mechanical completeness)
+
+beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 10) and the Stop hook (below) rather than resting on prose alone:
+
+```json
+{ "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" } }
+```
+
+- **`admitted`** — every issue the verdict gate admits to the build queue (`fire-and-forget` + `likely-fire`). Append at step 4 (build queue assembly) and at every wave re-entry re-assembly (step 8.4). Explicit-list mode appends each admitted issue the same way.
+- **`outcomes`** — written the moment an issue reaches a terminal bucket: `shipped`, `pr-open`, `parked`, `errored`, `routed-out` (routed out by the verdict gate at step 4), or `unreached-budget` (admitted but a budget flag fired before dispatch). These are exactly the run-summary buckets — the ledger is the structured twin of the summary.
+
+The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admitted issue with no recorded outcome is an undispatched queue, not a finished run.
+
+### Stop hook (harness-enforced backstop)
+
+Step 10 is agent-run, so it shares the failure mode it guards against — a non-compliant run could skip it. The Stop hook closes that gap: it runs `runcheck --hook` outside the agent's control when the session ends and blocks Stop with a reason if the latest run left admitted issues undispatched. On first autonomous run, check `.claude/settings.json` for a faff Stop hook; if none exists, register:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/faff/runcheck\" --hook" }
+    ]
+  }
+}
+```
+
+In `--hook` mode runcheck stays silent for any session without an open beep-boop ledger, so it never disrupts ordinary work — it only fires when a beep-boop run left admitted issues undispatched. Tell the user when you add the hook and why.
 
 ## Explicit-list mode
 

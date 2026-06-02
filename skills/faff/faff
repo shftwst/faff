@@ -6,8 +6,10 @@
 //   runcheck [--hook] [--json] [RUN_DIR]         audit a /faff-beep-boop run ledger
 //   validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
 //
-// Single public entrypoint. Run with `node faff.mjs <subcommand>` (or directly if
-// the +x bit and the shebang survive install). Requires only Node — no deps.
+// Single public entrypoint. Extensionless executable run directly via its shebang
+// (`~/.claude/skills/faff/faff <subcommand>`); `node …/faff <subcommand>` also works.
+// The sibling package.json sets {"type":"module"} so Node treats this extensionless
+// file as ESM. Requires only Node — no deps.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -366,7 +368,7 @@ function cmdValidateAdapters(args) {
   if (di !== -1) {
     skillsDir = args[di + 1];
   } else {
-    // script-relative: faff.mjs lives in skills/faff/, so the skills root is its parent
+    // script-relative: faff lives in skills/faff/, so the skills root is its parent
     const cand = path.resolve(HERE, "..");
     skillsDir = fs.existsSync(path.join(cand, "faffidavit-spec")) ? cand : "skills";
   }

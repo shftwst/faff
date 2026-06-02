@@ -113,7 +113,7 @@ Pull the spec content from the issue tracker and commit it to the feature branch
 Resolve and create the target directory mechanically with the bundled resolver (see the gateway's **Spec docs location**):
 
 ```bash
-dir=$(node ~/.claude/skills/faff/faff.mjs config spec-docs-path --create)
+dir=$(~/.claude/skills/faff/faff config spec-docs-path --create)
 ```
 
 This reads `tracking.spec_docs_path` from `.faffrc` and, when unset, applies the default rule (`docs/specs` if `docs/` exists, else `doc/specs` if `doc/` exists, else creates `docs/` and uses `docs/specs`). Commit the spec to:

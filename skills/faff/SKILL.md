@@ -540,6 +540,31 @@ Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** 
 **What a replacement methodology owes (the swap floor).** Because cycle and ghost-project detection feed the fixed routing verdict, a swapped-in methodology **must** answer `backlog-diagnostics` with at least that graph detection — a methodology that drops it silently breaks `circular-blocked` / `gap-blocked` routing for the whole suite. A methodology that doesn't want to reimplement graph analysis **composes the structural default**: it calls `faffter-noon-methodology-structural`'s `backlog-diagnostics` for the graph floor and adds its own findings on top (this is exactly what `faffter-dark-methodology-agile-delivery` does — it is *additive over* the structural baseline, not a from-scratch replacement of it). The other required outputs (`pick-ordering`, `promotion-readiness`, `build-queue`) may be answered wholesale or by re-ranking the structural baseline.
 
 ## Routing
+## Mechanism slots (`concurrency`, `ship`)
+
+Two slots are pure **mechanisms** — they *perform an action* in the pipeline rather than produce a translatable artefact (`intake` produces a brief; the adaptors translate; methodology answers named outputs). A mechanism slot has **no paired adaptor** and **no named-output set**; its contract is the set of obligations its action must honour plus the fixed gateway invariants it may never weaken. This section is the **canonical, gateway-owned contract** for both, so it survives a swap — an occupant carries only its dialect/implementation and **refers back here** (per **Contract loading & conformance**), never an authoritative copy. The default occupant's `SKILL.md` documents *how the default* discharges the contract; it is not the source of the contract.
+
+### The `concurrency` slot contract (fixed)
+
+Executes `/faff-beep-boop`'s build pass. Default `faffter-noon-concurrency-sequential`; override `faffter-dark-concurrency-parallel`.
+
+**Input.** The conflict-analysis partition for the current wave — `{ "independents": [...], "groups": [[...]] }` — plus the per-issue build action (invoke `/faff-workit ISSUE-XX` autonomously) and the run ledger at `.faff/runs/<run-id>/run-ledger.json`.
+
+**Obligations every `concurrency` occupant must honour:**
+
+1. **Build every issue in the partition.** Independents and group members alike each reach a `/faff-workit` invocation. Nothing is skipped or deferred — that is the deferred-queue anti-pattern (see **Autonomous Mode Contract**), caught by `runcheck`.
+2. **Serialise within a collision group, and require a *dependency* blocker to have merged.** Members build in listed order, each only after the prior reaches a terminal state. "Terminal" ≠ "merged": `pr-open` / `parked` / `errored` are terminal but unmerged. A member that *depends on* an earlier member (declared blocker) builds **only if that blocker merged (`shipped`)**; if the blocker landed unmerged, **park the dependent** (cause `in-run blocker did not merge — <blocker-id> landed <state>`) rather than build it against a `main` missing the dependency. Same-surface-only members (shared files, no dependency) just serialise.
+3. **Record every terminal outcome to the run ledger** the moment an issue lands, as one of the fixed buckets `shipped` / `pr-open` / `parked` / `errored` (see **`.faff/` logging directory** → Run ledger). Map `/faff-workit`'s caller-facing returns to buckets: **`pr-open-for-human` → `pr-open`**, others as themselves. Write the bucket, never the raw token, or `runcheck` flags it invalid.
+4. **Never weaken the merge gate.** AC-verified + CI-green + review `pass` is fixed here and in `/faff-workit`; a `concurrency` occupant controls *ordering and isolation* (and, for the parallel executor, rebase-before-merge re-validation), never *whether* the gate runs.
+
+**Output.** Every partition issue reaches a terminal state, all recorded in the ledger; control returns to beep-boop's wave drain. **Worktree isolation** (one worktree per build, never shared) is mandatory for any occupant that runs builds concurrently — see **Worktree policy**.
+
+### The `ship` slot contract (fixed)
+
+Merges/deploys a merge-ready PR inside `/faff-workit`'s Step 10. Default: vanilla `gh pr merge`.
+
+**Input.** A PR that has already passed the merge gate (AC-verified + CI-green + review `pass`). **Obligations:** (1) merge/deploy that PR via the occupant's mechanism; (2) **never merge a PR that hasn't passed the gate** — `ship` is the *mechanism*, not a second gate that can bypass the first; (3) surface failure (merge conflict, deploy error) back to faff-workit as a normal post-build failure, never silently. **Output.** The PR is merged (and deployed, if the occupant deploys); chained issues unblock.
+
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 

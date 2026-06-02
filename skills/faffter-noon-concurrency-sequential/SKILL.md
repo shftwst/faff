@@ -11,24 +11,9 @@ planning_skills:
 
 Invoked by `/faff-beep-boop`'s build pass (full pipeline step 6, and the explicit-list build loop) as the configured `concurrency` skill — the default when the slot is unset. It is a **mechanism** slot (no paired adaptor): it executes the build pass, it does not produce or translate anything.
 
-## The slot contract (shared by every `concurrency` occupant)
+## The slot contract
 
-**Input.** The conflict-analysis partition for the current wave:
-
-```json
-{ "independents": ["ISSUE-A", "ISSUE-B"], "groups": [["ISSUE-D", "ISSUE-E"]] }
-```
-
-plus the per-issue build action — invoke `/faff-workit ISSUE-XX` in autonomous mode — and the run ledger at `.faff/runs/<run-id>/run-ledger.json`.
-
-**Obligations every occupant must honour:**
-
-1. **Build every issue in the partition.** Independents and group members alike each reach a `/faff-workit` invocation. Nothing in the partition is skipped or deferred — that is the gateway's deferred-queue anti-pattern (see gateway → Autonomous Mode Contract) and is caught by `runcheck`.
-2. **Serialise within a collision group — and require a *dependency* blocker to have merged.** A group's members build **in listed order**: each starts only after the prior one reaches a terminal state. A "terminal state" is **not** the same as "merged" — `pr-open`, `parked`, and `errored` are terminal but unmerged. So for a member that *depends on* an earlier member (declared blocker), only build it if the blocker **merged** (`shipped`); if the blocker terminated **unmerged** (`pr-open` / `parked` / `errored`), its dependents must **not** build — they'd build against a `main` that lacks the dependency. **Park each blocked dependent** (cause: `in-run blocker did not merge — <blocker-id> landed <state>`) and record it `parked`. Members grouped only for *same-surface* reasons (touch the same files, no dependency between them) just serialise in order — the merge requirement applies only to a member that names an earlier member as its blocker.
-3. **Record every terminal outcome to the run ledger** the moment an issue lands in a bucket — one of `shipped` / `pr-open` / `parked` / `errored`, per the gateway's Run ledger contract (this is what `runcheck` audits). Map `/faff-workit`'s caller-facing return values to the ledger buckets: **`pr-open-for-human` → `pr-open`**, `errored` → `errored`, `parked` → `parked`, a merged ship → `shipped`. Write the ledger *bucket* name, never the raw return token, or `runcheck` will flag the outcome as invalid.
-4. **Never weaken the merge gate.** AC-verified + CI-green + review `pass` is fixed in the gateway and `/faff-workit`; a `concurrency` skill controls *ordering and isolation*, never *whether* the gate runs.
-
-**Output.** Every issue in the partition reaches a terminal state, all recorded in the ledger. Control returns to beep-boop's wave drain.
+The `concurrency` slot contract is **fixed in the gateway** — see `~/.claude/skills/faff/SKILL.md` → **Mechanism slots (`concurrency`, `ship`)** → _The `concurrency` slot contract_. It is the authoritative definition for **every** occupant (this default and any third-party executor): the input (the conflict-analysis partition + per-issue build action + run ledger) and the four obligations — (1) build every partition issue, (2) serialise within a collision group and require a *dependency* blocker to have **merged** (park the dependent otherwise), (3) record every terminal outcome to the run ledger using the fixed buckets (mapping `pr-open-for-human` → `pr-open`), (4) never weaken the merge gate. This skill **refers back** to that contract; the recap here is non-normative and the gateway wins on any conflict. What follows is only *how this default discharges it*.
 
 ## How the default runs it
 

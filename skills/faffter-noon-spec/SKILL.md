@@ -53,6 +53,31 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 - Each item concrete enough to write a test against. "Works correctly" is not a DONE item; "returns 401 with body `{ error: \"session_expired\" }`" is.
 - If the work spans a structural boundary (two independent concerns), recommend a split instead of speccing both.
 
+## Self-review before returning (mandatory, all sizes)
+
+Before emitting the spec + self-rating, dispatch a **clean-context subagent** to review the freshly drafted spec against the codebase. By the time the spec is drafted this skill's context is saturated with explore findings and the framing it locked in early — that makes it hard to spot missed conventions, decisions that don't fit the architecture, vague ACs, `**Punt:**` items the codebase actually answers, false `**Assumes:**`, or scope creep. A reviewer with fresh context — given only the spec and the codebase — sees the spec the way `/faff-workit` will. This is the producer's own quality bar (the gateway makes a delegated `spec` skill responsible for its own quality; this is how the default discharges it), and it runs for **every** fresh spec regardless of size, in both interactive and autonomous mode, in addition to marker conformance and self-rating.
+
+**No size threshold.** Small specs go wrong in the same ways large ones do (vague ACs, false `**Assumes:**`, missed convention) — they're just shorter, which makes the review faster, not unnecessary. "It's a one-line change, the review is overkill" is the same capacity-shaped rationalisation banned by the gateway's forbidden-park-reasons list. Just dispatch.
+
+**Dispatch.** `Agent` tool with `subagent_type: Explore` (read-only — the reviewer must not edit the spec; it returns findings, this skill applies them). The prompt includes the full spec (markers and all), the issue title/description/dependency context, and an explicit brief to read the spec then verify each claim against the codebase, returning structured findings (one per issue, each with severity `blocker` / `major` / `minor` and a one-line fix). Keep findings under ~400 words. The reviewer must check:
+
+- **Codebase fit** — does each `**Chosen:**` match how the codebase already does similar things? Flag new patterns where an established one exists, or ignored existing utilities.
+- **Assumes-validity** — for every `**Assumes:**`, does the assumed thing actually exist in the repo? Flag any that don't.
+- **Punt-resolvability** — for every `**Punt:**`, is the answer already findable in the codebase? If so it should be a `**Chosen:**`.
+- **AC testability** — is each AC concrete and testable? Flag "works correctly", "is performant", or anything lacking a clear pass condition.
+- **Skimmability** — flag invented labelling schemes (`F2`, `R3`, `Phase 4`) that should be descriptive subjects; flag sections that assume the reader holds a source ADR / parent ticket in their head. Tracker IDs (`SHF-247`) are fine.
+- **Scope creep** — anything outside the issue's stated intent (an opportunistic refactor smuggled in).
+- **Missing surface** — obvious code paths / edge cases the spec omits that the codebase shows are relevant.
+- **Interface mismatch** — do proposed API shapes / props / schemas match how callers already work?
+
+**Acting on findings.** `blocker` (spec is wrong about a codebase fact, false `**Assumes:**`, or a `**Chosen:**` that contradicts established convention) → revise: apply the fix, or convert the affected `**Chosen:**` to a `**Punt:**` noting the conflict; if it can't be fixed without architectural reframing, return a `low` rating with the blocker noted so the caller parks. `major` (vague AC, scope creep, missed edge case) → fix where mechanical, else leave as `**Punt:**` with the reviewer's note. `minor` → fold where trivial, else note.
+
+**Self-rating downgrade rule.** If the review surfaces ≥1 `blocker` or ≥3 `major` findings, the spec **cannot** self-rate `high` regardless of how it felt pre-review — cap at `medium`. This stops rationalising past honest findings. Applies to every spec, regardless of size.
+
+**Return the review.** Emit the review's findings + the resolution decisions (what was applied, what was left as `**Punt:**`, what was dismissed and why) alongside the spec, so the caller can log the audit trail. A missing review record is a process failure.
+
+**When NOT to run.** Only when the caller signals a **narrowing-only refresh** — the original spec was already vetted and is being scoped down to a remaining delta, not redrafted whole-cloth. The caller owns that signal; absent it, the review runs.
+
 ## Confidence self-rating
 
 End the output with a confidence line on its own:

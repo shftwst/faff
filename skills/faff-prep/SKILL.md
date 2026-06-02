@@ -9,7 +9,7 @@ description: "Turn a vague ticket into something you can actually build — expl
 
 Turn a vague ticket into something buildable. Prep does the thinking so you can just code.
 
-Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but delegates spec production to the configured `spec` skill when available.
+Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but **always delegates spec production to the `spec` slot** (default `faffter-noon-spec`). It never drafts the spec body itself; its job is to explore, invoke the producer, gate on the result, and manage attachment.
 
 **Methodology lens.** When a `methodology` skill is configured under `planning_skills` in `.faffrc`, the first line of output is `Methodology: [skill-name]` and a `## Methodology critique` block is appended to the spec output (after the main spec body, before any chaining gates). Skipped silently when no methodology is configured.
 
@@ -17,20 +17,18 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 **Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed spec-readiness contract** prep gates on. Loading it here means the `spec` and `spec_adaptor` slots prep delegates to inherit these ambiently.
 
-### Spec skill (optional)
+### Spec slot (always delegated)
 
-If `.faffrc` declares a `spec` slot under `planning_skills`, faff-prep delegates spec production:
+Spec production is **always** delegated to the `spec` slot. The slot defaults to `faffter-noon-spec` (the lite nlspec arc) when `.faffrc` doesn't set one:
 
 ```yaml
 planning_skills:
-  spec: superpowers:brainstorming
+  spec: superpowers:brainstorming   # optional override; unset → faffter-noon-spec
 ```
 
-When configured, faff-prep invokes this skill, captures its output, and manages the issue tracker attachment. When unset, the slot defaults to `faffter-noon-spec` (the lite nlspec arc); faff-prep can run that default inline itself.
+Faff-prep invokes the configured/default `spec` skill with the issue context and explore findings, captures its output, and manages the issue tracker attachment. It does **not** carry a fallback copy of the spec arc — the default producer always exists, so there is no "inline" path to fall through to.
 
-**Autonomous requirement:** the configured spec skill must return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, and must produce decisions using the canonical markers defined by the `spec_adaptor` slot (default `faffidavit-spec`). Faff-prep uses the confidence rating to gate fresh-spec production in autonomous mode, and relies on the markers so downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) can tell closed decisions from open punts without re-litigating them. A delegated skill that cannot self-rate is downgraded to interactive-only; autonomous mode falls through to the inline path instead of parking.
-
-**Inline path is autonomous-capable.** When no `spec` skill is configured (or the configured one can't self-rate), faff-prep produces the inline spec itself (the default `faffter-noon-spec` lite arc) and self-rates it — it has full visibility into the explore findings, the spec contract, and the resulting markers, so it can honestly assess whether the spec is high/medium/low confidence. The inline path is never a park reason on its own; the same confidence gate applied to delegated output also applies to the inline output.
+**Producer requirements (the slot contract relies on):** the `spec` skill must (a) return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, (b) produce decisions using the canonical markers defined by the `spec_adaptor` slot (default `faffidavit-spec`), and (c) discharge its own quality bar — for `faffter-noon-spec` that's the clean-context self-review before it returns (see its `SKILL.md` → _Self-review before returning_). Faff-prep gates on the returned confidence rating; the markers let downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) tell closed decisions from open punts without re-litigating them. A `spec` skill that genuinely can't self-rate is usable interactively but cannot be driven autonomously — configure a producer that can (the default does).
 
 ## What Prep Produces
 
@@ -56,59 +54,21 @@ In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique
 
 ## Spec contract
 
-Every spec faff-prep produces (delegated or inline, fresh or refreshed) must satisfy the contract defined by the `spec_adaptor` slot (default `faffidavit-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep is a producer — it conforms to that contract, it does not redefine it. References to "_spec contract_" elsewhere in this skill mean the slot's contract.
+Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed) must satisfy the contract defined by the `spec_adaptor` slot (default `faffidavit-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep does not redefine that contract — it passes it to the producer and validates against it before attach. References to "_spec contract_" elsewhere in this skill mean the slot's contract.
 
 When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation is delegated to the `spec_adaptor` slot and runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
 
-## Inline-spec subagent review (mandatory, all sizes)
+## Spec quality bar (owned by the producer)
 
-When faff-prep produces an inline spec (i.e. no `spec` skill is configured, or the configured one is unavailable), dispatch a clean-context subagent to review the freshly generated spec against the codebase **before** attaching it to the tracker. This applies in **both** interactive and autonomous mode, **regardless of issue size**, and it runs in addition to marker validation and self-rating — not instead of them.
+The clean-context review of a freshly drafted spec — dispatching a fresh-context subagent to verify every claim against the codebase before the spec is trusted — is the **producer's** responsibility, not prep's. The gateway makes a delegated `spec` skill responsible for its own quality bar; the default producer discharges it via its own _Self-review before returning_ step (see `faffter-noon-spec/SKILL.md`), which runs for every fresh spec regardless of size, applies the same `blocker`/`major`/`minor` severities, and enforces the self-rating downgrade rule (≥1 blocker or ≥3 major → can't self-rate `high`). prep does not re-run that review — it trusts the producer's self-rating and the markers, then applies its own gates below.
 
-**Why:** by the time the inline spec is drafted, the prep agent's context is saturated with explore findings, rationale-as-it-was-being-formed, and the framing it locked in early. That context makes it hard to spot: missed conventions in the codebase, decisions that don't fit the existing architecture, vague or untestable ACs, `**Punt:**` items that the codebase actually answers, `**Assumes:**` entries that aren't true, or scope creep that crept in mid-drafting. A reviewer with fresh context — given only the spec and the codebase — sees the spec the way `/faff-workit` will see it. Catching these issues at prep is an order of magnitude cheaper than catching them mid-build, and the cost of one subagent dispatch is negligible relative to the cost of building from a flawed spec — true for an XS spec just as much as for an XL one.
+What prep still owns around the producer's output:
 
-**No size threshold.** Don't skip the review for "small" issues. Small specs go wrong in the same ways large ones do (vague ACs, false `**Assumes:**`, missed convention) — they're just shorter, which makes the review faster, not unnecessary. If you find yourself reasoning "this is a one-line change, the review is overkill", that's the same capacity-shaped rationalisation banned by the gateway's forbidden-park-reasons list. Just dispatch.
+- **Marker validation** against the `spec_adaptor` slot before attach (autonomous failure → park; interactive → add the missing marker).
+- **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it.
+- **The confidence gate** (`high` → promote; `medium` → attach + retain; `low` → park), applied to whatever rating the producer returns.
 
-**Dispatch.** Use the `Agent` tool with `subagent_type: Explore` (read-only — the reviewer must not edit the spec; it returns findings, prep applies them).
-
-The subagent prompt must include:
-
-1. The full spec content (markers and all).
-2. The issue title, description, and any blocked-by/dependency context.
-3. The explicit review brief — paraphrased, not copy-pasted from a template:
-   - "You are reviewing a freshly drafted spec against the codebase. You have **clean context** — use it. Read the spec, then explore the codebase to verify each claim it makes."
-   - Specific checks to run (see "What the reviewer must check" below).
-   - Output format: structured findings, one entry per issue spotted, each with severity (`blocker` / `major` / `minor`) and a one-line proposed fix or open question.
-4. An instruction to keep the review under ~400 words of findings — prep needs signal, not a second draft of the spec.
-
-**What the reviewer must check** (the prompt should enumerate these explicitly so the subagent doesn't drift into general code review):
-
-- **Codebase fit.** Does each `**Chosen:**` decision match how the codebase already does similar things? Flag decisions that introduce a new pattern when an established one exists, or that ignore an existing utility/abstraction the spec author seems to have missed.
-- **Assumes-validity.** For every `**Assumes:**` entry, can the reviewer confirm the assumed thing actually exists in the repo (file, dep, function, branch state)? Flag any that don't.
-- **Punt-resolvability.** For every `**Punt:**` entry, is the answer actually findable in the codebase? Sometimes the spec author punted on something the code already decides — in which case the punt should be a `**Chosen:**`.
-- **AC testability.** Is each AC concrete and testable? Flag anything vague ("works correctly", "is performant") or anything that lacks a clear pass condition.
-- **Skimmability.** Does the spec invent labelling schemes (`X1`, `F2`, `R3`, `W2a`, `Phase 4`) and cross-reference them throughout? Does any section assume the reader is holding the source ADR, parent ticket, or blocker list in their head? Flag every invented code that should be a descriptive subject ("the audit-error-registry shim" rather than "F5") — and flag inherited codes from a source ADR that the spec propagated wholesale instead of translating. Tracker ticket numbers (`#123`, `SHF-247`) are not the target — they're stable identifiers, not invented codes.
-- **Scope creep.** Does the spec promise things outside the issue's stated intent? Flag anything that reads like an opportunistic refactor smuggled into the spec.
-- **Missing surface.** Are there obvious code paths or edge cases the spec doesn't address that the codebase shows are relevant (existing tests, neighbouring features, error-handling conventions)?
-- **Interface mismatch.** Do the proposed interface contracts (API shapes, component props, data schemas) match how callers in the codebase already work?
-
-**Acting on the findings:**
-
-| Finding severity | Interactive mode | Autonomous mode |
-|---|---|---|
-| `blocker` (spec is wrong about a fact in the codebase, contains an Assumes that doesn't hold, or the Chosen decision contradicts established convention without acknowledging it) | Surface to user, revise inline before attach | Revise the spec to address the finding (apply the proposed fix, or convert the affected `**Chosen:**` to a `**Punt:**` with the conflict noted). Re-self-rate. If the revision drops confidence to medium/low, follow the standard confidence gate below (`medium` → attach + retain rating for review; `low` → park). If a blocker can't be fixed without architectural reframing, **park** with cause "subagent review surfaced unresolvable blocker — needs human" |
-| `major` (vague AC, scope creep, missed edge case) | Surface to user, fix or note inline | Fix in the spec where mechanical (tighten an AC, drop an out-of-scope item); leave as `**Punt:**` with the reviewer's note where judgement is needed. Self-rating may downgrade accordingly |
-| `minor` (style, naming, would-be-nice clarification) | Optionally fix; otherwise log and move on | Fold into the spec where trivial; otherwise log and proceed |
-
-**Self-rating downgrade rule:** if the subagent review surfaces ≥1 `blocker` or ≥3 `major` findings, the inline spec **cannot** be self-rated `high` regardless of how the prep agent felt about it pre-review. Cap at `medium` minimum, which (in autonomous mode) means the spec attaches with the rating retained but is **not** build-admitted — it routes out as `needs-decision-first` for human triage rather than auto-building. This stops the prep agent from rationalising past honest findings. Applies to every inline spec, regardless of size.
-
-**Logging.** Append the subagent's full output to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`), then append the resolution decisions (which findings were applied, which were left as `**Punt:**`, which were dismissed and why). The audit trail must show that the review ran and what was done with it — a missing review log on an inline spec is itself a process failure.
-
-**Why mandatory and not optional:** "optional" review steps degrade to "skipped" review steps. If a future invocation is tempted to skip this on capacity grounds ("this issue is small", "the explore was thorough enough", "the spec is only three lines"), refuse the temptation — the same logic that bans capacity-based parks (see `skills/faff/SKILL.md` Autonomous Mode Contract) applies here.
-
-**When NOT to run it:**
-
-- Delegated `spec` skill output (the delegated skill is responsible for its own quality bar — its self-rating gates on it).
-- Stale-refresh path (Path 1 in autonomous): the original spec was already vetted; refresh changes are scoped, not whole-cloth.
+**Refresh exemption.** On the stale-refresh path (Path 1 in autonomous), prep refreshes an already-vetted spec itself rather than re-invoking the producer — a scoped, annotated change, not a whole-cloth redraft — so the producer's self-review does not re-fire. If a refresh would require a whole-cloth redraft, prep re-invokes the producer (which self-reviews) instead.
 
 ## Prep Gate
 
@@ -157,15 +117,11 @@ Apply the shared **Spec discovery** rule first (`~/.claude/skills/faff/SKILL.md`
 - Check blocked-by issues: are they done? What did they produce?
 - Surface ambiguities in the current issue description
 
-**Step 2: Spec** (delegated or inline)
+**Step 2: Spec** (delegated to the `spec` slot)
 
-If a `spec` skill is configured, invoke it with the issue context and explore findings. Read its output. Attach the content to the issue as a comment. Clean up the local file.
+Invoke the configured/default `spec` skill (default `faffter-noon-spec`) with the issue context and explore findings. The producer runs its own clean-context self-review and returns the spec body, that review's findings, and a `confidence:` self-rating. Read its output, attach the content to the issue as a comment, and clean up any local file the producer wrote.
 
-If no `spec` skill is configured, produce an inline spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE) of the default `spec` producer (`faffter-noon-spec`). Mark every decision with the canonical markers and mirror the DONE checklist 1:1 to the body, per the `spec_adaptor` slot.
-
-Run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**.
-
-**Before attaching (inline spec only, all sizes):** dispatch the clean-context subagent review per _Inline-spec subagent review_ above. Apply its findings (revise, downgrade self-rating, or park) before moving to attach.
+Run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**. Log the producer's returned review findings + resolutions to the prep log.
 
 **→ Immediately attach spec to the issue as a comment.**
 - If the spec surfaced that the issue should be split, recommend the split
@@ -275,7 +231,7 @@ The substantial / partial / not-at-all judgement is the prep agent's call, backe
 **Then run the shared already-shipped scan + premise-superseded gate** (documented above). Outcomes apply to Path 1 as follows:
 
 - **Park (substantially delivered)** — exit Path 1 immediately. Park with cause `premise-superseded`, citing Done ticket IDs and matched surface area in the park comment.
-- **Narrow (partially delivered)** — the spec narrows to the remaining delta. **The Path 1 subagent-review exemption is preserved** for the narrow case (the original spec was already vetted; narrowing is a scoped reduction, not whole-cloth, matching the same rationale as the existing exemption documented in _Inline-spec subagent review_'s `When NOT to run it` list). The narrowing rationale and cited Done tickets in the `## Already shipped against this surface` section are the audit trail. Continue with the rest of Path 1 on the narrowed scope.
+- **Narrow (partially delivered)** — the spec narrows to the remaining delta. **The clean-context self-review is exempted** for the narrow case: prep refreshes the already-vetted spec in place (a scoped reduction, not a whole-cloth redraft), so it does not re-invoke the producer — matching the producer's own _Self-review before returning_ → _When NOT to run_ exemption for narrowing-only refreshes. The narrowing rationale and cited Done tickets in the `## Already shipped against this surface` section are the audit trail. Continue with the rest of Path 1 on the narrowed scope.
 - **Proceed (premise holds)** — continue unchanged.
 
 If the narrowing crosses architectural lines (e.g. the remaining delta requires a different module structure than the original spec assumed), defer to the existing architectural-change park rule below — park rather than reattach.
@@ -292,29 +248,23 @@ If the refreshed spec fails marker validation → **park** with cause "spec cont
 
 ### Path 2 — Fresh-spec (no existing spec)
 
-Available in **both** delegated and inline modes — autonomous never parks merely because no `spec` skill is configured.
+Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous never parks merely because no `spec` override is configured; the default producer always exists.
 
-**Step 1 — produce the spec.** Either:
-
-- **(delegated)** If a `spec` skill is configured: invoke it, passing the _spec contract_ in the instructions. The skill returns the spec body plus a `confidence:` self-rating at the end of its output.
-- **(inline)** If no `spec` skill is configured (or the configured one can't self-rate): produce the inline spec yourself per Scenario A Step 2 (explore findings → design decisions with `**Chosen:**`/`**Decision:**` markers, open questions in `**Punt:**`, prerequisites in `**Assumes:**`, ACs).
+**Step 1 — produce the spec.** Invoke the `spec` slot, passing the _spec contract_ in the instructions. The producer runs its own clean-context self-review and returns the spec body, the review findings + resolutions, and a `confidence:` self-rating at the end of its output. (The self-review and the self-rating downgrade rule live in the producer — see `faffter-noon-spec/SKILL.md` → _Self-review before returning_.)
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (documented above) on the just-produced spec. Outcomes apply to Path 2 as follows:
 
 - **Park (substantially delivered)** — exit Path 2 immediately. Park with cause `premise-superseded`, citing Done ticket IDs and matched surface area in the park comment.
-- **Narrow (partially delivered)** — the spec narrows to the remaining delta. Continue with Step 3 on the narrowed scope. (Inline path: the subagent review in Step 3 fires on the narrowed spec — Path 2's review is mandatory regardless of how the spec arrived at its final scope.)
+- **Narrow (partially delivered)** — the spec narrows to the remaining delta. Re-invoke the producer on the narrowed scope (its self-review fires on the narrowed spec — the producer's review is mandatory regardless of how the spec arrived at its final scope), then continue with Step 3.
 - **Proceed (premise holds)** — continue with Step 3 unchanged.
 
-**Step 3 — validate and review the spec.** Run marker validation per the _spec contract_. Then:
+**Step 3 — validate and gate the spec.** Run marker validation per the _spec contract_. The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
 
-- **(delegated)** The spec skill already produced a `confidence:` self-rating in Step 1. No additional subagent review (the delegated skill is responsible for its own quality bar).
-- **(inline)** **Dispatch the clean-context subagent review per _Inline-spec subagent review_ above** (mandatory for every inline spec, regardless of size) and apply its findings (revise the spec, fold blockers, leave open questions as `**Punt:**`) before self-rating. Self-rating is a deliberate honest assessment based on:
+- `high` — every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` escalates a genuine product/architecture question, the ACs are concrete and testable, and the self-review surfaced no `blocker` / fewer than 3 `major`.
+- `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.
+- `low` — multiple `**Punt:**` markers, intent the explore couldn't pin down, or a self-review `blocker` that needed architectural reframing.
 
-- `high` — the explore phase surfaced clear answers, every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` markers escalate genuine product/architecture questions, and the ACs are concrete and testable.
-- `medium` — the spec is mostly clean but has 1–2 `**Punt:**` markers on substantive choices, or one or more decisions where the rationale feels thin and a human would likely want to weigh in.
-- `low` — multiple `**Punt:**` markers, or the explore phase couldn't pin down the underlying intent of the ticket, or core architecture is genuinely unclear.
-
-Apply the same gate to either output:
+Apply the gate to the producer's output:
 
 - `confidence: high` **and** marker validation passes → attach to issue (rating retained on the spec), move to Todo, return `promoted`
 - `confidence: high` **but** marker validation fails → **park** with cause "spec contract violated — missing Chosen/Decision/Punt markers"

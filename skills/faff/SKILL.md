@@ -594,6 +594,8 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 
 **Standard envelope (every output).** Inputs a caller always supplies: the relevant issues, their state, sequencing, workstream grouping, and the dependency graph. Every output returns its named answer plus structured findings the caller can render, and a `Methodology: <name>` banner line for display. A methodology **does not know or describe its callers** — it answers the request from the state it's given; it never writes to the tracker (that's the orchestrator lane).
 
+**Display convention (shared).** When a `methodology` slot is configured, a sub-skill's output leads with a `Methodology: [skill-name]` banner line and renders its own methodology-specific section (named by that skill: faff-tidy's bucket 7, faff-wtf's `### Methodology findings`, faff-prep's `## Methodology critique`, faff-whereto's Phase 1 / Phase 7 additions, faff-beep-boop's summary banner). Both the banner and the section are omitted silently when no methodology is configured. Sub-skills state only *which* section they add, not this convention.
+
 **Appetite.** Every output respects the suite-wide `appetite` dial (see **Appetite for destruction**) — the per-level behaviour lives in the configured methodology skill, not here.
 
 Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** (the fixed internal contract above): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`. The `routing_adaptor` slot performs the assignment. See the default methodology's `SKILL.md` for each output's detection categories, mechanical fixes, and rendered form.

@@ -21,7 +21,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 **Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per the `rendering_adaptor` slot (default `faffidavit-rendering`) — preserved as-is.
 
-**Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]`. Phase 1 (Now/Next/Later) re-sequences inside each horizon using the methodology skill's sequencing logic (e.g. value x risk x dep-aware order) instead of tracker priority + chainable-unlock-value alone. Phase 7 (Risks) gains methodology findings alongside existing structural risks. Skipped silently when no methodology is configured.
+**Methodology lens.** When a `methodology` slot is configured (gateway → **The `methodology` slot**, display convention), Phase 1 (Now/Next/Later) re-sequences inside each horizon using the methodology's sequencing logic (e.g. value × risk × dep-aware) instead of priority + chainable-unlock-value alone, and Phase 7 (Risks) gains its findings alongside the structural risks.
 
 ## What it does
 

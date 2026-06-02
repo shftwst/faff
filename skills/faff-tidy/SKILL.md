@@ -22,11 +22,11 @@ Tidy the backlog. Looks both ways in one pass:
 
 **Never offer to add labels.** Labelling is `/faff-prep`'s job. Tidy does not suggest, apply, or chain into label changes — not for "Uncategorised", not for spec health, not anywhere. If categorisation is genuinely missing, flag the issue for `/faff-prep` instead.
 
-**Description ≠ spec.** A populated issue description is **not** a spec. Spec discovery means a real spec exists per the shared **Spec discovery** rule (canonical tracker comment, committed under the configured spec-docs path — default `docs/specs/…` — or equivalent). Never suggest promoting an issue to Todo on the strength of a description alone — that's a `/faff-prep` candidate, not a ready issue.
+**Description ≠ spec** (gateway → **Spec discovery**). A populated description is not a spec; never promote an issue to Todo on the strength of one. That's a `/faff-prep` candidate, not a ready issue.
 
-**Comments are mandatory in spec discovery.** `/faff-prep` writes specs to tracker comments by default — comments are the **most common** place a spec lives before it's worked. A tidy run that classifies issues based on descriptions only and notes "comments not checked / may already have spec comments" is a **broken run** — it systematically mis-classifies the common case as "almost ready / needs prep". Before any issue is bucketed for spec health or readiness, you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). If the run includes too many issues to comment-fetch each one individually, batch-fetch or scope the run smaller — never substitute description-only sampling. Output that hedges with "I sampled descriptions, not comments" is not acceptable; complete the discovery and re-classify before reporting.
+**Comments are mandatory in spec discovery.** Per the shared rule (gateway → **Spec discovery**, "Comments are not optional"), you **must** fetch each issue's comments via the configured tracker MCP before bucketing it for spec health or readiness. Descriptions-only classification is a **broken run** that mis-classifies the common case as "needs prep". If there are too many issues to comment-fetch individually, batch-fetch or scope the run smaller; never substitute description-only sampling, and never hedge with "comments not checked": complete the discovery and re-classify before reporting.
 
-**Methodology lens.** When a `methodology` skill is configured under `planning_skills`, the first line of output is `Methodology: [skill-name]` and a new bucket 7 (Methodology findings) is added — surface-only, no auto-actions. Skipped silently when no methodology is configured.
+**Methodology lens.** When a `methodology` slot is configured, tidy adds **bucket 7 (Methodology findings)** — surface-only, no auto-actions (display convention: gateway → **The `methodology` slot**).
 
 ## Always pull fresh
 
@@ -159,7 +159,7 @@ Output renders three new sections in addition to the existing buckets:
 - `### Calibration signals` — present when threshold-crossing patterns were found in `.faff/calibration/`. Skip if no signals.
 - `### Methodology findings` — present only when a `methodology` skill is configured **and** bucket 7 surfaced anything. Lists the findings the methodology returned, each with its full diagnosis. No auto-actions; the human reads, decides, acts.
 
-All three sections precede the existing buckets in tidy's output. When a `methodology` skill is configured, the first line of output is also `Methodology: [skill-name]`.
+All three sections precede the existing buckets in tidy's output.
 
 After presenting, drive action via yes/no gates (never passive suggestions):
 
@@ -226,9 +226,9 @@ Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id,
 - Fix the mess first, then promote — a ready issue that's actually a dupe shouldn't get promoted
 - Cancelled work is invisible to tidy except for the "non-cancelled descendants of cancelled ancestors" prompt
 - Description ≠ spec. Ever.
-- **Comments are mandatory** in spec discovery — most specs live there. A run that samples descriptions only is invalid output; re-fetch comments and re-classify before reporting.
+- **Comments are mandatory** in spec discovery (gateway → **Spec discovery**): fetch them before classifying; descriptions-only is invalid output.
 - Spec health is **not just** does-a-spec-exist; it includes scanning post-spec comments for challenges, resolutions, and context. Challenges/resolutions → "Challenged" → re-prep, not ready. Context-only → "Context-pending" → low-priority annotate-into-spec, doesn't block build.
 - Labels are `/faff-prep`'s job. Tidy never proposes them.
 - Promotion order = readiness gate → priority (issue-level OR any ancestor, respect both) → chainable unlock value (how much downstream work it unblocks; matters most for automation)
 - Same priority + unlock-value ordering applies to the "Stuck in prep — needs human decision" bucket — surface the highest-leverage parks first
-- When a `methodology` skill is configured, the output gains a `Methodology: [skill-name]` first line and a new bucket 7 (Methodology findings). Surface-only in 2a — no mechanical fixes auto-applied; 2b adds them.
+- When a `methodology` slot is configured, tidy adds bucket 7 (Methodology findings) — surface-only in 2a (no mechanical fixes); 2b adds them.

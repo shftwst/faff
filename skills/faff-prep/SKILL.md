@@ -11,7 +11,7 @@ Turn a vague ticket into something buildable. Prep does the thinking so you can 
 
 Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but **always delegates spec production to the `spec` slot** (default `faffter-noon-spec`). It never drafts the spec body itself; its job is to explore, invoke the producer, gate on the result, and manage attachment.
 
-**Methodology lens.** When a `methodology` skill is configured under `planning_skills` in `.faffrc`, the first line of output is `Methodology: [skill-name]` and a `## Methodology critique` block is appended to the spec output (after the main spec body, before any chaining gates). Skipped silently when no methodology is configured.
+**Methodology lens.** When a `methodology` slot is configured, prep appends a **`## Methodology critique`** block after the spec body (before any chaining gates), per gateway → **The `methodology` slot** (display convention).
 
 ## Configuration
 
@@ -285,4 +285,4 @@ Return to caller one of:
 
 ## Notes
 
-- When a `methodology` skill is configured under `planning_skills` in `.faffrc`, the output gains a `Methodology: [skill-name]` first line and a `## Methodology critique` block on every prepped spec. The critique invokes the methodology skill for issue-level findings. In autonomous prep, the critique is written to the spec but does not block confidence-high promotion.
+- When a `methodology` slot is configured, prep appends a `## Methodology critique` block to every prepped spec (invoking the methodology for issue-level findings). In autonomous prep the critique is written but does not block confidence-high promotion.

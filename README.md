@@ -27,6 +27,53 @@ Each step offers to chain into the next, so you can just keep saying yes. That's
 
 > The skills come in tiers — `faff-*` are the commands you type; the `faffter-*` and `faffidavit-*` ones are the swappable bits doing the work behind them. You can ignore all of that until you want to plug in your own tools — see [the appendix](#appendix-skill-families-qualifiers-and-swapping).
 
+## A first run, start to finish
+
+What the loop actually looks like the first time, on a repo that already has a few tickets. (Output is illustrative — yours will name your issues.)
+
+**1. Point faff at your tracker.** A three-line `.faffrc` at the repo root:
+
+```yaml
+tracking:
+  tracker: linear
+  team_key: SHF
+```
+
+**2. `/faff-wtf` — "what should I work on?"**
+
+```
+Recently completed
+  SHF-31  rate-limit middleware shipped → unblocked SHF-40
+
+Today's focus
+  1. SHF-40  cache the token lookup   — now unblocked by SHF-31, gates SHF-41 → SHF-42
+  2. SHF-12  fix the timezone bug     — quick, isolated
+
+Parked work: none
+```
+
+**3. `/faff-prep SHF-40` — turn it into a spec.** Prep explores the codebase, delegates the spec to the producer, and attaches it to the ticket:
+
+```
+Explored src/auth/ and src/cache.ts.
+Spec attached to SHF-40 (confidence: high — every decision marked, ACs testable).
+Moved SHF-40 to Todo.
+Start building now via /faff-workit? (y/n)
+```
+
+**4. `y` → `/faff-workit SHF-40` — build it.** Workit sets up a worktree, commits the spec, and gets out of your way; you pair with it from there:
+
+```
+Worktree ready at ../faff-SHF-40. Spec committed as the first commit.
+Building to the spec — 3 ACs, tests alongside.
+```
+
+When it's done it verifies the ACs, runs review, waits for CI, and (interactively) asks before merging.
+
+**5. `/faff-beep-boop` — or let it run the lot unattended.** Same loop, no babysitting: it grooms, specs, and builds the ready queue, parking anything ambiguous for `/faff-wtf` to show you in the morning.
+
+Each step offers to chain into the next — `wtf → prep → workit` — so on a good day you just keep saying yes.
+
 ## Commands
 
 | Command | What it does |

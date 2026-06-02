@@ -24,8 +24,8 @@ Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<rep
 ## Scheduling the partition
 
 1. **Independents** are the parallelism pool — schedule them up to the cap, launching a new one whenever a slot frees.
-2. **Collision groups** stay serial *within* the group (member N+1 starts only after member N reaches a terminal state), but a whole group runs concurrently *with* independents and other groups. A group occupies **one** concurrency slot at a time (its current member), not one per member.
-3. Keep launching until the partition is exhausted and all in-flight builds have reached terminal states. Record each terminal outcome to the run ledger as it lands.
+2. **Collision groups** stay serial *within* the group (member N+1 starts only after member N reaches a terminal state), but a whole group runs concurrently *with* independents and other groups. A group occupies **one** concurrency slot at a time (its current member), not one per member. The slot contract's **merge requirement applies here too** (see `faffter-noon-concurrency-sequential` → _The slot contract_, obligation 2): a member that *depends on* an earlier member only builds if that blocker **merged** — if the blocker landed `pr-open` / `parked` / `errored`, park the dependent (`in-run blocker did not merge`) rather than building it against a `main` missing the dependency. (Same-surface-only members just serialise.)
+3. Keep launching until the partition is exhausted and all in-flight builds have reached terminal states. Record each terminal outcome to the run ledger as it lands (mapping `pr-open-for-human` → `pr-open`, per the slot contract).
 
 ## Rebase-before-merge (the merge-race fix)
 

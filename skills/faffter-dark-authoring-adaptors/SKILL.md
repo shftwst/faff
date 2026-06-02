@@ -1,6 +1,6 @@
 ---
 name: faffter-dark-authoring-adaptors
-description: "Author or validate a faff slot skill. Scaffolds a new adaptor/producer/methodology so it carries the correct refer-back prose and maps onto the fixed gateway contract, and validates that an existing slot skill conforms. Use for 'write a new adaptor', 'author a spec/review/routing/language skill', 'check my adaptor conforms', 'validate this slot skill'."
+description: "Author or validate a faff slot skill. Scaffolds a new adaptor/producer/methodology so it carries the correct refer-back prose and maps onto the fixed gateway contract, and validates that an existing slot skill conforms. Use for 'write a new adaptor', 'author a spec/review/routing/rendering skill', 'check my adaptor conforms', 'validate this slot skill'."
 ---
 
 # faffter-dark-authoring-adaptors

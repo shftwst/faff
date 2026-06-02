@@ -303,11 +303,13 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 
 **Park protocol:** shared — see `~/.claude/skills/faff/SKILL.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
 
-**Return values to caller (beep-boop):**
+**Return values to caller (beep-boop / the `concurrency` slot):**
 - `shipped` — all three gate conditions held, PR merged (unblocks chained issues)
 - `pr-open-for-human` — review returned `needs-human`, or CI failed unrecoverably — PR is draft, awaiting human
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
+
+**Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-open-for-human`→`pr-open`**, `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
 
 Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/workit.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-workit-ISSUE-XX.md`).
 

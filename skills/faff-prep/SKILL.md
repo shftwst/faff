@@ -41,7 +41,7 @@ The spec is a high-level design document. It does **not** contain implementation
 
 **Methodology critique block (rendered only when a `methodology` skill is configured).**
 
-After the main spec body, append a `## Delivery critique` section answering, for the issue being prepped:
+After the main spec body, append a `## Methodology critique` section answering, for the issue being prepped (the questions below are the agile-delivery lens; under a different configured methodology, ask that methodology for its own issue-level critique shape):
 
 - **Right-sized?** (principle 4) Does the scope fit a single 1–3 day unit? Does the spec cover two structurally independent concerns? If yes to the latter, recommend a split. If the issue is paired with a sibling that always ships together, recommend a merge.
 - **Workstream fit?** (principles 1 + 5) Is the issue in an outcome-named workstream? Is that workstream cohesive (single outcome)? If either fails, recommend the regrouping move.

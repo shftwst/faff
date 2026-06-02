@@ -209,9 +209,9 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 ### Heads up
 - Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
 - Orphaned + repeat-parked ⚠: ISSUE-ZZ  [gloss] — parent project cancelled; parked 3 times; is this still wanted?
-- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-workit can't advance it. (Methodology skill may auto-carve; default chain-offers /faff-prep --split.)
-- Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (Methodology skill may file the prereq + add blocker link; default offers "file gap issue".)
-- Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (Methodology skill may file the peer + tag the workstream; default offers "file gap issue".)
+- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-workit can't advance it. (auto-carves at default appetite; low appetite chain-offers /faff-prep --split.)
+- Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (auto-files the prereq + blocker link at default appetite; low appetite offers "file gap issue".)
+- Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (auto-files the peer at default appetite; low appetite offers "file gap issue".)
 - [Any risks, approaching deadlines, or flags]
 
 ### Automation preview — fire `/faff-beep-boop`?

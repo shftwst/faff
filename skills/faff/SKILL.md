@@ -507,7 +507,7 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 
 | Output | Requested by | Required? | In → out |
 |---|---|---|---|
-| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-whereto | **Always fires** | active-issue graph → structural findings (cycles, ghost-projects, repeat-parks, splittable specs, chain gaps). The structural baseline every pass depends on; two of its findings feed the routing verdict (see below). |
+| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-whereto | **Always fires** | active-issue graph → structural findings. The structural baseline every pass depends on; two of its findings feed the routing verdict (see below). **Mandatory floor: dependency-graph detection of cycles and ghost-project pointers** — these are not optional flavour, they produce the `circular-blocked` / `gap-blocked` routing verdicts. `repeat-parks`, `splittable specs`, and `chain gaps` are the expected-but-degradable remainder. |
 | `pick-ordering` | faff-wtf, faff-beep-boop | **Required** | a set of issues → the same set ordered by the methodology's sequencing rule. |
 | `promotion-readiness` | faff-tidy, faff-prep | **Required** | an issue + its spec/blocker state → promote / demote / hold decision with reasons. |
 | `build-queue` | faff-beep-boop | **Required** | routed-in issues + conflict analysis → admission-filtered, ordered, wave-partitioned queue. |
@@ -522,6 +522,8 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** (the fixed internal contract above): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`. The `routing_adaptor` slot performs the assignment. See the default methodology's `SKILL.md` for each output's detection categories, mechanical fixes, and rendered form.
 
 ## Routing
+**What a replacement methodology owes (the swap floor).** Because cycle and ghost-project detection feed the fixed routing verdict, a swapped-in methodology **must** answer `backlog-diagnostics` with at least that graph detection — a methodology that drops it silently breaks `circular-blocked` / `gap-blocked` routing for the whole suite. A methodology that doesn't want to reimplement graph analysis **composes the structural default**: it calls `faffter-noon-methodology-structural`'s `backlog-diagnostics` for the graph floor and adds its own findings on top (this is exactly what `faffter-dark-methodology-agile-delivery` does — it is *additive over* the structural baseline, not a from-scratch replacement of it). The other required outputs (`pick-ordering`, `promotion-readiness`, `build-queue`) may be answered wholesale or by re-ranking the structural baseline.
+
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 

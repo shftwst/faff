@@ -13,7 +13,7 @@ planning_skills:
 
 This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
-Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: delivery-lead` for the caller to display.
+Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: faffter-dark-methodology-agile-delivery` for the caller to display (the gateway envelope's `Methodology: <name>` line carries this skill's own name, not a nickname).
 
 How the principles map onto the outputs:
 
@@ -22,7 +22,7 @@ How the principles map onto the outputs:
 | `ticket-shaping` | 1 (outcome-named workstreams, not the brief's literal capability names), 4 (right-sized — split a capability that's too big, merge always-together items), 6 (surface deps as explicit blocker links), 2 + 7 (sequence the proposed tickets by value × risk) |
 | `pick-ordering` / `build-queue` | 2 (value × risk), 7 (risk-aware) — override structural priority+unlock when materially different |
 | `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
-| `backlog-diagnostics` | 1 (outcome-named), 4, 5 (cohesive), 6 |
+| `backlog-diagnostics` | Composes the structural default for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6 |
 | `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
 | `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 
@@ -156,6 +156,6 @@ Everything `high` does, plus:
 - Findings must be grounded in observable tracker state — not speculation about intent or future plans.
 - Each finding must name the specific issues/workstreams involved (by tracker ID + descriptive gloss).
 - Findings that repeat across runs without human action are surfaced at most once per `/faff-wtf` invocation — don't nag.
-- This skill does not override structural diagnostics (chain gaps, stale blockers, dupes). It adds to them.
+- This skill is **additive over the structural baseline, not a from-scratch replacement of it.** For `backlog-diagnostics` it composes `faffter-noon-methodology-structural` for the mandatory graph floor (cycle + ghost-project detection that feeds the `circular-blocked` / `gap-blocked` routing verdicts — see the gateway → **The `methodology` slot** swap-floor clause), then layers its seven-principle findings on top. It does not re-implement or override structural's graph detection, chain gaps, stale blockers, or dupes.
 - At `low` and `medium` appetite, this skill is **read-only** — it never mutates tracker state.
 - At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues. All mutations logged.

@@ -11,7 +11,7 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed automation-routing + spec-readiness contracts** wtf displays. Loading it here means any slot wtf delegates to inherits these ambiently. WTF falls back to git-only mode if no tracker MCP is available.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed automation-routing + spec-readiness contracts** wtf displays. Loading it here means any slot wtf delegates to inherits these ambiently. WTF falls back to git-only mode if no tracker MCP is available.
 
 **Shared work-ordering rule.** Anywhere this skill suggests, ranks, or recommends work — "Coming Up", "Today's Focus", "Ready to pick up", "Build queue" independents, parked-overnight triage — apply the same lexicographic order used by `/faff-tidy`:
 
@@ -258,7 +258,7 @@ Skip any section that has nothing to report — **except the Beep-boop queues se
 
 ## Autonomous Mode
 
-When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
+When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
 
 **Output:** a plain ready-queue list — issue id, title, readiness flag (`ready` or `needs-prep`). No focus recommendation, no "Do this", no "Heads up", no chat-style prose.
 

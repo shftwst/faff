@@ -11,7 +11,7 @@ This is a `faffter-dark-*` skill — advanced tooling, not part of the day-to-da
 
 ## Why this skill exists (the binding problem)
 
-Skills load independently. When a slot skill runs — as a delegated slot, or standalone — `skills/faff/SKILL.md` is **not** guaranteed to be in context. The faff suite handles this with three mechanisms (see gateway → _Core contracts and adaptor slots → Contract loading & conformance_):
+Skills load independently. When a slot skill runs — as a delegated slot, or standalone — `~/.claude/skills/faff/SKILL.md` is **not** guaranteed to be in context. The faff suite handles this with three mechanisms (see gateway → _Core contracts and adaptor slots → Contract loading & conformance_):
 
 1. fixed consumers load the gateway on entry, so a slot they delegate to inherits the contract ambiently;
 2. a standalone-invoked slot skill **reads the gateway itself** before applying a contract;
@@ -62,7 +62,7 @@ Given the target slot + a one-line description, emit a skeleton:
 Maps onto gateway → <named §>. Fixed there, unaffected by this swap: <one-line recap, non-normative>.
 
 **How this contract reaches you.** Loaded by the invoking consumer when run as a slot; if invoked
-standalone, Read `skills/faff/SKILL.md` → <named §> now before applying. Gateway wins on any conflict.
+standalone, Read `~/.claude/skills/faff/SKILL.md` → <named §> now before applying. Gateway wins on any conflict.
 
 ## <Dialect>           ← the markers / envelope / assignment rules / lens this skill owns
 ## Validate            ← for adaptors: checks + the pass/fail envelope

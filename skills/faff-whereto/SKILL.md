@@ -13,7 +13,7 @@ Pull the live tracker state and the project's backlog-organisation methodology, 
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Loading it here means the `methodology` slot whereto delegates to inherits these ambiently.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Loading it here means the `methodology` slot whereto delegates to inherits these ambiently.
 
 **Methodology doc.** This skill leans on the consuming project's backlog-organisation methodology (initiative shapes, workstream horizons, success-metric expectations). Default location: `docs/operations/backlog-organization.md`. If `.faffrc` names a different path under `tracking.backlog_methodology`, use that. If neither exists, fall back to inferring from tracker structure (initiatives + projects with status fields) and flag in the output that no methodology doc was found — the synthesis is then best-effort.
 
@@ -204,7 +204,7 @@ Keep the tracker as the source of truth. This skill **never** writes to the trac
 
 ## Autonomous Mode
 
-When invoked autonomously (rare — this is primarily a human-facing strategic artifact), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
+When invoked autonomously (rare — this is primarily a human-facing strategic artifact), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
 
 **Output:** the full roadmap as defined above, but with no chaining gates. Append a structured `findings:` block summarising structural gaps, ghost projects, and parked issues whose unpark conditions are unmet.
 

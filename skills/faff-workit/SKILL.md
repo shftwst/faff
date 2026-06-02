@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict + spec-readiness contracts** workit branches on. Loading it here means any slot workit delegates to inherits these ambiently. Workit consults the `review` and `ship` Planning Skill slots.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict + spec-readiness contracts** workit branches on. Loading it here means any slot workit delegates to inherits these ambiently. Workit consults the `review` and `ship` Planning Skill slots.
 
 ### Worktree Hook
 
@@ -79,7 +79,7 @@ If the issue doesn't exist, tell the user and stop.
 
 **Step 2: Check prep gate**
 
-Check the issue for an attached spec. Follow the shared **Spec discovery** rule in `skills/faff/SKILL.md` — look in tracker comments, the main description/body, and committed `docs/` paths. A hit in any of those counts as the spec.
+Check the issue for an attached spec. Follow the shared **Spec discovery** rule in `~/.claude/skills/faff/SKILL.md` — look in tracker comments, the main description/body, and committed `docs/` paths. A hit in any of those counts as the spec.
 
 - **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec.
 - **No spec (none of the three sources):** In interactive mode, yes/no gate: "No spec found in comments, description, or docs. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
@@ -253,14 +253,14 @@ On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
 
 ## Autonomous Mode
 
-When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see `skills/faff/SKILL.md`) and these specifics:
+When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
 
 **Entry:** assumes issue exists, is not cancelled/archived, has a valid spec, and a dedicated worktree is already prepared (beep-boop handles worktree management per-issue to support parallel runs).
 
 **Flow:**
 1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).
 2. During Step 7, if a decision arises that the spec doesn't resolve, run resolve-attempt first (see Resolve-attempt before park section below). If resolve-attempt proceeds, log to `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` and write the audit-trail tracker comment, then continue. If resolve-attempt fails, invoke `/faff-prep` respec. If respec is still ambiguous, park.
-   - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see `skills/faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
+   - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see `~/.claude/skills/faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 3. After build, run Step 8 (AC verification) — mandatory.
 4. Push the branch and open the PR as a **regular (non-draft) PR**. Regular PRs are the default in autonomous mode; the review step decides whether to keep it that way or flip to draft.
 5. Run Step 9 (review phase). Act on the three-valued signal:
@@ -296,7 +296,7 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 
 **What this does NOT do.** Does not bypass existing safety boundaries. Side-effects-outside-PR-flow still park unconditionally. Destructive operations still park unconditionally.
 
-**Park protocol:** shared — see `skills/faff/SKILL.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
+**Park protocol:** shared — see `~/.claude/skills/faff/SKILL.md`. Summary: WIP commit, **flip PR to draft**, tracker comment with cause, `parked-by-faff` tag, `.faff/logs/…` entry. (Draft status is the signal that a human needs to look — non-draft PRs are fair game for auto-merge.)
 
 **Return values to caller (beep-boop):**
 - `shipped` — all three gate conditions held, PR merged (unblocks chained issues)

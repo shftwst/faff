@@ -208,6 +208,7 @@ Merge happens only when **all** conditions hold:
 - **All three hold:**
   - If `ship` slot configured → invoke it as the delivery mechanism.
   - Otherwise → vanilla `gh pr merge`.
+  - **Under concurrent execution** (the `faffter-dark-concurrency-parallel` executor): merges are serialised and rebase-revalidated — before merging, rebase (or merge `main`) onto the PR branch and **re-confirm CI green on the rebased head**. A green that predates `main` moving is stale and must not merge. See that skill's _Rebase-before-merge_. (Sequential execution needs no rebase — each build already sees the prior merge.)
 - **Review returned `fail`:** iterate autonomously (fix flagged items, re-run tests, re-run review). This is not a park — it's a loop.
 - **Review returned `needs-human`:** flip PR to draft, park per the shared protocol. Leave the PR open with the AC checklist, review comment, and CI status visible.
 - **CI failed:** in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11.

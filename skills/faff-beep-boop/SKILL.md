@@ -17,7 +17,7 @@ This skill is the orchestrator. It does not reimplement prep, build, or tidy —
 
 Beep-boop uses these `planning_skills` slots from `.faffrc` when set:
 
-- `parallel` — for concurrent build execution across independent issues. Unset → sequential.
+- `concurrency` — the build-pass executor. Default `faffter-noon-concurrency-sequential` (one build at a time); swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge.
 - `spec`, `review`, `ship` — passed through to the sub-skills; beep-boop doesn't use them directly.
 
 ## Invocation
@@ -55,11 +55,11 @@ Between units, never mid-unit. Specifically:
 - After every build return (or before every launch in parallel mode), before dispatching the next build issue in the same wave.
 - At every wave boundary, before re-assembling the next wave's build queue.
 
-In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-workit` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). In parallel mode, up to `parallelism` issues may finish after the budget fires; that's expected.
+In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-workit` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). Under the parallel executor, up to `concurrency_max` issues may finish after the budget fires; that's expected.
 
 ### Launch-counted, not terminal-state-counted
 
-`--max N` fires when the count of **launched** build attempts reaches N, not the count of returned terminal states. In sequential mode the two are identical. In parallel mode, counting launches prevents the `parallelism - 1` overshoot you'd get from waiting for the Nth terminal state — every launch eventually terminates, so terminal-state count converges to exactly N anyway (or to whatever was launched when `--until` fired first, if both budgets are set).
+`--max N` fires when the count of **launched** build attempts reaches N, not the count of returned terminal states. In sequential mode the two are identical. Under the parallel executor, counting launches prevents the `concurrency_max - 1` overshoot you'd get from waiting for the Nth terminal state — every launch eventually terminates, so terminal-state count converges to exactly N anyway (or to whatever was launched when `--until` fired first, if both budgets are set).
 
 ### Unreached issues
 
@@ -124,7 +124,7 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 ### 6. Build pass
 
-Invoke `/faff-workit` in autonomous mode per issue, respecting the partition (parallel where safe, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
+Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives `/faff-workit` in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 
 ### 7. Wave drain
 
@@ -248,11 +248,11 @@ Output of conflict analysis:
 
 Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`") to `.faff/runs/<run-id>/conflict-analysis.md`.
 
-## Parallel execution
+## Build-pass execution (the `concurrency` slot)
 
-If a `parallel` slot is configured under `planning_skills` in `.faffrc`, invoke it to run the independents concurrently (each in its own worktree). Collision groups become sequential sub-tasks within a parallel slot.
+The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives `/faff-workit` per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
 
-If unset, run sequentially across the whole build queue.
+Every executor honours the same slot contract: build every issue in the partition, serialise within collision groups, record each terminal outcome to the run ledger (so `runcheck` can verify completeness), and never weaken the merge gate. A missing slot is never a park reason — it defaults to sequential. See `faffter-noon-concurrency-sequential` → _The slot contract_ for the full obligations.
 
 ## Park protocol and tracker tagging
 

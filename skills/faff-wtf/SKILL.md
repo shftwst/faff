@@ -59,7 +59,7 @@ Query using the project/team details from `.faffrc` (`tracking.project_id` / `tr
 
 ### 4. Parked Overnight
 
-Scan for issues parked by a prior autonomous run (typically `/faff-beep-boop`).
+Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-workit` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual L1 user parks too, and that work must resurface here — not only beep-boop's.
 
 Sources:
 - Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist). Use `Bash(ls "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers).
@@ -70,7 +70,7 @@ For each parked issue, surface:
 - One-line cause summary pulled from the log or the tracker comment
 - Path to the full log in `.faff/runs/…`
 
-Skip this section entirely if there are no parked issues.
+Skip this section entirely if there are no parked issues (no `parked-by-faff`-labelled issues and no parked items in run logs).
 
 ### 5. Today's Focus
 Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the shared work-ordering rule** (priority → chainable unlock value):

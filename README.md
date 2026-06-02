@@ -180,7 +180,7 @@ The `faffter-*` qualifier says how safe the variant is: **`-noon-*`** (broad day
 
 ### Two kinds of slot
 
-- **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `parallel`, `ship`) hold a skill that *does work*. Swap to change behaviour.
+- **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `concurrency`, `ship`) hold a skill that *does work*. Swap to change behaviour.
 - **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
 
 The pipeline hardcodes the contract so it always has something stable to branch on; the slot holds the translator so anyone's output can be made to fit.

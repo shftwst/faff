@@ -211,7 +211,7 @@ Merge happens only when **all** conditions hold:
   - **Under concurrent execution** (the `faffter-dark-concurrency-parallel` executor): merges are serialised and rebase-revalidated — before merging, rebase (or merge `main`) onto the PR branch and **re-confirm CI green on the rebased head**. A green that predates `main` moving is stale and must not merge. See that skill's _Rebase-before-merge_. (Sequential execution needs no rebase — each build already sees the prior merge.)
 - **Review returned `fail`:** iterate autonomously (fix flagged items, re-run tests, re-run review). This is not a park — it's a loop.
 - **Review returned `needs-human`:** flip PR to draft, park per the shared protocol. Leave the PR open with the AC checklist, review comment, and CI status visible.
-- **CI failed:** in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11.
+- **CI failed:** first separate a flaky/infra failure from a real defect — **re-run the failed checks once** with no code change (re-trigger, then `gh pr checks <pr> --watch`). If they pass on the clean re-run, it was transient: proceed to the merge gate and **do not** spend the autonomous fix attempt on it. If they fail the same way again, it's real: in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11. (Persistent infra failures unrelated to the diff — runner outages, missing secrets — park as `errored`, not as a code defect.)
 
 In **interactive mode**, this gate fires when the user confirms "merge now" at post-PR time (Step 11). In **autonomous mode**, it fires automatically at the end of the build flow.
 

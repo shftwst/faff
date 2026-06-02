@@ -18,7 +18,7 @@ This skill is the orchestrator. It does not reimplement prep, build, or tidy —
 Beep-boop uses these `planning_skills` slots from `.faffrc` when set:
 
 - `parallel` — for concurrent build execution across independent issues. Unset → sequential.
-- `spec`, `plan`, `review`, `ship` — passed through to the sub-skills; beep-boop doesn't use them directly.
+- `spec`, `review`, `ship` — passed through to the sub-skills; beep-boop doesn't use them directly.
 
 ## Invocation
 

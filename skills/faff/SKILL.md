@@ -49,7 +49,6 @@ tracking:
 planning_skills:             # optional delegation slots; each has a faff default when unset
   intake: superpowers:brainstorming                  # used by faff-noodle for new-work discovery
   spec: superpowers:brainstorming                    # used by faff-prep
-  plan: superpowers:writing-plans                    # used inside faff-workit
   parallel: superpowers:dispatching-parallel-agents  # used by faff-beep-boop for concurrency
   review: gstack:review                              # pre-PR review inside faff-workit
   ship: gstack:land-and-deploy                       # merge/deploy mechanism inside faff-workit

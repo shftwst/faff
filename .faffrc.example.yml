@@ -23,7 +23,7 @@ tracking:
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 planning_skills:
-    intake: # new-work discovery used by /faff-noodle (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
+    intake: # new-work discovery used by /faff-jot (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
     spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)
     parallel: # optional used by /faff-beep-boop for concurrency
     review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)

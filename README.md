@@ -8,7 +8,7 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-noodle`, `/faff-prep` |
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-jot`, `/faff-prep` |
 | **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-workit` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
 | **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
@@ -33,7 +33,7 @@ Two knobs cut across all four levels. They're not levels themselves:
 ## Your first five minutes
 
 1. **Tell it where your stuff lives.** Drop a `.faffrc` at your repo root (see [Setup](#setup) — three lines is enough).
-2. **Got a new idea or an empty repo?** Run `/faff-noodle`. It chats through what you're building and turns it into tickets. Already have a backlog? Skip to step 3.
+2. **Got a new idea or an empty repo?** Run `/faff-jot`. It chats through what you're building and turns it into tickets. Already have a backlog? Skip to step 3.
 3. **Not sure what to do?** Run `/faff-wtf` — it tells you what shipped, what's stuck, and what to pick up.
 4. **Picked something?** Run `/faff-prep ISSUE-XX` to turn it into a spec, then `/faff-workit ISSUE-XX` to build it.
 5. **Want it all done while you sleep?** Run `/faff-beep-boop` and check the results in the morning.
@@ -94,7 +94,7 @@ Each step offers to chain into the next — `wtf → prep → workit` — so on 
 | Command | What it does |
 |---------|-------------|
 | `/faff` | "What should I work on?" (default) |
-| `/faff-noodle` | Start something new — kick off an empty project, or capture a feature/bug/idea, and turn it into a sensible set of tickets |
+| `/faff-jot` | Start something new — kick off an empty project, or capture a feature/bug/idea, and turn it into a sensible set of tickets |
 | `/faff-wtf` | Where to focus — what shipped, what's stuck, what's next |
 | `/faff-tidy` | Tidy the backlog — find the mess, clean, and surface what's ready to pick up |
 | `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
@@ -109,12 +109,12 @@ new idea / project → tickets → "what should I work on?" → prep it → buil
                                        └────────── reprep ←─────────────┘
 ```
 
-0. **Noodle** — turn a new idea (or a whole new project) into a sensible set of tickets
+0. **Jot** — turn a new idea (or a whole new project) into a sensible set of tickets
 1. **WTF** — what shipped, what's blocked, what to focus on
 2. **Prep** — explore the codebase, write a spec, attach it to the ticket
 3. **Workit** — spec is committed to a feature branch, worktree is ready, go
 
-`/faff-noodle` is the front door: everything else acts on tickets that already exist — noodle is how they come to exist. It runs a discovery conversation, then shapes the result into tickets using your configured methodology.
+`/faff-jot` is the front door: everything else acts on tickets that already exist — jot is how they come to exist. It runs a discovery conversation, then shapes the result into tickets using your configured methodology.
 
 Each step chains to the next with a yes/no gate. Say yes, keep moving. Say no, stop.
 
@@ -146,7 +146,7 @@ That's the whole minimum. Everything else has a sensible default. Want to swap i
 
 ```yaml
 planning_skills:
-  intake: superpowers:brainstorming   # how /faff-noodle runs discovery
+  intake: superpowers:brainstorming   # how /faff-jot runs discovery
   spec: gstack:autoplan               # how /faff-prep writes specs
   review: gstack:review               # pre-PR review
   ship: gstack:land-and-deploy        # merge/deploy
@@ -204,7 +204,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 |---|---|---|
 | `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
 | `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits the `review_adaptor` verdict (pass/fail/needs-human). |
-| `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-noodle` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
+| `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-jot` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
 | `faffter-noon-concurrency-sequential` | `concurrency` | The implicit default build-pass executor. Runs `/faff-beep-boop`'s queue one `/faff-workit` at a time over the conflict-analysis partition — no worktree contention, no merge races. The safe counterpart to `faffter-dark-concurrency-parallel`. |
 

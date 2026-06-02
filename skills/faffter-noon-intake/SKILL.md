@@ -11,13 +11,13 @@ planning_skills:
 
 ## When it runs
 
-Invoked by `/faff-noodle` as the configured `intake` skill (the default when the slot is unset). `/faff-noodle` decides the mode and passes it in; this skill runs the discovery conversation and returns the brief. It does **not** create tickets, touch the tracker, or write code — that is the orchestrator's job (`/faff-noodle`), which applies the `methodology` slot to the brief this skill produces.
+Invoked by `/faff-jot` as the configured `intake` skill (the default when the slot is unset). `/faff-jot` decides the mode and passes it in; this skill runs the discovery conversation and returns the brief. It does **not** create tickets, touch the tracker, or write code — that is the orchestrator's job (`/faff-jot`), which applies the `methodology` slot to the brief this skill produces.
 
 Can also be invoked standalone: "help me scope a new feature" produces a discovery brief for review without the tracker lifecycle.
 
 ## Input
 
-The caller (`/faff-noodle`) provides:
+The caller (`/faff-jot`) provides:
 
 - **Mode** — `greenfield` (kick off an empty/new project) or `single-item` (a new feature, bug, or ticket inside an existing project).
 - The human's starting description (whatever they said — a sentence, a paragraph, a pasted bug report).
@@ -106,6 +106,6 @@ This skill reads the suite-wide `appetite` setting but has little to modulate �
 ## Rules
 
 - Discovery extracts what changes how work breaks down — no more. Resist drifting into implementation detail; that belongs to `/faff-prep`.
-- This skill produces the brief; it does **not** create tickets, mutate the tracker, or write code. The orchestrator (`/faff-noodle`) owns those, applying the `methodology` slot to the brief.
+- This skill produces the brief; it does **not** create tickets, mutate the tracker, or write code. The orchestrator (`/faff-jot`) owns those, applying the `methodology` slot to the brief.
 - The discovery-brief shape is the slot contract. A third-party `intake` skill conforms by emitting the same required sections; the orchestrator then shapes and creates tickets identically regardless of which intake skill ran.
 - Unresolved questions are captured in the brief, never used as a reason to refuse to produce one. A thin brief with open questions is valid output — prep resolves the rest.

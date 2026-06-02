@@ -1,6 +1,6 @@
 ---
 name: faff
-description: "Gateway — routes to the right faff sub-skill. Use /faff-noodle to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
+description: "Gateway — routes to the right faff sub-skill. Use /faff-jot to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
 ---
 
 # Faff
@@ -15,7 +15,7 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-noodle`, `/faff-prep` |
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-jot`, `/faff-prep` |
 | **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-workit` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
 | **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
@@ -36,7 +36,7 @@ This is the gateway. Invoke the right sub-skill:
 
 | Command | Triggers |
 |---------|----------|
-| `/faff-noodle` | "New project", "kick off", "start something", "I've got an idea", "new feature", "add a feature", "file a bug", "capture this", "scope a new thing", "spitball" |
+| `/faff-jot` | "New project", "kick off", "start something", "I've got an idea", "new feature", "add a feature", "file a bug", "capture this", "scope a new thing", "spitball" |
 | `/faff-wtf` | "Where to focus", "What should I work on?", "what's happening", "catch me up", "where are we", "where we at", "the 411", "lowdown" |
 | `/faff-whereto` | "Roadmap", "where are we going", "explain the backlog", "do these join up", "workstream view", "strategy view", "what are the chains", "big picture", "walk me through the plan" |
 | `/faff-tidy` | "Tidy the backlog", "clean up", "groom", "mess" |
@@ -73,7 +73,7 @@ tracking:
   spec_docs_path: docs/specs/                                   # where faff-workit commits specs (see Spec docs location)
 
 planning_skills:             # optional delegation slots; each has a faff default when unset
-  intake: superpowers:brainstorming                  # used by faff-noodle for new-work discovery
+  intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-workit
@@ -123,7 +123,7 @@ Faff delegates specialised work to configured skills. Slots live under the `plan
 
 ```yaml
 planning_skills:
-  intake: superpowers:brainstorming                  # used by faff-noodle for new-work discovery, optional
+  intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery, optional
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop, optional (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-workit, optional
@@ -139,7 +139,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 
 | Slot | Default when unset | Purpose |
 |---|---|---|
-| `intake` | `faffter-noon-intake` | Runs new-work discovery for `/faff-noodle` and emits a discovery brief. A producer doing-skill. |
+| `intake` | `faffter-noon-intake` | Runs new-work discovery for `/faff-jot` and emits a discovery brief. A producer doing-skill. |
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
 | `concurrency` | `faffter-noon-concurrency-sequential` | Build-pass executor for faff-beep-boop — consumes the conflict-analysis partition and drives `/faff-workit` per issue. The default runs the queue **sequentially**; swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge. A mechanism slot (no paired adaptor). |
 | `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits the `review_adaptor` verdict. |
@@ -511,7 +511,7 @@ faff-core fixes a small set of **internal contracts** — the verdict states, vo
 
 Skills load independently. When you enter via a slash command (`/faff-workit`), as a delegated slot, or invoke an adaptor standalone, **this gateway file is not automatically in context** — a bare `see gateway → §X` reference is inert until something loads it. So the contracts below are made available and enforced by three mechanisms, not by hope:
 
-1. **Consumers load on entry.** Every fixed faff-* consumer (workit, tidy, beep-boop, wtf, prep, whereto, noodle) reads this gateway file on entry when it isn't already in context. The definitions then sit in the conversation, so any slot the consumer subsequently delegates to inherits them ambiently — the contract is present without the slot skill having to fetch it.
+1. **Consumers load on entry.** Every fixed faff-* consumer (workit, tidy, beep-boop, wtf, prep, whereto, jot) reads this gateway file on entry when it isn't already in context. The definitions then sit in the conversation, so any slot the consumer subsequently delegates to inherits them ambiently — the contract is present without the slot skill having to fetch it.
 2. **Standalone reads on demand.** An adaptor invoked directly (e.g. "validate the spec for SHF-123") has no consumer above it, so it reads this file itself before applying a contract. Adaptors therefore **refer back** to the gateway rather than carrying an authoritative copy.
 3. **New adaptors are authored to conform.** `faffter-dark-authoring-adaptors` is the author/validate skill that ensures any *new* slot occupant carries the correct refer-back prose and maps onto the fixed contract — so the binding survives a swap.
 
@@ -587,7 +587,7 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 | `pick-ordering` | faff-wtf, faff-beep-boop | **Required** | a set of issues → the same set ordered by the methodology's sequencing rule. |
 | `promotion-readiness` | faff-tidy, faff-prep | **Required** | an issue + its spec/blocker state → promote / demote / hold decision with reasons. |
 | `build-queue` | faff-beep-boop | **Required** | routed-in issues + conflict analysis → admission-filtered, ordered, wave-partitioned queue. |
-| `ticket-shaping` | faff-noodle | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-noodle falls back to one ticket per brief item. |
+| `ticket-shaping` | faff-jot | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-jot falls back to one ticket per brief item. |
 | `standup-digest` | faff-wtf | Optional | recent + ready + heads-up state → a brief. Unanswered → faff-wtf renders the ready-queue plainly. |
 | `horizon-assignment` | faff-whereto | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-whereto degrades to a flat structural roadmap. |
 | `issue-critique` | faff-prep | Optional | one issue + its spec → a per-issue critique through the methodology's lens (right-sizing, workstream fit, surfaced deps, risk — whatever the lens cares about). Unanswered → faff-prep omits the `## Methodology critique` block. The lens decides the critique's shape; faff-prep does not impose one. |
@@ -631,4 +631,4 @@ Merges/deploys a merge-ready PR inside `/faff-workit`'s Step 10. Default: vanill
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 
-If the user says something that maps to a specific sub-skill, invoke that sub-skill directly. New-work intent — "new project", "kick off", "I've got an idea", "add a feature", "file a bug" — maps to `/faff-noodle` (it's the only sub-skill that *creates* tickets; the rest act on tickets that already exist).
+If the user says something that maps to a specific sub-skill, invoke that sub-skill directly. New-work intent — "new project", "kick off", "I've got an idea", "add a feature", "file a bug" — maps to `/faff-jot` (it's the only sub-skill that *creates* tickets; the rest act on tickets that already exist).

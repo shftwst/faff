@@ -64,7 +64,7 @@ Start building now via /faff-workit? (y/n)
 **4. `y` → `/faff-workit SHF-40` — build it.** Workit sets up a worktree, commits the spec, and gets out of your way; you pair with it from there:
 
 ```
-Worktree ready at ../faff-SHF-40. Spec committed as the first commit.
+Worktree ready at ~/.faff/worktrees/faff/SHF-40. Spec committed as the first commit.
 Building to the spec — 3 ACs, tests alongside.
 ```
 

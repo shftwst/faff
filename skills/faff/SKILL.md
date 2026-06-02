@@ -56,6 +56,7 @@ planning_skills:             # optional delegation slots; each has a faff defaul
 # mode: delivery-lead is DEPRECATED — use planning_skills.methodology instead
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
+worktree_root: ~/.faff/worktrees/myrepo   # where /faff-workit creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
 
 calibration:
   repeat_park_window_days: 14         # signal lookback for calibration thresholds
@@ -273,6 +274,18 @@ Each log entry captures:
 Logs are plain markdown — agent-readable and human-readable. A log must contain enough context that a follow-up agent, given only the log file, can pick up intelligently without needing the original conversation.
 
 **Gitignore:** `.faff/` is added to `.gitignore` on first write if not already present. Users may un-ignore to commit logs if they want.
+
+### Worktree policy
+
+**This section is the single canonical definition of how faff uses git worktrees.** `/faff-workit` owns the mechanism (the `WorktreeCreate` hook + `setup-worktree.sh`); `/faff-beep-boop` and the `concurrency` slot rely on the isolation guarantee. All three reference this section rather than restating it — any divergence is a bug.
+
+- **Location: `~/.faff/worktrees/<repo>/<branch>` by default; override with the `.faffrc` `worktree_root` key (or the `FAFF_WORKTREE_ROOT` env var).** Worktrees live **entirely outside the repo directory** — so they never appear in `git status`, never get committed, and need no `.gitignore` — and a separate tree from the build is exactly what gives **holdout / evaluator work isolation** from the implementation (the L4 verification story). The home-dir default is writable both on a normal host and inside repo-only bind-mounts/containers (where the repo's *parent* often isn't writable, so a true sibling can't be created); it's namespaced by `<repo>` so multiple projects don't collide. A configured `worktree_root` is used as-is (it's per-repo, since `.faffrc` is). One worktree per work unit (issue/branch). (`git worktree add` has **no** default checkout location — the path is always chosen by the caller; `.git/worktrees/` is git's own per-worktree *metadata* dir, not a checkout location, and a checkout placed there collides with it.)
+  - *Caveat in ephemeral containers:* when the worktree root is container-local (not host-mounted) but the repo is, a destroyed container leaves the checkout gone while git's metadata (in the mounted `.git/worktrees/`) dangles — a `git worktree prune` clears it. This is housekeeping, never a queue-halt (see below).
+- **Branch.** Each worktree is a **new branch off `HEAD`**, named for the work unit (the issue id / slot name, `/`→`-`). Re-entering the same issue **reuses** its existing worktree (match on the issue id in the worktree path) — the spec commit and branch creation happen once; subsequent `/faff-workit` runs resume in place.
+- **Provisioning** (performed by `setup-worktree.sh` when the hook fires): create the worktree + branch, copy gitignored local config into it (`.env*`, `.claude/settings.local.json`), then run the project's package-manager install / `setup` target. Skip the install with `SKIP_NPM_PACKAGES_INSTALL=1` — e.g. a Linux container with a macOS bind-mounted worktree, where installing would write platform-wrong binaries.
+- **Per-issue isolation is the contract.** Every build — sequential or parallel — runs in its **own** worktree; two builds never share one. This is what makes the `faffter-dark-concurrency-parallel` executor safe to run independents concurrently. A build agent (Implementor lane) sees only its worktree.
+- **Dirty worktree → park.** An unexpectedly dirty worktree is an autonomous park reason (see the Autonomous Mode Contract); a parked unit commits its WIP to its branch first (see the Park protocol).
+- **Cleanup is post-merge housekeeping.** Removing a merged worktree (and its branch) is housekeeping that **never halts the queue** — if it fails (shell still inside it, permission error), skip + log + continue, and surface it under the run's _Human follow-ups_ (see the Autonomous Mode Contract → post-merge housekeeping).
 
 ### Autonomous Mode Contract
 

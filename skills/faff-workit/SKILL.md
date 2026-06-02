@@ -15,6 +15,8 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ### Worktree Hook
 
+Workit owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section just registers the hook that enacts it.
+
 Workit needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.claude/settings.json` for a WorktreeCreate hook. If none exists:
 
 1. Check if a project-specific wrapper exists at `scripts/setup-worktree.sh` — if so, register that
@@ -87,6 +89,8 @@ Check the issue for an attached spec. Follow the shared **Spec discovery** rule 
 The gate ensures no one starts building without a validated spec. **A well-defined description is never a substitute.** If the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep` — never offer to build directly from the description, and never skip prep on the grounds that the description is already clear. (See the shared **Spec discovery** rule: "A description is never a spec.")
 
 **Step 3: Check for Existing Worktree**
+
+(Worktree layout and rules: gateway → **Worktree policy**. Worktrees live at `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`.)
 
 Run `git worktree list` and check if a worktree for this issue already exists (match on the issue ID in the path).
 
@@ -256,7 +260,7 @@ On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
 
 When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
 
-**Entry:** assumes issue exists, is not cancelled/archived, has a valid spec, and a dedicated worktree is already prepared (beep-boop handles worktree management per-issue to support parallel runs).
+**Entry:** assumes issue exists, is not cancelled/archived, has a valid spec, and a dedicated worktree is already prepared (per-issue worktree isolation per the gateway → **Worktree policy**; the `concurrency` slot relies on it for parallel runs).
 
 **Flow:**
 1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).

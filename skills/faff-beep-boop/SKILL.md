@@ -336,7 +336,7 @@ repeat-parked ⚠ (N)
 
 ## Human follow-ups: N
 - ISSUE-XX: delete local branch `feat/issue-xx` (cleanup skipped — shell was inside worktree)
-- ISSUE-YY: remove worktree `.worktrees/issue-yy` (cleanup skipped — permission denied)
+- ISSUE-YY: remove worktree `~/.faff/worktrees/faff/issue-yy` (cleanup skipped — permission denied)
 - ISSUE-ZZ: bump tracker status to Done (MCP returned 5xx during post-merge update)
 
 ## Prep queue summary (full mode only)

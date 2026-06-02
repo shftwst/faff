@@ -19,7 +19,7 @@ Read `concurrency_max` from `.faffrc` via the bundled resolver (`~/.claude/skill
 
 ## Worktree isolation
 
-Each in-flight build runs in its **own git worktree** (`/faff-workit` already creates one per issue — never share a worktree across concurrent builds). Two builds writing the same working tree is the one thing parallel execution must never do; the per-issue worktree is what makes independents safe to run together.
+Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<repo>/<branch>` (default; per the gateway → **Worktree policy**, `worktree_root`-overridable — `/faff-workit` creates one per issue, never shared across concurrent builds). Two builds writing the same working tree is the one thing parallel execution must never do; the per-issue worktree isolation guaranteed by that policy is what makes independents safe to run together.
 
 ## Scheduling the partition
 

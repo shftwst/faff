@@ -15,13 +15,24 @@ fi
 
 REPO_NAME=$(basename "$CWD")
 SAFE_NAME=$(echo "$NAME" | tr '/' '-')
-WORKTREE_PATH="$CWD/.claude/worktrees/${REPO_NAME}--${SAFE_NAME}"
-LOG="$CWD/.claude/worktrees/setup.log"
 
-mkdir -p "$CWD/.claude/worktrees"
+# Resolve the worktree root (see gateway -> Worktree policy), in precedence order:
+#   1. FAFF_WORKTREE_ROOT env override
+#   2. .faffrc `worktree_root` key (used as-is — .faffrc is per-repo)
+#   3. default ~/.faff/worktrees/<repo>  (writable on host and in repo-only mounts;
+#      outside the repo, so it keeps holdout/evaluator work isolated from the build)
+WT_ROOT="${FAFF_WORKTREE_ROOT:-}"
+if [ -z "$WT_ROOT" ] && [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/skills/faff/faffrc" ]; then
+  WT_ROOT=$( (cd "$CWD" && python3 "${CLAUDE_PLUGIN_ROOT}/skills/faff/faffrc" get worktree_root -d "") 2>/dev/null || true )
+fi
+[ -z "$WT_ROOT" ] && WT_ROOT="$HOME/.faff/worktrees/${REPO_NAME}"
+WORKTREE_PATH="$WT_ROOT/${SAFE_NAME}"
+LOG="$WT_ROOT/setup.log"
+
+mkdir -p "$WT_ROOT"
 exec 2>>"$LOG"
 
-echo "$(date '+%H:%M:%S') [worktree] Creating ${REPO_NAME}--${NAME}" >&2
+echo "$(date '+%H:%M:%S') [worktree] Creating ${WT_ROOT}/${SAFE_NAME}" >&2
 
 cd "$CWD" || exit 1
 

@@ -19,6 +19,8 @@ When two issues have equal priority, the one that unlocks more downstream work g
 
 Each output is a named capability a caller requests by name. This skill does not know or describe its callers — it answers the request from the graph. The answer is always graph-derived, never opinion-derived. The canonical set of named outputs (which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**; the sections below are this skill's structural implementation of that contract.
 
+It does **not** answer the optional `issue-critique` output — per-issue right-sizing/workstream/risk critique is an opinionated lens, and this default is pure structure. Unanswered is contract-valid: `/faff-prep` simply omits the `## Methodology critique` block (the agile lens is the one that fills it).
+
 ### `pick-ordering`
 
 Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top.

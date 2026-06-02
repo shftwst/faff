@@ -41,14 +41,9 @@ The spec is a high-level design document. It does **not** contain implementation
 
 **Methodology critique block (rendered only when a `methodology` skill is configured).**
 
-After the main spec body, append a `## Methodology critique` section answering, for the issue being prepped (the questions below are the agile-delivery lens; under a different configured methodology, ask that methodology for its own issue-level critique shape):
+After the main spec body, **request the `issue-critique` output from the configured methodology** (gateway → **The `methodology` slot**, an Optional named output) — pass the issue + its spec, and render what the lens returns. faff-prep does not impose the critique's shape; the configured methodology decides what it cares about. If the methodology doesn't answer `issue-critique` (e.g. the structural default), **omit the block**.
 
-- **Right-sized?** (principle 4) Does the scope fit a single 1–3 day unit? Does the spec cover two structurally independent concerns? If yes to the latter, recommend a split. If the issue is paired with a sibling that always ships together, recommend a merge.
-- **Workstream fit?** (principles 1 + 5) Is the issue in an outcome-named workstream? Is that workstream cohesive (single outcome)? If either fails, recommend the regrouping move.
-- **Deps surfaced?** (principle 6) Does the spec reference any other ticket's output (by ID or clear paraphrase) without a declared blocker link? If yes, flag each implicit dep with the recommended action (link it, or remove the reference).
-- **Risk profile?** (principle 7) Does the issue introduce novel-integration / external-dep / unproven-approach risk that warrants a de-risking spike before the full scope is committed? If yes, recommend the spike.
-
-Each answer renders the relevant diagnosis from the methodology's principle (full what's there / why / what to do shape) when there's something to surface; "No issues" when the principle's check passes.
+For reference, the agile-delivery lens answers `issue-critique` along these axes — right-sized? (principle 4: single 1–3 day unit, or two independent concerns → split; always-ships-together sibling → merge), workstream fit? (principles 1+5: outcome-named and cohesive), deps surfaced? (principle 6: implicit dep with no blocker link), risk profile? (principle 7: novel-integration/external-dep risk → de-risking spike) — each rendered as a full what's-there / why / what-to-do diagnosis when there's something to surface, "No issues" when the check passes. A different methodology returns its own axes.
 
 In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique block is written to the spec but does **not** block confidence-high promotion. It surfaces in the next `/faff-wtf` for the human.
 

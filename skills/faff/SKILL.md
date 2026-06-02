@@ -530,6 +530,7 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 | `ticket-shaping` | faff-noodle | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-noodle falls back to one ticket per brief item. |
 | `standup-digest` | faff-wtf | Optional | recent + ready + heads-up state → a brief. Unanswered → faff-wtf renders the ready-queue plainly. |
 | `horizon-assignment` | faff-whereto | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-whereto degrades to a flat structural roadmap. |
+| `issue-critique` | faff-prep | Optional | one issue + its spec → a per-issue critique through the methodology's lens (right-sizing, workstream fit, surfaced deps, risk — whatever the lens cares about). Unanswered → faff-prep omits the `## Methodology critique` block. The lens decides the critique's shape; faff-prep does not impose one. |
 
 **Standard envelope (every output).** Inputs a caller always supplies: the relevant issues, their state, sequencing, workstream grouping, and the dependency graph. Every output returns its named answer plus structured findings the caller can render, and a `Methodology: <name>` banner line for display. A methodology **does not know or describe its callers** — it answers the request from the state it's given; it never writes to the tracker (that's the orchestrator lane).
 
@@ -539,7 +540,6 @@ Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** 
 
 **What a replacement methodology owes (the swap floor).** Because cycle and ghost-project detection feed the fixed routing verdict, a swapped-in methodology **must** answer `backlog-diagnostics` with at least that graph detection — a methodology that drops it silently breaks `circular-blocked` / `gap-blocked` routing for the whole suite. A methodology that doesn't want to reimplement graph analysis **composes the structural default**: it calls `faffter-noon-methodology-structural`'s `backlog-diagnostics` for the graph floor and adds its own findings on top (this is exactly what `faffter-dark-methodology-agile-delivery` does — it is *additive over* the structural baseline, not a from-scratch replacement of it). The other required outputs (`pick-ordering`, `promotion-readiness`, `build-queue`) may be answered wholesale or by re-ranking the structural baseline.
 
-## Routing
 ## Mechanism slots (`concurrency`, `ship`)
 
 Two slots are pure **mechanisms** — they *perform an action* in the pipeline rather than produce a translatable artefact (`intake` produces a brief; the adaptors translate; methodology answers named outputs). A mechanism slot has **no paired adaptor** and **no named-output set**; its contract is the set of obligations its action must honour plus the fixed gateway invariants it may never weaken. This section is the **canonical, gateway-owned contract** for both, so it survives a swap — an occupant carries only its dialect/implementation and **refers back here** (per **Contract loading & conformance**), never an authoritative copy. The default occupant's `SKILL.md` documents *how the default* discharges the contract; it is not the source of the contract.
@@ -565,6 +565,7 @@ Merges/deploys a merge-ready PR inside `/faff-workit`'s Step 10. Default: vanill
 
 **Input.** A PR that has already passed the merge gate (AC-verified + CI-green + review `pass`). **Obligations:** (1) merge/deploy that PR via the occupant's mechanism; (2) **never merge a PR that hasn't passed the gate** — `ship` is the *mechanism*, not a second gate that can bypass the first; (3) surface failure (merge conflict, deploy error) back to faff-workit as a normal post-build failure, never silently. **Output.** The PR is merged (and deployed, if the occupant deploys); chained issues unblock.
 
+## Routing
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 

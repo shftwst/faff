@@ -5,7 +5,34 @@ description: "Gateway — routes to the right faff sub-skill. Use /faff-noodle t
 
 # Faff
 
-The stuff you do before actual work — but automated. This is a gateway — invoke the right sub-skill:
+## What faff is
+
+*Faff* (n.): the tedious palaver around the actual engineering. Writing the tickets, the specs, the test plans, the review write-ups, working out what's even worth doing. The stuff you know you *should* do properly and never get around to. faff does it for you, and then keeps going: stage by stage it takes the faff out of the delivery loop until, if you fancy, the whole thing runs without you. You keep the fun part (thinking about the problem and the architecture) and hand off the part where you'd actually, you know, *write the code*. Because, well, who codes any more anyway?!
+
+Under the hood it's a **harness**: a set of Claude Code skills wrapping the delivery loop (issue → spec → build → review → ship) in fixed contracts and gates. It won't make the model a better engineer. It makes it **safe to stop watching**, one step at a time.
+
+The **levels** aren't a faff feature. They're *how far you've wandered off from the loop*. One question sorts them: **who's running it, and what's keeping it from spontaneous robot combustion while your back's turned?**
+
+| Level | You're | Loop run by | What keeps it honest | Entry point |
+|---|---|---|---|---|
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-noodle`, `/faff-prep` |
+| **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-workit` |
+| **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
+| **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
+
+- **L1 · as the loop.** *You* write the code, your usual IDE agents along for the ride. faff plays planning exoskeleton here: it tells you what's worth building, hands you a spec worth building from, then gets out of the way.
+- **L2 · in the loop.** `/faff-workit` drives the build for one issue but stops at every gate (spec, build, review, PR) for your say-so. Nothing ships behind your back.
+- **L3 · on the loop.** `/faff-beep-boop` chews through the ready queue unattended and **parks** anything it can't call. The safety net isn't you staying awake, it's mechanical: the park protocol never quietly bins a loose end, and the run-ledger refuses to call a run "done" if it left admitted work dangling.
+- **L4 · out of the loop.** Lights-out. You've left the building entirely, and correctness is held up by *adversarial* machinery: a second model trying to break the change, isolated holdout worktrees marking the work against a spec it never got to peek at. The frontier. Not built yet, mind.
+
+Two knobs cut across all four levels. They're not levels themselves:
+
+- **Slots** decide *what* runs at each stage (a beefier spec, a harsher reviewer, a parallel build). Swapping these pluggable skills is how you progress through the levels, or bring your own to customise.
+- **Appetite** (for Destruction) sets *how much rope* the pipeline gets before checking back. More isn't always better: it buys speed against the odd "oops, wrong call, revert that."
+
+## Routing
+
+This is the gateway. Invoke the right sub-skill:
 
 | Command | Triggers |
 |---------|----------|
@@ -517,7 +544,7 @@ Two of the four contracts above pair a **producer** doing-slot with an **adaptor
 - **Producer slots** (`intake`, `spec`, `review`) *do the work* and emit native output. Swap one to change *how the work is done* (a different spec-explorer, a different reviewer). A swapped producer does **not** need to match the fixed contract's surface syntax — its paired adaptor (`spec_adaptor` / `review_adaptor`) is what maps its native output onto the fixed classes/states the pipeline branches on.
 - **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
 
-**Rule of thumb for an L3 swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake`, `concurrency`, and `ship` are pure producer/mechanism slots with no paired adaptor — they emit a documented brief (`intake` → the discovery brief, see `faffter-noon-intake`) or perform a mechanism (`concurrency` → executes the build pass over the conflict-analysis partition; `ship` → merge/deploy) and need no translation layer. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
+**Rule of thumb for a slot swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake`, `concurrency`, and `ship` are pure producer/mechanism slots with no paired adaptor — they emit a documented brief (`intake` → the discovery brief, see `faffter-noon-intake`) or perform a mechanism (`concurrency` → executes the build pass over the conflict-analysis partition; `ship` → merge/deploy) and need no translation layer. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
 
 ### Legacy contract aliases
 

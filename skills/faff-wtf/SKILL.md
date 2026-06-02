@@ -59,7 +59,7 @@ Query using the project/team details from `.faffrc` (`tracking.project_id` / `tr
 
 ### 4. Parked work (any source)
 
-Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-workit` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual L1 user parks too, and that work must resurface here — not only beep-boop's.
+Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-workit` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual user parks too (L1 prep, L2 build), and that work must resurface here — not only beep-boop's.
 
 **The `parked-by-faff` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `parked-by-faff` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
 
@@ -82,14 +82,14 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
-**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Above the focus picks, surface the **chains** themselves so the human can decide what's worth firing `/faff-beep-boop` at — this is the L2 "identify value chains to unlock" view. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
+**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Above the focus picks, surface the **chains** themselves so the human can decide what's worth firing `/faff-beep-boop` at — this is the L3 "identify value chains to unlock" view. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
 
 ```
 SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23   (3 issues, all currently blocked only by SHF-12)
 SHF-40  extract the billing client    →  unlocks SHF-41, SHF-42             (2 issues, parallel once SHF-40 ships)
 ```
 
-Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (i.e. would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. This is the one place wtf tells the L2 user *which lever ships the most downstream value*, rather than leaving chain-spotting to them. Skip the block when nothing has unlock value ≥ 2.
+Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (i.e. would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. This is the one place wtf tells the L3 user *which lever ships the most downstream value*, rather than leaving chain-spotting to them. Skip the block when nothing has unlock value ≥ 2.
 
 ### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 

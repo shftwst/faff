@@ -1,6 +1,6 @@
 {
   "name": "faff",
-  "description": "For developers who hate project management but still need to ship. Tells you what to work on, scopes it so you can just build, and sets up your worktree. Works with Linear, GitHub Issues, Jira, or any issue tracker via MCP.",
+  "description": "Takes the faff out of shipping software: the tickets, specs, test plans and review write-ups you never get around to, scaled all the way up to draining the backlog unattended while you're off thinking about the actual problem. Because, well, who codes any more anyway?!",
   "author": {
     "name": "Alec Hill"
   }

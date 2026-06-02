@@ -87,6 +87,8 @@ signal: pass | fail
 
 `pass` when no item fires. A missing refer-back note (item 2) or an authoritative-looking recap (item 3) is a `fail`, not a warning — those are exactly the drift/orphan bugs this skill exists to catch. A skill that redefines the fixed vocabulary (item 4) is `fail` regardless of how well-written it is.
 
+**Mechanical pre-check.** The bundled `~/.claude/skills/faff/validate-adapters` script is a fast, deterministic lint of the **shipped defaults** — it checks the *structural* half of this checklist (refer-back present, non-normative marker, methodology required-outputs named, mechanism points at its gateway contract) and exits non-zero on drift, so it's suitable for CI / pre-commit. It does **not** replace this Validate face: it can't judge the semantic items (4 "maps onto, never redefines", 7 "stays in its lane"). Run the script to catch structural drift cheaply; run this face for the judgement calls and for third-party occupants.
+
 ## Rules
 
 - This skill authors and audits; it never edits the gateway contract. If a slot genuinely needs a new fixed state/class/verdict, that is a change to faff-core in the gateway — proposed there first, never bolted onto an adaptor.

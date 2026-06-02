@@ -225,12 +225,13 @@ Before the build pass, partition the ready set into **independents** (safe to bu
 
 Heuristics — issues are considered likely to collide when any of these hold:
 
-1. Their specs name the same files
-2. Their specs name the same module directory (shallow check — top-level directory match)
-3. **One issue declares another in-queue issue as a blocker** — serialise the dependent behind the blocker. Both still build in this run.
-4. They share a scope tag / label that indicates a shared subsystem (per project conventions in `CLAUDE.md`)
+1. **Same file(s).** Their specs name one or more of the same files — exact path overlap.
+2. **Same directory at full-path granularity.** Their specs touch the same directory taken as a **full path from the repo root** — e.g. both under `src/auth/`. A shared *top-level* directory alone is **not** a collision: two issues both somewhere under `src/` (one in `src/auth/`, one in `src/billing/`) are independent. Match on the deepest shared directory the specs actually name, not the first path segment — top-level matching spuriously serialises half the queue.
+3. **Named shared module / util / symbol.** One spec names a module, utility, component, service, or symbol (in a `**Chosen:**` decision, the approach, or an `**Assumes:**`) that the other also edits or depends on — even when the file paths differ. A declared shared dependency collides: two issues that both modify `src/lib/auth.ts`'s exported `verifyToken`, or both extend the same base component, will conflict regardless of which files name it. Use what the specs *declare* (no import-graph build is required); a shared named surface is the collision signal.
+4. **Declared blocker.** One issue declares another in-queue issue as a blocker — serialise the dependent behind the blocker. Both still build in this run.
+5. **Shared scope tag / label** that indicates a shared subsystem (per project conventions in `CLAUDE.md`).
 
-When in doubt, serialise. Parallelism is a speedup, not a correctness requirement — a false-positive collision costs a little time; a false-negative costs merge conflicts and broken builds.
+When in doubt, serialise. Parallelism is a speedup, not a correctness requirement — a false-positive collision costs a little time; a false-negative costs merge conflicts and broken builds. The full-path rule (2) trims the false positives that collapse the queue to near-sequential; the named-shared-surface rule (3) catches the false negatives that bare path-matching misses. The parallel executor's rebase-before-merge step (see the `concurrency` slot) is the backstop for any collision that slips through both.
 
 **What conflict analysis does NOT do:** it does not park issues. Everything that reached build-ready (spec present, not cancelled/archived, no external dependency missing from the run's combined queue) gets built — either as an independent or as an element of a serialised group. If you find yourself writing "park SHF-X because SHF-Y is Todo" during conflict analysis, stop: SHF-Y is Todo *in this run's queue*, so the correct action is `[SHF-Y, SHF-X]` as a serialised collision group, not a park.
 

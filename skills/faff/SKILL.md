@@ -23,13 +23,13 @@ All faff sub-skills read their configuration from a **`.faffrc`** file at the re
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
-**Resolver.** The bundled `faff` CLI — `~/.claude/skills/faff/faff` (run with `python3` if not executable) — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
+**Resolver.** The bundled `faff` CLI — `~/.claude/skills/faff/faff.mjs`, a Node ES module (`node ~/.claude/skills/faff/faff.mjs …`) — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
 
-- `faff config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
-- `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
-- `faff config spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
+- `node faff.mjs config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
+- `node faff.mjs config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `… config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
+- `node faff.mjs config spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
 
-(The same `faff` CLI also hosts `faff runcheck` — the beep-boop ledger audit — and `faff validate-adapters` — the slot-skill conformance lint. One entrypoint for all bundled helpers.)
+(The same `faff.mjs` CLI also hosts `faff.mjs runcheck` — the beep-boop ledger audit — and `faff.mjs validate-adapters` — the slot-skill conformance lint. One Node entrypoint for all bundled helpers; requires only `node`, no dependencies.)
 
 It uses PyYAML when installed and otherwise a built-in parser for the documented subset. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (`mode`, `working_patterns`) can also be read this way but gain less from it.
 

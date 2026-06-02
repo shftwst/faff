@@ -1,0 +1,438 @@
+#!/usr/bin/env node
+// faff — the bundled CLI for the faff skill suite.
+//
+// Subcommands:
+//   config <path|get|spec-docs-path|dump> ...   resolve / read .faffrc
+//   runcheck [--hook] [--json] [RUN_DIR]         audit a /faff-beep-boop run ledger
+//   validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
+//
+// Single public entrypoint. Run with `node faff.mjs <subcommand>` (or directly if
+// the +x bit and the shebang survive install). Requires only Node — no deps.
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// ---------------------------------------------------------------------------
+// shared: find the repo root (dir containing .git or .faff), else cwd
+// ---------------------------------------------------------------------------
+function findRoot(start = process.cwd()) {
+  let d = path.resolve(start);
+  for (;;) {
+    if (fs.existsSync(path.join(d, ".git")) || fs.existsSync(path.join(d, ".faff"))) return d;
+    const parent = path.dirname(d);
+    if (parent === d) return path.resolve(start);
+    d = parent;
+  }
+}
+
+// ===========================================================================
+// config — resolve / read .faffrc (YAML subset, no deps)
+// ===========================================================================
+const CANDIDATES = [".faffrc.yaml", ".faffrc.yml", ".faffrc"];
+
+function findConfig(root) {
+  const found = CANDIDATES
+    .filter((n) => !n.includes(".example") && fs.existsSync(path.join(root, n)) &&
+                   fs.statSync(path.join(root, n)).isFile())
+    .map((n) => path.join(root, n));
+  if (found.length > 1) {
+    const err = new Error("multiple-config");
+    err.files = found;
+    throw err;
+  }
+  return found[0] ?? null;
+}
+
+function stripInlineComment(s) {
+  const out = [];
+  let quote = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (quote) {
+      out.push(c);
+      if (c === quote) quote = null;
+    } else if (c === '"' || c === "'") {
+      quote = c;
+      out.push(c);
+    } else if (c === "#" && (i === 0 || s[i - 1] === " ")) {
+      break;
+    } else {
+      out.push(c);
+    }
+  }
+  return out.join("").replace(/\s+$/, "");
+}
+
+function scalar(v) {
+  v = v.trim();
+  if (!v) return null;
+  if ((v[0] === '"' && v.at(-1) === '"') || (v[0] === "'" && v.at(-1) === "'")) return v.slice(1, -1);
+  const low = v.toLowerCase();
+  if (low === "true" || low === "false") return low === "true";
+  if (low === "null" || low === "~") return null;
+  if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+  if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
+  return v;
+}
+
+function parseYamlSubset(text) {
+  const raw = text.split("\n");
+  const n = raw.length;
+  const cur = { i: 0 };
+  const isSkip = (line) => { const s = line.trim(); return s === "" || s.startsWith("#"); };
+  const indentOf = (line) => line.length - line.replace(/^ +/, "").length;
+
+  function collectBlockScalar(parentIndent) {
+    const lines = [];
+    let base = null;
+    while (cur.i < n) {
+      const line = raw[cur.i];
+      if (line.trim() === "") { lines.push(""); cur.i++; continue; }
+      const ind = indentOf(line);
+      if (ind <= parentIndent) break;
+      if (base === null) base = ind;
+      lines.push(line.slice(base));
+      cur.i++;
+    }
+    while (lines.length && lines.at(-1) === "") lines.pop();
+    return lines.length ? lines.join("\n") + "\n" : "";
+  }
+
+  function parseMap(minIndent) {
+    const result = {};
+    while (cur.i < n) {
+      const line = raw[cur.i];
+      if (isSkip(line)) { cur.i++; continue; }
+      const ind = indentOf(line);
+      if (ind !== minIndent) break;
+      const content = stripInlineComment(line.trim());
+      if (content === "") { cur.i++; continue; }
+      const ci = content.indexOf(":");
+      const key = (ci === -1 ? content : content.slice(0, ci)).trim();
+      const val = (ci === -1 ? "" : content.slice(ci + 1)).trim();
+      cur.i++;
+      if (["|", "|-", "|+", ">", ">-", ">+"].includes(val)) {
+        result[key] = collectBlockScalar(minIndent);
+      } else if (val === "") {
+        let j = cur.i;
+        while (j < n && isSkip(raw[j])) j++;
+        result[key] = (j < n && indentOf(raw[j]) > minIndent) ? parseMap(indentOf(raw[j])) : null;
+      } else {
+        result[key] = scalar(val);
+      }
+    }
+    return result;
+  }
+  return parseMap(0);
+}
+
+function dig(data, dotted) {
+  let cur = data;
+  for (const part of dotted.split(".")) {
+    if (cur && typeof cur === "object" && !Array.isArray(cur) && part in cur) cur = cur[part];
+    else return null;
+  }
+  return cur;
+}
+
+function fmt(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return String(value);
+}
+
+function loadConfig(root) {
+  const p = findConfig(root);
+  if (p === null) return [{}, null];
+  const data = parseYamlSubset(fs.readFileSync(p, "utf8"));
+  return [(data && typeof data === "object" && !Array.isArray(data)) ? data : {}, p];
+}
+
+function resolveSpecDocsPath(root, data, create) {
+  let rel;
+  const val = dig(data, "tracking.spec_docs_path");
+  if (val) rel = String(val).trim().replace(/\/+$/, "");
+  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/specs";
+  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/specs";
+  else rel = "docs/specs";
+  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
+  return rel;
+}
+
+function cmdConfig(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  root = root || findRoot();
+  const cmd = rest[0];
+  try {
+    if (cmd === "path") {
+      const p = findConfig(root);
+      if (p === null) return 3;
+      console.log(p);
+      return 0;
+    }
+    if (cmd === "get") {
+      const key = rest[1];
+      let def = null;
+      const di = rest.findIndex((a, i) => i > 1 && (a === "-d" || a === "--default"));
+      if (di !== -1) def = rest[di + 1] ?? null;
+      const [data] = loadConfig(root);
+      const value = dig(data, key);
+      if (value === null || value === undefined) {
+        if (def !== null) console.log(def);
+        return 3;
+      }
+      console.log(fmt(value));
+      return 0;
+    }
+    if (cmd === "spec-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolveSpecDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
+    if (cmd === "dump") {
+      const [data] = loadConfig(root);
+      console.log(JSON.stringify(data, null, 2));
+      return 0;
+    }
+  } catch (e) {
+    if (e.message === "multiple-config") {
+      const names = e.files.map((f) => path.basename(f)).join(", ");
+      process.stderr.write(`faff config: multiple config files at the repo root (${names}); keep only one.\n`);
+      return 2;
+    }
+    throw e;
+  }
+  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump\n");
+  return 2;
+}
+
+// ===========================================================================
+// runcheck — verify a beep-boop run dispatched its queue
+// ===========================================================================
+const TERMINAL_STATES = new Set(["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"]);
+
+function latestRunDir(root) {
+  const runs = path.join(root, ".faff", "runs");
+  if (!fs.existsSync(runs)) return null;
+  const cands = fs.readdirSync(runs)
+    .map((name) => path.join(runs, name))
+    .filter((p) => fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, "run-ledger.json")));
+  if (!cands.length) return null;
+  return cands.sort()[cands.length - 1]; // run-ids are date-prefixed → lexical == chronological
+}
+
+function auditRun(runDir) {
+  const data = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+  const admitted = [...new Set(data.admitted ?? [])];
+  const outcomes = data.outcomes ?? {};
+  if (typeof outcomes !== "object" || Array.isArray(outcomes)) throw new Error("outcomes must be an object");
+  const undispatched = admitted.filter((i) => !(i in outcomes));
+  const invalid = [...new Set(Object.entries(outcomes)
+    .filter(([, s]) => !TERMINAL_STATES.has(s)).map(([i, s]) => `${i}=${s}`))].sort();
+  return {
+    run_id: data.run_id ?? path.basename(runDir),
+    run_dir: runDir, admitted, undispatched, invalid_outcomes: invalid,
+    clean: undispatched.length === 0 && invalid.length === 0,
+  };
+}
+
+function resolveRunDir(arg) {
+  if (arg) return fs.existsSync(path.join(arg, "run-ledger.json")) ? arg : null;
+  return latestRunDir(findRoot());
+}
+
+function cmdRuncheck(args) {
+  const hook = args.includes("--hook");
+  const asJson = args.includes("--json");
+  const positional = args.filter((a) => !a.startsWith("-"));
+  const runDir = resolveRunDir(positional[0]);
+
+  if (hook) {
+    if (!runDir) return 0;
+    let result;
+    try { result = auditRun(runDir); } catch { return 0; }
+    if (result.undispatched.length) {
+      const reason =
+        `faff runcheck: the latest beep-boop run (${result.run_id}) has ` +
+        `${result.undispatched.length} admitted issue(s) with no terminal outcome: ` +
+        `${result.undispatched.join(", ")}. These were admitted to the build queue but never ` +
+        `dispatched — that is a deferred queue, not a complete run. Dispatch them (or genuinely ` +
+        `park them under a valid category) before stopping.`;
+      console.log(JSON.stringify({ decision: "block", reason }));
+    }
+    return 0;
+  }
+
+  if (!runDir) { process.stderr.write("runcheck: no .faff/runs/*/run-ledger.json found\n"); return 2; }
+  let result;
+  try {
+    result = auditRun(runDir);
+  } catch (e) {
+    process.stderr.write(`runcheck: missing or malformed ledger in ${runDir}: ${e.message}\n`);
+    return 2;
+  }
+
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    console.log(`run:       ${result.run_id}`);
+    console.log(`admitted:  ${result.admitted.length}`);
+    if (result.invalid_outcomes.length) console.log(`INVALID outcomes: ${result.invalid_outcomes.join(", ")}`);
+    if (result.undispatched.length) {
+      console.log(`UNDISPATCHED (${result.undispatched.length}): ${result.undispatched.join(", ")}`);
+      console.log("→ run is NOT complete: dispatch these or park them under a valid category.");
+    } else {
+      console.log("clean: every admitted issue reached a terminal outcome.");
+    }
+  }
+  if (result.undispatched.length) return 3;
+  if (result.invalid_outcomes.length) return 2;
+  return 0;
+}
+
+// ===========================================================================
+// validate-adapters — structural conformance lint of the shipped slot skills
+// ===========================================================================
+const REGISTRY = {
+  "faffidavit-spec": { type: "adaptor", slot: "spec_adaptor" },
+  "faffidavit-review": { type: "adaptor", slot: "review_adaptor" },
+  "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor" },
+  "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
+  "faffter-noon-methodology-structural": { type: "methodology" },
+  "faffter-dark-methodology-agile-delivery": { type: "methodology" },
+  "faffter-noon-concurrency-sequential": { type: "mechanism" },
+  "faffter-dark-concurrency-parallel": { type: "mechanism" },
+  "faffter-noon-spec": { type: "producer-spec" },
+  "faffter-dark-nlspec": { type: "producer-spec" },
+  "faffter-noon-intake": { type: "producer-intake" },
+  "faffter-noon-review": { type: "producer-review" },
+  "faffter-dark-adversarial-review": { type: "producer-review" },
+};
+const SKIP = new Set(["faffter-dark-authoring-adaptors"]);
+const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "promotion-readiness", "build-queue"];
+const REFER_BACK = /Read\s+`?~\/\.claude\/skills\/faff\/SKILL\.md/;
+const NON_NORMATIVE = /non-normative|gateway wins/i;
+
+function checksFor(meta, t) {
+  const out = [];
+  const has = (s) => t.includes(s);
+  switch (meta.type) {
+    case "adaptor":
+      out.push([REFER_BACK.test(t), "refer-back to ~/.claude/skills/faff/SKILL.md when standalone"]);
+      out.push([NON_NORMATIVE.test(t), "recap marked non-normative / 'gateway wins'"]);
+      out.push([has(meta.slot), `names its slot (${meta.slot})`]);
+      out.push([!t.toLowerCase().includes("no internal contract"),
+                "an adaptor over a fixed contract must NOT claim 'no internal contract'"]);
+      break;
+    case "pure-adaptor":
+      out.push([t.toLowerCase().includes("no internal contract"), "pure adaptor declares it has no internal contract"]);
+      out.push([has(meta.slot), `names its slot (${meta.slot})`]);
+      break;
+    case "methodology":
+      for (const o of REQUIRED_METHODOLOGY_OUTPUTS) out.push([has(o), `answers required output \`${o}\``]);
+      out.push([has("methodology` slot") || has("methodology slot"), "references the gateway methodology-slot contract"]);
+      break;
+    case "mechanism":
+      out.push([has("Mechanism slots") || has("slot contract"), "refers back to the gateway mechanism-slot contract"]);
+      out.push([has("merge gate"), "states it never weakens the merge gate"]);
+      out.push([has("ledger"), "records terminal outcomes to the run ledger"]);
+      break;
+    case "producer-spec":
+      out.push([has("spec_adaptor") || has("spec contract"), "maps onto the spec_adaptor contract"]);
+      out.push([t.toLowerCase().includes("confidence"), "emits a confidence self-rating"]);
+      break;
+    case "producer-intake":
+      out.push([t.toLowerCase().includes("discovery brief"), "emits a discovery brief"]);
+      break;
+    case "producer-review":
+      out.push([has("review_adaptor") || /pass[\s\S]*fail[\s\S]*needs-human/.test(t),
+                "maps onto the review-verdict contract (pass/fail/needs-human)"]);
+      break;
+  }
+  return out;
+}
+
+function cmdValidateAdapters(args) {
+  let skillsDir;
+  const di = args.indexOf("--skills-dir");
+  if (di !== -1) {
+    skillsDir = args[di + 1];
+  } else {
+    // script-relative: faff.mjs lives in skills/faff/, so the skills root is its parent
+    const cand = path.resolve(HERE, "..");
+    skillsDir = fs.existsSync(path.join(cand, "faffidavit-spec")) ? cand : "skills";
+  }
+  if (!fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) {
+    process.stderr.write(`validate-adapters: skills dir not found: ${skillsDir}\n`);
+    return 2;
+  }
+
+  const present = fs.readdirSync(skillsDir)
+    .filter((d) => (d.startsWith("faffidavit-") || d.startsWith("faffter-")) &&
+                   fs.existsSync(path.join(skillsDir, d, "SKILL.md")))
+    .sort();
+
+  let failed = false;
+  const uncovered = [];
+  for (const name of present) {
+    if (SKIP.has(name)) continue;
+    const meta = REGISTRY[name];
+    if (!meta) { uncovered.push(name); continue; }
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    const results = checksFor(meta, text);
+    const bad = results.filter(([ok]) => !ok).map(([, label]) => label);
+    if (bad.length) {
+      failed = true;
+      console.log(`FAIL  ${name} (${meta.type})`);
+      for (const label of bad) console.log(`        ✗ ${label}`);
+    } else {
+      console.log(`pass  ${name} (${meta.type}) — ${results.length} checks`);
+    }
+  }
+  for (const n of Object.keys(REGISTRY)) {
+    if (!present.includes(n)) console.log(`WARN  ${n} is registered but not present on disk`);
+  }
+  if (uncovered.length) {
+    console.log("");
+    for (const n of uncovered) {
+      console.log(`UNCOVERED  ${n} — a shipped slot skill with no registered checks; add it to validate-adapters`);
+    }
+    return 2;
+  }
+  console.log("");
+  const linted = present.filter((n) => !SKIP.has(n)).length;
+  console.log(`RESULT: ${failed ? "FAIL" : "PASS"} (${linted} slot skills linted)`);
+  return failed ? 1 : 0;
+}
+
+// ===========================================================================
+// dispatch
+// ===========================================================================
+const USAGE = `faff — the bundled CLI for the faff skill suite.
+
+Subcommands:
+  config <path|get|spec-docs-path|dump> ...   resolve / read .faffrc
+  runcheck [--hook] [--json] [RUN_DIR]         audit a /faff-beep-boop run ledger
+  validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
+`;
+
+function main(argv) {
+  const [sub, ...rest] = argv;
+  if (!sub) { process.stderr.write(USAGE); return 2; }
+  if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
+  if (sub === "config") return cmdConfig(rest);
+  if (sub === "runcheck") return cmdRuncheck(rest);
+  if (sub === "validate-adapters") return cmdValidateAdapters(rest);
+  process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
+  return 2;
+}
+
+process.exitCode = main(process.argv.slice(2));

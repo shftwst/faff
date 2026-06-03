@@ -320,7 +320,7 @@ const REGISTRY = {
 };
 const SKIP = new Set(["faffter-dark-authoring-adaptors"]);
 const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "promotion-readiness", "build-queue"];
-const REFER_BACK = /Read\s+`?~\/\.claude\/skills\/faff\/SKILL\.md/;
+const REFER_BACK = /Read[^\n]*\bfaff\/SKILL\.md/;
 const NON_NORMATIVE = /non-normative|gateway wins/i;
 
 function checksFor(meta, t) {
@@ -328,7 +328,7 @@ function checksFor(meta, t) {
   const has = (s) => t.includes(s);
   switch (meta.type) {
     case "adaptor":
-      out.push([REFER_BACK.test(t), "refer-back to ~/.claude/skills/faff/SKILL.md when standalone"]);
+      out.push([REFER_BACK.test(t), "refer-back: Read the sibling faff/SKILL.md when standalone"]);
       out.push([NON_NORMATIVE.test(t), "recap marked non-normative / 'gateway wins'"]);
       out.push([has(meta.slot), `names its slot (${meta.slot})`]);
       out.push([!t.toLowerCase().includes("no internal contract"),

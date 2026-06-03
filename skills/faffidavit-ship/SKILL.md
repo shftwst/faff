@@ -23,7 +23,7 @@ The delivery-outcome contract itself is a faff-core invariant and lives in the g
 
 This skill does not get to change any of that. What it owns is the *envelope and translation* — how a `ship` producer's native result is shaped and parsed into those fixed outcomes. That is what makes the slot swappable: a deploy-capable producer plugs in behind a different adaptor, and faff-graft still routes on the same three outcomes.
 
-**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-graft` reads the gateway on entry), so when you run as the `ship_adaptor` slot it is already in context. If you are invoked **standalone** (normalising a delivery result on demand), **Read `~/.claude/skills/faff/SKILL.md` → _Core contracts and adaptor slots → Delivery outcome_ now** before mapping. Refer back to it; the recap below is non-normative and the gateway wins on any conflict.
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-graft` reads the gateway on entry), so when you run as the `ship_adaptor` slot it is already in context. If you are invoked **standalone** (normalising a delivery result on demand), **Read the sibling `faff/SKILL.md` → _Core contracts and adaptor slots → Delivery outcome_ now** before mapping. Refer back to it; the recap below is non-normative and the gateway wins on any conflict.
 
 ## The three outcomes (non-normative recap for translation)
 

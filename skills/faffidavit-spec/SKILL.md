@@ -24,7 +24,7 @@ The spec-readiness contract itself is a faff-core invariant and lives in the gat
 
 An autonomous reader needs to parse specs mechanically against that fixed classification — without it, the reader falls back to topic-keyword scanning and re-raises closed decisions as human blockers. This skill does not get to change the classification or the gate. What it owns is the *dialect* — the concrete markers that encode closed/open/external, the writing style that keeps a spec parseable, and the confidence line's format. That is what makes the slot swappable: a third-party spec format plugs in behind a different adaptor that maps its structure onto the same three classes + confidence, and faff-prep still gates the same way.
 
-**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-prep` reads the gateway on entry), so when you run as the `spec_adaptor` slot it is already in context. If you are invoked **standalone** ("validate the spec for SHF-123"), **Read `~/.claude/skills/faff/SKILL.md` → _Core contracts and adaptor slots → Spec readiness_ now** before validating. The bullets above are a non-normative recap; the gateway wins on any conflict.
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-prep` reads the gateway on entry), so when you run as the `spec_adaptor` slot it is already in context. If you are invoked **standalone** ("validate the spec for SHF-123"), **Read the sibling `faff/SKILL.md` → _Core contracts and adaptor slots → Spec readiness_ now** before validating. The bullets above are a non-normative recap; the gateway wins on any conflict.
 
 ## Two faces
 

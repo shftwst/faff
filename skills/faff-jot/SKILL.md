@@ -14,7 +14,7 @@ One skill, two starting points — **not** separate commands per item type:
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the ignore-cancelled/archived rule, `.faff/` logging layout, and the slot contracts this skill applies. Loading it here means the `intake` and `methodology` slots jot delegates to inherit these ambiently.
+**Load the gateway first.** This skill is usually entered directly (slash command), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the ignore-cancelled/archived rule, `.faff/` logging layout, and the slot contracts this skill applies. Loading it here means the `intake` and `methodology` slots jot delegates to inherit these ambiently.
 
 ## Lane
 

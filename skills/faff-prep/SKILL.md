@@ -15,7 +15,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed spec-readiness contract** prep gates on. Loading it here means the `spec` and `spec_adaptor` slots prep delegates to inherit these ambiently.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed spec-readiness contract** prep gates on. Loading it here means the `spec` and `spec_adaptor` slots prep delegates to inherit these ambiently.
 
 ### Spec slot (always delegated)
 
@@ -104,7 +104,7 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ### Scenario A: Fresh prep (no existing spec)
 
-Apply the shared **Spec discovery** rule first (`~/.claude/skills/faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
+Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
 - Read the issue (title, description, ACs, dependencies, labels). Skip if cancelled or archived.
@@ -135,7 +135,7 @@ On `high` confirm (or `medium` → `build`), invoke `/faff-graft ISSUE-XX` via t
 
 ### Scenario B: Resume (existing spec found)
 
-The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (`~/.claude/skills/faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
+The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (the sibling `faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
 
 **Step 1: Restore working state** — pull the spec from whichever source had it. If multiple sources exist, use the most recently modified one and note the others in the log. **Note the spec comment's timestamp** — you'll use it in the next step.
 
@@ -197,7 +197,7 @@ Everything else is unchanged: the producer still runs, marker validation and the
 
 ## Autonomous Mode
 
-When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
+When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
 
 Two allowed auto-spec paths. Both invoke the shared subroutine documented immediately below at the points named in their respective sections.
 
@@ -265,7 +265,7 @@ Apply the gate to the producer's output:
 
 ### Park protocol
 
-Follow the shared park protocol (see `~/.claude/skills/faff/SKILL.md`):
+Follow the shared park protocol (see the sibling `faff/SKILL.md`):
 - Post a tracker comment with cause (e.g. "low-confidence fresh-spec", "architectural change required in refresh")
 - Tag the issue `parked-by-faff`
 - Log to `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` with the full reasoning

@@ -19,9 +19,9 @@ Invoked by `/faff-graft`'s **Step 10** (the merge-confidence gate) once the inte
 
 ## The contract
 
-The delivery-outcome contract is **fixed in the gateway** — see `~/.claude/skills/faff/SKILL.md` → **Core contracts and adaptor slots** → _Delivery outcome (fixed) → `ship_adaptor`_. It is the authoritative definition for **every** `ship` producer (this default and any deploy-capable third party): the three outcomes (`shipped` / `not-ready:<reason>` / `failed:<reason>`), the two-tier gate (non-delegable integrity floor + the producer's own deploy-readiness tier), and the coercion rule (a result the adaptor can't map normalises to `failed`, never `shipped`). This skill **refers back** to that contract; the recap here is non-normative and the gateway wins on any conflict.
+The delivery-outcome contract is **fixed in the gateway** — see the sibling `faff/SKILL.md` → **Core contracts and adaptor slots** → _Delivery outcome (fixed) → `ship_adaptor`_. It is the authoritative definition for **every** `ship` producer (this default and any deploy-capable third party): the three outcomes (`shipped` / `not-ready:<reason>` / `failed:<reason>`), the two-tier gate (non-delegable integrity floor + the producer's own deploy-readiness tier), and the coercion rule (a result the adaptor can't map normalises to `failed`, never `shipped`). This skill **refers back** to that contract; the recap here is non-normative and the gateway wins on any conflict.
 
-**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-graft` reads the gateway on entry), so when you run as the `ship` slot it is already in context. If invoked standalone, **Read `~/.claude/skills/faff/SKILL.md` → _Delivery outcome (fixed) → `ship_adaptor`_ now** before delivering.
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-graft` reads the gateway on entry), so when you run as the `ship` slot it is already in context. If invoked standalone, **Read the sibling `faff/SKILL.md` → _Delivery outcome (fixed) → `ship_adaptor`_ now** before delivering.
 
 ## How the default runs it
 

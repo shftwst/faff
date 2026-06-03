@@ -8,7 +8,7 @@ description: "Default `ship_adaptor` — translates a ship producer's native del
 The default **adaptor** for the `ship_adaptor` slot. It translates a `ship` producer's native delivery result — a `gh`/CI/deploy tool's exit status and logs — into faff-core's fixed delivery-outcome contract (the three outcomes faff-graft routes on), and **validates** conformance on demand. A `faffidavit-*` skill: it both *defines* its dialect and *checks* conformance, so it's invokable rather than a passive document.
 
 ```yaml
-planning_skills:
+slots:
   ship_adaptor: faffidavit-ship   # the default — explicit for clarity
 ```
 

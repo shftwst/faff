@@ -10,7 +10,7 @@ The default **adaptor** for the `spec_adaptor` slot. It translates a spec produc
 Every spec producer (`faffter-noon-spec`, `faffter-dark-nlspec`, any delegated `spec` skill) conforms to it; faff-prep delegates its pre-attach validation to it.
 
 ```yaml
-planning_skills:
+slots:
   spec_adaptor: faffidavit-spec   # the default — explicit for clarity
 ```
 

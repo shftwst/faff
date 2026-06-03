@@ -8,7 +8,7 @@ description: "Default `concurrency` executor — runs faff-beep-boop's build pas
 The default executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass **sequentially** — one `/faff-graft` at a time — over the partition that conflict analysis produced. The safe, zero-contention default: no worktree juggling, no merge races, no concurrency cap to tune. Swap to `faffter-dark-concurrency-parallel` when you want speed and your project can absorb concurrent worktrees.
 
 ```yaml
-planning_skills:
+slots:
   concurrency: faffter-noon-concurrency-sequential   # the default — explicit for clarity
 ```
 

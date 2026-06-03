@@ -10,7 +10,7 @@ The default methodology. Pure structural analysis — ordering by unlock value, 
 This is what runs when no other methodology is configured. It's extracted here so it can be referenced, tested, and eventually swapped.
 
 ```yaml
-planning_skills:
+slots:
   methodology: faffter-noon-methodology-structural   # the default — explicit for clarity
 ```
 

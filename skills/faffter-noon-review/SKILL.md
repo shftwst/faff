@@ -10,7 +10,7 @@ The default code review. Faff-graft plays the senior-engineer role — reads the
 This is the implicit default when no `review` slot is configured. Extracted here so it can be referenced, tested, and swapped for a delegated skill (e.g. `gstack:review`) or an alternative faffter-dark review.
 
 ```yaml
-planning_skills:
+slots:
   review: faffter-noon-review   # the default — explicit for clarity
 ```
 

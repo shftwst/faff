@@ -73,7 +73,7 @@ tracking:
   git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
   spec_docs_path: docs/specs/                                   # where faff-graft commits specs (see Spec docs location)
 
-planning_skills:             # optional delegation slots; each has a faff default when unset
+slots:             # optional delegation slots; each has a faff default when unset
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
@@ -81,7 +81,7 @@ planning_skills:             # optional delegation slots; each has a faff defaul
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
   ship_adaptor: faffidavit-ship                      # adaptor: maps the ship producer's native result onto shipped/not-ready/failed
 
-# mode: delivery-lead is DEPRECATED — use planning_skills.methodology instead
+# mode: delivery-lead is DEPRECATED — use slots.methodology instead
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
@@ -119,12 +119,12 @@ tracking:
 
 Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. The `faff config spec-docs-path [--create]` resolver applies this exact rule — sub-skills call it rather than re-deriving the path. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
 
-### Planning Skills (optional delegation slots)
+### Slots (optional delegation)
 
-Faff delegates specialised work to configured skills. Slots live under the `planning_skills:` key in `.faffrc`. All slots are optional — each has a sensible faff default when unset.
+Faff delegates specialised work to configured skills. Slots live under the `slots:` key in `.faffrc`. All slots are optional — each has a sensible faff default when unset.
 
 ```yaml
-planning_skills:
+slots:
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery, optional
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop, optional (default faffter-noon-concurrency-sequential)
@@ -352,7 +352,7 @@ Universal rules in autonomous mode:
   - Session length, turn count, "this will take many steps", "I've already done a lot this session" — none of these are ambiguities. Do the work.
   - Worries about whether you'll remember earlier steps — you don't need to. The log captures what was decided; the tracker captures status; git captures diffs. Future-you (or a resumed session) reads state, it doesn't remember it.
   - Beep-boop processes issues via the `concurrency` slot (sequentially by default, or concurrently when the parallel executor is configured). Each `/faff-graft` invocation is an independent unit — if compaction happens mid-build, resume from `.faff/runs/<run-id>/ISSUE-XX/graft.md` + the branch/PR state. This is a feature, not a risk.
-  - **Forbidden park reasons (explicit list):** "session may compact", "context is getting long", "too many turns", "too many issues left in the queue", "risk of another compaction", "mid-build compaction would be ambiguous", "single-session capacity constraints", "single-conversation context budget", "honest orchestration is to do fewer", "depends on a Todo issue that's also in this run", "large scope + external dep addition", "would introduce a new package as first LLM/SDK/XXX site", "chained issue — waiting for earlier to ship", "no `spec` skill configured", "no `concurrency` skill configured", "no `review` skill configured", "no `ship` skill configured", "Planning Skills slot unset". If one of these is the reason, **just proceed** — use the documented inline default (see `Planning Skills` defaults table above) or serialise via conflict analysis — it's not a real park. Autonomous mode uses the **same** sensible defaults as interactive when a slot is unset; missing slots are not capacity constraints.
+  - **Forbidden park reasons (explicit list):** "session may compact", "context is getting long", "too many turns", "too many issues left in the queue", "risk of another compaction", "mid-build compaction would be ambiguous", "single-session capacity constraints", "single-conversation context budget", "honest orchestration is to do fewer", "depends on a Todo issue that's also in this run", "large scope + external dep addition", "would introduce a new package as first LLM/SDK/XXX site", "chained issue — waiting for earlier to ship", "no `spec` skill configured", "no `concurrency` skill configured", "no `review` skill configured", "no `ship` skill configured", "a slot left unset". If one of these is the reason, **just proceed** — use the documented inline default (see `Slots` defaults table above) or serialise via conflict analysis — it's not a real park. Autonomous mode uses the **same** sensible defaults as interactive when a slot is unset; missing slots are not capacity constraints.
 - **"Deferred" / "queued for next run" / "not dispatched this conversation" is the same thing as "parked", just relabelled.** Renaming the category doesn't change the failure mode: ready work that should have been dispatched didn't get dispatched. Any of these phrasings — "deferred to next pass", "saved for the next /faff-beep-boop", "queue is unblocked, ready for next run", "single-conversation context budget", "didn't dispatch this conversation" — is a forbidden bail under a different name. If you find yourself writing one of those phrases in a run summary, the run is **not complete**: go back and dispatch the queue. The only valid run-end states are (i) the queue drained, (ii) every remaining issue is genuinely parked under one of the three valid categories, or (iii) the harness terminated the session externally (which leaves a `.faff/runs/<run-id>/` resumable from the next invocation — not a "deferred" state authored by you). In `/faff-beep-boop` this is **enforced mechanically**: the per-run ledger plus the `runcheck` script (and a Stop hook) fail any run that leaves a build-queue-admitted issue without a terminal outcome — see `/faff-beep-boop` → _Run ledger_.
 - **If conflict analysis produced a build queue, dispatching it is the next mandatory step.** Identifying waves and partitioning into independents/collision groups is not the finish line — it's the precondition to building. A run that ends after conflict analysis with the queue undispatched is an incomplete run, not a deferred one. Compaction during build is a resume (the `.faff/runs/<run-id>/` directory + PR/branch state make it resumable from a fresh session); pre-emptively stopping because compaction *might* happen is the same anti-pattern as pre-parking on "session may compact" — explicitly forbidden above.
 - **Log entries always include:** what was expected, what was observed, what decision was taken, and why.
@@ -417,7 +417,7 @@ The methodology slot's per-level response lives in the configured methodology sk
 #### What appetite NEVER changes (hard floor — applies at ALL levels including `full`)
 
 - **Destructive / irreversible operations still park.** Anything that can't be undone with `git revert` and a redeploy still escalates — production data, secrets, external messaging, irreversible cloud-resource changes.
-- **User-explicit "ask first" rules** in Planning Skills, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
+- **User-explicit "ask first" rules** in the `slots` config, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
 - **Cancellation / deletion** of issues or workstreams. No appetite level autonomously cancels or deletes. `full` adds scope (splits, merges, new tickets) but never removes it.
 - **Review runs and gates.** `full` does not skip or weaken the review. If it fails, the pipeline iterates or parks — never overrides.
 - **Spec quality.** Front-loaded prep still aims for `confidence: high`. `full` resolves more aggressively past the spec gate but doesn't lower the bar for what constitutes a good spec.

@@ -12,7 +12,7 @@ Plugs into the `review` slot — replaces the default review, not augments it. T
 Configure in `.faffrc`:
 
 ```yaml
-planning_skills:
+slots:
   review: faffter-dark-adversarial-review
 ```
 

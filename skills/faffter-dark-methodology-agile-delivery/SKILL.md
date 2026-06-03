@@ -10,7 +10,7 @@ Agile delivery methodology lens. Fills the `methodology` slot and answers reques
 Configure in `.faffrc`:
 
 ```yaml
-planning_skills:
+slots:
   methodology: faffter-dark-methodology-agile-delivery
 ```
 

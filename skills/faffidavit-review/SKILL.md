@@ -8,7 +8,7 @@ description: "Default `review_adaptor` — translates a reviewer's native output
 The default **adaptor** for the `review_adaptor` slot. It translates a reviewer's native output into faff-core's fixed review-verdict contract — the output envelope every reviewer returns, the parsing/normalisation of raw output into the three fixed states — and **validates** conformance on demand. A `faffidavit-*` skill: it both *defines* its dialect and *checks* conformance, so it's invokable rather than a passive document.
 
 ```yaml
-planning_skills:
+slots:
   review_adaptor: faffidavit-review   # the default — explicit for clarity
 ```
 

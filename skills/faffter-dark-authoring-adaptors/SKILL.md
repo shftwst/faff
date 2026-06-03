@@ -5,7 +5,7 @@ description: "Author or validate a faff slot skill. Scaffolds a new adaptor/prod
 
 # faffter-dark-authoring-adaptors
 
-The author/validate skill for **slot occupants** — anything you plug into a `planning_skills` slot: an adaptor (`spec_adaptor`, `review_adaptor`, `ship_adaptor`, `routing_adaptor`, `rendering_adaptor`), a producer (`intake`, `spec`, `review`, `ship`), a `methodology`, or a **mechanism** (`concurrency`). It exists to close the binding gap: slots are swappable, so a replacement skill must carry — *on its own* — the prose that lets it find and conform to the fixed contract it sits in front of. A shipped default does this by convention; a hand-written replacement easily forgets, and then nothing in the running system reminds it. This skill is that reminder, in two faces.
+The author/validate skill for **slot occupants** — anything you plug into a `slots` slot: an adaptor (`spec_adaptor`, `review_adaptor`, `ship_adaptor`, `routing_adaptor`, `rendering_adaptor`), a producer (`intake`, `spec`, `review`, `ship`), a `methodology`, or a **mechanism** (`concurrency`). It exists to close the binding gap: slots are swappable, so a replacement skill must carry — *on its own* — the prose that lets it find and conform to the fixed contract it sits in front of. A shipped default does this by convention; a hand-written replacement easily forgets, and then nothing in the running system reminds it. This skill is that reminder, in two faces.
 
 This is a `faffter-dark-*` skill — advanced tooling, not part of the day-to-day pipeline. You invoke it when writing or auditing a slot skill, not during normal faff use.
 

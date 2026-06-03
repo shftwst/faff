@@ -8,7 +8,7 @@ description: "Default `routing_adaptor` — assigns the automation-routing verdi
 The default **adaptor** for the `routing_adaptor` slot. It **assigns** an automation-routing verdict to a spec-gated issue — from `backlog-diagnostics` findings + spec confidence + markers + park history — renders the verdicts consumers display, and **validates** an assignment on demand. A `faffidavit-*` skill: it both *defines* its assignment/display dialect and *checks* conformance.
 
 ```yaml
-planning_skills:
+slots:
   routing_adaptor: faffidavit-routing   # the default — explicit for clarity
 ```
 

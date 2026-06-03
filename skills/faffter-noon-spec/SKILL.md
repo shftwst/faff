@@ -10,7 +10,7 @@ The default spec producer. Turns an issue plus explore findings into a buildable
 This is the implicit default for the `spec` slot when none is configured. It's the light counterpart to `faffter-dark-nlspec` (the heavy, formal full-nlspec producer): same slot, same contract, less ceremony. Extracted here so it can be invoked standalone, tested, and swapped.
 
 ```yaml
-planning_skills:
+slots:
   spec: faffter-noon-spec   # the default — explicit for clarity
 ```
 

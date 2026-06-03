@@ -8,7 +8,7 @@ description: "Concurrent build-pass executor for the `concurrency` slot — runs
 The concurrent executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass with **multiple `/faff-graft` invocations in flight at once**, each in its own git worktree, up to a configurable cap — with a **rebase-before-merge** rule so parallel PRs can't merge stale-green against a moving `main`. The speed option; the sequential default (`faffter-noon-concurrency-sequential`) is the safe one.
 
 ```yaml
-planning_skills:
+slots:
   concurrency: faffter-dark-concurrency-parallel
 # optional cap (default 4):
 concurrency_max: 4

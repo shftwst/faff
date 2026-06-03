@@ -12,7 +12,7 @@ The nlspec format draws on [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spe
 Configure in `.faffrc`:
 
 ```yaml
-planning_skills:
+slots:
   spec: faffter-dark-nlspec
 ```
 

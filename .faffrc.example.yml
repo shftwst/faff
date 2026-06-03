@@ -28,7 +28,7 @@ tracking:
 # Producers DO the work; adaptors TRANSLATE a producer's output onto a fixed
 # faff-core contract. Swap a producer to change behaviour; swap an adaptor only
 # when a producer speaks a dialect the default adaptor can't parse.
-planning_skills:
+slots:
   # Producers / mechanisms (do the work)
   intake: # new-work discovery used by /faff-jot and /faff-plot (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
   spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)

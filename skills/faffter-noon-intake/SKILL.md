@@ -10,7 +10,7 @@ The default intake / discovery producer. Turns a loose starting point — "I wan
 This is the implicit default for the `intake` slot when none is configured. It is the light, conversational counterpart to heavier ideation skills (`superpowers:brainstorming`, `gstack:office-hours`): same slot, same output contract, less ceremony. Extracted here so it can be invoked standalone, tested, and swapped.
 
 ```yaml
-planning_skills:
+slots:
   intake: faffter-noon-intake   # the default — explicit for clarity
 ```
 

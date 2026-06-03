@@ -10,7 +10,7 @@ The default **adaptor** for the `rendering_adaptor` slot — and the one slot wi
 Every sub-skill that emits user-facing output renders through it; it can be swapped wholesale for a different house style.
 
 ```yaml
-planning_skills:
+slots:
   rendering_adaptor: faffidavit-rendering   # the default — explicit for clarity
 ```
 

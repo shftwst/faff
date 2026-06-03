@@ -1,19 +1,19 @@
 ---
-name: faff-whereto
+name: faff-map
 description: "Roadmap synthesis — outcome initiatives, the workstreams under them, the dependency chains between them, and whether the trigger gates can actually fire. The strategic view above /faff-wtf. Trigger for: 'roadmap', 'where are we going', 'explain the backlog', 'do these join up', 'workstream view', 'strategy view', 'what are the chains', 'big picture', 'walk me through the plan', 'is the plan coherent'."
 ---
 
-# Faff — Whereto (Roadmap)
+# Faff — Map (Roadmap)
 
 > **Next steps:** `/faff-wtf` to drop down to today's focus · `/faff-tidy` if structural gaps need cleanup · `/faff-prep ISSUE-XX` to prep a critical-path issue
 
 Pull the live tracker state, synthesise an outcome → workstream → chain → gate roadmap, and tell the human whether the plan actually joins up. The tracker is the sole source of structure — initiatives, project nesting, status, dates, and blocker links are read live and the roadmap's shape is deduced from them.
 
-`/faff-wtf` answers "what should I do this morning?" `/faff-whereto` answers "where is this whole project going, and is the path coherent end-to-end?" Different altitude.
+`/faff-wtf` answers "what should I do this morning?" `/faff-map` answers "where is this whole project going, and is the path coherent end-to-end?" Different altitude.
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Loading it here means the `methodology` slot whereto delegates to inherits these ambiently.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, and the park protocol. Loading it here means the `methodology` slot map delegates to inherits these ambiently.
 
 **Roadmap shape is deduced from the tracker.** faff does not read a project "methodology doc" and no `.faffrc` key points at one — config holds values, not prose, and a doc would drift from live state. The roadmap's shape is inferred from what the tracker actually holds: the initiatives/epics and how projects nest under them (initiative shape), project status + cycle membership + target dates (the Now / Next / Later horizons), initiative and project descriptions plus success-metric fields (the outcomes), and blocker links (the chains). The *normative* half — whether a success metric is healthy, whether a chain is coherent — is the `methodology` **slot's** job (see **Methodology lens** below), not a doc's.
 
@@ -128,9 +128,9 @@ Apply the same work-ordering rule used by `/faff-tidy` and `/faff-wtf`: priority
 The output of Phases 1-6 surfaces risks that aren't visible from any single initiative or issue. Call them out explicitly. Typical categories:
 
 - **Ghost project**: an initiative description names a Next or Later project in prose, but no project actually exists in the tracker. The chain can't fire through a ghost. State the gap as "the description names X, no project exists" — do not name or reconstruct any cancelled/deleted predecessor (per Phase 1).
-- **Cross-reference with `/faff-tidy` structural diagnostics.** If a `/faff-tidy` run produced a `### Structural diagnostics` block in this pass (read the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`), import its ghost-project findings, dep cycle findings, and repeat-park findings into this phase's risk list. The two skills detect overlapping signals — tidy finds ghost pointers from *issue-side* references; whereto finds them from *initiative-side description* parsing. Combining both gives the full picture without re-implementing detection here.
+- **Cross-reference with `/faff-tidy` structural diagnostics.** If a `/faff-tidy` run produced a `### Structural diagnostics` block in this pass (read the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`), import its ghost-project findings, dep cycle findings, and repeat-park findings into this phase's risk list. The two skills detect overlapping signals — tidy finds ghost pointers from *issue-side* references; map finds them from *initiative-side description* parsing. Combining both gives the full picture without re-implementing detection here.
 
-If no tidy ran this pass, whereto computes its own ghost-project scan (initiative-description-side only) as it already does — but the tidy-found issue-side ghost pointers are absent. Flag this in the output: "No tidy this pass — issue-side ghost-pointer detection skipped. Run `/faff-tidy` for full structural coverage."
+If no tidy ran this pass, map computes its own ghost-project scan (initiative-description-side only) as it already does — but the tidy-found issue-side ghost pointers are absent. Flag this in the output: "No tidy this pass — issue-side ghost-pointer detection skipped. Run `/faff-tidy` for full structural coverage."
 
 **Methodology findings (when a `methodology` skill is configured).** Request the `horizon-assignment` output from the methodology skill; alongside the horizon ordering it returns roadmap-level findings. Surface those here in addition to the structural risk categories. Each finding renders its full diagnosis (what's there / why it's a problem / what to do) as the methodology returns it. Findings interleave with the existing structural risks, ordered by severity (impact × scope).
 - **Independence not verified**: a Now project has N issues that beep-boop is supposed to drain in parallel, but no one has confirmed they're actually independent. Recommend a `/faff-tidy` pass before queuing overnight runs.
@@ -190,8 +190,8 @@ All hand-offs are yes/no gates (or short-choice where a real branch exists). No 
 
 After presenting the output:
 
-- **Critical-path issue picked:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke `/faff-prep` via the Skill tool. If already prepped, the gate becomes "Start building now via `/faff-workit`? (y/n)".
-- **Structural gap to act on (e.g. ghost project), or the chain doesn't join up:** "Plan the missing structure via `/faff-plot`? (y/n)" — on confirm, draft a one-paragraph brief of the gap and its downstream effect (which initiative has no path, which project is missing) and hand it to `/faff-plot` via the Skill tool to plan the missing initiatives/projects/first-slice epics. This is the **planning session** this skill points at when the roadmap doesn't hang together. whereto stays read-only — it *routes* to plot, which does the writing; whereto then re-audits plot's output. (If the human prefers to handle it themselves, the same summary is theirs to take away.)
+- **Critical-path issue picked:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke `/faff-prep` via the Skill tool. If already prepped, the gate becomes "Start building now via `/faff-graft`? (y/n)".
+- **Structural gap to act on (e.g. ghost project), or the chain doesn't join up:** "Plan the missing structure via `/faff-plot`? (y/n)" — on confirm, draft a one-paragraph brief of the gap and its downstream effect (which initiative has no path, which project is missing) and hand it to `/faff-plot` via the Skill tool to plan the missing initiatives/projects/first-slice epics. This is the **planning session** this skill points at when the roadmap doesn't hang together. map stays read-only — it *routes* to plot, which does the writing; map then re-audits plot's output. (If the human prefers to handle it themselves, the same summary is theirs to take away.)
 - **Independence concern in a Now project:** "Run `/faff-tidy` to verify independence before queuing overnight runs? (y/n)" — on confirm, invoke `/faff-tidy` via the Skill tool, scoped to the project in question.
 - **Stalled Now project (no recent commits):** "Stalled or stale? Open the project for review (open) / leave (skip)?" On `open`, surface the project's issues for the human; do not change tracker status autonomously.
 - **Drop down to today's focus:** "Want to shift to today's focus via `/faff-wtf`? (y/n)".
@@ -208,7 +208,7 @@ When invoked autonomously (rare — this is primarily a human-facing strategic a
 
 **No tracker writes.** Even in autonomous mode, this skill never creates projects, never re-parents issues, never closes gaps. Findings go to the log; humans act on them.
 
-Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-whereto.md`. The log must include every MCP call made (initiatives fetched, projects per initiative, issues per project, comments scanned for structural-gap context) so a follow-up agent can reconstruct the roadmap from the log alone.
+Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-map.md`. The log must include every MCP call made (initiatives fetched, projects per initiative, issues per project, comments scanned for structural-gap context) so a follow-up agent can reconstruct the roadmap from the log alone.
 
 ## Notes
 

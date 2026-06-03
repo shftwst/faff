@@ -1,6 +1,6 @@
 # faffter-noon-review
 
-The default code review. Faff-workit plays the senior-engineer role — reads the diff, checks AC coverage, scans for bugs, validates scope, and flags decisions that need a human.
+The default code review. Faff-graft plays the senior-engineer role — reads the diff, checks AC coverage, scans for bugs, validates scope, and flags decisions that need a human.
 
 This is the implicit default when no `review` slot is configured. Extracted here so it can be referenced, tested, and swapped for a delegated skill (e.g. `gstack:review`) or an alternative faffter-dark review.
 
@@ -19,11 +19,11 @@ Review findings that would have surfaced as PR comments are reported to the trac
 
 ## When it runs
 
-Invoked by faff-workit Step 9 after the build is complete and local tests pass, **before** the PR is raised. Runs in both interactive and autonomous modes.
+Invoked by faff-graft Step 9 after the build is complete and local tests pass, **before** the PR is raised. Runs in both interactive and autonomous modes.
 
 ## Input
 
-Faff-workit provides:
+Faff-graft provides:
 
 - The full diff: `git diff main...HEAD`
 - The spec (committed to `docs/specs/` on the feature branch)
@@ -108,7 +108,7 @@ This maps *this reviewer's* five passes onto the contract's three verdicts. The 
 
 ## Output
 
-Returns the signal (`pass` / `fail` / `needs-human`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-workit.
+Returns the signal (`pass` / `fail` / `needs-human`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-graft.
 
 ## Appetite integration
 

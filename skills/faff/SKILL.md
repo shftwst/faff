@@ -1,6 +1,6 @@
 ---
 name: faff
-description: "Gateway — routes to the right faff sub-skill. Use /faff-jot to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-plot to decompose an application-scale idea top-down into a roadmap (initiatives → projects → first-slice epics), /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
+description: "Gateway — routes to the right faff sub-skill. Use /faff-jot to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-plot to decompose an application-scale idea top-down into a roadmap (initiatives → projects → first-slice epics), /faff-wtf to figure out what to focus on, /faff-map for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-graft to start building, /faff-beep-boop to run the whole suite unattended."
 ---
 
 # Faff
@@ -15,13 +15,13 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
-| **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-workit` |
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
+| **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-graft` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
 | **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
 
 - **L1 · as the loop.** *You* write the code, your usual IDE agents along for the ride. faff plays planning exoskeleton here: it tells you what's worth building, hands you a spec worth building from, then gets out of the way.
-- **L2 · in the loop.** `/faff-workit` drives the build for one issue but stops at every gate (spec, build, review, PR) for your say-so. Nothing ships behind your back.
+- **L2 · in the loop.** `/faff-graft` drives the build for one issue but stops at every gate (spec, build, review, PR) for your say-so. Nothing ships behind your back.
 - **L3 · on the loop.** `/faff-beep-boop` chews through the ready queue unattended and **parks** anything it can't call. The safety net isn't you staying awake, it's mechanical: the park protocol never quietly bins a loose end, and the run-ledger refuses to call a run "done" if it left admitted work dangling.
 - **L4 · out of the loop.** Lights-out. You've left the building entirely, and correctness is held up by *adversarial* machinery: a second model trying to break the change, isolated holdout worktrees marking the work against a spec it never got to peek at. The frontier. Not built yet, mind.
 
@@ -39,10 +39,10 @@ This is the gateway. Invoke the right sub-skill:
 | `/faff-jot` | "New project", "kick off", "start something", "I've got an idea", "new feature", "add a feature", "file a bug", "capture this", "scope a new thing", "spitball" |
 | `/faff-plot` | "Plan this out", "decompose this app", "break this big thing into a roadmap", "map out the whole project", "plot the build", "turn this idea into initiatives and projects" |
 | `/faff-wtf` | "Where to focus", "What should I work on?", "what's happening", "catch me up", "where are we", "where we at", "the 411", "lowdown" |
-| `/faff-whereto` | "Roadmap", "where are we going", "explain the backlog", "do these join up", "workstream view", "strategy view", "what are the chains", "big picture", "walk me through the plan" |
+| `/faff-map` | "Roadmap", "where are we going", "explain the backlog", "do these join up", "workstream view", "strategy view", "what are the chains", "big picture", "walk me through the plan" |
 | `/faff-tidy` | "Tidy the backlog", "clean up", "groom", "mess" |
 | `/faff-prep ISSUE-XX` | "Prep this", "spec this out", "what does this ticket need?", "scope", "acceptance criteria" |
-| `/faff-workit ISSUE-XX` | "Work on", "Start this", "take on", "pick up", "let's build", "fire up" |
+| `/faff-graft ISSUE-XX` | "Work on", "Start this", "take on", "pick up", "let's build", "fire up" |
 | `/faff-beep-boop` | "Run overnight", "fire and forget", "chew through the backlog", "unattended" |
 
 ## Configuration (shared across all sub-skills)
@@ -71,20 +71,20 @@ tracking:
   project_id: "abc-123"      # tracker project/team id
   repo: shftwst/faff         # org/repo slug
   git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
-  spec_docs_path: docs/specs/                                   # where faff-workit commits specs (see Spec docs location)
+  spec_docs_path: docs/specs/                                   # where faff-graft commits specs (see Spec docs location)
 
 planning_skills:             # optional delegation slots; each has a faff default when unset
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
-  review: gstack:review                              # pre-PR review inside faff-workit
-  ship: gstack:land-and-deploy                       # delivery producer inside faff-workit (default faffter-noon-ship)
+  review: gstack:review                              # pre-PR review inside faff-graft
+  ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
   ship_adaptor: faffidavit-ship                      # adaptor: maps the ship producer's native result onto shipped/not-ready/failed
 
 # mode: delivery-lead is DEPRECATED — use planning_skills.methodology instead
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
-worktree_root: ~/.faff/worktrees/myrepo   # where /faff-workit creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
+worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
 validate_slots: false        # when true, validate a configured non-default slot occupant (via faffter-dark-authoring-adaptors) before first use; park/surface on non-conformance (see Slot conformance validation)
 
 calibration:
@@ -100,7 +100,7 @@ Faff auto-detects which issue tracker and git host MCP servers are available and
 
 ### Spec docs location
 
-When `/faff-workit` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-workit artifact lifecycle). The in-repo directory is configurable via the `tracking.spec_docs_path` key in `.faffrc`:
+When `/faff-graft` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-graft artifact lifecycle). The in-repo directory is configurable via the `tracking.spec_docs_path` key in `.faffrc`:
 
 ```yaml
 tracking:
@@ -128,13 +128,13 @@ planning_skills:
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery, optional
   spec: superpowers:brainstorming                    # used by faff-prep
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop, optional (default faffter-noon-concurrency-sequential)
-  review: gstack:review                              # pre-PR review inside faff-workit, optional
+  review: gstack:review                              # pre-PR review inside faff-graft, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
   spec_adaptor: faffidavit-spec              # adaptor: markers + style + confidence line; maps a producer's spec onto the fixed closed/open/external + confidence contract
   review_adaptor: faffidavit-review          # adaptor: output envelope; maps a reviewer's output onto the fixed pass/fail/needs-human contract
   routing_adaptor: faffidavit-routing        # adaptor: verdict assignment + display; the six-verdict vocabulary + admission rule are fixed in the gateway
   rendering_adaptor: faffidavit-rendering        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
-  ship: gstack:land-and-deploy                       # delivery producer inside faff-workit, optional (default faffter-noon-ship)
+  ship: gstack:land-and-deploy                       # delivery producer inside faff-graft, optional (default faffter-noon-ship)
   ship_adaptor: faffidavit-ship              # adaptor: result envelope; maps a ship producer's native delivery result onto the fixed shipped/not-ready/failed contract
 ```
 
@@ -144,17 +144,17 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 |---|---|---|
 | `intake` | `faffter-noon-intake` | Runs new-work discovery for `/faff-jot` and emits a discovery brief. A producer doing-skill. |
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
-| `concurrency` | `faffter-noon-concurrency-sequential` | Build-pass executor for faff-beep-boop — consumes the conflict-analysis partition and drives `/faff-workit` per issue. The default runs the queue **sequentially**; swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge. A mechanism slot (no paired adaptor). |
-| `review` | `faffter-noon-review` | Pre-PR review inside faff-workit. Emits the `review_adaptor` verdict. |
+| `concurrency` | `faffter-noon-concurrency-sequential` | Build-pass executor for faff-beep-boop — consumes the conflict-analysis partition and drives `/faff-graft` per issue. The default runs the queue **sequentially**; swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge. A mechanism slot (no paired adaptor). |
+| `review` | `faffter-noon-review` | Pre-PR review inside faff-graft. Emits the `review_adaptor` verdict. |
 | `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |
 | `spec_adaptor` | `faffidavit-spec` | Adaptor over the fixed spec-readiness contract: the markers + writing style + confidence line that map a producer's spec onto closed/open/external + confidence; validates specs on demand. |
-| `review_adaptor` | `faffidavit-review` | Adaptor over the fixed review-verdict contract (`pass` / `fail` / `needs-human`, semantics, revert test — all in the gateway): the output envelope reviewers emit and faff-workit branches on; validates/normalises review output on demand. |
+| `review_adaptor` | `faffidavit-review` | Adaptor over the fixed review-verdict contract (`pass` / `fail` / `needs-human`, semantics, revert test — all in the gateway): the output envelope reviewers emit and faff-graft branches on; validates/normalises review output on demand. |
 | `routing_adaptor` | `faffidavit-routing` | Adaptor over the fixed automation-routing contract (six verdicts + admission rule + root-cause taxonomy — all in the gateway): verdict assignment + computation locus + display format; assigns and validates verdicts. |
 | `rendering_adaptor` | `faffidavit-rendering` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, issue-gloss humanisation; normalises output on demand. |
-| `ship` | `faffter-noon-ship` | Delivery **producer** inside faff-workit Step 10 — runs deploy-readiness, merges/deploys, cleans up what it created, emitting a native delivery result. The default discharges it with a no-op readiness check + vanilla `gh pr merge`; swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) for real release mechanics. Its native result is mapped by `ship_adaptor`. |
-| `ship_adaptor` | `faffidavit-ship` | Adaptor over the fixed delivery-outcome contract (`shipped` / `not-ready` / `failed`, two-tier gate, coercion rule — all in the gateway): the result envelope and the mapping of the `ship` producer's native delivery result onto the three outcomes faff-workit routes on; validates/normalises on demand. |
+| `ship` | `faffter-noon-ship` | Delivery **producer** inside faff-graft Step 10 — runs deploy-readiness, merges/deploys, cleans up what it created, emitting a native delivery result. The default discharges it with a no-op readiness check + vanilla `gh pr merge`; swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) for real release mechanics. Its native result is mapped by `ship_adaptor`. |
+| `ship_adaptor` | `faffidavit-ship` | Adaptor over the fixed delivery-outcome contract (`shipped` / `not-ready` / `failed`, two-tier gate, coercion rule — all in the gateway): the result envelope and the mapping of the `ship` producer's native delivery result onto the three outcomes faff-graft routes on; validates/normalises on demand. |
 
-`review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-workit, with optional delegation via these slots.
+`review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-graft, with optional delegation via these slots.
 
 ## Agent Lanes
 
@@ -169,7 +169,7 @@ Two functions:
 1. **External interface** — controls inputs and outputs between the project and the outside world: issue tracking, direct dialogue with the human, project-level reporting, stakeholder communication.
 2. **Pipeline sequencing** — owns the high-level delivery pipeline. Decides what runs when, sequences prep → build → review → ship, manages parks and escalations.
 
-Faff-* skills (wtf, whereto, tidy, beep-boop) operate primarily in this lane. They read the codebase for context but their job is orchestration, not implementation.
+Faff-* skills (wtf, map, tidy, beep-boop) operate primarily in this lane. They read the codebase for context but their job is orchestration, not implementation.
 
 ### Implementor (innermost lane)
 
@@ -182,7 +182,7 @@ The most active lane. Where development happens:
 - Code, tests, and documentation changes
 - Fix→review iteration loops
 
-Faff-workit's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next.
+Faff-graft's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next.
 
 ### Evaluator (external lane)
 
@@ -214,7 +214,7 @@ This isolation prevents:
 
 Not all lanes are active in every flow. The evaluator lane is a future capability — documenting it here sets the architectural intent.
 
-**Discovered work crosses lanes by record-and-file, never by the implementor writing the tracker.** When the implementor (faff-workit) finds concrete, separable out-of-scope work while building or reviewing, it **records** it (returns `discovered_scope` + writes a per-issue file) — it does **not** create the ticket. The orchestrator (faff-beep-boop autonomously, or the human via faff-workit's interactive gate) **files** it as a Backlog ticket. This is bottom-up source (b) — execution-discovered work — the tributary that lets the backlog self-extend from *doing*, not only from declaration. Its filing is appetite-gated (see **Appetite for destruction** → Execution-discovered auto-create).
+**Discovered work crosses lanes by record-and-file, never by the implementor writing the tracker.** When the implementor (faff-graft) finds concrete, separable out-of-scope work while building or reviewing, it **records** it (returns `discovered_scope` + writes a per-issue file) — it does **not** create the ticket. The orchestrator (faff-beep-boop autonomously, or the human via faff-graft's interactive gate) **files** it as a Backlog ticket. This is bottom-up source (b) — execution-discovered work — the tributary that lets the backlog self-extend from *doing*, not only from declaration. Its filing is appetite-gated (see **Appetite for destruction** → Execution-discovered auto-create).
 
 ## Shared Rules
 
@@ -238,11 +238,11 @@ Every faff sub-skill excludes the following from every query, recommendation, co
 
 This widened definition fixes a real failure: a tidy run that suggests cancelling tickets already in Linear's Duplicate state is recommending a no-op at best, and a status-signage downgrade at worst (Duplicate → Cancelled preserves the `duplicate-of` relation but loses the self-documenting status text).
 
-No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by workit, never counted in beep-boop queues.
+No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by graft, never counted in beep-boop queues.
 
 ### Work-ordering rule (priority → chainable unlock value)
 
-The single canonical ordering for every place a faff sub-skill ranks, suggests, or promotes work: faff-tidy's Ready and Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / build-queue independents, faff-whereto's critical path, faff-beep-boop's independents ordering. Sub-skills reference this rule rather than restating it. Apply lexicographically:
+The single canonical ordering for every place a faff sub-skill ranks, suggests, or promotes work: faff-tidy's Ready and Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / build-queue independents, faff-map's critical path, faff-beep-boop's independents ordering. Sub-skills reference this rule rather than restating it. Apply lexicographically:
 
 1. **Priority** is king. It can live on the issue itself or on any **ancestor** (parent, grandparent, or higher container, whatever the tracker calls it); respect both, inheriting from the nearest ancestor that has a value. When the consuming project's `CLAUDE.md` flags a current workstream, weight issues in that workstream up.
 2. **Chainable unlock value** breaks ties: the count of direct + transitive dependents (issues whose blockers list this one, recursively). An issue that unblocks a chain of five beats an isolated issue at the same priority. This matters most for automation, where shipping the unlocking issue first gives the next `/faff-beep-boop` pass more ready candidates.
@@ -259,13 +259,13 @@ If the fetch budget is genuinely too high, scope the run smaller along a **struc
 
 ### Spec discovery (where to look for an existing spec)
 
-**This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-workit, faff-wtf, faff-whereto, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the three checks below. Any divergence in a sub-skill is a bug, not a local override.
+**This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-graft, faff-wtf, faff-map, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the three checks below. Any divergence in a sub-skill is a bug, not a local override.
 
 Any faff sub-skill that asks "does this issue have a spec?" must check **all three** of the following, in order, and treat a hit in any of them as the spec:
 
 1. **Issue tracker comments** — **the default and most common location**. faff-prep writes the spec as a comment on the issue during Phase 1 (pre-build). **Most specs live here**, not in the description.
 2. **Issue tracker main description / body** — counts **only** when the body holds an actual formalised spec (the structured artefact faff-prep produces: context, approach, acceptance criteria), e.g. someone authored or pasted a real spec into the ticket body instead of a comment. A plain description — requirements, context, or notes, **however clear or well-defined** — is **not** a spec and does **not** count here.
-3. **Committed docs** in the repo — under the configured **spec-docs path** (default `docs/specs/`; see **Spec docs location**), e.g. `<spec-docs-path>/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-workit commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
+3. **Committed docs** in the repo — under the configured **spec-docs path** (default `docs/specs/`; see **Spec docs location**), e.g. `<spec-docs-path>/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-graft commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
 
 **Comments are not optional.** Because faff-prep writes specs to comments by default, any spec-discovery pass that only inspects descriptions is **invalid output** — it will systematically miss the most common case and produce false "no spec" findings. Before classifying any issue as "no spec / almost ready / needs prep", you **must** fetch its comments via whichever tracker MCP is configured (use the tracker's list-comments tool — autodetect from the available MCP, don't hardcode). Sampling descriptions and noting "comments not checked" is **not** acceptable — re-fetch and complete the check before reporting.
 
@@ -292,7 +292,7 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
       conflict-analysis.md
       ISSUE-XX/
         prep.md
-        workit.md
+        graft.md
         resolve-attempt.md                  # if autonomous resolve-attempt ran
         ac-verification.md
         park.md                             # if parked
@@ -328,11 +328,11 @@ Logs are plain markdown — agent-readable and human-readable. A log must contai
 
 ### Worktree policy
 
-**This section is the single canonical definition of how faff uses git worktrees.** `/faff-workit` owns the mechanism (the `WorktreeCreate` hook + `setup-worktree.sh`); `/faff-beep-boop` and the `concurrency` slot rely on the isolation guarantee. All three reference this section rather than restating it — any divergence is a bug.
+**This section is the single canonical definition of how faff uses git worktrees.** `/faff-graft` owns the mechanism (the `WorktreeCreate` hook + `setup-worktree.sh`); `/faff-beep-boop` and the `concurrency` slot rely on the isolation guarantee. All three reference this section rather than restating it — any divergence is a bug.
 
 - **Location: `~/.faff/worktrees/<repo>/<branch>` by default; override with the `.faffrc` `worktree_root` key (or the `FAFF_WORKTREE_ROOT` env var).** Worktrees live **entirely outside the repo directory** — so they never appear in `git status`, never get committed, and need no `.gitignore` — and a separate tree from the build is exactly what gives **holdout / evaluator work isolation** from the implementation (the L4 verification story). The home-dir default is writable both on a normal host and inside repo-only bind-mounts/containers (where the repo's *parent* often isn't writable, so a true sibling can't be created); it's namespaced by `<repo>` so multiple projects don't collide. A configured `worktree_root` is used as-is (it's per-repo, since `.faffrc` is). One worktree per work unit (issue/branch). (`git worktree add` has **no** default checkout location — the path is always chosen by the caller; `.git/worktrees/` is git's own per-worktree *metadata* dir, not a checkout location, and a checkout placed there collides with it.)
   - *Caveat in ephemeral containers:* when the worktree root is container-local (not host-mounted) but the repo is, a destroyed container leaves the checkout gone while git's metadata (in the mounted `.git/worktrees/`) dangles — a `git worktree prune` clears it. This is housekeeping, never a queue-halt (see below).
-- **Branch.** Each worktree is a **new branch off `HEAD`**, named for the work unit (the issue id / slot name, `/`→`-`). Re-entering the same issue **reuses** its existing worktree (match on the issue id in the worktree path) — the spec commit and branch creation happen once; subsequent `/faff-workit` runs resume in place.
+- **Branch.** Each worktree is a **new branch off `HEAD`**, named for the work unit (the issue id / slot name, `/`→`-`). Re-entering the same issue **reuses** its existing worktree (match on the issue id in the worktree path) — the spec commit and branch creation happen once; subsequent `/faff-graft` runs resume in place.
 - **Provisioning** (performed by `setup-worktree.sh` when the hook fires): create the worktree + branch, copy gitignored local config into it (`.env*`, `.claude/settings.local.json`), then run the project's package-manager install / `setup` target. Skip the install with `SKIP_NPM_PACKAGES_INSTALL=1` — e.g. a Linux container with a macOS bind-mounted worktree, where installing would write platform-wrong binaries.
 - **Per-issue isolation is the contract.** Every build — sequential or parallel — runs in its **own** worktree; two builds never share one. This is what makes the `faffter-dark-concurrency-parallel` executor safe to run independents concurrently. A build agent (Implementor lane) sees only its worktree.
 - **Dirty worktree → park.** An unexpectedly dirty worktree is an autonomous park reason (see the Autonomous Mode Contract); a parked unit commits its WIP to its branch first (see the Park protocol).
@@ -351,7 +351,7 @@ Universal rules in autonomous mode:
   - Context compaction (current or anticipated) — the harness handles compaction; the `.faff/` logs + tracker + PR state make every work unit resumable across compactions. A compacted session is not an ambiguous one.
   - Session length, turn count, "this will take many steps", "I've already done a lot this session" — none of these are ambiguities. Do the work.
   - Worries about whether you'll remember earlier steps — you don't need to. The log captures what was decided; the tracker captures status; git captures diffs. Future-you (or a resumed session) reads state, it doesn't remember it.
-  - Beep-boop processes issues via the `concurrency` slot (sequentially by default, or concurrently when the parallel executor is configured). Each `/faff-workit` invocation is an independent unit — if compaction happens mid-build, resume from `.faff/runs/<run-id>/ISSUE-XX/workit.md` + the branch/PR state. This is a feature, not a risk.
+  - Beep-boop processes issues via the `concurrency` slot (sequentially by default, or concurrently when the parallel executor is configured). Each `/faff-graft` invocation is an independent unit — if compaction happens mid-build, resume from `.faff/runs/<run-id>/ISSUE-XX/graft.md` + the branch/PR state. This is a feature, not a risk.
   - **Forbidden park reasons (explicit list):** "session may compact", "context is getting long", "too many turns", "too many issues left in the queue", "risk of another compaction", "mid-build compaction would be ambiguous", "single-session capacity constraints", "single-conversation context budget", "honest orchestration is to do fewer", "depends on a Todo issue that's also in this run", "large scope + external dep addition", "would introduce a new package as first LLM/SDK/XXX site", "chained issue — waiting for earlier to ship", "no `spec` skill configured", "no `concurrency` skill configured", "no `review` skill configured", "no `ship` skill configured", "Planning Skills slot unset". If one of these is the reason, **just proceed** — use the documented inline default (see `Planning Skills` defaults table above) or serialise via conflict analysis — it's not a real park. Autonomous mode uses the **same** sensible defaults as interactive when a slot is unset; missing slots are not capacity constraints.
 - **"Deferred" / "queued for next run" / "not dispatched this conversation" is the same thing as "parked", just relabelled.** Renaming the category doesn't change the failure mode: ready work that should have been dispatched didn't get dispatched. Any of these phrasings — "deferred to next pass", "saved for the next /faff-beep-boop", "queue is unblocked, ready for next run", "single-conversation context budget", "didn't dispatch this conversation" — is a forbidden bail under a different name. If you find yourself writing one of those phrases in a run summary, the run is **not complete**: go back and dispatch the queue. The only valid run-end states are (i) the queue drained, (ii) every remaining issue is genuinely parked under one of the three valid categories, or (iii) the harness terminated the session externally (which leaves a `.faff/runs/<run-id>/` resumable from the next invocation — not a "deferred" state authored by you). In `/faff-beep-boop` this is **enforced mechanically**: the per-run ledger plus the `runcheck` script (and a Stop hook) fail any run that leaves a build-queue-admitted issue without a terminal outcome — see `/faff-beep-boop` → _Run ledger_.
 - **If conflict analysis produced a build queue, dispatching it is the next mandatory step.** Identifying waves and partitioning into independents/collision groups is not the finish line — it's the precondition to building. A run that ends after conflict analysis with the queue undispatched is an incomplete run, not a deferred one. Compaction during build is a resume (the `.faff/runs/<run-id>/` directory + PR/branch state make it resumable from a fresh session); pre-emptively stopping because compaction *might* happen is the same anti-pattern as pre-parking on "session may compact" — explicitly forbidden above.
@@ -360,7 +360,7 @@ Universal rules in autonomous mode:
   - Sections ending with `Chosen: X`, `**Chosen:** X`, `Decision: X`, or equivalent conclusion markers are **closed**. Do the thing the spec chose. A "pino vs winston" rationale table that ends in `Chosen: pino` is not an open question — it is a locked decision.
   - A spec self-rated `confidence: high` closes every spec-internal decision. Trust the contents. Park only on external unknowns.
   - **Spec punts are explicit.** Markers include `Punt:`, `needs human`, `TBD`, `unresolved`, `(or X if Y is too much)`, "revisit", or any sentence presenting two options without picking one. Only these escalate.
-- **The review skill is the autonomous human-review gate.** Every autonomous build lands as a **regular (ready-for-review) PR** and runs the configured `review` skill (or faff-workit's built-in review if none is configured) as a senior-engineer stand-in. The review's job is to decide whether this PR can merge on green, or whether a human actually has to look first. On pass → auto-merge when CI is green and ACs are verified. On `needs-human` → flip the PR to draft and park for human attention. On `fail` (fixable issues — failing tests, obvious bugs, missing test coverage) → iterate autonomously, re-run review, keep going until pass or `needs-human`. **Work that lands via PR is reversible by definition** — `git revert` exists. Pre-parking is wasteful when the review + merge-confidence gate already catches mistakes. Chained issues depend on earlier PRs merging; over-parking at the pre-PR stage breaks the pipeline.
+- **The review skill is the autonomous human-review gate.** Every autonomous build lands as a **regular (ready-for-review) PR** and runs the configured `review` skill (or faff-graft's built-in review if none is configured) as a senior-engineer stand-in. The review's job is to decide whether this PR can merge on green, or whether a human actually has to look first. On pass → auto-merge when CI is green and ACs are verified. On `needs-human` → flip the PR to draft and park for human attention. On `fail` (fixable issues — failing tests, obvious bugs, missing test coverage) → iterate autonomously, re-run review, keep going until pass or `needs-human`. **Work that lands via PR is reversible by definition** — `git revert` exists. Pre-parking is wasteful when the review + merge-confidence gate already catches mistakes. Chained issues depend on earlier PRs merging; over-parking at the pre-PR stage breaks the pipeline.
 - **Valid autonomous parks (escalate to human pre-PR):** only four categories — (a) the spec contains an explicit punt marker, (b) the spec assumes external state that doesn't exist in the repo (missing dep, undefined seam, blocker issue not shipped **and not in the current run's queue**), (c) the work cannot be fully reversed by `git revert` on the merge commit — i.e. it would execute a **side effect outside the PR flow** before the human reviews it, (d) the spec's premise is substantially superseded by separate already-merged work, with required Done-ticket-ID evidence cited in the park comment.
 - **In-queue dependencies are serialisation, not parks.** If issue A depends on issue B, and B is in the current beep-boop run's build or prep queue, that is a **collision group** — build B first, then A in the same run. Do NOT park A for "depends on B" when B is Todo/Backlog-in-queue. The conflict analysis step (see `skills/faff-beep-boop/SKILL.md`) exists precisely to serialise these. Parking chained work is the failure mode that breaks the pipeline: if a queue of 5 chained issues all park because "the next one isn't Done yet", nothing ships.
 - **External dependency additions (new SDK, new package) are not a park category.** If the spec has a `Chosen:` / `Decision:` marker naming the package, the decision is closed — proceed. Adding a package to `package.json` lands via PR and is caught by the review + merge-confidence gate. "Introduces new external dep" is a topic-keyword match, not a park reason.
@@ -377,9 +377,9 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 |---|---|
 | faff-tidy | Auto-archive merged/cancelled + auto-reparent obvious orphans only. Everything else logged for morning review. |
 | faff-wtf | Return the ready-queue as a plain list. No focus recommendation. |
-| faff-whereto | Return the structured roadmap synthesis (initiatives, workstreams, chain join-up, fireable/blocked gates, structural risks). Read-only — never writes to the tracker. |
+| faff-map | Return the structured roadmap synthesis (initiatives, workstreams, chain join-up, fireable/blocked gates, structural risks). Read-only — never writes to the tracker. |
 | faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (always delegated to the `spec` slot) when the producer's self-rating clears the appetite-aware confidence gate (see **Appetite for destruction**). `high` → attach + promote (build-eligible). `medium` → attach with the rating retained (Todo, routes out as `needs-decision-first`); whether an autonomous build then proceeds is appetite-modulated per the matrix above — `low`/`medium` surface for human, `high` (default) resolve-attempt → proceed if defensible, `full` proceed. `low` confidence parks. A missing `spec` override is **not** a park reason — the default `faffter-noon-spec` producer always exists and self-rates against the same gate. |
-| faff-workit | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
+| faff-graft | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
 
 ### Appetite for destruction
 
@@ -410,7 +410,7 @@ Each skill that accepts appetite **documents its own per-level response** in its
 | Chain-gap auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if remainder is identifiable | Always — every identifiable gap gets a ticket |
 | Execution-discovered auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if the item is concrete | Always — every concrete discovered item gets a ticket |
 
-The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-workit recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing `faff-chain-gap-fill` tickets before filing.
+The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-graft recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing `faff-chain-gap-fill` tickets before filing.
 
 The methodology slot's per-level response lives in the configured methodology skill. The review slot's per-level response lives in the configured review skill — note that review quality never loosens at any level (see the hard floor below).
 
@@ -494,11 +494,11 @@ Every faff skill that can park work follows the same protocol:
 
 ### Unpark protocol (shared)
 
-Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-whereto's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `parked-by-faff` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
+Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-map's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `parked-by-faff` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
 
 1. **Reason resolved → re-enter.** The unpark trigger is **always re-invoking the relevant skill on the issue**, never a separate "unpark" command. Which skill depends on the park cause:
    - Spec-level park (open `**Punt:**`, ambiguous decision, `low`/retained-`medium` confidence) → re-run `/faff-prep` (or `/faff-prep --refresh`) once the human has answered in a comment. Prep re-rates; on `high` it promotes and clears the label.
-   - Build-level park (mid-build ambiguity flipped the PR to draft) → re-run `/faff-workit`; it resumes from `.faff/runs/<run-id>/ISSUE-XX/` + the draft PR.
+   - Build-level park (mid-build ambiguity flipped the PR to draft) → re-run `/faff-graft`; it resumes from `.faff/runs/<run-id>/ISSUE-XX/` + the draft PR.
    - Structural park (`gap-blocked`, `circular-blocked`) → resolve the gap/cycle (file the missing ticket, break the edge), then the issue routes normally on the next tidy pass.
 2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes a stale `parked-by-faff` label without human action when the state moved on (issue now In Progress/In Review/Done/Cancelled) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
 
@@ -518,9 +518,9 @@ faff-core fixes a small set of **internal contracts** — the verdict states, vo
 
 ### Contract loading & conformance (how a skill actually gets these definitions)
 
-Skills load independently. When you enter via a slash command (`/faff-workit`), as a delegated slot, or invoke an adaptor standalone, **this gateway file is not automatically in context** — a bare `see gateway → §X` reference is inert until something loads it. So the contracts below are made available and enforced by three mechanisms, not by hope:
+Skills load independently. When you enter via a slash command (`/faff-graft`), as a delegated slot, or invoke an adaptor standalone, **this gateway file is not automatically in context** — a bare `see gateway → §X` reference is inert until something loads it. So the contracts below are made available and enforced by three mechanisms, not by hope:
 
-1. **Consumers load on entry.** Every fixed faff-* consumer (workit, tidy, beep-boop, wtf, prep, whereto, jot) reads this gateway file on entry when it isn't already in context. The definitions then sit in the conversation, so any slot the consumer subsequently delegates to inherits them ambiently — the contract is present without the slot skill having to fetch it.
+1. **Consumers load on entry.** Every fixed faff-* consumer (graft, tidy, beep-boop, wtf, prep, map, jot) reads this gateway file on entry when it isn't already in context. The definitions then sit in the conversation, so any slot the consumer subsequently delegates to inherits them ambiently — the contract is present without the slot skill having to fetch it.
 2. **Standalone reads on demand.** An adaptor invoked directly (e.g. "validate the spec for SHF-123") has no consumer above it, so it reads this file itself before applying a contract. Adaptors therefore **refer back** to the gateway rather than carrying an authoritative copy.
 3. **New adaptors are authored to conform.** `faffter-dark-authoring-adaptors` is the author/validate skill that ensures any *new* slot occupant carries the correct refer-back prose and maps onto the fixed contract — so the binding survives a swap.
 
@@ -543,23 +543,23 @@ Per **Contract loading & conformance** above, every consumer already loads this 
 
 ### Review verdict (fixed) → `review_adaptor`
 
-**Internal contract (fixed):** a review returns exactly one of three states — `pass` / `fail` / `needs-human`. Their semantics, the **revert test** that separates `fail` (revert-reversible defect) from `needs-human` (effect persists after revert), and the rule that a malformed/unparseable verdict coerces to `needs-human` (never silently to `pass`) are all fixed here. faff-workit's post-build gate branches proceed / iterate / park on these three states directly.
+**Internal contract (fixed):** a review returns exactly one of three states — `pass` / `fail` / `needs-human`. Their semantics, the **revert test** that separates `fail` (revert-reversible defect) from `needs-human` (effect persists after revert), and the rule that a malformed/unparseable verdict coerces to `needs-human` (never silently to `pass`) are all fixed here. faff-graft's post-build gate branches proceed / iterate / park on these three states directly.
 
-**Adaptor slot:** `review_adaptor` (default `faffidavit-review`) — the output envelope (`signal:` line + `## Findings`) and the parsing/normalising of any reviewer's native output into the three states. Swap it to adapt a third-party reviewer; faff-workit still branches on the same three states.
+**Adaptor slot:** `review_adaptor` (default `faffidavit-review`) — the output envelope (`signal:` line + `## Findings`) and the parsing/normalising of any reviewer's native output into the three states. Swap it to adapt a third-party reviewer; faff-graft still branches on the same three states.
 
 ### Delivery outcome (fixed) → `ship_adaptor`
 
-**Internal contract (fixed):** delivery returns exactly one of three outcomes — `shipped` / `not-ready:<reason>` / `failed:<reason>`. Their semantics, the **two-tier gate** that precedes them, and the coercion rule (a malformed/unparseable result coerces to `failed`, never silently to `shipped`) are all fixed here. faff-workit's Step 10 routes proceed / park-retry-later / fail on these three states directly.
+**Internal contract (fixed):** delivery returns exactly one of three outcomes — `shipped` / `not-ready:<reason>` / `failed:<reason>`. Their semantics, the **two-tier gate** that precedes them, and the coercion rule (a malformed/unparseable result coerces to `failed`, never silently to `shipped`) are all fixed here. faff-graft's Step 10 routes proceed / park-retry-later / fail on these three states directly.
 
-- `shipped` — integrity floor and the producer's deploy-readiness both passed, the PR merged/deployed, deploy-side cleanup done. Chained issues unblock; workit reclaims the worktree.
-- `not-ready:<reason>` — deploy-readiness deferred the merge **without merging**. Not an error: the PR stays open and mergeable; workit parks it retry-later. Only a deploy-capable producer returns this; the default never does.
-- `failed:<reason>` — merge conflict or deploy error. workit surfaces it as a post-build failure.
+- `shipped` — integrity floor and the producer's deploy-readiness both passed, the PR merged/deployed, deploy-side cleanup done. Chained issues unblock; graft reclaims the worktree.
+- `not-ready:<reason>` — deploy-readiness deferred the merge **without merging**. Not an error: the PR stays open and mergeable; graft parks it retry-later. Only a deploy-capable producer returns this; the default never does.
+- `failed:<reason>` — merge conflict or deploy error. graft surfaces it as a post-build failure.
 
-**The gate is two-tier, and only the lower tier is delegable.** The **integrity floor** — AC-verified + CI-green + review `pass` — is asserted by `/faff-workit` *before* delivery is invoked, and is **non-delegable**: neither the `ship` producer nor `ship_adaptor` may bypass, re-open, or weaken it (the same floor the `concurrency` contract forbids weakening). **Deploy-readiness** — deploy window, environment health, migration ordering, flag state — is the `ship` producer's **own** tier: it may *add* a "no" (→ `not-ready`), never *subtract* the floor's "no". The default's readiness check is a no-op pass.
+**The gate is two-tier, and only the lower tier is delegable.** The **integrity floor** — AC-verified + CI-green + review `pass` — is asserted by `/faff-graft` *before* delivery is invoked, and is **non-delegable**: neither the `ship` producer nor `ship_adaptor` may bypass, re-open, or weaken it (the same floor the `concurrency` contract forbids weakening). **Deploy-readiness** — deploy window, environment health, migration ordering, flag state — is the `ship` producer's **own** tier: it may *add* a "no" (→ `not-ready`), never *subtract* the floor's "no". The default's readiness check is a no-op pass.
 
 **Coercion (fixed):** if `ship_adaptor` cannot map the producer's native result onto one of the three outcomes — empty, garbled, an unrecognised token, or a `shipped` claim it can't corroborate — it normalises to `failed:<reason>`, **never** silently to `shipped`. This is the delivery-side mirror of the review verdict's "malformed → `needs-human`, never `pass`": when in doubt, fail safe toward *not having delivered*, never toward a phantom merge. It is what keeps a swapped-in producer safe even though a foreign deploy tool does not natively speak this vocabulary.
 
-**Adaptor slot:** `ship_adaptor` (default `faffidavit-ship`) — the result envelope and the parsing/normalising of the `ship` producer's native delivery result (a `gh`/CI/deploy tool's exit status and logs) into the three outcomes. Swap the `ship` *producer* to change *how* delivery happens (a real deploy occupant like `gstack:land-and-deploy`); swap `ship_adaptor` only when the producer's native result can't be mapped by the default. faff-workit still routes on the same three outcomes. The `ship` producer cleans up only what *it* created (release artefacts, temp deploy state) — **never** the worktree; teardown pairs with workit's setup (see **Worktree policy**). `/faff-workit` owns the routing and the worktree lifecycle; delivery decides and acts on its own tier only.
+**Adaptor slot:** `ship_adaptor` (default `faffidavit-ship`) — the result envelope and the parsing/normalising of the `ship` producer's native delivery result (a `gh`/CI/deploy tool's exit status and logs) into the three outcomes. Swap the `ship` *producer* to change *how* delivery happens (a real deploy occupant like `gstack:land-and-deploy`); swap `ship_adaptor` only when the producer's native result can't be mapped by the default. faff-graft still routes on the same three outcomes. The `ship` producer cleans up only what *it* created (release artefacts, temp deploy state) — **never** the worktree; teardown pairs with graft's setup (see **Worktree policy**). `/faff-graft` owns the routing and the worktree lifecycle; delivery decides and acts on its own tier only.
 
 ### Automation-routing verdict (fixed) → `routing_adaptor`
 
@@ -584,7 +584,7 @@ Two of the four contracts above pair a **producer** doing-slot with an **adaptor
 - **Producer slots** (`intake`, `spec`, `review`, `ship`) *do the work* and emit native output. Swap one to change *how the work is done* (a different spec-explorer, a different reviewer, a different deploy mechanism). A swapped producer does **not** need to match the fixed contract's surface syntax — its paired adaptor (`spec_adaptor` / `review_adaptor` / `ship_adaptor`) is what maps its native output onto the fixed classes/states the pipeline branches on. (`intake` is the exception: it emits a documented brief directly, with no paired adaptor.)
 - **Adaptor slots** (`spec_adaptor`, `review_adaptor`, `ship_adaptor`, `routing_adaptor`, `rendering_adaptor`) *translate and validate*. Swap one only when your producer's output can't be mapped by the default adaptor — e.g. a spec format whose decision markers differ from `**Chosen:**`/`**Punt:**`/`**Assumes:**`. The fixed internal contract (the classes, verdicts, gates) never moves; you're swapping the translator, not the contract.
 
-**Rule of thumb for a slot swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake` and `concurrency` are the slots with no paired adaptor — `intake` emits a documented brief directly (see `faffter-noon-intake`) and `concurrency` performs a mechanism (executes the build pass over the conflict-analysis partition, driving faff's own workit, which already speaks faff's vocabulary), so neither needs a translation layer. `ship` *is* paired (with `ship_adaptor`): its producer reads a foreign deploy tool's native output that must be translated onto the fixed delivery outcomes (see **Delivery outcome (fixed) → `ship_adaptor`**) — same shape as `review` + `review_adaptor`. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
+**Rule of thumb for a slot swap:** change the **producer** to change behaviour; change the **adaptor** only if the new producer speaks a dialect the default adaptor can't parse. Most producer swaps need no adaptor change. `intake` and `concurrency` are the slots with no paired adaptor — `intake` emits a documented brief directly (see `faffter-noon-intake`) and `concurrency` performs a mechanism (executes the build pass over the conflict-analysis partition, driving faff's own graft, which already speaks faff's vocabulary), so neither needs a translation layer. `ship` *is* paired (with `ship_adaptor`): its producer reads a foreign deploy tool's native output that must be translated onto the fixed delivery outcomes (see **Delivery outcome (fixed) → `ship_adaptor`**) — same shape as `review` + `review_adaptor`. The `methodology` slot is neither — it's a named-output lens governed by its own contract (see **The `methodology` slot**).
 
 ### Legacy contract aliases
 
@@ -607,18 +607,18 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 
 | Output | Requested by | Required? | In → out |
 |---|---|---|---|
-| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-whereto | **Always fires** | active-issue graph → structural findings. The structural baseline every pass depends on; two of its findings feed the routing verdict (see below). **Mandatory floor: dependency-graph detection of cycles and ghost-project pointers** — these are not optional flavour, they produce the `circular-blocked` / `gap-blocked` routing verdicts. `repeat-parks`, `splittable specs`, and `chain gaps` are the expected-but-degradable remainder. |
+| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-map | **Always fires** | active-issue graph → structural findings. The structural baseline every pass depends on; two of its findings feed the routing verdict (see below). **Mandatory floor: dependency-graph detection of cycles and ghost-project pointers** — these are not optional flavour, they produce the `circular-blocked` / `gap-blocked` routing verdicts. `repeat-parks`, `splittable specs`, and `chain gaps` are the expected-but-degradable remainder. |
 | `pick-ordering` | faff-wtf, faff-beep-boop | **Required** | a set of issues → the same set ordered by the methodology's sequencing rule. |
 | `promotion-readiness` | faff-tidy, faff-prep | **Required** | an issue + its spec/blocker state → promote / demote / hold decision with reasons. |
 | `build-queue` | faff-beep-boop | **Required** | routed-in issues + conflict analysis → admission-filtered, ordered, wave-partitioned queue. |
 | `ticket-shaping` | faff-jot, faff-plot | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-jot falls back to one ticket per brief item. **Optional `shape-level` input** (`initiative` / `project` / `epic`): when **absent**, the single-level brief→tickets behaviour faff-jot uses (unchanged); when **present**, shape only that altitude's children of a node-scoped sub-brief — `/faff-plot` supplies it as it recurses a roadmap top-down. The methodology shapes one level per call; **`/faff-plot` owns the recursion, stop rule, and writes** — `ticket-shaping` never recurses or writes itself. |
 | `standup-digest` | faff-wtf | Optional | recent + ready + heads-up state → a brief. Unanswered → faff-wtf renders the ready-queue plainly. |
-| `horizon-assignment` | faff-whereto | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-whereto degrades to a flat structural roadmap. |
+| `horizon-assignment` | faff-map | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-map degrades to a flat structural roadmap. |
 | `issue-critique` | faff-prep | Optional | one issue + its spec → a per-issue critique through the methodology's lens (right-sizing, workstream fit, surfaced deps, risk — whatever the lens cares about). Unanswered → faff-prep omits the `## Methodology critique` block. The lens decides the critique's shape; faff-prep does not impose one. |
 
 **Standard envelope (every output).** Inputs a caller always supplies: the relevant issues, their state, sequencing, workstream grouping, and the dependency graph. Every output returns its named answer plus structured findings the caller can render, and a `Methodology: <name>` banner line for display. A methodology **does not know or describe its callers** — it answers the request from the state it's given; it never writes to the tracker (that's the orchestrator lane).
 
-**Display convention (shared).** When a `methodology` slot is configured, a sub-skill's output leads with a `Methodology: [skill-name]` banner line and renders its own methodology-specific section (named by that skill: faff-tidy's bucket 7, faff-wtf's `### Methodology findings`, faff-prep's `## Methodology critique`, faff-whereto's Phase 1 / Phase 7 additions, faff-beep-boop's summary banner). Both the banner and the section are omitted silently when no methodology is configured. Sub-skills state only *which* section they add, not this convention.
+**Display convention (shared).** When a `methodology` slot is configured, a sub-skill's output leads with a `Methodology: [skill-name]` banner line and renders its own methodology-specific section (named by that skill: faff-tidy's bucket 7, faff-wtf's `### Methodology findings`, faff-prep's `## Methodology critique`, faff-map's Phase 1 / Phase 7 additions, faff-beep-boop's summary banner). Both the banner and the section are omitted silently when no methodology is configured. Sub-skills state only *which* section they add, not this convention.
 
 **Appetite.** Every output respects the suite-wide `appetite` dial (see **Appetite for destruction**) — the per-level behaviour lives in the configured methodology skill, not here.
 
@@ -628,20 +628,20 @@ Two findings from `backlog-diagnostics` feed the **Automation-routing verdict** 
 
 ## Mechanism slot (`concurrency`)
 
-The `concurrency` slot is a pure **mechanism** — it *performs an action* in the pipeline rather than producing a translatable artefact (`intake` produces a brief; the adaptors translate; methodology answers named outputs). A mechanism slot has **no paired adaptor** and **no named-output set**; its contract is the set of obligations its action must honour plus the fixed gateway invariants it may never weaken. (`ship` was formerly a mechanism here; it is now a producer paired with `ship_adaptor` — see **Delivery outcome (fixed) → `ship_adaptor`** — because its occupant reads a *foreign* deploy tool's output and must translate it onto the fixed outcomes, the condition the adaptor pattern exists for. `concurrency` stays a mechanism: it drives faff's *own* workit, which already returns faff's vocabulary, so it has no foreign output to translate.) This section is the **canonical, gateway-owned contract** for `concurrency`, so it survives a swap — an occupant carries only its dialect/implementation and **refers back here** (per **Contract loading & conformance**), never an authoritative copy. The default occupant's `SKILL.md` documents *how the default* discharges the contract; it is not the source of the contract.
+The `concurrency` slot is a pure **mechanism** — it *performs an action* in the pipeline rather than producing a translatable artefact (`intake` produces a brief; the adaptors translate; methodology answers named outputs). A mechanism slot has **no paired adaptor** and **no named-output set**; its contract is the set of obligations its action must honour plus the fixed gateway invariants it may never weaken. (`ship` was formerly a mechanism here; it is now a producer paired with `ship_adaptor` — see **Delivery outcome (fixed) → `ship_adaptor`** — because its occupant reads a *foreign* deploy tool's output and must translate it onto the fixed outcomes, the condition the adaptor pattern exists for. `concurrency` stays a mechanism: it drives faff's *own* graft, which already returns faff's vocabulary, so it has no foreign output to translate.) This section is the **canonical, gateway-owned contract** for `concurrency`, so it survives a swap — an occupant carries only its dialect/implementation and **refers back here** (per **Contract loading & conformance**), never an authoritative copy. The default occupant's `SKILL.md` documents *how the default* discharges the contract; it is not the source of the contract.
 
 ### The `concurrency` slot contract (fixed)
 
 Executes `/faff-beep-boop`'s build pass. Default `faffter-noon-concurrency-sequential`; override `faffter-dark-concurrency-parallel`.
 
-**Input.** The conflict-analysis partition for the current wave — `{ "independents": [...], "groups": [[...]] }` — plus the per-issue build action (invoke `/faff-workit ISSUE-XX` autonomously) and the run ledger at `.faff/runs/<run-id>/run-ledger.json`.
+**Input.** The conflict-analysis partition for the current wave — `{ "independents": [...], "groups": [[...]] }` — plus the per-issue build action (invoke `/faff-graft ISSUE-XX` autonomously) and the run ledger at `.faff/runs/<run-id>/run-ledger.json`.
 
 **Obligations every `concurrency` occupant must honour:**
 
-1. **Build every issue in the partition.** Independents and group members alike each reach a `/faff-workit` invocation. Nothing is skipped or deferred — that is the deferred-queue anti-pattern (see **Autonomous Mode Contract**), caught by `runcheck`.
+1. **Build every issue in the partition.** Independents and group members alike each reach a `/faff-graft` invocation. Nothing is skipped or deferred — that is the deferred-queue anti-pattern (see **Autonomous Mode Contract**), caught by `runcheck`.
 2. **Serialise within a collision group, and require a *dependency* blocker to have merged.** Members build in listed order, each only after the prior reaches a terminal state. "Terminal" ≠ "merged": `pr-open` / `parked` / `errored` are terminal but unmerged. A member that *depends on* an earlier member (declared blocker) builds **only if that blocker merged (`shipped`)**; if the blocker landed unmerged, **park the dependent** (cause `in-run blocker did not merge — <blocker-id> landed <state>`) rather than build it against a `main` missing the dependency. Same-surface-only members (shared files, no dependency) just serialise.
-3. **Record every terminal outcome to the run ledger** the moment an issue lands, as one of the fixed buckets `shipped` / `pr-open` / `parked` / `errored` (see **`.faff/` logging directory** → Run ledger). Map `/faff-workit`'s caller-facing returns to buckets: **`pr-open-for-human` → `pr-open`**, others as themselves. Write the bucket, never the raw token, or `runcheck` flags it invalid.
-4. **Never weaken the merge gate.** AC-verified + CI-green + review `pass` is fixed here and in `/faff-workit`; a `concurrency` occupant controls *ordering and isolation* (and, for the parallel executor, rebase-before-merge re-validation), never *whether* the gate runs.
+3. **Record every terminal outcome to the run ledger** the moment an issue lands, as one of the fixed buckets `shipped` / `pr-open` / `parked` / `errored` (see **`.faff/` logging directory** → Run ledger). Map `/faff-graft`'s caller-facing returns to buckets: **`pr-open-for-human` → `pr-open`**, others as themselves. Write the bucket, never the raw token, or `runcheck` flags it invalid.
+4. **Never weaken the merge gate.** AC-verified + CI-green + review `pass` is fixed here and in `/faff-graft`; a `concurrency` occupant controls *ordering and isolation* (and, for the parallel executor, rebase-before-merge re-validation), never *whether* the gate runs.
 
 **Output.** Every partition issue reaches a terminal state, all recorded in the ledger; control returns to beep-boop's wave drain. **Worktree isolation** (one worktree per build, never shared) is mandatory for any occupant that runs builds concurrently — see **Worktree policy**.
 

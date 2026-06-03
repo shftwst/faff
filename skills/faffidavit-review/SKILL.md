@@ -14,11 +14,11 @@ The review-verdict contract itself is a faff-core invariant and lives in the gat
 - the three verdict states — `pass` / `fail` / `needs-human` — and their semantics,
 - the **revert test** that separates `fail` from `needs-human`,
 - the coercion rule (a malformed/unparseable verdict normalises to `needs-human`, never silently to `pass`), and
-- faff-workit's proceed / iterate / park branch on those three states.
+- faff-graft's proceed / iterate / park branch on those three states.
 
-This skill does not get to change any of that. What it owns is the *envelope and translation* — how a reviewer's native output is shaped and parsed into those fixed states. That is what makes the slot swappable: a third-party reviewer plugs in behind a different adaptor, and faff-workit still branches on the same three states.
+This skill does not get to change any of that. What it owns is the *envelope and translation* — how a reviewer's native output is shaped and parsed into those fixed states. That is what makes the slot swappable: a third-party reviewer plugs in behind a different adaptor, and faff-graft still branches on the same three states.
 
-**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-workit` reads the gateway on entry), so when you run as the `review_adaptor` slot it is already in context. If you are invoked **standalone** (normalising a review block on demand), **Read `~/.claude/skills/faff/SKILL.md` → _Core contracts and adaptor slots → Review verdict_ now** before mapping. Refer back to it; the recap below is non-normative and the gateway wins on any conflict.
+**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-graft` reads the gateway on entry), so when you run as the `review_adaptor` slot it is already in context. If you are invoked **standalone** (normalising a review block on demand), **Read `~/.claude/skills/faff/SKILL.md` → _Core contracts and adaptor slots → Review verdict_ now** before mapping. Refer back to it; the recap below is non-normative and the gateway wins on any conflict.
 
 ## The three states (non-normative recap for translation)
 
@@ -76,5 +76,5 @@ signal: pass | fail
 ## Rules
 
 - The vocabulary is closed at three states — that closure is fixed in the gateway, not here. A reviewer needing a fourth state is misusing the contract; fold it into one of the three.
-- This adaptor owns the envelope and the translation; it does not own review depth, passes, or the quality bar (those belong to the reviewer in the `review` slot), nor the verdict semantics or sequencing (those are fixed in the gateway / owned by faff-workit).
+- This adaptor owns the envelope and the translation; it does not own review depth, passes, or the quality bar (those belong to the reviewer in the `review` slot), nor the verdict semantics or sequencing (those are fixed in the gateway / owned by faff-graft).
 - Validation reports or normalises; it never changes a verdict's substance, only its conformance to the envelope.

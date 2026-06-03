@@ -89,7 +89,7 @@ Three carve-outs where prose stays:
 
 ## Synthesis — the issue-gloss contract
 
-Every issue rendered in any faff output — wtf's "Do this", whereto's workstreams, tidy's findings, beep-boop's queues, routing's verdict display, anywhere — carries three elements:
+Every issue rendered in any faff output — wtf's "Do this", map's workstreams, tidy's findings, beep-boop's queues, routing's verdict display, anywhere — carries three elements:
 
 1. **Tracker ID** — breadcrumb for traceability
 2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)

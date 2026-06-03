@@ -1,6 +1,6 @@
 # faffter-dark-concurrency-parallel
 
-The concurrent executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass with **multiple `/faff-workit` invocations in flight at once**, each in its own git worktree, up to a configurable cap — with a **rebase-before-merge** rule so parallel PRs can't merge stale-green against a moving `main`. The speed option; the sequential default (`faffter-noon-concurrency-sequential`) is the safe one.
+The concurrent executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass with **multiple `/faff-graft` invocations in flight at once**, each in its own git worktree, up to a configurable cap — with a **rebase-before-merge** rule so parallel PRs can't merge stale-green against a moving `main`. The speed option; the sequential default (`faffter-noon-concurrency-sequential`) is the safe one.
 
 ```yaml
 planning_skills:
@@ -15,11 +15,11 @@ Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill.
 
 ## Concurrency cap
 
-Read `concurrency_max` from `.faffrc` via the bundled resolver (`~/.claude/skills/faff/bin/faff config get concurrency_max -d 4`); default **4** when unset. Never exceed it — at most `concurrency_max` `/faff-workit` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
+Read `concurrency_max` from `.faffrc` via the bundled resolver (`~/.claude/skills/faff/bin/faff config get concurrency_max -d 4`); default **4** when unset. Never exceed it — at most `concurrency_max` `/faff-graft` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
 
 ## Worktree isolation
 
-Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<repo>/<branch>` (default; per the gateway → **Worktree policy**, `worktree_root`-overridable — `/faff-workit` creates one per issue, never shared across concurrent builds). Two builds writing the same working tree is the one thing parallel execution must never do; the per-issue worktree isolation guaranteed by that policy is what makes independents safe to run together.
+Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<repo>/<branch>` (default; per the gateway → **Worktree policy**, `worktree_root`-overridable — `/faff-graft` creates one per issue, never shared across concurrent builds). Two builds writing the same working tree is the one thing parallel execution must never do; the per-issue worktree isolation guaranteed by that policy is what makes independents safe to run together.
 
 ## Scheduling the partition
 
@@ -33,8 +33,8 @@ Several PRs going green in parallel were each tested against the `main` they bra
 
 1. **One merge at a time.** Acquire a logical merge lock before merging any PR (only one build is in its merge step at once); the others keep building.
 2. **Rebase onto latest `main`, then re-confirm green.** Before merging, rebase (or merge `main` into) the PR branch and re-run the checks the gateway merge gate requires — AC verification stays valid, CI must be **green on the rebased head**, review `pass` still stands. Merging on pre-rebase green is forbidden under concurrency.
-3. **If the rebase conflicts** → this is a real collision the partition missed (two independents that turned out to share surface). Hand it back to `/faff-workit` to resolve on the rebased branch (iterate), or park per the shared protocol if it can't be resolved autonomously. Then release the lock; the next ready PR rebases against the now-updated `main`.
-4. **If CI fails after rebase** → treat as a normal post-build CI failure (workit Step 10: one fix attempt if fixable, else park). The stale-green never reaches `main`.
+3. **If the rebase conflicts** → this is a real collision the partition missed (two independents that turned out to share surface). Hand it back to `/faff-graft` to resolve on the rebased branch (iterate), or park per the shared protocol if it can't be resolved autonomously. Then release the lock; the next ready PR rebases against the now-updated `main`.
+4. **If CI fails after rebase** → treat as a normal post-build CI failure (graft Step 10: one fix attempt if fixable, else park). The stale-green never reaches `main`.
 5. Release the merge lock; the next ready build takes it.
 
 This keeps the throughput win of parallel building while making the *merge* boundary as safe as the sequential default — each PR lands against the `main` it was actually re-validated against.

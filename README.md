@@ -8,13 +8,13 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-jot`, `/faff-prep` |
-| **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-workit` |
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-prep` |
+| **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-graft` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
 | **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
 
 - **L1 · as the loop.** *You* write the code, your usual IDE agents along for the ride. faff plays planning exoskeleton here: it tells you what's worth building, hands you a spec worth building from, then gets out of the way.
-- **L2 · in the loop.** `/faff-workit` drives the build for one issue but stops at every gate (spec, build, review, PR) for your say-so. Nothing ships behind your back.
+- **L2 · in the loop.** `/faff-graft` drives the build for one issue but stops at every gate (spec, build, review, PR) for your say-so. Nothing ships behind your back.
 - **L3 · on the loop.** `/faff-beep-boop` chews through the ready queue unattended and **parks** anything it can't call. The safety net isn't you staying awake, it's mechanical: the park protocol never quietly bins a loose end, and the run-ledger refuses to call a run "done" if it left admitted work dangling.
 - **L4 · out of the loop.** Lights-out. You've left the building entirely, and correctness is held up by *adversarial* machinery: a second model trying to break the change, isolated holdout worktrees marking the work against a spec it never got to peek at. The frontier. Not built yet, mind.
 
@@ -35,7 +35,7 @@ Two knobs cut across all four levels. They're not levels themselves:
 1. **Tell it where your stuff lives.** Drop a `.faffrc` at your repo root (see [Setup](#setup) — three lines is enough).
 2. **Got a new idea or an empty repo?** Run `/faff-jot`. It chats through what you're building and turns it into tickets. Already have a backlog? Skip to step 3.
 3. **Not sure what to do?** Run `/faff-wtf` — it tells you what shipped, what's stuck, and what to pick up.
-4. **Picked something?** Run `/faff-prep ISSUE-XX` to turn it into a spec, then `/faff-workit ISSUE-XX` to build it.
+4. **Picked something?** Run `/faff-prep ISSUE-XX` to turn it into a spec, then `/faff-graft ISSUE-XX` to build it.
 5. **Want it all done while you sleep?** Run `/faff-beep-boop` and check the results in the morning.
 
 Each step offers to chain into the next, so you can just keep saying yes. That's the whole loop.
@@ -73,10 +73,10 @@ Parked work: none
 Explored src/auth/ and src/cache.ts.
 Spec attached to SHF-40 (confidence: high — every decision marked, ACs testable).
 Moved SHF-40 to Todo.
-Start building now via /faff-workit? (y/n)
+Start building now via /faff-graft? (y/n)
 ```
 
-**4. `y` → `/faff-workit SHF-40` — build it.** Workit sets up a worktree, commits the spec, and gets out of your way; you pair with it from there:
+**4. `y` → `/faff-graft SHF-40` — build it.** Graft sets up a worktree, commits the spec, and gets out of your way; you pair with it from there:
 
 ```
 Worktree ready at ~/.faff/worktrees/faff/SHF-40. Spec committed as the first commit.
@@ -87,7 +87,7 @@ When it's done it verifies the ACs, runs review, waits for CI, and (interactivel
 
 **5. `/faff-beep-boop` — or let it run the lot unattended.** Same loop, no babysitting: it grooms, specs, and builds the ready queue, parking anything ambiguous for `/faff-wtf` to show you in the morning.
 
-Each step offers to chain into the next — `wtf → prep → workit` — so on a good day you just keep saying yes.
+Each step offers to chain into the next — `wtf → prep → graft` — so on a good day you just keep saying yes.
 
 ## Commands
 
@@ -98,7 +98,7 @@ Each step offers to chain into the next — `wtf → prep → workit` — so on 
 | `/faff-wtf` | Where to focus — what shipped, what's stuck, what's next |
 | `/faff-tidy` | Tidy the backlog — find the mess, clean, and surface what's ready to pick up |
 | `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
-| `/faff-workit ISSUE-XX` | Set up a worktree and start building |
+| `/faff-graft ISSUE-XX` | Set up a worktree and start building |
 | `/faff-beep-boop` | Unattended run — drain the ready queue overnight, park anything ambiguous for morning review |
 
 ## How it works
@@ -112,7 +112,7 @@ new idea / project → tickets → "what should I work on?" → prep it → buil
 0. **Jot** — turn a new idea (or a whole new project) into a sensible set of tickets
 1. **WTF** — what shipped, what's blocked, what to focus on
 2. **Prep** — explore the codebase, write a spec, attach it to the ticket
-3. **Workit** — spec is committed to a feature branch, worktree is ready, go
+3. **Graft** — spec is committed to a feature branch, worktree is ready, go
 
 `/faff-jot` is the front door: everything else acts on tickets that already exist — jot is how they come to exist. It runs a discovery conversation, then shapes the result into tickets using your configured methodology.
 
@@ -206,7 +206,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 | `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits the `review_adaptor` verdict (pass/fail/needs-human). |
 | `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-jot` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
-| `faffter-noon-concurrency-sequential` | `concurrency` | The implicit default build-pass executor. Runs `/faff-beep-boop`'s queue one `/faff-workit` at a time over the conflict-analysis partition — no worktree contention, no merge races. The safe counterpart to `faffter-dark-concurrency-parallel`. |
+| `faffter-noon-concurrency-sequential` | `concurrency` | The implicit default build-pass executor. Runs `/faff-beep-boop`'s queue one `/faff-graft` at a time over the conflict-analysis partition — no worktree contention, no merge races. The safe counterpart to `faffter-dark-concurrency-parallel`. |
 
 ### faffidavit-* (adaptors)
 
@@ -215,7 +215,7 @@ Adaptor skills. Faff-core fixes the **internal contracts** the pipeline branches
 | Skill | Slot | What it does |
 |---|---|---|
 | `faffidavit-spec` | `spec_adaptor` | The default adaptor over the fixed spec-readiness contract (closed/open/external classification + confidence, in the gateway). Owns the canonical markers (Chosen/Punt/Assumes), marker rules, skimmable writing style, and the confidence line's format; validates any spec (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
-| `faffidavit-review` | `review_adaptor` | The default adaptor over the fixed review-verdict contract (pass/fail/needs-human, semantics, revert test — in the gateway). Owns the output envelope every reviewer returns and normalises raw output onto the three states; validates review output on demand. Swap it to adapt a third-party reviewer — faff-workit still branches on the same three states. |
+| `faffidavit-review` | `review_adaptor` | The default adaptor over the fixed review-verdict contract (pass/fail/needs-human, semantics, revert test — in the gateway). Owns the output envelope every reviewer returns and normalises raw output onto the three states; validates review output on demand. Swap it to adapt a third-party reviewer — faff-graft still branches on the same three states. |
 | `faffidavit-routing` | `routing_adaptor` | The default adaptor over the fixed automation-routing contract (the closed six verdicts + admission rule + root-cause taxonomy — in the gateway). Owns verdict assignment, computation locus, and display format; assigns and validates verdicts. The contract survives a `methodology` swap because it lives in faff-core, not inside the methodology. |
 | `faffidavit-rendering` | `rendering_adaptor` | The default — and a **pure adaptor** with no internal contract behind it, since rendering is human-facing only. Owns the rendering style (visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps) plus the synthesis issue-gloss humanisation; validates/normalises draft output. All sub-skills render through this; swap it to change house style wholesale. |
 

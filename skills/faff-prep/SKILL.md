@@ -5,7 +5,7 @@ description: "Turn a vague ticket into something you can actually build — expl
 
 # Faff — Prep
 
-> **Next step:** `/faff-workit ISSUE-XX` to start building
+> **Next step:** `/faff-graft ISSUE-XX` to start building
 
 Turn a vague ticket into something buildable. Prep does the thinking so you can just code.
 
@@ -28,7 +28,7 @@ planning_skills:
 
 Faff-prep invokes the configured/default `spec` skill with the issue context and explore findings, captures its output, and manages the issue tracker attachment. It does **not** carry a fallback copy of the spec arc — the default producer always exists, so there is no "inline" path to fall through to.
 
-**Producer requirements (the slot contract relies on):** the `spec` skill must (a) return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, (b) produce decisions using the canonical markers defined by the `spec_adaptor` slot (default `faffidavit-spec`), and (c) discharge its own quality bar — for `faffter-noon-spec` that's the clean-context self-review before it returns (see its `SKILL.md` → _Self-review before returning_). Faff-prep gates on the returned confidence rating; the markers let downstream sub-skills (`/faff-workit`, `/faff-beep-boop`) tell closed decisions from open punts without re-litigating them. A `spec` skill that genuinely can't self-rate is usable interactively but cannot be driven autonomously — configure a producer that can (the default does).
+**Producer requirements (the slot contract relies on):** the `spec` skill must (a) return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, (b) produce decisions using the canonical markers defined by the `spec_adaptor` slot (default `faffidavit-spec`), and (c) discharge its own quality bar — for `faffter-noon-spec` that's the clean-context self-review before it returns (see its `SKILL.md` → _Self-review before returning_). Faff-prep gates on the returned confidence rating; the markers let downstream sub-skills (`/faff-graft`, `/faff-beep-boop`) tell closed decisions from open punts without re-litigating them. A `spec` skill that genuinely can't self-rate is usable interactively but cannot be driven autonomously — configure a producer that can (the default does).
 
 ## What Prep Produces
 
@@ -67,7 +67,7 @@ What prep still owns around the producer's output:
 
 ## Prep Gate
 
-`/faff-workit` requires a spec to exist on the issue before implementation can start. That's the only gate — one artifact.
+`/faff-graft` requires a spec to exist on the issue before implementation can start. That's the only gate — one artifact.
 
 ## Artifact Lifecycle
 
@@ -81,7 +81,7 @@ During prep, the spec lives **only on the issue tracker** as a comment. Nothing 
 
 ### Phase 2: Build (committed to repo)
 
-When `/faff-workit` starts implementation, it pulls the spec from the issue and commits it to the feature branch as the first commit:
+When `/faff-graft` starts implementation, it pulls the spec from the issue and commits it to the feature branch as the first commit:
 - Spec → `<spec-docs-path>/YYYY-MM-DD-<issue>-<name>-design.md` — `<spec-docs-path>` is the configured **Spec docs path** (default `docs/specs/`; see the gateway's **Spec docs location**)
 
 It ships with the PR alongside the code it describes.
@@ -127,11 +127,11 @@ Run the marker validation from the _spec contract_ before attaching. In interact
 
 Yes/no gate — confidence-aware:
 
-> **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-workit`? (y/n)"
+> **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-graft`? (y/n)"
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
 > **`confidence: low`:** "Prepped at low confidence — explore couldn't resolve [the core question]. Resolve it together now, or park for later? (resolve/park)"
 
-On `high` confirm (or `medium` → `build`), invoke `/faff-workit ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `parked-by-faff` and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
+On `high` confirm (or `medium` → `build`), invoke `/faff-graft ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `parked-by-faff` and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
 
 ### Scenario B: Resume (existing spec found)
 
@@ -164,16 +164,16 @@ Then offer a three-way choice (not passive text):
 > "What next? (iterate / build / park)"
 
 - **iterate** — revise the spec (loop back to Step 2 of Scenario A)
-- **build** — invoke `/faff-workit ISSUE-XX` via the Skill tool (only if spec is fresh)
+- **build** — invoke `/faff-graft ISSUE-XX` via the Skill tool (only if spec is fresh)
 - **park** — stop here; apply the shared Park / Unpark protocol (tag `parked-by-faff`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
-### Scenario C: Starting an issue (deferred to workit)
+### Scenario C: Starting an issue (deferred to graft)
 
-When the user says "I'm working on ISSUE-XX" or picks an issue from the catch-up, use `/faff-workit` instead. Workit enforces the prep gate and handles worktree creation and status transitions.
+When the user says "I'm working on ISSUE-XX" or picks an issue from the catch-up, use `/faff-graft` instead. Graft enforces the prep gate and handles worktree creation and status transitions.
 
 ## Re-prepping
 
-At any point, the user (or `/faff-workit` mid-build) can say "reprep this" or "update the spec":
+At any point, the user (or `/faff-graft` mid-build) can say "reprep this" or "update the spec":
 
 - Produce the revised spec → replace on the issue immediately
 - Add a note: "Revised on [date] — [brief reason]"
@@ -184,14 +184,14 @@ At any point, the user (or `/faff-workit` mid-build) can say "reprep this" or "u
 | Phase | Location | Purpose |
 |-------|----------|---------|
 | Prep | Issue tracker (comments) | Persistent, survives across sessions. Source of truth until build begins. |
-| Build | Feature branch, under the configured **Spec docs path** (default `docs/specs/`) | Committed by `/faff-workit` as first commit. Ships with the PR. |
+| Build | Feature branch, under the configured **Spec docs path** (default `docs/specs/`) | Committed by `/faff-graft` as first commit. Ships with the PR. |
 | Merged | Main branch, under the configured **Spec docs path** (default `docs/specs/`) | Living documentation of design intent. |
 
 The spec is **never** committed during prep. It only enters the repo when building begins.
 
 ## Autonomous Mode
 
-When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-workit` mid-build for respec), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
+When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see `~/.claude/skills/faff/SKILL.md`) and these specifics:
 
 Two allowed auto-spec paths. Both invoke the shared subroutine documented immediately below at the points named in their respective sections.
 

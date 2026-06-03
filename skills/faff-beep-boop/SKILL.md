@@ -13,7 +13,7 @@ This skill is the orchestrator. It does not reimplement prep, build, or tidy —
 
 ## Configuration
 
-**Load the gateway first.** Beep-boop is the autonomous entry point and is usually entered directly, so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol, and the **fixed automation-routing admission rule** the queue gates on). Loading it here means every skill the run delegates to (tidy, prep, workit, and their slots) inherits these ambiently.
+**Load the gateway first.** Beep-boop is the autonomous entry point and is usually entered directly, so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies (ignore cancelled/archived, `.faff/` logging, Planning Skills slots, autonomous-mode contract, park protocol, and the **fixed automation-routing admission rule** the queue gates on). Loading it here means every skill the run delegates to (tidy, prep, graft, and their slots) inherits these ambiently.
 
 Beep-boop uses these `planning_skills` slots from `.faffrc` when set:
 
@@ -40,7 +40,7 @@ Two composable flags cap the cost of a run. Pass either, both, or neither. Both 
 | Flag | Caps | Semantic |
 |---|---|---|
 | `--until HH:MM` | Wall-clock time | Stop dispatching new units once local time reaches HH:MM. 24-hour format. Past times interpret as next-day same time (so `--until 06:00` started at 23:00 means 06:00 tomorrow). |
-| `--max N` | Build attempts | Stop dispatching new build issues once N attempts have been launched. Counts every build-queue dispatch regardless of outcome (Shipped / PR-open / Parked / Errored). Does **not** count issues routed out at the verdict gate (they never got a `/faff-workit` invocation). Does **not** count prep dispatches. |
+| `--max N` | Build attempts | Stop dispatching new build issues once N attempts have been launched. Counts every build-queue dispatch regardless of outcome (Shipped / PR-open / Parked / Errored). Does **not** count issues routed out at the verdict gate (they never got a `/faff-graft` invocation). Does **not** count prep dispatches. |
 
 ### Phase scope
 
@@ -55,7 +55,7 @@ Between units, never mid-unit. Specifically:
 - After every build return (or before every launch in parallel mode), before dispatching the next build issue in the same wave.
 - At every wave boundary, before re-assembling the next wave's build queue.
 
-In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-workit` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). Under the parallel executor, up to `concurrency_max` issues may finish after the budget fires; that's expected.
+In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-graft` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). Under the parallel executor, up to `concurrency_max` issues may finish after the budget fires; that's expected.
 
 ### Launch-counted, not terminal-state-counted
 
@@ -108,7 +108,7 @@ Collect every issue that meets readiness (in Todo, with no open *external* block
 - Issues already in Todo at the start of the run (spec likely on the tracker)
 - Issues freshly moved to Todo by the prep queue (spec on the tracker by construction)
 
-Do not require a repo-side spec file at this stage — faff-workit commits the spec to `docs/` only at the start of the build. An absent spec file under the configured **Spec docs path** (default `docs/specs/*-<issue>-*.md`) is not grounds for exclusion; the tracker is the pre-build source of truth.
+Do not require a repo-side spec file at this stage — faff-graft commits the spec to `docs/` only at the start of the build. An absent spec file under the configured **Spec docs path** (default `docs/specs/*-<issue>-*.md`) is not grounds for exclusion; the tracker is the pre-build source of truth.
 
 **Compute the automation-routing verdict** for every spec-gated candidate. The verdict is normally already in `.faff/runs/<run-id>/automation-verdicts.md` from the tidy pass in step 1 — read it from there to avoid recomputation. Any candidate **not** in that cache — an issue prep promoted during a wave (step 8), or one whose spec was refreshed since the tidy pass — is computed **inline** at assembly and written back to the cache; the top-of-run cache only covers the issues tidy saw. **Admit only** `fire-and-forget` and `likely-fire` verdicts to the build queue.
 
@@ -124,7 +124,7 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 ### 6. Build pass
 
-Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives `/faff-workit` in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
+Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives `/faff-graft` in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). When a `methodology` skill is configured, this ordering is reframed using the methodology's sequencing logic — the structural inputs (priority and unlock value) remain in the computation but no longer alone determine the order.
 
 ### 7. Wave drain
 
@@ -160,7 +160,7 @@ If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and p
 
 ### 10. File discovered-scope tickets
 
-After the wave loop converges (and only when builds ran — the wave-1 short-circuit at step 9 skips this), collect the **discovered scope** `/faff-workit` recorded during the run and file the concrete items as Backlog tickets. This is bottom-up source (b) — execution-discovered work (gateway → **Agent Lanes**; `design/planning-loop.md`). It is the one step where beep-boop writes tickets **directly** rather than via tidy — legitimately, as the orchestrator lane (full tracker write).
+After the wave loop converges (and only when builds ran — the wave-1 short-circuit at step 9 skips this), collect the **discovered scope** `/faff-graft` recorded during the run and file the concrete items as Backlog tickets. This is bottom-up source (b) — execution-discovered work (gateway → **Agent Lanes**; `design/planning-loop.md`). It is the one step where beep-boop writes tickets **directly** rather than via tidy — legitimately, as the orchestrator lane (full tracker write).
 
 1. **Collect.** Glob `.faff/runs/<run-id>/*/discovered-scope.json` (each built issue's file; absent when it found nothing). Every built issue contributes regardless of its terminal outcome — a `shipped`, `pr-open`, or `parked` issue can all carry discovered scope.
 2. **Gate per item:**
@@ -267,7 +267,7 @@ Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`
 
 ## Build-pass execution (the `concurrency` slot)
 
-The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives `/faff-workit` per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
+The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives `/faff-graft` per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
 
 Every executor honours the same slot contract: build every issue in the partition, serialise within collision groups, record each terminal outcome to the run ledger (so `runcheck` can verify completeness), and never weaken the merge gate. A missing slot is never a park reason — it defaults to sequential. The contract is fixed in the gateway → **Mechanism slot (`concurrency`)** → _The `concurrency` slot contract_ — see it for the full obligations.
 
@@ -402,7 +402,7 @@ On budget-hit, in-flight units complete naturally — see `## Budget flags` for 
 
 ## Autonomous-mode signal to sub-skills
 
-When beep-boop invokes any sub-skill (`/faff-tidy`, `/faff-prep`, `/faff-workit`), it prefixes the invocation with an explicit autonomous-mode signal:
+When beep-boop invokes any sub-skill (`/faff-tidy`, `/faff-prep`, `/faff-graft`), it prefixes the invocation with an explicit autonomous-mode signal:
 
 > _Running in autonomous mode (invoked by /faff-beep-boop, run <run-id>). Skip all prompts. Park on ambiguity. Log everything to `.faff/runs/<run-id>/`. Return structured result to caller._
 
@@ -412,7 +412,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 
 - **Never aborts the run on a single failure.** Park that issue, log, continue with the next unit of work.
 - **Never auto-splits tickets** or restructures the backlog beyond what tidy's autonomous defaults allow.
-- **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-workit Step 10).
+- **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-graft Step 10).
 - **Never parks work on "scope" or "capacity" grounds.** Every ready-with-spec issue gets attempted. "Too many to do in one session" is explicitly forbidden (see the gateway contract). The run ends when the queue drains or everything remaining is genuinely parked by the three valid categories — not by the orchestrator deciding to do fewer.
 - **Never "defers" a queue to the next run.** Identifying a build queue (independents + collision groups, waves mapped) and then ending the run with that queue undispatched is **the same failure as parking it**, regardless of the wording in the summary. Phrases like "12-issue build queue not dispatched this conversation", "queue unblocked, ready for next pass", "deferred to next /faff-beep-boop", "single-conversation context budget" are all banned summaries — they describe a run that bailed on the build pass after doing the analysis. If conflict analysis surfaced a non-empty build queue, the build pass **must** be entered; the run is not complete until the queue drains, every remaining issue is in one of the three valid park categories, or the harness terminates the session externally. Compaction mid-build is a resume from `.faff/runs/<run-id>/`, not a reason to stop short.
 - **User-set budgets are the one legitimate stop-short.** If `--until HH:MM` or `--max N` fires, the run stops with any unreached build-queue issues reported under `## Unreached (budget hit)` in the summary, and the `Stop reason` line names the flag that fired. This is **not** a deferral by the orchestrator — the user chose the budget. Unreached issues are not parked; they stay in Todo with their specs, ready for the next run or human attention. See `## Budget flags` for full mechanics.

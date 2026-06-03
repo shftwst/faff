@@ -13,7 +13,7 @@ planning_skills:
 
 ## When it runs
 
-Invoked by faff-workit Step 9 as the configured `review` skill.
+Invoked by faff-graft Step 9 as the configured `review` skill.
 
 ## Two phases
 
@@ -27,7 +27,7 @@ Only runs if Phase 1 returned `pass`. Sends the diff to a structurally different
 
 ## Input
 
-Faff-workit provides:
+Faff-graft provides:
 
 - The full diff: `git diff main...HEAD`
 - The spec (from the issue comment)
@@ -132,9 +132,9 @@ The key principle is **independence from the primary model**. If Claude wrote th
 - Malformed response (no parseable verdict) → return `needs-human` with the raw response as a finding. Let a human decide.
 - Auth failure (bad/expired key) → return `needs-human` with the error. Don't retry with broken credentials.
 
-## Output to faff-workit
+## Output to faff-graft
 
-Returns Phase 1's hard signal (`pass` / `fail` / `needs-human`) plus the adversarial findings and the implementor's dispositions. The adversarial phase does not alter the signal — it adds evidence that the implementor has addressed. Sequencing (iterate, raise PR, park) belongs to faff-workit.
+Returns Phase 1's hard signal (`pass` / `fail` / `needs-human`) plus the adversarial findings and the implementor's dispositions. The adversarial phase does not alter the signal — it adds evidence that the implementor has addressed. Sequencing (iterate, raise PR, park) belongs to faff-graft.
 
 ## Rules
 

@@ -5,7 +5,7 @@ description: "Where to focus — what shipped, what's stuck, what to work on nex
 
 # Faff — WTF (Where To Focus)
 
-> **Next steps:** `/faff-prep ISSUE-XX` to prep an issue · `/faff-workit ISSUE-XX` to start building
+> **Next steps:** `/faff-prep ISSUE-XX` to prep an issue · `/faff-graft ISSUE-XX` to start building
 
 Pull current state from your issue tracker and git, figure out what matters, tell you what to do.
 
@@ -52,7 +52,7 @@ Query using the project/team details from `.faffrc` (`tracking.project_id` / `tr
 
 ### 4. Parked work (any source)
 
-Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-workit` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual user parks too (L1 prep, L2 build), and that work must resurface here — not only beep-boop's.
+Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-graft` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual user parks too (L1 prep, L2 build), and that work must resurface here — not only beep-boop's.
 
 **The `parked-by-faff` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `parked-by-faff` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
 
@@ -62,7 +62,7 @@ Surface every issue faff has parked — whether by an overnight `/faff-beep-boop
 For each parked issue, surface:
 - Issue id and title
 - One-line cause summary pulled from the tracker park comment (or the log, when present)
-- How to unpark it — re-run the relevant skill per the gateway **Unpark protocol** (re-`/faff-prep` for a spec-level park, re-`/faff-workit` for a build-level park)
+- How to unpark it — re-run the relevant skill per the gateway **Unpark protocol** (re-`/faff-prep` for a spec-level park, re-`/faff-graft` for a build-level park)
 - Path to the full log in `.faff/runs/…` when the park was autonomous
 
 Skip this section entirely if there are no parked issues (no `parked-by-faff`-labelled issues and no parked items in run logs).
@@ -133,8 +133,8 @@ All hand-offs are yes/no gates (or short-choice where a real branch exists). No 
 
 After presenting the output:
 
-- **Picked a focus item:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke `/faff-prep` via the Skill tool. If the issue already has a spec, the gate becomes "Start building now via `/faff-workit`? (y/n)".
-- **Multiple picked:** invoke `/faff-prep` (or `/faff-workit` if already prepped) on the first; note the rest for later.
+- **Picked a focus item:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke `/faff-prep` via the Skill tool. If the issue already has a spec, the gate becomes "Start building now via `/faff-graft`? (y/n)".
+- **Multiple picked:** invoke `/faff-prep` (or `/faff-graft` if already prepped) on the first; note the rest for later.
 - **"Done" reported by user:** move the issue to Done (no further chain).
 - **"Blocked" reported by user:** mark blocked, ask the blocking reason.
 - **"Reprep" or "update the spec":** yes/no "Re-prep via `/faff-prep`? (y/n)".
@@ -209,7 +209,7 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 ### Heads up
 - Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
 - Orphaned + repeat-parked ⚠: ISSUE-ZZ  [gloss] — parent project cancelled; parked 3 times; is this still wanted?
-- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-workit can't advance it. (auto-carves at default appetite; low appetite chain-offers /faff-prep --split.)
+- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-graft can't advance it. (auto-carves at default appetite; low appetite chain-offers /faff-prep --split.)
 - Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (auto-files the prereq + blocker link at default appetite; low appetite offers "file gap issue".)
 - Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (auto-files the peer at default appetite; low appetite offers "file gap issue".)
 - [Any risks, approaching deadlines, or flags]

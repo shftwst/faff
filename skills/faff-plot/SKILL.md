@@ -5,7 +5,7 @@ description: "Turn an application-scale idea into a planned, dependency-linked r
 
 # faff-plot
 
-The top-down planner. Where `/faff-jot` captures new work and shapes it one level deep, `/faff-plot` takes an **application-scale** discovery brief and recurses it into a roadmap *skeleton*: outcome → initiatives → projects → first-slice epics, with the dependency links between them. It is the **planning session** `/faff-whereto` points at when it finds the chain doesn't join up — and `/faff-whereto` is what audits the skeleton plot writes.
+The top-down planner. Where `/faff-jot` captures new work and shapes it one level deep, `/faff-plot` takes an **application-scale** discovery brief and recurses it into a roadmap *skeleton*: outcome → initiatives → projects → first-slice epics, with the dependency links between them. It is the **planning session** `/faff-map` points at when it finds the chain doesn't join up — and `/faff-map` is what audits the skeleton plot writes.
 
 plot is jot's recursion applied to jot's discovery. They share the same `ticket-shaping` machinery; the difference is depth. jot does one breadth-first pass and chains to prep. plot descends level by level, writing containers as it goes, and stops at first-slice epics — never the leaves.
 
@@ -17,12 +17,12 @@ plot is jot's recursion applied to jot's discovery. They share the same `ticket-
 
 `/faff-plot` runs in the **orchestrator lane** (see gateway → Agent Lanes): it talks to the human, reads the tracker, drives the `methodology` slot, and **writes containers and tickets**. It does **not** write code and does **not** produce specs — speccing is `/faff-prep`'s job, per ticket, later. Like `/faff-jot`, it is **human-gated**: new structure entering the system is a human-confirmed event, not an autonomous one (see Autonomous mode).
 
-`/faff-whereto` is plot's **read-only twin** at the same altitude — it audits whether a roadmap joins up but never writes. plot writes; whereto audits. Keep them distinct: never fold plot's write power into whereto.
+`/faff-map` is plot's **read-only twin** at the same altitude — it audits whether a roadmap joins up but never writes. plot writes; map audits. Keep them distinct: never fold plot's write power into map.
 
 ## What it does (the flow)
 
 ```
-discovery brief → recurse top-down (ticket-shaping per level) → write skeleton → chain to whereto (audit) + prep (first slice)
+discovery brief → recurse top-down (ticket-shaping per level) → write skeleton → chain to map (audit) + prep (first slice)
                   outcome → initiatives → projects → first-slice epics
 ```
 
@@ -67,7 +67,7 @@ Create top-down as each level is confirmed: initiative containers → project co
 
 After the skeleton is written, offer two gates in order:
 
-- **Audit:** "Roadmap created — audit whether it joins up via `/faff-whereto`? (y/n)". On confirm, invoke `/faff-whereto` via the Skill tool. This is the coherence check on what plot just wrote — chain join-up, gate fireability, ghost projects.
+- **Audit:** "Roadmap created — audit whether it joins up via `/faff-map`? (y/n)". On confirm, invoke `/faff-map` via the Skill tool. This is the coherence check on what plot just wrote — chain join-up, gate fireability, ghost projects.
 - **Start:** "Prep the first slice for build via `/faff-prep <first-epic>`? (y/n)". On confirm, invoke `/faff-prep` on the highest-sequenced first-slice epic. On deny, stop cleanly.
 
 ## Methodology influence
@@ -80,7 +80,7 @@ The shape of the tree is the methodology's call, per level (`ticket-shaping` wit
 
 ## Tracker-less (git-only) mode
 
-When no tracker MCP is available (gateway → Configuration), there are no containers to create. plot still recurses and writes the full skeleton to `.faff/intake/<date>-<slug>-roadmap.md` as a nested checklist (initiatives → projects → first-slice epics + deps), notes that creation was skipped, and offers the same prep/whereto hand-off against the written file. Nothing is lost.
+When no tracker MCP is available (gateway → Configuration), there are no containers to create. plot still recurses and writes the full skeleton to `.faff/intake/<date>-<slug>-roadmap.md` as a nested checklist (initiatives → projects → first-slice epics + deps), notes that creation was skipped, and offers the same prep/map hand-off against the written file. Nothing is lost.
 
 ## Autonomous mode
 
@@ -98,13 +98,13 @@ Reads the suite-wide `appetite` dial, lightly modulated since container creation
 
 ## Logging
 
-Write a log per the gateway `.faff/logging` rule: the brief, each level's `ticket-shaping` request (`shape-level` + sub-brief) and the methodology's proposed children, every stop-rule decision (which branches were stopped and why), what was created (ids + relationships per level), and any chain to `/faff-whereto` or `/faff-prep`. Enough that a follow-up agent can see how the roadmap came to exist and where it was deliberately left shallow.
+Write a log per the gateway `.faff/logging` rule: the brief, each level's `ticket-shaping` request (`shape-level` + sub-brief) and the methodology's proposed children, every stop-rule decision (which branches were stopped and why), what was created (ids + relationships per level), and any chain to `/faff-map` or `/faff-prep`. Enough that a follow-up agent can see how the roadmap came to exist and where it was deliberately left shallow.
 
 ## Rules
 
 - **Discovery lives in jot, not here.** plot consumes a brief; it only runs `intake` itself when invoked standalone with no brief. It never re-does discovery on a brief jot already gathered.
 - **Recurse, don't enumerate.** The stop rule is non-negotiable: skeleton down to first-slice epics + deps, never the leaves. Leaves grow from specs and the bottom-up tributaries.
 - **Containers always confirm.** No appetite level auto-creates an initiative or project container. Only first-slice epics are appetite-creatable, and only under a confirmed parent.
-- **plot writes; whereto audits.** Keep the write/read split with whereto absolute — plot never just "synthesises", whereto never writes.
+- **plot writes; map audits.** Keep the write/read split with map absolute — plot never just "synthesises", map never writes.
 - **Shaping opinions are the methodology's.** plot owns descent, stop rule, gating, and writes — never the per-level shaping (naming, right-sizing, sequencing). That is `ticket-shaping`'s job at each `shape-level`.
-- Chaining uses the standard explicit yes/no gate (gateway → Chaining pattern). No passive "you should run /faff-whereto next".
+- Chaining uses the standard explicit yes/no gate (gateway → Chaining pattern). No passive "you should run /faff-map next".

@@ -15,7 +15,7 @@ The automation-routing contract itself is a faff-core invariant and lives in the
 - the **build-queue admission rule** — only `fire-and-forget` + `likely-fire` ever enter the queue; all others route out with a one-line reason surfaced in wtf, never silently dropped,
 - the **root-cause class enum** (`punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`) shared by repeat-park detection and the calibration log.
 
-These are the stable boundary between the `methodology` slot and three consumers — `/faff-beep-boop`'s admission gate, `/faff-wtf`'s morning brief, `/faff-workit`'s park logic. Whatever methodology detects the backlog problems, the verdict words that gate admission stay fixed in the gateway. This skill does not get to change them. What it owns is *assignment + display* — how an issue is mapped onto a verdict, and how verdicts are rendered.
+These are the stable boundary between the `methodology` slot and three consumers — `/faff-beep-boop`'s admission gate, `/faff-wtf`'s morning brief, `/faff-graft`'s park logic. Whatever methodology detects the backlog problems, the verdict words that gate admission stay fixed in the gateway. This skill does not get to change them. What it owns is *assignment + display* — how an issue is mapped onto a verdict, and how verdicts are rendered.
 
 **How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-tidy` / `/faff-beep-boop` / `/faff-wtf` read the gateway on entry), so when you run as the `routing_adaptor` slot it is already in context. If you are invoked **standalone** ("why wouldn't SHF-123 fire?"), **Read `~/.claude/skills/faff/SKILL.md` → _Core contracts and adaptor slots → Automation-routing verdict_ now** before assigning. Refer back to it; never treat the recap below as the source of truth.
 
@@ -98,4 +98,4 @@ signal: pass | fail
 ## Rules
 
 - The six verdicts and the root-cause classes are both closed enums fixed in the gateway, not here. A new state is added there first, or not at all — never invented inline by this adaptor or a consumer.
-- This adaptor assigns, renders, and validates the verdict; it does not own *detection* (cycles, ghost-projects, repeat-park patterns come from the methodology slot's `backlog-diagnostics`), the *vocabulary or admission rule* (fixed in the gateway), or *sequencing* (admission, resolve-attempt, park belong to beep-boop / workit).
+- This adaptor assigns, renders, and validates the verdict; it does not own *detection* (cycles, ghost-projects, repeat-park patterns come from the methodology slot's `backlog-diagnostics`), the *vocabulary or admission rule* (fixed in the gateway), or *sequencing* (admission, resolve-attempt, park belong to beep-boop / graft).

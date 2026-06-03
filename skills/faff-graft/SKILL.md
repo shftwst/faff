@@ -1,9 +1,9 @@
 ---
-name: faff-workit
-description: "Start building an issue — checks the spec exists, sets up a worktree, commits the spec to the feature branch, and gets out of your way. Trigger for: 'workit ISSUE-XX' / 'start ISSUE-XX' / 'pick up ISSUE-XX' / 'let me build'."
+name: faff-graft
+description: "Start building an issue — checks the spec exists, sets up a worktree, commits the spec to the feature branch, and gets out of your way. Trigger for: 'graft ISSUE-XX' / 'start ISSUE-XX' / 'pick up ISSUE-XX' / 'let me build'."
 ---
 
-# Faff — Workit
+# Faff — Graft
 
 > **Prerequisite:** `/faff-prep ISSUE-XX` (spec must exist on the issue)
 
@@ -11,13 +11,13 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict, spec-readiness, and delivery-outcome contracts** workit branches on. Loading it here means any slot workit delegates to inherits these ambiently. Workit consults the `review`/`review_adaptor` and `ship`/`ship_adaptor` Planning Skill slots.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If `~/.claude/skills/faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `planning_skills`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the **fixed review-verdict, spec-readiness, and delivery-outcome contracts** graft branches on. Loading it here means any slot graft delegates to inherits these ambiently. Graft consults the `review`/`review_adaptor` and `ship`/`ship_adaptor` Planning Skill slots.
 
 ### Worktree Hook
 
-Workit owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section just registers the hook that enacts it.
+Graft owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section just registers the hook that enacts it.
 
-Workit needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.claude/settings.json` for a WorktreeCreate hook. If none exists:
+Graft needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.claude/settings.json` for a WorktreeCreate hook. If none exists:
 
 1. Check if a project-specific wrapper exists at `scripts/setup-worktree.sh` — if so, register that
 2. Otherwise, register the generic hook bundled with the faff skill:
@@ -28,7 +28,7 @@ Workit needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.
     "WorktreeCreate": [
       {
         "type": "command",
-        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/faff-workit/setup-worktree.sh\""
+        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/faff-graft/setup-worktree.sh\""
       }
     ]
   }
@@ -97,7 +97,7 @@ Run `git worktree list` and check if a worktree for this issue already exists (m
 If a worktree already exists:
 - Verify the checked-out branch matches the expected branch name. Warn if not.
 - Tell the user the worktree exists and open it.
-- Skip to step 5 (status update). Spec was already committed on first workit.
+- Skip to step 5 (status update). Spec was already committed on first graft.
 
 If no worktree exists:
 - Use the `EnterWorktree` tool with the branch name as the worktree name
@@ -124,7 +124,7 @@ Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use
 
 Commit message: `docs(<issue-id>): add spec for <issue title>`
 
-This commit happens once. If the user re-runs workit on the same issue (existing worktree), skip this step.
+This commit happens once. If the user re-runs graft on the same issue (existing worktree), skip this step.
 
 **Step 5: Move to In Progress**
 
@@ -183,9 +183,9 @@ This step runs in **both** interactive and autonomous modes.
 
 Runs after AC verification, before the merge-confidence gate. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed and the PR is already open. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against. (Step 0 forces this into the todo list; Step 10's gate makes merge impossible without a `pass`, and Step 11 verifies it before any merge prompt — so a skipped review can't reach `main`.)
 
-Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-workit's. faff-workit owns only the sequencing around the result.
+Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-graft's. faff-graft owns only the sequencing around the result.
 
-The review returns one of three signals. The verdict vocabulary, their semantics, and the revert test below are the **fixed review-verdict contract** in the gateway; the `review_adaptor` slot (default `faffidavit-review`) owns the envelope they arrive in. faff-workit branches on the verdict; it does not redefine it. If a delegated reviewer returns something off-envelope, normalise via `review_adaptor` first (a malformed verdict coerces to `needs-human`, never `pass`):
+The review returns one of three signals. The verdict vocabulary, their semantics, and the revert test below are the **fixed review-verdict contract** in the gateway; the `review_adaptor` slot (default `faffidavit-review`) owns the envelope they arrive in. faff-graft branches on the verdict; it does not redefine it. If a delegated reviewer returns something off-envelope, normalise via `review_adaptor` first (a malformed verdict coerces to `needs-human`, never `pass`):
 
 | Signal | Meaning | Autonomous action |
 |---|---|---|
@@ -203,11 +203,11 @@ This step runs in **both** interactive and autonomous modes.
 
 ### Discovered scope (record, never file)
 
-While building and reviewing, workit often surfaces **concrete, separable work this PR should not absorb** — a seam the spec didn't foresee, an untracked dependency an AC exposed, a real out-of-scope concern the review flagged. The implementor lane **cannot create backlog tickets** (gateway → **Agent Lanes**); it **records** these so the orchestrator files them (autonomous: `/faff-beep-boop` after the build pass; interactive: via the gate in Step 12). This is bottom-up source (b) — see `design/planning-loop.md`.
+While building and reviewing, graft often surfaces **concrete, separable work this PR should not absorb** — a seam the spec didn't foresee, an untracked dependency an AC exposed, a real out-of-scope concern the review flagged. The implementor lane **cannot create backlog tickets** (gateway → **Agent Lanes**); it **records** these so the orchestrator files them (autonomous: `/faff-beep-boop` after the build pass; interactive: via the gate in Step 12). This is bottom-up source (b) — see `design/planning-loop.md`.
 
 **What qualifies** — concrete, nameable, separable from this PR: a follow-up the build revealed is also needed, a prerequisite the spec assumed but no ticket tracks, a review finding that names real out-of-this-PR work. **What does not:** fixable-in-PR items (those loop via review `fail`), unverifiable ACs (human-verify flags, not new work), and vague impressions ("logging's inconsistent") — record those as `confidence: vague`, which only ever surface, never auto-file.
 
-**Capture** — append to `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` (outside beep-boop: `.faff/logs/YYYY-MM-DD/HHMMSS-workit-ISSUE-XX-discovered-scope.json`) during **Step 7 (build)** and **Step 9 (review)**. One array entry per item:
+**Capture** — append to `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` (outside beep-boop: `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX-discovered-scope.json`) during **Step 7 (build)** and **Step 9 (review)**. One array entry per item:
 
 ```json
 { "title": "...", "description": "...", "relationship": "blocker|blocked-by|peer|none",
@@ -256,7 +256,7 @@ All subsequent chain points are yes/no gates (never passive "run /faff-wtf").
 Correct patterns:
 
 - **Block synchronously (preferred):** `gh pr checks <pr> --watch --interval 15` — blocks until all checks reach a terminal state, then exits with non-zero on failure. Wrap in `Bash` with a generous `timeout` (CI runs routinely take 5–15 minutes; allow 600000ms / 10 minutes at minimum, up to the Bash tool's max). If checks legitimately take longer than the tool max, poll in a loop: `gh pr checks <pr>` every 30–60s via `Bash`, until output shows no `pending` / `in_progress`.
-- **Hand back cleanly:** "CI is running. I'm stopping here — re-invoke `/faff-workit` or say 'check CI' when you want me to poll." This is the only acceptable way to exit without a CI result. Do **not** pair this with "I'll check once it reports" — you won't.
+- **Hand back cleanly:** "CI is running. I'm stopping here — re-invoke `/faff-graft` or say 'check CI' when you want me to poll." This is the only acceptable way to exit without a CI result. Do **not** pair this with "I'll check once it reports" — you won't.
 
 Forbidden patterns:
 
@@ -266,11 +266,11 @@ Forbidden patterns:
 
 If a CI wait is taking long enough that blocking the turn feels wasteful, **prefer the explicit handoff** over a fake promise. Surprising the user with silence is worse than telling them you're stopping.
 
-**Step 12: Post workit checks**
+**Step 12: Post graft checks**
 
 After build is complete and PR has been raised:
 
-- **Discovered scope (only if `concrete` items were recorded in Step 9 → _Discovered scope_):** list them and offer a yes/no gate — "Found N out-of-scope item(s) while building: [titles]. File as Backlog tickets? (y/n)". On confirm, file each per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_): status `Backlog`, tag `faff-chain-gap-fill`, the recorded relationship link, and a "discovered during build of ISSUE-XX" provenance line + back-link. On deny, leave them in `discovered-scope.json` for a later pass. `vague` items are listed for awareness only — never offered for filing. (Interactive use has no orchestrator above workit, so the human confirming *is* the orchestrator authorising the file; autonomous runs file via beep-boop instead, never here.)
+- **Discovered scope (only if `concrete` items were recorded in Step 9 → _Discovered scope_):** list them and offer a yes/no gate — "Found N out-of-scope item(s) while building: [titles]. File as Backlog tickets? (y/n)". On confirm, file each per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_): status `Backlog`, tag `faff-chain-gap-fill`, the recorded relationship link, and a "discovered during build of ISSUE-XX" provenance line + back-link. On deny, leave them in `discovered-scope.json` for a later pass. `vague` items are listed for awareness only — never offered for filing. (Interactive use has no orchestrator above graft, so the human confirming *is* the orchestrator authorising the file; autonomous runs file via beep-boop instead, never here.)
 - **Next ticket:** yes/no "Pick next ticket via `/faff-wtf`? (y/n)". On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
 
 ## Autonomous Mode
@@ -294,7 +294,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
 7. Any unrecoverable error → park and return `errored`.
 
-**Discovered scope** captured during Steps 7/9 stays in `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` and is reported in the `discovered_scope` return field. workit **never files** it — beep-boop's file-discovered-scope step does, after the build pass (gateway → **Agent Lanes**). This is independent of the terminal outcome: a `shipped`, `pr-open-for-human`, or `parked` issue can all carry discovered scope.
+**Discovered scope** captured during Steps 7/9 stays in `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` and is reported in the `discovered_scope` return field. graft **never files** it — beep-boop's file-discovered-scope step does, after the build pass (gateway → **Agent Lanes**). This is independent of the terminal outcome: a `shipped`, `pr-open-for-human`, or `parked` issue can all carry discovered scope.
 
 ### Resolve-attempt before park
 
@@ -328,19 +328,19 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
 
-Alongside the terminal token, workit reports **discovered scope** — it never files it (that's the orchestrator's job):
+Alongside the terminal token, graft reports **discovered scope** — it never files it (that's the orchestrator's job):
 
 - `discovered_scope: { concrete: N, vague: N, path: .faff/runs/<run-id>/ISSUE-XX/discovered-scope.json }`
 
-The four terminal tokens and the ledger-bucket mapping are **unchanged**; `discovered_scope` is an additional field beep-boop reads in its file-discovered-scope step (gateway → **Agent Lanes**: the implementor records, the orchestrator files). When workit captured nothing, `concrete` and `vague` are `0` and the file is absent.
+The four terminal tokens and the ledger-bucket mapping are **unchanged**; `discovered_scope` is an additional field beep-boop reads in its file-discovered-scope step (gateway → **Agent Lanes**: the implementor records, the orchestrator files). When graft captured nothing, `concrete` and `vague` are `0` and the file is absent.
 
 **Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-open-for-human`→`pr-open`**, `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
 
-Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/workit.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-workit-ISSUE-XX.md`).
+Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX.md`).
 
 ## Notes
 - Don't ask for confirmation before creating the worktree — the user said the issue ID, that's the intent.
 - The prep gate is non-negotiable. Even quick fixes benefit from a lightweight prep pass.
 - The spec is committed to the feature branch, not main. It only reaches main when the PR merges.
-- Any detailed implementation plans produced during the work are the implementer's concern — may commit alongside code (e.g. `docs/superpowers/plans/`), or not. Faff-workit doesn't prescribe this.
+- Any detailed implementation plans produced during the work are the implementer's concern — may commit alongside code (e.g. `docs/superpowers/plans/`), or not. Faff-graft doesn't prescribe this.
 - AC verification is not optional. A PR without a ticked-or-explained AC checklist is not complete.

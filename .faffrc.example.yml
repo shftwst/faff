@@ -16,7 +16,7 @@ tracking:
     repo: org/repo # org/repo slug
     git_host: github # github | gitlab | gitea | … (autodetected if omitted)
 
-    # Where /faff-workit commits the spec inside the repo (ships in the same PR as the code).
+    # Where /faff-graft commits the spec inside the repo (ships in the same PR as the code).
     # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
     # else docs/specs (creating docs/). Path is relative to the repo root.
     spec_docs_path: docs/specs/
@@ -32,7 +32,7 @@ planning_skills:
     review_adaptor: # adaptor over the fixed review-verdict contract — output envelope, maps a reviewer's output onto pass/fail/needs-human (default: faffidavit-review)
     routing_adaptor: # adaptor over the fixed automation-routing contract — verdict assignment + display; the six verdicts + admission rule are fixed in faff-core (default: faffidavit-routing)
     language_adaptor: # pure adaptor, no internal contract — rendering + synthesis + output normaliser: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-language)
-    ship: # optional merge / deploy mechanism inside /faff-workit
+    ship: # optional merge / deploy mechanism inside /faff-graft
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —
 # build decisions, methodology actions, backlog management, and pluggable skills.

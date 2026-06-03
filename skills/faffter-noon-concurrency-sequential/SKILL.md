@@ -1,6 +1,6 @@
 # faffter-noon-concurrency-sequential
 
-The default executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass **sequentially** — one `/faff-workit` at a time — over the partition that conflict analysis produced. The safe, zero-contention default: no worktree juggling, no merge races, no concurrency cap to tune. Swap to `faffter-dark-concurrency-parallel` when you want speed and your project can absorb concurrent worktrees.
+The default executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass **sequentially** — one `/faff-graft` at a time — over the partition that conflict analysis produced. The safe, zero-contention default: no worktree juggling, no merge races, no concurrency cap to tune. Swap to `faffter-dark-concurrency-parallel` when you want speed and your project can absorb concurrent worktrees.
 
 ```yaml
 planning_skills:
@@ -20,14 +20,14 @@ The `concurrency` slot contract is **fixed in the gateway** — see `~/.claude/s
 Strictly one issue at a time, no worktree concurrency:
 
 1. Order the work: independents first (in the order beep-boop supplied — already priority → chainable-unlock-value, reframed by any methodology), then each collision group as a contiguous block (members in listed order).
-2. For each issue in that flattened order, invoke `/faff-workit ISSUE-XX` autonomously and **wait for it to reach a terminal state** before starting the next. `/faff-workit` owns its own worktree, build, review, CI wait, and auto-merge.
+2. For each issue in that flattened order, invoke `/faff-graft ISSUE-XX` autonomously and **wait for it to reach a terminal state** before starting the next. `/faff-graft` owns its own worktree, build, review, CI wait, and auto-merge.
 3. Write the terminal outcome to the run ledger as each issue lands.
 4. When the list is exhausted, return to beep-boop.
 
-Because only one build runs at a time and each `/faff-workit` merges (or parks) before the next starts, every later build sees `main` exactly as the prior build left it — there is no merge race to manage and no rebase step needed. The one case to handle: a dependent whose in-group blocker terminated **unmerged** is parked, not built (obligation 2) — it can't build on a `main` that's missing its dependency. Throughput is the cost; safety and simplicity are the payoff.
+Because only one build runs at a time and each `/faff-graft` merges (or parks) before the next starts, every later build sees `main` exactly as the prior build left it — there is no merge race to manage and no rebase step needed. The one case to handle: a dependent whose in-group blocker terminated **unmerged** is parked, not built (obligation 2) — it can't build on a `main` that's missing its dependency. Throughput is the cost; safety and simplicity are the payoff.
 
 ## Rules
 
 - This is the **minimum** executor. A richer occupant (`faffter-dark-concurrency-parallel`) may run independents concurrently — but must still honour the four slot-contract obligations above.
 - No WIP cap applies to autonomous runs (the WIP cap is a human-flow concept — see the methodology slot). Sequential execution is a *safety/simplicity* choice, not a throttle.
-- It never parks an issue for being "later in the queue" — sequencing is not deferral. Each issue runs; `/faff-workit` decides its terminal state.
+- It never parks an issue for being "later in the queue" — sequencing is not deferral. Each issue runs; `/faff-graft` decides its terminal state.

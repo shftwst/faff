@@ -113,7 +113,7 @@ Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type �
 
 ### 5d. Calibration signals (rendered only when threshold crossed)
 
-Read `.faff/calibration/` summary (computed by tidy if it ran, otherwise inline) and surface any signals that crossed the threshold (default ≥4 events of the same root-cause class in the last 14 days, configurable in `.faffrc`). See gateway → **Autonomous Mode Contract → Calibration log**.
+Read `.faff/calibration/` summary (computed by tidy if it ran, otherwise inline) and surface any signals that crossed the threshold (≥4 events of the same root-cause class in the last 14 days). See gateway → **Autonomous Mode Contract → Calibration log**.
 
 Each signal renders as a paragraph with the count, pattern, period, and three suggested next actions. Signals are advisory — the user decides whether to act.
 

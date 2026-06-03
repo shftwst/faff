@@ -85,12 +85,6 @@ slots:             # optional delegation slots; each has a faff default when uns
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
-
-calibration:
-  repeat_park_window_days: 14         # signal lookback for calibration thresholds
-  repeat_park_threshold: 4            # ≥N same-root-cause park events in the window → surface a signal
-  repeat_park_demote_window_days: 21  # lookback for the Todo→Backlog demotion rule
-  repeat_park_demote_threshold: 3     # ≥N parks in that window → demote a repeat-parked Todo
 ```
 
 **Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
@@ -479,7 +473,7 @@ Surfaced signals are **advisory** — they suggest a fix but never auto-apply ru
 
 **Critical invariant.** The calibration log is **append-only and never authoritative**. A skill never reads calibration to make a current decision; only humans (or the skills' future iterations) read it to evolve the rules.
 
-**Threshold (configurable in `.faffrc`):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days. Tune as needed once real data accumulates.
+**Threshold (fixed):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days; the Todo→Backlog repeat-park demotion fires at 3+ parks in 21 days. These are built-in defaults, not `.faffrc` knobs — a user has no basis to hand-tune them, and the surfaced signal is advisory anyway: a human closes the loop. **Closing that loop automatically** — auto-tuning appetite / specs / resolve-rules from this accumulated evidence, and widening the evidence to include evaluator-lane (business-value / QA) outcomes rather than just parks and reverts — is an **L4 capability**, gated on the evaluator lane existing. Not built; today the loop stays advisory.
 
 ### Park protocol (shared)
 

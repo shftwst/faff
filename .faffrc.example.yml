@@ -76,8 +76,7 @@ faffter_dark:
     api_key_env: # env var name holding the API key (not the key itself)
     timeout: 120 # seconds
 
-calibration:
-  repeat_park_window_days: 14 # signal lookback for calibration thresholds
-  repeat_park_threshold: 4 # ≥N same-root-cause park events in the window → surface a signal
-  repeat_park_demote_window_days: 21 # lookback for the Todo→Backlog demotion rule
-  repeat_park_demote_threshold: 3 # ≥N parks in that window → demote a repeat-parked Todo
+# (Calibration runs automatically — faff logs autonomous-call outcomes under
+# .faff/calibration/ and surfaces advisory signals when a pattern crosses a
+# built-in threshold (≥4 same-root-cause parks in 14 days; demote a repeat-parked
+# Todo at 3+ parks in 21 days). No knobs — see the gateway → Calibration log.)

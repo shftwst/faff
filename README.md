@@ -46,7 +46,7 @@ Each step offers to chain into the next, so you can just keep saying yes. That's
 
 No backlog yet — an empty repo or a fresh idea. `/faff-jot` is the front door; it turns a loose starting point into well-formed tickets the rest of the loop can pick up. (Output illustrative.)
 
-**1. Point faff at your tracker** — the same three-line `.faffrc` as below.
+**1. Point faff at your tracker** — the three-line `.faffrc` from [Setup](#setup).
 
 **2. `/faff-jot` — describe what you want.** It runs a short discovery conversation, then shapes tickets (it asks before creating anything):
 
@@ -82,13 +82,7 @@ Either way you end up with tickets in Todo and a chain into prep. From here it's
 
 What the loop looks like once you have tickets — whether jot just made them or you already had a backlog. (Output is illustrative — yours will name your issues.)
 
-**1. Point faff at your tracker.** A three-line `.faffrc` at the repo root:
-
-```yaml
-tracking:
-  tracker: linear
-  team_key: SHF
-```
+**1. Point faff at your tracker** — the three-line `.faffrc` from [Setup](#setup).
 
 **2. `/faff-wtf` — "what should I work on?"**
 
@@ -147,16 +141,7 @@ new idea / project → tickets → "what should I work on?" → prep it → buil
                                        └────────── reprep ←─────────────┘
 ```
 
-0. **Jot** — turn a new idea (or a whole new project) into a sensible set of tickets
-1. **WTF** — what shipped, what's blocked, what to focus on
-2. **Prep** — explore the codebase, write a spec, attach it to the ticket
-3. **Graft** — spec is committed to a feature branch, worktree is ready, go
-
-`/faff-jot` is the front door: everything else acts on tickets that already exist — jot is how they come to exist. It runs a discovery conversation, then shapes the result into tickets using your configured methodology.
-
-Each step chains to the next with a yes/no gate. Say yes, keep moving. Say no, stop.
-
-No ceremonies. No standups with 12 people. Just you and your code.
+`/faff-jot` is the front door — everything else acts on tickets that already exist, and jot (or `/faff-plot`, for a whole application) is how they come to exist. From there each step chains to the next behind a yes/no gate: say yes, keep moving; say no, stop. No ceremonies, no standups with 12 people — just you and your code.
 
 ### Fire and forget
 
@@ -183,7 +168,7 @@ tracking:
 That's the whole minimum. Everything else has a sensible default. Want to swap in your own skills for any step? Point a slot at them:
 
 ```yaml
-planning_skills:
+slots:
   intake: superpowers:brainstorming   # how /faff-jot runs discovery
   spec: gstack:autoplan               # how /faff-prep writes specs
   review: gstack:review               # pre-PR review
@@ -194,30 +179,17 @@ All slots are optional — unset just means "use ours". Copy `.faffrc.example.ym
 
 ## Levelling up
 
-The four levels (top of this README) map to concrete config. Each level is a small `.faffrc` delta on the one below — there's no separate "mode" to switch on.
+The levels (top of this README) are *positions relative to the loop*, not config you switch on. Moving up is mostly about **which command you reach for** and how far you trust it. The minimum `.faffrc` ([Setup](#setup)) is all any level strictly needs.
 
-**L1 — Basic (manual loop).** The three-line `tracking:` block above is all you need. Run `/faff-wtf → /faff-tidy → /faff-prep → /faff-graft` by hand (and `/faff-jot` / `/faff-plot` to bring new work in). `appetite` defaults to `high`; drop it to `medium` or `low` while you're learning to trust it:
+- **L1 · as the loop.** You run it. `/faff-wtf` to see what's worth doing, `/faff-prep` then `/faff-graft` to spec and build by hand; `/faff-jot` (or `/faff-plot` for a whole application) to bring new work in. Nothing runs unwatched. New to it? Set `appetite: medium` while you build trust.
+- **L1 → L2 · in the loop.** Hand a *step* to the agent: `/faff-graft ISSUE-XX` drives one build but stops at every gate (spec, build, review, PR) for your nod. No config to change — it's a command you run, not a mode.
+- **L2 → L3 · on the loop.** Hand the *whole loop* over: `/faff-beep-boop` grooms, specs, and builds the ready queue unattended. Still no required config — what keeps it honest is mechanical and always on (park protocol + run-ledger). Cap a run with `--until 06:00` or `--max 5`; review the parked pile via `/faff-wtf` after.
+- **L3 → L4 · out of the loop.** Lights-out, correctness held up by isolated/adversarial verification. The frontier — not built yet.
 
-```yaml
-appetite: medium   # optional — more conservative while you settle in
-```
+**The two cross-cutting knobs** (they tune *any* level — they aren't levels themselves):
 
-**L1 → L2 — Intermediate (overnight runs).** *No config change needed.* L2 is just *using* `/faff-beep-boop` to drain the ready queue unattended — the safety machinery (run-ledger, `runcheck`, Stop hook, park protocol) is always on. Keep `appetite: high` (the default) so it acts on defensible calls overnight. That's it — if you're looking for an L2 knob, there isn't one.
-
-**L2 → L3 — Advanced (customise the slots).** Swap faff's defaults for third-party or opinionated skills, and turn on conformance validation:
-
-```yaml
-appetite: high
-planning_skills:
-  concurrency: faffter-dark-concurrency-parallel        # capped parallel builds
-  methodology: faffter-dark-methodology-agile-delivery  # MVP-shaped, value×risk lens
-  review: faffter-dark-adversarial-review               # second-opinion review
-  spec: faffter-dark-nlspec                              # full nlspec specs
-concurrency_max: 4         # cap for the parallel executor
-validate_slots: true       # check a non-default slot conforms before first use
-```
-
-Swapping a *producer* (intake/spec/review/ship/methodology) changes behaviour; you only swap an *adaptor* (`*_adaptor`) when a producer's output can't be parsed by the default — see the Appendix. **L4** (lights-out + isolated adversarial verification) is the frontier tier; its differentiators are still being built.
+- **Appetite** — `appetite: low|medium|high|full` (default `high`): how much rope before it checks back. Lower while learning; the default suits unattended runs.
+- **Slots** — swap faff's defaults for opinionated or third-party doing-skills (parallel builds, an agile lens, an adversarial reviewer, your own spec/review tools). Most payoff once you're *on* the loop, but legal anywhere. See [Setup](#setup) and the [Appendix](#appendix-skill-families-qualifiers-and-swapping); `validate_slots: true` checks a non-default occupant conforms before first use.
 
 ## The `faff` CLI
 
@@ -272,6 +244,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 | `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-jot` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
 | `faffter-noon-concurrency-sequential` | `concurrency` | The implicit default build-pass executor. Runs `/faff-beep-boop`'s queue one `/faff-graft` at a time over the conflict-analysis partition — no worktree contention, no merge races. The safe counterpart to `faffter-dark-concurrency-parallel`. |
+| `faffter-noon-ship` | `ship` | The implicit default delivery producer. Merges a gate-cleared PR (`gh pr merge --squash`), with a no-op deploy-readiness check — emits a native result the `ship_adaptor` maps onto shipped/not-ready/failed. Swap for a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery means more than a merge. |
 
 ### faffidavit-* (adaptors)
 
@@ -282,6 +255,7 @@ Adaptor skills. Faff-core fixes the **internal contracts** the pipeline branches
 | `faffidavit-spec` | `spec_adaptor` | The default adaptor over the fixed spec-readiness contract (closed/open/external classification + confidence, in the gateway). Owns the canonical markers (Chosen/Punt/Assumes), marker rules, skimmable writing style, and the confidence line's format; validates any spec (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
 | `faffidavit-review` | `review_adaptor` | The default adaptor over the fixed review-verdict contract (pass/fail/needs-human, semantics, revert test — in the gateway). Owns the output envelope every reviewer returns and normalises raw output onto the three states; validates review output on demand. Swap it to adapt a third-party reviewer — faff-graft still branches on the same three states. |
 | `faffidavit-routing` | `routing_adaptor` | The default adaptor over the fixed automation-routing contract (the closed six verdicts + admission rule + root-cause taxonomy — in the gateway). Owns verdict assignment, computation locus, and display format; assigns and validates verdicts. The contract survives a `methodology` swap because it lives in faff-core, not inside the methodology. |
+| `faffidavit-ship` | `ship_adaptor` | The default adaptor over the fixed delivery-outcome contract (shipped/not-ready/failed + the two-tier gate + coercion rule — in the gateway). Translates a ship producer's native delivery result (a `gh`/CI/deploy tool's exit status and logs) onto the three outcomes faff-graft routes on; validates conformance, failing safe to `failed` (never a phantom `shipped`). |
 | `faffidavit-rendering` | `rendering_adaptor` | The default — and a **pure adaptor** with no internal contract behind it, since rendering is human-facing only. Owns the rendering style (visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps) plus the synthesis issue-gloss humanisation; validates/normalises draft output. All sub-skills render through this; swap it to change house style wholesale. |
 
 ### faffter-dark-* (experimental)
@@ -329,14 +303,14 @@ The `faffter-*` qualifier says how safe the variant is: **`-noon-*`** (broad day
 ### Two kinds of slot
 
 - **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `concurrency`, `ship`) hold a skill that *does work*. Swap to change behaviour.
-- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `routing_adaptor`, `rendering_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
+- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `ship_adaptor`, `routing_adaptor`, `rendering_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
 
 The pipeline hardcodes the contract so it always has something stable to branch on; the slot holds the translator so anyone's output can be made to fit.
 
 ### Swap in a third-party doing-skill
 
 ```yaml
-planning_skills:
+slots:
   spec: gstack:autoplan        # third-party spec producer
   review: gstack:review        # third-party reviewer
 ```
@@ -348,7 +322,7 @@ It must **honour the slot's contract** — a `spec` maps decisions onto closed/o
 If the third-party output speaks a different dialect — a reviewer emitting `APPROVED`/`REJECTED`/`BLOCKED` — don't touch faff-core or fork the pipeline. Point the adaptor-slot at a translator:
 
 ```yaml
-planning_skills:
+slots:
   review: somevendor:critic                # emits APPROVED/REJECTED/BLOCKED
   review_adaptor: yourorg:critic-adaptor   # maps onto pass/fail/needs-human
 ```

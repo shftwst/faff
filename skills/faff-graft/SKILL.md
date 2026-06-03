@@ -81,10 +81,10 @@ If the issue doesn't exist, tell the user and stop.
 
 **Step 2: Check prep gate**
 
-Check the issue for an attached spec. Follow the shared **Spec discovery** rule in `~/.claude/skills/faff/SKILL.md` — look in tracker comments, the main description/body, and committed `docs/` paths. A hit in any of those counts as the spec.
+Check the issue for an attached spec. Follow the shared **Spec discovery** rule in `~/.claude/skills/faff/SKILL.md` — look in tracker comments, the main description/body, committed `docs/` paths, and (git-only mode) the `.faff/specs/<issue-id>.md` store. A hit in any of those counts as the spec.
 
 - **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec.
-- **No spec (none of the three sources):** In interactive mode, yes/no gate: "No spec found in comments, description, or docs. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
+- **No spec (none of those sources):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
 
 The gate ensures no one starts building without a validated spec. Per the shared **Spec discovery** rule, **a description is never a spec**: if the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep`. Never build straight from a description, and never skip prep because it "reads clear".
 
@@ -108,7 +108,7 @@ If no worktree exists:
 
 **Step 4: Commit spec to feature branch**
 
-Pull the spec content from the issue tracker and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes.
+Pull the spec content from wherever Step 2's **Spec discovery** found it — a tracker comment, the committed docs path, or (git-only mode, no tracker MCP) the `.faff/specs/<issue-id>.md` store faff-prep wrote — and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes. (In git-only mode the `.faff/specs/` file is the source; committing it here is what moves the spec into the repo, so the "ships with the PR" property holds with or without a tracker. Note `.faff/specs/` lives in the **main checkout**, not this worktree — so capture the spec content back at Step 2, before the worktree exists, and write that captured content here rather than re-reading the file from inside the worktree.)
 
 Resolve and create the target directory mechanically with the bundled resolver (see the gateway's **Spec docs location**):
 

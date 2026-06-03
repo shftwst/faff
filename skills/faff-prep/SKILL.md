@@ -104,7 +104,7 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ### Scenario A: Fresh prep (no existing spec)
 
-Apply the shared **Spec discovery** rule first (`~/.claude/skills/faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Only if **all three** come up empty, run the full prep workflow:
+Apply the shared **Spec discovery** rule first (`~/.claude/skills/faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
 - Read the issue (title, description, ACs, dependencies, labels). Skip if cancelled or archived.
@@ -188,6 +188,12 @@ At any point, the user (or `/faff-graft` mid-build) can say "reprep this" or "up
 | Merged | Main branch, under the configured **Spec docs path** (default `docs/specs/`) | Living documentation of design intent. |
 
 The spec is **never** committed during prep. It only enters the repo when building begins.
+
+## Tracker-less (git-only) mode
+
+When no tracker MCP is available (gateway → Configuration), there is no issue to comment on — so prep can't attach the spec the usual way. **Everywhere this skill says "attach the spec as a tracker comment", write it instead to `.faff/specs/<issue-id>.md`** (the git-only spec store, gateway → **Spec discovery** location 4). It's gitignored, so the spec stays out of the repo until `/faff-graft` commits it to the feature branch — preserving "the spec ships with the PR" (above). Do **not** delete it after writing.
+
+Everything else is unchanged: the producer still runs, marker validation and the confidence gate still apply, and the prep log still records the outcome. The tracker-state moves become no-ops — there's no Todo column to move to and no `parked-by-faff` label to apply, so a `low`-confidence park is recorded in the prep log only (and the spec is simply left in `.faff/specs/` for a human or a later pass). The chain-to-build gate is unchanged: on confirm, `/faff-graft` reads the spec from `.faff/specs/`.
 
 ## Autonomous Mode
 

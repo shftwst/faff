@@ -20,7 +20,7 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 Two knobs cut across all four levels. They're not levels themselves:
 
-- **Slots** decide *what* runs at each stage (a beefier spec, a harsher reviewer, a parallel build). Swapping these pluggable skills is how you progress through the levels, or bring your own to customise.
+- **Slots** decide *what* runs at each stage (a beefier spec, a harsher reviewer, a parallel build). Swap them to customise *any* level, or bring your own — they tune what a level does, not which level you're at (that's which command you reach for).
 - **Appetite** (for Destruction) sets *how much rope* the pipeline gets before checking back. More isn't always better: it buys speed against the odd "oops, wrong call, revert that."
 
 ## Install
@@ -220,9 +220,9 @@ Faff operates across three segregated executor lanes with controlled visibility:
 |---|---|---|---|
 | **Orchestrator** | Pipeline sequencing, external interface (tracker, human, reporting) | Tracker, docs, codebase (read) | — |
 | **Implementor** | Architecture, spec interpretation, code, tests | Codebase (read/write), spec | Tracker, human dialogue |
-| **Evaluator** | Quality control from business-value perspective | Spec, running environment | Codebase |
+| **Evaluator** *(future, L4)* | Quality control from business-value perspective | Spec, running environment | Codebase |
 
-Isolation is by design — the implementor can't mark its own homework, the evaluator can't be biased by implementation approach. See the gateway docs for details.
+Isolation is by design — the implementor can't mark its own homework, and (once built) the evaluator can't be biased by implementation approach. **Today only the orchestrator and implementor lanes are active**; the evaluator lane is a documented-but-future L4 capability. See the gateway docs for details.
 
 ## Skill tiers
 

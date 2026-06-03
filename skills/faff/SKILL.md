@@ -27,7 +27,7 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 Two knobs cut across all four levels. They're not levels themselves:
 
-- **Slots** decide *what* runs at each stage (a beefier spec, a harsher reviewer, a parallel build). Swapping these pluggable skills is how you progress through the levels, or bring your own to customise.
+- **Slots** decide *what* runs at each stage (a beefier spec, a harsher reviewer, a parallel build). Swap them to customise *any* level, or bring your own — they tune what a level does, not which level you're at (that's which command you reach for).
 - **Appetite** (for Destruction) sets *how much rope* the pipeline gets before checking back. More isn't always better: it buys speed against the odd "oops, wrong call, revert that."
 
 ## Routing
@@ -421,7 +421,7 @@ The methodology slot's per-level response lives in the configured methodology sk
 
 **Calibration.** High-appetite decisions accumulate in `.faff/calibration/appetite-decisions/<issue-id>.md` (same shape as the existing calibration logs). If `appetite: high` produces an elevated rate of wrong-inferences or post-merge-reverts, the next `/faff-tidy` calibration-signal pass surfaces the pattern and recommends dialling back to `medium` for the affected work areas. This is how the human keeps directional control without micro-managing every call — they see what got decided across a run, not approve each one inline.
 
-**Switching appetite.** Set in CLAUDE.md once; takes effect on the next faff invocation. No per-issue overrides — global per project. To force escalation on a single decision regardless of appetite, use the existing Punt mechanism in the spec; explicit Punts are non-negotiable.
+**Switching appetite.** Set `appetite:` in `.faffrc` (a top-level key); takes effect on the next faff invocation. No per-issue overrides — global per project. To force escalation on a single decision regardless of appetite, use the existing Punt mechanism in the spec; explicit Punts are non-negotiable.
 
 ### Resolve-attempt before park
 

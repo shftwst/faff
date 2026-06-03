@@ -51,13 +51,20 @@ All faff sub-skills read their configuration from a **`.faffrc`** file at the re
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
-**Resolver.** The bundled `faff` CLI — the executable at `~/.claude/skills/faff/bin/faff` (a single dependency-free Node script run directly via its shebang; the installer also symlinks it to `~/.local/bin/faff`, so `faff …` works bare once `~/.local/bin` is on `PATH`) — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
+**Resolver.** The bundled `faff` CLI — a single dependency-free Node script run directly via its shebang — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
 
 - `faff config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
 - `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
 - `faff config spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
 
-(`faff` is the `~/.claude/skills/faff/bin/faff` executable — shorthand once it's on `PATH`. The same CLI also hosts `faff runcheck` — the beep-boop ledger audit — and `faff validate-adapters` — the slot-skill conformance lint. One Node entrypoint for all bundled helpers; requires only `node`, no dependencies.)
+**Resolving the `faff` executable (canonical — sub-skills reference this).** Invoke it as bare **`faff`** — the link/install step symlinks it to `~/.local/bin/faff`, so it's on `PATH` for most setups. When `faff` isn't on `PATH` (e.g. a marketplace plugin that didn't symlink it), resolve the bundled binary — **don't hardcode `~/.claude/skills/faff/bin/faff`**, which is only the dev-linked location (a plugin lives under `${CLAUDE_PLUGIN_ROOT}` instead):
+
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+[ -x "$faff" ] || faff=$(find ~/.claude -path '*/skills/faff/bin/faff' -type f 2>/dev/null | head -1)
+```
+
+then call `"$faff" config …`. The same CLI hosts `faff runcheck` (the beep-boop ledger audit) and `faff validate-adapters` (the slot-skill conformance lint) — one Node entrypoint for all bundled helpers; requires only `node`, no dependencies.
 
 It parses the documented YAML subset with a built-in parser — no dependencies. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (e.g. `appetite`) can also be read this way but gain less from it.
 

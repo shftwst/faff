@@ -174,10 +174,10 @@ Filed tickets are **new work, not admitted issues** — they sit outside runchec
 
 ### 11. Run completeness check (mechanical)
 
-Before writing the run summary, run the bundled **runcheck** script — the mechanical backstop for the "never silently defer the queue" guarantee. It reads the run ledger and fails if any admitted issue has no terminal outcome:
+Before writing the run summary, run the bundled **runcheck** script — the mechanical backstop for the "never silently defer the queue" guarantee. It reads the run ledger and fails if any admitted issue has no terminal outcome (resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`):
 
 ```
-~/.claude/skills/faff/bin/faff runcheck   # audits the latest .faff/runs/* ledger
+faff runcheck   # audits the latest .faff/runs/* ledger
 ```
 
 - **Exit 0 (clean)** — every admitted issue reached a terminal outcome. Proceed to reporting.

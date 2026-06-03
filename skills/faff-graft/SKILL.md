@@ -113,7 +113,8 @@ Pull the spec content from wherever Step 2's **Spec discovery** found it — a t
 Resolve and create the target directory mechanically with the bundled resolver (see the gateway's **Spec docs location**):
 
 ```bash
-dir=$(~/.claude/skills/faff/bin/faff config spec-docs-path --create)
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+dir=$("$faff" config spec-docs-path --create)
 ```
 
 This reads `tracking.spec_docs_path` from `.faffrc` and, when unset, applies the default rule (`docs/specs` if `docs/` exists, else `doc/specs` if `doc/` exists, else creates `docs/` and uses `docs/specs`). Commit the spec to:

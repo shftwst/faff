@@ -1,3 +1,8 @@
+---
+name: faffter-noon-spec
+description: "Default `spec` producer — turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Invokable standalone or via faff-prep."
+---
+
 # faffter-noon-spec
 
 The default spec producer. Turns an issue plus explore findings into a buildable spec following the **lite nlspec arc** (WHY → WHAT → HOW → DONE). Lightweight by design — the minimum a coding agent needs to build without re-litigating decisions.

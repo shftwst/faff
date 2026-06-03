@@ -1,3 +1,8 @@
+---
+name: faffter-noon-methodology-structural
+description: "Default `methodology` lens — pure structural analysis: ordering by unlock value, gating on decision closure, graph diagnostics (cycles, ghost projects). The zero-config baseline every pass uses. Invokable standalone."
+---
+
 # faffter-noon-methodology-structural
 
 The default methodology. Pure structural analysis — ordering by unlock value, gating on decision closure, detecting graph-level problems, and surfacing the highest-leverage work first. No opinionated delivery philosophy, no principle-based diagnosis. Just: what does the graph say?
@@ -87,8 +92,8 @@ Detection is conservative. False positives in this phase are expensive — the h
 
 Three detection categories never auto-apply mechanically (one of them, chain gaps, *does* auto-ticket at higher appetite; see below):
 
-- **Splittable specs** — interactive: offer to chain to `/faff-prep --split`. Autonomous: log only.
-- **Chain gaps** — *surface mode:* report each gap with the active ticket, sub-type (sub-ticket / upstream / downstream / peer), the referenced work, what's already covered (sub-ticket gaps only — sub-tickets + merged PRs by direct ref), the un-ticketed remainder, and the recommended action: for sub-ticket gaps chain-offer `/faff-prep --split` over the parent; for upstream / downstream / peer offer "file gap issue" (create the missing ticket with the appropriate relationship — blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer). *Auto-create mode (`high`+ appetite by default — an opinionated methodology lowers the threshold to `medium`+):* **auto-create the missing ticket(s) per sub-type** — sub-ticket gaps: one Backlog sub-ticket per un-ticketed deliverable, parent set to the umbrella; upstream gaps: one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it; downstream gaps: one Backlog ticket for the follow-up + link "blocked-by" the active ticket; peer gaps: one Backlog ticket for the parallel work in the same workstream/parent. All created tickets: title from the spec reference line, description = the referenced prose + back-link to the source ticket, status `Backlog`, tag `faff-chain-gap-fill` so `/faff-prep`'s next queue pass picks them up. Log every created ticket with id, sub-type, source spec line, and the relationship target (parent / blocker / blocked-by / sibling). Skip auto-create and downgrade to surface-only when the reference is ambiguous (no clear deliverable per line, no nameable target for the relationship, prose-y rather than action-verb-led) — phantom tickets are expensive to clean up.
+- **Splittable specs** — surface only: report the spec with the two independent concerns the diagnostic identified and recommend splitting it into separate tickets. faff has **no auto-split command** — splitting a spec is a human judgement call (re-prep, or file separate tickets manually). Autonomous: log only.
+- **Chain gaps** — *surface mode:* report each gap with the active ticket, sub-type (sub-ticket / upstream / downstream / peer), the referenced work, what's already covered (sub-ticket gaps only — sub-tickets + merged PRs by direct ref), the un-ticketed remainder, and the recommended action: for sub-ticket gaps offer to file the missing sub-ticket(s) under the parent; for upstream / downstream / peer offer "file gap issue" (create the missing ticket with the appropriate relationship — blocker for upstream, blocked-by for downstream, sibling-in-workstream for peer). *Auto-create mode (`high`+ appetite by default — an opinionated methodology lowers the threshold to `medium`+):* **auto-create the missing ticket(s) per sub-type** — sub-ticket gaps: one Backlog sub-ticket per un-ticketed deliverable, parent set to the umbrella; upstream gaps: one Backlog ticket for the prerequisite + add a blocker link from the active ticket to it; downstream gaps: one Backlog ticket for the follow-up + link "blocked-by" the active ticket; peer gaps: one Backlog ticket for the parallel work in the same workstream/parent. All created tickets: title from the spec reference line, description = the referenced prose + back-link to the source ticket, status `Backlog`, tag `faff-chain-gap-fill` so `/faff-prep`'s next queue pass picks them up. Log every created ticket with id, sub-type, source spec line, and the relationship target (parent / blocker / blocked-by / sibling). Skip auto-create and downgrade to surface-only when the reference is ambiguous (no clear deliverable per line, no nameable target for the relationship, prose-y rather than action-verb-led) — phantom tickets are expensive to clean up.
 - **Orphaned-by-cascade + repeat-parked** — surface only. Cancelling is destructive; always human.
 
 #### Output
@@ -118,7 +123,7 @@ Repeat-parks (2) ⚠
 Splittable specs (1) — surfaced only, not auto-split
   ISSUE-YY  Settings page rewrite — spec covers (a) URL routing changes and
             (b) form-state refactor. The two have no overlapping files and could
-            ship independently. Run /faff-prep --split to break out.
+            ship independently. Split into separate tickets to break them out.
 
 Chain gaps (4) ⚠ — surfaced only in surface mode, auto-ticketed at medium+ appetite
   ISSUE-AA  Mastra audit pipeline lift — umbrella, In Progress.
@@ -127,8 +132,8 @@ Chain gaps (4) ⚠ — surfaced only in surface mode, auto-ticketed at medium+ a
             consumer wire-up (audit-pipeline-background.ts), 3 per-stage lifts
             (captureScreenshot/extractColors/generatePalette), default flip.
             No Todo or In Progress sub-ticket exists — /faff-graft has nothing
-            to pick up next. Recommendation: chain to /faff-prep --split to
-            carve the remaining 5.
+            to pick up next. Recommendation: file the remaining 5 as
+            sub-tickets under the umbrella.
   ISSUE-CC  Profile init refresh — Todo.
             Upstream gap: spec assumes "auth refresh has shipped" prereq, but no
             ticket exists for that work. Recommendation: file the prerequisite +

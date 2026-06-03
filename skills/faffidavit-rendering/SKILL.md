@@ -1,3 +1,8 @@
+---
+name: faffidavit-rendering
+description: "Default `rendering_adaptor` — the house output style (visual-vs-prose, canonical visual forms, table-vs-list, density caps) plus validation of draft output. The one slot with no internal contract. Invokable standalone."
+---
+
 # faffidavit-rendering
 
 The default **adaptor** for the `rendering_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps), and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.

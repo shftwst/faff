@@ -1,3 +1,8 @@
+---
+name: faffter-noon-review
+description: "Default code review for the `review` slot — a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns pass/fail/needs-human. Invokable standalone or via faff-graft."
+---
+
 # faffter-noon-review
 
 The default code review. Faff-graft plays the senior-engineer role — reads the diff, checks AC coverage, scans for bugs, validates scope, and flags decisions that need a human.

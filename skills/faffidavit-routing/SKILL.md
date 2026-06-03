@@ -1,3 +1,8 @@
+---
+name: faffidavit-routing
+description: "Default `routing_adaptor` — assigns the automation-routing verdict to a spec-gated issue (from diagnostics + confidence + markers + park history), renders it, and validates assignments. Invokable standalone."
+---
+
 # faffidavit-routing
 
 The default **adaptor** for the `routing_adaptor` slot. It **assigns** an automation-routing verdict to a spec-gated issue — from `backlog-diagnostics` findings + spec confidence + markers + park history — renders the verdicts consumers display, and **validates** an assignment on demand. A `faffidavit-*` skill: it both *defines* its assignment/display dialect and *checks* conformance.

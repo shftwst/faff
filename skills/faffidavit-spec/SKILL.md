@@ -1,3 +1,8 @@
+---
+name: faffidavit-spec
+description: "Default `spec_adaptor` — the canonical spec decision markers (Chosen/Punt/Assumes), writing-style and confidence-line format, and pre-attach validation of any spec producer's output. Invokable standalone."
+---
+
 # faffidavit-spec
 
 The default **adaptor** for the `spec_adaptor` slot. It translates a spec producer's native output into faff-core's fixed spec-readiness contract — the concrete markers that encode the closed/open/external classification, the writing-style rules, the confidence line's format — and **validates** conformance on demand. A `faffidavit-*` skill: it both *defines* its dialect and *checks* conformance, so it earns its keep as an invokable skill rather than a passive document.

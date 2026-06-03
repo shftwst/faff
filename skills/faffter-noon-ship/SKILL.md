@@ -1,3 +1,8 @@
+---
+name: faffter-noon-ship
+description: "Default `ship` producer — merges a gate-cleared PR (gh pr merge --squash), no-op deploy-readiness, emits a native delivery result the ship_adaptor maps. Swap for a deploy-capable producer. Invokable standalone."
+---
+
 # faffter-noon-ship
 
 The default **producer** for the `ship` slot. Delivers a PR that `/faff-graft` has already cleared through the **integrity floor** (AC-verified + CI-green + review `pass`): runs a deploy-readiness check, merges, and cleans up what it created — then emits a native delivery result that `ship_adaptor` (default `faffidavit-ship`) maps onto the fixed `shipped` / `not-ready` / `failed` outcome graft routes on. The safe, zero-config default — a no-op readiness check and a vanilla `gh pr merge`, no deploy step. Swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery means more than a merge.

@@ -1,3 +1,8 @@
+---
+name: faffter-dark-adversarial-review
+description: "Adversarial second-opinion code review for the `review` slot: a standard structural pass plus an adversarial review by a different LLM to catch correlated blind spots. Returns the fixed pass/fail/needs-human verdict. Swappable review occupant; invokable standalone."
+---
+
 # faffter-dark-adversarial-review
 
 Two-phase code review: standard structural review (delegated to `faffter-noon-review`) followed by an adversarial second opinion via a different LLM. Catches correlated blind spots by bringing different training biases from the model that wrote the code.

@@ -1,3 +1,8 @@
+---
+name: faffter-noon-concurrency-sequential
+description: "Default `concurrency` executor — runs faff-beep-boop's build pass sequentially, one faff-graft at a time: no worktree contention, no merge races. The safe zero-config default. Invokable standalone."
+---
+
 # faffter-noon-concurrency-sequential
 
 The default executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass **sequentially** — one `/faff-graft` at a time — over the partition that conflict analysis produced. The safe, zero-contention default: no worktree juggling, no merge races, no concurrency cap to tune. Swap to `faffter-dark-concurrency-parallel` when you want speed and your project can absorb concurrent worktrees.

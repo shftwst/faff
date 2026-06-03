@@ -8,52 +8,77 @@
 # Every key is optional; anything you omit falls back to faff's built-in default.
 # Holds stable config only — never mutable tracker state (no milestones, dates,
 # progress, or issue snapshots; those are fetched live on every invocation).
+#
+# This template mirrors the gateway schema (skills/faff/SKILL.md) — the gateway
+# is the single source of truth if the two ever drift.
 
 tracking:
-    tracker: linear # linear | github | jira | … (autodetected from the available MCP if omitted)
-    team_key: ABC # tracker team / board key
-    project_id: "abc-123" # tracker project / team id
-    repo: org/repo # org/repo slug
-    git_host: github # github | gitlab | gitea | … (autodetected if omitted)
+  tracker: linear # linear | github | jira | … (autodetected from the available MCP if omitted)
+  team_key: ABC # tracker team / board key
+  project_id: "abc-123" # tracker project / team id
+  repo: org/repo # org/repo slug
+  git_host: github # github | gitlab | gitea | … (autodetected if omitted)
 
-    # Where /faff-graft commits the spec inside the repo (ships in the same PR as the code).
-    # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
-    # else docs/specs (creating docs/). Path is relative to the repo root.
-    spec_docs_path: docs/specs/
+  # Where /faff-graft commits the spec inside the repo (ships in the same PR as the code).
+  # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
+  # else docs/specs (creating docs/). Path is relative to the repo root.
+  spec_docs_path: docs/specs/
 
 # Optional delegation slots. Each has a sensible faff default when unset.
+# Producers DO the work; adaptors TRANSLATE a producer's output onto a fixed
+# faff-core contract. Swap a producer to change behaviour; swap an adaptor only
+# when a producer speaks a dialect the default adaptor can't parse.
 planning_skills:
-    intake: # new-work discovery used by /faff-jot (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
-    spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)
-    parallel: # optional used by /faff-beep-boop for concurrency
-    review: # pre-PR review (default: faffter-noon-review; set faffter-dark-adversarial-review for adversarial)
-    methodology: # diagnostic lens over backlog (default: faffter-noon-methodology-structural)
-    spec_adaptor: # adaptor over the fixed spec-readiness contract — markers + style + confidence line, maps a producer's spec onto closed/open/external + confidence (default: faffidavit-spec)
-    review_adaptor: # adaptor over the fixed review-verdict contract — output envelope, maps a reviewer's output onto pass/fail/needs-human (default: faffidavit-review)
-    routing_adaptor: # adaptor over the fixed automation-routing contract — verdict assignment + display; the six verdicts + admission rule are fixed in faff-core (default: faffidavit-routing)
-    language_adaptor: # pure adaptor, no internal contract — rendering + synthesis + output normaliser: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-language)
-    ship: # optional merge / deploy mechanism inside /faff-graft
+  # Producers / mechanisms (do the work)
+  intake: # new-work discovery used by /faff-jot and /faff-plot (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
+  spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)
+  review: # pre-PR review producer inside /faff-graft (default: faffter-noon-review; set faffter-dark-adversarial-review for an adversarial second opinion)
+  ship: # delivery producer inside /faff-graft Step 10 (default: faffter-noon-ship — gh pr merge; set a deploy-capable producer e.g. gstack:land-and-deploy)
+  concurrency: # build-pass executor for /faff-beep-boop (default: faffter-noon-concurrency-sequential; set faffter-dark-concurrency-parallel for capped, worktree-isolated concurrency)
+  methodology: # diagnostic lens over backlog/build state (default: faffter-noon-methodology-structural; set faffter-dark-methodology-agile-delivery for the opinionated agile lens)
+  # Adaptors (translate a producer's output onto a fixed contract; validate conformance)
+  spec_adaptor: # maps a producer's spec onto closed/open/external + confidence; markers + style + confidence line (default: faffidavit-spec)
+  review_adaptor: # maps a reviewer's output onto pass/fail/needs-human; the output envelope (default: faffidavit-review)
+  ship_adaptor: # maps a ship producer's native delivery result onto shipped/not-ready/failed (default: faffidavit-ship)
+  routing_adaptor: # assigns + displays the automation-routing verdict; the six verdicts + admission rule are fixed in the gateway (default: faffidavit-routing)
+  rendering_adaptor: # pure adaptor, no internal contract — house output style: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-rendering)
+
+# Max concurrent builds for faffter-dark-concurrency-parallel. Ignored by the
+# sequential default. Bounds worktree count, disk, and branches racing main.
+concurrency_max: 4
+
+# Where /faff-graft creates git worktrees. Default ~/.faff/worktrees/<repo>/<branch>
+# (writable in repo-only bind-mounts/containers; isolates holdout/evaluator work).
+# Uncomment to override; a configured value is used as-is (per-repo).
+# worktree_root: ~/.faff/worktrees/myrepo
+
+# When true, validate a configured NON-DEFAULT slot occupant (via
+# faffter-dark-authoring-adaptors) before first use in a run, and park/surface on
+# non-conformance. Default false (convention + dev-time validation). Shipped
+# defaults are conformant by construction and never validated. See the gateway
+# → Slot conformance validation.
+validate_slots: false
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —
 # build decisions, methodology actions, backlog management, and pluggable skills.
 # low: surface everything, act on nothing. medium: act on high-confidence, park ambiguity.
 # high (default): act on defensible calls, auto-split, reorder by value, file gaps.
 # full: complete autonomy — resolve everything, never park unless genuinely unknowable
-# or irreversible. Adversarial review still gates — it's the safety net.
+# or irreversible. The hard floor (irreversible side-effects, review gate) still holds.
 appetite: high
 
 # faffter-dark: LLM provider config for adversarial review.
-# Used by the faffter-dark-adversarial-review skill.
+# Used by the faffter-dark-adversarial-review skill (when set as the review slot).
 faffter_dark:
-    adversarial:
-        provider: ollama # ollama | vllm | openai | gemini | anthropic | openrouter
-        model: llama3.1:70b # provider-specific model identifier
-        host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
-        api_key_env: # env var name holding the API key (not the key itself)
-        timeout: 120 # seconds
+  adversarial:
+    provider: ollama # ollama | vllm | openai | gemini | anthropic | openrouter
+    model: llama3.1:70b # provider-specific model identifier
+    host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
+    api_key_env: # env var name holding the API key (not the key itself)
+    timeout: 120 # seconds
 
 calibration:
-    repeat_park_window_days: 14 # signal lookback for calibration thresholds
-    repeat_park_threshold: 4 # ≥N same-root-cause park events in the window → surface a signal
-    repeat_park_demote_window_days: 21 # lookback for the Todo→Backlog demotion rule
-    repeat_park_demote_threshold: 3 # ≥N parks in that window → demote a repeat-parked Todo
+  repeat_park_window_days: 14 # signal lookback for calibration thresholds
+  repeat_park_threshold: 4 # ≥N same-root-cause park events in the window → surface a signal
+  repeat_park_demote_window_days: 21 # lookback for the Todo→Backlog demotion rule
+  repeat_park_demote_threshold: 3 # ≥N parks in that window → demote a repeat-parked Todo

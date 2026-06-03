@@ -1,3 +1,8 @@
+---
+name: faffter-dark-nlspec
+description: "Full nlspec-format spec producer for the `spec` slot — the heavy, formal counterpart to the lite default. Invokable standalone or via faff-prep."
+---
+
 # faffter-dark-nlspec
 
 Full nlspec-format spec generation, usable as a delegated `spec` skill in faff-prep.

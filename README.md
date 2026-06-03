@@ -8,7 +8,7 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-prep` |
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
 | **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-graft` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
 | **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
@@ -95,7 +95,9 @@ Each step offers to chain into the next — `wtf → prep → graft` — so on a
 |---------|-------------|
 | `/faff` | "What should I work on?" (default) |
 | `/faff-jot` | Start something new — kick off an empty project, or capture a feature/bug/idea, and turn it into a sensible set of tickets |
+| `/faff-plot` | Decompose an application-scale idea top-down into a roadmap — initiatives → projects → first-slice epics |
 | `/faff-wtf` | Where to focus — what shipped, what's stuck, what's next |
+| `/faff-map` | The strategic roadmap view above wtf — outcomes, workstreams, dependency chains, and whether the plan joins up |
 | `/faff-tidy` | Tidy the backlog — find the mess, clean, and surface what's ready to pick up |
 | `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
 | `/faff-graft ISSUE-XX` | Set up a worktree and start building |
@@ -153,6 +155,33 @@ planning_skills:
 ```
 
 All slots are optional — unset just means "use ours". Copy `.faffrc.example.yml` for the full list of knobs.
+
+## Levelling up
+
+The four levels (top of this README) map to concrete config. Each level is a small `.faffrc` delta on the one below — there's no separate "mode" to switch on.
+
+**L1 — Basic (manual loop).** The three-line `tracking:` block above is all you need. Run `/faff-wtf → /faff-tidy → /faff-prep → /faff-graft` by hand (and `/faff-jot` / `/faff-plot` to bring new work in). `appetite` defaults to `high`; drop it to `medium` or `low` while you're learning to trust it:
+
+```yaml
+appetite: medium   # optional — more conservative while you settle in
+```
+
+**L1 → L2 — Intermediate (overnight runs).** *No config change needed.* L2 is just *using* `/faff-beep-boop` to drain the ready queue unattended — the safety machinery (run-ledger, `runcheck`, Stop hook, park protocol) is always on. Keep `appetite: high` (the default) so it acts on defensible calls overnight. That's it — if you're looking for an L2 knob, there isn't one.
+
+**L2 → L3 — Advanced (customise the slots).** Swap faff's defaults for third-party or opinionated skills, and turn on conformance validation:
+
+```yaml
+appetite: high
+planning_skills:
+  concurrency: faffter-dark-concurrency-parallel        # capped parallel builds
+  methodology: faffter-dark-methodology-agile-delivery  # MVP-shaped, value×risk lens
+  review: faffter-dark-adversarial-review               # second-opinion review
+  spec: faffter-dark-nlspec                              # full nlspec specs
+concurrency_max: 4         # cap for the parallel executor
+validate_slots: true       # check a non-default slot conforms before first use
+```
+
+Swapping a *producer* (intake/spec/review/ship/methodology) changes behaviour; you only swap an *adaptor* (`*_adaptor`) when a producer's output can't be parsed by the default — see the Appendix. **L4** (lights-out + isolated adversarial verification) is the frontier tier; its differentiators are still being built.
 
 ## The `faff` CLI
 

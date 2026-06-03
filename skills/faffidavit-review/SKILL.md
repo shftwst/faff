@@ -1,3 +1,8 @@
+---
+name: faffidavit-review
+description: "Default `review_adaptor` — translates a reviewer's native output into the fixed pass/fail/needs-human verdict envelope and validates conformance. Swap to adapt a third-party reviewer. Invokable standalone."
+---
+
 # faffidavit-review
 
 The default **adaptor** for the `review_adaptor` slot. It translates a reviewer's native output into faff-core's fixed review-verdict contract — the output envelope every reviewer returns, the parsing/normalisation of raw output into the three fixed states — and **validates** conformance on demand. A `faffidavit-*` skill: it both *defines* its dialect and *checks* conformance, so it's invokable rather than a passive document.

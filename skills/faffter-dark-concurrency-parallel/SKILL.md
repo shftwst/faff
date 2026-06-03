@@ -1,3 +1,8 @@
+---
+name: faffter-dark-concurrency-parallel
+description: "Concurrent build-pass executor for the `concurrency` slot — runs faff-beep-boop's builds in multiple worktrees at once, capped, with rebase-before-merge. The speed option vs the sequential default. Invokable standalone."
+---
+
 # faffter-dark-concurrency-parallel
 
 The concurrent executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass with **multiple `/faff-graft` invocations in flight at once**, each in its own git worktree, up to a configurable cap — with a **rebase-before-merge** rule so parallel PRs can't merge stale-green against a moving `main`. The speed option; the sequential default (`faffter-noon-concurrency-sequential`) is the safe one.

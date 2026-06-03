@@ -1,6 +1,6 @@
 ---
 name: faff
-description: "Gateway — routes to the right faff sub-skill. Use /faff-jot to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
+description: "Gateway — routes to the right faff sub-skill. Use /faff-jot to start something new (kick off a project or capture a feature/bug/idea into tickets), /faff-plot to decompose an application-scale idea top-down into a roadmap (initiatives → projects → first-slice epics), /faff-wtf to figure out what to focus on, /faff-whereto for the strategic roadmap view above /faff-wtf, /faff-tidy to groom the backlog (finds problems and promotes ready issues), /faff-prep to turn a ticket into a spec, /faff-workit to start building, /faff-beep-boop to run the whole suite unattended."
 ---
 
 # Faff
@@ -15,7 +15,7 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-jot`, `/faff-prep` |
+| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-whereto`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
 | **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-workit` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
 | **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
@@ -37,6 +37,7 @@ This is the gateway. Invoke the right sub-skill:
 | Command | Triggers |
 |---------|----------|
 | `/faff-jot` | "New project", "kick off", "start something", "I've got an idea", "new feature", "add a feature", "file a bug", "capture this", "scope a new thing", "spitball" |
+| `/faff-plot` | "Plan this out", "decompose this app", "break this big thing into a roadmap", "map out the whole project", "plot the build", "turn this idea into initiatives and projects" |
 | `/faff-wtf` | "Where to focus", "What should I work on?", "what's happening", "catch me up", "where are we", "where we at", "the 411", "lowdown" |
 | `/faff-whereto` | "Roadmap", "where are we going", "explain the backlog", "do these join up", "workstream view", "strategy view", "what are the chains", "big picture", "walk me through the plan" |
 | `/faff-tidy` | "Tidy the backlog", "clean up", "groom", "mess" |
@@ -610,7 +611,7 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 | `pick-ordering` | faff-wtf, faff-beep-boop | **Required** | a set of issues → the same set ordered by the methodology's sequencing rule. |
 | `promotion-readiness` | faff-tidy, faff-prep | **Required** | an issue + its spec/blocker state → promote / demote / hold decision with reasons. |
 | `build-queue` | faff-beep-boop | **Required** | routed-in issues + conflict analysis → admission-filtered, ordered, wave-partitioned queue. |
-| `ticket-shaping` | faff-jot | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-jot falls back to one ticket per brief item. |
+| `ticket-shaping` | faff-jot, faff-plot | Optional | a discovery brief → proposed ticket set (titles, descriptions, links, container). Unanswered → faff-jot falls back to one ticket per brief item. **Optional `shape-level` input** (`initiative` / `project` / `epic`): when **absent**, the single-level brief→tickets behaviour faff-jot uses (unchanged); when **present**, shape only that altitude's children of a node-scoped sub-brief — `/faff-plot` supplies it as it recurses a roadmap top-down. The methodology shapes one level per call; **`/faff-plot` owns the recursion, stop rule, and writes** — `ticket-shaping` never recurses or writes itself. |
 | `standup-digest` | faff-wtf | Optional | recent + ready + heads-up state → a brief. Unanswered → faff-wtf renders the ready-queue plainly. |
 | `horizon-assignment` | faff-whereto | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-whereto degrades to a flat structural roadmap. |
 | `issue-critique` | faff-prep | Optional | one issue + its spec → a per-issue critique through the methodology's lens (right-sizing, workstream fit, surfaced deps, risk — whatever the lens cares about). Unanswered → faff-prep omits the `## Methodology critique` block. The lens decides the critique's shape; faff-prep does not impose one. |
@@ -648,4 +649,4 @@ Executes `/faff-beep-boop`'s build pass. Default `faffter-noon-concurrency-seque
 
 If the user invokes `/faff` with no further context, run `/faff-wtf` (figuring out where to focus is the default).
 
-If the user says something that maps to a specific sub-skill, invoke that sub-skill directly. New-work intent — "new project", "kick off", "I've got an idea", "add a feature", "file a bug" — maps to `/faff-jot` (it's the only sub-skill that *creates* tickets; the rest act on tickets that already exist).
+If the user says something that maps to a specific sub-skill, invoke that sub-skill directly. New-work intent — "new project", "kick off", "I've got an idea", "add a feature", "file a bug" — maps to `/faff-jot`. Both `/faff-jot` and `/faff-plot` *create* tickets (the rest act on tickets that already exist); they split by **scale**: `/faff-jot` captures and shapes a feature/bug/idea one level deep, while `/faff-plot` recurses an **application-scale** brief top-down into a full roadmap (initiatives → projects → first-slice epics). jot forks to plot at its confirm step when the work is application-scale; "plan this out / decompose this app / map out the whole project" routes straight to `/faff-plot`.

@@ -29,6 +29,14 @@ How the principles map onto the outputs:
 
 The WIP cap (principle 3) applies to `standup-digest` only — never to `build-queue` (autonomous work is unbounded).
 
+**Recursive `ticket-shaping` (`shape-level` supplied by `/faff-plot`).** When a request carries a `shape-level`, apply the same principle lens at the requested altitude, shaping only that node's children:
+
+- `initiative` — outcome-named initiatives (principle 1), not activity buckets.
+- `project` — shippable increments under one initiative, sequenced by value × risk (2 + 7); the thinnest viable slice is the first project.
+- `epic` — right-sized first-slice epics (principle 4) for one project, hidden dependencies surfaced as explicit blocker links (6).
+
+`/faff-plot` owns the stop rule (first-slice epics, never the leaves below); this skill shapes the level it's asked for. Absent a `shape-level`, the single-level brief→tickets behaviour is unchanged (what `/faff-jot` uses).
+
 ## The seven principles
 
 Each principle has: the rule, why it matters, what the violation looks like in tracker shape, and a diagnosis template sub-skills use when surfacing it. Bracketed `[placeholder]` values are filled by the rendering sub-skill.

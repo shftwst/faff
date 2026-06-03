@@ -50,6 +50,14 @@ The structural lens shapes purely from what the brief states plus the live track
 
 For every proposed ticket emit: title (from the capability/item, plain English — no invented codes), a description seeded from the relevant brief prose, the container/workstream it belongs under, declared blocker/blocked-by links derived from the brief's `Dependencies`, and a `Backlog` status. Carry the brief's `Open questions` onto the relevant ticket's description so `/faff-prep` picks them up. Tag created tickets `faff-jot-intake` so the next prep pass recognises freshly-shaped work.
 
+**Recursive mode (`shape-level` supplied by `/faff-plot`).** When the request carries a `shape-level` (`initiative` / `project` / `epic`), shape only *that altitude's children* of the node-scoped sub-brief — not a full flat set. `/faff-plot` drives the descent and owns the stop rule; this output shapes one level per call:
+
+- `initiative` — one initiative container per top-level outcome/capability group the brief names. Literal, verbatim names; no value opinion.
+- `project` — given one initiative's slice of the brief, the projects (workstreams) under it.
+- `epic` — given one project's slice, its **first-slice epics only** — the issues needed to reach that project's first usable slice — with `Dependencies`-derived blocker/blocked-by links. Do **not** enumerate the leaves below them.
+
+Emit nothing for a branch the sub-brief can't concretely derive — surface "needs more discovery" so plot stops that branch. Same `faff-jot-intake` tag, `Backlog` status, and brief-seeded descriptions as the single-level output. Absent a `shape-level`, the single-level brief→tickets behaviour above is unchanged (this is what `/faff-jot` uses).
+
 Conservative, same as every structural output: when the brief is too thin to derive a defensible structure, propose fewer, larger tickets and surface what's missing rather than manufacturing speculative ones — the human (or a later `/faff-prep`) refines.
 
 ### `backlog-diagnostics`

@@ -49,6 +49,12 @@ Hand the discovery brief to the configured `methodology` skill's **`ticket-shapi
 
 ### 4. Confirm and create
 
+**Fork first — is this application-scale?** Before creating anything, check whether the brief is bigger than a flat set of first-slice tickets: it spans **multiple capabilities that themselves decompose** into projects/sub-work (the same multi-capability signal that makes the methodology propose a top-level container). If so, offer the top-down route instead of creating flat:
+
+> "This looks application-scale — decompose into a full roadmap (initiatives → projects → first-slice epics) via `/faff-plot` first? (y/n)"
+
+On confirm, hand the **discovery brief** to `/faff-plot` via the Skill tool and stop here — do **not** also create the flat set (plot writes the skeleton, including the first-slice epics). On deny, or for a single-item / small greenfield brief, proceed with the flat create below exactly as before. The fork is a one-time offer at the shape boundary, not a new mode.
+
 Show the proposed structure (containers + tickets + relationships) and gate before writing:
 
 - **Interactive (default):** present the shaped tickets as a short tree and ask "Create these N tickets [under new project '<name>']? (yes / edit / no)". On `edit`, take the human's adjustments and re-shape or tweak directly. On `yes`, create them in the tracker via the configured MCP. On `no`, stop — the brief is logged so nothing is lost.

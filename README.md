@@ -193,7 +193,7 @@ The levels (top of this README) are *positions relative to the loop*, not config
 
 ## The `faff` CLI
 
-A small bundled command-line tool ships with the suite — `skills/faff/bin/faff`, a single dependency-free Node script (no `npm install`, no `node_modules`, no build — just `node`). The skills and hooks call it for themselves, but a few subcommands are handy to run by hand:
+A small command-line tool ships **inside the faff plugin** — `faff`, a single dependency-free Node script (no `npm install`, no `node_modules`, no build — just `node`). The skills and hooks invoke it for themselves via the plugin path (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff`), so **normal use needs no setup**. A few subcommands are handy to run by hand, though:
 
 ```
 faff config get <dotted.key> [-d DEFAULT]   # read a value from your .faffrc
@@ -202,13 +202,15 @@ faff runcheck [--hook]                      # audit the latest beep-boop run led
 faff validate-adapters                      # lint the shipped slot skills for conformance drift (CI / pre-commit)
 ```
 
-**Getting `faff` on your PATH.** `skills/scripts/link-skills.sh` (re-run any time) symlinks the executable to `~/.local/bin/faff`. If `~/.local/bin` isn't already on your `PATH`, add it:
+**Running it by hand.** The binary lives at `skills/faff/bin/faff` inside the installed plugin. Locate it and (optionally) symlink it onto your `PATH` once:
 
 ```
+faffbin=$(find ~/.claude -path '*/faff/skills/faff/bin/faff' -type f 2>/dev/null | head -1)
+ln -s "$faffbin" ~/.local/bin/faff          # then add ~/.local/bin to PATH if it isn't already
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-(Until then, call it by path: `~/.claude/skills/faff/bin/faff …`.)
+Or just call it by that full path. (Inside skills and hooks it's always reached via `${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff`, which the harness sets for you.)
 
 ## Agent lanes
 

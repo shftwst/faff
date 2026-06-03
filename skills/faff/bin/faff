@@ -2,9 +2,10 @@
 // faff — the bundled CLI for the faff skill suite.
 //
 // Subcommands:
-//   config <path|get|spec-docs-path|dump> ...   resolve / read .faffrc
-//   runcheck [--hook] [--json] [RUN_DIR]         audit a /faff-beep-boop run ledger
-//   validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
+//   config <path|get|spec-docs-path|dump> ...    resolve / read .faffrc
+//   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
+//   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
+//   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
 // (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
@@ -323,6 +324,23 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 const REFER_BACK = /Read[^\n]*\bfaff\/SKILL\.md/;
 const NON_NORMATIVE = /non-normative|gateway wins/i;
 
+// .faffrc slot name → the conformance profile its occupant must satisfy. Lets the
+// --configured pre-flight derive the expected `checksFor` type from the slot alone,
+// so a third-party occupant (not in REGISTRY) can still be structurally linted.
+const SLOT_TYPES = {
+  spec_adaptor: { type: "adaptor", slot: "spec_adaptor" },
+  review_adaptor: { type: "adaptor", slot: "review_adaptor" },
+  routing_adaptor: { type: "adaptor", slot: "routing_adaptor" },
+  rendering_adaptor: { type: "pure-adaptor", slot: "rendering_adaptor" },
+  ship_adaptor: { type: "adaptor", slot: "ship_adaptor" },
+  methodology: { type: "methodology" },
+  concurrency: { type: "mechanism" },
+  intake: { type: "producer-intake" },
+  spec: { type: "producer-spec" },
+  review: { type: "producer-review" },
+  ship: { type: "producer-ship" },
+};
+
 function checksFor(meta, t) {
   const out = [];
   const has = (s) => t.includes(s);
@@ -366,20 +384,96 @@ function checksFor(meta, t) {
   return out;
 }
 
-function cmdValidateAdapters(args) {
-  let skillsDir;
+function resolveSkillsDir(args) {
   const di = args.indexOf("--skills-dir");
-  if (di !== -1) {
-    skillsDir = args[di + 1];
-  } else {
-    // script-relative: faff lives at skills/faff/bin/, so the skills root is two up
-    const cand = path.resolve(HERE, "..", "..");
-    skillsDir = fs.existsSync(path.join(cand, "faffidavit-spec")) ? cand : "skills";
+  if (di !== -1) return args[di + 1];
+  // script-relative: faff lives at skills/faff/bin/, so the skills root is two up
+  const cand = path.resolve(HERE, "..", "..");
+  return fs.existsSync(path.join(cand, "faffidavit-spec")) ? cand : "skills";
+}
+
+// Locate an occupant's SKILL.md under skillsDir. Accepts a bare skill name or a
+// `plugin:skill` reference (tries the trailing segment too).
+function locateSkill(skillsDir, occupant) {
+  const cands = [occupant];
+  if (occupant.includes(":")) cands.push(occupant.slice(occupant.lastIndexOf(":") + 1));
+  for (const c of cands) {
+    const p = path.join(skillsDir, c, "SKILL.md");
+    if (fs.existsSync(p)) return p;
   }
+  return null;
+}
+
+// --configured: read .faffrc and structurally pre-flight the user's configured slot
+// occupants. This is the on-demand twin of the runtime conformance gate — run it
+// BEFORE an unattended build so a swapped-in occupant's structural drift surfaces
+// now, not as an overnight park. Only the structural half; the semantic checks
+// (maps-onto-not-redefines, stays-in-lane) still need the authoring-adaptors Validate face.
+function validateConfigured(args, skillsDir) {
+  let root = null;
+  const ri = args.indexOf("--root");
+  if (ri !== -1) root = args[ri + 1];
+  root = root || findRoot();
+
+  let data, cfgPath;
+  try { [data, cfgPath] = loadConfig(root); }
+  catch (e) {
+    if (e.message === "multiple-config") {
+      process.stderr.write(`validate-adapters --configured: multiple .faffrc files at ${root}; keep only one.\n`);
+      return 2;
+    }
+    throw e;
+  }
+
+  const slots = (data && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
+  const entries = Object.entries(slots).filter(([, v]) => v !== null && v !== undefined && v !== "");
+  if (!entries.length) {
+    console.log(cfgPath
+      ? `no slots configured in ${path.basename(cfgPath)} — nothing to pre-flight (all slots use shipped defaults).`
+      : "no .faffrc found — nothing to pre-flight (all slots use shipped defaults).");
+    return 0;
+  }
+
+  let failed = false;
+  let linted = 0;
+  for (const [slot, occupant] of entries) {
+    const meta = SLOT_TYPES[slot];
+    if (!meta) { console.log(`WARN  ${slot}: not a recognised faff slot — skipping`); continue; }
+    if (REGISTRY[occupant]) {
+      console.log(`pass  ${slot}: ${occupant} — shipped slot skill, conformant by construction`);
+      continue;
+    }
+    const p = locateSkill(skillsDir, occupant);
+    if (!p) {
+      console.log(`WARN  ${slot}: ${occupant} — not found under ${skillsDir}; can't structurally pre-flight`);
+      console.log(`        (third-party skill installed elsewhere — run /faffter-dark-authoring-adaptors Validate on it)`);
+      continue;
+    }
+    linted++;
+    const results = checksFor(meta, fs.readFileSync(p, "utf8"));
+    const bad = results.filter(([ok]) => !ok).map(([, label]) => label);
+    if (bad.length) {
+      failed = true;
+      console.log(`FAIL  ${slot}: ${occupant} (${meta.type})`);
+      for (const label of bad) console.log(`        ✗ ${label}`);
+    } else {
+      console.log(`pass  ${slot}: ${occupant} (${meta.type}) — ${results.length} checks`);
+    }
+  }
+  console.log("");
+  console.log(`RESULT: ${failed ? "FAIL" : "PASS"} (${linted} configured occupant${linted === 1 ? "" : "s"} structurally linted)`);
+  console.log("Structural half only — run /faffter-dark-authoring-adaptors Validate for the semantic checks (maps-onto-not-redefines, stays-in-lane).");
+  return failed ? 1 : 0;
+}
+
+function cmdValidateAdapters(args) {
+  const skillsDir = resolveSkillsDir(args);
   if (!fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) {
     process.stderr.write(`validate-adapters: skills dir not found: ${skillsDir}\n`);
     return 2;
   }
+
+  if (args.includes("--configured")) return validateConfigured(args, skillsDir);
 
   const present = fs.readdirSync(skillsDir)
     .filter((d) => (d.startsWith("faffidavit-") || d.startsWith("faffter-")) &&
@@ -425,9 +519,10 @@ function cmdValidateAdapters(args) {
 const USAGE = `faff — the bundled CLI for the faff skill suite.
 
 Subcommands:
-  config <path|get|spec-docs-path|dump> ...   resolve / read .faffrc
-  runcheck [--hook] [--json] [RUN_DIR]         audit a /faff-beep-boop run ledger
-  validate-adapters [--skills-dir DIR]         lint shipped slot-skill conformance
+  config <path|get|spec-docs-path|dump> ...    resolve / read .faffrc
+  runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
+  validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
+  validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 `;
 
 function main(argv) {

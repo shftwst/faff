@@ -82,7 +82,7 @@ tracking:
 
 slots:             # optional delegation slots; each has a faff default when unset
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery
-  spec: superpowers:brainstorming                    # used by faff-prep
+  spec: gstack:autoplan                              # spec producer used by faff-prep (default faffter-noon-spec)
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-graft
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
@@ -126,7 +126,7 @@ Faff delegates specialised work to configured skills. Slots live under the `slot
 ```yaml
 slots:
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery, optional
-  spec: superpowers:brainstorming                    # used by faff-prep
+  spec: gstack:autoplan                              # spec producer used by faff-prep, optional (default faffter-noon-spec)
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop, optional (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-graft, optional
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
@@ -538,6 +538,7 @@ A sub-skill that delegates to a **non-default** slot occupant validates it *befo
   - *Autonomous* — **park** the work unit (cause: `slot non-conformant — <slot>:<occupant>`), citing the violations in the park comment + log. This is a legitimate park, **not** a forbidden capacity excuse: a non-conformant occupant can emit output the pipeline misbranches on. The whole run does not abort — only units that would route through that slot park.
   - *Interactive* — surface the violations and stop before using the occupant; the user fixes the occupant (or reverts the slot to its default) and re-runs.
 - **On `pass`** — proceed normally; the cached pass means no further checks this run.
+- **Pre-flight (optional, recommended before unattended runs).** The runtime gate above surfaces a non-conformant occupant only at first use — in an autonomous run that means a park you discover afterwards. To catch structural drift *before* handing a run over, run `faff validate-adapters --configured` (resolve the `faff` executable per **Resolver**): it reads `.faffrc`, structurally lints every configured **non-shipped** occupant against the checklist, and exits non-zero on drift. It is the on-demand twin of this gate — the structural half only; it still defers the semantic checks to the Validate face above (and reports as much). A clean pre-flight means a swapped slot won't park the overnight run on a structural fault.
 
 Per **Contract loading & conformance** above, every consumer already loads this gateway on entry, so this rule is ambient — a sub-skill delegating to a non-default slot occupant applies it without each sub-skill restating it. (A default occupant is never validated at runtime, so the common zero-config path adds no latency at all.)
 

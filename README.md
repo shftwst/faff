@@ -149,6 +149,7 @@ new idea / project → tickets → "what should I work on?" → prep it → buil
 
 - Default: the whole shebang — tidy, then prep every backlog issue, then build whatever's ready
 - `ISSUE-12 ISSUE-15`: just those
+- Cap the run with `--until 06:00` (stop at a wall-clock time) or `--max 5` (stop after N builds) — the queue drains in priority order and whatever's unreached is left for the next run
 
 Auto-merges when every acceptance criterion is verified, CI is green, and review passed. Otherwise the PR is left open with a clear reason. Anything ambiguous is parked and surfaced by `/faff-wtf` in the morning. Full audit trail under `.faff/runs/`.
 
@@ -193,13 +194,14 @@ The levels (top of this README) are *positions relative to the loop*, not config
 
 ## The `faff` CLI
 
-A small command-line tool ships **inside the faff plugin** — `faff`, a single dependency-free Node script (no `npm install`, no `node_modules`, no build — just `node`). The skills and hooks invoke it for themselves via the plugin path (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff`), so **normal use needs no setup**. A few subcommands are handy to run by hand, though:
+A small command-line tool ships **inside the faff plugin** — `faff`, a single dependency-free Node script (no `npm install`, no `node_modules`, no build — just `node`). The skills and hooks invoke it for themselves — each resolves it as `command -v faff` if it's on `PATH`, otherwise from its own install location (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff` when running as a plugin, or the sibling `faff/bin/faff` when dev-linked) — so **normal use needs no setup**. A few subcommands are handy to run by hand, though:
 
 ```
 faff config get <dotted.key> [-d DEFAULT]   # read a value from your .faffrc
 faff config spec-docs-path [--create]       # resolve where specs are committed
 faff runcheck [--hook]                      # audit the latest beep-boop run ledger for undispatched work
 faff validate-adapters                      # lint the shipped slot skills for conformance drift (CI / pre-commit)
+faff validate-adapters --configured         # pre-flight YOUR configured slot occupants before an unattended run
 ```
 
 **Running it by hand.** The binary lives at `skills/faff/bin/faff` inside the installed plugin. Locate it and (optionally) symlink it onto your `PATH` once:
@@ -210,7 +212,7 @@ ln -s "$faffbin" ~/.local/bin/faff          # then add ~/.local/bin to PATH if i
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Or just call it by that full path. (Inside skills and hooks it's always reached via `${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff`, which the harness sets for you.)
+Or just call it by that full path. (Inside skills and hooks it's resolved automatically — `command -v faff` first, then the install-relative path — so you never have to set this up for normal use.)
 
 ## Agent lanes
 

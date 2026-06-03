@@ -85,7 +85,6 @@ slots:             # optional delegation slots; each has a faff default when uns
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
-validate_slots: false        # when true, validate a configured non-default slot occupant (via faffter-dark-authoring-adaptors) before first use; park/surface on non-conformance (see Slot conformance validation)
 
 calibration:
   repeat_park_window_days: 14         # signal lookback for calibration thresholds
@@ -287,7 +286,7 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
     YYYY-MM-DD-beep-boop-HH-MM-SS/          # grouped per beep-boop run
       summary.md
       run-ledger.json                       # admitted issues + terminal outcomes (audited by runcheck)
-      slot-validation.md                    # cached per-occupant conformance verdicts (when validate_slots: true)
+      slot-validation.md                    # cached per-occupant conformance verdicts (non-default occupants)
       automation-verdicts.md                # verdict cache for this run
       conflict-analysis.md
       ISSUE-XX/
@@ -526,20 +525,19 @@ Skills load independently. When you enter via a slash command (`/faff-graft`), a
 
 **Conformance clause (binding on every slot occupant).** Any skill occupying an adaptor slot — the shipped default *or* a third-party replacement — **must** map its output onto the fixed contract defined in this section. The contract is the gateway's, never the adaptor's: an adaptor owns its dialect (markers, envelope, assignment rules, format) and nothing else. A slot occupant that redefines, narrows, or extends the fixed vocabulary/classes/verdicts is non-conformant by definition. Where an adaptor's `SKILL.md` recaps a fixed contract for readability, that recap is **non-normative** — if it ever diverges from this section, this section wins.
 
-#### Slot conformance validation (opt-in: `validate_slots`)
+#### Slot conformance validation (always on)
 
-By default the conformance clause is enforced by convention + the dev-time `faffter-dark-authoring-adaptors` Validate face. Setting **`validate_slots: true`** in `.faffrc` turns that into a **runtime gate**: a sub-skill that delegates to a configured slot occupant validates it *before first use* in the run.
+A sub-skill that delegates to a **non-default** slot occupant validates it *before first use* in the run. This is **always on** — not a config knob. A misconfigured or non-conformant occupant can emit output the pipeline misbranches on, so there is no case where you'd want it off; the only cost is one validation per distinct non-default occupant per run (cached), which is negligible.
 
-- **Scope: non-default occupants only.** A slot left unset (using its shipped default), or set to the slot's documented default name, is **not** validated — the shipped defaults are conformant by construction. Validation fires only when the configured occupant differs from the slot's default (a third-party or user-authored skill). This covers every slot type the authoring tool knows — adaptors (including `ship_adaptor`), producers (including the `ship` producer), `methodology`, and the `concurrency` mechanism.
+- **Scope: non-default occupants only.** A slot left unset (using its shipped default), or set to the slot's documented default name, is **not** validated — the shipped defaults are conformant by construction (and `faff validate-adapters` lints them in CI). Validation fires only when the configured occupant differs from the slot's default (a third-party or user-authored skill). This covers every slot type the authoring tool knows — adaptors (including `ship_adaptor`), producers (including the `ship` producer), `methodology`, and the `concurrency` mechanism.
 - **How.** Invoke `faffter-dark-authoring-adaptors` → Validate face on the occupant (by name/path), passing the slot it occupies. It returns `pass` / `fail` + violations against the conformance checklist.
 - **Cache once per run.** Validate each distinct occupant **once** per session/run and cache the verdict — autonomous runs write it to `.faff/runs/<run-id>/slot-validation.md` (interactive: hold it in-session). Don't re-validate on every delegation.
 - **On `fail`:**
   - *Autonomous* — **park** the work unit (cause: `slot non-conformant — <slot>:<occupant>`), citing the violations in the park comment + log. This is a legitimate park, **not** a forbidden capacity excuse: a non-conformant occupant can emit output the pipeline misbranches on. The whole run does not abort — only units that would route through that slot park.
   - *Interactive* — surface the violations and stop before using the occupant; the user fixes the occupant (or reverts the slot to its default) and re-runs.
 - **On `pass`** — proceed normally; the cached pass means no further checks this run.
-- **Default `false`** keeps today's behaviour (convention + dev-time validation), so this never adds latency unless a user opts in.
 
-Per **Contract loading & conformance** above, every consumer already loads this gateway on entry, so this rule is ambient — a sub-skill delegating to a non-default slot occupant applies it without each sub-skill restating it.
+Per **Contract loading & conformance** above, every consumer already loads this gateway on entry, so this rule is ambient — a sub-skill delegating to a non-default slot occupant applies it without each sub-skill restating it. (A default occupant is never validated at runtime, so the common zero-config path adds no latency at all.)
 
 ### Review verdict (fixed) → `review_adaptor`
 

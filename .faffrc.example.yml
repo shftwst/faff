@@ -52,12 +52,11 @@ concurrency_max: 4
 # Uncomment to override; a configured value is used as-is (per-repo).
 # worktree_root: ~/.faff/worktrees/myrepo
 
-# When true, validate a configured NON-DEFAULT slot occupant (via
-# faffter-dark-authoring-adaptors) before first use in a run, and park/surface on
-# non-conformance. Default false (convention + dev-time validation). Shipped
-# defaults are conformant by construction and never validated. See the gateway
-# → Slot conformance validation.
-validate_slots: false
+# (Slot conformance validation has no knob — a configured NON-DEFAULT slot
+# occupant is always validated before first use, and the work parks/surfaces on
+# non-conformance. Shipped defaults are conformant by construction and never
+# validated, so the zero-config path is unaffected. See the gateway → Slot
+# conformance validation.)
 
 # Suite-wide autonomy dial. Controls how much agency the entire pipeline has —
 # build decisions, methodology actions, backlog management, and pluggable skills.

@@ -189,7 +189,7 @@ The levels (top of this README) are *positions relative to the loop*, not config
 **The two cross-cutting knobs** (they tune *any* level — they aren't levels themselves):
 
 - **Appetite** — `appetite: low|medium|high|full` (default `high`): how much rope before it checks back. Lower while learning; the default suits unattended runs.
-- **Slots** — swap faff's defaults for opinionated or third-party doing-skills (parallel builds, an agile lens, an adversarial reviewer, your own spec/review tools). Most payoff once you're *on* the loop, but legal anywhere. See [Setup](#setup) and the [Appendix](#appendix-skill-families-qualifiers-and-swapping); `validate_slots: true` checks a non-default occupant conforms before first use.
+- **Slots** — swap faff's defaults for opinionated or third-party doing-skills (parallel builds, an agile lens, an adversarial reviewer, your own spec/review tools). Most payoff once you're *on* the loop, but legal anywhere. See [Setup](#setup) and the [Appendix](#appendix-skill-families-qualifiers-and-swapping). A non-default occupant is automatically checked for conformance before first use — no flag to set.
 
 ## The `faff` CLI
 

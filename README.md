@@ -42,9 +42,45 @@ Each step offers to chain into the next, so you can just keep saying yes. That's
 
 > The skills come in tiers — `faff-*` are the commands you type; the `faffter-*` and `faffidavit-*` ones are the swappable bits doing the work behind them. You can ignore all of that until you want to plug in your own tools — see [the appendix](#appendix-skill-families-qualifiers-and-swapping).
 
+## Starting from nothing: idea → tickets
+
+No backlog yet — an empty repo or a fresh idea. `/faff-jot` is the front door; it turns a loose starting point into well-formed tickets the rest of the loop can pick up. (Output illustrative.)
+
+**1. Point faff at your tracker** — the same three-line `.faffrc` as below.
+
+**2. `/faff-jot` — describe what you want.** It runs a short discovery conversation, then shapes tickets (it asks before creating anything):
+
+```
+You: a CLI that lints our YAML configs and prints fixable diffs
+
+jot: A few questions… (which formats? fix-in-place or report-only? CI mode?)
+     → Shaped 3 tickets under a new "yaml-lint" workstream:
+       SHF-1  parse + validate a config file        (first slice)
+       SHF-2  render a fixable diff                  (blocked-by SHF-1)
+       SHF-3  --fix to apply diffs in place          (blocked-by SHF-2)
+     Create these 3 tickets? (yes / edit / no)
+```
+
+`y` → they're created in your tracker, tagged so prep picks them up. Then it chains: *"Prep the first one for build now? (y/n)"* — say yes and you're into the build loop below.
+
+**Bigger than a feature?** If you describe a whole application, jot spots the scale and offers the top-down route instead:
+
+```
+jot: This looks application-scale — decompose into a full roadmap
+     (initiatives → projects → first-slice epics) via /faff-plot first? (y/n)
+
+y → /faff-plot  recurses it level by level, confirming each:
+     Initiative: Billing  →  Projects: Invoicing, Dunning, Reporting
+       Invoicing  →  first-slice epics: SHF-10 issue model, SHF-11 PDF render …
+     (stops at first-slice epics — the leaves grow later from specs)
+     Audit the roadmap via /faff-map? · Prep the first slice via /faff-prep? (y/n)
+```
+
+Either way you end up with tickets in Todo and a chain into prep. From here it's the same loop:
+
 ## A first run, start to finish
 
-What the loop actually looks like the first time, on a repo that already has a few tickets. (Output is illustrative — yours will name your issues.)
+What the loop looks like once you have tickets — whether jot just made them or you already had a backlog. (Output is illustrative — yours will name your issues.)
 
 **1. Point faff at your tracker.** A three-line `.faffrc` at the repo root:
 

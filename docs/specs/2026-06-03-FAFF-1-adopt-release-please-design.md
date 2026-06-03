@@ -39,7 +39,7 @@ Four new/changed files:
 ## DONE
 - [ ] `.claude-plugin/plugin.json` contains `"version": "0.1.0"` and remains valid JSON; `marketplace.json` is unchanged (no version field added).
 - [ ] `release-please-config.json` exists with `release-type: simple`, `component: faff`, `include-component-in-tag: true`, `tag-separator: "--"`, and an `extra-files` json updater on `.claude-plugin/plugin.json` `$.version`.
-- [ ] `.release-please-manifest.json` exists, seeded `{ ".": "0.0.0" }`, with `release-as: 0.1.0` present for the bootstrap (and a note to remove it post-first-release).
+- [ ] `.release-please-manifest.json` exists, seeded `{ ".": "0.0.0" }`. The one-time `release-as: 0.1.0` lives in `release-please-config.json` (the `.` package block), **not** the manifest — and must be removed after the first 0.1.0 release ships, or every subsequent release re-cuts 0.1.0.
 - [ ] `.github/workflows/release-please.yml` exists, triggers on push to `main`, uses `release-please-action@v4`, declares `contents: write` + `pull-requests: write`.
 - [ ] A dry run / inspection confirms the release PR would create the tag exactly `faff--v0.1.0` (not `faff-v0.1.0`, not `v0.1.0`).
 - [ ] No `version.txt` or `package.json` is introduced.

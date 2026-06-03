@@ -1,6 +1,5 @@
 .DS_Store
 
-docs/
 design/
 
 # Local faff config (the .faffrc.example.yml template stays tracked)

@@ -104,6 +104,8 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ### Scenario A: Fresh prep (no existing spec)
 
+**Automation hold (interactive).** If the issue carries the `automation-hold` label (gateway → **Automation hold**), warn — "this ticket is held from automation; proceeding interactively, and the hold stays until you remove it" — then continue normally. Interactive prep is never *blocked* by the hold (only autonomous prep skips held issues); and prep never removes the hold label.
+
 Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
@@ -199,6 +201,8 @@ Everything else is unchanged: the producer still runs, marker validation and the
 
 When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
 
+**Automation-hold gate (runs first).** Before either path, check the shared **Automation hold** rule (gateway). If the issue is **held** (carries the `automation-hold` label), **skip it entirely** — do not run the already-shipped scan, do not spec, refresh, or promote. Return the `held` disposition (below). A held issue is **not** `parked` (it was never attempted and never enters the run-ledger); `/faff-beep-boop` surfaces it in the On-hold bucket, not Parked. Never remove the `automation-hold` label.
+
 Two allowed auto-spec paths. Both invoke the shared subroutine documented immediately below at the points named in their respective sections.
 
 ### Shared subroutine: already-shipped scan + premise-superseded gate
@@ -276,6 +280,7 @@ Return to caller one of:
 - `refreshed` — spec updated, issue stays in Todo
 - `promoted` — fresh high-confidence spec attached, issue moved to Todo (build-eligible)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; visible for human triage but **not** build-admitted — its routing verdict is `needs-decision-first`
+- `held` — the issue carries the `automation-hold` label; skipped without speccing or promotion (see **Automation-hold gate** above). Not `parked`, not attempted, not in the run-ledger; surfaced in the On-hold bucket. No `parked-by-faff` label is applied and the hold label is left untouched.
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 

@@ -77,6 +77,7 @@ An issue is ready when:
 - No big architectural questions to answer first
 - Not a dupe of something else
 - **Has a real spec** per the shared **Spec discovery** rule (canonical tracker comment, committed under the configured spec-docs path — default `docs/specs/…` — or equivalent). A populated description is **not** a spec — issues with only a description are **never** ready; they go to "Almost ready" for `/faff-prep`.
+- **Not held** — an issue carrying the `automation-hold` label (gateway → **Automation hold**) is **never** promoted to Todo, however otherwise-ready it looks; it appears in the **On hold** section below, not here. (Autonomous tidy must also not tag a held issue `stale-spec`/`superseded-spec` — see Autonomous Mode.)
 
 **Order ready issues by the shared Work-ordering rule** (gateway → **Work-ordering rule**): priority (issue or any ancestor, respect both) then chainable unlock value, with any configured `methodology` `pick-ordering` reframe applied within each priority band. Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
@@ -91,6 +92,12 @@ Issues currently carrying the `parked-by-faff` label (or tracker equivalent) whe
 For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md` and surface it concisely so the human knows what decision is being asked of them.
 
 **Order this bucket the same way as Ready** — priority first (issue or any ancestor, respect both), then chainable unlock value (how much downstream work resolving this would unblock). A parked issue that's gating a chain of five others should be top of the human's attention list, especially in autonomous runs where unblocking it lets `/faff-beep-boop` chew through the chain on the next pass.
+
+### 4a. On hold (automation-held)
+
+Issues carrying the `automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from "Stuck in prep":** parked work is automation-blocked (it tried and stopped); held work is human-blocked pre-emptively, with no auto-clear. List each held issue with its (optional) hold reason from the hold comment, so held work stays visible and doesn't rot.
+
+**Interactive tidy** offers to lift the hold: "Lift the automation-hold on any of these? (pick / none)" — on confirm, remove the `automation-hold` label from the chosen issues (the issue rejoins normal eligibility next pass; it is **not** auto-promoted). **Autonomous tidy only lists — it never lifts a hold** (release is always human-gated; gateway → **Automation hold**).
 
 ### 5. Structural diagnostics
 
@@ -180,6 +187,8 @@ Every chain point is an explicit gate. No "you should run" language.
 ## Autonomous Mode
 
 When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipeline mode), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
+
+**Held issues are exempt from autonomous mutation (gateway → Automation hold).** Before any auto-action or prep-queue tagging below, skip issues carrying the `automation-hold` label: do **not** tag them `stale-spec`/`superseded-spec` (that feeds `/faff-beep-boop`'s prep queue), do **not** promote them to Todo, and do **not** auto-clear the hold (release is human-gated — only interactive tidy lifts it, see the On hold section). Mechanical housekeeping that doesn't enter the autonomous pipeline still applies and must **preserve** the hold — e.g. an auto-reparented held issue stays held.
 
 **Auto-actions (applied without prompting):**
 - **Auto-strip dead references to cancelled/archived issues.** For every active issue, remove any link — blocker, blockedBy, parent, sub-issue, related, dependency — pointing at a cancelled or archived issue. This is mechanical and always safe; a cancelled issue cannot block or depend on anything. Post a single consolidated tracker comment per cascade (e.g. "After SHF-114 was cancelled, stripped blocker references from SHF-115/116/117/118/119"). Log every stripped link with the active issue id, the dead target id, and the link type.

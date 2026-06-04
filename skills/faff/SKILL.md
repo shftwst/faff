@@ -240,6 +240,30 @@ This widened definition fixes a real failure: a tidy run that suggests cancellin
 
 No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by graft, never counted in beep-boop queues.
 
+### Automation hold
+
+A human may **hold** a ticket out of the *autonomous* pipeline — keep it from being auto-specced, auto-promoted, or auto-built — while leaving it fully visible. This is for work captured but not yet validated ("on paper, way off building"), or work a human wants to keep as their own territory. The hold is **the human's steering input on the backlog**, set on the ticket in the tracker.
+
+**The marker.** A tracker **label**, default `automation-hold`. It is *orthogonal to status* — a held issue keeps whatever status it has (typically `Backlog`); the label, not the status, carries the hold. (faff already uses labels as control signals: `faff-jot-intake` for prep pickup, `parked-by-faff` for parks.) An issue is **held** iff it carries this label.
+
+**Two-tier, not invisible — the key difference from cancelled/archived.** Cancelled/archived items are invisible everywhere. Held items are the opposite on the read side: they remain **fully visible** to read/report skills (`/faff-wtf`, `/faff-map`, counts, diagnostics) — they are only **skipped by autonomous action**.
+
+**Enforcement is by chokepoint, not by enumerating call-sites.** All autonomous spec/promote/build flows through three skills; each checks the hold, so coverage is complete by construction:
+
+- **prep and tidy** are the only skills that autonomously spec or promote (`/faff-beep-boop` "does no tracker state moves of its own" — see its Wave re-entry). Neither auto-specs, auto-refreshes, nor promotes a held issue. Because the only path into the build queue is via `Todo`, and the only path into `Todo` is prep/tidy, **a held issue can never reach the build queue.**
+- **graft** is the only skill that autonomously builds. Autonomous graft refuses to build a held issue — the build backstop.
+- **Any queue-side filtering in `/faff-beep-boop`** (skipping held items at queue assembly / wave re-entry) is a non-load-bearing **efficiency early-exit** — it avoids wasting a prep/verdict invocation, but is not the guarantee. Held items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
+
+**Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` a held issue; those skills proceed, emitting a "this ticket is held" warning, and **never auto-remove the hold**.
+
+**Release is human-gated, multi-path.** Removing the `automation-hold` label in the tracker always works (the irreducible control-surface baseline). faff may also offer to lift it, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`). **No autonomous path ever removes the label** — otherwise the hold is no guard. Removing it does not auto-promote; the issue simply rejoins normal eligibility on the next pass.
+
+**Held ≠ parked.** `parked-by-faff` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); `automation-hold` is a *pre-emptive human* block with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
+
+**Surfacing (so held work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing held issues (separate from *Parked work*). Interactive `/faff-tidy` offers to lift the hold; autonomous passes only list, never lift.
+
+**Git-only mode (no tracker).** With no tracker there is no label to carry the hold, so the hold check is a **no-op** and the feature is effectively unavailable — consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate).
+
 ### Work-ordering rule (priority → chainable unlock value)
 
 The single canonical ordering for every place a faff sub-skill ranks, suggests, or promotes work: faff-tidy's Ready and Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / build-queue independents, faff-map's critical path, faff-beep-boop's independents ordering. Sub-skills reference this rule rather than restating it. Apply lexicographically:

@@ -88,6 +88,8 @@ Check the issue for an attached spec. Follow the shared **Spec discovery** rule 
 
 The gate ensures no one starts building without a validated spec. Per the shared **Spec discovery** rule, **a description is never a spec**: if the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep`. Never build straight from a description, and never skip prep because it "reads clear".
 
+**Automation hold (interactive).** If the issue carries the `automation-hold` label (gateway → **Automation hold**), warn — "this ticket is held from automation; proceeding interactively, and the hold stays until you remove it" — then continue. Interactive graft is never blocked by the hold, and graft never removes the hold label. (Autonomous graft instead refuses a held issue — see Autonomous Mode.)
+
 **Step 3: Check for Existing Worktree**
 
 (Worktree layout and rules: gateway → **Worktree policy**. Worktrees live at `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`.)
@@ -278,7 +280,9 @@ After build is complete and PR has been raised:
 
 When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
 
-**Entry:** assumes issue exists, is not cancelled/archived, has a valid spec, and a dedicated worktree is already prepared (per-issue worktree isolation per the gateway → **Worktree policy**; the `concurrency` slot relies on it for parallel runs).
+**Entry:** assumes issue exists, is not cancelled/archived, **is not held** (gateway → **Automation hold**), has a valid spec, and a dedicated worktree is already prepared (per-issue worktree isolation per the gateway → **Worktree policy**; the `concurrency` slot relies on it for parallel runs).
+
+**Automation-hold backstop (first).** A held issue should never reach autonomous graft — prep/tidy won't promote it, so it never enters the build queue. As the build chokepoint, graft nonetheless re-checks: if the issue carries the `automation-hold` label, **refuse to build** — skip without starting, do not commit the spec or open a worktree, and return a skip (the orchestrator records it as held, not built; never `parked`, never a build attempt). Never remove the hold label.
 
 **Flow:**
 1. Skip Step 6's build/review/reprep choice. Proceed directly to build (Step 7).

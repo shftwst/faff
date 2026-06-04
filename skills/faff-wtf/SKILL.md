@@ -67,6 +67,12 @@ For each parked issue, surface:
 
 Skip this section entirely if there are no parked issues (no `parked-by-faff`-labelled issues and no parked items in run logs).
 
+### 4b. On hold — awaiting human release
+
+Surface every issue carrying the `automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from Parked work above:** parked = automation tried and stopped (auto-clearable when the blocker resolves); held = a human pre-emptively blocked it, no auto-clear, released only by a human. Keep them in separate sections so the two signals don't blur.
+
+Query issues tagged `automation-hold` (or the tracker equivalent). For each, surface: issue id + title, the (optional) hold reason from the hold comment, and how to release it (remove the `automation-hold` label, or lift it via interactive `/faff-tidy`). Held issues remain in all counts and read-views — they are **not** excluded the way cancelled/archived are. This section is read-only: `/faff-wtf` never lifts a hold. Skip the section if no issues are held.
+
 ### 5. Today's Focus
 Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the shared work-ordering rule** (priority → chainable unlock value):
 - **Never suggest cancelled or archived** issues or projects as candidates (shared rule)

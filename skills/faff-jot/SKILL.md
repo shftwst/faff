@@ -1,16 +1,17 @@
 ---
 name: faff-jot
-description: "Start something new. Kick off an empty project, or capture a new feature, bug, or idea — and turn it into a sensible set of tickets. Use for 'new project', 'I've got an idea', 'add a feature', 'file a bug', 'scope this', 'kick off'."
+description: "Start something new. Kick off an empty project, or capture a new feature, bug, or idea — and turn it into a sensible set of tickets. Use for 'new project', 'I've got an idea', 'add a feature', 'file a bug', 'scope this', 'kick off'. Or point it at an existing ticket (`/faff-jot ISSUE-XX`) to shape/gate it — v1 freeze/thaw its automation hold."
 ---
 
 # faff-jot
 
-The front door for new work. Everything else in faff acts on tickets that already exist — `/faff-jot` is how tickets come to exist in the first place. It takes a loose starting point (a whole new project, or a single feature/bug/idea) and turns it into a sensible, well-shaped set of tracker tickets that the rest of the pipeline can pick up.
+The front door for new work — and the human's entry point to shape or gate a ticket that already exists. `/faff-jot` is how tickets come to exist in the first place; pointed at an existing ticket (`/faff-jot ISSUE-XX`) it's also where you decide that ticket's shape and whether it enters the pipeline. For new work it takes a loose starting point (a whole new project, or a single feature/bug/idea) and turns it into a sensible, well-shaped set of tracker tickets the rest of the pipeline can pick up.
 
-One skill, two starting points — **not** separate commands per item type:
+One skill, three entry points — **not** separate commands per item type:
 
 - **Kick off an empty project** — greenfield. No tracker project yet, or an empty repo. Produces an initial structure: workstreams/containers and the first tickets to reach a usable v0.
 - **Capture a new feature, bug, or ticket** — single-item. An existing project. Produces one well-formed ticket (or a small set, if it genuinely splits), placed in the right workstream.
+- **Shape or gate an existing ticket** — `/faff-jot ISSUE-XX`. *Not* new work: the human's conversational entry point to decide an existing ticket's **shape and eligibility** — v1 ships **freeze/thaw of the automation hold**. Narrow remit (see **Existing-ticket interactor** below); never speccing, grooming, or building.
 
 ## Configuration
 
@@ -23,10 +24,18 @@ One skill, two starting points — **not** separate commands per item type:
 ## What it does (the flow)
 
 ```
-starting point → discover (intake slot) → shape into tickets (methodology slot) → create → chain to /faff-prep
+no arg → new work:           discover (intake) → shape (methodology) → create → chain to /faff-prep
+ISSUE-XX → existing ticket:  load → shaping/gating menu → freeze/thaw → log
 ```
 
-### 1. Detect the mode
+### 0. Dispatch on argument
+
+**Check for an issue-id argument first** — its presence is the unambiguous switch, so no "new or existing?" gate is needed:
+
+- **Issue-id argument present** (`/faff-jot FAFF-23`) → the **existing-ticket interactor** (see **Existing-ticket interactor** below). Skip discovery, shaping, and creation — those are for new work only.
+- **No argument** (`/faff-jot`) → new-work intake: continue to mode detection below, unchanged.
+
+### 1. Detect the mode (new work only)
 
 - **greenfield** when: no tracker project/container exists for this work, or the user says "new project / starting from scratch / empty repo / kick off X".
 - **single-item** when: a tracker project already exists and the user is describing one feature, bug, or change.
@@ -64,6 +73,45 @@ Show the proposed structure (containers + tickets + relationships) and gate befo
 
 After creating, offer the next step via the standard chaining gate: "Tickets created. Prep the first one for build now? (`/faff-prep <first-ticket>`) (y/n)". On confirm, invoke `/faff-prep` on the highest-sequenced ticket. On deny, stop cleanly. (For greenfield, the "first one" is the first ticket of the first-slice workstream.)
 
+## Existing-ticket interactor (`/faff-jot ISSUE-XX`)
+
+When invoked with an issue-id argument, `/faff-jot` is **not** doing new-work intake — it's the human's conversational entry point to **shape or gate an existing ticket**. It is **interactive-only** (never autonomous) and runs in the orchestrator lane, which already has tracker write (it creates tickets for new work), so mutating a label on an existing ticket is within-lane.
+
+**Remit — shaping & eligibility only.** Freeze/thaw, and (deferred — see **Out of scope**) re-scope, re-home (re-parent), split/merge *intent*: "the human deciding a ticket's shape and whether it enters the pipeline." It deliberately does **not** absorb operations that already have homes:
+
+- speccing → `/faff-prep`
+- grooming / diagnostics → `/faff-tidy`
+- building → `/faff-graft`
+
+Framed narrowly it extends jot's intake identity (jot already owns the human↔pipeline-entry boundary); framed loosely it would duplicate three skills. Keep it narrow.
+
+### The flow
+
+1. **Load the ticket** — title, description, labels, status, spec comments. If the issue doesn't exist → error and stop. If it's **cancelled or archived** → refuse (shared **Ignore cancelled and archived** rule). This is a **load**, not a re-run of discovery — never re-interview the human about a ticket that already exists.
+2. **Present a shaping/gating menu** keyed to the ticket's current state. v1 offers **freeze/thaw**, by current hold state:
+   - ticket **not** held → offer **freeze**: "FAFF-XX is active — freeze it out of automation? (y/n)"
+   - ticket **held** → offer **thaw**: "FAFF-XX is held — lift the hold? (y/n)"
+3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate):
+   - **freeze** → add the `automation-hold` label (gateway → **Automation hold**), optionally with a one-line reason comment.
+   - **thaw** → remove the `automation-hold` label. **Thaw does not auto-promote** — the ticket simply rejoins normal eligibility on the next pass.
+   - **Edge cases (no-op + inform):** freeze of an already-held ticket → no-op, say so; thaw of a never-held ticket → no-op, say so.
+4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.
+
+### Relationship to `/faff-tidy`
+
+Freeze/thaw here and `/faff-tidy`'s lift-hold are **complementary entry points to the same `automation-hold` label primitive**, distinguished by context, not owner:
+
+- **jot is ticket-centric** — "freeze/thaw *this ticket I named*."
+- **tidy is grooming-batch** — "lift holds across the On-hold items I'm reviewing."
+
+Same add/remove of one label, both human-gated, no canonical-owner conflict. (Terminology: tidy says "lift", jot says "thaw" — both remove the label.)
+
+### Out of scope (v1)
+
+- **Re-scope / re-home (re-parent) / split-merge intent** are the named direction but **deferred** — each later reuses the `methodology` slot's `ticket-shaping` output.
+- No in-place edit of title / description / status.
+- The interactor is **interactive-only** — no autonomous invocation (consistent with new-work intake being human-gated).
+
 ## Tracker-less (git-only) mode
 
 When no tracker MCP is available (gateway → Configuration), there are no tickets to create. `/faff-jot` still runs discovery and shaping, then writes the shaped set to `.faff/intake/<date>-<slug>.md` as a checklist the human can act on, and notes that ticket creation was skipped (no tracker). The discovery brief and shaped structure are never lost.
@@ -73,6 +121,8 @@ When no tracker MCP is available (gateway → Configuration), there are no ticke
 `/faff-jot` is **primarily interactive** — discovery is a conversation, and inventing new scope is exactly the kind of direction-setting that belongs to the human, not the autonomous pipeline. `/faff-beep-boop` does **not** invoke `/faff-jot`: beep-boop drains the *existing* backlog, it does not conjure new work. (This is why intake sits outside the unattended loop — new work entering the system is a human-gated event.)
 
 If `/faff-jot` is somehow invoked in autonomous mode, it produces the discovery brief and shaped-ticket proposal, writes them to `.faff/intake/…`, and surfaces them for human review rather than creating tickets unattended. It never auto-creates a project or backlog without a human confirming the shape.
+
+The **existing-ticket interactor** (`/faff-jot ISSUE-XX`) is likewise **interactive-only** — freeze/thaw is a human steering decision, and release of a hold is always human-gated (gateway → **Automation hold**), so there is no autonomous path to it.
 
 ## Appetite
 
@@ -84,11 +134,12 @@ Reads the suite-wide `appetite` dial but is lightly modulated, since creation is
 
 ## Logging
 
-Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist.
+Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist. For the **existing-ticket interactor**, log the ticket id, its prior hold state, the freeze/thaw action taken (or the no-op), and any reason comment.
 
 ## Rules
 
-- One skill for all new-work intake — never spawn per-type variants (`faff-new-bug`, `faff-new-feature`). Mode is a parameter, not a separate command.
+- One skill for all new-work intake — never spawn per-type variants (`faff-new-bug`, `faff-new-feature`). Mode is a parameter, not a separate command. The existing-ticket interactor follows the same principle: it's selected by the issue-id **argument**, not a separate command.
+- The existing-ticket interactor (`/faff-jot ISSUE-XX`) is **shaping/eligibility only** (freeze/thaw in v1) and **interactive-only**. It never specs (→ `/faff-prep`), grooms (→ `/faff-tidy`), or builds (→ `/faff-graft`), never re-runs discovery on a ticket that already exists, and never edits the ticket's title/description/status in place.
 - Discovery is delegated (`intake` slot), shaping is delegated (`methodology` slot). `/faff-jot` orchestrates: detect mode, route the brief, confirm, create, chain. It owns no ideation opinions and no structural opinions of its own.
 - Never write a spec here. A created ticket is a `Backlog` item with a seeded description and open questions — `/faff-prep` turns it into a buildable spec. (A description is never a spec — gateway shared rule.)
 - Ticket creation is gated on human confirmation except at `full` appetite for non-container tickets. Containers always confirm.

@@ -99,6 +99,8 @@ Issues carrying the `automation-hold` label (gateway → **Automation hold**) �
 
 **Interactive tidy** offers to lift the hold: "Lift the automation-hold on any of these? (pick / none)" — on confirm, remove the `automation-hold` label from the chosen issues (the issue rejoins normal eligibility next pass; it is **not** auto-promoted). **Autonomous tidy only lists — it never lifts a hold** (release is always human-gated; gateway → **Automation hold**).
 
+tidy's lift-hold and `/faff-jot ISSUE-XX`'s freeze/thaw are **complementary entry points to the same `automation-hold` primitive**: tidy is the **grooming-batch** entry ("lift holds across the On-hold items I'm reviewing"); jot is the **ticket-centric** entry ("freeze/thaw *this* named ticket"). Same add/remove of one label, both human-gated, no canonical-owner conflict (tidy says "lift", jot says "thaw" — both remove the label). See `faff-jot` → **Existing-ticket interactor**.
+
 ### 5. Structural diagnostics
 
 A separate pass that examines the **shape of the backlog itself**, not individual issues. Request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-structural`) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Root-cause class enum** for the shared park-classification taxonomy it uses.

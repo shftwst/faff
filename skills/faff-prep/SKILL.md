@@ -106,6 +106,16 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ## Scenarios
 
+### Opening: state the issue outline (both scenarios)
+
+Before Step 1 of **either** scenario — and before any exploration narration — prep's **first output** is a short, skimmable outline of the issue, so a reader who isn't already holding the ticket in their head can follow what's being prepped. Keep it to ~3 lines:
+
+- the **synthesis gloss** — the plain-English one-liner for the issue (defined in the sibling gateway → **Synthesis contract** / `rendering_adaptor`; not redefined here);
+- the issue's current **status**;
+- a one-line **what it's about**.
+
+Do **not** include an acceptance-criteria count here — fresh prep hasn't explored yet, so the ACs aren't known at the opening. This outline routes through the configured `rendering_adaptor` like all other prep output (see **Rendering** above), so it renders skimmably for free. **Interactive:** it is the first thing shown to the user. **Autonomous:** prep never prints to a human, so the outline opens the prep log (`.faff/.../prep.md`) instead of a chat message. This is the quick orient-the-reader opener; Scenario B's fuller **Step 3: Brief the user** still runs after its freshness checks.
+
 ### Scenario A: Fresh prep (no existing spec)
 
 **Automation hold (interactive).** If the issue carries the `faff-automation-hold` label (gateway → **Automation hold**), warn — "this ticket is held from automation; proceeding interactively, and the hold stays until you remove it" — then continue normally. Interactive prep is never *blocked* by the hold (only autonomous prep skips held issues); and prep never removes the hold label.

@@ -87,7 +87,7 @@ If the issue doesn't exist, tell the user and stop.
 
 Check the issue for an attached spec. Follow the shared **Spec discovery** rule in the sibling `faff/SKILL.md` — look in tracker comments, the main description/body, committed `docs/` paths, and (git-only mode) the `.faff/specs/<issue-id>.md` store. A hit in any of those counts as the spec.
 
-- **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec.
+- **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec. (This is the same call `faff next` makes: with a spec present it returns `graft` (proceed); with no spec, `prep` — consult it per gateway → **Next-step transition** rather than re-deriving, then act as below.)
 - **No spec (none of those sources):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
 
 The gate ensures no one starts building without a validated spec. Per the shared **Spec discovery** rule, **a description is never a spec**: if the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep`. Never build straight from a description, and never skip prep because it "reads clear".

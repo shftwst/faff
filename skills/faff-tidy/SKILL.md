@@ -79,6 +79,8 @@ An issue is ready when:
 - **Has a real spec** per the shared **Spec discovery** rule (canonical tracker comment, committed under the configured spec-docs path — default `docs/specs/…` — or equivalent). A populated description is **not** a spec — issues with only a description are **never** ready; they go to "Almost ready" for `/faff-prep`.
 - **Not held** — an issue carrying the `faff-automation-hold` label (gateway → **Automation hold**) is **never** promoted to Todo, however otherwise-ready it looks; it appears in the **On hold** section below, not here. (Autonomous tidy must also not tag a held issue `stale-spec`/`superseded-spec` — see Autonomous Mode.)
 
+**Decide readiness via `faff next`, not by re-checking these criteria by hand** (gateway → **Next-step transition**): map each issue's fetched state to the flags and consult `faff next` — `graft` ⇒ ready (promote candidate), `prep` ⇒ "Almost ready" (needs `/faff-prep`), `skip-held` ⇒ the **On hold** section, `needs-human`/`blocked` ⇒ not ready. The bullets above are the human-readable shape of that transition.
+
 **Order ready issues by the shared Work-ordering rule** (gateway → **Work-ordering rule**): priority (issue or any ancestor, respect both) then chainable unlock value, with any configured `methodology` `pick-ordering` reframe applied within each priority band. Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
 ### 3. Almost ready (flag)

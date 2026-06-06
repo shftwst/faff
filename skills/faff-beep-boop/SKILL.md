@@ -89,6 +89,8 @@ Gather every issue that is:
 - Lacking a valid spec (no spec, or spec marked stale)
 - **Flagged by the tidy pass as a prep candidate** — issues tagged stale-spec (need refresh) or superseded-spec (need fresh spec). These are active issues already in Todo with a spec that's no longer valid; prep's stale-refresh or fresh-spec autonomous paths decide whether they rejoin the build queue or park for human attention.
 
+**Decide membership via `faff next`, not by re-deriving these criteria by hand** (gateway → **Next-step transition**): map each issue's fetched state to the flags and consult `faff next` — an issue belongs in the prep queue iff it returns `next: prep`. The bullets above are the human-readable shape of that same transition.
+
 This is the prep queue. The held-exclusion here (and at build-queue assembly / wave re-entry) is an **efficiency early-exit, not the guarantee** — prep and graft are the chokepoints that actually enforce the hold (gateway → **Automation hold**), so a held issue can't slip through even if a filter is missed. Held items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
 
 ### 3. Prep queue drain
@@ -112,6 +114,8 @@ Collect every issue that meets readiness (in Todo, with no open *external* block
 
 Do not require a repo-side spec file at this stage — faff-graft commits the spec to `docs/` only at the start of the build. An absent spec file under the configured **Spec docs path** (default `docs/specs/*-<issue>-*.md`) is not grounds for exclusion; the tracker is the pre-build source of truth.
 
+**Gate eligibility via `faff next` first** (gateway → **Next-step transition**): consult `faff next` per candidate; only issues returning `next: graft` are build-eligible (`prep` rejoins the prep queue, `skip-held`→On-hold, `needs-human`→routed-out, `blocked`/`done`/`none`→excluded). `faff next`'s `--blocked` carries **external** blockers only — in-queue dependencies stay with conflict analysis. Then, on the `graft`-eligible set:
+
 **Compute the automation-routing verdict** for every spec-gated candidate. The verdict is normally already in `.faff/runs/<run-id>/automation-verdicts.md` from the tidy pass in step 1 — read it from there to avoid recomputation. Any candidate **not** in that cache — an issue prep promoted during a wave (step 8), or one whose spec was refreshed since the tidy pass — is computed **inline** at assembly and written back to the cache; the top-of-run cache only covers the issues tidy saw. **Admit only** `fire-and-forget` and `likely-fire` verdicts to the build queue.
 
 Issues routed out of the build queue (the other four verdicts) are captured for the run summary's "Routed out" section — they appear in `/faff-wtf`'s next morning brief with the verdict-specific diagnosis.
@@ -134,7 +138,7 @@ Keep building until the wave's build queue is drained or everything remaining is
 
 ### 8. Wave re-entry
 
-After the wave drains, re-check the tracker for work newly unlocked by issues that just shipped. Faff's promotion rule is that **only specced items live in Todo**, but Todo can hold specced-and-blocked items too — so a chain unlock can land in either bucket. Wave re-entry scans both, and every newly-unblocked item routes through narrow prep. Prep is the single mechanism that handles spec generation, in-place refresh, and the Backlog→Todo move; the orchestrator does no tracker state moves of its own.
+After the wave drains, re-check the tracker for work newly unlocked by issues that just shipped. Faff's promotion rule is that **only specced items live in Todo**, but Todo can hold specced-and-blocked items too — so a chain unlock can land in either bucket. Wave re-entry scans both, **consults `faff next` per newly-unblocked item** (gateway → **Next-step transition**) to decide its step — `prep` routes through narrow prep, `graft` rejoins build-queue assembly, `skip-held`/`needs-human` route out — rather than prose-deciding. Every newly-unblocked item that returns `prep` routes through narrow prep. Prep is the single mechanism that handles spec generation, in-place refresh, and the Backlog→Todo move; the orchestrator does no tracker state moves of its own.
 
 1. **Budget check.** If `--until HH:MM` is set and the wall clock has passed HH:MM, OR `--max N` is set and N build attempts have been launched, exit to reporting with `Stop reason: budget-hit (--until …)` or `budget-hit (--max N)` accordingly. The wave re-entry step is the last point at which the budget gate fires for the run; if it fires here, the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary.
 2. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).

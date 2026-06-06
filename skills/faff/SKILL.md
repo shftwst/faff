@@ -30,6 +30,15 @@ Two knobs cut across all four levels. They're not levels themselves:
 - **Slots** decide *what* runs at each stage (a beefier spec, a harsher reviewer, a parallel build). Swap them to customise *any* level, or bring your own — they tune what a level does, not which level you're at (that's which command you reach for).
 - **Appetite** (for Destruction) sets *how much rope* the pipeline gets before checking back. More isn't always better: it buys speed against the odd "oops, wrong call, revert that."
 
+## Governing principles
+
+Four tenets steer every design call in faff. Each is a tension — *X, not Y* — and the named mechanism is where it already lives, not an aspiration. When a spec or build needs a tie-breaker, reach for these.
+
+- **Deterministic tools over prose.** Mechanical and contractual work belongs in testable, reproducible tools; the LLM is reserved for discovery, judgement, and insight — not for executing a contract run-to-run. Rule of thumb: same input must always give the same output ⇒ a tool; needs taste or understanding ⇒ the LLM. *Embodied by:* the `faff` CLI (`config` / `runcheck` / `validate-adapters`, see **Configuration**).
+- **Configurable, not opinionated.** Every behaviour is a swappable slot over a fixed contract — faff ships sensible defaults you can override, not opinions you must accept. *Embodied by:* the slots / adaptor model, `.faffrc`, and the appetite dial (see **Configuration** and **Core contracts and adaptor slots**).
+- **Adoptable, not all-encompassing.** faff integrates rather than owns — it works with your tracker (any MCP), your agents, and git-only mode, and you adopt as much of the L1→L4 ladder as you want. *Embodied by:* the levels table above, git-only mode, tracker autodetect, and slot delegation to third-party skills.
+- **Understandable, not unapproachable.** Output and behaviour are skimmable and low-cognitive-load, so the human can always follow what faff did and why — and trust it. *Embodied by:* the `rendering_adaptor` / synthesis gloss (see **Core contracts and adaptor slots**) and the human-readable `.faff/` logs.
+
 ## Routing
 
 This is the gateway. Invoke the right sub-skill:

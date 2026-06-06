@@ -134,6 +134,15 @@ ISSUE-XX   Pino instrumentation — wires structured logging into all handlers �
 
 In high-density visualisations (queue partition grids, chain diagrams), show only the gloss subject; the unlock consequence lives in a one-line footnote keyed by ID.
 
+### First-mention grounding
+
+The **first** appearance of any issue ID in a given output carries its gloss (`ID + gloss`, per **Canonical rendering** above). Subsequent references to the same ID in the same output may be bare ID. An ID that appears **only ever bare** — never grounded anywhere in that output — is a violation: it forces the reader to the tracker to find out what it is.
+
+- **Granularity is per-whole-output** — one grounding anywhere in the output satisfies the rule. (A skill *may* re-ground in a later section when a bare ID there would read unintelligibly, but that's the Humanisation test below talking, not this mechanical rule.)
+- **This does not supersede the Humanisation rule.** First-mention grounding is the mechanical floor; a bare later reference must still pass the Humanisation reader-test in its context. Where it wouldn't, re-ground it there.
+
+This is the checkable form of the Humanisation rule's reader-test: grounding-once is the minimum a normalise pass can mechanically enforce (see **Validation / normalise**).
+
 ### Generation source order
 
 In order of preference:
@@ -245,7 +254,7 @@ A wall of small visuals is the same problem as a wall of text. Each rendered sec
 
 Run as a final pass over draft output, or on demand against any block.
 
-**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows.
+**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows; an issue ID that is never grounded by its gloss anywhere in the output (bare-ID-only — see **First-mention grounding**; rewrite by injecting the gloss at first mention when derivable, else flag).
 
 **Output:** either a list of violations (`where → which rule → the fix`), or the normalised block with the fixes applied, depending on how the caller invokes it.
 

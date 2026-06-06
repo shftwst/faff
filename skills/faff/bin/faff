@@ -7,6 +7,7 @@
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //   labels [--names]                              print the canonical faff control-label manifest
+//   next --status S --spec ... [--held|--parked|--blocked]   legal next step (JSON); --selftest
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
 // (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
@@ -620,6 +621,76 @@ function cmdLabels(args) {
 }
 
 // ===========================================================================
+// next — FAFF-63: the legal-next-step transition function. PURE: the caller
+// passes the issue's resolved state (the CLI has no tracker/MCP access); it
+// computes the step. It NEVER executes the step or enforces the gate (FAFF-57).
+// ===========================================================================
+const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
+const NEXT_SPECS = ["none", "low", "medium", "high"];
+
+function nextStep({ status, spec, held, parked, blocked }) {
+  if (!NEXT_STATUSES.includes(status)) return ["error", `unknown --status '${status}'`];
+  if (!NEXT_SPECS.includes(spec)) return ["error", `unknown --spec '${spec}'`];
+  if (status === "cancelled" || status === "duplicate") return ["none", "cancelled/duplicate — ignored"];
+  if (status === "done") return ["done", "complete"];
+  if (held) return ["skip-held", "automation-hold — human releases"];
+  if (parked) return ["needs-human", "parked — human decision"];
+  if (spec === "none") return ["prep", "no spec — needs prep"];
+  if (spec === "low") return ["needs-human", "low-confidence spec"];
+  if (spec === "medium") return ["needs-human", "needs-decision-first (medium spec)"];
+  if (blocked) return ["blocked", "external blocker unmet"];
+  return ["graft", "build-eligible / resume"];
+}
+
+function nextSelftest() {
+  const C = (status, spec, x = {}) => ({ status, spec, held: !!x.held, parked: !!x.parked, blocked: !!x.blocked });
+  const cases = [
+    [C("cancelled", "high"), "none"],
+    [C("duplicate", "none"), "none"],
+    [C("done", "high"), "done"],
+    [C("done", "none", { held: true }), "done"],      // terminal beats held
+    [C("todo", "high", { held: true }), "skip-held"],
+    [C("backlog", "none", { held: true }), "skip-held"],
+    [C("todo", "high", { parked: true }), "needs-human"],
+    [C("backlog", "none"), "prep"],
+    [C("todo", "none"), "prep"],
+    [C("backlog", "none", { blocked: true }), "prep"], // blocked never blocks prep
+    [C("todo", "low"), "needs-human"],
+    [C("todo", "medium"), "needs-human"],
+    [C("todo", "high"), "graft"],
+    [C("backlog", "high"), "graft"],
+    [C("in-progress", "high"), "graft"],
+    [C("in-review", "high"), "graft"],
+    [C("todo", "high", { blocked: true }), "blocked"], // blocked gates graft
+  ];
+  let fail = 0;
+  for (const [inp, want] of cases) {
+    const [got] = nextStep(inp);
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${JSON.stringify(inp)} → ${got} (want ${want})`);
+  }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+function cmdNext(args) {
+  if (args.includes("--selftest")) return nextSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const state = {
+    status: (get("--status") || "").toLowerCase(),
+    spec: (get("--spec") || "none").toLowerCase(),
+    held: args.includes("--held"),
+    parked: args.includes("--parked"),
+    blocked: args.includes("--blocked"),
+  };
+  const [next, reason] = nextStep(state);
+  if (next === "error") { process.stderr.write(`faff next: ${reason}\n`); return 2; }
+  console.log(JSON.stringify({ next, reason }));
+  return 0;
+}
+
+// ===========================================================================
 // dispatch
 // ===========================================================================
 const USAGE = `faff — the bundled CLI for the faff skill suite.
@@ -630,6 +701,7 @@ Subcommands:
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
+  next --status S --spec none|low|medium|high [--held] [--parked] [--blocked]   legal next step (JSON {next,reason}); --selftest runs the table
 `;
 
 function main(argv) {
@@ -640,6 +712,7 @@ function main(argv) {
   if (sub === "runcheck") return cmdRuncheck(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
   if (sub === "labels") return cmdLabels(rest);
+  if (sub === "next") return cmdNext(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

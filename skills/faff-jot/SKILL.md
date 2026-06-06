@@ -67,7 +67,7 @@ On confirm, hand the **discovery brief** to `/faff-plot` via the Skill tool and 
 Show the proposed structure (containers + tickets + relationships) and gate before writing:
 
 - **Interactive (default):** present the shaped tickets as a short tree and ask "Create these N tickets [under new project '<name>']? (yes / edit / no)". On `edit`, take the human's adjustments and re-shape or tweak directly. On `yes`, create them in the tracker via the configured MCP. On `no`, stop — the brief is logged so nothing is lost.
-- Create containers first (initiative/project), then tickets, then the blocker/blocked-by links the methodology proposed. Apply the `faff-jot-intake` tag so the next `/faff-prep` pass recognises freshly-shaped work. Carry each ticket's open questions into its description.
+- Create containers first (initiative/project), then tickets, then the blocker/blocked-by links the methodology proposed. Apply the `faff-jot-intake` tag (ensuring the label exists first, gateway → **Control-label provisioning**) so the next `/faff-prep` pass recognises freshly-shaped work. Carry each ticket's open questions into its description.
 
 ### 5. Chain to prep
 
@@ -92,7 +92,7 @@ Framed narrowly it extends jot's intake identity (jot already owns the human↔p
    - ticket **not** held → offer **freeze**: "FAFF-XX is active — freeze it out of automation? (y/n)"
    - ticket **held** → offer **thaw**: "FAFF-XX is held — lift the hold? (y/n)"
 3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate):
-   - **freeze** → add the `faff-automation-hold` label (gateway → **Automation hold**), optionally with a one-line reason comment.
+   - **freeze** → add the `faff-automation-hold` label (gateway → **Automation hold**; ensure the label exists first, gateway → **Control-label provisioning**), optionally with a one-line reason comment.
    - **thaw** → remove the `faff-automation-hold` label. **Thaw does not auto-promote** — the ticket simply rejoins normal eligibility on the next pass.
    - **Edge cases (no-op + inform):** freeze of an already-held ticket → no-op, say so; thaw of a never-held ticket → no-op, say so.
 4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.

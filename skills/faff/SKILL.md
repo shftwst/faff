@@ -515,7 +515,7 @@ Every faff skill that can park work follows the same protocol:
 
 1. Commit WIP with a clear message (if a branch/worktree exists for this unit of work).
 2. Open or update the PR as **draft**.
-3. Post a comment on the tracker issue: cause, what was attempted, what is needed from a human. Tag the issue as `faff-parked` (or the tracker's equivalent label) so `/faff-wtf` can surface it.
+3. Post a comment on the tracker issue: cause, what was attempted, what is needed from a human. Tag the issue as `faff-parked` (or the tracker's equivalent label) so `/faff-wtf` can surface it — ensuring the label exists first (**Control-label provisioning**).
 4. Write to `.faff/logs/…` with the full context.
 5. Return control to the caller (beep-boop or interactive invoker).
 
@@ -530,6 +530,14 @@ Parking is reversible by design — the **single owner of unpark mechanics is th
 2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes a stale `faff-parked` label without human action when the state moved on (issue now In Progress/In Review/Done/Cancelled) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
 
 **The label is the contract.** Removing the `faff-parked` label (by either path) is what returns the issue to normal routing — `/faff-wtf` stops surfacing it as a blocker, and the build queue reconsiders it on the next pass. Whoever clears a park (a skill on re-entry, or tidy's auto-removal) **must** remove the label and log the unpark with its cause. A resolved park that keeps its label is a bug: it lies to every downstream surfacer.
+
+### Control-label provisioning (ensure-before-tag)
+
+faff owns a fixed set of **control labels** — the tracker signals the pipeline tags issues with. The canonical set is the **`faff labels` CLI manifest** (resolve the `faff` executable per **Resolver**): `faff labels` emits each control label's `name`, `color`, and `description` as JSON (`faff labels --names` for bare names). This manifest is the **single source of truth** — every path that tags, and any bootstrap that bulk-provisions, reads the set from here rather than hardcoding it. Today the set is `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill` (all `faff-`-prefixed per the control-label convention).
+
+**Ensure-before-tag — the shared rule.** Before any path applies a faff control label to an issue, it must **ensure the label exists**: list the tracker's labels (configured MCP); if the manifest label is absent, create it from its manifest entry (name + color + description); then tag. This is **idempotent** — "label already exists" is a clean no-op, never an error or a duplicate. The check is necessarily **agent-via-MCP**: the `faff` CLI emits the manifest but has no tracker access, so it cannot create the label — the manifest is the mechanical half, the create is the agent half. Every tagging site (`/faff-jot` intake + freeze, `/faff-plot`, `/faff-tidy` parks + chain-gaps + repeat-park, `/faff-beep-boop` parks + discovered-scope, `/faff-graft` parks + discovered-scope, `/faff-prep` parks) applies this one rule rather than carrying its own copy. **Git-only mode:** no-op — there are no tracker labels to ensure.
+
+This closes the unattended-run failure mode where tagging against a not-yet-created label fails or mis-tags, so an auto-filled ticket is missed by the next prep pass.
 
 ## Chaining pattern
 

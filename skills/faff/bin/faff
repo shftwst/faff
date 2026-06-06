@@ -6,6 +6,7 @@
 //   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
+//   labels [--names]                              print the canonical faff control-label manifest
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
 // (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
@@ -544,6 +545,32 @@ function cmdValidateAdapters(args) {
 }
 
 // ===========================================================================
+// labels — the canonical faff control-label manifest (FAFF-47).
+// The single source of truth for faff's control labels. The CLI EMITS the set;
+// it cannot create tracker labels (no MCP). The agent ensures-before-tag via the
+// tracker MCP using this manifest (gateway -> Control-label provisioning).
+// ===========================================================================
+const CONTROL_LABELS = [
+  { name: "faff-automation-hold", color: "#5e6ad2",
+    description: "Human-set hold: keep this ticket out of the autonomous faff pipeline (no auto-spec/promote/build) until a human removes the label. Visible to read skills." },
+  { name: "faff-parked", color: "#e8a33d",
+    description: "Issue parked by an autonomous faff run. Check the issue comments for the park reason. Surfaced by /faff-wtf." },
+  { name: "faff-jot-intake", color: "#4ea7fc",
+    description: "Freshly-shaped work created by /faff-jot; picked up by the next /faff-prep pass." },
+  { name: "faff-chain-gap-fill", color: "#4ea7fc",
+    description: "Auto-filled chain-gap / execution-discovered ticket (faff-tidy / faff-beep-boop); picked up by the next /faff-prep pass." },
+];
+
+function cmdLabels(args) {
+  if (args.includes("--names")) {
+    for (const l of CONTROL_LABELS) console.log(l.name);
+    return 0;
+  }
+  console.log(JSON.stringify(CONTROL_LABELS, null, 2));
+  return 0;
+}
+
+// ===========================================================================
 // dispatch
 // ===========================================================================
 const USAGE = `faff — the bundled CLI for the faff skill suite.
@@ -553,6 +580,7 @@ Subcommands:
   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
+  labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
 `;
 
 function main(argv) {
@@ -562,6 +590,7 @@ function main(argv) {
   if (sub === "config") return cmdConfig(rest);
   if (sub === "runcheck") return cmdRuncheck(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
+  if (sub === "labels") return cmdLabels(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

@@ -28,6 +28,20 @@ Unlike `spec` — which splits into a producer (`faffter-noon-spec`, issue → n
 - **Define** (reference): the visual-vs-prose split, the canonical visual forms, the table-vs-list rule, and the density caps below. Sub-skills read this and render accordingly.
 - **Validate / normalise** (invokable): given draft output, flag (or rewrite) violations — markdown tables that should be definition lists, structure narrated as prose that should be a visual, visual walls that breach the density caps. Invoked as a final pass, or standalone: "normalise this output to house style."
 
+## Scope — all human-facing faff output
+
+Everything this adaptor defines and normalises applies to **all human-facing output a faff sub-skill emits: terminal output, tracker descriptions, and tracker comments alike** (gateway → **Rendering**, Universal-routing rule). The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs — read in wider contexts, not human-facing in the same sense. There is no central emit point, so each skill runs the normalise pass itself as a final step before printing or writing.
+
+## Prose skimmability
+
+Enumerable content must be skimmable — the failure mode is an enumerable set crammed into one `·`/comma run-on paragraph, which raises cognitive load and erodes trust. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
+
+- **3+ items → a list.** Any enumerable set of three or more items renders as a markdown list, never a `·`- or comma-separated run-on paragraph — the same 3+ threshold the canonical visual forms use for inline chains. A 2-item set may stay inline prose.
+- **Bold-lead bullets** for scannable items: `- **label** — detail`, so the eye lands on the label.
+- **Prose density cap.** A prose block stays within ~3 sentences / ~4 lines before it must break into a list or separate paragraphs. Diagnosis, decision, and "do this next" prose (the visual-vs-prose carve-outs) still win where they apply, but stay within the cap.
+
+This rule governs tracker descriptions and comments as much as terminal output (per Scope above). The canonical anti-example is a long "Open questions" set written as one `·`-delimited paragraph — it must render as a bulleted list.
+
 ## Visualisation over prose
 
 When output describes **structure** (chain, partition, cycle, queue, workstream layout, fire/blocked gate map, dep graph), render it as a compact visual. Reserve prose for diagnosis, decision, and "do this next" recommendation.
@@ -184,7 +198,7 @@ Every faff sub-skill that names an issue in output applies this contract. Each s
 
 Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.
 
-**Scope:** this rule applies to **user-facing terminal output** emitted by faff sub-skills (diagnostics, morning briefs, roadmap renders, in-conversation summaries). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
+**Scope:** this rule applies to **all human-facing faff output** — terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries) **and** tracker descriptions and comments (per **Scope — all human-facing faff output** above). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
 
 **Drop the markdown table when any of:**
 

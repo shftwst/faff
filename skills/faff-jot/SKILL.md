@@ -17,6 +17,10 @@ One skill, three entry points — **not** separate commands per item type:
 
 **Load the gateway first.** This skill is usually entered directly (slash command), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the ignore-cancelled/archived rule, `.faff/` logging layout, and the slot contracts this skill applies. Loading it here means the `intake` and `methodology` slots jot delegates to inherit these ambiently.
 
+## Rendering
+
+All human-facing output this skill emits — new-work tracker **descriptions** (the create step) and the existing-ticket interactor's reason comments, plus any terminal summaries — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). In particular, enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule), so descriptions and comments are as skimmable as terminal output. Carve-outs (skill source files, `.faff/` logs) are exempt.
+
 ## Lane
 
 `/faff-jot` runs in the **orchestrator lane** (see gateway → Agent Lanes): it talks to the human, runs discovery, reads the tracker, and creates tickets. It does **not** write code and does **not** produce specs — speccing is `/faff-prep`'s job, per ticket, later. The division is deliberate: ideation and ticket-shaping are orchestration; the spec is the build contract.

@@ -1,6 +1,7 @@
 ---
 name: faffidavit-routing
-description: "Default `routing_adaptor` — assigns the automation-routing verdict to a spec-gated issue (from diagnostics + confidence + markers + park history), renders it, and validates assignments. Invokable standalone."
+description: "Default `routing_adaptor` — assigns the automation-routing verdict to a spec-gated issue (from diagnostics + confidence + markers + park history), renders it, and validates assignments. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffidavit-routing

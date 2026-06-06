@@ -1,6 +1,7 @@
 ---
 name: faffter-noon-ship
-description: "Default `ship` producer — merges a gate-cleared PR (gh pr merge --squash), no-op deploy-readiness, emits a native delivery result the ship_adaptor maps. Swap for a deploy-capable producer. Invokable standalone."
+description: "Default `ship` producer — merges a gate-cleared PR (gh pr merge --squash), no-op deploy-readiness, emits a native delivery result the ship_adaptor maps. Swap for a deploy-capable producer. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffter-noon-ship

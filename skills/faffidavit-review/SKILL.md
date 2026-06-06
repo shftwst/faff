@@ -1,6 +1,7 @@
 ---
 name: faffidavit-review
-description: "Default `review_adaptor` — translates a reviewer's native output into the fixed pass/fail/needs-human verdict envelope and validates conformance. Swap to adapt a third-party reviewer. Invokable standalone."
+description: "Default `review_adaptor` — translates a reviewer's native output into the fixed pass/fail/needs-human verdict envelope and validates conformance. Swap to adapt a third-party reviewer. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffidavit-review

@@ -1,6 +1,7 @@
 ---
 name: faffidavit-spec
-description: "Default `spec_adaptor` — the canonical spec decision markers (Chosen/Punt/Assumes), writing-style and confidence-line format, and pre-attach validation of any spec producer's output. Invokable standalone."
+description: "Default `spec_adaptor` — the canonical spec decision markers (Chosen/Punt/Assumes), writing-style and confidence-line format, and pre-attach validation of any spec producer's output. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffidavit-spec

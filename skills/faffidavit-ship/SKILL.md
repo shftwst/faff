@@ -1,6 +1,7 @@
 ---
 name: faffidavit-ship
-description: "Default `ship_adaptor` — translates a ship producer's native delivery result (gh/CI/deploy exit + logs) into the fixed shipped/not-ready/failed outcome and validates conformance, failing safe to failed. Invokable standalone."
+description: "Default `ship_adaptor` — translates a ship producer's native delivery result (gh/CI/deploy exit + logs) into the fixed shipped/not-ready/failed outcome and validates conformance, failing safe to failed. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffidavit-ship

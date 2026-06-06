@@ -1,6 +1,7 @@
 ---
 name: faffter-noon-spec
-description: "Default `spec` producer — turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Invokable standalone or via faff-prep."
+description: "Default `spec` producer — turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Runs via faff-prep, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffter-noon-spec

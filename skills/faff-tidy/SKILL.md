@@ -158,7 +158,7 @@ Output rendered in the new `### Methodology findings` section of tidy's output (
 
 ## Output and chaining
 
-Tabular output follows the `rendering_adaptor` slot's table-vs-definition-list rule (gateway → **Rendering → `rendering_adaptor`**; default `faffidavit-rendering`).
+All human-facing output tidy emits — its terminal buckets, the chain-gap tickets it files, and the park comments it writes — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule), so enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule). The table-vs-definition-list rule is part of that pass.
 
 Present findings grouped by bucket. Skip any bucket with no findings.
 

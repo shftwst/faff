@@ -13,6 +13,10 @@ plot is jot's recursion applied to jot's discovery. They share the same `ticket-
 
 **Load the gateway first.** This skill is usually entered directly (slash command) or chained from `/faff-jot`, so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the `methodology` slot's `ticket-shaping` contract (including the `shape-level` input plot uses), the `appetite` dial, the ignore-cancelled/archived rule, and the `.faff/` logging layout. Loading it here means the `intake` and `methodology` slots plot delegates to inherit these ambiently.
 
+## Rendering
+
+All human-facing output this skill emits — roadmap container and epic **descriptions**, plus any terminal summaries — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). In particular, enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule), so descriptions and comments are as skimmable as terminal output. Carve-outs (skill source files, `.faff/` logs) are exempt.
+
 ## Lane
 
 `/faff-plot` runs in the **orchestrator lane** (see gateway → Agent Lanes): it talks to the human, reads the tracker, drives the `methodology` slot, and **writes containers and tickets**. It does **not** write code and does **not** produce specs — speccing is `/faff-prep`'s job, per ticket, later. Like `/faff-jot`, it is **human-gated**: new structure entering the system is a human-confirmed event, not an autonomous one (see Autonomous mode).

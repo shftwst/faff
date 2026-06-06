@@ -37,6 +37,10 @@ Graft needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.c
 
 Tell the user what you're adding and why. If they have a project-specific setup script, suggest they create a wrapper at `scripts/setup-worktree.sh` that calls the generic one then adds their extras.
 
+## Rendering
+
+All human-facing output this skill emits — PR bodies, human-facing summaries, and park **comments**, plus any terminal summaries — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). In particular, enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule), so descriptions and comments are as skimmable as terminal output. Carve-outs (skill source files, `.faff/` logs) are exempt.
+
 ## Input
 
 The user may provide an issue identifier, OR invoke with no arguments.

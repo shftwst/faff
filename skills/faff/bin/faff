@@ -324,6 +324,13 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 const REFER_BACK = /Read[^\n]*\bfaff\/SKILL\.md/;
 const NON_NORMATIVE = /non-normative|gateway wins/i;
 
+// FAFF-51: internal slot skills hide from the user `/` menu via `user-invocable: false`
+// frontmatter; user-facing commands (the faff-* skills) and the authoring dev tool must NOT.
+function hasUserInvocableFalse(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return /^user-invocable:\s*false\b/m.test(m ? m[1] : "");
+}
+
 // .faffrc slot name → the conformance profile its occupant must satisfy. Lets the
 // --configured pre-flight derive the expected `checksFor` type from the slot alone,
 // so a third-party occupant (not in REGISTRY) can still be structurally linted.
@@ -483,11 +490,22 @@ function cmdValidateAdapters(args) {
   let failed = false;
   const uncovered = [];
   for (const name of present) {
-    if (SKIP.has(name)) continue;
+    if (SKIP.has(name)) {
+      // user-facing dev tool — must NOT carry the internal-only marker
+      const skiptext = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+      if (hasUserInvocableFalse(skiptext)) {
+        failed = true;
+        console.log(`FAIL  ${name} (user-facing dev tool)`);
+        console.log(`        ✗ must NOT carry user-invocable: false (it is directly user-invocable)`);
+      }
+      continue;
+    }
     const meta = REGISTRY[name];
     if (!meta) { uncovered.push(name); continue; }
     const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
     const results = checksFor(meta, text);
+    results.push([hasUserInvocableFalse(text),
+                  "frontmatter user-invocable: false (internal slot skill, hidden from the / menu)"]);
     const bad = results.filter(([ok]) => !ok).map(([, label]) => label);
     if (bad.length) {
       failed = true;
@@ -495,6 +513,18 @@ function cmdValidateAdapters(args) {
       for (const label of bad) console.log(`        ✗ ${label}`);
     } else {
       console.log(`pass  ${name} (${meta.type}) — ${results.length} checks`);
+    }
+  }
+  // FAFF-51: user-facing faff-* commands must NOT carry the internal-only marker
+  const userCmds = fs.readdirSync(skillsDir)
+    .filter((d) => /^faff(-|$)/.test(d) && fs.existsSync(path.join(skillsDir, d, "SKILL.md")))
+    .sort();
+  for (const name of userCmds) {
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    if (hasUserInvocableFalse(text)) {
+      failed = true;
+      console.log(`FAIL  ${name} (user command)`);
+      console.log(`        ✗ must NOT carry user-invocable: false (it is a user / command)`);
     }
   }
   for (const n of Object.keys(REGISTRY)) {

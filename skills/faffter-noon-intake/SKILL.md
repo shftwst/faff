@@ -1,6 +1,7 @@
 ---
 name: faffter-noon-intake
-description: "Default `intake` / discovery producer — turns a loose idea, bug, or empty repo into a structured discovery brief for faff-jot/faff-plot to shape into tickets. The light conversational default. Invokable standalone."
+description: "Default `intake` / discovery producer — turns a loose idea, bug, or empty repo into a structured discovery brief for faff-jot/faff-plot to shape into tickets. The light conversational default. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffter-noon-intake

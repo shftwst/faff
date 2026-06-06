@@ -1,6 +1,7 @@
 ---
 name: faffter-dark-methodology-agile-delivery
-description: "Agile-delivery `methodology` lens — answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the structural default. Invokable standalone."
+description: "Agile-delivery `methodology` lens — answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the structural default. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffter-dark-methodology-agile-delivery

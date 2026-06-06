@@ -1,6 +1,7 @@
 ---
 name: faffter-noon-concurrency-sequential
-description: "Default `concurrency` executor — runs faff-beep-boop's build pass sequentially, one faff-graft at a time: no worktree contention, no merge races. The safe zero-config default. Invokable standalone."
+description: "Default `concurrency` executor — runs faff-beep-boop's build pass sequentially, one faff-graft at a time: no worktree contention, no merge races. The safe zero-config default. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffter-noon-concurrency-sequential

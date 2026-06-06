@@ -1,6 +1,7 @@
 ---
 name: faffter-noon-methodology-structural
-description: "Default `methodology` lens — pure structural analysis: ordering by unlock value, gating on decision closure, graph diagnostics (cycles, ghost projects). The zero-config baseline every pass uses. Invokable standalone."
+description: "Default `methodology` lens — pure structural analysis: ordering by unlock value, gating on decision closure, graph diagnostics (cycles, ghost projects). The zero-config baseline every pass uses. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffter-noon-methodology-structural

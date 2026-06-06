@@ -1,6 +1,7 @@
 ---
 name: faffidavit-rendering
-description: "Default `rendering_adaptor` — the house output style (visual-vs-prose, canonical visual forms, table-vs-list, density caps) plus validation of draft output. The one slot with no internal contract. Invokable standalone."
+description: "Default `rendering_adaptor` — the house output style (visual-vs-prose, canonical visual forms, table-vs-list, density caps) plus validation of draft output. The one slot with no internal contract. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
 ---
 
 # faffidavit-rendering

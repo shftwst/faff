@@ -99,6 +99,38 @@ Later  (no project planned)       ⚠ structural gap
 | Audit retention → Audit lite    | ⚠ Blocked           | downstream project doesn't exist |
 ```
 
+**(f) On-hold entry** (one held issue, decision-useful)
+
+The single shared form for rendering an automation-held issue as a release-decision candidate. Both `faff-tidy`'s On-hold section (§4a) and `faff-wtf`'s On-hold section (§4b) render their held issues with this form — defined **once** here, referenced (never re-specified) there.
+
+A held issue is a *candidate for release*, so the form leads with the gloss (grounded, per **Synthesis → First-mention grounding**) and carries the three release-decision signals plus how to release. It is a **bold-lead annotated bullet** (per **Prose skimmability**) — one scannable entry per held issue:
+
+```
+- **ISSUE-XX — Pino instrumentation across the request path** · low-risk · independent · unlocks 3
+  Wires structured logging into every API handler. Once released and built, three
+  downstream alerting tickets can build on a real log schema.
+  Held: not validated yet — on paper, way off building. Release: `/faff-jot ISSUE-XX` (thaw), or lift in interactive `/faff-tidy`.
+```
+
+The annotation clause after the gloss subject carries the three signals in this fixed order — **reversibility tier · standalone-ness · unlock value**:
+
+1. **Reversibility tier** — a coarse, advisory `low-risk` / `higher-risk` derived from the gateway's **side-effect-outside-PR taxonomy** (see below). Lead with it because "safe to release?" is the human's first question.
+2. **Standalone-ness** — `independent`, `blocks N`, or `blocked by N`, read from the relation graph.
+3. **Unlock value** — `unlocks N` (direct + transitive dependents, the Work-ordering rule's chainable-unlock metric). Omit the clause when N is 0.
+
+Then the gloss body (with its unlock-chain consequence line where non-trivial, per **Unlock-chain language**), then a final line carrying the **hold reason** and **how to release** (`/faff-jot ISSUE-XX` thaw, or interactive `/faff-tidy`'s lift). Omit the hold-reason half when the hold comment carried none.
+
+**Reversibility tier — derivation (advisory, coarse).** Reuse the gateway's existing side-effect-outside-PR taxonomy — **no new risk model**. This grounds the "safe to release?" hint in a contract faff already enforces (the autonomous-park hard floor), so the signal is consistent with how the pipeline judges reversibility everywhere else:
+
+- **`low-risk`** — the work is fully `git revert`-able: docs / code / CI / config / additive changes. The default when nothing signals otherwise.
+- **`higher-risk`** — the work matches the gateway hard-floor side-effect list: executed migrations, secret rotation, external messaging, cloud-resource / registry changes, bulk tracker mutation.
+
+Render the tier as **explicitly coarse and advisory** — a release hint, not a precise reversibility claim. The classification is a best-effort read of the gloss / spec / labels, not a guarantee.
+
+**Ordering — safest × highest-unlock first.** A set of held issues rendered with this form is ordered to put the best release candidates at the top: **`low-risk` before `higher-risk`, then higher unlock value first** within each tier. This is the natural "release these first" list — the whole point of the section.
+
+**Density.** This is a list, not a visual wall — the **Prose skimmability** 3+-items rule and bold-lead-bullet form govern it; there is no separate per-output cap beyond the section's own.
+
 ## When prose still wins
 
 Three carve-outs where prose stays:

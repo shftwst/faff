@@ -83,7 +83,7 @@ Invoke `/faff-tidy` in autonomous mode. Applies the auto-actions (archive dead w
 
 Gather every issue that is:
 - Not cancelled or archived (shared rule)
-- **Not held** — skip anything carrying the `automation-hold` label (gateway → **Automation hold**)
+- **Not held** — skip anything carrying the `faff-automation-hold` label (gateway → **Automation hold**)
 - Not explicitly blocked
 - In Backlog or similar pre-Todo state
 - Lacking a valid spec (no spec, or spec marked stale)
@@ -97,7 +97,7 @@ For each candidate, invoke `/faff-prep` in autonomous mode. Possible returns per
 - `refreshed` — spec updated, issue stays in Todo (contributes to build queue)
 - `promoted` — fresh high-confidence spec, moved to Todo (contributes to build queue)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; it joins the candidate set but its verdict is `needs-decision-first`, so it routes out of the build queue and surfaces in the morning brief rather than auto-building
-- `held` — issue carries the `automation-hold` label (gateway → **Automation hold**); skipped without speccing or promotion. Never enters the `admitted` ledger and is **not** counted as parked — surfaced in the run summary's On-hold bucket, not Parked
+- `held` — issue carries the `faff-automation-hold` label (gateway → **Automation hold**); skipped without speccing or promotion. Never enters the `admitted` ledger and is **not** counted as parked — surfaced in the run summary's On-hold bucket, not Parked
 - `parked` — low confidence, contract violation, or architectural change needed; tracker tagged, log written
 - `errored` — treated as parked for reporting
 
@@ -118,7 +118,7 @@ Issues routed out of the build queue (the other four verdicts) are captured for 
 
 **Record to the run ledger.** Append every admitted issue to `admitted`, and write each routed-out issue's `routed-out` outcome immediately, in `.faff/runs/<run-id>/run-ledger.json` (see _Run ledger_). The ledger is what step 11's `runcheck` audits — keep it current as the queue is assembled and drained.
 
-Exclude anything parked during the prep queue (no valid spec or flagged for human attention). Also exclude anything carrying the `automation-hold` label (gateway → **Automation hold**) — though by construction a held item can't reach here (prep/tidy never promoted it to Todo); this is the defence-in-depth early-exit.
+Exclude anything parked during the prep queue (no valid spec or flagged for human attention). Also exclude anything carrying the `faff-automation-hold` label (gateway → **Automation hold**) — though by construction a held item can't reach here (prep/tidy never promoted it to Todo); this is the defence-in-depth early-exit.
 
 ### 5. Conflict analysis
 
@@ -138,7 +138,7 @@ After the wave drains, re-check the tracker for work newly unlocked by issues th
 
 1. **Budget check.** If `--until HH:MM` is set and the wall clock has passed HH:MM, OR `--max N` is set and N build attempts have been launched, exit to reporting with `Stop reason: budget-hit (--until …)` or `budget-hit (--max N)` accordingly. The wave re-entry step is the last point at which the budget gate fires for the run; if it fires here, the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary.
 2. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
-3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start) **and which is not held** (skip anything carrying the `automation-hold` label — gateway → **Automation hold**), invoke **narrow prep**: `/faff-prep` autonomous on just that issue. (Prep itself also returns `held` for a held issue, so this filter is the early-exit, not the guarantee.) Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
+3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start) **and which is not held** (skip anything carrying the `faff-automation-hold` label — gateway → **Automation hold**), invoke **narrow prep**: `/faff-prep` autonomous on just that issue. (Prep itself also returns `held` for a held issue, so this filter is the early-exit, not the guarantee.) Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
    - **Backlog, unspecced** (was blocked from being specced): prep generates a fresh spec and, on high confidence, promotes to Todo (`promoted`).
    - **Backlog, specced** (was specced but never promoted, or was demoted): prep confirms the spec is still valid (or refreshes if stale — upstream work just shipped) and promotes (`refreshed` or `promoted`).
    - **Todo, specced** (was specced-and-blocked, now unblocked): prep confirms or refreshes the spec — staleness matters here since the upstream work just landed; the item stays in Todo (`refreshed`).
@@ -278,7 +278,7 @@ Every executor honours the same slot contract: build every issue in the partitio
 Beep-boop itself rarely parks — its sub-skills do. But when a sub-skill returns `parked` for an issue, beep-boop ensures:
 
 1. The tracker comment written by the sub-skill is present on the issue.
-2. The issue carries the `parked-by-faff` tag (or tracker-equivalent label). If the sub-skill didn't apply it, beep-boop does.
+2. The issue carries the `faff-parked` tag (or tracker-equivalent label). If the sub-skill didn't apply it, beep-boop does.
 3. The per-issue log directory (`.faff/runs/<run-id>/ISSUE-XX/`) has the `parked` reason written to a top-level `park.md`.
 
 This is what `/faff-wtf` looks for to surface parked issues in the morning.

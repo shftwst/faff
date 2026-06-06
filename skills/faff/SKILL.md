@@ -557,6 +557,12 @@ When a faff skill's flow leads naturally into another faff skill, it offers the 
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
+**The gate is a dedicated, standalone decision (interactive).** It is presented on its own, *after* the current skill's work is produced and surfaced — never bundled into another choice. **Resolving a spec/approach/scope/name decision is not chain-consent:** the "short-choice Build/Review/Reprep" prompt above picks the *next action* only; combining an unrelated *resolution* (a Punt, a name, an approach) with "proceed to the next skill" in a single option is a **contract violation**. The **only** triggers to invoke the next skill are (a) an affirmative answer to that standalone gate, or (b) the user's explicit prior instruction (e.g. "prep then build it"). Implied consent from an unrelated choice never chains.
+
+**Chaining is interactive-only; autonomous sequencing belongs to the orchestrator.** A sub-skill **never auto-chains from within itself** in autonomous mode — it returns its disposition and `/faff-beep-boop` owns the sequencing (prep queue → build pass). So "auto-chain" is not a sub-skill behaviour at all: interactive **always** asks the standalone gate; autonomous is orchestrated.
+
+*Limit (honest):* this is a prose contract — whether a standalone gate was actually presented before the `Skill` tool fires is a runtime interaction, not statically lintable (cf. the deterministic-sequencing direction in `faff next`). The rule binds behaviour; it is not mechanically enforced.
+
 ## Core contracts and adaptor slots
 
 faff-core fixes a small set of **internal contracts** — the verdict states, vocabularies, and classifications the pipeline directly branches on, counts, gates on, or admits to a queue. These are invariant: they live here, in the gateway, and never move into a swappable skill. Each is paired with a pluggable **adaptor slot** whose job is to translate a producer's native output *into* the fixed internal contract and validate conformance. The default adaptor's native dialect is the house format; swapping an adaptor swaps the translator, never the contract.

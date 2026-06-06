@@ -92,14 +92,14 @@ Framed narrowly it extends jot's intake identity (jot already owns the human↔p
    - ticket **not** held → offer **freeze**: "FAFF-XX is active — freeze it out of automation? (y/n)"
    - ticket **held** → offer **thaw**: "FAFF-XX is held — lift the hold? (y/n)"
 3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate):
-   - **freeze** → add the `automation-hold` label (gateway → **Automation hold**), optionally with a one-line reason comment.
-   - **thaw** → remove the `automation-hold` label. **Thaw does not auto-promote** — the ticket simply rejoins normal eligibility on the next pass.
+   - **freeze** → add the `faff-automation-hold` label (gateway → **Automation hold**), optionally with a one-line reason comment.
+   - **thaw** → remove the `faff-automation-hold` label. **Thaw does not auto-promote** — the ticket simply rejoins normal eligibility on the next pass.
    - **Edge cases (no-op + inform):** freeze of an already-held ticket → no-op, say so; thaw of a never-held ticket → no-op, say so.
 4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.
 
 ### Relationship to `/faff-tidy`
 
-Freeze/thaw here and `/faff-tidy`'s lift-hold are **complementary entry points to the same `automation-hold` label primitive**, distinguished by context, not owner:
+Freeze/thaw here and `/faff-tidy`'s lift-hold are **complementary entry points to the same `faff-automation-hold` label primitive**, distinguished by context, not owner:
 
 - **jot is ticket-centric** — "freeze/thaw *this ticket I named*."
 - **tidy is grooming-batch** — "lift holds across the On-hold items I'm reviewing."

@@ -244,7 +244,9 @@ No exceptions. Cancelled/archived items (across every state above) are invisible
 
 A human may **hold** a ticket out of the *autonomous* pipeline — keep it from being auto-specced, auto-promoted, or auto-built — while leaving it fully visible. This is for work captured but not yet validated ("on paper, way off building"), or work a human wants to keep as their own territory. The hold is **the human's steering input on the backlog**, set on the ticket in the tracker.
 
-**The marker.** A tracker **label**, default `automation-hold`. It is *orthogonal to status* — a held issue keeps whatever status it has (typically `Backlog`); the label, not the status, carries the hold. (faff already uses labels as control signals: `faff-jot-intake` for prep pickup, `parked-by-faff` for parks.) An issue is **held** iff it carries this label.
+**The marker.** A tracker **label**, default `faff-automation-hold`. It is *orthogonal to status* — a held issue keeps whatever status it has (typically `Backlog`); the label, not the status, carries the hold. (faff already uses labels as control signals: `faff-jot-intake` for prep pickup, `faff-parked` for parks.) An issue is **held** iff it carries this label.
+
+> **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
 
 **Two-tier, not invisible — the key difference from cancelled/archived.** Cancelled/archived items are invisible everywhere. Held items are the opposite on the read side: they remain **fully visible** to read/report skills (`/faff-wtf`, `/faff-map`, counts, diagnostics) — they are only **skipped by autonomous action**.
 
@@ -256,9 +258,9 @@ A human may **hold** a ticket out of the *autonomous* pipeline — keep it from 
 
 **Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` a held issue; those skills proceed, emitting a "this ticket is held" warning, and **never auto-remove the hold**.
 
-**Release is human-gated, multi-path.** Removing the `automation-hold` label in the tracker always works (the irreducible control-surface baseline). faff may also offer to lift it, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`). **No autonomous path ever removes the label** — otherwise the hold is no guard. Removing it does not auto-promote; the issue simply rejoins normal eligibility on the next pass.
+**Release is human-gated, multi-path.** Removing the `faff-automation-hold` label in the tracker always works (the irreducible control-surface baseline). faff may also offer to lift it, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`). **No autonomous path ever removes the label** — otherwise the hold is no guard. Removing it does not auto-promote; the issue simply rejoins normal eligibility on the next pass.
 
-**Held ≠ parked.** `parked-by-faff` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); `automation-hold` is a *pre-emptive human* block with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
+**Held ≠ parked.** `faff-parked` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); `faff-automation-hold` is a *pre-emptive human* block with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
 
 **Surfacing (so held work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing held issues (separate from *Parked work*). Interactive `/faff-tidy` offers to lift the hold; autonomous passes only list, never lift.
 
@@ -513,21 +515,21 @@ Every faff skill that can park work follows the same protocol:
 
 1. Commit WIP with a clear message (if a branch/worktree exists for this unit of work).
 2. Open or update the PR as **draft**.
-3. Post a comment on the tracker issue: cause, what was attempted, what is needed from a human. Tag the issue as `parked-by-faff` (or the tracker's equivalent label) so `/faff-wtf` can surface it.
+3. Post a comment on the tracker issue: cause, what was attempted, what is needed from a human. Tag the issue as `faff-parked` (or the tracker's equivalent label) so `/faff-wtf` can surface it.
 4. Write to `.faff/logs/…` with the full context.
 5. Return control to the caller (beep-boop or interactive invoker).
 
 ### Unpark protocol (shared)
 
-Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-map's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `parked-by-faff` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
+Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-map's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `faff-parked` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
 
 1. **Reason resolved → re-enter.** The unpark trigger is **always re-invoking the relevant skill on the issue**, never a separate "unpark" command. Which skill depends on the park cause:
    - Spec-level park (open `**Punt:**`, ambiguous decision, `low`/retained-`medium` confidence) → re-run `/faff-prep` (or `/faff-prep --refresh`) once the human has answered in a comment. Prep re-rates; on `high` it promotes and clears the label.
    - Build-level park (mid-build ambiguity flipped the PR to draft) → re-run `/faff-graft`; it resumes from `.faff/runs/<run-id>/ISSUE-XX/` + the draft PR.
    - Structural park (`gap-blocked`, `circular-blocked`) → resolve the gap/cycle (file the missing ticket, break the edge), then the issue routes normally on the next tidy pass.
-2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes a stale `parked-by-faff` label without human action when the state moved on (issue now In Progress/In Review/Done/Cancelled) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
+2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes a stale `faff-parked` label without human action when the state moved on (issue now In Progress/In Review/Done/Cancelled) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
 
-**The label is the contract.** Removing the `parked-by-faff` label (by either path) is what returns the issue to normal routing — `/faff-wtf` stops surfacing it as a blocker, and the build queue reconsiders it on the next pass. Whoever clears a park (a skill on re-entry, or tidy's auto-removal) **must** remove the label and log the unpark with its cause. A resolved park that keeps its label is a bug: it lies to every downstream surfacer.
+**The label is the contract.** Removing the `faff-parked` label (by either path) is what returns the issue to normal routing — `/faff-wtf` stops surfacing it as a blocker, and the build queue reconsiders it on the next pass. Whoever clears a park (a skill on re-entry, or tidy's auto-removal) **must** remove the label and log the unpark with its cause. A resolved park that keeps its label is a bug: it lies to every downstream surfacer.
 
 ## Chaining pattern
 

@@ -62,7 +62,7 @@ Query all backlog issues from the issue tracker. **Exclude cancelled and archive
 - **Orphaned:** Issues without a parent project, or sub-issues with a Done/Cancelled parent issue
 - **Descendants of cancelled ancestors:** Active issues with any cancelled ancestor in the chain (immediate parent or further up — whatever container types the tracker uses). Surface for human decision: cancel them, reparent them, or leave standalone. Never auto-cancel.
 - **Uncategorised:** Issues that are clearly mis-grouped against the consuming project's CLAUDE.md / docs (wrong parent, wrong ancestor, wrong grouping). Surface as a flag for `/faff-prep` — **never propose labels here**.
-- **Stale park label:** Issues still carrying the `parked-by-faff` label (or tracker equivalent) that fall into either of two sub-cases:
+- **Stale park label:** Issues still carrying the `faff-parked` label (or tracker equivalent) that fall into either of two sub-cases:
   - **State moved on:** issue is now In Progress, In Review, Done, Cancelled, or Archived. The label exists so `/faff-wtf` surfaces work that needs human attention; once a human has picked it up, merged it, or killed it, the label is noise.
   - **Park reason no longer applies:** read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`. The park is invalid if (a) the reason matches a pattern now forbidden by the autonomous contract (session compaction, context length, topic-keyword match on a spec-closed decision, edits to files that only take effect after merge like CI/IaC/Dockerfile/netlify.toml), (b) the reason cited a specific blocker issue ID and that blocker is now Done/Merged/Cancelled, or (c) the reason cited a spec punt and the spec has since been updated to close that punt with a `Chosen:`/`Decision:` marker.
 
@@ -77,7 +77,7 @@ An issue is ready when:
 - No big architectural questions to answer first
 - Not a dupe of something else
 - **Has a real spec** per the shared **Spec discovery** rule (canonical tracker comment, committed under the configured spec-docs path — default `docs/specs/…` — or equivalent). A populated description is **not** a spec — issues with only a description are **never** ready; they go to "Almost ready" for `/faff-prep`.
-- **Not held** — an issue carrying the `automation-hold` label (gateway → **Automation hold**) is **never** promoted to Todo, however otherwise-ready it looks; it appears in the **On hold** section below, not here. (Autonomous tidy must also not tag a held issue `stale-spec`/`superseded-spec` — see Autonomous Mode.)
+- **Not held** — an issue carrying the `faff-automation-hold` label (gateway → **Automation hold**) is **never** promoted to Todo, however otherwise-ready it looks; it appears in the **On hold** section below, not here. (Autonomous tidy must also not tag a held issue `stale-spec`/`superseded-spec` — see Autonomous Mode.)
 
 **Order ready issues by the shared Work-ordering rule** (gateway → **Work-ordering rule**): priority (issue or any ancestor, respect both) then chainable unlock value, with any configured `methodology` `pick-ordering` reframe applied within each priority band. Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
@@ -87,7 +87,7 @@ Issues that are close but need one small thing — a blocker that's still In Pro
 
 ### 4. Stuck in prep — needs human decision
 
-Issues currently carrying the `parked-by-faff` label (or tracker equivalent) where the park is **still valid** — i.e. the autonomous-mode auto-removal rules above did **not** clear it, because the park reason is genuinely subjective or judgement-bound: an architectural call to make, scope to decide, a punt the spec didn't close, an explicit "needs human" marker. These are real blockers on a human, not noise.
+Issues currently carrying the `faff-parked` label (or tracker equivalent) where the park is **still valid** — i.e. the autonomous-mode auto-removal rules above did **not** clear it, because the park reason is genuinely subjective or judgement-bound: an architectural call to make, scope to decide, a punt the spec didn't close, an explicit "needs human" marker. These are real blockers on a human, not noise.
 
 For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md` and surface it concisely so the human knows what decision is being asked of them.
 
@@ -95,11 +95,11 @@ For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/
 
 ### 4a. On hold (automation-held)
 
-Issues carrying the `automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from "Stuck in prep":** parked work is automation-blocked (it tried and stopped); held work is human-blocked pre-emptively, with no auto-clear. List each held issue with its (optional) hold reason from the hold comment, so held work stays visible and doesn't rot.
+Issues carrying the `faff-automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from "Stuck in prep":** parked work is automation-blocked (it tried and stopped); held work is human-blocked pre-emptively, with no auto-clear. List each held issue with its (optional) hold reason from the hold comment, so held work stays visible and doesn't rot.
 
-**Interactive tidy** offers to lift the hold: "Lift the automation-hold on any of these? (pick / none)" — on confirm, remove the `automation-hold` label from the chosen issues (the issue rejoins normal eligibility next pass; it is **not** auto-promoted). **Autonomous tidy only lists — it never lifts a hold** (release is always human-gated; gateway → **Automation hold**).
+**Interactive tidy** offers to lift the hold: "Lift the faff-automation-hold on any of these? (pick / none)" — on confirm, remove the `faff-automation-hold` label from the chosen issues (the issue rejoins normal eligibility next pass; it is **not** auto-promoted). **Autonomous tidy only lists — it never lifts a hold** (release is always human-gated; gateway → **Automation hold**).
 
-tidy's lift-hold and `/faff-jot ISSUE-XX`'s freeze/thaw are **complementary entry points to the same `automation-hold` primitive**: tidy is the **grooming-batch** entry ("lift holds across the On-hold items I'm reviewing"); jot is the **ticket-centric** entry ("freeze/thaw *this* named ticket"). Same add/remove of one label, both human-gated, no canonical-owner conflict (tidy says "lift", jot says "thaw" — both remove the label). See `faff-jot` → **Existing-ticket interactor**.
+tidy's lift-hold and `/faff-jot ISSUE-XX`'s freeze/thaw are **complementary entry points to the same `faff-automation-hold` primitive**: tidy is the **grooming-batch** entry ("lift holds across the On-hold items I'm reviewing"); jot is the **ticket-centric** entry ("freeze/thaw *this* named ticket"). Same add/remove of one label, both human-gated, no canonical-owner conflict (tidy says "lift", jot says "thaw" — both remove the label). See `faff-jot` → **Existing-ticket interactor**.
 
 ### 5. Structural diagnostics
 
@@ -190,14 +190,14 @@ Every chain point is an explicit gate. No "you should run" language.
 
 When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipeline mode), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
 
-**Held issues are exempt from autonomous mutation (gateway → Automation hold).** Before any auto-action or prep-queue tagging below, skip issues carrying the `automation-hold` label: do **not** tag them `stale-spec`/`superseded-spec` (that feeds `/faff-beep-boop`'s prep queue), do **not** promote them to Todo, and do **not** auto-clear the hold (release is human-gated — only interactive tidy lifts it, see the On hold section). Mechanical housekeeping that doesn't enter the autonomous pipeline still applies and must **preserve** the hold — e.g. an auto-reparented held issue stays held.
+**Held issues are exempt from autonomous mutation (gateway → Automation hold).** Before any auto-action or prep-queue tagging below, skip issues carrying the `faff-automation-hold` label: do **not** tag them `stale-spec`/`superseded-spec` (that feeds `/faff-beep-boop`'s prep queue), do **not** promote them to Todo, and do **not** auto-clear the hold (release is human-gated — only interactive tidy lifts it, see the On hold section). Mechanical housekeeping that doesn't enter the autonomous pipeline still applies and must **preserve** the hold — e.g. an auto-reparented held issue stays held.
 
 **Auto-actions (applied without prompting):**
 - **Auto-strip dead references to cancelled/archived issues.** For every active issue, remove any link — blocker, blockedBy, parent, sub-issue, related, dependency — pointing at a cancelled or archived issue. This is mechanical and always safe; a cancelled issue cannot block or depend on anything. Post a single consolidated tracker comment per cascade (e.g. "After SHF-114 was cancelled, stripped blocker references from SHF-115/116/117/118/119"). Log every stripped link with the active issue id, the dead target id, and the link type.
 - **Auto-canonicalise overlooked specs.** When the **Spec discovery** rule finds a spec in a non-canonical location (old comment thread, stale branch, unlinked document), copy it to the canonical location — tracker comment on the issue, or the configured spec-docs path (default `docs/specs/…`) if a feature branch exists for the issue. Log the move. If an issue is in Todo with no spec at any discovery location, demote to Backlog and log as "broken prep gate — no spec found"; do not invoke `/faff-prep` from tidy (that's `/faff-beep-boop`'s prep queue job in the default full pipeline).
 - **Auto-archive dead weight:** merged or cancelled issues still sitting in the backlog. Move to archive/closed state as the tracker supports.
 - **Auto-reparent obvious orphans:** a sub-issue whose parent is Done, Cancelled, or Archived. Reparent to the grandparent if one exists; otherwise remove the parent link.
-- **Auto-remove stale `parked-by-faff` labels.** Remove the label in two cases:
+- **Auto-remove stale `faff-parked` labels.** Remove the label in two cases:
   1. **State moved on:** issue is now In Progress, In Review, Done, Cancelled, or Archived. The label's only consumer is `/faff-wtf`; once a human has picked up, merged, or killed the issue, the label just adds noise.
   2. **Park reason no longer applies and can be cleanly verified.** Read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`. Auto-remove when exactly one of these holds:
      - The reason matches a pattern **now forbidden** by the autonomous contract (any of: session compaction, context length, too-many-turns, topic-keyword match on a spec-closed decision, edits to files that only take effect after merge like `netlify.toml` / `.github/workflows/*.yml` / `Dockerfile` / `package.json` dep bumps / IaC / migration SQL files that weren't executed pre-merge). These parks were never valid under the current rules — clear without prompting.

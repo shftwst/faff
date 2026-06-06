@@ -54,9 +54,9 @@ Query using the project/team details from `.faffrc` (`tracking.project_id` / `tr
 
 Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-graft` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual user parks too (L1 prep, L2 build), and that work must resurface here — not only beep-boop's.
 
-**The `parked-by-faff` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `parked-by-faff` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
+**The `faff-parked` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `faff-parked` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
 
-- **Tracker query for issues tagged `parked-by-faff`** (or the tracker's equivalent label) — the authoritative source; covers interactive *and* autonomous parks.
+- **Tracker query for issues tagged `faff-parked`** (or the tracker's equivalent label) — the authoritative source; covers interactive *and* autonomous parks.
 - Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist) — used only to enrich autonomous parks with a log path. Use `Bash(ls "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers). A missing or unreadable run-log directory **never** suppresses this section — the label query still runs.
 
 For each parked issue, surface:
@@ -65,13 +65,13 @@ For each parked issue, surface:
 - How to unpark it — re-run the relevant skill per the gateway **Unpark protocol** (re-`/faff-prep` for a spec-level park, re-`/faff-graft` for a build-level park)
 - Path to the full log in `.faff/runs/…` when the park was autonomous
 
-Skip this section entirely if there are no parked issues (no `parked-by-faff`-labelled issues and no parked items in run logs).
+Skip this section entirely if there are no parked issues (no `faff-parked`-labelled issues and no parked items in run logs).
 
 ### 4b. On hold — awaiting human release
 
-Surface every issue carrying the `automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from Parked work above:** parked = automation tried and stopped (auto-clearable when the blocker resolves); held = a human pre-emptively blocked it, no auto-clear, released only by a human. Keep them in separate sections so the two signals don't blur.
+Surface every issue carrying the `faff-automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from Parked work above:** parked = automation tried and stopped (auto-clearable when the blocker resolves); held = a human pre-emptively blocked it, no auto-clear, released only by a human. Keep them in separate sections so the two signals don't blur.
 
-Query issues tagged `automation-hold` (or the tracker equivalent). For each, surface: issue id + title, the (optional) hold reason from the hold comment, and how to release it (remove the `automation-hold` label, or lift it via interactive `/faff-tidy`). Held issues remain in all counts and read-views — they are **not** excluded the way cancelled/archived are. This section is read-only: `/faff-wtf` never lifts a hold. Skip the section if no issues are held.
+Query issues tagged `faff-automation-hold` (or the tracker equivalent). For each, surface: issue id + title, the (optional) hold reason from the hold comment, and how to release it (remove the `faff-automation-hold` label, or lift it via interactive `/faff-tidy`). Held issues remain in all counts and read-views — they are **not** excluded the way cancelled/archived are. This section is read-only: `/faff-wtf` never lifts a hold. Skip the section if no issues are held.
 
 ### 5. Today's Focus
 Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the shared work-ordering rule** (priority → chainable unlock value):

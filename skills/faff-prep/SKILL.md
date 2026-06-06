@@ -104,7 +104,7 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ### Scenario A: Fresh prep (no existing spec)
 
-**Automation hold (interactive).** If the issue carries the `automation-hold` label (gateway → **Automation hold**), warn — "this ticket is held from automation; proceeding interactively, and the hold stays until you remove it" — then continue normally. Interactive prep is never *blocked* by the hold (only autonomous prep skips held issues); and prep never removes the hold label.
+**Automation hold (interactive).** If the issue carries the `faff-automation-hold` label (gateway → **Automation hold**), warn — "this ticket is held from automation; proceeding interactively, and the hold stays until you remove it" — then continue normally. Interactive prep is never *blocked* by the hold (only autonomous prep skips held issues); and prep never removes the hold label.
 
 Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
@@ -133,7 +133,7 @@ Yes/no gate — confidence-aware:
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
 > **`confidence: low`:** "Prepped at low confidence — explore couldn't resolve [the core question]. Resolve it together now, or park for later? (resolve/park)"
 
-On `high` confirm (or `medium` → `build`), invoke `/faff-graft ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `parked-by-faff` and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
+On `high` confirm (or `medium` → `build`), invoke `/faff-graft ISSUE-XX` via the Skill tool in the same conversation. On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `faff-parked` and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
 
 ### Scenario B: Resume (existing spec found)
 
@@ -167,7 +167,7 @@ Then offer a three-way choice (not passive text):
 
 - **iterate** — revise the spec (loop back to Step 2 of Scenario A)
 - **build** — invoke `/faff-graft ISSUE-XX` via the Skill tool (only if spec is fresh)
-- **park** — stop here; apply the shared Park / Unpark protocol (tag `parked-by-faff`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
+- **park** — stop here; apply the shared Park / Unpark protocol (tag `faff-parked`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
 ### Scenario C: Starting an issue (deferred to graft)
 
@@ -195,13 +195,13 @@ The spec is **never** committed during prep. It only enters the repo when buildi
 
 When no tracker MCP is available (gateway → Configuration), there is no issue to comment on — so prep can't attach the spec the usual way. **Everywhere this skill says "attach the spec as a tracker comment", write it instead to `.faff/specs/<issue-id>.md`** (the git-only spec store, gateway → **Spec discovery** location 4). It's gitignored, so the spec stays out of the repo until `/faff-graft` commits it to the feature branch — preserving "the spec ships with the PR" (above). Do **not** delete it after writing.
 
-Everything else is unchanged: the producer still runs, marker validation and the confidence gate still apply, and the prep log still records the outcome. The tracker-state moves become no-ops — there's no Todo column to move to and no `parked-by-faff` label to apply, so a `low`-confidence park is recorded in the prep log only (and the spec is simply left in `.faff/specs/` for a human or a later pass). The chain-to-build gate is unchanged: on confirm, `/faff-graft` reads the spec from `.faff/specs/`.
+Everything else is unchanged: the producer still runs, marker validation and the confidence gate still apply, and the prep log still records the outcome. The tracker-state moves become no-ops — there's no Todo column to move to and no `faff-parked` label to apply, so a `low`-confidence park is recorded in the prep log only (and the spec is simply left in `.faff/specs/` for a human or a later pass). The chain-to-build gate is unchanged: on confirm, `/faff-graft` reads the spec from `.faff/specs/`.
 
 ## Autonomous Mode
 
 When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see the sibling `faff/SKILL.md`) and these specifics:
 
-**Automation-hold gate (runs first).** Before either path, check the shared **Automation hold** rule (gateway). If the issue is **held** (carries the `automation-hold` label), **skip it entirely** — do not run the already-shipped scan, do not spec, refresh, or promote. Return the `held` disposition (below). A held issue is **not** `parked` (it was never attempted and never enters the run-ledger); `/faff-beep-boop` surfaces it in the On-hold bucket, not Parked. Never remove the `automation-hold` label.
+**Automation-hold gate (runs first).** Before either path, check the shared **Automation hold** rule (gateway). If the issue is **held** (carries the `faff-automation-hold` label), **skip it entirely** — do not run the already-shipped scan, do not spec, refresh, or promote. Return the `held` disposition (below). A held issue is **not** `parked` (it was never attempted and never enters the run-ledger); `/faff-beep-boop` surfaces it in the On-hold bucket, not Parked. Never remove the `faff-automation-hold` label.
 
 Two allowed auto-spec paths. Both invoke the shared subroutine documented immediately below at the points named in their respective sections.
 
@@ -228,7 +228,7 @@ The substantial / partial / not-at-all judgement is the prep agent's call, backe
 
 **Orthogonal to the existing confidence gate.** This gate fires *before* the confidence + marker validation gate at the end of Path 2 below (the `confidence: high / medium / low` bullets). Both gates must pass for the spec to attach. They evaluate different signals at different points — the premise gate asks "is the spec's motivation still load-bearing?", the confidence gate asks "is the spec internally well-formed?". Neither subsumes the other.
 
-**Park-protocol compatibility.** `premise-superseded` parks apply the standard `parked-by-faff` label per the shared park protocol below. Downstream surfacers (`/faff-wtf`, `/faff-beep-boop`) carry the cause string transparently — no special handling there.
+**Park-protocol compatibility.** `premise-superseded` parks apply the standard `faff-parked` label per the shared park protocol below. Downstream surfacers (`/faff-wtf`, `/faff-beep-boop`) carry the cause string transparently — no special handling there.
 
 ### Path 1 — Stale-refresh (existing spec on the ticket)
 
@@ -271,7 +271,7 @@ Apply the gate to the producer's output:
 
 Follow the shared park protocol (see the sibling `faff/SKILL.md`):
 - Post a tracker comment with cause (e.g. "low-confidence fresh-spec", "architectural change required in refresh")
-- Tag the issue `parked-by-faff`
+- Tag the issue `faff-parked`
 - Log to `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` with the full reasoning
 
 ### Return values
@@ -280,7 +280,7 @@ Return to caller one of:
 - `refreshed` — spec updated, issue stays in Todo
 - `promoted` — fresh high-confidence spec attached, issue moved to Todo (build-eligible)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; visible for human triage but **not** build-admitted — its routing verdict is `needs-decision-first`
-- `held` — the issue carries the `automation-hold` label; skipped without speccing or promotion (see **Automation-hold gate** above). Not `parked`, not attempted, not in the run-ledger; surfaced in the On-hold bucket. No `parked-by-faff` label is applied and the hold label is left untouched.
+- `held` — the issue carries the `faff-automation-hold` label; skipped without speccing or promotion (see **Automation-hold gate** above). Not `parked`, not attempted, not in the run-ledger; surfaced in the On-hold bucket. No `faff-parked` label is applied and the hold label is left untouched.
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 

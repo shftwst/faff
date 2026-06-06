@@ -143,7 +143,7 @@ The gloss is a delivery lead briefing a colleague, not a project manager filing 
 | "trigger 4", "criterion 3", "gate 2" | Numbered conditions inside a document the reader hasn't opened | Say what the condition tests — "a real end-to-end run on a real subject" not "trigger 4" |
 | "PRs 3-N", "PR A..E", "step 5 of M" | Schematic counting where the reader can't tell what each PR does | Name each piece by what it ships — "the consumer wire-up PR, three per-stage lift PRs, and the default-flip PR" not "PRs 3-N" |
 | "SHF-307a..e", "SHF-XX/YY/ZZ" used as live IDs | Made-up IDs that don't exist; reader can't click through | Either use real IDs once they exist, or describe the work — "five sub-tickets, one per remaining piece" not "SHF-307a..e" |
-| "the parked-by-faff label was already cleared" (jargon as subject) | Reader doesn't know the label semantics | Say what happened in human terms — "the autonomous park was cleared two days ago when someone picked it up" |
+| "the faff-parked label was already cleared" (jargon as subject) | Reader doesn't know the label semantics | Say what happened in human terms — "the autonomous park was cleared two days ago when someone picked it up" |
 
 **Allowed:**
 

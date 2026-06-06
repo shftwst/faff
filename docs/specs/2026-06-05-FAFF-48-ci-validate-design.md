@@ -19,7 +19,7 @@ One new file: `.github/workflows/validate.yml`. No CLI/skill changes.
 1. checkout.
 2. setup-node 20.
 3. `node skills/faff/bin/faff validate-adapters` — non-zero fails the job (core gate).
-4. Config parse-or-fail: copy `.faffrc.example.yml` to a loadable name in a temp dir and
+4. Config parse-or-fail: copy `.faffrc.example.yaml` to a loadable name in a temp dir and
    `faff config dump` it; non-zero fails. (Chosen: parse-or-fail, not a new schema-check
    subcommand. The real `.faffrc.yaml` is gitignored/absent in CI, so the committed
    `.example` template is the validatable artefact; "no rc present" (exit 3) is NOT failure.)
@@ -35,6 +35,6 @@ One new file: `.github/workflows/validate.yml`. No CLI/skill changes.
 ## DONE
 - [x] `.github/workflows/validate.yml` triggers on PR + push-to-main.
 - [x] Runs `validate-adapters`; non-zero fails.
-- [x] Parse-validates `.faffrc.example.yml` via `config dump`; non-zero fails.
+- [x] Parse-validates `.faffrc.example.yaml` via `config dump`; non-zero fails.
 - [x] "No `.faffrc`" not treated as failure.
 - [x] Diff limited to the new workflow file (+ this spec).

@@ -1,4 +1,4 @@
-# .faffrc.example.yml — faff configuration template.
+# .faffrc.example.yaml — faff configuration template.
 #
 # Copy this to `.faffrc.yaml`, `.faffrc.yml`, or `.faffrc` at your repo root and
 # edit. The `.example` file is a template only — faff never loads it as config.

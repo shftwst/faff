@@ -270,7 +270,7 @@ A human may **hold** a ticket out of the *autonomous* pipeline — keep it from 
 
 **Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` a held issue; those skills proceed, emitting a "this ticket is held" warning, and **never auto-remove the hold**.
 
-**Release is human-gated, multi-path.** Removing the `faff-automation-hold` label in the tracker always works (the irreducible control-surface baseline). faff may also offer to lift it, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`). **No autonomous path ever removes the label** — otherwise the hold is no guard. Removing it does not auto-promote; the issue simply rejoins normal eligibility on the next pass.
+**Release is human-gated, multi-path.** Removing the `faff-automation-hold` label in the tracker always works (the irreducible control-surface baseline). faff may also offer to lift it, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`'s lift-hold, or `/faff-prep`'s held-ticket lift gate after a spec is attached). **No autonomous path ever removes the label** — otherwise the hold is no guard. Removing it does not auto-promote; the issue simply rejoins normal eligibility on the next pass.
 
 **Held ≠ parked.** `faff-parked` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); `faff-automation-hold` is a *pre-emptive human* block with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
 

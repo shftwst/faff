@@ -30,3 +30,6 @@ jobs:
 
       - name: Validate orchestration transition table
         run: node skills/faff/bin/faff next --selftest
+
+      - name: Validate config init writer
+        run: node skills/faff/bin/faff config init --selftest

@@ -3,6 +3,7 @@
 //
 // Subcommands:
 //   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
+//   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml; --selftest
 //   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
@@ -169,6 +170,331 @@ function resolveSpecDocsPath(root, data, create) {
   return rel;
 }
 
+// ---------------------------------------------------------------------------
+// config init — FAFF-5: the deterministic WRITE half of the config surface.
+// Writes/merges a `tracking` block into `.faffrc.yaml`. Pure-functional except
+// the final fs.writeFileSync. NO MCP, NO env reads, NO value discovery — it
+// only persists values handed to it on the CLI (lane split; that is FAFF-6's
+// job). The write must round-trip: a file the existing parseYamlSubset/scalar
+// reads back to the values written. The merge is a SURGICAL raw-text edit —
+// never parse-then-reserialise (the parser is lossy and would destroy a user's
+// slots:/appetite:/comments).
+// ---------------------------------------------------------------------------
+const TRACKING_KEYS = [
+  "tracking.tracker",
+  "tracking.team_key",
+  "tracking.repo",
+  "tracking.git_host",
+  "tracking.spec_docs_path",
+];
+const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
+
+// The missing inverse of scalar(): produce YAML scalar text for a string value
+// such that scalar() reads it back to that exact string. Bare when safe, else
+// double-quoted (the parser does NOT process single-quote `''` escaping, so we
+// only emit double-quotes, escaping `\` and `"`).
+function emitScalar(value) {
+  const INDICATORS = new Set(['"', "'", "[", "]", "{", "}", "&", "*", "!", "|",
+    ">", "@", "%", "`", ",", ":", "#", " "]);
+  const firstNonSpace = value.replace(/^\s+/, "")[0];
+  const needsQuote =
+    value === "" ||                       // empty → "" so it's not parsed as null
+    /^\s|\s$/.test(value) ||              // leading/trailing whitespace
+    value.includes(" #") ||              // space-hash → stripped as inline comment
+    (firstNonSpace !== undefined && INDICATORS.has(firstNonSpace)) ||
+    scalar(value) !== value;             // bare token would coerce to bool/num/null
+  if (needsQuote) {
+    return '"' + value.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+  }
+  return value;
+}
+
+// Emit a fresh, minimal `tracking:` block (create-from-scratch path only).
+// `sets` is a map leafKey → rawValue. Keys are emitted in canonical TRACKING_KEYS
+// order, restricted to the keys present in `sets`.
+function emitTrackingBlock(sets) {
+  let out = "tracking:\n";
+  for (const fq of TRACKING_KEYS) {
+    const leaf = fq.slice("tracking.".length);
+    if (leaf in sets) out += "  " + leaf + ": " + emitScalar(sets[leaf]) + "\n";
+  }
+  return out;
+}
+
+// Surgical merge: edit the raw file text in place so only the targeted
+// `tracking:` keys change; every other byte (other blocks, comments, ordering,
+// trailing newline) survives. Returns { text, conflicts, changed }.
+function mergeTrackingBlock(rawText, sets, force) {
+  const indentOf = (line) => line.length - line.replace(/^ +/, "").length;
+  const lines = rawText.split("\n");
+  const conflicts = [];
+  let changed = false;
+
+  // Locate the top-level `tracking:` key (indent 0).
+  let trackIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (indentOf(lines[i]) === 0 && lines[i].trim() === "tracking:") { trackIdx = i; break; }
+  }
+
+  if (trackIdx === -1) {
+    // Block absent → append a fresh block. Ensure one blank line separates it
+    // from prior non-empty content; preserve the original trailing-newline state.
+    const hadTrailingNewline = rawText.endsWith("\n");
+    let text = rawText;
+    if (text.length > 0) {
+      text = text.replace(/\n+$/, "");          // trim trailing blank lines
+      if (text.length > 0) text += "\n\n";     // one blank-line separator
+    }
+    text += emitTrackingBlock(sets);            // emitTrackingBlock ends in \n
+    if (!hadTrailingNewline) text = text.replace(/\n$/, "");
+    return { text, conflicts, changed: true };
+  }
+
+  // Block present: its body is the run of subsequent lines at indent > 0, up to
+  // the next indent-0 line (or EOF). Blank/comment lines inside stay in the run.
+  let bodyEnd = trackIdx + 1;
+  while (bodyEnd < lines.length) {
+    const line = lines[bodyEnd];
+    if (line.trim() === "") { bodyEnd++; continue; }          // blank — tentatively in body
+    if (indentOf(line) > 0) { bodyEnd++; continue; }          // indented child — in body
+    break;                                                     // next top-level key
+  }
+  // bodyEnd is the index of the first line NOT in the body (or lines.length).
+  // Trim trailing blank lines back out of the body so inserts land before them.
+  let insertAt = bodyEnd;
+  while (insertAt > trackIdx + 1 && lines[insertAt - 1].trim() === "") insertAt--;
+
+  for (const fq of TRACKING_KEYS) {
+    const leaf = fq.slice("tracking.".length);
+    if (!(leaf in sets)) continue;
+    const rawValue = sets[leaf];
+    const keyRe = new RegExp("^(\\s+)" + leaf.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:");
+    let foundIdx = -1;
+    for (let i = trackIdx + 1; i < bodyEnd; i++) {
+      if (keyRe.test(lines[i])) { foundIdx = i; break; }
+    }
+    if (foundIdx !== -1) {
+      const colon = lines[foundIdx].indexOf(":");
+      const existingRaw = stripInlineComment(lines[foundIdx].slice(colon + 1)).trim();
+      const existingVal = scalar(existingRaw);
+      // emitScalar guarantees the reader reads rawValue back AS the string rawValue,
+      // so the desired post-write parsed value is the raw string itself — never
+      // scalar(rawValue) (which would coerce "123" → 123 and mis-detect conflicts).
+      const desiredVal = rawValue;
+      if (existingVal === desiredVal) continue;              // no-op for this key
+      if (!force) { conflicts.push({ key: leaf, existing: existingVal, desired: desiredVal }); continue; }
+      const indent = lines[foundIdx].slice(0, indentOf(lines[foundIdx]));
+      lines[foundIdx] = indent + leaf + ": " + emitScalar(rawValue);  // drops inline comment (force)
+      changed = true;
+    } else {
+      // Insert a new child line at the end of the block body.
+      lines.splice(insertAt, 0, "  " + leaf + ": " + emitScalar(rawValue));
+      insertAt++;
+      bodyEnd++;
+      changed = true;
+    }
+  }
+  return { text: lines.join("\n"), conflicts, changed };
+}
+
+function cmdConfigInit(args, root) {
+  // 1. Parse args.
+  const sets = {};            // leafKey → rawValue
+  const seen = {};            // leafKey → first rawValue seen (dup-with-conflict guard)
+  const force = args.includes("--force");
+  const dryRun = args.includes("--dry-run");
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] !== "--set") continue;
+    const token = args[++i];
+    if (token === undefined) {
+      process.stderr.write("faff config init: --set requires KEY=VALUE\n");
+      return 2;
+    }
+    const eq = token.indexOf("=");
+    if (eq === -1) {
+      process.stderr.write(`faff config init: malformed --set '${token}' (expected KEY=VALUE)\n`);
+      return 2;
+    }
+    const rawKey = token.slice(0, eq);
+    const value = token.slice(eq + 1);          // empty value is allowed
+    const fq = rawKey.startsWith("tracking.") ? rawKey : "tracking." + rawKey;
+    if (!TRACKING_KEYS.includes(fq)) {
+      process.stderr.write(`faff config init: unknown key '${rawKey}'. Accepted keys: ${TRACKING_KEYS.join(", ")} (bare leaf keys accepted too).\n`);
+      return 2;
+    }
+    const leaf = fq.slice("tracking.".length);
+    if (leaf in seen && seen[leaf] !== value) {
+      process.stderr.write(`faff config init: key '${leaf}' set twice with different values ('${seen[leaf]}' vs '${value}') — ambiguous.\n`);
+      return 2;
+    }
+    seen[leaf] = value;
+    sets[leaf] = value;
+  }
+  if (Object.keys(sets).length === 0) {
+    process.stderr.write("faff config init: nothing to set (pass --set KEY=VALUE).\n");
+    return 2;
+  }
+
+  // 2. Resolve target file. findConfig throws legacy-config-name → propagates to
+  //    cmdConfig's catch (the refuse-second-file guarantee). Do NOT catch here.
+  const existingPath = findConfig(root);          // may throw; intentional
+  const canonicalPath = path.join(root, CANONICAL_CONFIG);
+
+  // 3. Compute merged text (surgical; never reserialise).
+  let newText, conflicts = [], changed;
+  if (existingPath === null) {
+    newText = INIT_HEADER + emitTrackingBlock(sets);
+    changed = true;
+  } else {
+    const rawText = fs.readFileSync(existingPath, "utf8");
+    ({ text: newText, conflicts, changed } = mergeTrackingBlock(rawText, sets, force));
+    if (conflicts.length && !force) {
+      process.stderr.write("faff config init: refusing to overwrite differing value(s) without --force:\n");
+      for (const c of conflicts) {
+        process.stderr.write(`  tracking.${c.key} is '${fmt(c.existing)}' in the file; --set passed '${fmt(c.desired)}'.\n`);
+      }
+      process.stderr.write("Re-run with --force to overwrite, or change the value.\n");
+      return 2;
+    }
+    if (!changed) {
+      console.log("config init: no changes (all values already set).");
+      return 0;
+    }
+  }
+
+  // 4. Round-trip self-verify against the real reader before committing the write.
+  const parsed = parseYamlSubset(newText);
+  for (const [leaf, rawValue] of Object.entries(sets)) {
+    const got = dig(parsed, "tracking." + leaf);
+    // emitScalar is the inverse of scalar(): the reader must return the raw string
+    // we were handed (quoting coerces "123"/"true"/"~" back to those strings).
+    const want = rawValue;
+    if (got !== want) {
+      process.stderr.write(`faff config init: internal error — written text does not round-trip (tracking.${leaf}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}); aborting to avoid a corrupt config.\n`);
+      return 2;
+    }
+  }
+
+  // 5. Output.
+  if (dryRun) {
+    process.stdout.write(newText.endsWith("\n") ? newText : newText + "\n");
+    return 0;
+  }
+  fs.writeFileSync(canonicalPath, newText);
+  const n = Object.keys(sets).length;
+  console.log(existingPath === null
+    ? `config init: created ${CANONICAL_CONFIG} with ${n} key(s).`
+    : `config init: wrote ${n} key(s) to ${CANONICAL_CONFIG}.`);
+  return 0;
+}
+
+// In-memory self-test for cmdConfigInit's pure helpers + the round-trip contract.
+// Mirrors `next --selftest`: per-case ok/FAIL + a RESULT line, non-zero on any fail.
+function configInitSelftest() {
+  let fail = 0;
+  const check = (label, cond) => {
+    if (!cond) fail++;
+    console.log(`${cond ? "ok  " : "FAIL"} ${label}`);
+  };
+  const reads = (text, leaf) => dig(parseYamlSubset(text), "tracking." + leaf);
+
+  // create-fresh: header + canonical-order block, round-trips.
+  {
+    const text = INIT_HEADER + emitTrackingBlock({ team_key: "FAFF", tracker: "linear" });
+    check("create-fresh: canonical order (tracker before team_key)",
+      text.indexOf("tracker:") < text.indexOf("team_key:"));
+    check("create-fresh: has header", text.startsWith(INIT_HEADER));
+    check("create-fresh: round-trips team_key", reads(text, "team_key") === "FAFF");
+    check("create-fresh: round-trips tracker", reads(text, "tracker") === "linear");
+  }
+
+  // merge-add-key into an existing tracking block, other keys + inline comments intact.
+  {
+    const orig = "tracking:\n  tracker: linear  # the tracker\n";
+    const { text, changed, conflicts } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("merge-add-key: changed", changed === true && conflicts.length === 0);
+    check("merge-add-key: existing key + inline comment intact", text.includes("tracker: linear  # the tracker"));
+    check("merge-add-key: new key inserted", reads(text, "team_key") === "FAFF");
+    check("merge-add-key: original tracker reads back", reads(text, "tracker") === "linear");
+  }
+
+  // comment / other-block preservation: non-tracking bytes untouched.
+  {
+    const orig = "# my config\nslots:\n  spec: gstack:autoplan  # custom\nappetite: full\n\ntracking:\n  repo: a/b\n";
+    const { text } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("preserve: slots block byte-intact", text.includes("slots:\n  spec: gstack:autoplan  # custom"));
+    check("preserve: appetite intact", text.includes("appetite: full"));
+    check("preserve: leading comment intact", text.startsWith("# my config\n"));
+    check("preserve: new tracking key present", reads(text, "team_key") === "FAFF");
+    check("preserve: existing tracking key present", reads(text, "repo") === "a/b");
+  }
+
+  // append-block to a file that has none.
+  {
+    const orig = "slots:\n  spec: x\n";
+    const { text, changed } = mergeTrackingBlock(orig, { repo: "a/b" }, false);
+    check("append-block: changed", changed === true);
+    check("append-block: slots intact", text.includes("slots:\n  spec: x"));
+    check("append-block: tracking appended", reads(text, "repo") === "a/b");
+  }
+
+  // idempotent no-op: identical value, changed=false, no conflict.
+  {
+    const orig = "tracking:\n  team_key: FAFF\n";
+    const { changed, conflicts } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("idempotent: no change", changed === false && conflicts.length === 0);
+  }
+
+  // conflict-refused-without-force.
+  {
+    const orig = "tracking:\n  team_key: FAFF\n";
+    const { changed, conflicts } = mergeTrackingBlock(orig, { team_key: "OTHER" }, false);
+    check("conflict-refused: reported, not written",
+      changed === false && conflicts.length === 1 && conflicts[0].existing === "FAFF" && conflicts[0].desired === "OTHER");
+  }
+
+  // conflict-overwritten-with-force: only that line changes.
+  {
+    const orig = "tracking:\n  team_key: FAFF\n  repo: a/b\n";
+    const { text, changed, conflicts } = mergeTrackingBlock(orig, { team_key: "OTHER" }, true);
+    check("conflict-forced: overwrote", changed === true && conflicts.length === 0 && reads(text, "team_key") === "OTHER");
+    check("conflict-forced: other line untouched", reads(text, "repo") === "a/b");
+  }
+
+  // quoted/bare emit round-trip (truth table from the spec).
+  {
+    const cases = [
+      ["linear", "linear"], ["FAFF", "FAFF"], ["shftwst/faff", "shftwst/faff"],
+      ["docs/specs/", "docs/specs/"], ["true", '"true"'], ["123", '"123"'],
+      ["~", '"~"'], ["", '""'], ["a #b", '"a #b"'], ["[x]", '"[x]"'],
+      [" lead", '" lead"'], ["trail ", '"trail "'], ["1.5", '"1.5"'], ["false", '"false"'],
+    ];
+    let ok = true, badEmit = "";
+    for (const [input, expectEmit] of cases) {
+      const emitted = emitScalar(input);
+      if (emitted !== expectEmit) { ok = false; badEmit = `${JSON.stringify(input)}→${JSON.stringify(emitted)} (want ${JSON.stringify(expectEmit)})`; break; }
+      // and it must round-trip back to the original string.
+      if (scalar(emitted) !== input) { ok = false; badEmit = `${JSON.stringify(input)} does not round-trip`; break; }
+    }
+    check("emit: quoting truth table + round-trip" + (ok ? "" : " — " + badEmit), ok);
+  }
+
+  // unknown-key rejection is enforced in cmdConfigInit (arg parse) — assert the allowlist shape here.
+  check("allowlist: known key normalises", TRACKING_KEYS.includes("tracking.team_key"));
+  check("allowlist: unknown key absent", !TRACKING_KEYS.includes("tracking.slug"));
+
+  // empty tracking block (key with null body): inserts children.
+  {
+    const orig = "tracking:\nslots:\n  spec: x\n";
+    const { text, changed } = mergeTrackingBlock(orig, { repo: "a/b" }, false);
+    check("empty-block: inserts child", changed === true && reads(text, "repo") === "a/b");
+    check("empty-block: slots untouched", text.includes("slots:\n  spec: x"));
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 function cmdConfig(args) {
   let root = null;
   const rest = [];
@@ -209,6 +535,10 @@ function cmdConfig(args) {
       console.log(JSON.stringify(data, null, 2));
       return 0;
     }
+    if (cmd === "init") {
+      if (rest.includes("--selftest")) return configInitSelftest();
+      return cmdConfigInit(rest.slice(1), root);
+    }
     if (cmd === "resolved") {
       // FAFF-50: loud, human-readable echo of the resolved NON-default config — what a run
       // actually uses that overrides a built-in default. Print it in run banners so a dropped
@@ -240,7 +570,7 @@ function cmdConfig(args) {
     }
     throw e;
   }
-  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved\n");
+  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved|init\n");
   return 2;
 }
 
@@ -800,6 +1130,7 @@ const USAGE = `faff — the bundled CLI for the faff skill suite.
 
 Subcommands:
   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
+  config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants

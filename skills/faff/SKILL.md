@@ -384,7 +384,7 @@ Each log entry captures:
 
 Logs are plain markdown — agent-readable and human-readable. A log must contain enough context that a follow-up agent, given only the log file, can pick up intelligently without needing the original conversation.
 
-**Gitignore:** `.faff/` is added to `.gitignore` on first write if not already present. Users may un-ignore to commit logs if they want.
+**Gitignore:** `.faff/` and `.faffrc` are gitignored by `faff gitignore-ensure`, run at bootstrap/first-run (FAFF-67); idempotent and non-destructive. Users may un-ignore to commit logs.
 
 ### Worktree policy
 

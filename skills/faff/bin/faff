@@ -352,6 +352,17 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 const REFER_BACK = /Read[^\n]*\bfaff\/SKILL\.md/;
 const NON_NORMATIVE = /non-normative|gateway wins/i;
 
+// FAFF-54: every faff-* user command emits human-facing output (terminal, tracker
+// descriptions, tracker comments), so each must DOCUMENT routing that output through
+// the configured renderer (gateway -> Rendering, Universal-routing rule). A match is
+// any of: the `rendering_adaptor` slot name, the gateway Rendering section, or the
+// Universal-routing rule. HONEST LIMIT: this is a conservative reference-PRESENCE
+// check — it proves the skill *documents* the rule, NOT that it routes *every* emit
+// at runtime (runtime routing is a prose interaction, not statically lintable — the
+// same class of limit as FAFF-57's chain-gate). It catches the realistic drift: a
+// skill that drops the rule entirely.
+const RENDERING_REF = /rendering_adaptor|Universal-routing|→\s*\*?\*?Rendering|gateway['’]s? \*?\*?Rendering/;
+
 // FAFF-51: internal slot skills hide from the user `/` menu via `user-invocable: false`
 // frontmatter; user-facing commands (the faff-* skills) and the authoring dev tool must NOT.
 function hasUserInvocableFalse(text) {
@@ -557,6 +568,14 @@ function cmdValidateAdapters(args) {
       failed = true;
       console.log(`FAIL  ${name} (user command)`);
       console.log(`        ✗ must NOT carry user-invocable: false (it is a user / command)`);
+    }
+    // FAFF-54: every faff-* user command emits human-facing output, so its SKILL.md
+    // must reference routing that output through the configured renderer. Presence
+    // check only — see RENDERING_REF for the honest runtime-routing limit.
+    if (!RENDERING_REF.test(text)) {
+      failed = true;
+      console.log(`FAIL  ${name} (rendering pass)`);
+      console.log(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
     }
   }
   // FAFF-50: CLI-only config access — no skill may hand-read the rc file with a shell command;

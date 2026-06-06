@@ -287,6 +287,27 @@ The single canonical ordering for every place a faff sub-skill ranks, suggests, 
 
 When a `methodology` slot is configured, its `pick-ordering` output reframes this within each priority band (e.g. value × risk × dep-aware); the structural inputs stay in the computation but no longer alone determine the order.
 
+### Next-step transition — consult `faff next`
+
+The single canonical answer to *"what's the legal next step for this issue?"* is the `faff next` CLI transition function (a pure function — it has no tracker access). Every sub-skill that decides an issue's next step (faff-beep-boop queue/wave assembly, faff-prep's post-attach step, faff-graft's prep-gate, faff-tidy's readiness promotion, the interactive next-step suggestion) **consults `faff next` rather than prose-deciding** — so the base decision is deterministic and identical everywhere.
+
+**The agent maps fetched tracker state → the flags, then calls the function** (the agent already reads all of these per the **Always pull fresh** rule — this adds no new fetch):
+
+```
+faff next --status <S> --spec none|low|medium|high [--held] [--parked] [--blocked]
+```
+
+- `--status` ← the issue's tracker state, mapped to `backlog|todo|in-progress|in-review|done|cancelled|duplicate`.
+- `--spec` ← the **Spec discovery** result: `none` when no spec exists, else the spec's retained `confidence` rating (`low|medium|high`).
+- `--held` ← the `faff-automation-hold` label. `--parked` ← the `faff-parked` label. `--blocked` ← any open **external** blocker (in-queue dependencies are **not** `--blocked` — they are serialised by faff-beep-boop's conflict analysis).
+
+It prints `{next, reason}` where `next` ∈ `prep | graft | skip-held | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
+
+**Three hard boundaries:**
+- **Reports, never executes or gates.** `faff next` says what's *legal next*; the sub-skill still runs the interactive chain-to-build gate (**faff-jot**/prep's standalone gate) and still executes the step itself. A returned `graft` is **not** consent to build.
+- **Base transition, not the whole router.** `faff next` has no inputs for the diagnostic verdicts (`gap-blocked` / `circular-blocked` / `repeat-parked`); those stay in the `routing_adaptor` automation-routing computation and layer **on top** where `faff next` returns `graft` (it gates *eligibility*; the verdict gates build-queue *admission*).
+- **Fail safe.** On `error` / unknown status, fall back to the sub-skill's existing prose behaviour and log it — never crash the pass. `faff next --selftest` runs the transition table.
+
 ### Always pull fresh (never act on stale tracker state)
 
 Every read-and-synthesise pass re-fetches live tracker state on every invocation: issues, blocker links (both directions), status fields, the comments a pass classifies on, milestones, parent/ancestor relationships. Never reuse a fetch from earlier in the same conversation, never trust a snapshot written into `.faffrc` or any static file, never read a prior `.faff/logs/` file as a substitute for live data. The one exception is the per-run `automation-verdicts.md` cache, read *within* a single pass and recomputed across passes (see **`.faff/` logging directory**).
@@ -556,6 +577,8 @@ This closes the unattended-run failure mode where tagging against a not-yet-crea
 When a faff skill's flow leads naturally into another faff skill, it offers the next step via a yes/no gate (or a short-choice prompt where there is a real branch like Build/Review/Reprep). On confirm, it invokes the next skill via the `Skill` tool in the same conversation. On deny, it stops cleanly.
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
+
+**Which next step the gate offers comes from `faff next`** (gateway → **Next-step transition**), not from prose: when the agent suggests the next step for an issue, it consults `faff next` for that issue's fetched state and offers the matching skill (`prep`→`/faff-prep`, `graft`→`/faff-graft`, `skip-held`/`needs-human`→surface, not offer). `faff next` chooses *what's legal next*; this chaining gate is still how the human *consents* to it — the two compose, neither replaces the other.
 
 **The gate is a dedicated, standalone decision (interactive).** It is presented on its own, *after* the current skill's work is produced and surfaced — never bundled into another choice. **Resolving a spec/approach/scope/name decision is not chain-consent:** the "short-choice Build/Review/Reprep" prompt above picks the *next action* only; combining an unrelated *resolution* (a Punt, a name, an approach) with "proceed to the next skill" in a single option is a **contract violation**. The **only** triggers to invoke the next skill are (a) an affirmative answer to that standalone gate, or (b) the user's explicit prior instruction (e.g. "prep then build it"). Implied consent from an unrelated choice never chains.
 

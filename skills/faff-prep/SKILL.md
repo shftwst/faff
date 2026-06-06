@@ -143,6 +143,8 @@ Run the marker validation from the _spec contract_ before attaching. In interact
 
 **Held-ticket lift gate (only when the ticket carries `faff-automation-hold`).** Before the build gate, present a **standalone** decision of its own — *"FAFF-XX is held from automation. Lift the hold now (make it automatable), or keep it held? (lift / keep)"*. This is the natural moment to ask: the spec is freshly attached, so "should this now be automatable?" is answerable. On **lift** → remove the `faff-automation-hold` label (explicit human confirm), logging the removal per the shared **Unpark protocol** shape, then continue to the build gate. On **keep** → leave the hold in place and continue. **Never fold this into the build gate** (gateway → **Chaining pattern**: a dedicated decision, not bundled into another choice), and **never auto-lift** — release stays human-gated (gateway → **Automation hold → Release**). If the ticket isn't held, skip this gate. *(Lift-only: offering to **freeze** a not-held ticket is `/faff-jot` freeze/thaw and `/faff-tidy`'s job, not prep's.)*
 
+The next step offered here aligns with `faff next` (gateway → **Next-step transition**) on the freshly-attached spec's state — a `high` spec on a Todo issue returns `graft` (offer build), a retained `medium` returns `needs-human` (flag, don't offer auto-build). Consult it rather than re-deriving the mapping; the gate below stays the human decision (`faff next` reports, it never gates).
+
 Then the build gate — a separate yes/no, confidence-aware:
 
 > **`confidence: high`:** "Prepped and moved to Todo. Start building now via `/faff-graft`? (y/n)"

@@ -25,5 +25,5 @@ jobs:
       - name: Validate config template parses
         run: |
           tmp="$(mktemp -d)"
-          cp .faffrc.example.yml "$tmp/.faffrc.yml"
+          cp .faffrc.example.yml "$tmp/.faffrc.yaml"   # canonical name (FAFF-50: only .faffrc.yaml is accepted)
           ( cd "$tmp" && node "$GITHUB_WORKSPACE/skills/faff/bin/faff" config dump >/dev/null )

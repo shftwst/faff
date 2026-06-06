@@ -2,7 +2,14 @@
 
 design/
 
-# Local faff config (the .faffrc.example.yml template stays tracked)
+# Local faff config (the .faffrc.example.yaml template stays tracked)
 .faffrc
 .faffrc.yml
 .faffrc.yaml
+
+# Local Claude Code config (shared .claude/settings.json stays tracked)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Faff run logs and local state
+.faff/

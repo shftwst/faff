@@ -176,7 +176,7 @@ slots:
   ship: gstack:land-and-deploy        # merge/deploy
 ```
 
-All slots are optional — unset just means "use ours". Copy `.faffrc.example.yml` for the full list of knobs.
+All slots are optional — unset just means "use ours". Copy `.faffrc.example.yaml` for the full list of knobs.
 
 ## Levelling up
 

@@ -97,7 +97,11 @@ For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/
 
 ### 4a. On hold (automation-held)
 
-Issues carrying the `faff-automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from "Stuck in prep":** parked work is automation-blocked (it tried and stopped); held work is human-blocked pre-emptively, with no auto-clear. List each held issue with its (optional) hold reason from the hold comment, so held work stays visible and doesn't rot.
+Issues carrying the `faff-automation-hold` label (gateway → **Automation hold**) — work a human has deliberately held out of the autonomous pipeline. **Distinct from "Stuck in prep":** parked work is automation-blocked (it tried and stopped); held work is human-blocked pre-emptively, with no auto-clear. The job of this section is to keep held work visible **and** give the human a basis to decide *what to release* — not just a list of ids.
+
+**Render each held issue with the shared On-hold-entry form** — `rendering_adaptor` slot → **Canonical visual forms → (f) On-hold entry** (default `faffidavit-rendering`). That single shared form is the canonical definition; `/faff-wtf` §4b renders the same form, so the two stay DRY — do not re-specify the fields here. It carries, per held issue: the grounded synthesis gloss, then the three release-decision signals (**reversibility tier** — coarse/advisory `low-risk` / `higher-risk` from the gateway side-effect-outside-PR taxonomy · **standalone-ness** — `independent` / `blocks N` / `blocked by N` from the relation graph · **unlock value** — `unlocks N` direct+transitive dependents), then the hold reason + how to release. The signals are mechanical reads of state tidy already pulls fresh (the relation graph, the Work-ordering chainable-unlock metric).
+
+**Order the section safest × highest-unlock first** (per the shared form's ordering rule) — `low-risk` before `higher-risk`, higher unlock value first within each tier — so the best release candidates surface at the top.
 
 **Interactive tidy** offers to lift the hold: "Lift the faff-automation-hold on any of these? (pick / none)" — on confirm, remove the `faff-automation-hold` label from the chosen issues (the issue rejoins normal eligibility next pass; it is **not** auto-promoted). **Autonomous tidy only lists — it never lifts a hold** (release is always human-gated; gateway → **Automation hold**).
 

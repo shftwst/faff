@@ -27,3 +27,6 @@ jobs:
           tmp="$(mktemp -d)"
           cp .faffrc.example.yml "$tmp/.faffrc.yaml"   # canonical name (FAFF-50: only .faffrc.yaml is accepted)
           ( cd "$tmp" && node "$GITHUB_WORKSPACE/skills/faff/bin/faff" config dump >/dev/null )
+
+      - name: Validate orchestration transition table
+        run: node skills/faff/bin/faff next --selftest

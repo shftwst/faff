@@ -2,7 +2,7 @@
 // faff — the bundled CLI for the faff skill suite.
 //
 // Subcommands:
-//   config <path|get|spec-docs-path|dump> ...    resolve / read .faffrc
+//   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
 //   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
@@ -33,19 +33,22 @@ function findRoot(start = process.cwd()) {
 // ===========================================================================
 // config — resolve / read .faffrc (YAML subset, no deps)
 // ===========================================================================
-const CANDIDATES = [".faffrc.yaml", ".faffrc.yml", ".faffrc"];
+// FAFF-50: single canonical config filename. The resolver accepts ONLY `.faffrc.yaml`;
+// a legacy-named config (`.faffrc.yml` / `.faffrc`) is a LOUD ERROR, never a silent default —
+// the silent-fallback that dropped configured slots twice.
+const CANONICAL_CONFIG = ".faffrc.yaml";
+const LEGACY_CONFIG = [".faffrc.yml", ".faffrc"];
 
 function findConfig(root) {
-  const found = CANDIDATES
-    .filter((n) => !n.includes(".example") && fs.existsSync(path.join(root, n)) &&
-                   fs.statSync(path.join(root, n)).isFile())
-    .map((n) => path.join(root, n));
-  if (found.length > 1) {
-    const err = new Error("multiple-config");
-    err.files = found;
+  const isFile = (n) => !n.includes(".example") &&
+    fs.existsSync(path.join(root, n)) && fs.statSync(path.join(root, n)).isFile();
+  const legacy = LEGACY_CONFIG.filter(isFile);
+  if (legacy.length) {
+    const err = new Error("legacy-config-name");
+    err.legacy = legacy;
     throw err;
   }
-  return found[0] ?? null;
+  return isFile(CANONICAL_CONFIG) ? path.join(root, CANONICAL_CONFIG) : null;
 }
 
 function stripInlineComment(s) {
@@ -204,7 +207,30 @@ function cmdConfig(args) {
       console.log(JSON.stringify(data, null, 2));
       return 0;
     }
+    if (cmd === "resolved") {
+      // FAFF-50: loud, human-readable echo of the resolved NON-default config — what a run
+      // actually uses that overrides a built-in default. Print it in run banners so a dropped
+      // slot is visible, not silent.
+      const [data, p] = loadConfig(root);
+      const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
+      const SLOTS = ["intake", "spec", "review", "ship", "concurrency", "methodology",
+        "spec_adaptor", "review_adaptor", "routing_adaptor", "rendering_adaptor", "ship_adaptor"];
+      console.log(`config:   ${p || "(none — all defaults)"}`);
+      console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
+      let any = false;
+      for (const s of SLOTS) {
+        const v = slots[s];
+        if (v !== null && v !== undefined && v !== "") { console.log(`slot ${s}: ${v}`); any = true; }
+      }
+      if (!any) console.log("slots:    (all defaults)");
+      return 0;
+    }
   } catch (e) {
+    if (e.message === "legacy-config-name") {
+      const names = e.legacy.join(", ");
+      process.stderr.write(`faff config: legacy config filename found (${names}). faff uses only \`${CANONICAL_CONFIG}\` — rename it to \`${CANONICAL_CONFIG}\`. (FAFF-50: single canonical config name; never a silent default.)\n`);
+      return 2;
+    }
     if (e.message === "multiple-config") {
       const names = e.files.map((f) => path.basename(f)).join(", ");
       process.stderr.write(`faff config: multiple config files at the repo root (${names}); keep only one.\n`);
@@ -212,7 +238,7 @@ function cmdConfig(args) {
     }
     throw e;
   }
-  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump\n");
+  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved\n");
   return 2;
 }
 
@@ -426,6 +452,10 @@ function validateConfigured(args, skillsDir) {
   let data, cfgPath;
   try { [data, cfgPath] = loadConfig(root); }
   catch (e) {
+    if (e.message === "legacy-config-name") {
+      process.stderr.write(`validate-adapters --configured: legacy config filename found (${e.legacy.join(", ")}); faff uses only \`${CANONICAL_CONFIG}\` — rename it. (FAFF-50)\n`);
+      return 2;
+    }
     if (e.message === "multiple-config") {
       process.stderr.write(`validate-adapters --configured: multiple .faffrc files at ${root}; keep only one.\n`);
       return 2;
@@ -528,6 +558,25 @@ function cmdValidateAdapters(args) {
       console.log(`        ✗ must NOT carry user-invocable: false (it is a user / command)`);
     }
   }
+  // FAFF-50: CLI-only config access — no skill may hand-read the rc file with a shell command;
+  // config is resolved via `faff config`. Conservative: flags only an explicit shell read of
+  // .faffrc* (cat/head/tail/grep/sed/awk/less), never a prose mention.
+  const HANDREAD = /\b(?:cat|head|tail|less|grep|sed|awk)\b[^\n]*\.faffrc(?:\.ya?ml)?\b/;
+  const allSkills = fs.readdirSync(skillsDir)
+    .filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md"))).sort();
+  for (const name of allSkills) {
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    for (const line of text.split("\n")) {
+      if (line.includes(".example")) continue;
+      const m = line.match(HANDREAD);
+      if (m) {
+        failed = true;
+        console.log(`FAIL  ${name} (config access)`);
+        console.log(`        ✗ hand-reads the rc file ("${m[0].trim()}") — resolve config via \`faff config\`, never read .faffrc directly (FAFF-50)`);
+        break;
+      }
+    }
+  }
   for (const n of Object.keys(REGISTRY)) {
     if (!present.includes(n)) console.log(`WARN  ${n} is registered but not present on disk`);
   }
@@ -576,7 +625,7 @@ function cmdLabels(args) {
 const USAGE = `faff — the bundled CLI for the faff skill suite.
 
 Subcommands:
-  config <path|get|spec-docs-path|dump> ...    resolve / read .faffrc
+  config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants

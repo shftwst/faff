@@ -47,7 +47,7 @@ This is the gateway. Invoke the right sub-skill:
 
 ## Configuration (shared across all sub-skills)
 
-All faff sub-skills read their configuration from a **`.faffrc`** file at the repo root. Three filename forms are accepted, all parsed as YAML: **`.faffrc.yaml`**, **`.faffrc.yml`**, or the extensionless **`.faffrc`**. **Exactly one may exist** — if more than one is present at the repo root, faff stops with an error and asks you to consolidate to a single file rather than silently picking one. Any key the file doesn't set falls back to faff's built-in default; a missing `.faffrc` altogether means all defaults apply. (Template files are exempt: any name containing `.example` is never counted or loaded.)
+All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule). `.faffrc.yaml` is the **single accepted filename**: a legacy **`.faffrc`** or **`.faffrc.yml`** present at the root triggers a **loud error** naming the fix (rename it to `.faffrc.yaml`), **never a silent default** — silently dropping a present config (by eyeballing the wrong filename) is the exact failure FAFF-50 closed. Any key the file doesn't set falls back to faff's built-in default; a missing `.faffrc.yaml` altogether means all defaults apply. (Template files are exempt: any name containing `.example` is never counted or loaded.)
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
@@ -56,6 +56,7 @@ All faff sub-skills read their configuration from a **`.faffrc`** file at the re
 - `faff config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
 - `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
 - `faff config spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
+- `faff config resolved` — echo the resolved **non-default** config (config-file path, `appetite`, and every slot the file sets), for a run banner so a dropped/overridden slot is **visible**, not silent.
 
 **Resolving the `faff` executable (canonical — sub-skills reference this).** Invoke it as bare **`faff`** — the link/install step symlinks it to `~/.local/bin/faff`, so it's on `PATH` for most setups. When `faff` isn't on `PATH` (e.g. a marketplace plugin that didn't symlink it), resolve the bundled binary — **don't hardcode `~/.claude/skills/faff/bin/faff`**, which is only the dev-linked location (a plugin lives under `${CLAUDE_PLUGIN_ROOT}` instead):
 
@@ -66,7 +67,9 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 
 then call `"$faff" config …`. The same CLI hosts `faff runcheck` (the beep-boop ledger audit) and `faff validate-adapters` (the slot-skill conformance lint) — one Node entrypoint for all bundled helpers; requires only `node`, no dependencies.
 
-It parses the documented YAML subset with a built-in parser — no dependencies. Sub-skills shell out to it for any value that drives a **scripted action** (notably the spec-docs path → mkdir + commit) so resolution is mechanical, not eyeballed. Softer values the agent only reasons with (e.g. `appetite`) can also be read this way but gain less from it.
+It parses the documented YAML subset with a built-in parser — no dependencies.
+
+**CLI-only config access (load-bearing).** Every config read — slots, `appetite`, `tracking.*`, the spec-docs path — goes through `faff config`. **No sub-skill, and no agent acting for one, reads the rc file by hand** — no shell-reading it, no `Read` tool on it, no eyeballing the raw bytes. Reading by hand is what silently dropped configured slots **twice**: an agent shell-read a bare-named rc file, found nothing (the real one is `.faffrc.yaml`), and fell through to defaults. The resolver handles every accepted name and errors loudly on a legacy one, so the CLI is the only correct path. Enforced mechanically: `faff validate-adapters` **fails** any skill `SKILL.md` that shell-reads the rc file directly (it runs in the FAFF-48 CI gate). Softer values the agent only reasons with (e.g. `appetite`) are read the same way — `faff config get appetite` — not eyeballed.
 
 Full schema (every key optional unless noted; shown with example values):
 

@@ -1,0 +1,10 @@
+{
+  "confidence": "high",
+  "decisions": [
+    { "classification": "closed" },
+    { "classification": "open" },
+    { "classification": "external" }
+  ],
+  "markers_valid": true,
+  "violations": []
+}

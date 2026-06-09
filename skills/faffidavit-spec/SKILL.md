@@ -111,36 +111,40 @@ Every attached spec carries a one-line **provenance stamp** so its lineage is se
 
 The fields are `date · producer · mode · adaptor`. There is **no version field** — faff has no trustworthy version source to resolve today, so it is deliberately omitted.
 
-## Validation
+## Validation — wired to the contract script (FAFF-77)
 
-Run before a spec is attached (faff-prep delegates this), or on demand against any spec.
+Validation is **conformance by construction** (FAFF-21): this adaptor does **not** hand-check markers in prose. It **extracts** the spec into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract spec-readiness` is the sole source of contract data** — this adaptor never builds the contract data itself, never computes `markers_valid` / `violations` / classification. That delegation is exactly what `faff validate-adapters` checks (the wiring-check); it is what makes "check the wiring, not the prose" sound.
 
-**Checks:**
+**The split (the LLM seam, FAFF-76 Decision 2 Path B):**
 
-1. At least one canonical marker in any section that presents multiple options.
-2. No dangling comparisons (tables or "vs" prose without a marker below).
-3. `Punt:` and `Assumes:` entries grouped in their dedicated sections.
-4. No invented labelling schemes (scan for patterns like single-letter+digit codes used as references).
-5. A `confidence:` line is present and is exactly one of `high` / `medium` / `low`.
-6. The **provenance stamp** is present directly under the H1 and well-formed: a blockquote `> Spec: …` line carrying a producer, an ISO `YYYY-MM-DD` date, a mode that is exactly `interactive` or `autonomous`, an `adaptor:` field, and a `confidence:` token. Missing or malformed → fail.
+- **This adaptor (extraction — the one place judgement remains):** read the prose spec into an **extraction JSON** —
+  ```
+  { "confidence": "<verbatim token from the trailing `confidence:` line>",
+    "provenance_present": <is a well-formed provenance stamp present under the H1?>,
+    "decisions": [ { "marker": "chosen" | "punt" | "assumes" | "none" }, ... ] }
+  ```
+  Reading which canonical marker each decision section carries, the confidence token, and whether the provenance stamp is present is the adaptor's job. Detecting the **provenance stamp** is **structural only — never runtime-true** (the anti-pattern below).
+- **The contract script (all conformance computation — deterministic):** maps each marker to its class (`chosen → closed`, `punt → open`, `assumes → external`, `none → a violation`), computes `markers_valid` and `violations`, validates `confidence` against the closed enum, and emits the canonical contract data — or **fails loud** when `confidence` is absent/unreadable (no safe coerce target, FAFF-76 Decision 3) or the extraction is malformed.
 
-**Structural-only — never runtime-true (anti-pattern).** The stamp check verifies **presence + well-formedness only**, never that the values are *correct* at runtime. Validation runs **pre-attach and is structural**: it cannot and must not assert that `<producer>` equals the live `slots.spec`, that `<date>` is genuinely today, that `<mode>` matches the actual invocation mode, or that `<adaptor>` is the running slot. Those are faff-prep's to populate truthfully; asserting them here would couple a structural pre-attach check to runtime state it cannot see. A stamp that is shaped right passes — the well-formedness is the contract, not the values' runtime truth.
-
-**Output:**
+**Invocation + signal mapping:**
 
 ```
-signal: pass | fail
-
-## Violations
-### [rule]: [where]
-[what's wrong] → [the fix]
+echo '<extraction JSON>' | faff contract spec-readiness
 ```
 
-`pass` when no violation fires. `fail` lists each violation with its location and the corrective action.
+| Script exit | `signal` | Meaning |
+|---|---|---|
+| 0 | `pass` | conformant: `markers_valid:true`, `violations:[]` (the script's stdout) |
+| 1 | `fail` | non-conformant verdict: the script's `violations` name the missing marker / provenance |
+| 2 | `fail` (fail-loud) | extraction malformed, or `confidence` un-coercible — no contract data emitted |
+
+The contract data the caller branches on is **the script's stdout, verbatim**. The `signal` / findings are a thin reading of the script's exit code + `violations`.
+
+**Structural-only — never runtime-true (anti-pattern).** The provenance-stamp half of the extraction verifies **presence + well-formedness only**, never that the values are *correct* at runtime. It cannot and must not assert that `<producer>` equals the live `slots.spec`, that `<date>` is genuinely today, that `<mode>` matches the actual invocation, or that `<adaptor>` is the running slot — those are faff-prep's to populate truthfully. A stamp that is shaped right sets `provenance_present: true`.
 
 **How callers act on the signal:**
-- **Autonomous mode:** validation failure → park.
-- **Interactive mode:** validation failure → fix the missing marker before attach.
+- **Autonomous mode:** `fail` (exit 1 or 2) → park.
+- **Interactive mode:** `fail` → fix the missing marker (or the un-readable confidence) before attach.
 
 ## Rules
 

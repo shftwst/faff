@@ -33,3 +33,6 @@ jobs:
 
       - name: Validate config init writer
         run: node skills/faff/bin/faff config init --selftest
+
+      - name: Validate spec-readiness contract script
+        run: node skills/faff/bin/faff contract spec-readiness --selftest

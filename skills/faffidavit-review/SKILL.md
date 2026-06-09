@@ -57,27 +57,33 @@ signal: pass | fail | needs-human
 
 When a delegated (third-party) reviewer emits something other than this envelope, the adaptor's translation job is to map its native output onto a `signal:` line + findings — picking the state that honours the fixed semantics and tie-break direction above.
 
-## Validate
+## Validate — wired to the contract script (FAFF-78)
 
-Run when adapting a delegated reviewer's output, or on demand against any review block.
+Validation is **conformance by construction** (FAFF-21): this adaptor does **not** prose-check the envelope. It **extracts** the reviewer's output into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract review-verdict` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
 
-**Checks:**
+**The split (the translation seam):**
 
-1. A parseable `signal:` line exists and is exactly one of `pass` / `fail` / `needs-human`.
-2. `fail` / `needs-human` carry at least one finding; each finding has a location and an action.
-3. No `needs-human` verdict whose sole basis is a revert-reversible defect (revert-test violation), where detectable from the findings.
+- **This adaptor (extraction — the translation judgement):** read the reviewer's native output into an **extraction JSON** —
+  ```
+  { "signal": "<verbatim pass|fail|needs-human, or whatever the reviewer emitted>",
+    "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... ] }
+  ```
+  Mapping a third-party reviewer's native output onto a candidate `signal` + per-finding location/action presence is the adaptor's job.
+- **The contract script (all conformance computation — deterministic):** validates `signal` against the closed enum and, when it isn't one of the three, **coerces to `needs-human`** (never `pass` — the safe target, FAFF-76 Decision 3); flags `fail`/`needs-human` with no findings, and any finding missing a location or action; emits the canonical contract data. It **fails loud** only on an unparseable extraction (an un-readable verdict still coerces to `needs-human`, never a phantom `pass`).
 
-**Output:**
+**Invocation + signal mapping:**
 
 ```
-signal: pass | fail
-
-## Violations
-### [rule]: [where]
-[what's wrong] → [the fix]
+echo '<extraction JSON>' | faff contract review-verdict
 ```
 
-`pass` when no violation fires. On a malformed verdict that can't be coerced, the safe normalisation is `needs-human` with the raw output attached as a finding — never silently drop to `pass`.
+| Script exit | Meaning |
+|---|---|
+| 0 | conformant: `conformant:true`, `violations:[]` (the script's stdout) |
+| 1 | non-conformant verdict (incl. a coerced `signal`): `violations` name the cause |
+| 2 | fail-loud: the extraction is unparseable / not an object |
+
+The contract data the caller branches on is **the script's stdout, verbatim**. The revert test and what each verdict *means* for the merge gate are **gateway semantics**, not the script's.
 
 ## Rules
 

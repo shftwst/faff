@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/review-verdict",
+  "title": "review-verdict contract data",
+  "description": "Reference schema (FAFF-78). The SHAPE of the review-verdict contract data the merge gate branches on. Shape is normative here; the verdict SEMANTICS + the revert test live in the gateway (ADR 0001, Decision 4). Coercion target for a malformed verdict is `needs-human` (never `pass`).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["signal", "findings", "conformant", "violations"],
+  "properties": {
+    "signal": { "type": "string", "enum": ["pass", "fail", "needs-human"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["location_present", "action_present"],
+        "properties": {
+          "location_present": { "type": "boolean" },
+          "action_present": { "type": "boolean" }
+        }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

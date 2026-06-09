@@ -185,6 +185,21 @@ confidence: high | medium | low
 
 This line is consumed by faff-prep for its gate decision (autonomous mode: `high` → promote; `medium` → attach + flag for review; `low` → park) and is **retained on the attached spec** — downstream consumers (faff-graft, faff-beep-boop, and faff-tidy's spec-health pass) read it as durable provenance and a re-spec signal; a retained `confidence: medium` maps to the `needs-decision-first` routing verdict. It is both a signal to the caller and a lasting property of the spec.
 
+## Contract artifact (FAFF-81)
+
+After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so `faffidavit-spec` consumes them **deterministically** (no LLM re-read of your prose). You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
+
+````
+```faff-contract:spec-readiness
+{ "confidence": "<your confidence token: high|medium|low>",
+  "decisions": [ { "marker": "chosen" | "punt" | "assumes" | "none" }, ... one per non-trivial decision section, in document order ] }
+```
+````
+
+- **One** block, at the very end. `decisions` lists each non-trivial decision section's canonical marker in order (`chosen` / `punt` / `assumes`; `none` only if a multi-option section is missing one — a clean spec has none).
+- Do **not** include `provenance_present` — `faffidavit-spec` computes that from the provenance stamp faff-prep adds at attach time.
+- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to the adaptor's prose extraction.)
+
 ## Rules
 
 - The spec contract markers (`**Chosen:**`, `**Punt:**`, `**Assumes:**`) are mandatory — this skill adds structure around them, not instead of them.

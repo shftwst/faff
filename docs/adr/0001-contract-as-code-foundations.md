@@ -61,6 +61,27 @@ This only moves behaviour that the gateway already fixes from "prose the LLM re-
 
 Shape questions ("is `confidence` one of high/medium/low?", "is `decisions` an array of `{classification}`?") resolve to the schema. Meaning questions ("what does `medium` *mean* for promotion / routing?") resolve to the gateway. Recording this division prevents the schema from quietly becoming a second, drifting source of contract semantics.
 
+## Decision 2a — Artifact transport convention (settled by FAFF-81)
+
+Decision 2 chose a dual-path, artifact-preferred model but left *how* a producer emits its structured artifact open. FAFF-81 (the first per-producer Path-A adoption) settles it.
+
+**Chosen: an embedded fenced code block, tagged `faff-contract:<contract-name>`.** A producer that participates appends **one** fenced block — as the **last** thing in its output — whose info-string is `faff-contract:<contract-name>` (e.g. `faff-contract:spec-readiness`) and whose body is the producer-authored part of that contract's extraction JSON. The adaptor locates the block by its info-string and `JSON.parse`s the body; absent → prose-extraction fallback; present-but-malformed → fail-loud (a corrupt artifact is producer breakage, not an absence).
+
+Rationale: the block travels with the spec text automatically across producer → tracker comment → committed doc (a single source of truth that cannot drift from the prose it mirrors), and the adaptor locates it deterministically by a known delimiter — no LLM. **Rejected:** a sidecar file (`<spec>.contract.json`) — it needs its own attach/commit lifecycle (faff-prep deletes local producer files after attach) and can drift from the prose.
+
+**What the producer emits vs what the adaptor adds:** the producer emits only what it authoritatively knows — for spec-readiness, `{ confidence, decisions:[{marker}] }`. Fields the producer cannot know at emit time (e.g. `provenance_present`, which reflects the provenance stamp faff-prep adds *after* the producer returns) are computed by the adaptor via deterministic structural detection, not declared in the block.
+
+**Worked example (spec-readiness):**
+
+````
+```faff-contract:spec-readiness
+{ "confidence": "high",
+  "decisions": [ { "marker": "chosen" }, { "marker": "punt" } ] }
+```
+````
+
+Later producers (review-verdict, delivery-outcome, automation-routing) adopt this convention opportunistically by copying it under their own `faff-contract:<contract-name>` tag, emitting the producer-authored part of their contract's extraction JSON.
+
 ## What FAFF-77 will implement (the wiring-check contract)
 
 This spike *specifies* the check that `faff validate-adapters` will gain in FAFF-77 (it does not implement it here). For each adaptor that has a contract script, `validate-adapters` must assert:

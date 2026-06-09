@@ -10,8 +10,8 @@ First Path-A adoption: the spec producer emits the contract artifact so faffidav
 - D3 Producers: both defaults (faffter-dark-nlspec + faffter-noon-spec) emit the block; adaptor is producer-agnostic.
 - D4 Format owner: the spec_adaptor (faffidavit-spec).
 
-## Payload = existing extraction JSON (no new shape)
-{ confidence: high|medium|low, provenance_present: bool, decisions: [{marker: chosen|punt|assumes|none}] }
+## Payload
+The **block** carries the producer-authored part: `{ confidence: high|medium|low, decisions: [{marker: chosen|punt|assumes|none}] }`. The adaptor adds `provenance_present` (structural stamp-detection, since faff-prep stamps after the producer returns) to form the full extraction JSON the script consumes — no new shape vs FAFF-77.
 
 ## DONE
 - Default producer emits a valid faff-contract:spec-readiness block; adaptor uses it (no LLM); malformed→fail-loud; absent→prose still validates; convention in ADR 0001; contract script + validate-adapters unchanged and green.

@@ -115,15 +115,23 @@ The fields are `date · producer · mode · adaptor`. There is **no version fiel
 
 Validation is **conformance by construction** (FAFF-21): this adaptor does **not** hand-check markers in prose. It **extracts** the spec into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract spec-readiness` is the sole source of contract data** — this adaptor never builds the contract data itself, never computes `markers_valid` / `violations` / classification. That delegation is exactly what `faff validate-adapters` checks (the wiring-check); it is what makes "check the wiring, not the prose" sound.
 
-**The split (the LLM seam, FAFF-76 Decision 2 Path B):**
+**The split — artifact-preferred (FAFF-76 Decision 2; the artifact branch lit up by FAFF-81):**
 
-- **This adaptor (extraction — the one place judgement remains):** read the prose spec into an **extraction JSON** —
+The adaptor obtains the **extraction JSON** by one of two paths, **in precedence order** — the producer's emitted artifact first, prose extraction only as a fallback:
+
+- **(1) Producer-emitted artifact — preferred, fully deterministic, no LLM.** If the spec carries a single fenced block tagged `faff-contract:spec-readiness` (emitted at the end of the spec by the producer that wrote the markers — see the artifact convention in `docs/adr/0001-contract-as-code-foundations.md`), the adaptor **locates it by that info-string and `JSON.parse`s its body**. The block carries the producer-authored `{ "confidence", "decisions" }` (the producer knows the confidence token and the markers it just wrote — no inference); the adaptor adds **`provenance_present`** itself via its existing **structural stamp-detection** (a regex for the `> Spec:` stamp under the H1 — deterministic, not the LLM seam, and necessarily the adaptor's because the stamp is populated by faff-prep *after* the producer returns). The three together are the extraction JSON.
+  - **Present + valid** (parses + carries `confidence` + `decisions`) → use it.
+  - **Present + malformed** (not JSON, or missing those fields / wrong shape) → **fail-loud** (`signal: fail`, finding "contract artifact present but malformed"). **Do not** silently fall back to prose — a corrupt artifact is producer breakage, surfaced not masked. The fallback trigger is *absence*, never *corruption*.
+- **(2) Prose extraction — fallback, the LLM seam, only when no artifact is present.** Read the prose spec into the same **extraction JSON** —
   ```
   { "confidence": "<verbatim token from the trailing `confidence:` line>",
     "provenance_present": <is a well-formed provenance stamp present under the H1?>,
     "decisions": [ { "marker": "chosen" | "punt" | "assumes" | "none" }, ... ] }
   ```
-  Reading which canonical marker each decision section carries, the confidence token, and whether the provenance stamp is present is the adaptor's job. Detecting the **provenance stamp** is **structural only — never runtime-true** (the anti-pattern below).
+  Reading which canonical marker each decision section carries, the confidence token, and whether the provenance stamp is present is the adaptor's job — the one place judgement remains, and only on the fallback path. Detecting the **provenance stamp** is **structural only — never runtime-true** (the anti-pattern below).
+
+Either path yields the **same** extraction JSON, piped to the contract script unchanged. The artifact is the script's **input**, never a second source of contract data — the script stays the sole source.
+
 - **The contract script (all conformance computation — deterministic):** maps each marker to its class (`chosen → closed`, `punt → open`, `assumes → external`, `none → a violation`), computes `markers_valid` and `violations`, validates `confidence` against the closed enum, and emits the canonical contract data — or **fails loud** when `confidence` is absent/unreadable (no safe coerce target, FAFF-76 Decision 3) or the extraction is malformed.
 
 **Invocation + signal mapping:**

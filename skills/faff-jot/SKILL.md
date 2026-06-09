@@ -138,7 +138,7 @@ Reads the suite-wide `appetite` dial but is lightly modulated, since creation is
 
 ## Logging
 
-Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist. For the **existing-ticket interactor**, log the ticket id, its prior hold state, the freeze/thaw action taken (or the no-op), and any reason comment.
+Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist. For the **existing-ticket interactor**, log the ticket id, its prior hold state, the freeze/thaw action taken (or the no-op), and any reason comment. This narrative `HHMMSS-jot.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
 
 ## Rules
 

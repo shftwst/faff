@@ -118,6 +118,7 @@ slots:             # optional delegation slots; each has a faff default when uns
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
+logging: full                # full | essential — full (default) writes the per-invocation narrative log; essential silences it (the machine-consumed hard floor is always written; see .faff/ logging directory)
 ```
 
 **Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
@@ -402,6 +403,8 @@ The `calibration/` directory is **append-only** and **never authoritative for cu
 
 The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verdicts.md` equivalent) lets other sub-skills read the verdict computed by `/faff-tidy` without recomputing within a single pass. Across passes, always recompute — same "always pull fresh" rule that governs spec discovery.
 
+**Logging gate (the single gate).** Before writing the per-invocation narrative `logs/YYYY-MM-DD/HHMMSS-<skill>.md`, resolve `faff config get logging -d full`; when the value is `essential`, skip that Write entirely. The gate applies **only** to that narrative file. The hard floor — always written regardless of the knob — is: `run-ledger.json`; `automation-verdicts.md` + the standalone `HHMMSS-tidy-verdicts.md`; `calibration/*`; `slot-validation.md`; the per-issue `runs/<id>/ISSUE-XX/*.md` resume artifacts; `summary.md`; **and `HHMMSS-tidy.md`** (load-bearing within a pass — wtf/map read its backlog-diagnostics block same-pass; it stays floor even when tidy runs standalone). The silenced set is the narrative `HHMMSS-<skill>.md` for `<skill>` ∈ {jot, prep, graft, map, wtf} — every narrative writer **except** tidy's. Default `full` writes every narrative log as today.
+
 Each log entry captures:
 
 - Invocation context (args, mode — interactive or autonomous, working directory)
@@ -433,7 +436,7 @@ Faff sub-skills can be invoked in **autonomous mode** (primarily by `/faff-beep-
 Universal rules in autonomous mode:
 
 - **Never prompt.** Every interactive gate has a pre-defined autonomous default. If there is no safe default for a decision, park the work unit and move on.
-- **Log every decision, input, and output** to `.faff/logs/…` per the layout above. The log must be sufficient to resume in a fresh conversation.
+- **Log every decision, input, and output** to `.faff/logs/…` per the layout above. The log must be sufficient to resume in a fresh conversation. The *narrative* `logs/…/HHMMSS-<skill>.md` file obeys the **logging gate** (see **`.faff/` logging directory** → Logging gate — `logging: essential` skips it); the resume-critical `runs/<run-id>/…` artifacts are written **regardless** of the knob, so the "sufficient to resume" guarantee is satisfied by the `runs/` hard floor, not the narrative file.
 - **Park on unexpected state.** Missing MCP tool, failed query, dirty worktree, genuine ambiguity — all trigger _park + log + continue_. Never abort the whole run on a single issue.
 - **"Ambiguity" means the spec is ambiguous — not that the session state is.** Things about your own runtime are never valid park reasons:
   - Context compaction (current or anticipated) — the harness handles compaction; the `.faff/` logs + tracker + PR state make every work unit resumable across compactions. A compacted session is not an ambiguous one.

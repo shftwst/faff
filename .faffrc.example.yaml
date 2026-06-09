@@ -47,6 +47,14 @@ slots:
 # sequential default. Bounds worktree count, disk, and branches racing main.
 concurrency_max: 4
 
+# Per-invocation narrative logging. full (default) writes the prose narrative log
+# .faff/logs/YYYY-MM-DD/HHMMSS-<skill>.md for every sub-skill invocation;
+# essential silences that narrative write (jot/prep/graft/map/wtf) to save output
+# tokens on long unattended runs. The machine-consumed hard floor — run-ledger,
+# verdict caches, calibration/*, slot-validation, runs/<id>/… resume artifacts,
+# summary.md, and tidy's HHMMSS-tidy.md — is written regardless of this knob.
+logging: full # full | essential
+
 # Where /faff-graft creates git worktrees. Default ~/.faff/worktrees/<repo>/<branch>
 # (writable in repo-only bind-mounts/containers; isolates holdout/evaluator work).
 # Uncomment to override; a configured value is used as-is (per-repo).

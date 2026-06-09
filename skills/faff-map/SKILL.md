@@ -208,7 +208,7 @@ When invoked autonomously (rare — this is primarily a human-facing strategic a
 
 **No tracker writes.** Even in autonomous mode, this skill never creates projects, never re-parents issues, never closes gaps. Findings go to the log; humans act on them.
 
-Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-map.md`. The log must include every MCP call made (initiatives fetched, projects per initiative, issues per project, comments scanned for structural-gap context) so a follow-up agent can reconstruct the roadmap from the log alone.
+Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-map.md`. The log must include every MCP call made (initiatives fetched, projects per initiative, issues per project, comments scanned for structural-gap context) so a follow-up agent can reconstruct the roadmap from the log alone. This narrative `HHMMSS-map.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
 
 ## Notes
 

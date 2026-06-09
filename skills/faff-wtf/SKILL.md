@@ -281,7 +281,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 
 **No chaining gates in autonomous mode** — beep-boop decides what to do with the queue. No remediation offers for parked issues either; triage is the human's job, not beep-boop's.
 
-Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wtf.md`.
+Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wtf.md`. This narrative `HHMMSS-wtf.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
 
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present

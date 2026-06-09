@@ -90,6 +90,27 @@ confidence: high | medium | low
 
 The line is mandatory and orthogonal to marker validation: a spec can have every marker present (passes validation) yet rate `medium`/`low`. Both the marker check and the confidence gate must pass for an autonomous attach.
 
+## Provenance stamp
+
+Every attached spec carries a one-line **provenance stamp** so its lineage is self-describing: when it was produced, which producer ran, in what mode, under which `spec_adaptor`. This adaptor owns the stamp's **format + placement + validation**; **faff-prep populates the values** at attach time (exactly as it does for the trailing `confidence:` line — the adaptor defines the shape, prep fills it in). Producers do not emit it.
+
+**Format** — a single blockquote line **directly under the spec's H1 title** (the first non-blank line after the `# …` heading), nothing between them:
+
+```
+> Spec: <producer> · <date> · <mode> · adaptor: <adaptor> · confidence: <level>. Full spec on <tracker> <ISSUE-ID>.
+```
+
+- `<producer>` — the resolved `slots.spec` occupant (e.g. `faffter-noon-spec`).
+- `<date>` — ISO `YYYY-MM-DD`, the date the spec was produced or last refreshed.
+- `<mode>` — exactly one of `interactive` / `autonomous`.
+- `<adaptor>` — the resolved `slots.spec_adaptor` occupant (e.g. `faffidavit-spec`).
+- `<level>` — the confidence token, echoed from the trailing `confidence:` line.
+- `Full spec on <tracker> <ISSUE-ID>` — first-mention grounding for the issue ID. In **git-only mode**, where no tracker resolves, drop this trailing sentence (end the line at `confidence: <level>.`).
+
+**Echoes, does not replace.** The stamp's `confidence: <level>` token is a skimmable echo only. The standalone trailing `confidence:` line (above) stays **authoritative** — it is what validation checks and what faff-prep's autonomous gate branches on. The stamp never substitutes for it; both appear on every spec.
+
+The fields are `date · producer · mode · adaptor`. There is **no version field** — faff has no trustworthy version source to resolve today, so it is deliberately omitted.
+
 ## Validation
 
 Run before a spec is attached (faff-prep delegates this), or on demand against any spec.
@@ -101,6 +122,9 @@ Run before a spec is attached (faff-prep delegates this), or on demand against a
 3. `Punt:` and `Assumes:` entries grouped in their dedicated sections.
 4. No invented labelling schemes (scan for patterns like single-letter+digit codes used as references).
 5. A `confidence:` line is present and is exactly one of `high` / `medium` / `low`.
+6. The **provenance stamp** is present directly under the H1 and well-formed: a blockquote `> Spec: …` line carrying a producer, an ISO `YYYY-MM-DD` date, a mode that is exactly `interactive` or `autonomous`, an `adaptor:` field, and a `confidence:` token. Missing or malformed → fail.
+
+**Structural-only — never runtime-true (anti-pattern).** The stamp check verifies **presence + well-formedness only**, never that the values are *correct* at runtime. Validation runs **pre-attach and is structural**: it cannot and must not assert that `<producer>` equals the live `slots.spec`, that `<date>` is genuinely today, that `<mode>` matches the actual invocation mode, or that `<adaptor>` is the running slot. Those are faff-prep's to populate truthfully; asserting them here would couple a structural pre-attach check to runtime state it cannot see. A stamp that is shaped right passes — the well-formedness is the contract, not the values' runtime truth.
 
 **Output:**
 

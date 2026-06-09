@@ -672,7 +672,7 @@ function cmdRuncheck(args) {
 // validate-adapters — structural conformance lint of the shipped slot skills
 // ===========================================================================
 const REGISTRY = {
-  "faffidavit-spec": { type: "adaptor", slot: "spec_adaptor" },
+  "faffidavit-spec": { type: "adaptor", slot: "spec_adaptor", contract: "spec-readiness" },
   "faffidavit-review": { type: "adaptor", slot: "review_adaptor" },
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
@@ -738,6 +738,16 @@ function checksFor(meta, t) {
       out.push([has(meta.slot), `names its slot (${meta.slot})`]);
       out.push([!t.toLowerCase().includes("no internal contract"),
                 "an adaptor over a fixed contract must NOT claim 'no internal contract'"]);
+      // FAFF-77: contract-as-code wiring-check. An adaptor that delegates conformance to a
+      // contract script (declared via meta.contract) must WIRE to it and declare the script
+      // the sole source of contract data — so "check the wiring" is sound. (Schema-resolves
+      // is checked in cmdValidateAdapters, which has the skills dir.)
+      if (meta.contract) {
+        out.push([has(`faff contract ${meta.contract}`),
+                  `wires to its contract script (\`faff contract ${meta.contract}\`)`]);
+        out.push([/sole source of contract data/i.test(t),
+                  "declares the contract script the sole source of contract data (no prose-built contract data)"]);
+      }
       break;
     case "pure-adaptor":
       out.push([t.toLowerCase().includes("no internal contract"), "pure adaptor declares it has no internal contract"]);
@@ -888,6 +898,13 @@ function cmdValidateAdapters(args) {
     if (!meta) { uncovered.push(name); continue; }
     const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
     const results = checksFor(meta, text);
+    // FAFF-77: the named contract must resolve to a schema on disk (the wiring-check's
+    // "contract resolves" leg — needs the skills dir, so it lives here not in checksFor).
+    if (meta.contract) {
+      const schemaFile = path.join(skillsDir, "faff", "contracts", `${meta.contract}.schema.json`);
+      results.push([fs.existsSync(schemaFile),
+                    `contract ${meta.contract} resolves (skills/faff/contracts/${meta.contract}.schema.json present)`]);
+    }
     results.push([hasUserInvocableFalse(text),
                   "frontmatter user-invocable: false (internal slot skill, hidden from the / menu)"]);
     const bad = results.filter(([ok]) => !ok).map(([, label]) => label);
@@ -1316,7 +1333,142 @@ Subcommands:
   next --status S --spec none|low|medium|high [--held] [--parked] [--blocked]   legal next step (JSON {next,reason}); --selftest runs the table
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
+  contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
 `;
+
+// ===========================================================================
+// contract — FAFF-77: per-slot contract scripts (conformance by construction).
+// `faff contract <name>` reads an extraction JSON (the adaptor's LLM-read of the
+// producer's prose output) on stdin and emits the canonical, schema-valid contract
+// data on stdout — or fails loud. Contract data flows ONLY from here (the wiring the
+// spec adaptor is checked against). Schema = shape (the .json); gateway = semantics
+// (this script encodes NO gate meanings — high/medium/low promotion lives upstream).
+// ===========================================================================
+
+// Minimal dependency-free JSON Schema (Draft 2020-12 SUBSET) validator — a CommonJS
+// port of skills/faff/contracts/validate-schema.mjs (FAFF-76). Keep the two in step;
+// `contract spec-readiness --selftest` is the parity guard. Subset keywords:
+// type, required, properties, enum, additionalProperties, items.
+function validateAgainstSchema(data, schema, p = "") {
+  const where = p || "<root>";
+  const errs = [];
+  const TYPE_OK = {
+    object: (v) => v !== null && typeof v === "object" && !Array.isArray(v),
+    array: Array.isArray,
+    string: (v) => typeof v === "string",
+    boolean: (v) => typeof v === "boolean",
+    number: (v) => typeof v === "number",
+    integer: Number.isInteger,
+  };
+  if (schema.type && TYPE_OK[schema.type] && !TYPE_OK[schema.type](data)) {
+    const got = Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
+    errs.push(`${where}: expected type ${schema.type}, got ${got}`);
+    return errs;
+  }
+  if (schema.enum && !schema.enum.includes(data)) {
+    errs.push(`${where}: ${JSON.stringify(data)} not in enum [${schema.enum.join(", ")}]`);
+  }
+  if (schema.type === "object" && TYPE_OK.object(data)) {
+    for (const k of schema.required || []) if (!(k in data)) errs.push(`${where}: missing required property "${k}"`);
+    const props = schema.properties || {};
+    if (schema.additionalProperties === false) {
+      for (const k of Object.keys(data)) if (!(k in props)) errs.push(`${where}: additional property "${k}" not allowed`);
+    }
+    for (const [k, sub] of Object.entries(props)) {
+      if (k in data) errs.push(...validateAgainstSchema(data[k], sub, p ? `${p}.${k}` : k));
+    }
+  }
+  if (schema.type === "array" && Array.isArray(data) && schema.items) {
+    data.forEach((item, i) => errs.push(...validateAgainstSchema(item, schema.items, `${where}[${i}]`)));
+  }
+  return errs;
+}
+
+// The marker → classification map (deterministic; FAFF-77 Decision B).
+const MARKER_CLASS = { chosen: "closed", punt: "open", assumes: "external" };
+
+// Compute the spec-readiness contract data from an extraction. Returns
+// { contractData, failLoud }: failLoud is a reason string when the extraction is
+// un-coercible (confidence absent/invalid → no safe target per FAFF-76 Decision 3)
+// or malformed; contractData is null then. Non-conformance (missing markers /
+// provenance) is NOT fail-loud — it is a well-formed verdict with markers_valid:false.
+function computeSpecReadiness(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!("confidence" in extraction) || !Array.isArray(extraction.decisions)) {
+    return { contractData: null, failLoud: "extraction missing required keys (confidence, decisions[])" };
+  }
+  if (!["high", "medium", "low"].includes(extraction.confidence)) {
+    return { contractData: null, failLoud: `confidence ${JSON.stringify(extraction.confidence)} not in {high,medium,low}` };
+  }
+  const violations = [];
+  const decisions = extraction.decisions.map((d, i) => {
+    const classification = MARKER_CLASS[d && d.marker];
+    if (!classification) violations.push(`decision[${i}] has no canonical marker (got ${JSON.stringify(d && d.marker)})`);
+    return { classification };
+  }).filter((d) => d.classification);
+  if (extraction.provenance_present === false) violations.push("provenance stamp missing");
+  return {
+    contractData: { confidence: extraction.confidence, decisions, markers_valid: violations.length === 0, violations },
+    failLoud: null,
+  };
+}
+
+function contractSpecReadiness(extraction) {
+  const { contractData, failLoud } = computeSpecReadiness(extraction);
+  if (failLoud) return { failLoud };
+  // Belt-and-braces: the emitted contract data must itself conform to FAFF-76's schema.
+  const schemaPath = path.resolve(HERE, "..", "contracts", "spec-readiness.schema.json");
+  try {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+    const shapeErrs = validateAgainstSchema(contractData, schema);
+    if (shapeErrs.length) return { failLoud: `internal: emitted contract data non-conformant: ${shapeErrs.join("; ")}` };
+  } catch (e) {
+    return { failLoud: `cannot load spec-readiness schema: ${e.message}` };
+  }
+  return { contractData };
+}
+
+const CONTRACTS = { "spec-readiness": contractSpecReadiness };
+
+function contractSelftest() {
+  const cases = [
+    { name: "conformant", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "chosen" }, { marker: "punt" }] }, wantExit: 0 },
+    { name: "missing-marker", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "none" }] }, wantExit: 1 },
+    { name: "bad-confidence", in: { confidence: "maybe", provenance_present: true, decisions: [] }, wantExit: 2 },
+    { name: "malformed", in: { decisions: [] }, wantExit: 2 },
+  ];
+  let fail = 0;
+  for (const c of cases) {
+    const { contractData, failLoud } = contractSpecReadiness(c.in);
+    const exit = failLoud ? 2 : contractData.markers_valid ? 0 : 1;
+    const ok = exit === c.wantExit;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${c.name} → exit ${exit} (want ${c.wantExit})`);
+  }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+function cmdContract(args) {
+  if (args.includes("--selftest")) return contractSelftest();
+  const name = args.find((a) => !a.startsWith("--"));
+  if (!name) { process.stderr.write("usage: faff contract <name> [--in FILE]   (extraction JSON on stdin)\n"); return 2; }
+  const runner = CONTRACTS[name];
+  if (!runner) { process.stderr.write(`faff contract: unknown contract '${name}' (known: ${Object.keys(CONTRACTS).join(", ")})\n`); return 2; }
+  const inIdx = args.indexOf("--in");
+  let raw;
+  try { raw = inIdx !== -1 ? fs.readFileSync(args[inIdx + 1], "utf8") : fs.readFileSync(0, "utf8"); }
+  catch (e) { process.stderr.write(`faff contract: cannot read input: ${e.message}\n`); return 2; }
+  let extraction;
+  try { extraction = JSON.parse(raw); }
+  catch (e) { process.stderr.write(`faff contract ${name}: extraction is not valid JSON: ${e.message}\n`); return 2; }
+  const { contractData, failLoud } = runner(extraction);
+  if (failLoud) { process.stderr.write(`faff contract ${name}: fail-loud: ${failLoud}\n`); return 2; }
+  process.stdout.write(JSON.stringify(contractData) + "\n");
+  return contractData.markers_valid ? 0 : 1;
+}
 
 function main(argv) {
   const [sub, ...rest] = argv;
@@ -1329,6 +1481,7 @@ function main(argv) {
   if (sub === "next") return cmdNext(rest);
   if (sub === "state") return cmdState(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
+  if (sub === "contract") return cmdContract(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

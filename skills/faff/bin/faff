@@ -676,7 +676,7 @@ const REGISTRY = {
   "faffidavit-review": { type: "adaptor", slot: "review_adaptor", contract: "review-verdict" },
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
-  "faffidavit-ship": { type: "adaptor", slot: "ship_adaptor" },
+  "faffidavit-ship": { type: "adaptor", slot: "ship_adaptor", contract: "delivery-outcome" },
   "faffter-noon-methodology-structural": { type: "methodology" },
   "faffter-dark-methodology-agile-delivery": { type: "methodology" },
   "faffter-noon-concurrency-sequential": { type: "mechanism" },
@@ -1478,6 +1478,40 @@ function contractReviewVerdict(extraction) {
   return { contractData };
 }
 
+// --- delivery-outcome (FAFF-79) ---
+// Safe coerce target = `failed` (never `shipped`) — ship HAS a safe target (FAFF-76 Decision 3).
+// An uncorroborated `shipped` claim is coerced to `failed`. Fail-loud only on an unparseable extraction.
+function computeDeliveryOutcome(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const OUTCOMES = ["shipped", "not-ready", "failed"];
+  const violations = [];
+  let outcome = extraction.outcome;
+  let reason = typeof extraction.reason === "string" ? extraction.reason : "";
+  if (!OUTCOMES.includes(outcome)) {
+    violations.push(`outcome ${JSON.stringify(outcome)} not in {shipped,not-ready,failed} — coerced to failed`);
+    outcome = "failed";
+    if (!reason) reason = "malformed delivery result coerced to failed";
+  } else if (outcome === "shipped" && extraction.corroborated === false) {
+    violations.push("shipped is not corroborated by the producer's result — coerced to failed");
+    outcome = "failed";
+    if (!reason) reason = "unconfirmed merge/deploy";
+  }
+  if ((outcome === "not-ready" || outcome === "failed") && !reason) {
+    violations.push(`${outcome} carries no reason`);
+  }
+  return { contractData: { outcome, reason, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractDeliveryOutcome(extraction) {
+  const { contractData, failLoud } = computeDeliveryOutcome(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "delivery-outcome");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
   "spec-readiness": {
@@ -1496,6 +1530,17 @@ const CONTRACTS = {
       { name: "pass-no-findings", in: { signal: "pass", findings: [] }, wantExit: 0 },
       { name: "needs-human-no-findings", in: { signal: "needs-human", findings: [] }, wantExit: 1 },
       { name: "coerce-malformed-signal", in: { signal: "maybe", findings: [{ location_present: true, action_present: true }] }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "delivery-outcome": {
+    run: contractDeliveryOutcome,
+    fixtures: [
+      { name: "conformant-shipped", in: { outcome: "shipped", reason: "", corroborated: true }, wantExit: 0 },
+      { name: "conformant-failed", in: { outcome: "failed", reason: "merge conflict on main", corroborated: false }, wantExit: 0 },
+      { name: "uncorroborated-shipped-coerced", in: { outcome: "shipped", reason: "", corroborated: false }, wantExit: 1 },
+      { name: "coerce-malformed-outcome", in: { outcome: "merged", reason: "", corroborated: true }, wantExit: 1 },
+      { name: "not-ready-no-reason", in: { outcome: "not-ready", reason: "", corroborated: false }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },

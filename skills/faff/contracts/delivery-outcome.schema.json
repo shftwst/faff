@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/delivery-outcome",
+  "title": "delivery-outcome contract data",
+  "description": "Reference schema (FAFF-79). The SHAPE of the delivery-outcome contract data faff-graft Step 10 routes on. Shape is normative here; the two-tier gate + integrity floor are gateway/graft semantics (ADR 0001, Decision 4). Coercion target for a malformed or uncorroborated result is `failed` (never `shipped`).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["outcome", "reason", "conformant", "violations"],
+  "properties": {
+    "outcome": { "type": "string", "enum": ["shipped", "not-ready", "failed"] },
+    "reason": { "type": "string" },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

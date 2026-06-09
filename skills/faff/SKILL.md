@@ -53,10 +53,24 @@ This is the gateway. Invoke the right sub-skill:
 | `/faff-prep ISSUE-XX` | "Prep this", "spec this out", "what does this ticket need?", "scope", "acceptance criteria" |
 | `/faff-graft ISSUE-XX` | "Work on", "Start this", "take on", "pick up", "let's build", "fire up" |
 | `/faff-beep-boop` | "Run overnight", "fire and forget", "chew through the backlog", "unattended" |
+| `/faff-onboard` | "Set up faff", "onboard", "first run", "no faffrc", "configure faff for this repo", "get faff working here" — first-run bootstrap of `.faffrc.yaml` (see **First run** below) |
+
+## First run
+
+When **any** faff entry resolves config and finds **no `.faffrc.yaml`** (`faff config path` exit 3 — see **Configuration** below), it makes a one-time **soft-offer** before continuing on defaults:
+
+> `No .faffrc found. Set up faff for this repo now? (y/n)`
+
+- **Soft-offer, not a gate.** Declining is fine — the command proceeds on built-in defaults exactly as a config-less repo does today. The offer is a convenience, never a blocker.
+- **On accept** → delegate to `/faff-onboard` (via the `Skill` tool) for the conversational bootstrap, then resume the original command with the new config in hand.
+- **On decline** → write a **minimal stub `.faffrc.yaml`** via `faff config init` (a single innocuous key the writer accepts, e.g. the detected `tracking.repo`, or an empty-but-present block) so `faff config path` returns **exit 0** thereafter and the offer **does not re-fire** on the next command. Declining once is remembered; faff does not nag.
+- **Autonomous/beep-boop runs never emit the offer.** Onboarding and the first-run offer are **interactive-only** (gateway → Autonomous Mode Contract): an unattended run with no config proceeds silently on defaults — it never prompts and never conjures a config behind the human's back. The offer fires only in interactive entry.
+
+The offer is a single gateway-level check (per the gateway-load preamble each sub-skill runs on entry), not a snippet copied into every sub-skill.
 
 ## Configuration (shared across all sub-skills)
 
-All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule). `.faffrc.yaml` is the **single accepted filename**: a legacy **`.faffrc`** or **`.faffrc.yml`** present at the root triggers a **loud error** naming the fix (rename it to `.faffrc.yaml`), **never a silent default** — silently dropping a present config (by eyeballing the wrong filename) is the exact failure FAFF-50 closed. Any key the file doesn't set falls back to faff's built-in default; a missing `.faffrc.yaml` altogether means all defaults apply. (Template files are exempt: any name containing `.example` is never counted or loaded.)
+All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule). `.faffrc.yaml` is the **single accepted filename**: a legacy **`.faffrc`** or **`.faffrc.yml`** present at the root triggers a **loud error** naming the fix (rename it to `.faffrc.yaml`), **never a silent default** — silently dropping a present config (by eyeballing the wrong filename) is the exact failure FAFF-50 closed. Any key the file doesn't set falls back to faff's built-in default; a missing `.faffrc.yaml` altogether means all defaults apply — and, in interactive entry, offers first-run setup via `/faff-onboard` before proceeding (see **First run** above). (Template files are exempt: any name containing `.example` is never counted or loaded.)
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 

@@ -36,3 +36,6 @@ jobs:
 
       - name: Validate spec-readiness contract script
         run: node skills/faff/bin/faff contract spec-readiness --selftest
+
+      - name: Validate review-verdict contract script
+        run: node skills/faff/bin/faff contract review-verdict --selftest

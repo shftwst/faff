@@ -673,7 +673,7 @@ function cmdRuncheck(args) {
 // ===========================================================================
 const REGISTRY = {
   "faffidavit-spec": { type: "adaptor", slot: "spec_adaptor", contract: "spec-readiness" },
-  "faffidavit-review": { type: "adaptor", slot: "review_adaptor" },
+  "faffidavit-review": { type: "adaptor", slot: "review_adaptor", contract: "review-verdict" },
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
   "faffidavit-ship": { type: "adaptor", slot: "ship_adaptor" },
@@ -1430,44 +1430,118 @@ function contractSpecReadiness(extraction) {
   return { contractData };
 }
 
-const CONTRACTS = { "spec-readiness": contractSpecReadiness };
-
-function contractSelftest() {
-  const cases = [
-    { name: "conformant", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "chosen" }, { marker: "punt" }] }, wantExit: 0 },
-    { name: "missing-marker", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "none" }] }, wantExit: 1 },
-    { name: "bad-confidence", in: { confidence: "maybe", provenance_present: true, decisions: [] }, wantExit: 2 },
-    { name: "malformed", in: { decisions: [] }, wantExit: 2 },
-  ];
-  let fail = 0;
-  for (const c of cases) {
-    const { contractData, failLoud } = contractSpecReadiness(c.in);
-    const exit = failLoud ? 2 : contractData.markers_valid ? 0 : 1;
-    const ok = exit === c.wantExit;
-    if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} ${c.name} → exit ${exit} (want ${c.wantExit})`);
+// Shared: validate emitted contract data against its on-disk schema (belt-and-braces).
+// Returns a fail-loud reason string, or null when the data conforms.
+function schemaCheck(contractData, contractName) {
+  const schemaPath = path.resolve(HERE, "..", "contracts", `${contractName}.schema.json`);
+  try {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+    const errs = validateAgainstSchema(contractData, schema);
+    if (errs.length) return `internal: emitted contract data non-conformant: ${errs.join("; ")}`;
+  } catch (e) {
+    return `cannot load ${contractName} schema: ${e.message}`;
   }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} cases, ${fail} failed)`);
+  return null;
+}
+
+// --- review-verdict (FAFF-78) ---
+// Safe coerce target = `needs-human` (never `pass`) — review HAS a safe target, unlike
+// spec-readiness's fail-loud (FAFF-76 Decision 3). Fail-loud only on an unparseable extraction.
+function computeReviewVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const SIGNALS = ["pass", "fail", "needs-human"];
+  const violations = [];
+  let signal = extraction.signal;
+  if (!SIGNALS.includes(signal)) {
+    violations.push(`signal ${JSON.stringify(signal)} not in {pass,fail,needs-human} — coerced to needs-human`);
+    signal = "needs-human";
+  }
+  const raw = Array.isArray(extraction.findings) ? extraction.findings : [];
+  const findings = raw.map((f) => ({ location_present: !!(f && f.location_present), action_present: !!(f && f.action_present) }));
+  if ((signal === "fail" || signal === "needs-human") && findings.length === 0) {
+    violations.push(`${signal} carries no findings`);
+  }
+  findings.forEach((f, i) => {
+    if (!f.location_present) violations.push(`finding[${i}] has no location`);
+    if (!f.action_present) violations.push(`finding[${i}] has no action`);
+  });
+  return { contractData: { signal, findings, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractReviewVerdict(extraction) {
+  const { contractData, failLoud } = computeReviewVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "review-verdict");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
+// Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
+const CONTRACTS = {
+  "spec-readiness": {
+    run: contractSpecReadiness,
+    fixtures: [
+      { name: "conformant", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "chosen" }, { marker: "punt" }] }, wantExit: 0 },
+      { name: "missing-marker", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "none" }] }, wantExit: 1 },
+      { name: "bad-confidence", in: { confidence: "maybe", provenance_present: true, decisions: [] }, wantExit: 2 },
+      { name: "malformed", in: { decisions: [] }, wantExit: 2 },
+    ],
+  },
+  "review-verdict": {
+    run: contractReviewVerdict,
+    fixtures: [
+      { name: "conformant", in: { signal: "fail", findings: [{ location_present: true, action_present: true }] }, wantExit: 0 },
+      { name: "pass-no-findings", in: { signal: "pass", findings: [] }, wantExit: 0 },
+      { name: "needs-human-no-findings", in: { signal: "needs-human", findings: [] }, wantExit: 1 },
+      { name: "coerce-malformed-signal", in: { signal: "maybe", findings: [{ location_present: true, action_present: true }] }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+};
+
+// Uniform exit: fail-loud → 2; any violation → 1; else 0. (Every contract data carries `violations`.)
+function exitFor(result) {
+  if (result.failLoud) return 2;
+  return (result.contractData.violations || []).length === 0 ? 0 : 1;
+}
+
+function contractSelftest(name) {
+  const names = name ? [name] : Object.keys(CONTRACTS);
+  let fail = 0, total = 0;
+  for (const n of names) {
+    const c = CONTRACTS[n];
+    if (!c) { process.stderr.write(`faff contract: unknown contract '${n}'\n`); return 2; }
+    for (const f of c.fixtures) {
+      total++;
+      const exit = exitFor(c.run(f.in));
+      const ok = exit === f.wantExit;
+      if (!ok) fail++;
+      console.log(`${ok ? "ok  " : "FAIL"} ${n}/${f.name} → exit ${exit} (want ${f.wantExit})`);
+    }
+  }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 function cmdContract(args) {
-  if (args.includes("--selftest")) return contractSelftest();
   const name = args.find((a) => !a.startsWith("--"));
-  if (!name) { process.stderr.write("usage: faff contract <name> [--in FILE]   (extraction JSON on stdin)\n"); return 2; }
-  const runner = CONTRACTS[name];
-  if (!runner) { process.stderr.write(`faff contract: unknown contract '${name}' (known: ${Object.keys(CONTRACTS).join(", ")})\n`); return 2; }
+  if (args.includes("--selftest")) return contractSelftest(name);
+  if (!name) { process.stderr.write("usage: faff contract <name> [--in FILE] | [<name>] --selftest   (extraction JSON on stdin)\n"); return 2; }
+  const c = CONTRACTS[name];
+  if (!c) { process.stderr.write(`faff contract: unknown contract '${name}' (known: ${Object.keys(CONTRACTS).join(", ")})\n`); return 2; }
   const inIdx = args.indexOf("--in");
-  let raw;
-  try { raw = inIdx !== -1 ? fs.readFileSync(args[inIdx + 1], "utf8") : fs.readFileSync(0, "utf8"); }
+  let rawIn;
+  try { rawIn = inIdx !== -1 ? fs.readFileSync(args[inIdx + 1], "utf8") : fs.readFileSync(0, "utf8"); }
   catch (e) { process.stderr.write(`faff contract: cannot read input: ${e.message}\n`); return 2; }
   let extraction;
-  try { extraction = JSON.parse(raw); }
+  try { extraction = JSON.parse(rawIn); }
   catch (e) { process.stderr.write(`faff contract ${name}: extraction is not valid JSON: ${e.message}\n`); return 2; }
-  const { contractData, failLoud } = runner(extraction);
-  if (failLoud) { process.stderr.write(`faff contract ${name}: fail-loud: ${failLoud}\n`); return 2; }
-  process.stdout.write(JSON.stringify(contractData) + "\n");
-  return contractData.markers_valid ? 0 : 1;
+  const result = c.run(extraction);
+  if (result.failLoud) { process.stderr.write(`faff contract ${name}: fail-loud: ${result.failLoud}\n`); return 2; }
+  process.stdout.write(JSON.stringify(result.contractData) + "\n");
+  return (result.contractData.violations || []).length === 0 ? 0 : 1;
 }
 
 function main(argv) {

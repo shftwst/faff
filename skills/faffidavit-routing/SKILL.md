@@ -83,23 +83,32 @@ Needs your call before automation can pick up:
 
 The synthesis gloss (gateway → Synthesis contract, owned by the `rendering_adaptor` slot) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the rendering contract.
 
-## Validate
+## Validate — wired to the contract script (FAFF-80)
 
-**Checks:**
+Validation is **conformance by construction** (FAFF-21): this adaptor does **not** prose-check the verdict's *shape*. It **extracts** the assigned verdict into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract automation-routing` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
 
-1. Exactly one verdict per spec-gated issue, drawn from the closed six.
-2. The verdict is consistent with its inputs — e.g. `fire-and-forget` and `likely-fire` require `confidence: high` and no open markers; any spec below `confidence: high` is never build-admitted (a bare `confidence: medium` maps to `needs-decision-first`); `circular-blocked` requires a cycle finding from `backlog-diagnostics`; `repeat-parked` requires ≥3 same-root-cause parks.
-3. `repeat-parked` carries no resolve-attempt (the pattern is the signal).
+**The split:**
 
-**Output:**
+- **This adaptor (assignment — the judgement, see Assignment above):** assigns the verdict + root-cause from the issue's inputs (spec confidence + markers + `backlog-diagnostics` + park history), then emits the **extraction JSON** —
+  ```
+  { "verdict": "<one of the closed six>", "root_cause": "<one of the five, or null>" }
+  ```
+  Assigning *which* verdict an issue's inputs imply (e.g. `fire-and-forget` requires `confidence: high`; `circular-blocked` requires a cycle finding; `repeat-parked` requires ≥3 same-root-cause parks) remains the adaptor's assignment judgement — it is *input-consistency*, not *shape*.
+- **The contract script (shape conformance — deterministic):** validates `verdict` against the closed six and **fails loud** when it isn't one (no safe coerce target — the verdict is *assigned*, not received from a foreign producer, so an out-of-enum verdict is an assignment bug, like spec-readiness); validates `root_cause` against the closed five (a bad one is normalised to `null` + a violation); emits the canonical contract data.
+
+**Invocation + signal mapping:**
 
 ```
-signal: pass | fail
-
-## Violations
-### [rule]: [where]
-[what's wrong] → [the fix]
+echo '<extraction JSON>' | faff contract automation-routing
 ```
+
+| Script exit | Meaning |
+|---|---|
+| 0 | conformant: `conformant:true`, `violations:[]` (the script's stdout) |
+| 1 | non-conformant (e.g. an out-of-enum `root_cause` normalised to null): `violations` name the cause |
+| 2 | fail-loud: `verdict` ∉ the closed six, or the extraction is unparseable / not an object |
+
+The contract data consumers read is **the script's stdout, verbatim**. The **build-queue admission rule** (only `fire-and-forget` + `likely-fire` are admitted; the other four route out) and `repeat-parked`'s no-resolve-attempt rule are **gateway / beep-boop semantics** — the script encodes neither.
 
 ## Rules
 

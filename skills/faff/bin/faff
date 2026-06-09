@@ -674,7 +674,7 @@ function cmdRuncheck(args) {
 const REGISTRY = {
   "faffidavit-spec": { type: "adaptor", slot: "spec_adaptor", contract: "spec-readiness" },
   "faffidavit-review": { type: "adaptor", slot: "review_adaptor", contract: "review-verdict" },
-  "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor" },
+  "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor", contract: "automation-routing" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
   "faffidavit-ship": { type: "adaptor", slot: "ship_adaptor", contract: "delivery-outcome" },
   "faffter-noon-methodology-structural": { type: "methodology" },
@@ -1512,6 +1512,36 @@ function contractDeliveryOutcome(extraction) {
   return { contractData };
 }
 
+// --- automation-routing (FAFF-80) ---
+// NO safe coerce target — the verdict is assigned by the routing adaptor, not received from a
+// foreign producer, so an out-of-enum verdict is an assignment bug → fail-loud (like spec-readiness,
+// unlike review/ship). The build-queue ADMISSION RULE is gateway semantics, NOT encoded here.
+const ROUTING_VERDICTS = ["fire-and-forget", "likely-fire", "needs-decision-first", "gap-blocked", "circular-blocked", "repeat-parked"];
+const ROOT_CAUSES = ["punt-not-closed", "gap", "cycle", "spec-ambiguous-external", "other"];
+function computeAutomationRouting(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!ROUTING_VERDICTS.includes(extraction.verdict)) {
+    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in the closed six — no safe coerce target` };
+  }
+  const violations = [];
+  let root_cause = extraction.root_cause === undefined ? null : extraction.root_cause;
+  if (root_cause !== null && !ROOT_CAUSES.includes(root_cause)) {
+    violations.push(`root_cause ${JSON.stringify(root_cause)} not in {${ROOT_CAUSES.join(",")}} — normalised to null`);
+    root_cause = null;
+  }
+  return { contractData: { verdict: extraction.verdict, root_cause, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractAutomationRouting(extraction) {
+  const { contractData, failLoud } = computeAutomationRouting(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "automation-routing");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
   "spec-readiness": {
@@ -1541,6 +1571,16 @@ const CONTRACTS = {
       { name: "uncorroborated-shipped-coerced", in: { outcome: "shipped", reason: "", corroborated: false }, wantExit: 1 },
       { name: "coerce-malformed-outcome", in: { outcome: "merged", reason: "", corroborated: true }, wantExit: 1 },
       { name: "not-ready-no-reason", in: { outcome: "not-ready", reason: "", corroborated: false }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "automation-routing": {
+    run: contractAutomationRouting,
+    fixtures: [
+      { name: "conformant-no-root-cause", in: { verdict: "likely-fire", root_cause: null }, wantExit: 0 },
+      { name: "conformant-with-root-cause", in: { verdict: "repeat-parked", root_cause: "punt-not-closed" }, wantExit: 0 },
+      { name: "bad-root-cause-normalised", in: { verdict: "gap-blocked", root_cause: "mystery" }, wantExit: 1 },
+      { name: "fail-loud-bad-verdict", in: { verdict: "bogus", root_cause: null }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },

@@ -42,3 +42,6 @@ jobs:
 
       - name: Validate delivery-outcome contract script
         run: node skills/faff/bin/faff contract delivery-outcome --selftest
+
+      - name: Validate automation-routing contract script
+        run: node skills/faff/bin/faff contract automation-routing --selftest

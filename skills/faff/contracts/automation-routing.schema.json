@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/automation-routing",
+  "title": "automation-routing contract data",
+  "description": "Reference schema (FAFF-80). The SHAPE of the automation-routing contract data: the closed six-verdict vocabulary + the root-cause class. Shape is normative here; the build-queue ADMISSION RULE (only fire-and-forget + likely-fire admitted) is gateway semantics, NOT the script (ADR 0001, Decision 4). No safe coerce target — an out-of-enum verdict fails loud.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "root_cause", "conformant", "violations"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["fire-and-forget", "likely-fire", "needs-decision-first", "gap-blocked", "circular-blocked", "repeat-parked"]
+    },
+    "root_cause": {
+      "enum": ["punt-not-closed", "gap", "cycle", "spec-ambiguous-external", "other", null]
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

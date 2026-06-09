@@ -345,7 +345,7 @@ The four terminal tokens and the ledger-bucket mapping are **unchanged**; `disco
 
 **Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-open-for-human`→`pr-open`**, `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
 
-Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX.md`).
+Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX.md`). The standalone narrative `HHMMSS-graft-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/graft.md` resume artifact is hard floor and written regardless.
 
 ## Notes
 - Don't ask for confirmation before creating the worktree — the user said the issue ID, that's the intent.

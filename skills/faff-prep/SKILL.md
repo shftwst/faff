@@ -79,7 +79,7 @@ The clean-context review of a freshly drafted spec — dispatching a fresh-conte
 What prep still owns around the producer's output:
 
 - **Marker validation** against the `spec_adaptor` slot before attach (autonomous failure → park; interactive → add the missing marker).
-- **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it.
+- **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it. The narrative `HHMMSS-prep-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/prep.md` resume artifact is hard floor and written regardless.
 - **The confidence gate** (`high` → promote; `medium` → attach + retain; `low` → park), applied to whatever rating the producer returns.
 
 **Refresh exemption.** On the stale-refresh path (Path 1 in autonomous), prep refreshes an already-vetted spec itself rather than re-invoking the producer — a scoped, annotated change, not a whole-cloth redraft — so the producer's self-review does not re-fire. If a refresh would require a whole-cloth redraft, prep re-invokes the producer (which self-reviews) instead.

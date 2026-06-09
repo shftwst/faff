@@ -53,27 +53,34 @@ reason: [required for not-ready and failed; omit or empty for shipped]
 
 When a delegated (third-party) producer emits something other than this envelope — a raw `gh` exit code, a deploy tool's JSON, a log tail — the adaptor's translation job is to map its native output onto an `outcome:` line + reason, picking the outcome that honours the fixed semantics and coercion direction above. A clean merge/deploy exit → `shipped`; a precondition the producer refused to merge past → `not-ready:<reason>`; an error, a non-zero exit, a timeout, or an unconfirmable result → `failed:<reason>`.
 
-## Validate
+## Validate — wired to the contract script (FAFF-79)
 
-Run when adapting a delegated producer's result, or on demand against any delivery result.
+Validation is **conformance by construction** (FAFF-21): this adaptor does **not** prose-check the envelope. It **extracts** the producer's native delivery result into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract delivery-outcome` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
 
-**Checks:**
+**The split (the translation seam):**
 
-1. A parseable `outcome:` line exists and is exactly one of `shipped` / `not-ready` / `failed`.
-2. `not-ready` / `failed` carry a non-empty `reason:`.
-3. No `shipped` outcome that the producer's native result doesn't actually corroborate (a success claim with no merge/deploy confirmation is not `shipped`).
+- **This adaptor (extraction — the translation judgement):** read the producer's native result (a `gh` exit, deploy-tool JSON, a log tail) into an **extraction JSON** —
+  ```
+  { "outcome": "<verbatim shipped|not-ready|failed, or whatever the producer emitted>",
+    "reason": "<short cause; may be empty>",
+    "corroborated": <bool — does the native result actually confirm a merge/deploy> }
+  ```
+  Mapping a foreign deploy tool's output onto a candidate outcome + reason + corroboration is the adaptor's job.
+- **The contract script (all conformance computation — deterministic):** validates `outcome` against the closed enum and, when it isn't one of the three, **coerces to `failed`** (never `shipped` — the safe target, FAFF-76 Decision 3); coerces an `outcome:shipped` with `corroborated:false` to `failed` (an unconfirmed success is not shipped); flags `not-ready`/`failed` with no reason; emits the canonical contract data. It **fails loud** only on an unparseable extraction (an un-readable result still coerces to `failed`, never a phantom `shipped`).
 
-**Output:**
+**Invocation + signal mapping:**
 
 ```
-signal: pass | fail
-
-## Violations
-### [rule]: [where]
-[what's wrong] → [the fix]
+echo '<extraction JSON>' | faff contract delivery-outcome
 ```
 
-`pass` when no violation fires. On a malformed result that can't be coerced, the safe normalisation is `failed:<reason>` with the raw output attached as the reason — **never** silently `shipped`.
+| Script exit | Meaning |
+|---|---|
+| 0 | conformant: `conformant:true`, `violations:[]` (the script's stdout) |
+| 1 | non-conformant (incl. coerced-to-`failed`): `violations` name the cause |
+| 2 | fail-loud: the extraction is unparseable / not an object |
+
+The contract data faff-graft Step 10 routes on is **the script's stdout, verbatim**. The **two-tier gate** (the non-delegable integrity floor + the producer's deploy-readiness tier) is gateway/graft semantics — the script neither runs nor weakens it.
 
 ## Rules
 

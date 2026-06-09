@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/spec-readiness",
+  "title": "spec-readiness contract data",
+  "description": "Reference schema (FAFF-76). The SHAPE of the structured contract data the pipeline branches on for the spec-readiness contract. Shape is normative here; SEMANTICS (what each value means for promotion) live in the gateway prose — see ADR 0001, Decision 4.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["confidence", "decisions", "markers_valid", "violations"],
+  "properties": {
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["classification"],
+        "properties": {
+          "classification": {
+            "type": "string",
+            "enum": ["closed", "open", "external"]
+          }
+        }
+      }
+    },
+    "markers_valid": { "type": "boolean" },
+    "violations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

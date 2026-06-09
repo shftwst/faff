@@ -57,6 +57,21 @@ Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed
 
 When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation is delegated to the `spec_adaptor` slot and runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
 
+### Provenance stamp (populate at attach)
+
+The `spec_adaptor` slot (default `faffidavit-spec`) owns the **provenance stamp** — its exact format, placement, and validation (see `faffidavit-spec/SKILL.md` → _Provenance stamp_, the owner of the format; not duplicated here). **prep populates its values.** At every spec-attach point — and **before** marker validation and attach — write the stamp line into the spec body, directly under the H1 title:
+
+- `producer := faff config get slots.spec -d faffter-noon-spec`
+- `adaptor := faff config get slots.spec_adaptor -d faffidavit-spec`
+- `date := today` (ISO `YYYY-MM-DD`)
+- `mode := autonomous` when running under the autonomous-mode signal (gateway → **Autonomous Mode Contract**), else `interactive`
+
+Resolve `producer` and `adaptor` **via the `faff config get` CLI only** — never hand-read the rc file. Insert the blockquote line per the adaptor's format directly beneath the `# …` heading. The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date` and the currently-resolved `producer`/`adaptor` (so a config drift since the last spec shows up in the stamp).
+
+**Git-only mode.** The stamp is written into `.faff/specs/<issue-id>.md` (where the spec body lives in tracker-less mode). When no tracker resolves, drop the stamp's trailing "Full spec on …" sentence per the adaptor's git-only rule.
+
+This runs on **all** attach paths: Scenario A fresh-spec (Step 2), Scenario B refresh/iterate, and both autonomous paths (Path 1 stale-refresh re-stamps with fresh date + current config; Path 2 fresh-spec stamps the just-produced spec).
+
 ## Spec quality bar (owned by the producer)
 
 The clean-context review of a freshly drafted spec — dispatching a fresh-context subagent to verify every claim against the codebase before the spec is trusted — is the **producer's** responsibility, not prep's. The gateway makes a delegated `spec` skill responsible for its own quality bar; the default producer discharges it via its own _Self-review before returning_ step (see `faffter-noon-spec/SKILL.md`), which runs for every fresh spec regardless of size, applies the same `blocker`/`major`/`minor` severities, and enforces the self-rating downgrade rule (≥1 blocker or ≥3 major → can't self-rate `high`). prep does not re-run that review — it trusts the producer's self-rating and the markers, then applies its own gates below.
@@ -132,7 +147,7 @@ Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) —
 
 Invoke the configured/default `spec` skill (default `faffter-noon-spec`) with the issue context and explore findings. The producer runs its own clean-context self-review and returns the spec body, that review's findings, and a `confidence:` self-rating. Read its output, attach the content to the issue as a comment, and clean up any local file the producer wrote.
 
-Run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**. Log the producer's returned review findings + resolutions to the prep log.
+**Write the provenance stamp under the H1 first** (see _Provenance stamp (populate at attach)_ above; `mode := interactive` here), then run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**. Log the producer's returned review findings + resolutions to the prep log.
 
 **→ Immediately attach spec to the issue as a comment.**
 - If the spec surfaced that the issue should be split, recommend the split
@@ -258,7 +273,7 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **validate per the _spec contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 
@@ -272,7 +287,7 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 
-**Step 3 — validate and gate the spec.** Run marker validation per the _spec contract_. The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
+**Step 3 — validate and gate the spec.** **Write the provenance stamp under the H1 first** (`mode := autonomous`; see _Provenance stamp (populate at attach)_ above), then run marker validation per the _spec contract_. The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
 
 - `high` — every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` escalates a genuine product/architecture question, the ACs are concrete and testable, and the self-review surfaced no `blocker` / fewer than 3 `major`.
 - `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.

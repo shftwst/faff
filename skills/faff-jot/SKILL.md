@@ -96,7 +96,7 @@ Framed narrowly it extends jot's intake identity (jot already owns the human↔p
    - ticket **not** held → offer **freeze**: "FAFF-XX is active — freeze it out of automation? (y/n)"
    - ticket **held** → offer **thaw**: "FAFF-XX is held — lift the hold? (y/n)"
 3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate):
-   - **freeze** → add the `faff-automation-hold` label (gateway → **Automation hold**; ensure the label exists first, gateway → **Control-label provisioning**), optionally with a one-line reason comment.
+   - **freeze** → add the `faff-automation-hold` label (gateway → **Automation eligibility**; ensure the label exists first, gateway → **Control-label provisioning**), optionally with a one-line reason comment. (The freeze/thaw → promote/demote rename over `faff-automate` is tracked by FAFF-98; freeze still applies the hard-stop hold label, which remains valid.)
    - **thaw** → remove the `faff-automation-hold` label. **Thaw does not auto-promote** — the ticket simply rejoins normal eligibility on the next pass.
    - **Edge cases (no-op + inform):** freeze of an already-held ticket → no-op, say so; thaw of a never-held ticket → no-op, say so.
 4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.
@@ -126,7 +126,7 @@ When no tracker MCP is available (gateway → Configuration), there are no ticke
 
 If `/faff-jot` is somehow invoked in autonomous mode, it produces the discovery brief and shaped-ticket proposal, writes them to `.faff/intake/…`, and surfaces them for human review rather than creating tickets unattended. It never auto-creates a project or backlog without a human confirming the shape.
 
-The **existing-ticket interactor** (`/faff-jot ISSUE-XX`) is likewise **interactive-only** — freeze/thaw is a human steering decision, and release of a hold is always human-gated (gateway → **Automation hold**), so there is no autonomous path to it.
+The **existing-ticket interactor** (`/faff-jot ISSUE-XX`) is likewise **interactive-only** — freeze/thaw is a human steering decision, and changing a ticket's automation eligibility is always human-gated (gateway → **Automation eligibility**), so there is no autonomous path to it.
 
 ## Appetite
 

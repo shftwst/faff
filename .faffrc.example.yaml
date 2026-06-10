@@ -74,6 +74,13 @@ logging: full # full | essential
 # or irreversible. The hard floor (irreversible side-effects, review gate) still holds.
 appetite: high
 
+# Automation eligibility default for an UNLABELLED ticket (see gateway → Automation
+# eligibility). opt-in (default, fail-safe): nothing is touched by the autonomous
+# pipeline unless a human adds the faff-automate label — a forgotten label means
+# "left alone". opt-out: unlabelled tickets are eligible (legacy behaviour); add
+# faff-automation-hold to hard-exclude. faff-automation-hold always wins regardless.
+automation_default: opt-in   # opt-in | opt-out
+
 # faffter-dark: LLM provider config for adversarial review.
 # Used by the faffter-dark-adversarial-review skill (when set as the review slot).
 faffter_dark:

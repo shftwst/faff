@@ -8,7 +8,8 @@
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //   labels [--names]                              print the canonical faff control-label manifest
-//   next --status S --spec ... [--held|--parked|--blocked]   legal next step (JSON); --selftest
+//   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: automation-eligible? (true/false); --selftest
+//   next --status S --spec ... [--not-eligible|--parked|--blocked]   legal next step (JSON); --selftest (--held: deprecated alias)
 //   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state as JSON (no MCP)
 //   gitignore-ensure [--root DIR] [--json]        idempotently add faff's local artifacts to .gitignore
 //
@@ -978,8 +979,10 @@ function cmdValidateAdapters(args) {
 // tracker MCP using this manifest (gateway -> Control-label provisioning).
 // ===========================================================================
 const CONTROL_LABELS = [
+  { name: "faff-automate", color: "#6fcf97",
+    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). Under the default opt-in posture, absence = not automatable. Removing it demotes the ticket back to hands-off." },
   { name: "faff-automation-hold", color: "#5e6ad2",
-    description: "Human-set hold: keep this ticket out of the autonomous faff pipeline (no auto-spec/promote/build) until a human removes the label. Visible to read skills." },
+    description: "Human-set hard exclude: NEVER automate this ticket, even if it also carries faff-automate. Highest precedence in the eligibility model. Visible to read skills." },
   { name: "faff-parked", color: "#e8a33d",
     description: "Issue parked by an autonomous faff run. Check the issue comments for the park reason. Surfaced by /faff-wtf." },
   { name: "faff-jot-intake", color: "#4ea7fc",
@@ -998,6 +1001,58 @@ function cmdLabels(args) {
 }
 
 // ===========================================================================
+// eligible — FAFF-61: the automation-eligibility function. PURE: resolves whether
+// a ticket may be touched by the AUTONOMOUS pipeline, from its labels + the
+// configured `automation_default` knob. Precedence: hard-exclude > include > default.
+// Fail-safe: the shipped default is opt-in, so an unlabelled ticket is NOT eligible,
+// and any non-"opt-out" default value coerces to opt-in. Read-only skills never gate
+// on this. The agent calls this (passing the issue's labels + `faff config get
+// automation_default -d opt-in`) and feeds the result to `faff next` as --not-eligible.
+// ===========================================================================
+function automationEligible(labels, automationDefault) {
+  const set = new Set(labels);
+  if (set.has("faff-automation-hold")) return false; // hard exclude wins, always
+  if (set.has("faff-automate")) return true;         // explicit include
+  return automationDefault === "opt-out";            // unlabelled ⇒ follow the knob (default opt-in ⇒ false)
+}
+
+const ELIGIBLE_CASES = [
+  [[["faff-automation-hold"], "opt-out"], false],               // hold wins even under opt-out
+  [[["faff-automation-hold", "faff-automate"], "opt-in"], false],// both present ⇒ hold wins
+  [[["faff-automate"], "opt-in"], true],                        // explicit include
+  [[[], "opt-in"], false],                                      // unlabelled + opt-in ⇒ ineligible (fail-safe)
+  [[[], "opt-out"], true],                                      // unlabelled + opt-out ⇒ eligible (legacy)
+  [[[], "garbage"], false],                                     // invalid default coerces to opt-in (fail-safe)
+];
+
+function runEligibleCases() {
+  let fail = 0;
+  for (const [[labels, def], want] of ELIGIBLE_CASES) {
+    const got = automationEligible(labels, def);
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} labels=[${labels.join(",")}] default=${def} → ${got} (want ${want})`);
+  }
+  return fail;
+}
+
+function eligibleSelftest() {
+  const fail = runEligibleCases();
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${ELIGIBLE_CASES.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+function cmdEligible(args) {
+  if (args.includes("--selftest")) return eligibleSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const labels = [];
+  for (let i = 0; i < args.length; i++) if (args[i] === "--label") labels.push(args[++i]);
+  const def = (get("--default") || "opt-in").toLowerCase();
+  console.log(String(automationEligible(labels, def)));
+  return 0;
+}
+
+// ===========================================================================
 // next — FAFF-63: the legal-next-step transition function. PURE: the caller
 // passes the issue's resolved state (the CLI has no tracker/MCP access); it
 // computes the step. It NEVER executes the step or enforces the gate (FAFF-57).
@@ -1005,12 +1060,12 @@ function cmdLabels(args) {
 const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
 const NEXT_SPECS = ["none", "low", "medium", "high"];
 
-function nextStep({ status, spec, held, parked, blocked }) {
+function nextStep({ status, spec, eligible, parked, blocked }) {
   if (!NEXT_STATUSES.includes(status)) return ["error", `unknown --status '${status}'`];
   if (!NEXT_SPECS.includes(spec)) return ["error", `unknown --spec '${spec}'`];
   if (status === "cancelled" || status === "duplicate") return ["none", "cancelled/duplicate — ignored"];
   if (status === "done") return ["done", "complete"];
-  if (held) return ["skip-held", "automation-hold — human releases"];
+  if (!eligible) return ["skip-ineligible", "not automation-eligible — human blesses (faff-automate)"];
   if (parked) return ["needs-human", "parked — human decision"];
   if (spec === "none") return ["prep", "no spec — needs prep"];
   if (spec === "low") return ["needs-human", "low-confidence spec"];
@@ -1020,14 +1075,15 @@ function nextStep({ status, spec, held, parked, blocked }) {
 }
 
 function nextSelftest() {
-  const C = (status, spec, x = {}) => ({ status, spec, held: !!x.held, parked: !!x.parked, blocked: !!x.blocked });
+  // eligible defaults true; pass { eligible: false } to model a not-automation-eligible ticket.
+  const C = (status, spec, x = {}) => ({ status, spec, eligible: x.eligible !== false, parked: !!x.parked, blocked: !!x.blocked });
   const cases = [
     [C("cancelled", "high"), "none"],
     [C("duplicate", "none"), "none"],
     [C("done", "high"), "done"],
-    [C("done", "none", { held: true }), "done"],      // terminal beats held
-    [C("todo", "high", { held: true }), "skip-held"],
-    [C("backlog", "none", { held: true }), "skip-held"],
+    [C("done", "none", { eligible: false }), "done"],      // terminal beats ineligible
+    [C("todo", "high", { eligible: false }), "skip-ineligible"],
+    [C("backlog", "none", { eligible: false }), "skip-ineligible"],
     [C("todo", "high", { parked: true }), "needs-human"],
     [C("backlog", "none"), "prep"],
     [C("todo", "none"), "prep"],
@@ -1047,17 +1103,24 @@ function nextSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} ${JSON.stringify(inp)} → ${got} (want ${want})`);
   }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} cases, ${fail} failed)`);
+  // FAFF-61: the automation-eligibility truth table (hold > automate > default) feeding the --not-eligible flag.
+  console.log("\n-- automation_eligible(labels, default) --");
+  fail += runEligibleCases();
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${cases.length} transition cases + eligibility table, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 function cmdNext(args) {
   if (args.includes("--selftest")) return nextSelftest();
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  // FAFF-61: eligibility replaces the old --held flag. Default eligible (proceed);
+  // --not-eligible marks a ticket the autonomous pipeline must skip. `--held` is kept
+  // as a deprecated, fail-safe alias of --not-eligible (a held ticket is never eligible),
+  // so an un-migrated caller still skips rather than silently proceeding.
   const state = {
     status: (get("--status") || "").toLowerCase(),
     spec: (get("--spec") || "none").toLowerCase(),
-    held: args.includes("--held"),
+    eligible: !(args.includes("--not-eligible") || args.includes("--held")),
     parked: args.includes("--parked"),
     blocked: args.includes("--blocked"),
   };
@@ -1222,7 +1285,7 @@ function cmdState(args) {
     status: "unknown",        // tracker-only — agent fills authoritatively
     spec,
     spec_source,
-    held: "unknown",          // tracker-only (faff-automation-hold label)
+    eligible: "unknown",      // tracker-only — agent computes via `faff eligible` from labels (faff-automate / faff-automation-hold) + automation_default
     parked,
     parked_source,
     blocked: "unknown",       // tracker-only (blockedBy relation)
@@ -1330,7 +1393,8 @@ Subcommands:
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
-  next --status S --spec none|low|medium|high [--held] [--parked] [--blocked]   legal next step (JSON {next,reason}); --selftest runs the table
+  eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
+  next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked]   legal next step (JSON {next,reason}); --selftest runs the table (--held is a deprecated alias of --not-eligible)
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
@@ -1637,6 +1701,7 @@ function main(argv) {
   if (sub === "runcheck") return cmdRuncheck(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
   if (sub === "labels") return cmdLabels(rest);
+  if (sub === "eligible") return cmdEligible(rest);
   if (sub === "next") return cmdNext(rest);
   if (sub === "state") return cmdState(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);

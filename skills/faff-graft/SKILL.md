@@ -133,9 +133,16 @@ Commit message: `docs(<issue-id>): add spec for <issue title>`
 
 This commit happens once. If the user re-runs graft on the same issue (existing worktree), skip this step.
 
-**Step 5: Move to In Progress**
+**Step 5: Claim the issue (In Progress) + status-monotonicity guard**
 
-If the issue is not already In Progress, transition it.
+The issue's **`In Progress` status is the claim** — the one coordination point every orchestrator shares (gateway → **Issue claim & status monotonicity**), so two independent runs don't build it at once. Re-read the issue's **live** status (not a Step-1 snapshot), then:
+
+- If it is already `In Progress` / `In Review` / `Done`, or its PR is merged → a peer is building it, or it's done → **stop**. Interactive: tell the user "another run is already building <issue> — not starting a second build". Autonomous: skip it as `claimed-by-peer` (a skip, never a park).
+- Else transition it `→ In Progress`. That is the claim.
+
+Do this read-and-claim **before creating the worktree (Step 3)** where practical, so a peer-owned issue is skipped without provisioning a worktree. (On a re-entered existing worktree the issue is already `In Progress` — a no-op.)
+
+**Status-monotonicity guard (binds every status write from here on).** Rank statuses `Backlog < Todo < In Progress < In Review < Done`. Only ever move status **forward by rank**; **never** move an issue out of `Done` / `In Review` back to `In Progress` — that backward write is the FAFF-7 corruption and is forbidden. The claim is never "released" by reverting status — it advances forward to `In Review` / `Done`. This is best-effort (the tracker has no compare-and-set); a tight simultaneous race costs at most a duplicate build, caught at merge by rebase-before-merge — never corruption.
 
 **Step 6: Present spec and choose path**
 
@@ -235,7 +242,7 @@ Merge happens only when **all** conditions hold:
 
 **Decision:**
 
-- **All three hold (integrity floor passed):** these three conditions *are* the integrity floor — assert them here; this floor is **non-delegable** and is never re-run or weakened inside the `ship` producer or its adaptor. Then hand off to the `ship` producer (configured occupant, or the default `faffter-noon-ship`, which runs `gh pr merge`); map its native result through `ship_adaptor` (default `faffidavit-ship`) to the fixed delivery outcome, and **route on that** (a result the adaptor can't map coerces to `failed`, never `shipped` — gateway → _Delivery outcome_):
+- **All three hold (integrity floor passed):** these three conditions *are* the integrity floor — assert them here; this floor is **non-delegable** and is never re-run or weakened inside the `ship` producer or its adaptor. **Re-read the issue's live status / PR state immediately before the ship handoff** (multi-orchestrator safety — gateway → **Issue claim & status monotonicity**): if the PR is **already merged** or a peer has advanced the issue to `Done`, do **not** double-merge and do **not** revert — treat it as an already-shipped no-op. Otherwise hand off to the `ship` producer (configured occupant, or the default `faffter-noon-ship`, which runs `gh pr merge`); map its native result through `ship_adaptor` (default `faffidavit-ship`) to the fixed delivery outcome, and **route on that** (a result the adaptor can't map coerces to `failed`, never `shipped` — gateway → _Delivery outcome_):
   - `shipped` → merged/deployed. The worktree becomes eligible for cleanup (housekeeping, per gateway → **Worktree policy**) — the `ship` producer never touches it. Chained issues unblock. Done.
   - `not-ready:<reason>` → the merge was deferred **without merging** — either the producer's deploy-readiness tier (only a deploy-capable producer yields this; the default never does) **or** a mechanical **delivery-precondition** block (`not-ready:precondition:<kind>` — push / token-scope / merge-method / actions-policy; the default *does* yield this). Leave the PR open and mergeable, record the reason, and park as **retry-later** — not a defect, not `needs-human`. For a `precondition:<kind>` reason, **surface the specific blocker + `remedy:` in the park comment** so the operator can apply the one-time fix and re-invoke `/faff-graft` to resume.
   - `failed:<reason>` → merge conflict or deploy error (or an unmappable result coerced to `failed`). Treat as a post-build failure: autonomous → one fix attempt if obvious from the error, else park; interactive → surface and ask per Step 11.

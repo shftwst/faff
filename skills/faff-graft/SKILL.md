@@ -228,7 +228,7 @@ While building and reviewing, graft often surfaces **concrete, separable work th
 Merge happens only when **all** conditions hold:
 
 1. Every AC has a passing automated verification (Step 8 — all boxes that can be auto-ticked, are)
-2. CI is green — **`ci-green`, not merely "not red"**. Evaluating the CI condition yields one of three results: `ci-green` (≥1 applicable check ran and all passed → satisfied), `ci-red` (≥1 applicable check failed → the **CI failed** branch below), or **`no-ci-coverage`** (the applicable-checks set is *empty* → the **No CI coverage** branch below). An empty check set is **not** green — see _How to actually wait for CI_ for detecting it.
+2. CI is green — **`ci-green`, not merely "not red"**. Evaluating the CI condition yields one of three results: `ci-green` (≥1 applicable check ran and all passed → satisfied), `ci-red` (≥1 applicable check failed → the **CI failed** branch below), or **`no-ci-coverage`** (the applicable-checks set is *empty* → the **No CI coverage** branch below). An empty check set is **not** green — see _Classifying the CI result_ for detecting it.
 3. Review step (Step 9) returned `pass`
 
 **Decision:**

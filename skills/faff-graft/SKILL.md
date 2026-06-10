@@ -228,7 +228,7 @@ While building and reviewing, graft often surfaces **concrete, separable work th
 Merge happens only when **all** conditions hold:
 
 1. Every AC has a passing automated verification (Step 8 — all boxes that can be auto-ticked, are)
-2. CI is green
+2. CI is green — **`ci-green`, not merely "not red"**. Evaluating the CI condition yields one of three results: `ci-green` (≥1 applicable check ran and all passed → satisfied), `ci-red` (≥1 applicable check failed → the **CI failed** branch below), or **`no-ci-coverage`** (the applicable-checks set is *empty* → the **No CI coverage** branch below). An empty check set is **not** green — see _How to actually wait for CI_ for detecting it.
 3. Review step (Step 9) returned `pass`
 
 **Decision:**
@@ -240,7 +240,12 @@ Merge happens only when **all** conditions hold:
   - **Under concurrent execution** (the `faffter-dark-concurrency-parallel` executor): merges are serialised and rebase-revalidated — before handing to the `ship` producer, rebase (or merge `main`) onto the PR branch and **re-confirm CI green on the rebased head**. A green that predates `main` moving is stale and must not merge. See that skill's _Rebase-before-merge_. (Sequential execution needs no rebase — each build already sees the prior merge.)
 - **Review returned `fail`:** iterate autonomously (fix flagged items, re-run tests, re-run review). This is not a park — it's a loop.
 - **Review returned `needs-human`:** flip PR to draft, park per the shared protocol. Leave the PR open with the AC checklist, review comment, and CI status visible.
-- **CI failed:** first separate a flaky/infra failure from a real defect — **re-run the failed checks once** with no code change (re-trigger, then `gh pr checks <pr> --watch`). If they pass on the clean re-run, it was transient: proceed to the merge gate and **do not** spend the autonomous fix attempt on it. If they fail the same way again, it's real: in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11. (Persistent infra failures unrelated to the diff — runner outages, missing secrets — park as `errored`, not as a code defect.)
+- **CI failed (`ci-red`):** first separate a flaky/infra failure from a real defect — **re-run the failed checks once** with no code change (re-trigger, then `gh pr checks <pr> --watch`). If they pass on the clean re-run, it was transient: proceed to the merge gate and **do not** spend the autonomous fix attempt on it. If they fail the same way again, it's real: in autonomous mode, one iteration attempt (if the failure looks fixable from the logs); otherwise park. In interactive mode, ask per Step 11. (Persistent infra failures unrelated to the diff — runner outages, missing secrets — park as `errored`, not as a code defect.)
+- **No CI coverage (`no-ci-coverage`):** the applicable-checks set is **empty** — no PR-triggered check ran (config/workflow/docs-only diff, or a repo with no CI for the changed paths). This is **not** a green: the floor's CI condition is *not* satisfied, so the gate must **not** hand off to the `ship` producer on the strength of an absent check set. Surface it **loudly**, naming the gap explicitly ("No applicable CI ran on this PR (zero checks). CI-green could not be established; the diff was NOT validated pre-merge."), then route by mode:
+  - **Autonomous:** do **not** merge. Flip the PR to draft and park `needs-human` per the shared protocol (attach the AC checklist, review comment, and the `no-ci-coverage` reason); return `pr-open-for-human`. Log the decision so `/faff-wtf` surfaces it.
+  - **Interactive:** require an **explicit** confirm distinct from the normal "merge now?" — yes/no "No CI validated this PR pre-merge. Merge anyway on your own judgement? (y/n)". On confirm, the present human *is* the gate: proceed to the `ship` handoff. On deny, leave the PR open.
+  - **Post-merge-only validation** (a diff whose only check is push/merge-triggered, e.g. a new `on: push` workflow or release pipeline) is a **sub-case** of `no-ci-coverage`: annotate the reason `no-ci-coverage: validation is post-merge-only` and route identically — it gets **no** merge-eligible fast-path (a separate auto-merge lane for push-triggered diffs is exactly the FAFF-1 hole).
+  - **Re-run** does not apply here (there is nothing to re-run); the flaky-re-run path above is for `ci-red` only.
 
 In **interactive mode**, this gate fires when the user confirms "merge now" at post-PR time (Step 11). In **autonomous mode**, it fires automatically at the end of the build flow.
 
@@ -273,6 +278,20 @@ Forbidden patterns:
 
 If a CI wait is taking long enough that blocking the turn feels wasteful, **prefer the explicit handoff** over a fake promise. Surprising the user with silence is worse than telling them you're stopping.
 
+### Classifying the CI result (the three-way evaluation)
+
+Once the wait resolves to a terminal state, classify the result into the `ci-green` / `ci-red` / `no-ci-coverage` outcomes Step 10's condition #2 branches on. The empty-set case is the one the watch loop hides — `gh pr checks <pr>` exits **non-zero with "no checks reported on the … branch"** *both* when checks failed *and* when no checks exist, so the exit code alone cannot separate them:
+
+```
+1. Wait to a terminal state (gh pr checks <pr> --watch / the poll loop above).
+2. Read the rows with `gh pr checks <pr>` (or `gh pr checks <pr> --json` for a machine-readable set).
+   - ZERO check rows ("no checks reported") .................. no-ci-coverage   (NOT ci-red — there is nothing to re-run)
+   - >=1 row, all passing-terminal .......................... ci-green
+   - >=1 row, >=1 failing-terminal .......................... ci-red
+```
+
+**Branch on the observed row count, never on the exit code alone** — conflating "zero checks" with "checks failed" either masks the absence (the FAFF-1 vacuous-green bug) or wrongly drives a legitimately CI-less repo into the failure-iterate loop. Pending checks are resolved by step 1 before emptiness is evaluated, so "pending" never reads as empty; a set with ≥1 passing check plus `skipped`/`neutral` checks is `ci-green` (CI ran and is green), not `no-ci-coverage` (which requires the set to be genuinely empty). Under concurrent execution, a rebased head that yields an empty set is `no-ci-coverage`, not a stale-green pass.
+
 **Step 12: Post graft checks**
 
 After build is complete and PR has been raised:
@@ -299,8 +318,9 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - `fail` → iterate: fix flagged items, re-run tests, re-run review. Loop until `pass` or `needs-human` (cap at 3 iterations; if still `fail` after 3, treat as `needs-human`).
    - `needs-human` → flip PR to draft, park per the shared protocol. Return `pr-open-for-human`.
 6. Run Step 10 (merge-confidence gate) automatically:
-   - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), then on green hand off to the `ship` producer (configured occupant or the default `faffter-noon-ship`) and map its native result through `ship_adaptor` (default `faffidavit-ship`) to the delivery outcome, then to a caller-facing return: `shipped` → `shipped` (worktree eligible for cleanup, chained issues unblock); `not-ready:<reason>` → park retry-later, return `pr-open-for-human`; `failed:<reason>` (including an unmappable result coerced to `failed`) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
-   - **CI failed:** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
+   - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), classify the result per _Classifying the CI result_, then on `ci-green` hand off to the `ship` producer (configured occupant or the default `faffter-noon-ship`) and map its native result through `ship_adaptor` (default `faffidavit-ship`) to the delivery outcome, then to a caller-facing return: `shipped` → `shipped` (worktree eligible for cleanup, chained issues unblock); `not-ready:<reason>` → park retry-later, return `pr-open-for-human`; `failed:<reason>` (including an unmappable result coerced to `failed`) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
+   - **CI failed (`ci-red`):** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
+   - **No CI coverage (`no-ci-coverage`):** the applicable-checks set is empty — **not** a green. Do **not** hand off to the `ship` producer. Flip the PR to draft and park `needs-human` per the shared protocol (cause `no-ci-coverage`, plus `: validation is post-merge-only` when the only check is push/merge-triggered); return `pr-open-for-human`. Never auto-merge an empty check set.
 7. Any unrecoverable error → park and return `errored`.
 
 **Discovered scope** captured during Steps 7/9 stays in `.faff/runs/<run-id>/ISSUE-XX/discovered-scope.json` and is reported in the `discovered_scope` return field. graft **never files** it — beep-boop's file-discovered-scope step does, after the build pass (gateway → **Agent Lanes**). This is independent of the terminal outcome: a `shipped`, `pr-open-for-human`, or `parked` issue can all carry discovered scope.

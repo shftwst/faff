@@ -9,7 +9,7 @@
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //   labels [--names]                              print the canonical faff control-label manifest
 //   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: automation-eligible? (true/false); --selftest
-//   next --status S --spec ... [--not-eligible|--parked|--blocked]   legal next step (JSON); --selftest (--held: deprecated alias)
+//   next --status S --spec ... [--not-eligible|--parked|--blocked|--if-eligible]   legal next step (JSON); --selftest (--held: alias; --if-eligible: advisory hypothetical)
 //   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state as JSON (no MCP)
 //   gitignore-ensure [--root DIR] [--json]        idempotently add faff's local artifacts to .gitignore
 //
@@ -1060,12 +1060,15 @@ function cmdEligible(args) {
 const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
 const NEXT_SPECS = ["none", "low", "medium", "high"];
 
-function nextStep({ status, spec, eligible, parked, blocked }) {
+function nextStep({ status, spec, eligible, parked, blocked, ifEligible }) {
   if (!NEXT_STATUSES.includes(status)) return ["error", `unknown --status '${status}'`];
   if (!NEXT_SPECS.includes(spec)) return ["error", `unknown --spec '${spec}'`];
   if (status === "cancelled" || status === "duplicate") return ["none", "cancelled/duplicate — ignored"];
   if (status === "done") return ["done", "complete"];
-  if (!eligible) return ["skip-ineligible", "not automation-eligible — human blesses (faff-automate)"];
+  // FAFF-83: --if-eligible is advisory — when a not-eligible item carries it, bypass the
+  // skip-ineligible short-circuit and compute the hypothetical route it WOULD take if blessed.
+  // Terminal states (above) still win; the live skip-ineligible path is unchanged when the flag is absent.
+  if (!eligible && !ifEligible) return ["skip-ineligible", "not automation-eligible — human blesses (faff-automate)"];
   if (parked) return ["needs-human", "parked — human decision"];
   if (spec === "none") return ["prep", "no spec — needs prep"];
   if (spec === "low") return ["needs-human", "low-confidence spec"];
@@ -1076,7 +1079,7 @@ function nextStep({ status, spec, eligible, parked, blocked }) {
 
 function nextSelftest() {
   // eligible defaults true; pass { eligible: false } to model a not-automation-eligible ticket.
-  const C = (status, spec, x = {}) => ({ status, spec, eligible: x.eligible !== false, parked: !!x.parked, blocked: !!x.blocked });
+  const C = (status, spec, x = {}) => ({ status, spec, eligible: x.eligible !== false, parked: !!x.parked, blocked: !!x.blocked, ifEligible: !!x.ifEligible });
   const cases = [
     [C("cancelled", "high"), "none"],
     [C("duplicate", "none"), "none"],
@@ -1095,6 +1098,13 @@ function nextSelftest() {
     [C("in-progress", "high"), "graft"],
     [C("in-review", "high"), "graft"],
     [C("todo", "high", { blocked: true }), "blocked"], // blocked gates graft
+    // FAFF-83: --if-eligible bypasses the skip-ineligible short-circuit (advisory hypothetical)
+    [C("backlog", "none", { eligible: false, ifEligible: true }), "prep"],          // would-prep if blessed
+    [C("todo", "high", { eligible: false, ifEligible: true }), "graft"],            // would-graft if blessed
+    [C("todo", "medium", { eligible: false, ifEligible: true }), "needs-human"],    // would-need-human (medium)
+    [C("todo", "high", { eligible: false, ifEligible: true, blocked: true }), "blocked"], // would-be-blocked
+    [C("todo", "high", { ifEligible: true }), "graft"],                             // no-op when already eligible
+    [C("done", "none", { eligible: false, ifEligible: true }), "done"],             // terminal still wins
   ];
   let fail = 0;
   for (const [inp, want] of cases) {
@@ -1123,10 +1133,14 @@ function cmdNext(args) {
     eligible: !(args.includes("--not-eligible") || args.includes("--held")),
     parked: args.includes("--parked"),
     blocked: args.includes("--blocked"),
+    ifEligible: args.includes("--if-eligible"),   // FAFF-83: advisory hypothetical
   };
   const [next, reason] = nextStep(state);
   if (next === "error") { process.stderr.write(`faff next: ${reason}\n`); return 2; }
-  console.log(JSON.stringify({ next, reason }));
+  // would_be_eligible is set only when the hypothetical path was actually taken: the item is
+  // not eligible, --if-eligible bypassed the short-circuit, and it wasn't a terminal short-circuit.
+  const hypothetical = !state.eligible && state.ifEligible && !["cancelled", "duplicate", "done"].includes(state.status);
+  console.log(JSON.stringify(hypothetical ? { next, reason, would_be_eligible: true } : { next, reason }));
   return 0;
 }
 
@@ -1394,7 +1408,7 @@ Subcommands:
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
-  next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked]   legal next step (JSON {next,reason}); --selftest runs the table (--held is a deprecated alias of --not-eligible)
+  next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if blessed, adds would_be_eligible:true)
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table

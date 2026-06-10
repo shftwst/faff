@@ -119,6 +119,7 @@ slots:             # optional delegation slots; each has a faff default when uns
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
 logging: full                # full | essential — full (default) writes the per-invocation narrative log; essential silences it (the machine-consumed hard floor is always written; see .faff/ logging directory)
+automation_default: opt-in   # opt-in (default, fail-safe) | opt-out — eligibility for an UNLABELLED ticket (see Automation eligibility). opt-in ⇒ nothing is automatable without an explicit faff-automate label
 ```
 
 **Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
@@ -267,31 +268,49 @@ This widened definition fixes a real failure: a tidy run that suggests cancellin
 
 No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by graft, never counted in beep-boop queues.
 
-### Automation hold
+### Automation eligibility
 
-A human may **hold** a ticket out of the *autonomous* pipeline — keep it from being auto-specced, auto-promoted, or auto-built — while leaving it fully visible. This is for work captured but not yet validated ("on paper, way off building"), or work a human wants to keep as their own territory. The hold is **the human's steering input on the backlog**, set on the ticket in the tracker.
+Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, auto-promoted, or auto-built — is its **automation eligibility**. The default posture is **fail-safe opt-in** (FAFF-61): nothing is automatable unless a human explicitly blesses it, so a forgotten label means "left alone," never "picked up." A human steers the backlog with two labels plus one config knob; read/report skills are never gated by eligibility.
 
-**The marker.** A tracker **label**, default `faff-automation-hold`. It is *orthogonal to status* — a held issue keeps whatever status it has (typically `Backlog`); the label, not the status, carries the hold. (faff already uses labels as control signals: `faff-jot-intake` for prep pickup, `faff-parked` for parks.) An issue is **held** iff it carries this label.
+**The two control labels + the knob.**
 
-> **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
+- `faff-automate` — explicit **include**: this ticket may be picked up by the autonomous pipeline.
+- `faff-automation-hold` — explicit **hard exclude**: never automate this ticket, even if it also carries `faff-automate`. (For work captured but not yet validated — "on paper, way off building" — or a human's own territory.)
+- `automation_default` (`.faffrc`, `opt-in | opt-out`, **ships `opt-in`**) — decides an **unlabelled** ticket. Read via `faff config get automation_default -d opt-in`.
 
-**Two-tier, not invisible — the key difference from cancelled/archived.** Cancelled/archived items are invisible everywhere. Held items are the opposite on the read side: they remain **fully visible** to read/report skills (`/faff-wtf`, `/faff-map`, counts, diagnostics) — they are only **skipped by autonomous action**.
+Labels are *orthogonal to status* — they ride on whatever status the ticket has. The eligibility decision is the pure function `automation_eligible(labels, automation_default)` (the CLI's `faff eligible` / its `--selftest`):
 
-**Enforcement is by chokepoint, not by enumerating call-sites.** All autonomous spec/promote/build flows through three skills; each checks the hold, so coverage is complete by construction:
+```
+faff-automation-hold present → NOT eligible   (hard exclude wins, always)
+faff-automate present        → eligible        (explicit include)
+neither                      → (automation_default == "opt-out")   (default opt-in ⇒ NOT eligible)
+```
 
-- **prep and tidy** are the only skills that autonomously spec or promote (`/faff-beep-boop` "does no tracker state moves of its own" — see its Wave re-entry). Neither auto-specs, auto-refreshes, nor promotes a held issue. Because the only path into the build queue is via `Todo`, and the only path into `Todo` is prep/tidy, **a held issue can never reach the build queue.**
-- **graft** is the only skill that autonomously builds. Autonomous graft refuses to build a held issue — the build backstop.
-- **Any queue-side filtering in `/faff-beep-boop`** (skipping held items at queue assembly / wave re-entry) is a non-load-bearing **efficiency early-exit** — it avoids wasting a prep/verdict invocation, but is not the guarantee. Held items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
+Precedence: **hard-exclude > include > default.** Any `automation_default` value other than `opt-out` coerces to opt-in (fail-safe).
 
-**Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` a held issue; those skills proceed, emitting a "this ticket is held" warning, and **never auto-remove the hold**.
+> **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automate`, `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
 
-**Release is human-gated, multi-path.** Removing the `faff-automation-hold` label in the tracker always works (the irreducible control-surface baseline). faff may also offer to lift it, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`'s lift-hold, or `/faff-prep`'s held-ticket lift gate after a spec is attached). **No autonomous path ever removes the label** — otherwise the hold is no guard. Removing it does not auto-promote; the issue simply rejoins normal eligibility on the next pass.
+**Two-tier, not invisible — the key difference from cancelled/archived.** Cancelled/archived items are invisible everywhere. Not-automation-eligible items are the opposite on the read side: they remain **fully visible** to read/report skills (`/faff-wtf`, `/faff-map`, counts, diagnostics) — they are only **skipped by autonomous action**.
 
-**Held ≠ parked.** `faff-parked` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); `faff-automation-hold` is a *pre-emptive human* block with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
+**Enforcement is by chokepoint, not by enumerating call-sites.** All autonomous spec/promote/build flows through three skills; each checks eligibility, so coverage is complete by construction:
 
-**Surfacing (so held work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing held issues (separate from *Parked work*). Interactive `/faff-tidy` offers to lift the hold; autonomous passes only list, never lift.
+- **prep and tidy** are the only skills that autonomously spec or promote (`/faff-beep-boop` "does no tracker state moves of its own" — see its Wave re-entry). Neither auto-specs, auto-refreshes, nor promotes a **not-eligible** issue. Because the only path into the build queue is via `Todo`, and the only path into `Todo` is prep/tidy, **a not-eligible issue can never reach the build queue.**
+- **graft** is the only skill that autonomously builds. Autonomous graft refuses to build a not-eligible issue — the build backstop.
+- **Any queue-side filtering in `/faff-beep-boop`** (skipping not-eligible items at queue assembly / wave re-entry) is a non-load-bearing **efficiency early-exit** — it avoids wasting a prep/verdict invocation, but is not the guarantee. Items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
 
-**Git-only mode (no tracker).** With no tracker there is no label to carry the hold, so the hold check is a **no-op** and the feature is effectively unavailable — consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate).
+Each chokepoint computes eligibility (resolve the issue's labels + `automation_default`, via `faff eligible`) and, when consulting `faff next` (gateway → **Next-step transition**), passes `--not-eligible` for a not-eligible issue. `faff next` returns `skip-ineligible`.
+
+**Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` any ticket regardless of eligibility; those skills proceed (emitting a "not automation-eligible" note when relevant) and **never auto-bless or auto-exclude** (they never add/remove `faff-automate` or `faff-automation-hold`).
+
+**Release / blessing is human-gated, multi-path.** Adding `faff-automate` (promote) or removing it (demote), and adding/removing `faff-automation-hold` (the hard-stop control), always work in the tracker (the irreducible control-surface baseline). faff may **offer** to promote/demote, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`'s bless/unbless, or `/faff-prep`'s held-ticket lift gate after a spec is attached). **No autonomous path ever adds `faff-automate` or removes `faff-automation-hold`** — otherwise the guard is no guard. Blessing does not auto-promote to `Todo`; the issue simply rejoins normal eligibility on the next pass. *(The `/faff-jot` freeze/thaw → promote/demote rename is tracked separately by FAFF-98.)*
+
+**Not-eligible ≠ parked.** `faff-parked` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); ineligibility is a *pre-emptive human* posture with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
+
+**Surfacing (so held-back work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing not-automation-eligible issues that a human may want to bless (separate from *Parked work*). Interactive `/faff-tidy` offers to bless/unbless; autonomous passes only list, never mutate the labels.
+
+**Migration (FAFF-61).** No migration of existing `faff-automation-hold` tickets is needed: under the shipped `opt-in` default they are already not-eligible (no `faff-automate`), so the holds are redundant-but-harmless hard stops and keep working unchanged. Setting `automation_default: opt-out` restores the legacy opt-out behaviour exactly.
+
+**Git-only mode (no tracker).** With no tracker there are no labels, so eligibility resolves purely from `automation_default` — `opt-in` (the default) means the autonomous surface is off by default, consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate). Setting `automation_default: opt-out` turns it on.
 
 ### Work-ordering rule (priority → chainable unlock value)
 
@@ -309,14 +328,14 @@ The single canonical answer to *"what's the legal next step for this issue?"* is
 **The agent maps fetched tracker state → the flags, then calls the function** (the agent already reads all of these per the **Always pull fresh** rule — this adds no new fetch):
 
 ```
-faff next --status <S> --spec none|low|medium|high [--held] [--parked] [--blocked]
+faff next --status <S> --spec none|low|medium|high [--not-eligible] [--parked] [--blocked]
 ```
 
 - `--status` ← the issue's tracker state, mapped to `backlog|todo|in-progress|in-review|done|cancelled|duplicate`.
 - `--spec` ← the **Spec discovery** result: `none` when no spec exists, else the spec's retained `confidence` rating (`low|medium|high`).
-- `--held` ← the `faff-automation-hold` label. `--parked` ← the `faff-parked` label. `--blocked` ← any open **external** blocker (in-queue dependencies are **not** `--blocked` — they are serialised by faff-beep-boop's conflict analysis).
+- `--not-eligible` ← the issue is **not automation-eligible** (gateway → **Automation eligibility**): the agent computes `faff eligible` from the issue's labels (`faff-automate` / `faff-automation-hold`) + `automation_default`, and passes `--not-eligible` when that returns `false`. (`--held` is accepted as a deprecated, fail-safe alias.) `--parked` ← the `faff-parked` label. `--blocked` ← any open **external** blocker (in-queue dependencies are **not** `--blocked` — they are serialised by faff-beep-boop's conflict analysis).
 
-It prints `{next, reason}` where `next` ∈ `prep | graft | skip-held | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
+It prints `{next, reason}` where `next` ∈ `prep | graft | skip-ineligible | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
 
 **Three hard boundaries:**
 - **Reports, never executes or gates.** `faff next` says what's *legal next*; the sub-skill still runs the interactive chain-to-build gate (**faff-jot**/prep's standalone gate) and still executes the step itself. A returned `graft` is **not** consent to build.
@@ -597,7 +616,7 @@ Parking is reversible by design — the **single owner of unpark mechanics is th
 
 ### Control-label provisioning (ensure-before-tag)
 
-faff owns a fixed set of **control labels** — the tracker signals the pipeline tags issues with. The canonical set is the **`faff labels` CLI manifest** (resolve the `faff` executable per **Resolver**): `faff labels` emits each control label's `name`, `color`, and `description` as JSON (`faff labels --names` for bare names). This manifest is the **single source of truth** — every path that tags, and any bootstrap that bulk-provisions, reads the set from here rather than hardcoding it. Today the set is `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill` (all `faff-`-prefixed per the control-label convention).
+faff owns a fixed set of **control labels** — the tracker signals the pipeline tags issues with. The canonical set is the **`faff labels` CLI manifest** (resolve the `faff` executable per **Resolver**): `faff labels` emits each control label's `name`, `color`, and `description` as JSON (`faff labels --names` for bare names). This manifest is the **single source of truth** — every path that tags, and any bootstrap that bulk-provisions, reads the set from here rather than hardcoding it. Today the set is `faff-automate`, `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill` (all `faff-`-prefixed per the control-label convention).
 
 **Ensure-before-tag — the shared rule.** Before any path applies a faff control label to an issue, it must **ensure the label exists**: list the tracker's labels (configured MCP); if the manifest label is absent, create it from its manifest entry (name + color + description); then tag. This is **idempotent** — "label already exists" is a clean no-op, never an error or a duplicate. The check is necessarily **agent-via-MCP**: the `faff` CLI emits the manifest but has no tracker access, so it cannot create the label — the manifest is the mechanical half, the create is the agent half. Every tagging site (`/faff-jot` intake + freeze, `/faff-plot`, `/faff-tidy` parks + chain-gaps + repeat-park, `/faff-beep-boop` parks + discovered-scope, `/faff-graft` parks + discovered-scope, `/faff-prep` parks) applies this one rule rather than carrying its own copy. **Git-only mode:** no-op — there are no tracker labels to ensure.
 
@@ -609,7 +628,7 @@ When a faff skill's flow leads naturally into another faff skill, it offers the 
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
-**Which next step the gate offers comes from `faff next`** (gateway → **Next-step transition**), not from prose: when the agent suggests the next step for an issue, it consults `faff next` for that issue's fetched state and offers the matching skill (`prep`→`/faff-prep`, `graft`→`/faff-graft`, `skip-held`/`needs-human`→surface, not offer). `faff next` chooses *what's legal next*; this chaining gate is still how the human *consents* to it — the two compose, neither replaces the other.
+**Which next step the gate offers comes from `faff next`** (gateway → **Next-step transition**), not from prose: when the agent suggests the next step for an issue, it consults `faff next` for that issue's fetched state and offers the matching skill (`prep`→`/faff-prep`, `graft`→`/faff-graft`, `skip-ineligible`/`needs-human`→surface, not offer). `faff next` chooses *what's legal next*; this chaining gate is still how the human *consents* to it — the two compose, neither replaces the other.
 
 **The gate is a dedicated, standalone decision (interactive).** It is presented on its own, *after* the current skill's work is produced and surfaced — never bundled into another choice. **Resolving a spec/approach/scope/name decision is not chain-consent:** the "short-choice Build/Review/Reprep" prompt above picks the *next action* only; combining an unrelated *resolution* (a Punt, a name, an approach) with "proceed to the next skill" in a single option is a **contract violation**. The **only** triggers to invoke the next skill are (a) an affirmative answer to that standalone gate, or (b) the user's explicit prior instruction (e.g. "prep then build it"). Implied consent from an unrelated choice never chains.
 

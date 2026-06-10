@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0](https://github.com/shftwst/faff/compare/faff--v0.1.0...faff--v0.2.0) (2026-06-10)
+
+
+### Features
+
+* **FAFF-83:** faff next --if-eligible advisory mode ([#39](https://github.com/shftwst/faff/issues/39)) ([849676e](https://github.com/shftwst/faff/commit/849676e8adc2a9ecfa22c5e5950347cae8ab7259))
+* **FAFF-84:** bless-set methodology named-output ([#41](https://github.com/shftwst/faff/issues/41)) ([1cb9d10](https://github.com/shftwst/faff/commit/1cb9d10eb3d162413a5f27d7b45616f011ee1769))
+* **FAFF-85:** render bless-set proposals (read-only) ([#42](https://github.com/shftwst/faff/issues/42)) ([9b3358e](https://github.com/shftwst/faff/commit/9b3358e95eaec5c9590f0d188efee1c1590be9c5))
+* **FAFF-86:** interactive faff-tidy batch-bless ([#43](https://github.com/shftwst/faff/issues/43)) ([e89375e](https://github.com/shftwst/faff/commit/e89375ec53188a03868b697a7413c44affea0540))
+
 ## 0.1.0 (2026-06-10)
 
 

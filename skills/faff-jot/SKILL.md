@@ -71,7 +71,8 @@ On confirm, hand the **discovery brief** to `/faff-plot` via the Skill tool and 
 Show the proposed structure (containers + tickets + relationships) and gate before writing:
 
 - **Interactive (default):** present the shaped tickets as a short tree and ask "Create these N tickets [under new project '<name>']? (yes / edit / no)". On `edit`, take the human's adjustments and re-shape or tweak directly. On `yes`, create them in the tracker via the configured MCP. On `no`, stop — the brief is logged so nothing is lost.
-- Create containers first (initiative/project), then tickets, then the blocker/blocked-by links the methodology proposed. Apply the `faff-jot-intake` tag (ensuring the label exists first, gateway → **Control-label provisioning**) so the next `/faff-prep` pass recognises freshly-shaped work. Carry each ticket's open questions into its description.
+- **Fill each ticket's description from its type template** (gateway → **Ticket templates**) before writing it: determine the type (honouring any per-ticket `type` the methodology's `ticket-shaping` supplied, else inferring from the title + description), resolve the template, and fill its fields from the brief — placeholdering unknown fields with `_To be determined during prep._`, never fabricating content. This runs after shaping (Step 3) and before the `rendering_adaptor` pass, so issues are **born structured**. Seed-not-constrain: a thin brief still creates a thin-but-structured ticket — creation is **never** blocked for an under-filled template.
+- Create containers first (initiative/project), then tickets, then the blocker/blocked-by links the methodology proposed. Apply the `faff-jot-intake` tag (ensuring the label exists first, gateway → **Control-label provisioning**) so the next `/faff-prep` pass recognises freshly-shaped work. (Each ticket's open questions land in its template's `Open questions` field.)
 
 ### 5. Chain to prep
 

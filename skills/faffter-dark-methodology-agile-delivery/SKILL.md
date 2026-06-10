@@ -17,7 +17,7 @@ slots:
 
 ## Outputs
 
-This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. It also answers the optional `issue-critique` output (per-issue lens for `/faff-prep`). A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
+This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. It also answers the optional `issue-critique` (per-issue lens for `/faff-prep`) and `bless-set` (ranked not-eligible unlock batches for `/faff-wtf` + `/faff-tidy`) outputs. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
 Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: faffter-dark-methodology-agile-delivery` for the caller to display (the gateway envelope's `Methodology: <name>` line carries this skill's own name, not a nickname).
 
@@ -32,6 +32,7 @@ How the principles map onto the outputs:
 | `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
 | `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 | `issue-critique` | per-issue: 4 (right-sized / split / merge), 1 + 5 (workstream fit), 6 (surfaced deps), 7 (risk profile → de-risking spike) |
+| `bless-set` | **Composes** `faffter-noon-methodology-structural`'s `bless-set` slice algorithm for the graph walk + frontiers, then **re-ranks** the returned sets by 2 (value × risk) and 7 (risk-aware), trimming to the thinnest coherent slice (MVP, principle 4). Does not re-implement the walk. Appetite per-level: low = solo safe roots; full = deepest runway. |
 
 The WIP cap (principle 3) applies to `standup-digest` only — never to `build-queue` (autonomous work is unbounded).
 

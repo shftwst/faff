@@ -337,6 +337,8 @@ faff next --status <S> --spec none|low|medium|high [--not-eligible] [--parked] [
 
 It prints `{next, reason}` where `next` ∈ `prep | graft | skip-ineligible | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
 
+**Advisory: `--if-eligible` (read-only hypothetical).** When a **not-eligible** item carries `--if-eligible`, `faff next` bypasses the `skip-ineligible` short-circuit and returns the route the item *would* take **if it were blessed** (made automation-eligible), tagged `would_be_eligible: true`. It is purely advisory — never grants eligibility, never mutates, and is a no-op for an already-eligible item; terminal states (`done`/`cancelled`/`duplicate`) still win. Decision-support layers (bless-set proposals, the On-hold render) use it to show a not-eligible item's runway; the live `skip-ineligible` path is unchanged.
+
 **Three hard boundaries:**
 - **Reports, never executes or gates.** `faff next` says what's *legal next*; the sub-skill still runs the interactive chain-to-build gate (**faff-jot**/prep's standalone gate) and still executes the step itself. A returned `graft` is **not** consent to build.
 - **Base transition, not the whole router.** `faff next` has no inputs for the diagnostic verdicts (`gap-blocked` / `circular-blocked` / `repeat-parked`); those stay in the `routing_adaptor` automation-routing computation and layer **on top** where `faff next` returns `graft` (it gates *eligibility*; the verdict gates build-queue *admission*).

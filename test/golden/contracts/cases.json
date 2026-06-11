@@ -1,0 +1,100 @@
+[
+  {
+    "contract": "spec-readiness",
+    "name": "valid",
+    "input": "{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}],\"provenance_present\":true}",
+    "expectExit": 0,
+    "expectStdout": {
+      "confidence": "high",
+      "decisions": [
+        {
+          "classification": "closed"
+        },
+        {
+          "classification": "open"
+        }
+      ],
+      "markers_valid": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "spec-readiness",
+    "name": "fail-loud-bad-confidence",
+    "input": "{\"confidence\":\"banana\",\"decisions\":[{\"marker\":\"chosen\"}],\"provenance_present\":true}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "review-verdict",
+    "name": "valid",
+    "input": "{\"signal\":\"pass\",\"findings\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "signal": "pass",
+      "findings": [],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "review-verdict",
+    "name": "boundary-coerce-needs-human",
+    "input": "{\"verdict\":\"pass\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "signal": "needs-human",
+      "findings": [],
+      "conformant": false,
+      "violations": [
+        "signal undefined not in {pass,fail,needs-human} — coerced to needs-human",
+        "needs-human carries no findings"
+      ]
+    }
+  },
+  {
+    "contract": "delivery-outcome",
+    "name": "valid",
+    "input": "{\"outcome\":\"shipped\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "outcome": "shipped",
+      "reason": "",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "delivery-outcome",
+    "name": "boundary-coerce-failed",
+    "input": "{\"merged\":true,\"deploy_ok\":true}",
+    "expectExit": 1,
+    "expectStdout": {
+      "outcome": "failed",
+      "reason": "malformed delivery result coerced to failed",
+      "conformant": false,
+      "violations": [
+        "outcome undefined not in {shipped,not-ready,failed} — coerced to failed"
+      ]
+    }
+  },
+  {
+    "contract": "automation-routing",
+    "name": "valid",
+    "input": "{\"verdict\":\"fire-and-forget\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "fire-and-forget",
+      "root_cause": null,
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "automation-routing",
+    "name": "fail-loud-no-verdict",
+    "input": "{\"confidence\":\"high\",\"spec_present\":true}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
+  }
+]

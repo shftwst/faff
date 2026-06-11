@@ -20,34 +20,34 @@ jobs:
           node-version: 20
 
       - name: Validate slot-skill contracts
-        run: node skills/faff/bin/faff validate-adapters
+        run: node plugin/skills/faff/bin/faff validate-adapters
 
       - name: Validate config template parses
         run: |
           tmp="$(mktemp -d)"
           cp .faffrc.example.yaml "$tmp/.faffrc.yaml"   # canonical name (FAFF-50: only .faffrc.yaml is accepted)
-          ( cd "$tmp" && node "$GITHUB_WORKSPACE/skills/faff/bin/faff" config dump >/dev/null )
+          ( cd "$tmp" && node "$GITHUB_WORKSPACE/plugin/skills/faff/bin/faff" config dump >/dev/null )
 
       - name: Validate orchestration transition table
-        run: node skills/faff/bin/faff next --selftest
+        run: node plugin/skills/faff/bin/faff next --selftest
 
       - name: Validate config init writer
-        run: node skills/faff/bin/faff config init --selftest
+        run: node plugin/skills/faff/bin/faff config init --selftest
 
       - name: Validate automation-eligibility table
-        run: node skills/faff/bin/faff eligible --selftest
+        run: node plugin/skills/faff/bin/faff eligible --selftest
 
       - name: Validate spec-readiness contract script
-        run: node skills/faff/bin/faff contract spec-readiness --selftest
+        run: node plugin/skills/faff/bin/faff contract spec-readiness --selftest
 
       - name: Validate review-verdict contract script
-        run: node skills/faff/bin/faff contract review-verdict --selftest
+        run: node plugin/skills/faff/bin/faff contract review-verdict --selftest
 
       - name: Validate delivery-outcome contract script
-        run: node skills/faff/bin/faff contract delivery-outcome --selftest
+        run: node plugin/skills/faff/bin/faff contract delivery-outcome --selftest
 
       - name: Validate automation-routing contract script
-        run: node skills/faff/bin/faff contract automation-routing --selftest
+        run: node plugin/skills/faff/bin/faff contract automation-routing --selftest
 
       - name: Run skill/CLI behaviour tests (node:test)
         run: node --test

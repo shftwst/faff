@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const faffBin = path.join(repoRoot, "skills", "faff", "bin", "faff");
+const faffBin = path.join(repoRoot, "plugin", "skills", "faff", "bin", "faff");
 
 /**
  * Run a faff subcommand and capture its observable output/exit (the deterministic seam).

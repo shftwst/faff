@@ -9,7 +9,7 @@
 # Holds stable config only — never mutable tracker state (no milestones, dates,
 # progress, or issue snapshots; those are fetched live on every invocation).
 #
-# This template mirrors the gateway schema (skills/faff/SKILL.md) — the gateway
+# This template mirrors the gateway schema (plugin/skills/faff/SKILL.md) — the gateway
 # is the single source of truth if the two ever drift.
 
 tracking:

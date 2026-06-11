@@ -48,3 +48,6 @@ jobs:
 
       - name: Validate automation-routing contract script
         run: node skills/faff/bin/faff contract automation-routing --selftest
+
+      - name: Run skill/CLI behaviour tests (node:test)
+        run: node --test

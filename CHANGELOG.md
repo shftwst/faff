@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.0](https://github.com/shftwst/faff/compare/faff--v0.2.0...faff--v0.3.0) (2026-06-11)
+
+
+### Features
+
+* **FAFF-108:** review + ship producers emit their faff-contract block (Path A) ([#50](https://github.com/shftwst/faff/issues/50)) ([c358790](https://github.com/shftwst/faff/commit/c358790cc6667bfeb5c4dda0d7c9172f538f3537))
+* **FAFF-109:** retire the faffidavit-* artifact adaptors (Option A) ([#53](https://github.com/shftwst/faff/issues/53)) ([b5f2dd9](https://github.com/shftwst/faff/commit/b5f2dd9e0c414f920f5baf32d4eb4cf17f47ce0d))
+* **FAFF-113:** delegate all ordering/value/risk opinion to the methodology slot ([#58](https://github.com/shftwst/faff/issues/58)) ([2aa6a07](https://github.com/shftwst/faff/commit/2aa6a07accc6d2525c1303440d3d03471922aa34))
+* **FAFF-121:** relocate plugin into ./plugin subtree so marketplace consumers get skills-only ([#59](https://github.com/shftwst/faff/issues/59)) ([0d503cf](https://github.com/shftwst/faff/commit/0d503cfedd2d204b7f2c57fddb9aedfd177f1e33))
+* **FAFF-14:** type-appropriate issue templates — born-structured create boundary ([#44](https://github.com/shftwst/faff/issues/44)) ([330ac74](https://github.com/shftwst/faff/commit/330ac7400411fc762ea51e34a292c4f1fbb09c85))
+* **FAFF-3:** distinguish no-ci-coverage from CI-green at the merge gate ([#46](https://github.com/shftwst/faff/issues/46)) ([bfb2c84](https://github.com/shftwst/faff/commit/bfb2c84476987f4ff13b82837ce6aeb28834e6de))
+* **FAFF-4:** delivery-precondition pre-flight + graceful not-ready park ([#47](https://github.com/shftwst/faff/issues/47)) ([fc14217](https://github.com/shftwst/faff/commit/fc14217b854a392c33119a8779d7a024a1b998b8))
+* **FAFF-60:** name the Tracker-as-the-lights-out-control-plane principle ([#51](https://github.com/shftwst/faff/issues/51)) ([2ea4faa](https://github.com/shftwst/faff/commit/2ea4faa44be9fecde6cc34ddf127d9876e03424a))
+* **FAFF-82:** tracker-status issue claim + status-monotonicity guard ([#49](https://github.com/shftwst/faff/issues/49)) ([a6242aa](https://github.com/shftwst/faff/commit/a6242aa2aaccf276bdec9eb291ba59bd083721ed))
+* **FAFF-88:** skill test architecture — node:test runner + CLI-seam reference fixture (ADR 0002) ([#54](https://github.com/shftwst/faff/issues/54)) ([faeb762](https://github.com/shftwst/faff/commit/faeb76281d9827e9ad80e9e2ecc37f7ab0d44a96))
+* **FAFF-91:** CLI test runner — runCli helper + self-test ([#55](https://github.com/shftwst/faff/issues/55)) ([0a59ccf](https://github.com/shftwst/faff/commit/0a59ccf711001a66dd2b6072f78f65e47400b0c0))
+* **FAFF-92:** cover config / next / state / validate-adapters ([#57](https://github.com/shftwst/faff/issues/57)) ([e3cf2dc](https://github.com/shftwst/faff/commit/e3cf2dcbfc79937336263af13d5b51599113ce6f))
+* **FAFF-96:** contract-conformance golden tests (4 contracts, 8 cases) ([#56](https://github.com/shftwst/faff/issues/56)) ([60f6e23](https://github.com/shftwst/faff/commit/60f6e23da53d114fe1d208847c94eb20324ce2a4))
+* **FAFF-99:** carve trusted-spec live-exercise AC out of the no-execute floor ([#48](https://github.com/shftwst/faff/issues/48)) ([cd2cc7f](https://github.com/shftwst/faff/commit/cd2cc7fd7e6e29788d5f7fb3818f721a804fa776))
+
+
+### Bug Fixes
+
+* **FAFF-110:** live-thread reconciliation at the autonomous verdict gate ([#52](https://github.com/shftwst/faff/issues/52)) ([ee0aa74](https://github.com/shftwst/faff/commit/ee0aa745ff10e02aab99edc80614fb6cf0bb8613))
+
 ## [0.2.0](https://github.com/shftwst/faff/compare/faff--v0.1.0...faff--v0.2.0) (2026-06-10)
 
 

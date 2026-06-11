@@ -196,7 +196,7 @@ Independents run in parallel; collision groups serialise within themselves.
 
 **Slice algorithm:**
 
-1. **Roots.** Filter the not-eligible set to issues with ≥1 not-eligible dependent (downstream runway), ranked by the Work-ordering rule (priority → chainable unlock value). Apply a **min unlock-value threshold ≥2** (mirrors the value-chains render gate) — a lone not-eligible leaf (unlocks 0) is omitted in favour of a root with runway.
+1. **Roots.** Filter the not-eligible set to issues with ≥1 not-eligible dependent (downstream runway), ranked by the core ordering rule (priority → chainable unlock value). Apply a **min unlock-value threshold ≥2** (mirrors the value-chains render gate) — a lone not-eligible leaf (unlocks 0) is omitted in favour of a root with runway.
 2. **Depth.** Walk transitive dependents in dependency order; admit a dependent `D` into the slice **iff** `D` is not-eligible **and** all `D`'s blockers are already in the slice (no outside blocker).
 3. **Stop per branch at the first frontier:** (a) **branch point** — `D` has an outside (non-slice) blocker → exclude, mark `"fans out — separate proposal"`; (b) **risk spike** — `D`'s reversibility tier flips to higher-risk; (c) **value plateau** — `D` unlocks 0 **and** is not spec-ready.
 4. **Annotate.** Each member carries its `faff next --if-eligible` badge (would-build / would-need-prep / would-still-need-decision); each set carries a one-line **hypothetical-verdict distribution** (e.g. "2 would-build, 1 would-need-prep") + any deferred-with-reason members.

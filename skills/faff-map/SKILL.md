@@ -21,7 +21,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 **Synthesis rendering.** Every issue rendered in any phase below uses the synthesis contract (gateway → **Synthesis contract**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. The existing ASCII chain diagram (Phase 4), workstream lane (Phase 3), and gate fire-status table (Phase 5) are canonical visual forms per the `rendering_adaptor` slot (default `faffidavit-rendering`) — preserved as-is.
 
-**Methodology lens.** When a `methodology` slot is configured (gateway → **The `methodology` slot**, display convention), Phase 1 (Now/Next/Later) re-sequences inside each horizon using the methodology's sequencing logic (e.g. value × risk × dep-aware) instead of priority + chainable-unlock-value alone, and Phase 7 (Risks) gains its findings alongside the structural risks.
+**Methodology lens.** Phase 1 (Now/Next/Later) sequences inside each horizon via the configured `methodology` slot's `pick-ordering` (gateway → **Ordering & judgement delegation**) — map states no ordering of its own; the structural default supplies priority + chainable unlock value, and an opinionated lens (e.g. `faffter-dark-methodology-agile-delivery`) supplies value × risk × dep-aware order. When an opinionated lens is configured (gateway → **The `methodology` slot**, display convention), Phase 7 (Risks) also gains its findings alongside the structural risks.
 
 ## What it does
 
@@ -105,7 +105,7 @@ A `⚠ Blocked structurally` gate means the downstream project doesn't exist —
 
 ### 6. Critical path
 
-Render the work in priority order, bucketed by horizon. Lead with the next ~few weeks (concrete issue ids in flight), then the next 1-3 months (the next-horizon projects), then the longer arc. **Do not give time estimates** beyond named horizons — report named horizons (deduced from tracker status / cycles), not weeks-until-X.
+Render the work in the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**), bucketed by horizon. Lead with the next ~few weeks (concrete issue ids in flight), then the next 1-3 months (the next-horizon projects), then the longer arc. **Do not give time estimates** beyond named horizons — report named horizons (deduced from tracker status / cycles), not weeks-until-X.
 
 ```
 Now (in flight):
@@ -121,7 +121,7 @@ Later horizon:
 6. [Initiative] unpacks the collapsed Later project once [precondition].
 ```
 
-Apply the same work-ordering rule used by `/faff-tidy` and `/faff-wtf`: priority (issue OR ancestor) → chainable unlock value. Issues that gate the most downstream work float up.
+Order via the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**), the same as `/faff-tidy` and `/faff-wtf` — map states no ordering of its own. The structural default ranks by priority (issue OR ancestor) → chainable unlock value, so issues gating the most downstream work float up.
 
 ### 7. Risks the structure surfaces
 

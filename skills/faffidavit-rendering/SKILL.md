@@ -116,7 +116,7 @@ The annotation clause after the gloss subject carries the three signals in this 
 
 1. **Reversibility tier** — a coarse, advisory `low-risk` / `higher-risk` derived from the gateway's **side-effect-outside-PR taxonomy** (see below). Lead with it because "safe to release?" is the human's first question.
 2. **Standalone-ness** — `independent`, `blocks N`, or `blocked by N`, read from the relation graph.
-3. **Unlock value** — `unlocks N` (direct + transitive dependents, the Work-ordering rule's chainable-unlock metric). Omit the clause when N is 0.
+3. **Unlock value** — `unlocks N` (direct + transitive dependents — an objective graph fact). Omit the clause when N is 0.
 
 Then the gloss body (with its unlock-chain consequence line where non-trivial, per **Unlock-chain language**), then a final line carrying the **hold reason** and **how to release** (`/faff-jot ISSUE-XX` thaw, or interactive `/faff-tidy`'s lift). Omit the hold-reason half when the hold comment carried none.
 

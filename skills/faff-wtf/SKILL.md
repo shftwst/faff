@@ -13,9 +13,9 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 **Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, the Untrusted-input no-execute rule, and the **fixed automation-routing + spec-readiness contracts** wtf displays. Loading it here means any slot wtf delegates to inherits these ambiently. WTF falls back to git-only mode if no tracker MCP is available.
 
-**Shared work-ordering rule.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), apply the shared **Work-ordering rule** (gateway): priority (issue or any ancestor) then chainable unlock value, with any configured `methodology` `pick-ordering` reframe.
+**Ordering is delegated.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), it renders the order the configured `methodology` slot's `pick-ordering` returns (gateway → **Ordering & judgement delegation**). `/faff-wtf` states no ordering of its own; the structural default supplies priority + chainable unlock value when no methodology is set.
 
-**Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues should rise to the top of "Coming Up" / "Today's Focus" / "Ready to pick up" because they represent *just-realised* potential the human/automation hasn't acted on yet.
+**Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues are flagged as *just-realised* potential (annotated "just unlocked by …") so the human/automation notices them — where they land in "Coming Up" / "Today's Focus" / "Ready to pick up" is the methodology's `pick-ordering` call, not wtf's.
 
 ## Always pull fresh
 
@@ -40,7 +40,7 @@ Run through these sections in order:
 - **In Progress:** Issues currently being worked on
 - **Blocked:** Issues that are blocked and why
 - **Recently Completed:** Issues closed since last briefing (last 24-48 hours). For each, list any issues it just **unblocked** (dependents whose last remaining blocker was this one). These newly-unlocked issues are the freshly-realised potential of the recent shipping.
-- **Coming Up:** Next unstarted issues to surface, ordered per the shared work-ordering rule (priority, then chainable unlock value). Issues unblocked in the last 24-48 hours bubble to the top of this list — they represent the highest-leverage uncaptured potential.
+- **Coming Up:** Next unstarted issues to surface, ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**). Issues unblocked in the last 24-48 hours are annotated as just-realised potential so they're easy to spot.
 
 Query using the project/team details from `.faffrc` (`tracking.project_id` / `tracking.team_key`). Exclude cancelled and archived per the shared rule.
 
@@ -71,13 +71,12 @@ Skip this section entirely if there are no parked issues (no `faff-parked`-label
 
 Surface every issue that is **not automation-eligible** **and** notable (gateway → **Automation eligibility**) — an explicitly-held ticket (`faff-automation-hold`), or an otherwise-ready ticket not yet blessed with `faff-automate` under the opt-in default. (Do **not** list every unlabelled backlog ticket — under opt-in that's most of the backlog; scope to held + would-be-ready-but-unblessed.) **Distinct from Parked work above:** parked = automation tried and stopped (auto-clearable when the blocker resolves); these are human-blocked pre-emptively, no auto-clear, changed only by a human. Keep them in separate sections so the two signals don't blur.
 
-**Render each issue with the shared On-hold-entry form** — `rendering_adaptor` slot → **Canonical visual forms → (f) On-hold entry** (default `faffidavit-rendering`). That single shared form is the canonical definition; `/faff-tidy` §4a renders the same form, so the two stay DRY — do not re-specify the fields here. It carries, per issue: the grounded synthesis gloss, then the three release-decision signals (**reversibility tier** — coarse/advisory `low-risk` / `higher-risk` from the gateway side-effect-outside-PR taxonomy · **standalone-ness** — `independent` / `blocks N` / `blocked by N` from the relation graph · **unlock value** — `unlocks N` direct+transitive dependents), then the ineligibility reason + how to make it eligible (add `faff-automate` — or for a held ticket, remove `faff-automation-hold` — via `/faff-jot ISSUE-XX` promote/demote or interactive `/faff-tidy`). The signals are mechanical reads of state `/faff-wtf` already pulls fresh (the relation graph, the Work-ordering chainable-unlock metric). **Order the section safest × highest-unlock first** (per the shared form's ordering rule) — `low-risk` before `higher-risk`, higher unlock value first within each tier — so the best bless candidates surface at the top. These issues remain in all counts and read-views — they are **not** excluded the way cancelled/archived are. This section is read-only: `/faff-wtf` never changes eligibility. Skip the section if none.
+**Render each issue with the shared On-hold-entry form** — `rendering_adaptor` slot → **Canonical visual forms → (f) On-hold entry** (default `faffidavit-rendering`). That single shared form is the canonical definition; `/faff-tidy` §4a renders the same form, so the two stay DRY — do not re-specify the fields here. It carries, per issue: the grounded synthesis gloss, then the three release-decision signals (**reversibility tier** — coarse/advisory `low-risk` / `higher-risk` from the gateway side-effect-outside-PR taxonomy · **standalone-ness** — `independent` / `blocks N` / `blocked by N` from the relation graph · **unlock value** — `unlocks N` direct+transitive dependents), then the ineligibility reason + how to make it eligible (add `faff-automate` — or for a held ticket, remove `faff-automation-hold` — via `/faff-jot ISSUE-XX` promote/demote or interactive `/faff-tidy`). The signals are mechanical reads of state `/faff-wtf` already pulls fresh (the relation graph, the chainable-unlock metric — an objective graph fact). **Order the section via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) over these issues — `/faff-wtf` states no risk/unlock ordering of its own; the structural default surfaces the best bless candidates first. These issues remain in all counts and read-views — they are **not** excluded the way cancelled/archived are. This section is read-only: `/faff-wtf` never changes eligibility. Skip the section if none.
 
 ### 5. Today's Focus
-Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the shared work-ordering rule** (priority → chainable unlock value):
+Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**; the structural default orders by priority → chainable unlock value):
 - **Never suggest cancelled or archived** issues or projects as candidates (shared rule)
-- Prefer issues unblocked in the last 24-48 hours — recent shipping has just put them in play and they're the freshest source of leverage
-- Within priority bands, prefer high chainable unlock value — picking up an issue that gates a chain of five beats an isolated issue at the same priority
+- Surface issues unblocked in the last 24-48 hours as freshly in play — recent shipping has just put them in reach (their order is the methodology's `pick-ordering` call)
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
@@ -103,11 +102,11 @@ SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23 
 SHF-40  extract the billing client    →  unlocks SHF-41, SHF-42             (2 issues, parallel once SHF-40 ships)
 ```
 
-Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (would all become ready the moment it ships) versus still gated by other work. Order the chains by total unlock value. Skip the block when nothing has unlock value ≥ 2.
+Render the head issue (the one to build now), an arrow, then the transitive dependents in dependency order (a chain `A → B → C`) or as a flat set when they fan out in parallel. Note how many of the chain are blocked **only** by the head (would all become ready the moment it ships) versus still gated by other work. Order the chains via the configured methodology's `pick-ordering` over the chain heads (gateway → **Ordering & judgement delegation**). Skip the block when nothing has unlock value ≥ 2 (an objective render-gate on a fact).
 
 **Bless-set proposals (read-only; rendered when a `methodology` slot answers `bless-set`).** Request the `bless-set` output from the configured methodology (gateway → **The `methodology` slot**) — ranked batches of **not-automation-eligible** issues worth blessing for the next unattended run. Render each as a card, beside the value-chains: the **root** via the **On-hold-entry form** and the **slice** via the **value-chain arrow render** (`rendering_adaptor`), adding per-member badges (would-build / would-need-prep / would-still-need-decision, from each member's `faff next --if-eligible`), the one-line hypothetical-verdict distribution, the stop-reason, and any deferred-with-reason members. This is **strictly read-only** — `/faff-wtf` never blesses; the action is interactive `/faff-tidy`'s batch-bless. **Omit the block** when no methodology is configured, no items are not-eligible, or no root qualifies (degrades to the flat On-hold list, §4b).
 
-**Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Independents are ordered per the shared work-ordering rule (priority → chainable unlock value). Collision groups are serialised within themselves and ordered by their lead issue's priority+unlock-value.
+**Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Independents are ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**). Collision groups are serialised within themselves and placed by their lead issue's position in that same `pick-ordering`.
 
 **Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `needs-decision-first` has **two causes** — name which one in the diagnosis: a spec `**Punt:**` (show the decision being asked), or a retained `confidence: medium` rating (prep attached the spec for review rather than auto-building — show the rating explicitly and the area the spec was thin on). A medium-confidence spec with no open punt would otherwise render with an empty diagnosis; surfacing the rating is the whole point — it tells the human "give this a once-over" even when there's no single decision to make. `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
 
@@ -133,7 +132,7 @@ Skip this section entirely if no signals crossed the threshold.
 - Items that have been in progress too long without movement
 
 ### 7. Ready to pick up (lightweight tidy)
-Quick scan for backlog issues that are now unblocked, well-prepped, and ready to pick up. Apply the shared work-ordering rule (priority → chainable unlock value) and mention the top 1-2 candidates. Issues unblocked within the last 24-48 hours by recent shipping take precedence — they're the leverage that just appeared.
+Quick scan for backlog issues that are now unblocked, well-prepped, and ready to pick up. Order via the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**) and mention the top 1-2 candidates. Issues unblocked within the last 24-48 hours by recent shipping are annotated as just-appeared leverage.
 
 ## Chaining
 
@@ -198,7 +197,7 @@ Source of truth is the configured issue tracker. Snapshot below — re-query via
 - ISSUE-XX  [synthesis gloss] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
 
 ### Do this
-Ordered by priority → chainable unlock value. Items freshly unblocked by recent shipping bubble to the top.
+Ordered by the configured methodology's `pick-ordering`. Items freshly unblocked by recent shipping are annotated as just-appeared leverage.
 
 1. ISSUE-XX  [synthesis gloss + unlock-chain consequence in plain English]. (Priority source: issue/ancestor; "just unlocked by ISSUE-YY" if applicable.)
 2. ISSUE-YY  …
@@ -288,8 +287,8 @@ Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wt
 ## Notes
 - Don't over-query — pull what's needed, synthesize, present
 - If the project's ambient context (e.g. `CLAUDE.md`) states working-pattern or scheduling preferences, respect them when timing recommendations — faff keeps no separate config channel for this; the human's stated preference is the source.
-- Work-ordering everywhere follows the shared **Work-ordering rule** (gateway): priority (issue or any ancestor) → chainable unlock value.
-- Recent ships unlock latent potential — surface what each shipped issue unblocked, and float those just-unlocked issues to the top of "Coming Up" / "Today's Focus" / "Ready to pick up"
+- Ordering everywhere is delegated to the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**); `/faff-wtf` states no ordering of its own.
+- Recent ships unlock latent potential — surface what each shipped issue unblocked and annotate just-unlocked issues; the methodology's `pick-ordering` decides where they land
 - Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
 - Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.
 - Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks, orphaned+repeat-parked, and chain gaps (any sub-type — sub-ticket / upstream / downstream / peer) always surface in `### Heads up`, not just in the diagnostics dump — a chain gap means a focus pick on the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next, and the human needs that visible before picking it up.

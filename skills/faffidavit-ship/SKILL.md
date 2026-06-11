@@ -58,9 +58,20 @@ When a delegated (third-party) producer emits something other than this envelope
 
 Validation is **conformance by construction** (FAFF-21): this adaptor does **not** prose-check the envelope. It **extracts** the producer's native delivery result into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract delivery-outcome` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
 
-**The split (the translation seam):**
+**The split — artifact-preferred (FAFF-76 Decision 2; the artifact branch lit up for ship by FAFF-108):**
 
-- **This adaptor (extraction — the translation judgement):** read the producer's native result (a `gh` exit, deploy-tool JSON, a log tail) into an **extraction JSON** —
+The adaptor obtains the **extraction JSON** by one of two paths, **in precedence order** — the producer's emitted artifact first, prose extraction only as a fallback:
+
+- **(1) Producer-emitted artifact — preferred, fully deterministic, no LLM.** If the producer's output carries a single fenced block tagged `faff-contract:delivery-outcome` (emitted as the last output by the `ship` producer that ran the merge/deploy — see the artifact convention in `docs/adr/0001-contract-as-code-foundations.md`), the adaptor **locates it by that info-string and `JSON.parse`s its body** into the `{ "outcome", "reason", "corroborated" }` extraction JSON below — the producer ran the merge and read its exit, so it declares the outcome and corroboration directly (no inference). There is **no `provenance_present`** field — that is spec-specific; the delivery-outcome extraction is exactly `{ outcome, reason, corroborated }`.
+  - **Present + valid** (parses + carries `outcome` + `corroborated`) → use it.
+  - **Present + malformed** (not JSON, or missing those fields / wrong shape) → **fail-loud** (the extraction is unparseable → the script exits 2, never a phantom `shipped`). **Do not** silently fall back to prose — a corrupt artifact is producer breakage, surfaced not masked. The fallback trigger is *absence*, never *corruption*.
+- **(2) Prose extraction — fallback, the LLM seam, only when no artifact is present** (the translation seam below).
+
+Either path yields the **same** extraction JSON, piped to the contract script unchanged. The artifact is the script's **input**, never a second source of contract data — the script stays the sole source. The script's `corroborated:false`-shipped → `failed` coercion is unchanged and applies identically on **both** paths.
+
+**The split (the translation seam) — the prose-extraction fallback (path 2):**
+
+- **This adaptor (extraction — the translation judgement, only when no artifact is present):** read the producer's native result (a `gh` exit, deploy-tool JSON, a log tail) into an **extraction JSON** —
   ```
   { "outcome": "<verbatim shipped|not-ready|failed, or whatever the producer emitted>",
     "reason": "<short cause; may be empty>",

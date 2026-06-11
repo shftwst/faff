@@ -61,9 +61,20 @@ When a delegated (third-party) reviewer emits something other than this envelope
 
 Validation is **conformance by construction** (FAFF-21): this adaptor does **not** prose-check the envelope. It **extracts** the reviewer's output into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract review-verdict` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
 
-**The split (the translation seam):**
+**The split — artifact-preferred (FAFF-76 Decision 2; the artifact branch lit up for review by FAFF-108):**
 
-- **This adaptor (extraction — the translation judgement):** read the reviewer's native output into an **extraction JSON** —
+The adaptor obtains the **extraction JSON** by one of two paths, **in precedence order** — the producer's emitted artifact first, prose extraction only as a fallback:
+
+- **(1) Producer-emitted artifact — preferred, fully deterministic, no LLM.** If the reviewer's output carries a single fenced block tagged `faff-contract:review-verdict` (emitted as the last output by the review producer that reached the verdict — see the artifact convention in `docs/adr/0001-contract-as-code-foundations.md`), the adaptor **locates it by that info-string and `JSON.parse`s its body** into the `{ "signal", "findings" }` extraction JSON below — the reviewer decided the signal and raised each finding, so it knows each finding's location/action presence directly (no inference). There is **no `provenance_present`** field — that is spec-specific; the review-verdict extraction is exactly `{ signal, findings }`.
+  - **Present + valid** (parses + carries `signal` + `findings`) → use it.
+  - **Present + malformed** (not JSON, or missing those fields / wrong shape) → **fail-loud** (`signal: fail`, finding "contract artifact present but malformed"). **Do not** silently fall back to prose — a corrupt artifact is producer breakage, surfaced not masked. The fallback trigger is *absence*, never *corruption*.
+- **(2) Prose extraction — fallback, the LLM seam, only when no artifact is present** (the translation seam below).
+
+Either path yields the **same** extraction JSON, piped to the contract script unchanged. The artifact is the script's **input**, never a second source of contract data — the script stays the sole source.
+
+**The split (the translation seam) — the prose-extraction fallback (path 2):**
+
+- **This adaptor (extraction — the translation judgement, only when no artifact is present):** read the reviewer's native output into an **extraction JSON** —
   ```
   { "signal": "<verbatim pass|fail|needs-human, or whatever the reviewer emitted>",
     "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... ] }

@@ -15,7 +15,7 @@ import path from "node:path";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
-const faffBin = path.join(repoRoot, "skills", "faff", "bin", "faff");
+const faffBin = path.join(repoRoot, "plugin", "skills", "faff", "bin", "faff");
 const cases = JSON.parse(readFileSync(path.join(here, "golden", "contracts", "cases.json"), "utf8"));
 
 for (const c of cases) {

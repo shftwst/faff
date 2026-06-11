@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const faffBin = path.join(repoRoot, "skills", "faff", "bin", "faff");
+const faffBin = path.join(repoRoot, "plugin", "skills", "faff", "bin", "faff");
 
 // The deterministic seam: invoke the real CLI entrypoint as a child process, return { stdout, code }.
 function faffNext(args) {

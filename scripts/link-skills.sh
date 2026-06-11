@@ -9,10 +9,9 @@
 # target ~/.claude/skills/ instead (makes the skills available in every
 # project on this machine).
 #
-# Discovery rule: any top-level dir in skills/ that contains a SKILL.md.
-# The scripts/ dir is excluded automatically.
+# Discovery rule: any top-level dir in plugin/skills/ that contains a SKILL.md.
 #
-# Also symlinks the bundled faff CLI (skills/faff/bin/faff) into ~/.local/bin/faff
+# Also symlinks the bundled faff CLI (plugin/skills/faff/bin/faff) into ~/.local/bin/faff
 # so `faff config|runcheck|validate-adapters …` works bare; warns if ~/.local/bin
 # isn't on PATH. --unlink removes it; --status reports it.
 #
@@ -33,17 +32,17 @@
 #   --status          report current link state at the target, make no changes
 #
 # Usage:
-#   bash skills/scripts/link-skills.sh
-#   bash skills/scripts/link-skills.sh --global
-#   bash skills/scripts/link-skills.sh --global --replace   # bootstrap
-#   bash skills/scripts/link-skills.sh --global --unlink    # pre-worktree-remove
-#   bash skills/scripts/link-skills.sh --global --status
+#   bash scripts/link-skills.sh
+#   bash scripts/link-skills.sh --global
+#   bash scripts/link-skills.sh --global --replace   # bootstrap
+#   bash scripts/link-skills.sh --global --unlink    # pre-worktree-remove
+#   bash scripts/link-skills.sh --global --status
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_ROOT="$(cd "$SKILLS_ROOT/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILLS_ROOT="$REPO_ROOT/plugin/skills"
 SRC_DIR="$SKILLS_ROOT"
 BIN_SRC="$SRC_DIR/faff/bin/faff"     # the bundled faff CLI executable
 BIN_DST="${HOME}/.local/bin/faff"    # symlinked here so `faff …` works on PATH

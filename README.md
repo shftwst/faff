@@ -204,10 +204,10 @@ faff validate-adapters                      # lint the shipped slot skills for c
 faff validate-adapters --configured         # pre-flight YOUR configured slot occupants before an unattended run
 ```
 
-**Running it by hand.** The binary lives at `skills/faff/bin/faff` inside the installed plugin. Locate it and (optionally) symlink it onto your `PATH` once:
+**Running it by hand.** The binary lives at `plugin/skills/faff/bin/faff` inside the installed plugin. Locate it and (optionally) symlink it onto your `PATH` once:
 
 ```
-faffbin=$(find ~/.claude -path '*/faff/skills/faff/bin/faff' -type f 2>/dev/null | head -1)
+faffbin=$(find ~/.claude -path '*/skills/faff/bin/faff' -type f 2>/dev/null | head -1)
 ln -s "$faffbin" ~/.local/bin/faff          # then add ~/.local/bin to PATH if it isn't already
 export PATH="$HOME/.local/bin:$PATH"
 ```

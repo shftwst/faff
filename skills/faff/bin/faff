@@ -549,7 +549,7 @@ function cmdConfig(args) {
       const [data, p] = loadConfig(root);
       const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
       const SLOTS = ["intake", "spec", "review", "ship", "concurrency", "methodology",
-        "spec_adaptor", "review_adaptor", "routing_adaptor", "rendering_adaptor", "ship_adaptor"];
+        "routing_adaptor", "rendering_adaptor"];
       console.log(`config:   ${p || "(none — all defaults)"}`);
       console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
       let any = false;
@@ -673,11 +673,8 @@ function cmdRuncheck(args) {
 // validate-adapters — structural conformance lint of the shipped slot skills
 // ===========================================================================
 const REGISTRY = {
-  "faffidavit-spec": { type: "adaptor", slot: "spec_adaptor", contract: "spec-readiness" },
-  "faffidavit-review": { type: "adaptor", slot: "review_adaptor", contract: "review-verdict" },
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor", contract: "automation-routing" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
-  "faffidavit-ship": { type: "adaptor", slot: "ship_adaptor", contract: "delivery-outcome" },
   "faffter-noon-methodology-structural": { type: "methodology" },
   "faffter-dark-methodology-agile-delivery": { type: "methodology" },
   "faffter-noon-concurrency-sequential": { type: "mechanism" },
@@ -716,11 +713,8 @@ function hasUserInvocableFalse(text) {
 // --configured pre-flight derive the expected `checksFor` type from the slot alone,
 // so a third-party occupant (not in REGISTRY) can still be structurally linted.
 const SLOT_TYPES = {
-  spec_adaptor: { type: "adaptor", slot: "spec_adaptor" },
-  review_adaptor: { type: "adaptor", slot: "review_adaptor" },
   routing_adaptor: { type: "adaptor", slot: "routing_adaptor" },
   rendering_adaptor: { type: "pure-adaptor", slot: "rendering_adaptor" },
-  ship_adaptor: { type: "adaptor", slot: "ship_adaptor" },
   methodology: { type: "methodology" },
   concurrency: { type: "mechanism" },
   intake: { type: "producer-intake" },
@@ -764,19 +758,20 @@ function checksFor(meta, t) {
       out.push([has("ledger"), "records terminal outcomes to the run ledger"]);
       break;
     case "producer-spec":
-      out.push([has("spec_adaptor") || has("spec contract"), "maps onto the spec_adaptor contract"]);
+      // FAFF-109: conformance is artifact-emission (the spec_adaptor was retired) — the
+      // producer self-declares its markers + confidence in a faff-contract:spec-readiness block
+      // the consumer (faff-prep) parses and pipes to `faff contract spec-readiness` directly.
+      out.push([has("faff-contract:spec-readiness"), "emits its `faff-contract:spec-readiness` artifact block"]);
       out.push([t.toLowerCase().includes("confidence"), "emits a confidence self-rating"]);
       break;
     case "producer-intake":
       out.push([t.toLowerCase().includes("discovery brief"), "emits a discovery brief"]);
       break;
     case "producer-review":
-      out.push([has("review_adaptor") || /pass[\s\S]*fail[\s\S]*needs-human/.test(t),
-                "maps onto the review-verdict contract (pass/fail/needs-human)"]);
+      out.push([has("faff-contract:review-verdict"), "emits its `faff-contract:review-verdict` artifact block"]);
       break;
     case "producer-ship":
-      out.push([has("ship_adaptor") || /shipped[\s\S]*not-ready[\s\S]*failed/.test(t),
-                "maps onto the delivery-outcome contract (shipped/not-ready/failed)"]);
+      out.push([has("faff-contract:delivery-outcome"), "emits its `faff-contract:delivery-outcome` artifact block"]);
       break;
   }
   return out;
@@ -786,8 +781,9 @@ function resolveSkillsDir(args) {
   const di = args.indexOf("--skills-dir");
   if (di !== -1) return args[di + 1];
   // script-relative: faff lives at skills/faff/bin/, so the skills root is two up
+  // (sentinel: faffidavit-routing — a surviving sibling adaptor; FAFF-109 retired faffidavit-spec)
   const cand = path.resolve(HERE, "..", "..");
-  return fs.existsSync(path.join(cand, "faffidavit-spec")) ? cand : "skills";
+  return fs.existsSync(path.join(cand, "faffidavit-routing")) ? cand : "skills";
 }
 
 // Locate an occupant's SKILL.md under skillsDir. Accepts a bare skill name or a

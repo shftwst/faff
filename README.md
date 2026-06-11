@@ -244,22 +244,19 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 | Skill | Slot | What it does |
 |---|---|---|
 | `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
-| `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits the `review_adaptor` verdict (pass/fail/needs-human). |
+| `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits its `faff-contract:review-verdict` block (pass/fail/needs-human) that faff-graft parses. |
 | `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-jot` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
 | `faffter-noon-concurrency-sequential` | `concurrency` | The implicit default build-pass executor. Runs `/faff-beep-boop`'s queue one `/faff-graft` at a time over the conflict-analysis partition — no worktree contention, no merge races. The safe counterpart to `faffter-dark-concurrency-parallel`. |
-| `faffter-noon-ship` | `ship` | The implicit default delivery producer. Merges a gate-cleared PR (`gh pr merge --squash`), with a no-op deploy-readiness check — emits a native result the `ship_adaptor` maps onto shipped/not-ready/failed. Swap for a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery means more than a merge. |
+| `faffter-noon-ship` | `ship` | The implicit default delivery producer. Merges a gate-cleared PR (`gh pr merge --squash`), with a no-op deploy-readiness check — emits its `faff-contract:delivery-outcome` block, which faff-graft parses onto shipped/not-ready/failed. Swap for a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery means more than a merge. |
 
 ### faffidavit-* (adaptors)
 
-Adaptor skills. Faff-core fixes the **internal contracts** the pipeline branches on — verdict states, vocabularies, classifications — in the gateway, where they never move. Each faffidavit skill is the **default adaptor** that sits in front of one of those fixed contracts: it translates a producer's native output *into* the contract and validates conformance. Swapping the slot swaps the translator, never the contract — which is what lets a third-party producer or reviewer plug in. `faffidavit-rendering` is the exception: rendering has no internal contract (it's human-facing only), so it's a pure adaptor swappable end to end. All are usable standalone, not just inside the pipeline.
+Adaptor skills. Faff-core fixes the **internal contracts** the pipeline branches on — verdict states, vocabularies, classifications — in the gateway, where they never move. The `spec` / `review` / `ship` contracts are **producer-emitted** (FAFF-109): the producer self-declares its contract data as a `faff-contract:<name>` block, and the consumer (faff-prep, faff-graft) parses it and calls `faff contract <name>` directly — no adaptor in between (their `spec_adaptor` / `review_adaptor` / `ship_adaptor` slots were retired). Two adaptor skills remain: `faffidavit-routing` sits in front of the fixed automation-routing verdict (a computed verdict, no producer authors it), and `faffidavit-rendering` is a pure adaptor with no internal contract (rendering is human-facing only), swappable end to end. Both are usable standalone, not just inside the pipeline.
 
 | Skill | Slot | What it does |
 |---|---|---|
-| `faffidavit-spec` | `spec_adaptor` | The default adaptor over the fixed spec-readiness contract (closed/open/external classification + confidence, in the gateway). Owns the canonical markers (Chosen/Punt/Assumes), marker rules, skimmable writing style, and the confidence line's format; validates any spec (pass/fail + violations). All spec producers conform; faff-prep delegates its pre-attach validation here. |
-| `faffidavit-review` | `review_adaptor` | The default adaptor over the fixed review-verdict contract (pass/fail/needs-human, semantics, revert test — in the gateway). Owns the output envelope every reviewer returns and normalises raw output onto the three states; validates review output on demand. Swap it to adapt a third-party reviewer — faff-graft still branches on the same three states. |
 | `faffidavit-routing` | `routing_adaptor` | The default adaptor over the fixed automation-routing contract (the closed six verdicts + admission rule + root-cause taxonomy — in the gateway). Owns verdict assignment, computation locus, and display format; assigns and validates verdicts. The contract survives a `methodology` swap because it lives in faff-core, not inside the methodology. |
-| `faffidavit-ship` | `ship_adaptor` | The default adaptor over the fixed delivery-outcome contract (shipped/not-ready/failed + the two-tier gate + coercion rule — in the gateway). Translates a ship producer's native delivery result (a `gh`/CI/deploy tool's exit status and logs) onto the three outcomes faff-graft routes on; validates conformance, failing safe to `failed` (never a phantom `shipped`). |
 | `faffidavit-rendering` | `rendering_adaptor` | The default — and a **pure adaptor** with no internal contract behind it, since rendering is human-facing only. Owns the rendering style (visual vs prose, the catalogue of canonical visual forms, the table-vs-list rule, density caps) plus the synthesis issue-gloss humanisation; validates/normalises draft output. All sub-skills render through this; swap it to change house style wholesale. |
 
 ### faffter-dark-* (experimental)
@@ -300,14 +297,14 @@ Every name is `family[-qualifier]-function`.
 |---|---|---|
 | `faff-*` | the faff before work | Pipeline. The slash commands — sequence, gates, tracker/human talk. Delegates the doing. (The "what".) |
 | `faffter-*` | *after* faff | Doing-skills. Inputs in, outputs out — produce a spec, run a review, analyse a backlog. (The "how".) |
-| `faffidavit-*` | an *affidavit*, an attestation | Adaptors. Translate a doing-skill's output into the contract the pipeline branches on, and attest conformance. (The stable boundary.) |
+| `faffidavit-*` | an *affidavit*, an attestation | Adaptors (`faffidavit-routing`, `faffidavit-rendering`). Translate/normalise output the pipeline branches on, and attest conformance. The spec/review/ship contracts are producer-emitted (FAFF-109) — the producer self-declares a `faff-contract:<name>` block the consumer parses, no adaptor between. |
 
 The `faffter-*` qualifier says how safe the variant is: **`-noon-*`** (broad daylight) ships on by default, conservative; **`-dark-*`** (the dark factory) is an override/experimental swap-in, heavier and lights-out-leaning. The trailing function (`-spec`, `-review`, …) names the slot — same function, same slot: `faffter-noon-spec` and `faffter-dark-nlspec` are both `spec` producers, pick one.
 
 ### Two kinds of slot
 
-- **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `concurrency`, `ship`) hold a skill that *does work*. Swap to change behaviour.
-- **Adaptor-slots** (`spec_adaptor`, `review_adaptor`, `ship_adaptor`, `routing_adaptor`, `rendering_adaptor`) hold a skill that *translates and attests*. What it translates *into* — the verdict states, vocabularies, classifications the pipeline gates on — is a **fixed contract in faff-core** and never moves. Swap to change the surface dialect (envelope, markers, display), never the contract.
+- **Doing-slots** (`intake`, `spec`, `review`, `methodology`, `concurrency`, `ship`) hold a skill that *does work*. Swap to change behaviour. The `spec` / `review` / `ship` producers self-declare their contract data as a `faff-contract:<name>` block the consumer (faff-prep, faff-graft) parses and pipes to `faff contract <name>` directly — no adaptor between (FAFF-109 retired the `spec_adaptor` / `review_adaptor` / `ship_adaptor` slots). A foreign producer conforms by emitting the same block, or is wrapped via `faffter-dark-authoring-adaptors`.
+- **Adaptor-slots** (`routing_adaptor`, `rendering_adaptor`) hold a skill that *translates and attests*. `routing_adaptor` sits in front of the fixed automation-routing verdict (computed — no producer authors it); `rendering_adaptor` has no fixed contract (human-facing only). Swap to change the surface dialect/display, never the contract.
 
 The pipeline hardcodes the contract so it always has something stable to branch on; the slot holds the translator so anyone's output can be made to fit.
 
@@ -319,19 +316,18 @@ slots:
   review: gstack:review        # third-party reviewer
 ```
 
-It must **honour the slot's contract** — a `spec` maps decisions onto closed/open/external + a confidence line; a `review` resolves to `pass`/`fail`/`needs-human`. The faffidavit adaptor enforces this; output already in the house dialect passes straight through. A missing slot is never a park reason — unset means "use ours".
+It must **honour the slot's contract** — a `spec` maps decisions onto closed/open/external + a confidence line; a `review` resolves to `pass`/`fail`/`needs-human` — and **emit its `faff-contract:<name>` block** so the consumer parses it deterministically. A producer whose native tool can't emit the block is wrapped (see below). A missing slot is never a park reason — unset means "use ours".
 
-### Write an adaptor (when foreign output doesn't fit)
+### Adapt a producer whose output doesn't fit (FAFF-22)
 
-If the third-party output speaks a different dialect — a reviewer emitting `APPROVED`/`REJECTED`/`BLOCKED` — don't touch faff-core or fork the pipeline. Point the adaptor-slot at a translator:
+If a third-party `spec` / `review` / `ship` producer speaks a different dialect — a reviewer emitting `APPROVED`/`REJECTED`/`BLOCKED` — don't touch faff-core or fork the pipeline. Conformance is **producer-emitted** (FAFF-109): the producer must emit a `faff-contract:<name>` block (`spec-readiness` / `review-verdict` / `delivery-outcome`) the consumer pipes to `faff contract <name>`. If the producer can't emit it itself, wrap it:
 
 ```yaml
 slots:
   review: somevendor:critic                # emits APPROVED/REJECTED/BLOCKED
-  review_adaptor: yourorg:critic-adaptor   # maps onto pass/fail/needs-human
 ```
 
-An adaptor does three things: **names** the fixed contract (gateway → _Core contracts and adaptor slots_; never redefines it), **translates** native output into it (`APPROVED → pass`, honouring the coercion rule — an unparseable verdict goes to `needs-human`, never silently to `pass`), and **validates** (returns `pass`/`fail` + violations so the pipeline never acts on a malformed result). It also carries **refer-back prose** so it can find the contract when invoked standalone (skills load independently — the gateway isn't always in context). Don't hand-roll this: run **`faffter-dark-authoring-adaptors`** — it scaffolds a conformant skill with the refer-back prose and contract mapping in place, and validates an existing one against the conformance checklist. Any `faffidavit-*` skill is also a copyable template: `## Internal contract (fixed — see gateway)` → `## Adaptor` → `## Validate`.
+Run **`faffter-dark-authoring-adaptors`** — the fused-wrapper authoring tool. It scaffolds a conformant producer (or a wrapper around a foreign one) that **translates** native output (`APPROVED → pass`, honouring the coercion rule — an unparseable verdict goes to `needs-human`, never silently to `pass`) and **emits the `faff-contract:review-verdict` block** the consumer parses. It carries **refer-back prose** so it finds the contract when invoked standalone (skills load independently — the gateway isn't always in context). There is no separate `review_adaptor` slot to point at any more — the wrapper *is* the producer, and the deterministic `faff contract <name>` script does the conformance attestation the old adaptor used to.
 
 `rendering_adaptor` is the exception — no fixed contract behind it (rendering is human-facing; nothing branches on how output looks), so swap `faffidavit-rendering` to change house style end to end.
 

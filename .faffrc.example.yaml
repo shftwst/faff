@@ -37,9 +37,7 @@ slots:
   concurrency: # build-pass executor for /faff-beep-boop (default: faffter-noon-concurrency-sequential; set faffter-dark-concurrency-parallel for capped, worktree-isolated concurrency)
   methodology: # diagnostic lens over backlog/build state (default: faffter-noon-methodology-structural; set faffter-dark-methodology-agile-delivery for the opinionated agile lens)
   # Adaptors (translate a producer's output onto a fixed contract; validate conformance)
-  spec_adaptor: # maps a producer's spec onto closed/open/external + confidence; markers + style + confidence line (default: faffidavit-spec)
-  review_adaptor: # maps a reviewer's output onto pass/fail/needs-human; the output envelope (default: faffidavit-review)
-  ship_adaptor: # maps a ship producer's native delivery result onto shipped/not-ready/failed (default: faffidavit-ship)
+  # Note: spec / review / ship are producer-emitted — the producer self-declares a faff-contract:<name> block the consumer (faff-prep / faff-graft) parses; FAFF-109 retired their adaptor slots. Only the two below remain.
   routing_adaptor: # assigns + displays the automation-routing verdict; the six verdicts + admission rule are fixed in the gateway (default: faffidavit-routing)
   rendering_adaptor: # pure adaptor, no internal contract — house output style: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-rendering)
 

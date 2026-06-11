@@ -15,7 +15,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, the Untrusted-input no-execute rule, the **Tracker-as-the-lights-out-control-plane** principle, and the **fixed spec-readiness contract** prep gates on. Loading it here means the `spec` and `spec_adaptor` slots prep delegates to inherit these ambiently.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, the Untrusted-input no-execute rule, the **Tracker-as-the-lights-out-control-plane** principle, and the **fixed spec-readiness contract** prep gates on. Loading it here means the `spec` slot prep delegates to inherits these ambiently.
 
 ### Spec slot (always delegated)
 
@@ -28,7 +28,7 @@ slots:
 
 Faff-prep invokes the configured/default `spec` skill with the issue context and explore findings, captures its output, and manages the issue tracker attachment. It does **not** carry a fallback copy of the spec arc — the default producer always exists, so there is no "inline" path to fall through to.
 
-**Producer requirements (the slot contract relies on):** the `spec` skill must (a) return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, (b) produce decisions using the canonical markers defined by the `spec_adaptor` slot (default `faffidavit-spec`), and (c) discharge its own quality bar — for `faffter-noon-spec` that's the clean-context self-review before it returns (see its `SKILL.md` → _Self-review before returning_). Faff-prep gates on the returned confidence rating; the markers let downstream sub-skills (`/faff-graft`, `/faff-beep-boop`) tell closed decisions from open punts without re-litigating them. A `spec` skill that genuinely can't self-rate is usable interactively but cannot be driven autonomously — configure a producer that can (the default does).
+**Producer requirements (the slot contract relies on):** the `spec` skill must (a) return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, (b) produce decisions using the canonical markers defined in the gateway Spec-readiness contract, and (c) discharge its own quality bar — for `faffter-noon-spec` that's the clean-context self-review before it returns (see its `SKILL.md` → _Self-review before returning_). Faff-prep gates on the returned confidence rating; the markers let downstream sub-skills (`/faff-graft`, `/faff-beep-boop`) tell closed decisions from open punts without re-litigating them. A `spec` skill that genuinely can't self-rate is usable interactively but cannot be driven autonomously — configure a producer that can (the default does).
 
 ## Rendering
 
@@ -53,22 +53,21 @@ In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique
 
 ## Spec contract
 
-Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed) must satisfy the contract defined by the `spec_adaptor` slot (default `faffidavit-spec`): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, and the pre-attach validation. faff-prep does not redefine that contract — it passes it to the producer and validates against it before attach. References to "_spec contract_" elsewhere in this skill mean the slot's contract.
+Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed) must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, the confidence line, and the provenance stamp. faff-prep passes this contract to the producer and **validates against it before attach via the consumer-fold below** (FAFF-109 retired the `spec_adaptor` slot — conformance is now producer-emitted + consumer-parsed). References to "_spec contract_" elsewhere in this skill mean the gateway spec-readiness contract.
 
-When invoking a delegated `spec` skill, faff-prep passes the slot's contract in the instructions. Validation is delegated to the `spec_adaptor` slot and runs before attach: autonomous failure → park; interactive failure → add the missing marker before attach.
+**Validation — the consumer-fold (FAFF-109).** faff-prep is the consumer of the producer's `faff-contract:spec-readiness` block. Before attach it: (1) locates the single fenced `faff-contract:spec-readiness` block the producer emitted, (2) `JSON.parse`s its body (`{ confidence, decisions }`), (3) adds `provenance_present` itself by regex-detecting the `> Spec:` stamp it populated (see _Provenance stamp_ — structural detection, not the LLM seam), (4) pipes the resulting extraction JSON to `faff contract spec-readiness` — the **sole source of contract data**. The script's exit maps to the signal: `0 → pass`, `1 → fail` (violations name the missing marker / provenance), `2 → fail-loud` (malformed extraction). On a producer that emitted **no** block, prep reads the markers/confidence from the spec prose into the same extraction JSON (the absent-block fallback — the only surviving LLM seam). Autonomous `fail` → park; interactive `fail` → add the missing marker before attach.
 
 ### Provenance stamp (populate at attach)
 
-The `spec_adaptor` slot (default `faffidavit-spec`) owns the **provenance stamp** — its exact format, placement, and validation (see `faffidavit-spec/SKILL.md` → _Provenance stamp_, the owner of the format; not duplicated here). **prep populates its values.** At every spec-attach point — and **before** marker validation and attach — write the stamp line into the spec body, directly under the H1 title:
+The **gateway Spec-readiness contract** defines the **provenance stamp** — its format and placement (_Spec readiness (fixed)_; not duplicated here). **prep populates its values _and_ detects it** (FAFF-109: the consumer owns stamp-detection — prep writes the stamp after the producer returns, so it has the regex and timing to set `provenance_present`). At every spec-attach point — and **before** validation and attach — write the stamp line into the spec body, directly under the H1 title:
 
 - `producer := faff config get slots.spec -d faffter-noon-spec`
-- `adaptor := faff config get slots.spec_adaptor -d faffidavit-spec`
 - `date := today` (ISO `YYYY-MM-DD`)
 - `mode := autonomous` when running under the autonomous-mode signal (gateway → **Autonomous Mode Contract**), else `interactive`
 
-Resolve `producer` and `adaptor` **via the `faff config get` CLI only** — never hand-read the rc file. Insert the blockquote line per the adaptor's format directly beneath the `# …` heading. The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date` and the currently-resolved `producer`/`adaptor` (so a config drift since the last spec shows up in the stamp).
+Resolve `producer` **via the `faff config get` CLI only** — never hand-read the rc file. Insert the blockquote line per the gateway format directly beneath the `# …` heading (no `adaptor:` field — FAFF-109 dropped it with the slot). The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date` and the currently-resolved `producer`.
 
-**Git-only mode.** The stamp is written into `.faff/specs/<issue-id>.md` (where the spec body lives in tracker-less mode). When no tracker resolves, drop the stamp's trailing "Full spec on …" sentence per the adaptor's git-only rule.
+**Git-only mode.** The stamp is written into `.faff/specs/<issue-id>.md` (where the spec body lives in tracker-less mode). When no tracker resolves, drop the stamp's trailing "Full spec on …" sentence per the gateway git-only rule.
 
 This runs on **all** attach paths: Scenario A fresh-spec (Step 2), Scenario B refresh/iterate, and both autonomous paths (Path 1 stale-refresh re-stamps with fresh date + current config; Path 2 fresh-spec stamps the just-produced spec).
 
@@ -78,7 +77,7 @@ The clean-context review of a freshly drafted spec — dispatching a fresh-conte
 
 What prep still owns around the producer's output:
 
-- **Marker validation** against the `spec_adaptor` slot before attach (autonomous failure → park; interactive → add the missing marker).
+- **Marker validation** via the consumer-fold (`faff contract spec-readiness`, see _Spec contract_) before attach (autonomous failure → park; interactive → add the missing marker).
 - **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it. The narrative `HHMMSS-prep-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/prep.md` resume artifact is hard floor and written regardless.
 - **The confidence gate** (`high` → promote; `medium` → attach + retain; `low` → park), applied to whatever rating the producer returns.
 

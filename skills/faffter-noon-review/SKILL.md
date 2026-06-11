@@ -116,6 +116,22 @@ This maps *this reviewer's* five passes onto the contract's three verdicts. The 
 
 Returns the signal (`pass` / `fail` / `needs-human`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-graft.
 
+## Contract artifact (FAFF-108)
+
+After the prose output above (the `signal:` line and `## Findings`), append **one** fenced code block — tagged `faff-contract:review-verdict`, as the **last** thing in the output — declaring the verdict you just reached, so `faffidavit-review` consumes it **deterministically** (no LLM re-read of your prose). You authored the verdict and raised each finding, so you declare them directly; the block mirrors the prose, it is not a second source of truth. (Same pattern the `spec` producer adopted in FAFF-81 for `faff-contract:spec-readiness`.)
+
+````
+```faff-contract:review-verdict
+{ "signal": "<your verdict: pass|fail|needs-human>",
+  "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per finding you raised ] }
+```
+````
+
+- **One** block, at the very end. `signal` is the same value as your `signal:` line. `findings` carries one entry per finding you raised, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`) — you raised the finding, so you know both directly.
+- `pass` may carry zero findings; `fail` / `needs-human` carry ≥1 (the contract script enforces this).
+- Do **not** include `provenance_present` — that field is spec-specific (FAFF-81); the review-verdict extraction is just `{ signal, findings }`.
+- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to the adaptor's prose extraction.)
+
 ## Appetite integration
 
 | | low | medium | high (default) | full |

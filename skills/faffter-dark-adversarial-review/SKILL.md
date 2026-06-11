@@ -142,6 +142,23 @@ The key principle is **independence from the primary model**. If Claude wrote th
 
 Returns Phase 1's hard signal (`pass` / `fail` / `needs-human`) plus the adversarial findings and the implementor's dispositions. The adversarial phase does not alter the signal — it adds evidence that the implementor has addressed. Sequencing (iterate, raise PR, park) belongs to faff-graft.
 
+## Contract artifact (FAFF-108)
+
+After the output above, append **one** fenced code block — tagged `faff-contract:review-verdict`, as the **last** thing in the output — declaring **Phase 1's hard verdict only**, so `faffidavit-review` consumes it **deterministically** (no LLM re-read). You authored Phase 1's verdict, so you declare it directly; the block mirrors the prose, it is not a second source of truth. (Same pattern the `spec` producer adopted in FAFF-81 for `faff-contract:spec-readiness`.)
+
+````
+```faff-contract:review-verdict
+{ "signal": "<Phase 1's verdict: pass|fail|needs-human>",
+  "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per Phase-1 finding ] }
+```
+````
+
+- **Phase 1's verdict only.** `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
+- **Phase-2 adversarial hypotheses are NOT the verdict** — they stay prose under `## Adversarial findings` and are **never** entered into `findings[]`. Folding soft hypotheses in would misrepresent the hard verdict the gate routes on.
+- `pass` may carry zero findings; `fail` / `needs-human` carry ≥1 (the contract script enforces this).
+- Do **not** include `provenance_present` — that field is spec-specific (FAFF-81); the review-verdict extraction is just `{ signal, findings }`.
+- **One** block, at the very end, machine-only. **Always emit it** — a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to the adaptor's prose extraction.)
+
 ## Rules
 
 - Never agree with the primary review by default. Actively look for what it missed.

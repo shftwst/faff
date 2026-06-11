@@ -42,6 +42,24 @@ The default delivers by merging, nothing more:
 
 On a merge conflict or any `gh` failure, the native result carries the error so `faffidavit-ship` maps it to `failed:<reason>` (e.g. `failed:merge conflict on main`) — never swallow it. Graft treats that as a post-build failure (one fix attempt if obvious, else park). The default only signals success when the merge actually succeeded: if `gh` exits non-zero, times out, or its result can't be confirmed, that is a failure signal, not a success one — and the adaptor's coercion rule (malformed → `failed`, never `shipped`) is the backstop, though the default never relies on it.
 
+## Contract artifact (FAFF-108)
+
+After emitting the native result (step 5), append **one** fenced code block — tagged `faff-contract:delivery-outcome`, as the **last** thing in the output — declaring the delivery outcome you just produced, so `faffidavit-ship` consumes it **deterministically** (no LLM re-read of the `gh`/deploy result). You ran the merge and read its exit, so you declare the outcome directly; the block mirrors the native result, it is not a second source of truth. (Same pattern the `spec` producer adopted in FAFF-81 for `faff-contract:spec-readiness`.)
+
+````
+```faff-contract:delivery-outcome
+{ "outcome": "<your result: shipped|not-ready|failed>",
+  "reason": "<short cause; empty for shipped>",
+  "corroborated": <bool> }
+```
+````
+
+- `outcome` — your real delivery result; `reason` — a short, specific cause (empty for `shipped`; the `not-ready:precondition:<kind>` reason convention still applies).
+- **Honesty rule — `corroborated: true` ONLY when the native result actually confirms the merge/deploy succeeded.** A clean `gh pr merge` exit you observed is corroboration; an unconfirmable / timed-out / unread result is **not** — set `corroborated: false`, never a phantom `true`.
+- **The script's fail-safe stands:** an `outcome: shipped` with `corroborated: false` still coerces → `failed` (CLI fixture `uncorroborated-shipped-coerced`). So honest self-declaration **cannot weaken** the corroboration guard — declaring `false` when unsure is always safe.
+- Do **not** include `provenance_present` — that field is spec-specific (FAFF-81); the delivery-outcome extraction is just `{ outcome, reason, corroborated }`.
+- **One** block, at the very end, machine-only. **Always emit it** — a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to the adaptor's prose extraction.)
+
 ## Rules
 
 - **The integrity floor is not ours.** AC-verified + CI-green + review `pass` is asserted by graft *before* this skill is invoked and is non-delegable. This producer may never bypass, re-open, or weaken it. We add a readiness tier on top; we never subtract the floor's "no".

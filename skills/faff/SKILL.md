@@ -307,14 +307,20 @@ Each chokepoint computes eligibility (resolve the issue's labels + `automation_d
 
 **Git-only mode (no tracker).** With no tracker there are no labels, so eligibility resolves purely from `automation_default` — `opt-in` (the default) means the autonomous surface is off by default, consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate). Setting `automation_default: opt-out` turns it on.
 
-### Work-ordering rule (priority → chainable unlock value)
+### Ordering & judgement delegation (the orchestration layer holds no opinion)
 
-The single canonical ordering for every place a faff sub-skill ranks, suggests, or promotes work: faff-tidy's Ready and Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / build-queue independents, faff-map's critical path, faff-beep-boop's independents ordering. Sub-skills reference this rule rather than restating it. Apply lexicographically:
+**The orchestration layer owns no rule or opinion about importance, value, priority, size, risk, or work ordering.** Every place a faff sub-skill ranks, sequences, sizes, or value-/risk-weights work — faff-tidy's Ready / On-hold / Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / value-chains / On-hold / build-queue independents, faff-map's horizons, faff-beep-boop's build-queue ordering — **obtains that judgement from the configured `methodology` slot's relevant named output and renders what it returns.** No sub-skill states an ordering, a "priority is king" rule, a risk tiering, or a sizing rule of its own. There is nothing here for a configured methodology to contradict; the methodology *provides* it. This is the sharp edge of the *configurable, not opinionated* tenet.
 
-1. **Priority** is king. It can live on the issue itself or on any **ancestor** (parent, grandparent, or higher container, whatever the tracker calls it); respect both, inheriting from the nearest ancestor that has a value. When the consuming project's `CLAUDE.md` flags a current workstream, weight issues in that workstream up.
-2. **Chainable unlock value** breaks ties: the count of direct + transitive dependents (issues whose blockers list this one, recursively). An issue that unblocks a chain of five beats an isolated issue at the same priority. This matters most for automation, where shipping the unlocking issue first gives the next `/faff-beep-boop` pass more ready candidates.
+**Named output per context:**
 
-When a `methodology` slot is configured, its `pick-ordering` output reframes this within each priority band (e.g. value × risk × dep-aware); the structural inputs stay in the computation but no longer alone determine the order.
+1. **Sequencing — "what order to take these issues"** (Ready, Today's Focus, build-queue independents, the On-hold list, value-chain heads) → the methodology's **`pick-ordering`**. It is the general "order this set of issues" answer — including sets that are not themselves pickup-able (e.g. the not-eligible On-hold list).
+2. **Build queue** → `build-queue`; **sizing / right-sizing** → `ticket-shaping`; **per-issue lens** → `issue-critique`; **bless batches** → `bless-set`.
+
+**The slot always resolves.** Unset → `faffter-noon-methodology-structural`, which owns the zero-config baseline (priority + chainable unlock value, and "never reorders by value/risk"). So zero-config ordering is **unchanged** — the opinion simply lives on the methodology side, never in the orchestration skill. (Priority can live on the issue or any **ancestor**; the structural default inherits from the nearest ancestor that has a value and weights up a `CLAUDE.md`-flagged workstream — but that logic is the *methodology's*, surfaced via `pick-ordering`, not an orchestration-layer rule.)
+
+**Objective graph facts are not opinions.** Reading the dependency graph and counting direct + transitive dependents (unlock value), detecting cycles, or noting `blocks N` / `blocked by N` are facts the orchestration layer may read and render. *Ordering by* them is an opinion and comes from the methodology.
+
+**Dependency-direction note (grounding).** Value and risk are **inputs** assessed on the work itself; priority is the **derived** signal produced by weighing them (WSJF / cost-of-delay). A missing priority never blocks assessing value or risk — it is their output, not their precondition.
 
 ### Next-step transition — consult `faff next`
 

@@ -17,7 +17,7 @@ slots:
   spec: faffter-dark-nlspec
 ```
 
-When invoked, faff-prep passes the issue context, explore findings, and the spec contract (the `spec_adaptor` slot, default `faffidavit-spec`). This skill produces the spec body; faff-prep handles attachment, validation, and lifecycle.
+When invoked, faff-prep passes the issue context, explore findings, and the spec contract (the gateway _Spec readiness (fixed)_ section). This skill produces the spec body; faff-prep handles attachment, validation, and lifecycle.
 
 ## Input
 
@@ -25,7 +25,7 @@ Faff-prep provides:
 
 - Issue title, description, acceptance criteria, labels, dependencies
 - Explore findings (codebase state, architecture, relevant files)
-- The spec contract from the `spec_adaptor` slot (canonical markers: `**Chosen:**`, `**Punt:**`, `**Assumes:**`)
+- The spec contract from the gateway Spec-readiness section (canonical markers: `**Chosen:**`, `**Punt:**`, `**Assumes:**`)
 - The writing style rules (skimmable, no invented labelling schemes)
 
 ## Output
@@ -187,7 +187,7 @@ This line is consumed by faff-prep for its gate decision (autonomous mode: `high
 
 ## Contract artifact (FAFF-81)
 
-After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so `faffidavit-spec` consumes them **deterministically** (no LLM re-read of your prose). You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
+After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so faff-prep (the consumer) parses them **deterministically** (no LLM re-read of your prose) and pipes them to `faff contract spec-readiness`. You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
 
 ````
 ```faff-contract:spec-readiness
@@ -197,8 +197,8 @@ After the prose spec and the `confidence:` line, append **one** fenced code bloc
 ````
 
 - **One** block, at the very end. `decisions` lists each non-trivial decision section's canonical marker in order (`chosen` / `punt` / `assumes`; `none` only if a multi-option section is missing one — a clean spec has none).
-- Do **not** include `provenance_present` — `faffidavit-spec` computes that from the provenance stamp faff-prep adds at attach time.
-- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to the adaptor's prose extraction.)
+- Do **not** include `provenance_present` — faff-prep computes that from the provenance stamp it adds at attach time.
+- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-prep reading your prose — the absent-block fallback.)
 
 ## Rules
 

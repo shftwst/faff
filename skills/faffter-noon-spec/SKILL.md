@@ -25,15 +25,15 @@ The caller provides:
 
 - Issue title, description, acceptance criteria, labels, dependencies
 - Explore findings (codebase state, architecture, relevant files)
-- The spec contract from the `spec_adaptor` slot (default `faffidavit-spec`) — the canonical markers and writing-style rules this output must satisfy
+- The spec contract from the gateway (_Spec readiness (fixed)_) — the canonical markers and writing-style rules this output must satisfy
 
 ## Output
 
-A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller validates it against the `spec_adaptor` slot, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's `faffidavit-spec`) and does not handle attachment or lifecycle (that's faff-prep).
+A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller (faff-prep) validates it via `faff contract spec-readiness`, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's the gateway _Spec readiness (fixed)_ section) and does not handle attachment or lifecycle (that's faff-prep).
 
 ## The lite nlspec arc
 
-Motivation to verifiable done, in four phases. Every non-trivial decision carries a canonical marker (`**Chosen:**` / `**Punt:**` / `**Assumes:**`) per the `spec_adaptor` slot.
+Motivation to verifiable done, in four phases. Every non-trivial decision carries a canonical marker (`**Chosen:**` / `**Punt:**` / `**Assumes:**`) per the gateway Spec-readiness contract.
 
 ### 1. WHY — Problem and scope
 
@@ -92,13 +92,13 @@ End the output with a confidence line on its own:
 confidence: high | medium | low
 ```
 
-The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Core contracts and adaptor slots → Spec readiness_); the line's format is owned by the `spec_adaptor` slot (default `faffidavit-spec` → _Confidence self-rating_). Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = non-blocking `**Punt:**` items or patchy explore findings; `low` = significant unknowns or possible split.
+The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Spec readiness (fixed)_), which also defines the line's format. Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = non-blocking `**Punt:**` items or patchy explore findings; `low` = significant unknowns or possible split.
 
 This line is consumed by faff-prep for its autonomous gate decision (`high` → promote; `medium` → attach + flag for human review; `low` → park) and is **retained on the attached spec** — it is durable provenance and a re-spec signal, not stripped. `/faff-tidy`'s spec-health pass reads the retained rating and reconciles it against later comments and codebase drift; the routing verdict treats a retained `confidence: medium` as `needs-decision-first`. It is both a signal to the caller and a lasting property of the spec.
 
 ## Contract artifact (FAFF-81)
 
-After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so `faffidavit-spec` consumes them **deterministically** (no LLM re-read of your prose). You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
+After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so faff-prep (the consumer) parses them **deterministically** (no LLM re-read of your prose) and pipes them to `faff contract spec-readiness`. You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
 
 ````
 ```faff-contract:spec-readiness
@@ -108,13 +108,13 @@ After the prose spec and the `confidence:` line, append **one** fenced code bloc
 ````
 
 - **One** block, at the very end. `decisions` lists each non-trivial decision section's canonical marker in order (`chosen` / `punt` / `assumes`; `none` only if a multi-option section is missing one — a clean spec has none).
-- Do **not** include `provenance_present` — `faffidavit-spec` computes that from the provenance stamp faff-prep adds at attach time.
-- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to the adaptor's prose extraction.)
+- Do **not** include `provenance_present` — faff-prep computes that from the provenance stamp it adds at attach time.
+- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-prep reading your prose — the absent-block fallback.)
 
 ## Rules
 
-- This is the **minimum** structure. Richer producers (like `faffter-dark-nlspec`) may add formal types, appendices, and rationale sections — as long as they satisfy the same `spec_adaptor`.
-- The canonical markers are mandatory and owned by the `spec_adaptor` slot — this skill uses them, it does not define them. If the contract is unavailable, fall back to `**Chosen:**` / `**Punt:**` / `**Assumes:**`.
+- This is the **minimum** structure. Richer producers (like `faffter-dark-nlspec`) may add formal types, appendices, and rationale sections — as long as they satisfy the same gateway spec-readiness contract.
+- The canonical markers are mandatory and defined in the gateway Spec-readiness contract — this skill uses them, it does not define them. If the contract is unavailable, fall back to `**Chosen:**` / `**Punt:**` / `**Assumes:**`.
 - Pseudocode is language-agnostic. Do not write in a specific programming language — the build agent translates to the project's language.
 - The spec must be buildable by a coding agent with only the spec as context. If a section needs external knowledge not in the explore findings, mark it `**Assumes:**`.
-- Write to be skimmed: no invented labelling schemes, restate subjects on cross-reference (the writing-style rules live in the `spec_adaptor` slot and apply fully).
+- Write to be skimmed: no invented labelling schemes, restate subjects on cross-reference (the writing-style rules live in the gateway Spec-readiness contract and apply fully).

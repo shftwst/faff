@@ -352,6 +352,26 @@ A pass that mixes fresh-now data with 30-minute-old data is **silently wrong**: 
 
 If the fetch budget is genuinely too high, scope the run smaller along a **structural** axis (single project, single workstream) and announce that scope. Never use partial freshness across a wider scope, and never inherit a narrower scope from another skill's already-filtered surface (e.g. scoping tidy to "what wtf just surfaced").
 
+### Tracker as the lights-out control plane
+
+During unattended runs (`/faff-beep-boop`) the **tracker is the complete human-legible record, control plane, and observability surface** — never a hidden internal queue. Three obligations, all already implemented by existing machinery (this section *names* them; it adds **no** new mechanism — no `faff` subcommand, no `.faffrc` key, no per-step marker subsystem, no new `.faff/` artefact):
+
+**1. Externalise every marker-worthy step.** The meaningful pipeline transitions leave a tracker marker — a per-issue comment, a control label, a status move, or the once-per-run digest. Factory-created tickets join the **same** `Backlog` as all other work — no parallel hidden queue — and are picked up by the next tidy→prep pass. The canonical marker set (already left, distributed across the skills):
+
+- **Spec-attach / promote** — `faff-prep` attaches the spec as a comment (with provenance stamp); promotion to Todo.
+- **Park** — park comment + `faff-parked` label, via the shared **Park protocol**.
+- **Resolve-attempt-proceed** — the audit-trail comment when autonomous mode infers an answer and proceeds (**Resolve-attempt before park**).
+- **Appetite-override** — the `(appetite: …)` audit comment when an appetite-influenced decision ships.
+- **Discovered-scope / chain-gap filing** — the `Backlog` + `faff-chain-gap-fill` ticket with its provenance line (`faff-beep-boop` step 10; `faff-tidy` chain-gaps).
+- **Terminal disposition** — *shipped* (PR + auto-merge status move), *routed-out* (verdict gate), *errored* — surfaced via the run-summary digest.
+- **The once-per-run run-summary digest** — posted to the tracker as a status update / project comment. One digest per run, not per step.
+
+**2. Marker-worthy ≠ every action (the granularity rule — the crux).** *Marker-worthy* means the transitions/dispositions above — **not** every micro-step. **Per-micro-step markers are forbidden:** a tracker comment per file edited, per test run, per intra-build decision, or per CI poll floods the control plane and destroys the legibility this principle exists to protect. Routine intra-step progress lives in `.faff/` logs and the once-per-run digest, **never** as a tracker comment. Density is governed by the **existing** levers — `logging: full|essential`, the `appetite` dial (gates discovered/chain-gap auto-create), the vague/concrete split (vague discovered-scope is never filed), and the run digest — **not** by any new knob.
+
+**3. Re-read human edits each pass (the steer loop).** Every pass re-reads the ticket's current tracker state + human edits **before** acting and incorporates them — implemented by **Always pull fresh**, `faff-beep-boop`'s wave re-entry + `faff next`, `faff-tidy`'s post-spec comment scan, and `faff-prep`'s autonomous stale-refresh. The human can view or alter **any** ticket — including one the factory created — and the next pass honours the edit. This is FAFF-19's "human curation is authoritative" applied to factory-created work. No new fetch/merge mechanism is added.
+
+**Lane & composition.** Markers are written by the **orchestrator** lane (`faff-beep-boop`) per **Agent Lanes** record-and-file; the implementor (`faff-graft`) records-and-returns and never writes the tracker directly; `faff-jot` stays interactive-only (its autonomous mode writes `.faff/intake/`, never the tracker). No per-issue marker is added for shipped / routed-out / errored / unreached dispositions — the PR + status move + run digest already make each legible, and §2 forbids duplicating them. This principle **composes** with **Agent Lanes**, **Always pull fresh**, **Appetite for destruction**, and the **Park protocol** — it restates none of them.
+
 ### Spec discovery (where to look for an existing spec)
 
 **This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-graft, faff-wtf, faff-map, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the checks below (locations 1–3 with a tracker; location 4 the git-only fallback). Any divergence in a sub-skill is a bug, not a local override.

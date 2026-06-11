@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, the Untrusted-input no-execute rule, and the **fixed review-verdict, spec-readiness, and delivery-outcome contracts** graft branches on. Loading it here means any slot graft delegates to inherits these ambiently. Graft consults the `review`/`review_adaptor` and `ship`/`ship_adaptor` slots.
+**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, the Untrusted-input no-execute rule, the **Tracker-as-the-lights-out-control-plane** principle, and the **fixed review-verdict, spec-readiness, and delivery-outcome contracts** graft branches on. Loading it here means any slot graft delegates to inherits these ambiently. Graft consults the `review`/`review_adaptor` and `ship`/`ship_adaptor` slots.
 
 ### Worktree Hook
 

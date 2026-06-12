@@ -53,6 +53,21 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 - Pseudocode at ambiguity points — anywhere prose alone could be read two ways, add a setup/action/assert or step-by-step block.
 - Risks, edge cases, what could go wrong.
 
+### Scenarios — born-verifiable main objectives
+
+- A dedicated `## Scenarios` section, after HOW and before DONE. For each **main objective above the complexity bar**, render the objective as Given-When-Then so what the work must achieve is expressed as a scenario, not just prose — the objective is born verifiable:
+
+  ```
+  Given <precondition>
+  When <the change/action>
+  Then <the observable, testable outcome>
+  ```
+
+- **Proportionate, not always-on.** Emit a scenario only for a non-trivial behavioural objective with a non-obvious observable outcome. Trivial objectives get none — a scenario for them is bloat, and the house skimmability rule outranks blanket consistency. The producer judges the bar; many small specs will have a short `## Scenarios` section or, legitimately, none.
+- **Non-functional objectives → assertions, not scenarios.** A constraint like "no PII in logs" or "p99 < 200ms" is an assertion/constraint line, not a forced Given-When-Then — two complementary forms, one for behaviour, one for non-functional.
+- This is the same language as holdout BDD; a holdout is just the withheld subset of these scenarios.
+- **Anti-pattern:** restating the DONE checklist as Given-When-Then. Why: DONE already mirrors the body; scenarios sharpen the WHAT's main objectives, they don't duplicate DONE. The dedicated section + complexity bar exist to avoid exactly this.
+
 ### 4. DONE — Definition of Done (closed-loop)
 
 - A testable checklist mirroring the body sections 1:1. Every WHY/WHAT/HOW requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded ones.

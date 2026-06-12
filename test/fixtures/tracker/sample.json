@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "labels": [
+    { "name": "faff-automate", "color": "#4ea7fc", "description": "automation-eligible" }
+  ],
+  "initiatives": [
+    { "id": "INIT-1", "name": "faff's skills are verified, not assumed", "status": "Active" }
+  ],
+  "projects": [
+    {
+      "id": "PROJ-1",
+      "name": "Deterministic test substrate",
+      "state": "started",
+      "initiativeIds": ["INIT-1"],
+      "priority": 2
+    }
+  ],
+  "issues": [
+    {
+      "id": "ISS-A",
+      "title": "Build a thing",
+      "state": "Todo",
+      "stateCategory": "unstarted",
+      "labels": ["faff-automate"],
+      "priority": 3,
+      "projectId": "PROJ-1",
+      "relations": { "blocks": [], "blockedBy": ["ISS-B"], "relatedTo": [] }
+    },
+    {
+      "id": "ISS-B",
+      "title": "Prereq",
+      "state": "Done",
+      "stateCategory": "completed",
+      "labels": [],
+      "projectId": "PROJ-1",
+      "relations": { "blocks": ["ISS-A"], "blockedBy": [], "relatedTo": [] }
+    }
+  ],
+  "comments": [
+    {
+      "id": "C-1",
+      "issueId": "ISS-A",
+      "body": "# Spec — ISS-A\nconfidence: high\n\nA fixture-borne spec body, so a has-spec check can pass off the mock.",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

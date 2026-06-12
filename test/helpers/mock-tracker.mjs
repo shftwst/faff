@@ -165,7 +165,6 @@ export function loadFixture(source) {
 
   const issuesById = new Map(data.issues.map((i) => [i.id, i]));
   const projectsById = new Map(data.projects.map((p) => [p.id, p]));
-  const initiativesById = new Map(data.initiatives.map((i) => [i.id, i]));
   const labelsByName = new Map(data.labels.map((l) => [l.name, l]));
   const commentsByIssue = new Map();
   for (const c of data.comments) {
@@ -228,10 +227,6 @@ export function loadFixture(source) {
       return rows.map((c) => structuredClone(c));
     },
   };
-
-  // Keep initiativesById referenced (resolved-initiative extension point) without a
-  // dead-binding lint; the index is built so future *Result enrichment needs no reload.
-  void initiativesById;
 
   return Object.freeze(model);
 }

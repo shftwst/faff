@@ -42,6 +42,19 @@ Enumerable content must be skimmable — the failure mode is an enumerable set c
 
 This rule governs tracker descriptions and comments as much as terminal output (per Scope above). The canonical anti-example is a long "Open questions" set written as one `·`-delimited paragraph — it must render as a bulleted list.
 
+## Output token economy
+
+Skimmable form isn't enough: a response can satisfy every form rule and still burn tokens on ceremony that adds nothing the output doesn't already carry. Token-lean is part of *understandable-not-unapproachable* — the reader (and the budget) pays for every wasted line. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
+
+- **No preamble/postamble.** Drop the conversational frame — "Here is the…", "I've gone ahead and…", "Let me know if you'd like…", "Hope this helps". Open on the substance; end when it ends.
+- **Don't restate the ticket/request.** The reader just asked; echoing their ask back is filler. *Use instead:* go straight to the answer (a one-line gloss of *what shipped* is the synthesis contract's job, not a restatement of the brief).
+- **Don't narrate what the output already shows.** When a list, visual, or diff carries the result, prose re-explaining it is redundant. *Use instead:* let the artefact speak; add prose only for diagnosis or "do this next".
+- **No hedge/qualifier padding.** Cut "it's worth noting that", "as you can see", "essentially", "in order to" and stacked hedges. *Use instead:* state it plainly once.
+
+This does **not** sacrifice the **When prose still wins** carve-outs (synthesis gloss, diagnosis, "do this next") — those are substance, not ceremony, and still win where they apply.
+
+**Scope:** same as **Scope — all human-facing faff output** above (terminal, tracker descriptions, tracker comments; carve-outs = skill source files and `.faff/` logs). No separate scope.
+
 ## Visualisation over prose
 
 When output describes **structure** (chain, partition, cycle, queue, workstream layout, fire/blocked gate map, dep graph), render it as a compact visual. Reserve prose for diagnosis, decision, and "do this next" recommendation.
@@ -286,7 +299,7 @@ A wall of small visuals is the same problem as a wall of text. Each rendered sec
 
 Run as a final pass over draft output, or on demand against any block.
 
-**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows; an issue ID that is never grounded by its gloss anywhere in the output (bare-ID-only — see **First-mention grounding**; rewrite by injecting the gloss at first mention when derivable, else flag).
+**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows; response ceremony that breaches **Output token economy** (preamble/postamble, ticket/request restatement, narration of what the output already shows, hedge padding — rewrite to drop it); an issue ID that is never grounded by its gloss anywhere in the output (bare-ID-only — see **First-mention grounding**; rewrite by injecting the gloss at first mention when derivable, else flag).
 
 **Output:** either a list of violations (`where → which rule → the fix`), or the normalised block with the fixes applied, depending on how the caller invokes it.
 

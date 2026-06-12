@@ -71,7 +71,31 @@ export function seedRepo(spec = {}) {
   const committedSpecs = specs.filter((s) => s.location === "committed");
   let worktreePath = null;
 
-  if (useGit) {
+  try {
+    provision();
+  } catch (e) {
+    // A provisioning failure throws (loud — a broken fixture must not pass silently),
+    // but the caller never received a teardown handle, so clean up the half-built temp
+    // dir here rather than leaking it.
+    rmSync(root, { recursive: true, force: true, maxRetries: 3 });
+    throw e;
+  }
+
+  const teardown = () => {
+    if (worktreePath) {
+      try {
+        rmSync(worktreePath, { recursive: true, force: true, maxRetries: 3 });
+      } catch {
+        /* idempotent: already gone */
+      }
+    }
+    rmSync(root, { recursive: true, force: true, maxRetries: 3 });
+  };
+
+  return { root, worktreePath, teardown };
+
+  function provision() {
+    if (useGit) {
     git("init", "-b", spec.defaultBranch || "main");
 
     for (const c of commits) {
@@ -126,19 +150,7 @@ export function seedRepo(spec = {}) {
     }
   }
 
-  // Arbitrary extra working-tree files (e.g. a .faffrc.yaml the test wants read).
-  for (const [rel, body] of Object.entries(spec.files ?? {})) writeRel(rel, body);
-
-  const teardown = () => {
-    if (worktreePath) {
-      try {
-        rmSync(worktreePath, { recursive: true, force: true, maxRetries: 3 });
-      } catch {
-        /* idempotent: already gone */
-      }
-    }
-    rmSync(root, { recursive: true, force: true, maxRetries: 3 });
-  };
-
-  return { root, worktreePath, teardown };
+    // Arbitrary extra working-tree files (e.g. a .faffrc.yaml the test wants read).
+    for (const [rel, body] of Object.entries(spec.files ?? {})) writeRel(rel, body);
+  }
 }

@@ -14,6 +14,13 @@
 // Every test case asserts >=1 REAL `faff` CLI computation (parsed from recorded
 // stdout at exit 0); the captured buckets/mutations are the plumbing ids flow
 // through, never sold as the behavioural truth.
+//
+// FAFF-95: the assertion blocks DECLARE expectations via the decision-assert matchers
+// (test/helpers/decision-assert.mjs) instead of hand-rolling record-field access.
+// The real-CLI strength is preserved via expectCliResult (same parse/compare, named).
+// Two assertion classes stay inline: read-method/resultCount checks (not one of the
+// four matcher categories) and tracker-model checks (a tracker property, not a record
+// property) — hence `node:assert/strict` is still imported.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -21,6 +28,14 @@ import assert from "node:assert/strict";
 import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
 import { runSkill, scriptedDriver } from "./helpers/skill-harness.mjs";
+import {
+  expectBucket,
+  expectNoBucket,
+  expectMutation,
+  expectNoMutation,
+  expectCliResult,
+  expectSeamOrder,
+} from "./helpers/decision-assert.mjs";
 
 // Map the tracker's stateCategory enum onto `faff next`'s orchestration status
 // vocabulary. `faff next --status` rejects the raw stateCategory values
@@ -76,24 +91,17 @@ test("Scenario A — ready-promotion is a real `graft` verdict, captured end-to-
   });
 
   // --- real CLI computations (the non-tautological assertions) ---
-  const eligibleCall = rec.cliCalls.find((c) => c.argv[0] === "eligible");
-  const nextCall = rec.cliCalls.find((c) => c.argv[0] === "next");
-  assert.equal(eligibleCall.exit, 0);
-  assert.equal(eligibleCall.stdout.trim(), "true");
-  assert.equal(nextCall.exit, 0);
-  assert.equal(JSON.parse(nextCall.stdout).next, "graft");
+  expectCliResult(rec, "eligible", { exit: 0, stdoutTrim: "true" });
+  expectCliResult(rec, "next", { exit: 0, json: { next: "graft" } });
 
   // --- proof-of-mechanism: the harness drove tidy's seams and the id flowed through ---
-  assert.deepEqual(rec.buckets.ready, ["ISS-A"]);
-  const setStatus = rec.mutations.find((m) => m.op === "setStatus");
-  assert.equal(setStatus.issue, "ISS-A");
-  assert.deepEqual(setStatus.args, { status: "Todo" });
+  expectBucket(rec, "ready", ["ISS-A"]);
+  expectMutation(rec, { op: "setStatus", issue: "ISS-A", args: { status: "Todo" } });
 
   // --- cross-seam ordering: the `next` computation precedes the bucket it informed ---
-  const bucketSeq = rec.seamLog.find((e) => e.kind === "bucket").seq;
-  assert.ok(nextCall.seq < bucketSeq);
+  expectSeamOrder(rec, { kind: "cliCall", argvHead: "next" }, { kind: "bucket", name: "ready" });
 
-  // --- mutation was an ATTEMPT: the frozen model is unchanged ---
+  // --- mutation was an ATTEMPT: the frozen TRACKER MODEL is unchanged (not a record check) ---
   assert.equal(tracker.getIssue("ISS-A").state, "Backlog");
 });
 
@@ -147,21 +155,18 @@ test("Scenario B — stale-park routing is real; the mechanical clear is capture
   });
 
   // --- real CLI computation: a parked issue routes to needs-human ---
-  const nextCall = rec.cliCalls.find((c) => c.argv[0] === "next");
-  assert.equal(nextCall.exit, 0);
-  assert.equal(JSON.parse(nextCall.stdout).next, "needs-human");
+  expectCliResult(rec, "next", { exit: 0, json: { next: "needs-human" } });
 
-  // --- both reads were served (the parked issue + its now-Done blocker) ---
+  // --- both reads were served (parked issue + now-Done blocker). Read-method/count is
+  //     not one of the four matcher categories, so it stays a direct assert. ---
   assert.deepEqual(rec.trackerReads.map((r) => r.method), ["getIssue", "getIssue"]);
   assert.ok(rec.trackerReads.every((r) => r.resultCount === 1));
 
   // --- proof-of-mechanism: the mechanical clear is a recorded removeLabel ATTEMPT ---
-  const removeLabel = rec.mutations.find((m) => m.op === "removeLabel");
-  assert.equal(removeLabel.issue, "ISS-PARKED");
-  assert.equal(removeLabel.args.label, "faff-parked");
-  assert.deepEqual(rec.buckets["park-cleared"], ["ISS-PARKED"]);
+  expectMutation(rec, { op: "removeLabel", issue: "ISS-PARKED", args: { label: "faff-parked" } });
+  expectBucket(rec, "park-cleared", ["ISS-PARKED"]);
 
-  // --- attempt only: the frozen model still carries the faff-parked label ---
+  // --- attempt only: the frozen TRACKER MODEL still carries faff-parked (not a record check) ---
   const stillParked = tracker.getIssue("ISS-PARKED").labels.some((l) => l.name === "faff-parked");
   assert.ok(stillParked, "removeLabel is an attempt — the read-only model must be unchanged");
 });
@@ -207,15 +212,11 @@ test("Scenario C — an ineligible issue is skipped by a real `skip-ineligible` 
   });
 
   // --- real CLI computations: ineligible, and the resulting skip-ineligible route ---
-  const eligibleCall = rec.cliCalls.find((c) => c.argv[0] === "eligible");
-  const nextCall = rec.cliCalls.find((c) => c.argv[0] === "next");
-  assert.equal(eligibleCall.exit, 0);
-  assert.equal(eligibleCall.stdout.trim(), "false");
-  assert.equal(nextCall.exit, 0);
-  assert.equal(JSON.parse(nextCall.stdout).next, "skip-ineligible");
+  expectCliResult(rec, "eligible", { exit: 0, stdoutTrim: "false" });
+  expectCliResult(rec, "next", { exit: 0, json: { next: "skip-ineligible" } });
 
   // --- proof-of-mechanism: on-hold (NOT ready); no promotion mutation recorded ---
-  assert.deepEqual(rec.buckets["on-hold"], ["ISS-C"]);
-  assert.equal(rec.buckets.ready, undefined);
-  assert.equal(rec.mutations.length, 0);
+  expectBucket(rec, "on-hold", ["ISS-C"]);
+  expectNoBucket(rec, "ready");
+  expectNoMutation(rec);
 });

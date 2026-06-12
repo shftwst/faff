@@ -161,3 +161,80 @@ export function expectRendering(rec, surface) {
     `expectRendering(${surface}): not emitted`,
   );
 }
+
+/**
+ * FAFF-97 — Routing assertion: every DECLARED human-facing output surface routed
+ * through the rendering pass (the universal-routing rule, enforced behaviourally).
+ *
+ * This is a seam-COMPLETENESS + ORDERING claim, never a content claim: it reads only
+ * `surface` / `routes` / `op` / `issue` / `seq` off the frozen record and never inspects
+ * a rendered body (FAFF-96 owns body goldens). It computes no ranking — the author
+ * declares which seams are human-facing; the matcher classifies nothing itself.
+ *
+ * spec: { surface, emits? }
+ *   - surface: the rendering surface that must carry the routing (e.g. "tidy-report").
+ *   - emits: the human-facing output seams that must each route through `surface`.
+ *       Default [{ kind: "rendering" }] — assert the terminal render of `surface` is present.
+ *       - { kind: "rendering" } — the terminal/stdout render; its presence IS the routing.
+ *       - { kind: "mutation", op, issue? } — a prose-bearing tracker write that must be
+ *         PRECEDED (in seq) by a binding rendering(surface) seam. `op` is one of
+ *         addComment / createIssue / setStatus; mechanical writes (addLabel/removeLabel)
+ *         are not human-facing and are never declared here.
+ *
+ * Binding: a rendering(surface) seam binds an emit when its `routes` is undefined
+ * (lenient — any same-surface render preceding the emit) or equals the emit's `op`
+ * (strict — exact binding). The first such seam with seq < emitSeq satisfies the emit.
+ *
+ * Returns undefined on match; throws AssertionError on a missing render, an emit with no
+ * preceding bound render (the un-normalised-write violation), or an ordering violation.
+ */
+export function expectRoutedThroughRendering(rec, { surface, emits } = {}) {
+  assert.ok(
+    typeof surface === "string" && surface.length > 0,
+    "expectRoutedThroughRendering: a non-empty `surface` is required",
+  );
+
+  const renders = arr(rec, "renderings").filter((r) => r.surface === surface);
+  assert.ok(
+    renders.length > 0,
+    `expectRoutedThroughRendering(${surface}): no rendering with that surface`,
+  );
+
+  const selectors = emits ?? [{ kind: "rendering" }];
+  const log = arr(rec, "seamLog"); // seq order == append order; sole ordering authority (FAFF-93)
+
+  for (const emit of selectors) {
+    // The render IS the terminal emit — presence (asserted above) is intrinsic routing.
+    if (emit.kind === "rendering") continue;
+
+    if (emit.kind === "mutation") {
+      const ev = log.find(
+        (e) =>
+          e.kind === "mutation" &&
+          e.payload.op === emit.op &&
+          (emit.issue === undefined || e.payload.issue === emit.issue),
+      );
+      assert.ok(
+        ev,
+        `expectRoutedThroughRendering: no human-facing emit matched ${JSON.stringify(emit)}`,
+      );
+      const emitSeq = ev.seq;
+      const binding = log.find(
+        (e) =>
+          e.kind === "rendering" &&
+          e.payload.surface === surface &&
+          (e.payload.routes === undefined || e.payload.routes === emit.op) &&
+          e.seq < emitSeq,
+      );
+      assert.ok(
+        binding,
+        `expectRoutedThroughRendering: emit ${emit.op}` +
+          `${emit.issue ? " (" + emit.issue + ")" : ""} at seq ${emitSeq} has no preceding ` +
+          `rendering(${surface}) routing it — un-normalised write violates the universal-routing rule`,
+      );
+      continue;
+    }
+
+    assert.fail(`expectRoutedThroughRendering: unknown emit selector ${JSON.stringify(emit)}`);
+  }
+}

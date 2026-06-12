@@ -35,6 +35,7 @@ import {
   expectNoMutation,
   expectCliResult,
   expectSeamOrder,
+  expectRoutedThroughRendering,
 } from "./helpers/decision-assert.mjs";
 
 // Map the tracker's stateCategory enum onto `faff next`'s orchestration status
@@ -101,6 +102,10 @@ test("Scenario A — ready-promotion is a real `graft` verdict, captured end-to-
   // --- cross-seam ordering: the `next` computation precedes the bucket it informed ---
   expectSeamOrder(rec, { kind: "cliCall", argvHead: "next" }, { kind: "bucket", name: "ready" });
 
+  // --- routing: the terminal tidy-report routed through the rendering pass (FAFF-97).
+  //     The setStatus here carries no description, so it is not a declared human-facing emit. ---
+  expectRoutedThroughRendering(rec, { surface: "tidy-report" });
+
   // --- mutation was an ATTEMPT: the frozen TRACKER MODEL is unchanged (not a record check) ---
   assert.equal(tracker.getIssue("ISS-A").state, "Backlog");
 });
@@ -150,6 +155,9 @@ test("Scenario B — stale-park routing is real; the mechanical clear is capture
       { cli: ["next", "--status", NEXT_STATUS.backlog, "--spec", "high", "--parked"] }, // REAL -> needs-human
       { mutate: { op: "removeLabel", issue: "ISS-PARKED", args: { label: "faff-parked" } } },
       { bucket: { name: "park-cleared", issues: ["ISS-PARKED"] } },
+      // The park-clear comment is human-facing: a tidy-report render routes it, THEN it's written.
+      { render: { surface: "tidy-report", routes: "addComment" } },
+      { mutate: { op: "addComment", issue: "ISS-PARKED", args: { body: "Cleared stale park: blocker ISS-DONE is Done." } } },
       { render: { surface: "tidy-report" } },
     ]),
   });
@@ -165,6 +173,15 @@ test("Scenario B — stale-park routing is real; the mechanical clear is capture
   // --- proof-of-mechanism: the mechanical clear is a recorded removeLabel ATTEMPT ---
   expectMutation(rec, { op: "removeLabel", issue: "ISS-PARKED", args: { label: "faff-parked" } });
   expectBucket(rec, "park-cleared", ["ISS-PARKED"]);
+
+  // --- routing (FAFF-97): the human-facing park-clear comment routed through tidy-report
+  //     (a render with routes:"addComment" precedes the addComment write) — proves the
+  //     tracker-comment arm of the universal-routing rule, not just terminal output. ---
+  expectMutation(rec, { op: "addComment", issue: "ISS-PARKED" });
+  expectRoutedThroughRendering(rec, {
+    surface: "tidy-report",
+    emits: [{ kind: "mutation", op: "addComment" }],
+  });
 
   // --- attempt only: the frozen TRACKER MODEL still carries faff-parked (not a record check) ---
   const stillParked = tracker.getIssue("ISS-PARKED").labels.some((l) => l.name === "faff-parked");
@@ -219,4 +236,7 @@ test("Scenario C — an ineligible issue is skipped by a real `skip-ineligible` 
   expectBucket(rec, "on-hold", ["ISS-C"]);
   expectNoBucket(rec, "ready");
   expectNoMutation(rec);
+
+  // --- routing (FAFF-97): the terminal tidy-report still routed through the rendering pass ---
+  expectRoutedThroughRendering(rec, { surface: "tidy-report" });
 });

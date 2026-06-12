@@ -112,7 +112,27 @@ PROCEDURE handle_expired_session(session):
 
 **Anti-patterns:** near the section they affect, document what NOT to do and why. Format: `**Anti-pattern:** X. Why: Y.`
 
-### 5. DESIGN DECISION RATIONALE
+### 5. SCENARIOS — born-verifiable main objectives
+
+A dedicated `## Scenarios` section, after HOW, expressing the spec's **main objectives** as scenarios so what the work must achieve is born verifiable — not just prose the verifier has to re-derive.
+
+**Coverage — proportionate, not always-on.** Emit a scenario only for a main objective **above the complexity bar**: a non-trivial behavioural objective with a non-obvious observable outcome. Trivial objectives get none — a scenario for them is bloat, and the house skimmability rule outranks blanket consistency. The producer judges the bar.
+
+**Behavioural objectives → Given-When-Then:**
+
+```
+Given <precondition>
+When <the change/action>
+Then <the observable, testable outcome>
+```
+
+**Non-functional objectives → assertions/constraints**, not forced Given-When-Then. A constraint like "no PII in logs", "10k rps sustained", or "p99 < 200ms" is an assertion line — two complementary forms, behaviour vs non-functional, not one format jammed onto both.
+
+This is the same language as holdout BDD; a holdout is just the withheld subset of these scenarios (one language, two visibilities).
+
+**Anti-pattern:** restating the DONE checklist as Given-When-Then. Why: DONE already mirrors the body; scenarios sharpen the WHAT's main objectives, they do not duplicate DONE. The dedicated section + complexity bar exist to avoid exactly this.
+
+### 6. DESIGN DECISION RATIONALE
 
 Collect all decisions made throughout the spec. For each:
 
@@ -124,13 +144,13 @@ Rejected alternatives are documented here so the build agent doesn't re-propose 
 
 Temporal anchors where relevant: "At the time of writing, library X does not support Y" — so the decision can be revisited when the landscape changes.
 
-### 6. OPEN QUESTIONS AND ASSUMPTIONS
+### 7. OPEN QUESTIONS AND ASSUMPTIONS
 
 **Open Questions:** all `**Punt:**` items collected in one place. Each with enough context that a human reviewer can make the call without re-reading the full spec.
 
 **Assumptions:** all `**Assumes:**` items collected in one place. Each with a validation instruction (how the build agent checks whether the assumption holds before starting).
 
-### 7. DONE — Definition of Done
+### 8. DONE — Definition of Done
 
 A testable checklist that **mirrors the body sections 1:1**. The closed-loop rule:
 
@@ -161,7 +181,7 @@ Each item must be concrete enough to write a test against. "Works correctly" is 
 
 **Integration smoke test:** pseudocode for a single end-to-end path that exercises the happy case. This is not exhaustive — it's the "if this one thing works, the plumbing is connected" test.
 
-### 8. APPENDICES (optional)
+### 9. APPENDICES (optional)
 
 Lettered A, B, C. For essential content that would disrupt narrative flow in the body:
 - Attribute catalogs

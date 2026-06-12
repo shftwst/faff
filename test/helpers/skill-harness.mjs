@@ -109,7 +109,12 @@ export function makeRecorder() {
     push("verdict", { issue, token, source });
   const recordBucket = (name, issues) =>
     push("bucket", { name, issues });
-  const recordRendering = (surface) => push("rendering", { surface });
+  // FAFF-97: `routes` (optional) names the emit/write this render is the final
+  // normalise pass for, so a routing matcher can bind render->emit mechanically.
+  // Omitted from the payload when undefined, so the {seq, surface} shape is unchanged
+  // for the common (terminal) case — back-compat with existing rendering assertions.
+  const recordRendering = (surface, routes) =>
+    push("rendering", routes === undefined ? { surface } : { surface, routes });
 
   const assemble = (skill, driverKind) => {
     const view = (kind) => seamLog.filter((e) => e.kind === kind).map((e) => e.payload);
@@ -207,8 +212,8 @@ export function scriptedDriver(script) {
           const { name, issues } = action.bucket;
           ctx.record.recordBucket(name, issues);
         } else if ("render" in action) {
-          const { surface } = action.render;
-          ctx.record.recordRendering(surface);
+          const { surface, routes } = action.render;
+          ctx.record.recordRendering(surface, routes);
         } else {
           throw new HarnessError(
             `scriptedDriver: unknown action kind in ${JSON.stringify(action)}`,

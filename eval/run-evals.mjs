@@ -102,15 +102,81 @@ function printHeadline(s) {
   console.log(`  total tokens (est): ${s.total_cost_tokens}`);
 }
 
-// CLI — the REAL frontier run. Never triggered by a test import (process.argv[1] is the test file).
-// `node eval/run-evals.mjs [--only <case-id>] [--reps N]`  (FAFF-131 supervised; needs claude -p).
-async function main(argv) {
-  const { makeFrontierDriver } = await import("./frontier-driver.mjs");
+// Resolve the local preset's base URL + model: --flag → env → hard error. NO localhost default —
+// ollama is served over Tailscale, so a missing base URL is a fail-loud config error, not a default.
+export function resolveLocalParams(argv) {
+  const baseUrl = argFlag(argv, "--base-url") ?? process.env.FAFF_EVAL_LOCAL_BASE_URL ?? null;
+  const model = argFlag(argv, "--model") ?? process.env.FAFF_EVAL_LOCAL_MODEL ?? null;
+  if (!baseUrl) throw new Error("--driver local requires --base-url (or FAFF_EVAL_LOCAL_BASE_URL); no localhost default");
+  if (!model) throw new Error("--driver local requires --model (or FAFF_EVAL_LOCAL_MODEL)");
+  if (/localhost|127\.0\.0\.1/.test(baseUrl)) {
+    console.warn("[run-evals] WARN: base URL points at localhost, but ollama is served over Tailscale — is this right?");
+  }
+  return { baseUrl, model };
+}
+
+// Select the driver from --driver (default frontier → byte-identical to FAFF-130). `presets` is
+// injected ({ frontierDriver, localDriver }) so this stays pure/testable — it never spawns.
+export function resolveDriver(argv, presets) {
+  const which = argFlag(argv, "--driver") ?? "frontier";
+  const bin = argFlag(argv, "--bin") ?? "claude";
+  if (which === "frontier") {
+    if (argFlag(argv, "--base-url")) console.warn("[run-evals] WARN: --base-url is ignored for --driver frontier");
+    return presets.frontierDriver({ bin });
+  }
+  if (which === "local") {
+    const { baseUrl, model } = resolveLocalParams(argv);
+    return presets.localDriver({ baseUrl, model, bin });
+  }
+  throw new Error(`unknown --driver: ${which} (expected frontier|local)`);
+}
+
+function printCompareTable(fr, lo) {
+  console.log(`\n=== frontier vs local — per-kind accuracy/stability ===`);
+  console.log(`  ${"kind".padEnd(11)} ${"frontier".padEnd(16)} local`);
+  const kinds = [...new Set([...Object.keys(fr.per_kind), ...Object.keys(lo.per_kind)])].sort();
+  for (const k of kinds) {
+    const f = fr.per_kind[k] ?? { accuracy: 0, stability: 0 };
+    const l = lo.per_kind[k] ?? { accuracy: 0, stability: 0 };
+    const cell = (m) => `${m.accuracy.toFixed(2)}/${m.stability.toFixed(2)}`;
+    console.log(`  ${k.padEnd(11)} ${cell(f).padEnd(16)} ${cell(l)}`);
+  }
+  console.log(`  tokens (est): frontier ${fr.total_cost_tokens}  local ${lo.total_cost_tokens}`);
+}
+
+// --compare: run BOTH presets over the same cases and tabulate. Real-model run (FAFF-131-class);
+// the light affordance, not the measured study. Local params resolved up front so it fails before
+// the (costly) frontier pass if the local side is underspecified.
+async function compare(argv, presets) {
   const only = argFlag(argv, "--only");
   const repsArg = argFlag(argv, "--reps");
+  const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
+  const bin = argFlag(argv, "--bin") ?? "claude";
+  const { baseUrl, model } = resolveLocalParams(argv); // fail-loud before any rep
   let cases = loadCases();
   if (only) cases = cases.filter((c) => c.id === only);
-  const summary = await runEvals({ cases, driver: makeFrontierDriver(), baseReps: repsArg ? Number(repsArg) : BASE_REPS });
+  const fr = await runEvals({ cases, driver: presets.frontierDriver({ bin }), baseReps });
+  const lo = await runEvals({ cases, driver: presets.localDriver({ baseUrl, model, bin }), baseReps });
+  const reportDir = join(HERE, "report");
+  mkdirSync(reportDir, { recursive: true });
+  writeFileSync(join(reportDir, "compare.json"), JSON.stringify({ frontier: fr, local: lo }, null, 2));
+  printCompareTable(fr, lo);
+  return fr.status === "complete" && lo.status === "complete" ? 0 : 1;
+}
+
+// CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
+// `node eval/run-evals.mjs [--driver frontier|local] [--model M] [--bin B] [--base-url URL] [--only ID] [--reps N]`
+// `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--only ID] [--reps N]`
+// (FAFF-131 supervised; needs a real `claude -p`.)
+async function main(argv) {
+  const presets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
+  if (argv.includes("--compare")) return compare(argv, presets);
+  const only = argFlag(argv, "--only");
+  const repsArg = argFlag(argv, "--reps");
+  const driver = resolveDriver(argv, presets); // fail-loud before loadCases/runEvals if local underspecified
+  let cases = loadCases();
+  if (only) cases = cases.filter((c) => c.id === only);
+  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
   const reportDir = join(HERE, "report");
   mkdirSync(reportDir, { recursive: true });
   writeFileSync(join(reportDir, "latest.json"), JSON.stringify(summary, null, 2));
@@ -119,5 +185,7 @@ async function main(argv) {
 }
 
 if (process.argv[1] && process.argv[1].endsWith("run-evals.mjs")) {
-  main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
+  main(process.argv.slice(2))
+    .then((code) => { process.exitCode = code; })
+    .catch((e) => { console.error(`[run-evals] ${e.message}`); process.exitCode = 1; }); // e.g. --driver local with no base URL
 }

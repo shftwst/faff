@@ -1,0 +1,7 @@
+{ "id": "dupe-001", "kind": "dupe",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-A", "title": "Add rate limiting to the login endpoint", "state": "Backlog" },
+    { "id": "ISS-B", "title": "Throttle login requests per IP", "state": "Backlog" },
+    { "id": "ISS-C", "title": "Document the deploy runbook", "state": "Backlog" } ] },
+  "question": "Which issues are duplicates of one another?",
+  "oracle": { "closed_set": ["ISS-A", "ISS-B"] } }

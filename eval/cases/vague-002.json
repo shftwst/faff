@@ -1,0 +1,6 @@
+{ "id": "vague-002", "kind": "vague",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-J", "title": "Fix the bug", "state": "Todo" },
+    { "id": "ISS-K", "title": "Add a --json flag to `faff state` emitting the resolved record", "state": "Todo" } ] },
+  "question": "Which issues are too vague to build?",
+  "oracle": { "closed_set": ["ISS-J"] } }

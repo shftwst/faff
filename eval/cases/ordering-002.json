@@ -1,0 +1,6 @@
+{ "id": "ordering-002", "kind": "ordering",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-X", "title": "Unblocker", "state": "Todo", "priority": 2, "relations": { "blocks": ["ISS-Y"], "blockedBy": [], "relatedTo": [] } },
+    { "id": "ISS-Y", "title": "Dependent", "state": "Todo", "priority": 2, "relations": { "blocks": [], "blockedBy": ["ISS-X"], "relatedTo": [] } } ] },
+  "question": "Order by chainable unlock value (judgement portion).",
+  "oracle": { "ordering": ["ISS-X", "ISS-Y"] } }

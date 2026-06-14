@@ -1,0 +1,5 @@
+{ "id": "gloss-002", "kind": "gloss",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-BB", "title": "Memoise the config resolver to cut cold-start", "state": "Todo", "relations": { "blocks": [], "blockedBy": [], "relatedTo": [] } } ] },
+  "question": "Write the one-line gloss for ISS-BB.",
+  "oracle": { "gloss_rubric": { "must_include": ["config", "cold-start"], "must_avoid": ["leverage", "robust", "seamless"] } } }

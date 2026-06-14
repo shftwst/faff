@@ -1,0 +1,6 @@
+{ "id": "superseded-002", "kind": "superseded",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-S", "title": "Make config access mechanical", "state": "Backlog" },
+    { "id": "ISS-T", "title": "CLI-only config access (shipped #13)", "state": "Done" } ] },
+  "question": "Which open issues are superseded?",
+  "oracle": { "closed_set": ["ISS-S"] } }

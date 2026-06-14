@@ -1,0 +1,7 @@
+{ "id": "superseded-001", "kind": "superseded",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-P", "title": "Prototype the live-driver", "state": "Backlog" },
+    { "id": "ISS-Q", "title": "Spike: live-driver prototype (delivered ADR 0003)", "state": "Done" },
+    { "id": "ISS-R", "title": "Add gitignore-ensure", "state": "Backlog" } ] },
+  "question": "Which open issues are superseded by Done work?",
+  "oracle": { "closed_set": ["ISS-P"] } }

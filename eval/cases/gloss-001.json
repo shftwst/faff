@@ -1,0 +1,5 @@
+{ "id": "gloss-001", "kind": "gloss",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-Z", "title": "Add rate limiting to the login endpoint", "state": "Todo", "relations": { "blocks": ["ISS-AA"], "blockedBy": [], "relatedTo": [] } } ] },
+  "question": "Write the one-line synthesis gloss for ISS-Z.",
+  "oracle": { "gloss_rubric": { "must_include": ["login", "rate"], "must_avoid": ["leverage", "synergy", "as a user I want"] } } }

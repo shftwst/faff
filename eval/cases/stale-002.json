@@ -1,0 +1,7 @@
+{ "id": "stale-002", "kind": "stale",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-N", "title": "Add ship_adaptor conformance test", "state": "Todo" },
+    { "id": "ISS-O", "title": "Add a CI step for the new selftest", "state": "Todo" } ],
+    "comments": [ { "id": "C2", "issueId": "ISS-N", "body": "ship_adaptor was retired by FAFF-109 — premise gone" } ] },
+  "question": "Which issues are stale?",
+  "oracle": { "closed_set": ["ISS-N"] } }

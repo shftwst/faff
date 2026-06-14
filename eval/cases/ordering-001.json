@@ -1,0 +1,7 @@
+{ "id": "ordering-001", "kind": "ordering",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-U", "title": "Foundational schema", "state": "Todo", "priority": 2, "relations": { "blocks": ["ISS-V", "ISS-W"], "blockedBy": [], "relatedTo": [] } },
+    { "id": "ISS-V", "title": "Build on schema", "state": "Todo", "priority": 3, "relations": { "blocks": [], "blockedBy": ["ISS-U"], "relatedTo": [] } },
+    { "id": "ISS-W", "title": "Also on schema", "state": "Todo", "priority": 3, "relations": { "blocks": [], "blockedBy": ["ISS-U"], "relatedTo": [] } } ] },
+  "question": "Order these by what unlocks the most (judgement portion only).",
+  "oracle": { "ordering": ["ISS-U", "ISS-V", "ISS-W"] } }

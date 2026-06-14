@@ -1,0 +1,7 @@
+{ "id": "dupe-002", "kind": "dupe",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-D", "title": "Cache the config resolver result", "state": "Todo" },
+    { "id": "ISS-E", "title": "Speed up cold-start by memoising config load", "state": "Todo" },
+    { "id": "ISS-F", "title": "Add a dark-mode toggle", "state": "Todo" } ] },
+  "question": "Which issues are duplicates?",
+  "oracle": { "closed_set": ["ISS-D", "ISS-E"] } }

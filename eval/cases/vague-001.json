@@ -1,0 +1,7 @@
+{ "id": "vague-001", "kind": "vague",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-G", "title": "Make it better", "state": "Backlog" },
+    { "id": "ISS-H", "title": "Return 401 with {error:'expired'} when the JWT exp is past", "state": "Backlog" },
+    { "id": "ISS-I", "title": "Improve things", "state": "Backlog" } ] },
+  "question": "Which issues are too vague to build?",
+  "oracle": { "closed_set": ["ISS-G", "ISS-I"] } }

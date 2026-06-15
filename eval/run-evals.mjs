@@ -40,9 +40,10 @@ async function runCase(c, driver, { baseReps, maxReps }) {
       continue;
     }
     try {
-      const env = parseJudgementEnvelope(out.rawText);
+      const env = parseJudgementEnvelope(out.rawText, { expectedCaseId: c.id });
       const rr = grade(c, env);
       rr.tokens = out.tokens ?? rr.tokens ?? 0;
+      rr.format = env.format; // FAFF-137: "compliant" | "noncompliant" — feeds format_adherence
       reps.push(rr);
     } catch (e) {
       if (e instanceof EnvelopeError) reps.push(erroredRep(out.transcript ?? e.message));
@@ -72,16 +73,21 @@ export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = 
 export function summarize(caseResults, incomplete = false) {
   const byKind = {};
   for (const cr of caseResults) {
-    (byKind[cr.kind] ??= { accuracy: [], stability: [] });
+    (byKind[cr.kind] ??= { accuracy: [], stability: [], format_adherence: [] });
     byKind[cr.kind].accuracy.push(cr.accuracy);
     byKind[cr.kind].stability.push(cr.stability);
+    if (cr.format_adherence != null) byKind[cr.kind].format_adherence.push(cr.format_adherence); // FAFF-137
   }
   const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
   return {
     status: incomplete ? "incomplete (ceiling)" : "complete",
     cases: caseResults,
     per_kind: Object.fromEntries(
-      Object.entries(byKind).map(([k, v]) => [k, { accuracy: mean(v.accuracy), stability: mean(v.stability) }]),
+      Object.entries(byKind).map(([k, v]) => [k, {
+        accuracy: mean(v.accuracy),
+        stability: mean(v.stability),
+        format_adherence: v.format_adherence.length ? mean(v.format_adherence) : null, // FAFF-137
+      }]),
     ),
     total_cost_tokens: caseResults.reduce((s, cr) => s + cr.cost_tokens, 0),
     escalated_cases: caseResults.filter((cr) => cr.escalated).map((cr) => cr.case_id),
@@ -96,7 +102,8 @@ function argFlag(argv, name) {
 function printHeadline(s) {
   console.log(`\n=== judgement-eval headline (${s.status}) ===`);
   for (const [kind, m] of Object.entries(s.per_kind)) {
-    console.log(`  ${kind.padEnd(11)} accuracy ${m.accuracy.toFixed(2)}  stability ${m.stability.toFixed(2)}`);
+    const fmt = m.format_adherence == null ? "n/a" : m.format_adherence.toFixed(2);
+    console.log(`  ${kind.padEnd(11)} accuracy ${m.accuracy.toFixed(2)}  stability ${m.stability.toFixed(2)}  format ${fmt}`);
   }
   if (s.escalated_cases.length) console.log(`  escalated: ${s.escalated_cases.join(", ")}`);
   console.log(`  total tokens (est): ${s.total_cost_tokens}`);

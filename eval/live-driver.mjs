@@ -74,7 +74,7 @@ export function liveDriver({ model, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "li
       const issues = ctx.tracker.listIssues({}); // records a trackerRead at the harness seam
       const prompt = buildJudgementPrompt(issues, { pluginDir, caseId });
       const raw = await model(prompt);
-      const env = parseJudgementEnvelope(raw); // fail-loud on a malformed / case_id-less envelope
+      const env = parseJudgementEnvelope(raw, { expectedCaseId: caseId }); // FAFF-137: classify fallback recovers a mis-tagged block
       const cls = env.classifications ?? {};
       for (const kind of CLOSED_SET_KINDS) {
         if (Array.isArray(cls[kind])) ctx.record.recordBucket(kind, cls[kind]);

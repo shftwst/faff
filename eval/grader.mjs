@@ -99,12 +99,16 @@ export function aggregateCase(c, repResults, { escalated = false } = {}) {
   for (const s of sigs) counts[s] = (counts[s] || 0) + 1;
   const modal = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const n = repResults.length || 1;
+  // FAFF-137: format_adherence = fraction of *parsed* reps (those carrying a format flag — errored
+  // reps have none) whose envelope used the exact tag. null when no rep was parsed.
+  const formatted = repResults.filter((r) => r.format === "compliant" || r.format === "noncompliant");
   return {
     case_id: c.id,
     kind: c.kind,
     rep_results: repResults,
     stability: sigs.filter((s) => s === modal).length / n,
     accuracy: repResults.filter((r) => r.score === 1).length / n,
+    format_adherence: formatted.length ? formatted.filter((r) => r.format === "compliant").length / formatted.length : null,
     escalated,
     errored: repResults.filter((r) => r.graded === "ERRORED").length,
     cost_tokens: repResults.reduce((s, r) => s + (r.tokens || 0), 0),

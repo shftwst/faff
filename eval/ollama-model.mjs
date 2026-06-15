@@ -16,11 +16,16 @@ import http from "node:http";
 import https from "node:https";
 
 // PURE: the request spec for ollama's /api/chat (single, non-streaming completion).
-export function buildOllamaRequest({ baseUrl, model } = {}, prompt) {
+// FAFF-137: `think` (false disables a reasoning model's hidden think-block — essential for local
+// speed: ~12s vs 5min+ on qwen3.6) and pass-through `options` are included only when defined.
+export function buildOllamaRequest({ baseUrl, model, think, options } = {}, prompt) {
   if (!baseUrl) throw new Error("makeOllamaModel requires a baseUrl (the ollama host); no localhost default");
   if (!model) throw new Error("makeOllamaModel requires a model");
   const url = new URL("/api/chat", baseUrl).toString();
-  const body = JSON.stringify({ model, messages: [{ role: "user", content: prompt }], stream: false });
+  const payload = { model, messages: [{ role: "user", content: prompt }], stream: false };
+  if (think !== undefined) payload.think = think;
+  if (options !== undefined) payload.options = options;
+  const body = JSON.stringify(payload);
   return {
     url,
     method: "POST",
@@ -66,9 +71,9 @@ function defaultPost(req, { timeoutMs = 300000 } = {}) {
 
 // A live-driver model fn backed by a direct ollama /api/chat completion. `post` is injectable
 // (default = real http(s)); tests pass a mock so CI makes zero real calls.
-export function makeOllamaModel({ baseUrl, model, post = defaultPost, timeoutMs } = {}) {
+export function makeOllamaModel({ baseUrl, model, think, options, post = defaultPost, timeoutMs } = {}) {
   return async function ollamaModel(prompt) {
-    const req = buildOllamaRequest({ baseUrl, model }, prompt);
+    const req = buildOllamaRequest({ baseUrl, model, think, options }, prompt);
     const raw = await post(req, { timeoutMs });
     return parseOllamaResponse(raw);
   };

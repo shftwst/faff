@@ -36,13 +36,17 @@ both import `eval/` modules but spawn **zero** processes.
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   // rec.buckets.dupe / .vague / … are the model's judgement, captured at the harness seams.
   ```
-  **Fast local lane — direct ollama `/api/chat` (FAFF-136, path B).** The agentic `claude -p` model above is ~26 min/rep on a local 27B; a *direct* completion (no agent loop) is ~seconds/rep — measures model+prompt judgement (less faithful, but isolates flakiness cleanly) and makes a local sweep viable. Same `liveDriver` seam, different model fn:
+  **Fast local lane — direct ollama `/api/chat` (FAFF-136, path B).** The agentic `claude -p` model above is ~26 min/rep on a local 27B; a *direct* completion (no agent loop) drops that to ~minutes-or-less — measures model+prompt judgement (less faithful, but isolates flakiness cleanly) and makes a local sweep viable. Same `liveDriver` seam, different model fn:
   ```js
   import { makeOllamaModel } from "./ollama-model.mjs";
-  const model = makeOllamaModel({ baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx" });
+  const model = makeOllamaModel({
+    baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx",
+    think: false,                 // FAFF-137: qwen3.6 is a reasoning model — disable the think-block (~25× faster)
+    options: { num_predict: 512 } // cap generation: think:false still lets the model ramble in content (12s vs 4min runs)
+  });
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   ```
-  The A/B choice (agentic-faithful vs direct-fast) per lane is FAFF-131 / ADR-0004's call.
+  **Generation, not transport, is the local cost** — qwen3.6 at ~13 tok/s, and even with `think:false` it can emit verbose reasoning *in the content* (one smoke ran 12s/379 chars, another 4min/10k chars), so `think:false` + an `options.num_predict` cap is what bounds it. A model may also mis-tag its block as ` ```json `; `parseJudgementEnvelope` (FAFF-137) recovers the last fenced JSON with a matching `case_id` and flags it `format: "noncompliant"` — judgement isn't lost, and **format adherence becomes a measured per-model metric** (`format_adherence` in the headline). The A/B choice (agentic-faithful vs direct-fast) per lane is FAFF-131 / ADR-0004's call.
 
 ## Drivers — frontier vs local (FAFF-132)
 Two presets of the **same** `claude -p` invocation; the orchestrator/grader are driver-agnostic.

@@ -1,7 +1,7 @@
 { "id": "stale-002", "kind": "stale",
   "fixture": { "version": 1, "issues": [
-    { "id": "ISS-N", "title": "Add ship_adaptor conformance test", "state": "Todo" },
+    { "id": "ISS-N", "title": "Add a conformance test for the ship slot's output contract", "state": "Todo" },
     { "id": "ISS-O", "title": "Add a CI step for the new selftest", "state": "Todo" } ],
-    "comments": [ { "id": "C2", "issueId": "ISS-N", "body": "ship_adaptor was retired by FAFF-109 — premise gone" } ] },
-  "question": "Which issues are stale?",
+    "comments": [ { "id": "C2", "issueId": "ISS-N", "body": "the ship slot's output shape changed in FAFF-88 — the contract block now nests under `delivery`. The conformance test is still wanted, but the spec's expected-shape fixture no longer matches and needs a refresh before building." } ] },
+  "question": "Which issue has a spec whose design is now stale — still wanted, but needs a refresh (not cancellation)?",
   "oracle": { "closed_set": ["ISS-N"] } }

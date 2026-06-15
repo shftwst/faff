@@ -115,18 +115,30 @@ export function resolveLocalParams(argv) {
   return { baseUrl, model };
 }
 
-// Select the driver from --driver (default frontier → byte-identical to FAFF-130). `presets` is
-// injected ({ frontierDriver, localDriver }) so this stays pure/testable — it never spawns.
+// Resolve which skills the spawned run loads (FAFF-133): `--plugin-dir <path>` overrides the repo
+// plugin; `--no-plugin` disables it for a vanilla skill-less baseline; otherwise undefined lets the
+// preset default (the repo's own plugin + --bare) apply.
+export function resolvePluginDir(argv) {
+  const flag = argFlag(argv, "--plugin-dir");
+  if (flag) return flag;
+  if (argv.includes("--no-plugin")) return null;
+  return undefined; // preset default = the repo plugin
+}
+
+// Select the driver from --driver (default frontier). `presets` is injected
+// ({ frontierDriver, localDriver }) so this stays pure/testable — it never spawns. Both presets load
+// the repo's canonical skills by default (FAFF-133), so frontier and local measure the same prose.
 export function resolveDriver(argv, presets) {
   const which = argFlag(argv, "--driver") ?? "frontier";
   const bin = argFlag(argv, "--bin") ?? "claude";
+  const pluginDir = resolvePluginDir(argv);
   if (which === "frontier") {
     if (argFlag(argv, "--base-url")) console.warn("[run-evals] WARN: --base-url is ignored for --driver frontier");
-    return presets.frontierDriver({ bin });
+    return presets.frontierDriver({ bin, pluginDir });
   }
   if (which === "local") {
     const { baseUrl, model } = resolveLocalParams(argv);
-    return presets.localDriver({ baseUrl, model, bin });
+    return presets.localDriver({ baseUrl, model, bin, pluginDir });
   }
   throw new Error(`unknown --driver: ${which} (expected frontier|local)`);
 }
@@ -152,11 +164,12 @@ async function compare(argv, presets) {
   const repsArg = argFlag(argv, "--reps");
   const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
   const bin = argFlag(argv, "--bin") ?? "claude";
+  const pluginDir = resolvePluginDir(argv);
   const { baseUrl, model } = resolveLocalParams(argv); // fail-loud before any rep
   let cases = loadCases();
   if (only) cases = cases.filter((c) => c.id === only);
-  const fr = await runEvals({ cases, driver: presets.frontierDriver({ bin }), baseReps });
-  const lo = await runEvals({ cases, driver: presets.localDriver({ baseUrl, model, bin }), baseReps });
+  const fr = await runEvals({ cases, driver: presets.frontierDriver({ bin, pluginDir }), baseReps });
+  const lo = await runEvals({ cases, driver: presets.localDriver({ baseUrl, model, bin, pluginDir }), baseReps });
   const reportDir = join(HERE, "report");
   mkdirSync(reportDir, { recursive: true });
   writeFileSync(join(reportDir, "compare.json"), JSON.stringify({ frontier: fr, local: lo }, null, 2));
@@ -165,9 +178,10 @@ async function compare(argv, presets) {
 }
 
 // CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
-// `node eval/run-evals.mjs [--driver frontier|local] [--model M] [--bin B] [--base-url URL] [--only ID] [--reps N]`
-// `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--only ID] [--reps N]`
-// (FAFF-131 supervised; needs a real `claude -p`.)
+// `node eval/run-evals.mjs [--driver frontier|local] [--model M] [--bin B] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
+// `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
+// Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less
+// baseline. (FAFF-131 supervised; needs a real `claude -p`.)
 async function main(argv) {
   const presets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
   if (argv.includes("--compare")) return compare(argv, presets);

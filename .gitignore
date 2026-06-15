@@ -13,3 +13,6 @@ design/
 
 # Faff run logs and local state
 .faff/
+
+# Generated eval reports (real-model run output — FAFF-130 onward)
+eval/report/

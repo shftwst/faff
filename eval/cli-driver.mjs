@@ -32,10 +32,28 @@
 // Zero-dependency: node builtins only.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { copyFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// FAFF-138 — the isolated CLAUDE_CONFIG_DIR (ADR-0003) also strips the OAuth credential file, so a
+// frontier `claude -p` lands "Not logged in". Forward ONLY the credential file into the per-rep
+// cfgDir (mutable state stays isolated). Frontier-only: the local lane points at the ollama host, so
+// it must NOT copy the real Anthropic credential to a third-party endpoint (forwardCreds: false).
+// Best-effort: a missing creds file (e.g. ANTHROPIC_API_KEY env auth) is fine — leave it.
+const CREDENTIALS_FILE = ".credentials.json";
+export function forwardCredentials(cfgDir, { forwardCreds, credentialsSource } = {}, { copyFile = copyFileSync, env = process.env } = {}) {
+  if (!forwardCreds) return null;
+  const src = join(credentialsSource ?? env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"), CREDENTIALS_FILE);
+  const dst = join(cfgDir, CREDENTIALS_FILE);
+  try {
+    copyFile(src, dst);
+    return dst;
+  } catch {
+    return null; // best-effort — no creds file to forward (API-key env auth still works)
+  }
+}
 
 // The repo's own plugin (FAFF-121 relocated it to ./plugin). cli-driver.mjs lives in eval/, so the
 // repo root is one level up. Using the repo plugin — not the host's installed copy — makes the eval
@@ -117,10 +135,12 @@ export function makeCliDriver(opts = {}) {
   const judgementProse = opts.pluginDir ? loadTidyJudgementProse(opts.pluginDir) : null;
   return async function cliDriver(evalCase, repIndex) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
+    forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
     const prompt = `${renderFixturePrompt(evalCase, judgementProse)}\n\n${EVAL_MODE_INSTRUCTION.replace("<ID>", evalCase.id)}`;
     const inv = buildInvocation(opts, prompt, cfgDir);
     const res = spawnSync(inv.bin, inv.args, {
       env: inv.env, // isolation (CLAUDE_CONFIG_DIR) + any preset redirect — no parent ~/.claude.json write
+      cwd: cfgDir, // FAFF-138: clean cwd → no project CLAUDE.md/hooks pulled in (replaces --bare's isolation)
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
     });
@@ -133,9 +153,14 @@ export function makeCliDriver(opts = {}) {
 // repo plugin + --bare — are unit-testable without spawning).
 
 // Preset: frontier — `claude -p` against the Anthropic API. Loads the repo skills by default
-// (FAFF-133); pass pluginDir: null for a vanilla skill-less baseline.
-export function frontierOpts({ bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
-  return { bin, bare, pluginDir };
+// (FAFF-133); pass pluginDir: null for a vanilla skill-less baseline. forwardCreds: true (FAFF-138)
+// so the real OAuth credential reaches the isolated cfgDir.
+// bare: false — FAFF-138: `--bare` is incompatible with OAuth-credential auth (it only honors
+// env-token auth, which is why the local lane works under it). Frontier reads `.credentials.json`,
+// so it must NOT pass `--bare`; isolation comes from the fresh CLAUDE_CONFIG_DIR + clean spawn cwd
+// (project hooks/CLAUDE.md aren't pulled in). `--plugin-dir` alone still loads the skills.
+export function frontierOpts({ bin = "claude", bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
+  return { bin, bare, pluginDir, forwardCreds };
 }
 export function frontierDriver(args = {}) {
   return makeCliDriver(frontierOpts(args));
@@ -151,6 +176,7 @@ export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginD
     baseUrl,
     bare,
     pluginDir,
+    forwardCreds: false, // FAFF-138 SECURITY: never copy the real Anthropic credential to the ollama host
     env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: "ollama", ANTHROPIC_API_KEY: "" },
   };
 }

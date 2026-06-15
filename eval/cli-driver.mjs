@@ -67,7 +67,8 @@ export function loadTidyJudgementProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return md.slice(start, end).trim();
 }
 
-const EVAL_MODE_INSTRUCTION =
+// Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
+export const EVAL_MODE_INSTRUCTION =
   "After your normal faff-tidy judgement pass over this fixture, emit EXACTLY ONE fenced code " +
   'block tagged `faff-eval:judgement` containing JSON of the shape ' +
   '{ "case_id": "<ID>", "classifications": { "dupe": [..], "vague": [..], "stale": [..], "superseded": [..] }, ' +

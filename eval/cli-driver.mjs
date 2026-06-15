@@ -32,7 +32,7 @@
 // Zero-dependency: node builtins only.
 
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,12 +43,13 @@ import { fileURLToPath } from "node:url";
 // it must NOT copy the real Anthropic credential to a third-party endpoint (forwardCreds: false).
 // Best-effort: a missing creds file (e.g. ANTHROPIC_API_KEY env auth) is fine — leave it.
 const CREDENTIALS_FILE = ".credentials.json";
-export function forwardCredentials(cfgDir, { forwardCreds, credentialsSource } = {}, { copyFile = copyFileSync, env = process.env } = {}) {
+export function forwardCredentials(cfgDir, { forwardCreds, credentialsSource } = {}, { copyFile = copyFileSync, chmod = chmodSync, env = process.env } = {}) {
   if (!forwardCreds) return null;
   const src = join(credentialsSource ?? env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"), CREDENTIALS_FILE);
   const dst = join(cfgDir, CREDENTIALS_FILE);
   try {
     copyFile(src, dst);
+    chmod(dst, 0o600); // copyFileSync doesn't preserve mode — lock the copy to owner-only (the cfgDir is already 0700)
     return dst;
   } catch {
     return null; // best-effort — no creds file to forward (API-key env auth still works)

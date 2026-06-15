@@ -42,11 +42,14 @@ test("frontierOpts forwards creds; localOpts does not (never leak Anthropic cred
   assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).forwardCreds, false);
 });
 
-test("forwardCredentials copies .credentials.json into cfgDir for frontier", () => {
+test("forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600", () => {
   const calls = [];
+  const chmods = [];
   const copyFile = (from, to) => calls.push([from, to]);
-  const dst = forwardCredentials("/cfg", frontierOpts(), { copyFile, env: { CLAUDE_CONFIG_DIR: "/src" } });
+  const chmod = (p, mode) => chmods.push([p, mode]);
+  const dst = forwardCredentials("/cfg", frontierOpts(), { copyFile, chmod, env: { CLAUDE_CONFIG_DIR: "/src" } });
   assert.deepEqual(calls, [["/src/.credentials.json", "/cfg/.credentials.json"]]);
+  assert.deepEqual(chmods, [["/cfg/.credentials.json", 0o600]]); // owner-only on the copy
   assert.equal(dst, "/cfg/.credentials.json");
 });
 

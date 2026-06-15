@@ -88,6 +88,21 @@ test("gloss coverage is the deterministic rubric pass-rate (judge is advisory, n
   assert.ok(bad.score < 1);
 });
 
+// --- FAFF-142: synonym-set entries — a correct synonym ("throttle" for "rate") isn't a false-negative ---
+test("gloss rubric: an array entry passes when ANY synonym appears (string entry unchanged)", () => {
+  const rubric = { must_include: [["login", "sign-in"], ["rate", "throttl", "limit"]], must_avoid: ["synergy"] };
+  // "throttle the sign-in endpoint" — no literal "login"/"rate", but synonyms hit both sets
+  assert.equal(gradeGloss({ gloss: { Z: "throttle the sign-in endpoint" } }, rubric).score, 1);
+  // a genuine miss still fails: no rate-synonym present
+  assert.ok(gradeGloss({ gloss: { Z: "log the sign-in attempts" } }, rubric).score < 1);
+});
+
+test("gloss rubric: must_avoid accepts a synonym set (any present → fail)", () => {
+  const rubric = { must_avoid: [["leverage", "synergy", "seamless"]] };
+  assert.equal(gradeGloss({ gloss: { Z: "a clear deliverable" } }, rubric).score, 1); // none present
+  assert.ok(gradeGloss({ gloss: { Z: "a seamless experience" } }, rubric).score < 1); // synonym present
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);

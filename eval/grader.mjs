@@ -49,6 +49,14 @@ export function rankCorrelation(predicted, oracle) {
   return 1 - inv / max;
 }
 
+// FAFF-142: a rubric entry is EITHER a string (exact substring, as before) OR an array of synonyms
+// (matches if ANY appears) — so a correct gloss using a synonym ("throttle" for "rate-limit") isn't a
+// false-negative. Still fully mechanical/deterministic — no LLM in the load-bearing path.
+const entryMatches = (t, entry) =>
+  Array.isArray(entry)
+    ? entry.some((syn) => t.includes(String(syn).toLowerCase()))
+    : t.includes(String(entry).toLowerCase());
+
 // Mechanical gloss rubric — fraction of must_include/must_avoid checks passing across glosses.
 // Returns { score, checks, passed, vector } where vector is the per-check pass/fail (for stability).
 export function gradeGloss(env, rubric) {
@@ -56,8 +64,8 @@ export function gradeGloss(env, rubric) {
   const vector = [];
   for (const raw of glosses) {
     const t = String(raw).toLowerCase();
-    for (const inc of rubric.must_include || []) vector.push(t.includes(inc.toLowerCase()));
-    for (const avo of rubric.must_avoid || []) vector.push(!t.includes(avo.toLowerCase()));
+    for (const inc of rubric.must_include || []) vector.push(entryMatches(t, inc));
+    for (const avo of rubric.must_avoid || []) vector.push(!entryMatches(t, avo));
   }
   const passed = vector.filter(Boolean).length;
   return { score: vector.length ? passed / vector.length : 0, checks: vector.length, passed, vector };

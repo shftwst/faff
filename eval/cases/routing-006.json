@@ -1,0 +1,14 @@
+{ "id": "routing-006", "kind": "routing",
+  "fixture": { "version": 1,
+    "issue": { "id": "PROJ-209", "title": "Storage migration — move blob attachments to the versioned bucket layout", "status": "Todo" },
+    "spec": { "confidence": "medium", "markers": [ { "section_key": "schema-versioning", "class": "punt" } ] },
+    "diagnostics": { "in_cycle": false, "ghost_project_or_missing_dep": null },
+    "conflict": { "independent": true, "collision_group": [] },
+    "park_history": [
+      { "root_cause": "punt-not-closed" },
+      { "root_cause": "punt-not-closed" },
+      { "root_cause": "punt-not-closed" },
+      { "root_cause": "punt-not-closed" } ] },
+  "question": "Assign the automation-routing verdict for this issue.",
+  "oracle": { "closed_set": ["repeat-parked"] },
+  "_comment": "Dominant branch: park-history carries 4 parks of the SAME root-cause class (punt-not-closed, schema-versioning unresolved) >= 3 → repeat-parked, which is FIRST in the precedence ordering and beats the also-present needs-decision-first signal (the spec still has an unclosed Punt + confidence:medium). The precedence resolves the multi-signal case so a single defensible answer exists: the repeat-park PATTERN itself is the human-action signal. Admission: repeat-parked ROUTES OUT — and gets NO resolve-attempt." }

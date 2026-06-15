@@ -1,0 +1,10 @@
+{ "id": "routing-004", "kind": "routing",
+  "fixture": { "version": 1,
+    "issue": { "id": "PROJ-205", "title": "Billing webhook retry — re-deliver failed Stripe webhooks with backoff", "status": "Todo" },
+    "spec": { "confidence": "high", "markers": [] },
+    "diagnostics": { "in_cycle": false, "ghost_project_or_missing_dep": "spec assumes a \"webhook-events\" project/table that does not exist in the tracker or repo" },
+    "conflict": { "independent": true, "collision_group": [] },
+    "park_history": [] },
+  "question": "Assign the automation-routing verdict for this issue.",
+  "oracle": { "closed_set": ["gap-blocked"] },
+  "_comment": "Dominant branch: no park-history, not in a cycle — but diagnostics carry a missing-dep/ghost-project pointer (the spec assumes external state that does not exist) → gap-blocked. Spec is confidence:high with no markers, so the ONLY blocking signal is the gap (single defensible answer). Admission: gap-blocked ROUTES OUT (surfaced with the named gap)." }

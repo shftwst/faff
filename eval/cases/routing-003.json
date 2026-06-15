@@ -1,0 +1,10 @@
+{ "id": "routing-003", "kind": "routing",
+  "fixture": { "version": 1,
+    "issue": { "id": "PROJ-204", "title": "Email digest — send a weekly activity summary to each user", "status": "Todo" },
+    "spec": { "confidence": "medium", "markers": [ { "section_key": "send-mechanism", "class": "punt" } ] },
+    "diagnostics": { "in_cycle": false, "ghost_project_or_missing_dep": null },
+    "conflict": { "independent": true, "collision_group": [] },
+    "park_history": [] },
+  "question": "Assign the automation-routing verdict for this issue.",
+  "oracle": { "closed_set": ["needs-decision-first"] },
+  "_comment": "Dominant branch: no park-history, not in a cycle, no missing dep — but the spec carries an UNCLOSED Punt marker (send-mechanism: cron vs queue-driven) AND confidence:medium → needs-decision-first. Both signals point the same way (no ambiguity). Admission: needs-decision-first ROUTES OUT (surfaced with the specific decision asked)." }

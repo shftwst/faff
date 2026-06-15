@@ -68,12 +68,17 @@ export function loadTidyJudgementProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 }
 
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
+// FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
+// preamble in the content before the block, which dominates wall time and risks a num_predict cap
+// truncating the block away. Force-fit terseness via the instruction (the answer stays intact); the
+// "exactly that tag, not ```json" line also lifts format-adherence (FAFF-137 classify-fallback).
 export const EVAL_MODE_INSTRUCTION =
-  "After your normal faff-tidy judgement pass over this fixture, emit EXACTLY ONE fenced code " +
-  'block tagged `faff-eval:judgement` containing JSON of the shape ' +
+  "Run faff-tidy's judgement pass over this fixture internally, then OUTPUT ONLY one fenced code " +
+  "block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
   '{ "case_id": "<ID>", "classifications": { "dupe": [..], "vague": [..], "stale": [..], "superseded": [..] }, ' +
   '"ordering": ["<issue-id>", ..], "gloss": { "<issue-id>": "<one-line gloss>" } } — include only the fields your ' +
-  "judgement produced for this fixture, using the fixture's issue ids. Emit nothing after the block.";
+  "judgement produced, using the fixture's issue ids. Output NOTHING except that single block: no reasoning, " +
+  "no preamble, no prose, nothing before or after it.";
 
 // `judgementProse` (when present) is faff-tidy's verbatim rubric, prepended so the model applies the
 // shipped criteria. Absent (the --no-plugin baseline) → the bare improvise-it prompt (the control).

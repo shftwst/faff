@@ -41,12 +41,12 @@ both import `eval/` modules but spawn **zero** processes.
   import { makeOllamaModel } from "./ollama-model.mjs";
   const model = makeOllamaModel({
     baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx",
-    think: false,                 // FAFF-137: qwen3.6 is a reasoning model — disable the think-block (~25× faster)
-    options: { num_predict: 512 } // cap generation: think:false still lets the model ramble in content (12s vs 4min runs)
+    think: false,                  // FAFF-137: qwen3.6 is a reasoning model — disable the think-block
+    options: { num_predict: 2000 } // SAFETY ceiling only (see below) — NOT a conciseness lever
   });
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   ```
-  **Generation, not transport, is the local cost** — qwen3.6 at ~13 tok/s, and even with `think:false` it can emit verbose reasoning *in the content* (one smoke ran 12s/379 chars, another 4min/10k chars), so `think:false` + an `options.num_predict` cap is what bounds it. A model may also mis-tag its block as ` ```json `; `parseJudgementEnvelope` (FAFF-137) recovers the last fenced JSON with a matching `case_id` and flags it `format: "noncompliant"` — judgement isn't lost, and **format adherence becomes a measured per-model metric** (`format_adherence` in the headline). The A/B choice (agentic-faithful vs direct-fast) per lane is FAFF-131 / ADR-0004's call.
+  **Generation, not transport, is the local cost** — qwen3.6 at ~13 tok/s, and even with `think:false` it can ramble *in the content* (one smoke ran 12s/379 chars, another 4min/10k chars). Conciseness is forced by the **prompt**, not the cap: `EVAL_MODE_INSTRUCTION` says *output ONLY the single fenced block — no reasoning/preamble/prose* (FAFF-137), so the model writes less by intent with the answer intact. **`options.num_predict` truncates — it does not force-fit:** it's a hard stop, the model has no idea the budget exists, and a reasoning model answers *last*, so a tight cap can clip the envelope away → an **errored rep**. Set it **generous** (≥ the longest normal answer, e.g. 2000) as a runaway backstop only. If a model still mis-tags its block as ` ```json `, `parseJudgementEnvelope` recovers the last fenced JSON with a matching `case_id` and flags it `format: "noncompliant"` — judgement isn't lost, and **format adherence is a measured per-model metric** (`format_adherence` in the headline). The A/B choice (agentic-faithful vs direct-fast) per lane is FAFF-131 / ADR-0004's call.
 
 ## Drivers — frontier vs local (FAFF-132)
 Two presets of the **same** `claude -p` invocation; the orchestrator/grader are driver-agnostic.

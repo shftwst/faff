@@ -72,6 +72,8 @@ Smoke (frontier, `dupe-001`, 1 rep): `accuracy 1.00 · stability 1.00 · format 
 
 **FAFF-134 — the prompt carries the real rubric.** Loading the plugin alone didn't change the measurement: the prompt never invoked the skill, so the model *improvised* the rubric (the smoke scored `dupe` 1.00 skill-less). The eval prompt now prepends faff-tidy's **actual classification rubric, read verbatim from `<pluginDir>/skills/faff-tidy/SKILL.md`** (section "1. The mess" — dupe / vague / spec-health stale/superseded), via `loadTidyJudgementProse` (fail-loud if the section anchors move). So the **eval/ black-box** measures the *shipped* criteria, kept in sync with what ships. `--no-plugin` loads no rubric → the **improvise baseline** (the control). The faithful *structured* lane — driving the real skill seams via the FAFF-93 harness — is the live-driver (FAFF-135).
 
+**FAFF-140 — also inject the synthesis-gloss contract.** FAFF-134 carried only the *classification* section, so a `gloss` case had no criteria and the model improvised a health-summary (scored 0.00). `loadSynthesisGlossProse` now extracts the **synthesis-gloss contract** verbatim from `faffidavit-rendering/SKILL.md` (`## Synthesis — the issue-gloss contract`), and `loadJudgementCriteria` combines classification + synthesis into the prompt — so the model writes a real one-line synthesis (gloss smoke went 0.00→0.80; the residual is the keyword-brittle oracle). Also re-authored `stale-001`, which was a *premise-wrong* case (= superseded) mislabeled `stale` — now a genuine refresh-not-cancel stale case (0.00→1.00).
+
 ## Running it (FAFF-131, human-supervised)
 > ⚠ Needs a real `claude -p` + (for frontier) a budget. ~12 cases × K=20 base (+ escalation to ~50) ≈ 240+ reps.
 ```sh

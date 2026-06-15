@@ -23,7 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   buildInvocation,
-  loadTidyJudgementProse,
+  loadJudgementCriteria,
   EVAL_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
   forwardCredentials,
@@ -31,11 +31,12 @@ import {
 import { parseJudgementEnvelope } from "./envelope.mjs";
 import { CLOSED_SET_KINDS } from "./grader.mjs";
 
-// Build the judgement prompt from faff-tidy's real rubric + the issues read from the fixture + the
-// shared envelope instruction. pluginDir null → no rubric (the improvise baseline / control).
+// Build the judgement prompt from faff's real criteria (classification + synthesis gloss, FAFF-140)
+// + the issues read from the fixture + the shared envelope instruction. pluginDir null → no criteria
+// (the improvise baseline / control).
 export function buildJudgementPrompt(issues, { pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live", question } = {}) {
   const rubric = pluginDir
-    ? `Apply faff-tidy's judgement criteria below — these are the skill's own rules, verbatim:\n\n${loadTidyJudgementProse(pluginDir)}\n\n---\n\n`
+    ? `Apply faff's judgement + synthesis criteria below — these are the skills' own rules, verbatim:\n\n${loadJudgementCriteria(pluginDir)}\n\n---\n\n`
     : "";
   const ask = question ?? "classify the backlog (dupes / vague / stale / superseded) and order the ready issues";
   return (

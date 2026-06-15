@@ -86,6 +86,33 @@ export function loadTidyJudgementProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return md.slice(start, end).trim();
 }
 
+// FAFF-140 — the eval prompt also carries faff's SYNTHESIS-GLOSS contract (verbatim from the shipped
+// rendering adaptor). FAFF-134 injected only the classification section, so a `gloss` case had no
+// criteria and the model improvised a health-summary instead of a one-line synthesis. Anchored on
+// stable section headers in faffidavit-rendering/SKILL.md; fail-loud if either moves.
+const SYNTH_GLOSS_START = "## Synthesis — the issue-gloss contract";
+const SYNTH_GLOSS_END = "## Tabular data: markdown tables vs definition lists";
+export function loadSynthesisGlossProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faffidavit-rendering", "SKILL.md");
+  let md;
+  try {
+    md = readFileSync(skillPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadSynthesisGlossProse: cannot read ${skillPath}: ${e.message}`);
+  }
+  const start = md.indexOf(SYNTH_GLOSS_START);
+  if (start === -1) throw new Error(`loadSynthesisGlossProse: START anchor not found in ${skillPath}: "${SYNTH_GLOSS_START}"`);
+  const end = md.indexOf(SYNTH_GLOSS_END, start + SYNTH_GLOSS_START.length);
+  if (end === -1) throw new Error(`loadSynthesisGlossProse: END anchor not found in ${skillPath}: "${SYNTH_GLOSS_END}"`);
+  return md.slice(start, end).trim();
+}
+
+// FAFF-140 — the full judgement criteria the eval measures, verbatim from the shipped skills:
+// classification (faff-tidy "The mess") + the synthesis-gloss contract (faffidavit-rendering).
+export function loadJudgementCriteria(pluginDir = DEFAULT_PLUGIN_DIR) {
+  return `${loadTidyJudgementProse(pluginDir)}\n\n${loadSynthesisGlossProse(pluginDir)}`;
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -99,11 +126,12 @@ export const EVAL_MODE_INSTRUCTION =
   "judgement produced, using the fixture's issue ids. Output NOTHING except that single block: no reasoning, " +
   "no preamble, no prose, nothing before or after it.";
 
-// `judgementProse` (when present) is faff-tidy's verbatim rubric, prepended so the model applies the
-// shipped criteria. Absent (the --no-plugin baseline) → the bare improvise-it prompt (the control).
+// `judgementProse` (when present) is faff's verbatim judgement criteria — classification (faff-tidy)
+// + the synthesis-gloss contract (FAFF-140) — prepended so the model applies the shipped rules.
+// Absent (the --no-plugin baseline) → the bare improvise-it prompt (the control).
 function renderFixturePrompt(c, judgementProse = null) {
   const rubric = judgementProse
-    ? `Apply faff-tidy's judgement criteria below — these are the skill's own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
+    ? `Apply faff's judgement + synthesis criteria below — these are the skills' own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
     : "";
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
@@ -131,9 +159,10 @@ export function buildInvocation(opts, prompt, cfgDir) {
 // Generic factory. opts: { bin, model, baseUrl, env, bare, pluginDir }. The closure spawns;
 // importing this does not.
 export function makeCliDriver(opts = {}) {
-  // FAFF-134: load faff-tidy's rubric once (from the same pluginDir the run loads skills from).
-  // pluginDir null (the --no-plugin baseline) → no rubric → the model improvises (the control).
-  const judgementProse = opts.pluginDir ? loadTidyJudgementProse(opts.pluginDir) : null;
+  // FAFF-134/FAFF-140: load faff's judgement criteria once (classification + synthesis gloss) from
+  // the same pluginDir the run loads skills from. pluginDir null (the --no-plugin baseline) → no
+  // criteria → the model improvises (the control).
+  const judgementProse = opts.pluginDir ? loadJudgementCriteria(opts.pluginDir) : null;
   return async function cliDriver(evalCase, repIndex) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
     forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips

@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, forwardCredentials } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -150,4 +150,23 @@ test("loadTidyJudgementProse extracts section 1 (the classification rubric) from
 // --- fail-loud when the skill file is missing (anchors can't resolve) ---
 test("loadTidyJudgementProse fails loud on a missing skill file", () => {
   assert.throws(() => loadTidyJudgementProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- FAFF-140: the synthesis-gloss contract is extracted verbatim from faffidavit-rendering ---
+test("loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill", () => {
+  const prose = loadSynthesisGlossProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("## Synthesis — the issue-gloss contract"), "starts at the START anchor");
+  assert.ok(/[Hh]umanisation/.test(prose), "carries the humanisation rule");
+  assert.ok(!prose.includes("## Tabular data"), "stops before the END anchor");
+});
+
+test("loadSynthesisGlossProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadSynthesisGlossProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- FAFF-140: the eval prompt now carries BOTH classification + synthesis criteria ---
+test("loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract", () => {
+  const c = loadJudgementCriteria(DEFAULT_PLUGIN_DIR);
+  assert.ok(c.includes("Dupes:"), "has the classification rubric (faff-tidy)");
+  assert.ok(c.includes("issue-gloss contract"), "has the synthesis-gloss contract (faffidavit-rendering)");
 });

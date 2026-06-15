@@ -1,0 +1,10 @@
+{ "id": "routing-005", "kind": "routing",
+  "fixture": { "version": 1,
+    "issue": { "id": "PROJ-206", "title": "Onboarding redirect — route new users to the welcome flow after sign-up", "status": "Todo" },
+    "spec": { "confidence": "high", "markers": [] },
+    "diagnostics": { "in_cycle": true, "ghost_project_or_missing_dep": null },
+    "conflict": { "independent": true, "collision_group": [] },
+    "park_history": [] },
+  "question": "Assign the automation-routing verdict for this issue.",
+  "oracle": { "closed_set": ["circular-blocked"] },
+  "_comment": "Dominant branch: no park-history — but diagnostics mark the issue in a dependency cycle [PROJ-206 -> PROJ-207 -> PROJ-208 -> PROJ-206] detected by the methodology's backlog-diagnostics → circular-blocked. No missing dep and the spec is high/clean, so the cycle is the only blocking signal (single defensible answer). Admission: circular-blocked ROUTES OUT (surfaced with the cycle visualised)." }

@@ -1,0 +1,10 @@
+{ "id": "routing-002", "kind": "routing",
+  "fixture": { "version": 1,
+    "issue": { "id": "PROJ-202", "title": "Session refresh — extend JWT lifetime when the session is active", "status": "Todo" },
+    "spec": { "confidence": "high", "markers": [] },
+    "diagnostics": { "in_cycle": false, "ghost_project_or_missing_dep": null },
+    "conflict": { "independent": false, "collision_group": ["PROJ-202", "PROJ-203"] },
+    "park_history": [] },
+  "question": "Assign the automation-routing verdict for this issue.",
+  "oracle": { "closed_set": ["likely-fire"] },
+  "_comment": "Dominant branch: confidence:high, no open markers, no diagnostics findings, but NOT independent — sits in a collision group with PROJ-203 (both touch src/auth/), so conflict analysis would serialise it → likely-fire. Admission: likely-fire ADMITS (serialised within its group)." }

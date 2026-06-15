@@ -239,16 +239,18 @@ test("orchestrator: deadline ceiling yields a flagged partial, not a silent trun
 // --- the disk cases are all well-formed (kind matches oracle; per-kind fixture shape present) ---
 test("all eval/cases load and validate", () => {
   const cases = loadCases();
-  // 12 tidy + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable; FAFF-148: +2 verdict-revert.
-  assert.equal(cases.length, 21);
+  // 12 tidy + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable; FAFF-148: +2 verdict-revert;
+  // FAFF-149: +6 routing (one per verdict).
+  assert.equal(cases.length, 27);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
-  // ≥2 cases each for the new classification kinds (the 2/kind convention).
+  // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
   for (const k of ["confidence", "marker", "splittable", "verdict-revert"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
+  assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");
 });
 
 // ============================= FAFF-146 — prep judgement-eval kinds =============================

@@ -224,6 +224,41 @@ export function loadReviewVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return `${gatewayContract}\n\n---\n\n${reviewRubric}`;
 }
 
+// FAFF-149 — the AUTOMATION-ROUTING verdict rubric, verbatim from BOTH shipped sources, folded the
+// same two-source way loadReviewVerdictProse does (gateway = the fixed contract; the adaptor = the
+// assignment conditions). This is the criteria the `routing` (verdict-assign) eval measures: given an
+// assembled fixture-of-findings, assign exactly one of the closed SIX verdicts.
+//   - faff/SKILL.md: "### Automation-routing verdict (fixed) → `routing_adaptor`" THROUGH the next
+//     "### Spec readiness (fixed)" — the closed-six vocabulary + the admission rule + the root-cause
+//     enum + the live-thread-reconciliation rule.
+//   - faffidavit-routing/SKILL.md: "## The six verdicts (non-normative recap for assignment)" THROUGH
+//     "## Validate — wired to the contract script (FAFF-80)" — the per-verdict ASSIGNMENT CONDITIONS
+//     (incl. the `likely-fire` collision-group rule) + the display format.
+// Anchored on stable headers; fail-loud if any anchor moves (the loadTidyJudgementProse contract).
+const GATEWAY_ROUTING_START = "### Automation-routing verdict (fixed) → `routing_adaptor`";
+const GATEWAY_ROUTING_END = "### Spec readiness (fixed)";
+const ADAPTOR_ROUTING_START = "## The six verdicts (non-normative recap for assignment)";
+const ADAPTOR_ROUTING_END = "## Validate — wired to the contract script (FAFF-80)";
+
+export function loadRoutingVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const gatewayPath = join(pluginDir, "skills", "faff", "SKILL.md");
+  const adaptorPath = join(pluginDir, "skills", "faffidavit-routing", "SKILL.md");
+  let gatewayMd, adaptorMd;
+  try {
+    gatewayMd = readFileSync(gatewayPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadRoutingVerdictProse: cannot read ${gatewayPath}: ${e.message}`);
+  }
+  try {
+    adaptorMd = readFileSync(adaptorPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadRoutingVerdictProse: cannot read ${adaptorPath}: ${e.message}`);
+  }
+  const gatewayContract = sliceAnchored(gatewayMd, gatewayPath, "loadRoutingVerdictProse(gateway)", GATEWAY_ROUTING_START, GATEWAY_ROUTING_END);
+  const adaptorConditions = sliceAnchored(adaptorMd, adaptorPath, "loadRoutingVerdictProse(adaptor)", ADAPTOR_ROUTING_START, ADAPTOR_ROUTING_END);
+  return `${gatewayContract}\n\n---\n\n${adaptorConditions}`;
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -267,12 +302,24 @@ export const VERDICT_REVERT_INSTRUCTION =
   "finding, using the fixture's finding keys. Output NOTHING except that single block: no reasoning, " +
   "no preamble, no prose, nothing before or after it.";
 
+// FAFF-149 — the envelope instruction for the routing (verdict-assign) surface. The model assigns
+// EXACTLY ONE of the closed six verdicts to the assembled fixture-of-findings, emitting a single
+// `verdict` field (the confidence analogue — one level → one verdict). Same OUTPUT-ONLY hardening.
+export const ROUTING_MODE_INSTRUCTION =
+  "Apply the automation-routing assignment conditions above to this assembled fixture-of-findings and " +
+  "assign EXACTLY ONE of the closed six verdicts (fire-and-forget, likely-fire, needs-decision-first, " +
+  "gap-blocked, circular-blocked, repeat-parked). Then OUTPUT ONLY one fenced code block tagged " +
+  "exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "verdict": "<one of the six>" } — exactly one verdict. Output NOTHING ' +
+  "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
 // prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
 // to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
 function modeInstructionFor(kind) {
   if (kind === "confidence") return CONFIDENCE_MODE_INSTRUCTION;
   if (kind === "marker") return MARKER_MODE_INSTRUCTION;
+  if (kind === "routing") return ROUTING_MODE_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -297,6 +344,12 @@ function renderFixturePrompt(c, judgementProse = null) {
       `Decision sections:\n${JSON.stringify(c.fixture.sections, null, 2)}`
     );
   }
+  if (c.kind === "routing") {
+    return (
+      `${rubric}Assign the automation-routing verdict over the following assembled fixture-of-findings and answer: ${c.question}\n\n` +
+      `Assembled fixture-of-findings:\n${JSON.stringify(c.fixture, null, 2)}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
@@ -313,6 +366,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "confidence") return loadConfidenceRubricProse(pluginDir);
   if (kind === "marker") return loadMarkerDialectProse(pluginDir);
   if (kind === "verdict-revert") return loadReviewVerdictProse(pluginDir);
+  if (kind === "routing") return loadRoutingVerdictProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

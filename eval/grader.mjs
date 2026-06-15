@@ -23,8 +23,27 @@
 //                     over {pass, fail, needs-human}. The kind is registered so a future case validates,
 //                     but no verdict-build case ships in this issue (the live-driver parameterisation
 //                     is the follow-up, shared with FAFF-146's reconciliation child).
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build"]);
+// FAFF-149 — the routing surface adds one kind:
+//   routing         — SHIPPED. Isolatable verdict-assignment over an ASSEMBLED fixture-of-findings on
+//                     the black-box lane: which of the closed SIX automation-routing verdicts the
+//                     fixture implies. Oracle = single-element closed-set over {fire-and-forget,
+//                     likely-fire, needs-decision-first, gap-blocked, circular-blocked, repeat-parked};
+//                     the envelope carries `verdict: "<one of the six>"` (the confidence analogue, one
+//                     level → one verdict). The LIVE input-assembly half (diagnostics + markers +
+//                     park-history + live-thread reconciliation assembled across a real pass) is CARVED
+//                     to a FAFF-135 live-driver child — the kind is registered here so that future case
+//                     validates with no grader change. The admission rule (only fire-and-forget +
+//                     likely-fire admit) is a DETERMINISTIC derived check over the assigned verdict,
+//                     asserted in the cases / tests, NOT a second LLM judgement (spec §6.B).
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing"]);
+
+// FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
+// fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
+// deterministic derived check (§6.B), so cases/tests assert admission without a second LLM judgement.
+export const ROUTING_VERDICTS = ["fire-and-forget", "likely-fire", "needs-decision-first", "gap-blocked", "circular-blocked", "repeat-parked"];
+const ADMITTED_VERDICTS = new Set(["fire-and-forget", "likely-fire"]);
+export const admits = (verdict) => ADMITTED_VERDICTS.has(verdict);
 
 export class CaseError extends Error {}
 
@@ -35,6 +54,9 @@ const FIXTURE_SHAPE = {
   confidence: ["spec_body"],
   marker: ["sections"],
   reconciliation: ["issue", "spec_comment", "thread"],
+  // FAFF-149 — the routing fixture is an assembled fixture-of-findings; the driver renders `issue` +
+  // `spec` (plus the optional diagnostics / conflict / park_history inputs that drive the verdict).
+  routing: ["issue", "spec"],
 };
 
 // Validate one EvalCase: known kind, the oracle populates exactly the field its kind needs, and (for
@@ -122,6 +144,13 @@ function predictedSet(c, env) {
   switch (c.kind) {
     case "confidence":
       return env.confidence == null ? [] : [String(env.confidence)];
+    // FAFF-149 — routing: a single assigned verdict → a single-element set (the confidence analogue).
+    // A missing/garbage verdict → empty set → a clean FAIL, never a crash; an out-of-enum token is
+    // passed through verbatim so setEqual fails it cleanly with a distinct signature (the eval-side
+    // fail-safe; the deterministic fail-loud-on-out-of-enum lives in `faff contract automation-routing`,
+    // NOT here — the verdict-revert/confidence coercion stance, spec §HOW edge cases).
+    case "routing":
+      return env.verdict == null ? [] : [String(env.verdict)];
     case "marker":
       return pairsOf(env.markers);
     case "reconciliation":

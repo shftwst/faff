@@ -1,0 +1,10 @@
+{ "id": "routing-001", "kind": "routing",
+  "fixture": { "version": 1,
+    "issue": { "id": "PROJ-201", "title": "Add a per-IP rate-limit middleware on the auth routes", "status": "Todo" },
+    "spec": { "confidence": "high", "markers": [] },
+    "diagnostics": { "in_cycle": false, "ghost_project_or_missing_dep": null },
+    "conflict": { "independent": true, "collision_group": [] },
+    "park_history": [] },
+  "question": "Assign the automation-routing verdict for this issue.",
+  "oracle": { "closed_set": ["fire-and-forget"] },
+  "_comment": "Dominant branch: confidence:high, no open markers, no diagnostics findings, independent, empty park-history → fire-and-forget. Admission: fire-and-forget ADMITS (verdict in {fire-and-forget, likely-fire})." }

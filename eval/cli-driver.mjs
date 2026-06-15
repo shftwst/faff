@@ -32,7 +32,7 @@
 // Zero-dependency: node builtins only.
 
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -171,17 +171,25 @@ export function makeCliDriver(opts = {}) {
   const judgementProse = opts.pluginDir ? loadJudgementCriteria(opts.pluginDir) : null;
   return async function cliDriver(evalCase, repIndex) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
-    forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
-    const prompt = buildEvalPrompt(evalCase, judgementProse);
-    const inv = buildInvocation(opts, prompt, cfgDir);
-    const res = spawnSync(inv.bin, inv.args, {
-      env: inv.env, // isolation (CLAUDE_CONFIG_DIR) + any preset redirect — no parent ~/.claude.json write
-      cwd: cfgDir, // FAFF-138: clean cwd → no project CLAUDE.md/hooks pulled in (replaces --bare's isolation)
-      encoding: "utf8",
-      maxBuffer: 32 * 1024 * 1024,
-    });
-    if (res.error) throw new Error(`cli driver (${inv.bin}): ${res.error.message}`);
-    return { rawText: res.stdout ?? "", tokens: estimateTokens(res.stdout), transcript: cfgDir };
+    try {
+      forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
+      const prompt = buildEvalPrompt(evalCase, judgementProse);
+      const inv = buildInvocation(opts, prompt, cfgDir);
+      const res = spawnSync(inv.bin, inv.args, {
+        env: inv.env, // isolation (CLAUDE_CONFIG_DIR) + any preset redirect — no parent ~/.claude.json write
+        cwd: cfgDir, // FAFF-138: clean cwd → no project CLAUDE.md/hooks pulled in (replaces --bare's isolation)
+        encoding: "utf8",
+        maxBuffer: 32 * 1024 * 1024,
+      });
+      if (res.error) throw new Error(`cli driver (${inv.bin}): ${res.error.message}`);
+      // rawText is captured (a string) — the cfgDir is no longer needed; the malformed-output snippet
+      // (recorded by run-evals on an envelope error) is the errored-rep diagnostic, not the cfgDir.
+      return { rawText: res.stdout ?? "", tokens: estimateTokens(res.stdout) };
+    } finally {
+      // FAFF-139: remove the per-rep cfgDir (+ its forwarded credential copy) — never leave 200+
+      // dirs with OAuth creds in tmp. Best-effort; runs on success AND on throw.
+      try { rmSync(cfgDir, { recursive: true, force: true }); } catch { /* best-effort */ }
+    }
   };
 }
 

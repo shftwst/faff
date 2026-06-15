@@ -46,8 +46,12 @@ async function runCase(c, driver, { baseReps, maxReps }) {
       rr.format = env.format; // FAFF-137: "compliant" | "noncompliant" — feeds format_adherence
       reps.push(rr);
     } catch (e) {
-      if (e instanceof EnvelopeError) reps.push(erroredRep(out.transcript ?? e.message));
-      else throw e; // a real grader bug must surface, not masquerade as flakiness
+      // FAFF-139: the per-rep cfgDir is removed by the driver, so the errored-rep diagnostic is the
+      // malformed-output snippet (the actual judgement text that failed to parse), not a dead path.
+      if (e instanceof EnvelopeError) {
+        const snippet = out.rawText ? out.rawText.slice(0, 300) : null;
+        reps.push(erroredRep(out.transcript ?? snippet ?? e.message));
+      } else throw e; // a real grader bug must surface, not masquerade as flakiness
     }
     // Adaptive escalation: once the base reps are in, if they disagree, concentrate reps here.
     if (!escalated && i + 1 >= base && base < maxReps && hasDisagreement(reps)) {

@@ -160,6 +160,8 @@ test("orchestrator: a malformed envelope becomes an errored rep, never silently 
   assert.equal(cr.errored, 3);
   assert.equal(cr.accuracy, 0);
   assert.ok(cr.rep_results.every((r) => r.graded === "ERRORED"));
+  // FAFF-139: the diagnostic is the malformed-output snippet (the cfgDir is cleaned up, so no dead path)
+  assert.match(cr.rep_results[0].transcript, /the model forgot the block/);
 });
 
 test("orchestrator: deadline ceiling yields a flagged partial, not a silent truncation", async () => {

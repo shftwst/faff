@@ -147,7 +147,12 @@ export function resolveDriver(argv, presets) {
     const { baseUrl, model } = resolveLocalParams(argv);
     return presets.localDriver({ baseUrl, model, bin, pluginDir });
   }
-  throw new Error(`unknown --driver: ${which} (expected frontier|local)`);
+  if (which === "ollama-direct") {
+    // FAFF-144: direct /api/chat (no agent loop). think defaults OFF (the local-speed lever); --think to enable.
+    const { baseUrl, model } = resolveLocalParams(argv);
+    return presets.makeDirectOllamaDriver({ baseUrl, model, pluginDir, think: argv.includes("--think") });
+  }
+  throw new Error(`unknown --driver: ${which} (expected frontier|local|ollama-direct)`);
 }
 
 function printCompareTable(fr, lo) {
@@ -185,12 +190,14 @@ async function compare(argv, presets) {
 }
 
 // CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
-// `node eval/run-evals.mjs [--driver frontier|local] [--model M] [--bin B] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
+// `node eval/run-evals.mjs [--driver frontier|local|ollama-direct] [--model M] [--base-url URL] [--think] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
 // `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
-// Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less
-// baseline. (FAFF-131 supervised; needs a real `claude -p`.)
+// frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
+// Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less baseline.
 async function main(argv) {
-  const presets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
+  const cliPresets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
+  const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
+  const presets = { ...cliPresets, makeDirectOllamaDriver };
   if (argv.includes("--compare")) return compare(argv, presets);
   const only = argFlag(argv, "--only");
   const repsArg = argFlag(argv, "--reps");

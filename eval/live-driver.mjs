@@ -25,7 +25,9 @@ import {
   buildInvocation,
   loadJudgementCriteria,
   loadReconciliationProse,
+  loadRoutingVerdictProse,
   EVAL_MODE_INSTRUCTION,
+  ROUTING_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
   forwardCredentials,
 } from "./cli-driver.mjs";
@@ -84,6 +86,33 @@ export function buildReconciliationPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_
   );
 }
 
+// FAFF-158 — the routing VERDICT-ASSIGN prompt builder (the execution-entangled surface). It folds in
+// faff's verbatim automation-routing assignment conditions (gateway + adaptor, via loadRoutingVerdictProse)
+// and renders the assembled fixture-of-findings (issue + spec confidence/markers + diagnostics + conflict
+// + park_history — the same shape as eval/cases/routing-*.json), then asks for EXACTLY ONE of the closed
+// six verdicts via ROUTING_MODE_INSTRUCTION. The envelope carries a single `verdict` field the grader
+// reads unchanged (the confidence analogue — one level → one verdict):
+//   { "case_id": "<ID>", "verdict": "<one of the six>" }
+//
+// This is the THIRD prompt builder (after buildJudgementPrompt + buildReconciliationPrompt). pluginDir
+// null → no rubric (the improvise baseline / control), exactly as the two siblings do.
+export function buildRoutingPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  const rubric = pluginDir
+    ? `Apply faff's automation-routing assignment conditions below — these are the gateway + adaptor rules, verbatim:\n\n${loadRoutingVerdictProse(pluginDir)}\n\n---\n\n`
+    : "";
+  const { issue, spec, diagnostics, conflict, park_history } = fixture;
+  return (
+    `${rubric}Run faff's automation-routing assignment pass. Assign the single verdict the assembled ` +
+    `fixture-of-findings below implies.\n\n` +
+    `Issue:\n${JSON.stringify(issue, null, 2)}\n\n` +
+    `Spec (confidence + decision markers):\n${JSON.stringify(spec, null, 2)}\n\n` +
+    `Backlog diagnostics finding:\n${JSON.stringify(diagnostics ?? null, null, 2)}\n\n` +
+    `Conflict-analysis independence:\n${JSON.stringify(conflict ?? null, null, 2)}\n\n` +
+    `Park history:\n${JSON.stringify(park_history ?? [], null, 2)}\n\n` +
+    `${ROUTING_MODE_INSTRUCTION.replace("<ID>", caseId)}`
+  );
+}
+
 // A real model: spawn `claude -p` with the prompt. Reuses buildInvocation so it inherits the
 // frontier/local preset opts (bin, model, env redirect, --bare, --plugin-dir). Returns raw stdout.
 export function makeLiveModel(opts = {}) {
@@ -102,9 +131,60 @@ export function makeLiveModel(opts = {}) {
 }
 
 /**
+ * FAFF-158 — the GENERIC live-driver core (the shared per-skill parameterisation seam). All three
+ * live-driver occupants — liveDriver (tidy, multi-bucket), reconciliationLiveDriver (prep), and
+ * routingLiveDriver (routing) — are thin configurations of this one core. The body is identical in
+ * shape for all three: read through the tracker seam, build the per-skill prompt, call the injected
+ * model, parse the envelope, reduce it to {name, items} bucket pairs, record each at the harness seam.
+ *
+ * This is the seam FAFF-154 (prep-reconciliation) and FAFF-155 (verdict-build) EXTEND rather than
+ * re-cut: 154 re-points its reconciliationLiveDriver onto this core (already done here); 155 adds a
+ * verdictBuildLiveDriver as another wrapper. The anti-pattern this exists to prevent is a third bespoke
+ * driver copy-pasting the listIssues→buildPrompt→parseEnvelope→recordBucket body.
+ *
+ * `readEnvelope(env) -> Array<{name, items}>` is the per-skill reducer; returning a LIST of pairs is
+ * what lets the multi-bucket tidy driver (one pair per populated CLOSED_SET_KIND + ordering) and the
+ * single-bucket routing/reconciliation drivers (one pair) share the one core. A pair may omit `name`
+ * to fall back to `bucketName`.
+ *
+ * @param {{ model: Function, skill?: string, buildPrompt: Function, readEnvelope: Function,
+ *           bucketName?: string, pluginDir?: string|null, caseId?: string }} cfg
+ * @returns {{ kind: "live", drive: (ctx) => Promise<void> }}
+ */
+export function makeLiveDriver({ model, skill, buildPrompt, readEnvelope, bucketName, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  if (typeof model !== "function") {
+    throw new Error("makeLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
+  }
+  if (typeof buildPrompt !== "function") {
+    throw new Error("makeLiveDriver requires a buildPrompt(ctx, opts) function");
+  }
+  if (typeof readEnvelope !== "function") {
+    throw new Error("makeLiveDriver requires a readEnvelope(env) -> [{name, items}, …] reducer");
+  }
+  return {
+    kind: "live",
+    skill, // provenance tag (opaque to the harness; runSkill's own `skill` arg drives record.skill)
+    async drive(ctx) {
+      const issues = ctx.tracker.listIssues({}); // records the single trackerRead seam (seam-faithful)
+      const prompt = buildPrompt(ctx, { pluginDir, caseId, issues });
+      const raw = await model(prompt);
+      const env = parseJudgementEnvelope(raw, { expectedCaseId: caseId }); // FAFF-137: classify fallback recovers a mis-tagged block
+      for (const pair of readEnvelope(env)) {
+        if (!pair || !Array.isArray(pair.items)) continue;
+        ctx.record.recordBucket(pair.name ?? bucketName, pair.items);
+      }
+    },
+  };
+}
+
+/**
  * A live SkillDriver for runSkill (FAFF-93). Reads the fixture, prompts the model with faff-tidy's
  * real rubric, parses the judgement envelope, and records each classification as a DecisionRecord
  * bucket (plus `ordering` when present). `model(prompt) -> rawText` is required and injectable.
+ *
+ * FAFF-158 — re-expressed as a wrapper over makeLiveDriver (the shared core) with NO behaviour change:
+ * the tidy reducer returns one {name, items} pair per populated CLOSED_SET_KIND, plus an `ordering`
+ * pair when present (the multi-bucket case the pairs shape exists to absorb).
  *
  * @param {{ model: Function, pluginDir?: string|null, caseId?: string }} cfg
  * @returns {{ kind: "live", drive: (ctx) => Promise<void> }}
@@ -113,20 +193,22 @@ export function liveDriver({ model, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "li
   if (typeof model !== "function") {
     throw new Error("liveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
   }
-  return {
-    kind: "live",
-    async drive(ctx) {
-      const issues = ctx.tracker.listIssues({}); // records a trackerRead at the harness seam
-      const prompt = buildJudgementPrompt(issues, { pluginDir, caseId });
-      const raw = await model(prompt);
-      const env = parseJudgementEnvelope(raw, { expectedCaseId: caseId }); // FAFF-137: classify fallback recovers a mis-tagged block
+  return makeLiveDriver({
+    model,
+    skill: "faff-tidy",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, { issues, ...opts }) => buildJudgementPrompt(issues, opts),
+    readEnvelope(env) {
       const cls = env.classifications ?? {};
+      const pairs = [];
       for (const kind of CLOSED_SET_KINDS) {
-        if (Array.isArray(cls[kind])) ctx.record.recordBucket(kind, cls[kind]);
+        if (Array.isArray(cls[kind])) pairs.push({ name: kind, items: cls[kind] });
       }
-      if (Array.isArray(env.ordering)) ctx.record.recordBucket("ordering", env.ordering);
+      if (Array.isArray(env.ordering)) pairs.push({ name: "ordering", items: env.ordering });
+      return pairs;
     },
-  };
+  });
 }
 
 /**
@@ -153,16 +235,57 @@ export function reconciliationLiveDriver({ model, fixture, pluginDir = DEFAULT_P
   if (!fixture || !fixture.spec_comment || !Array.isArray(fixture.thread)) {
     throw new Error("reconciliationLiveDriver requires a ThreadFixture { issue, spec_comment, thread }");
   }
-  return {
-    kind: "live",
-    async drive(ctx) {
-      ctx.tracker.listIssues({}); // records a trackerRead at the harness seam (the spec-comment + thread read)
-      const prompt = buildReconciliationPrompt(fixture, { pluginDir, caseId });
-      const raw = await model(prompt);
-      const env = parseJudgementEnvelope(raw, { expectedCaseId: caseId });
+  // FAFF-158 — re-expressed as a wrapper over makeLiveDriver (the shared core) with NO behaviour change:
+  // the prep reducer returns one { name: "reconciliation", items: [id:label, …] } pair.
+  return makeLiveDriver({
+    model,
+    skill: "faff-prep",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, opts) => buildReconciliationPrompt(fixture, opts),
+    readEnvelope(env) {
       const labels = env.reconciliation && typeof env.reconciliation === "object" ? env.reconciliation : {};
-      const labelPairs = Object.entries(labels).map(([id, label]) => `${id}:${label}`);
-      ctx.record.recordBucket("reconciliation", labelPairs);
+      return [{ name: "reconciliation", items: Object.entries(labels).map(([id, label]) => `${id}:${label}`) }];
     },
-  };
+  });
+}
+
+/**
+ * FAFF-158 — a live SkillDriver for faff's ROUTING (automation-routing verdict-assignment) surface,
+ * completing the execution-entangled half of the routing judgement-eval FAFF-149 carved. Reads the
+ * assembled fixture-of-findings through the harness tracker seam, prompts the model with faff's
+ * verbatim routing rubric (buildRoutingPrompt) + the rendered findings, parses the single assigned
+ * verdict, and records it as a single-element `routing` DecisionRecord bucket — the SAME `env.verdict`
+ * field the existing FAFF-149 grade path scores by single-element set-equality (no grader change).
+ *
+ * The third wrapper over makeLiveDriver, symmetric with reconciliationLiveDriver: `fixture` is passed
+ * as a config field (the harness exposes no routing-fixture port) and the core still issues a
+ * listIssues seam-read so the run is seam-faithful. A missing model / a malformed routing fixture
+ * (no `issue` or `spec`) throws, mirroring validateCase's routing FIXTURE_SHAPE ["issue", "spec"].
+ *
+ * DESIGN NOTE: shipped as the routing live-driver DESIGN + the model-free dry-smoke (mock model →
+ * driver → recorded bucket → the routing grade). The measured frontier baseline (real claude -p reps)
+ * is the carved human-supervised follow-up (FAFF-131/156 pattern), recorded out-of-band, never faked.
+ *
+ * @param {{ model: Function, fixture: object, pluginDir?: string|null, caseId?: string }} cfg
+ * @returns {{ kind: "live", drive: (ctx) => Promise<void> }}
+ */
+export function routingLiveDriver({ model, fixture, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  if (typeof model !== "function") {
+    throw new Error("routingLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
+  }
+  if (!fixture || !fixture.issue || !fixture.spec) {
+    throw new Error("routingLiveDriver requires a routing fixture { issue, spec, … }");
+  }
+  // FAFF-158 — a wrapper over makeLiveDriver: the routing reducer returns one
+  // { name: "routing", items: [verdict] } pair. A missing/out-of-enum verdict yields items:[] (a
+  // missing verdict) or the verbatim token (out-of-enum) → a clean grader FAIL, never a throw.
+  return makeLiveDriver({
+    model,
+    skill: "faff-tidy",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, opts) => buildRoutingPrompt(fixture, opts),
+    readEnvelope: (env) => [{ name: "routing", items: env.verdict == null ? [] : [String(env.verdict)] }],
+  });
 }

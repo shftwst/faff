@@ -148,6 +148,14 @@ Surface-only by default — **except chain gaps**, whose auto-create is governed
 
 Output rendered in the new `### Structural diagnostics` section of tidy's output (see Output format below).
 
+#### Splittable specs
+
+Splittable-spec detection is the one structural diagnostic that is genuine LLM inspection (not a graph/history fact): it reads a spec and judges whether it covers two structurally independent concerns. The criteria the judgement applies:
+
+- **Splittable specs** — specs that cover two structurally independent concerns, each a valid ticket-sized unit. Restricted to specs already flagged stale/challenged — do not sweep every spec every run.
+
+The eval harness (FAFF-147) reads this sub-section verbatim — between the `#### Splittable specs` heading and the next `### ` heading — so the splittable eval measures the shipped criteria, not an improvised rubric.
+
 ### 6. Calibration signals
 
 Read `.faff/calibration/` at end of every tidy pass. See gateway → **Autonomous Mode Contract → Calibration log** for the capture points and the immutability invariant.

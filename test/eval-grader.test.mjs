@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  grade, gradeGloss, rankCorrelation, aggregateCase, validateCase, hasDisagreement, erroredRep, CaseError,
+  grade, gradeGloss, gradeSplittable, rankCorrelation, aggregateCase, validateCase, hasDisagreement, erroredRep, CaseError,
 } from "../eval/grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "../eval/envelope.mjs";
 import { runEvals, loadCases } from "../eval/run-evals.mjs";
@@ -103,10 +103,47 @@ test("gloss rubric: must_avoid accepts a synonym set (any present → fail)", ()
   assert.ok(gradeGloss({ gloss: { Z: "a seamless experience" } }, rubric).score < 1); // synonym present
 });
 
+// --- FAFF-147: splittable — synonym-tolerant set-equality over independent-concern labels ---
+test("splittable PASS: both concerns identified, synonym-tolerant (set-equality)", () => {
+  const oracle = [["url routing", "routing"], ["ci pipeline", "continuous integration", "ci"]];
+  // model uses a synonym for each concern — still a PASS
+  assert.equal(gradeSplittable(["routing", "continuous integration"], oracle).graded, "PASS");
+  assert.equal(gradeSplittable(["routing", "continuous integration"], oracle).score, 1);
+});
+test("splittable FAIL: a missed concern (only one of two)", () => {
+  const oracle = [["url routing", "routing"], ["ci pipeline", "ci"]];
+  assert.equal(gradeSplittable(["routing"], oracle).graded, "FAIL");
+});
+test("splittable FAIL: a phantom/extra concern not in the oracle", () => {
+  const oracle = [["url routing", "routing"], ["ci pipeline", "ci"]];
+  assert.equal(gradeSplittable(["routing", "ci", "logging refactor"], oracle).graded, "FAIL");
+});
+test("splittable negative case: empty oracle + empty prediction = PASS (correctly not-flagged)", () => {
+  assert.equal(gradeSplittable([], []).graded, "PASS");
+  // a model that over-flags a cohesive spec FAILs
+  assert.equal(gradeSplittable(["backoff schedule", "retry predicate"], []).graded, "FAIL");
+});
+test("splittable signature is deterministic and order-independent (for stability)", () => {
+  const oracle = [["a"], ["b"]];
+  const s1 = gradeSplittable(["a", "b"], oracle).signature;
+  const s2 = gradeSplittable(["b", "a"], oracle).signature; // different label order
+  assert.equal(s1, s2);
+});
+test("splittable wired through grade() on a splittable case", () => {
+  const c = { id: "sp", kind: "splittable", oracle: { closed_set: [["routing"], ["ci"]] } };
+  assert.equal(grade(c, { splittable: ["routing", "ci"] }).graded, "PASS");
+  assert.equal(grade(c, { splittable: ["routing"] }).graded, "FAIL");
+  // absent splittable field on a splittable case → no concerns → FAIL (oracle expected 2)
+  assert.equal(grade(c, {}).graded, "FAIL");
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);
   assert.doesNotThrow(() => validateCase({ id: "x", kind: "dupe", oracle: { closed_set: ["A"] } }));
+  // FAFF-147: splittable uses the closed_set oracle field
+  assert.doesNotThrow(() => validateCase({ id: "sp", kind: "splittable", oracle: { closed_set: [["a"], ["b"]] } }));
+  assert.throws(() => validateCase({ id: "sp", kind: "splittable", oracle: { gloss_rubric: {} } }), CaseError);
 });
 
 // --- aggregation: stability (signature) is DISTINCT from accuracy (oracle) ---
@@ -173,14 +210,14 @@ test("orchestrator: deadline ceiling yields a flagged partial, not a silent trun
 // --- the disk cases are all well-formed (kind matches oracle; per-kind fixture shape present) ---
 test("all eval/cases load and validate", () => {
   const cases = loadCases();
-  // 12 tidy cases + FAFF-146: 3 confidence + 2 marker prep classification cases.
-  assert.equal(cases.length, 17);
+  // 12 tidy cases + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable.
+  assert.equal(cases.length, 19);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new prep classification kinds (the 2/kind convention).
-  for (const k of ["confidence", "marker"]) {
+  for (const k of ["confidence", "marker", "splittable"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
 });

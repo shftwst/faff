@@ -107,10 +107,34 @@ export function loadSynthesisGlossProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return md.slice(start, end).trim();
 }
 
-// FAFF-140 — the full judgement criteria the eval measures, verbatim from the shipped skills:
-// classification (faff-tidy "The mess") + the synthesis-gloss contract (faffidavit-rendering).
+// FAFF-147 — the eval prompt also carries faff-tidy's SPLITTABLE-SPEC criteria (verbatim from the
+// shipped skill). §5 bundles every structural diagnostic under one heading, so a verbatim read of the
+// whole section would pull in unrelated prose; a dedicated `#### Splittable specs` sub-heading lets the
+// loader read exactly the splittable criteria. Anchored on that sub-heading and the next `### ` heading
+// (`### 6. Calibration signals`); fail-loud if either moves (a refactor must consciously re-point this).
+const SPLITTABLE_START = "#### Splittable specs";
+const SPLITTABLE_END = "### 6. Calibration signals";
+export function loadTidySplittableSpecProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff-tidy", "SKILL.md");
+  let md;
+  try {
+    md = readFileSync(skillPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadTidySplittableSpecProse: cannot read ${skillPath}: ${e.message}`);
+  }
+  const start = md.indexOf(SPLITTABLE_START);
+  if (start === -1) throw new Error(`loadTidySplittableSpecProse: START anchor not found in ${skillPath}: "${SPLITTABLE_START}"`);
+  const end = md.indexOf(SPLITTABLE_END, start + SPLITTABLE_START.length);
+  if (end === -1) throw new Error(`loadTidySplittableSpecProse: END anchor not found in ${skillPath}: "${SPLITTABLE_END}"`);
+  return md.slice(start, end).trim();
+}
+
+// FAFF-140/FAFF-147 — the full judgement criteria the eval measures, verbatim from the shipped skills:
+// classification (faff-tidy "The mess") + the synthesis-gloss contract (faffidavit-rendering) + the
+// splittable-spec criteria (faff-tidy §5). All three are folded in so any case kind finds its criteria;
+// the model is told (EVAL_MODE_INSTRUCTION) to emit only the fields its judgement produced.
 export function loadJudgementCriteria(pluginDir = DEFAULT_PLUGIN_DIR) {
-  return `${loadTidyJudgementProse(pluginDir)}\n\n${loadSynthesisGlossProse(pluginDir)}`;
+  return `${loadTidyJudgementProse(pluginDir)}\n\n${loadSynthesisGlossProse(pluginDir)}\n\n${loadTidySplittableSpecProse(pluginDir)}`;
 }
 
 // FAFF-146 — generic verbatim section extractor (the loadTidyJudgementProse contract: fail-loud if
@@ -168,7 +192,10 @@ export const EVAL_MODE_INSTRUCTION =
   "Run faff-tidy's judgement pass over this fixture internally, then OUTPUT ONLY one fenced code " +
   "block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
   '{ "case_id": "<ID>", "classifications": { "dupe": [..], "vague": [..], "stale": [..], "superseded": [..] }, ' +
-  '"ordering": ["<issue-id>", ..], "gloss": { "<issue-id>": "<one-line gloss>" } } — include only the fields your ' +
+  '"ordering": ["<issue-id>", ..], "gloss": { "<issue-id>": "<one-line gloss>" }, ' +
+  '"splittable": ["<concern-label>", ..] } — for a splittable-spec case, `splittable` is the list of the ' +
+  "structurally-independent concern labels the spec covers (an empty list [] means the spec is NOT splittable — " +
+  "one cohesive concern). Include only the fields your " +
   "judgement produced, using the fixture's issue ids. Output NOTHING except that single block: no reasoning, " +
   "no preamble, no prose, nothing before or after it.";
 

@@ -12,7 +12,9 @@
 // (black-box lane); reconciliation is execution-entangled (live-driver lane). All three grade through
 // the closed-set path (single-element level for confidence; per-unit `id:class` pairs for marker /
 // reconciliation), so the grader reuses CLOSED_SET_KINDS for every new kind.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation"];
+// FAFF-147 — splittable joins too; it grades via its own synonym-tolerant branch (gradeSplittable),
+// so it is deliberately NOT in CLOSED_SET_KINDS.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation"]);
 
 export class CaseError extends Error {}
@@ -32,6 +34,8 @@ export function validateCase(c) {
   if (!c || typeof c !== "object") throw new CaseError("case must be an object");
   if (typeof c.id !== "string" || !c.id) throw new CaseError("case.id must be a non-empty string");
   if (!KINDS.includes(c.kind)) throw new CaseError(`case ${c.id}: unknown kind ${JSON.stringify(c.kind)}`);
+  // splittable shares the `closed_set` oracle field (a set of independent-concern synonym-sets),
+  // graded with synonym folding — see gradeSplittable.
   const want = c.kind === "ordering" ? "ordering" : c.kind === "gloss" ? "gloss_rubric" : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
@@ -118,6 +122,53 @@ function predictedSet(c, env) {
   }
 }
 
+// FAFF-147 — splittable-spec grading. The model returns `splittable`: an array of free-text
+// independent-concern labels ([] = not splittable). The oracle's `closed_set` is an array of
+// concern entries, each a synonym-set (a string, or an array of synonyms, exactly like the gloss
+// rubric — FAFF-142). We fold both sides through synonym matching before set-equality so 'URL
+// routing' == 'routing' isn't a false-negative, and grading stays fully mechanical (no LLM).
+//
+// A predicted label canonicalises to the FIRST oracle entry it matches (its index); an unmatched
+// label canonicalises to `extra:<label>` (so a phantom concern breaks equality). Matching is
+// symmetric containment: a label matches an entry if any synonym is a substring of the label OR the
+// label is a substring of a synonym. Returns { graded, score, signature }:
+//   PASS  — every oracle entry is covered AND no predicted label is extra (synonym-tolerant equality)
+//   FAIL  — otherwise
+// signature = the sorted canonicalised label set (deterministic; for cross-rep stability).
+// Normalise for synonym matching: lowercase, hyphens/underscores/slashes → spaces, collapse runs of
+// whitespace, trim. So "continuous-integration pipeline" and "continuous integration" align, and a
+// model's free-text label isn't a false-negative on punctuation alone.
+const normLabel = (s) => String(s).toLowerCase().replace(/[-_/]+/g, " ").replace(/\s+/g, " ").trim();
+const labelMatchesEntry = (label, entry) => {
+  const t = normLabel(label);
+  const syns = Array.isArray(entry) ? entry : [entry];
+  return syns.some((s) => {
+    const syn = normLabel(s);
+    return syn !== "" && (t.includes(syn) || syn.includes(t));
+  });
+};
+
+export function gradeSplittable(predictedLabels, oracleSet) {
+  const predicted = Array.isArray(predictedLabels) ? predictedLabels : [];
+  const oracle = Array.isArray(oracleSet) ? oracleSet : [];
+  const coveredOracleIdx = new Set();
+  const canon = [];
+  for (const label of predicted) {
+    const idx = oracle.findIndex((entry) => labelMatchesEntry(label, entry));
+    if (idx === -1) {
+      canon.push(`extra:${normLabel(label)}`);
+    } else {
+      coveredOracleIdx.add(idx);
+      canon.push(`oracle:${idx}`);
+    }
+  }
+  const allCovered = coveredOracleIdx.size === oracle.length;
+  const noExtra = !canon.some((c) => c.startsWith("extra:"));
+  const ok = allCovered && noExtra;
+  const signature = JSON.stringify([...new Set(canon)].sort());
+  return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, signature };
+}
+
 // grade(case, envelope) -> RepResult { graded, score, tokens, signature }.
 // `signature` is the canonical judgement identity used for flakiness (NOT the grade) —
 // two reps that both FAIL but classify differently are correctly counted as unstable.
@@ -136,6 +187,10 @@ export function grade(c, env) {
   if (c.kind === "gloss") {
     const { score, vector } = gradeGloss(env, c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  if (c.kind === "splittable") {
+    const { graded, score, signature } = gradeSplittable(env.splittable, c.oracle.closed_set);
+    return { graded, score, tokens, signature };
   }
   throw new CaseError(`grade: unknown kind ${c.kind}`);
 }

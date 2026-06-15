@@ -11,6 +11,12 @@
 //   3. else throw EnvelopeError (no judgement at all -> the orchestrator records the rep `errored`).
 // The `format` flag is the load-bearing signal: judgement accuracy/flakiness isn't lost to a
 // formatting quirk, but weak format-following stays a measured per-model property (format_adherence).
+//
+// FAFF-147 — the envelope is a generic JSON object: any judgement field the model emits
+// (`classifications` / `ordering` / `gloss` / `splittable`) passes through verbatim, so the new
+// `splittable` field (an array of independent-concern labels; [] = not splittable) needs no parser
+// change — it surfaces like `ordering`/`gloss`, and its absence on a non-splittable case is tolerated
+// exactly as those are (the grader reads only the field its case kind needs).
 // Zero-dependency: node builtins + JSON only.
 
 export class EnvelopeError extends Error {}

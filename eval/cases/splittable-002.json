@@ -1,0 +1,6 @@
+{ "id": "splittable-002", "kind": "splittable",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-T", "title": "Add retry/backoff to the API client", "state": "Todo",
+      "spec": "Add a retry/backoff policy to the API client's send() path. On a 5xx or a network error, retry with exponential backoff (base 200ms, factor 2, max 5 attempts, jitter). Surface the final failure to the caller unchanged once attempts are exhausted. This is a single cohesive concern — the backoff schedule, the retry predicate, and the give-up behaviour are one indivisible unit of work on one code path (client.send()), not two independent tickets." } ] },
+  "question": "Does ISS-T's spec cover two structurally-independent, each-ticket-sized concerns (splittable)? If so, list the independent concerns; if it is one cohesive concern, return an empty list.",
+  "oracle": { "closed_set": [] } }

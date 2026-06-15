@@ -1,9 +1,10 @@
-// FAFF-132/FAFF-133 — preset-wiring tests for the eval CLI driver. PURE: imports buildInvocation /
-// the *Opts factories / resolveDriver and asserts the resolved { bin, args, env } with ZERO spawning.
-// The real `claude -p` driver is never invoked here — eval/ stays out of the real-call path (FAFF-131 runs that).
+// FAFF-132/FAFF-133/FAFF-134 — preset-wiring tests for the eval CLI driver. PURE: imports
+// buildInvocation / the *Opts factories / resolveDriver / loadTidyJudgementProse and asserts the
+// resolved args / extracted prose with ZERO spawning. The real `claude -p` driver is never invoked
+// here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -99,4 +100,23 @@ test("resolvePluginDir: flag overrides, --no-plugin disables, absent is undefine
   assert.equal(resolvePluginDir(["--plugin-dir", "/custom/plugin"]), "/custom/plugin");
   assert.equal(resolvePluginDir(["--no-plugin"]), null);
   assert.equal(resolvePluginDir([]), undefined); // preset default (repo plugin) applies
+});
+
+// ============= FAFF-134 — the eval prompt carries faff-tidy's REAL classification rubric =============
+
+// --- the rubric is extracted verbatim from the repo plugin's faff-tidy SKILL.md (section 1) ---
+test("loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md", () => {
+  const prose = loadTidyJudgementProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("### 1. The mess"), "starts at the START anchor");
+  // carries the real classification criteria the eval measures...
+  for (const marker of ["Dupes:", "Vagueness:", "Stale:", "Superseded:"]) {
+    assert.ok(prose.includes(marker), `rubric includes "${marker}"`);
+  }
+  // ...and stops before the next section (no Ready-to-pick-up bleed).
+  assert.ok(!prose.includes("### 2. Ready to pick up"), "stops before the END anchor");
+});
+
+// --- fail-loud when the skill file is missing (anchors can't resolve) ---
+test("loadTidyJudgementProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadTidyJudgementProse("/no/such/plugin"), /cannot read|SKILL\.md/);
 });

@@ -35,7 +35,9 @@ The per-rep `CLAUDE_CONFIG_DIR` is isolated (so the nested `claude -p` can't clo
 - `--bare` skips hooks / `CLAUDE.md` / plugin-sync but still resolves `--plugin-dir` skills — clean + host-independent.
 - `--plugin-dir <path>` overrides the dir; `--no-plugin` disables it for a **vanilla skill-less baseline**.
 
-This supersedes FAFF-132's "frontier is byte-identical to FAFF-130" note — that preserved the skill-less behaviour; both presets now load the same shipped skills so frontier and local measure the same prose. (Invoking tidy's *test-mode* against a fixture so the model actually runs the judgement is FAFF-131's measurement half.)
+This supersedes FAFF-132's "frontier is byte-identical to FAFF-130" note — that preserved the skill-less behaviour; both presets now load the same shipped skills so frontier and local measure the same prose.
+
+**FAFF-134 — the prompt carries the real rubric.** Loading the plugin alone didn't change the measurement: the prompt never invoked the skill, so the model *improvised* the rubric (the smoke scored `dupe` 1.00 skill-less). The eval prompt now prepends faff-tidy's **actual classification rubric, read verbatim from `<pluginDir>/skills/faff-tidy/SKILL.md`** (section "1. The mess" — dupe / vague / spec-health stale/superseded), via `loadTidyJudgementProse` (fail-loud if the section anchors move). So the **eval/ black-box** measures the *shipped* criteria, kept in sync with what ships. `--no-plugin` loads no rubric → the **improvise baseline** (the control). The faithful *structured* lane — driving the real skill seams via the FAFF-93 harness — is the live-driver (FAFF-135).
 
 ## Running it (FAFF-131, human-supervised)
 > ⚠ Needs a real `claude -p` + (for frontier) a budget. ~12 cases × K=20 base (+ escalation to ~50) ≈ 240+ reps.

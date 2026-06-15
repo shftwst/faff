@@ -19,14 +19,23 @@ both import `eval/` modules but spawn **zero** processes.
 | `cases/*.json` | `EvalCase` fixtures + human oracles (12: 2 per kind) |
 | `envelope.mjs` | parse the `faff-eval:judgement` block (fail-loud) — judgement capture stays out of the seam harness |
 | `grader.mjs` | two-tier **deterministic** grader: closed-set set-equality, ordering rank-correlation, gloss rubric pass-rate (LLM-judge advisory only) + per-case stability/accuracy aggregation |
-| `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; pure `buildInvocation` resolves `{bin,args,env}` for the tests |
-| `run-evals.mjs` | orchestrator: load → drive K reps via an *injectable* driver → grade → escalate wobbly cases → aggregate. Owns the `--driver` selector + `--compare` |
+| `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; both default to `--bare --plugin-dir <repo>/plugin` so the run loads the real skills (FAFF-133). Pure `buildInvocation` / `*Opts` factories resolve `{bin,args,env}` for the tests |
+| `run-evals.mjs` | orchestrator: load → drive K reps via an *injectable* driver → grade → escalate wobbly cases → aggregate. Owns the `--driver` selector, `--plugin-dir`/`--no-plugin`, and `--compare` |
 
 ## Drivers — frontier vs local (FAFF-132)
 Two presets of the **same** `claude -p` invocation; the orchestrator/grader are driver-agnostic.
 
-- **frontier** (default) — `claude -p` against the Anthropic API. `node eval/run-evals.mjs` with no `--driver` is byte-identical to FAFF-130.
+- **frontier** (default) — `claude -p` against the Anthropic API.
 - **local** — the same `claude -p` path with ollama's **native Anthropic Messages API** redirect (no proxy, no new transport): `ANTHROPIC_BASE_URL=<ollama host>`, `ANTHROPIC_AUTH_TOKEN=ollama`, `ANTHROPIC_API_KEY=""`, plus `--model`. The base URL is **required** (`--base-url` / `FAFF_EVAL_LOCAL_BASE_URL`) — there is **no `localhost` default**, because ollama here is served over **Tailscale**. (Ollama's `ollama launch claude --model <m>` wrapper is an alternative but assumes localhost; the env-var path is what reaches the tailnet host. See docs.ollama.com/integrations/claude-code; local models need ≥64k context.)
+
+## Skills loaded into the run (FAFF-133)
+The per-rep `CLAUDE_CONFIG_DIR` is isolated (so the nested `claude -p` can't clobber the parent `~/.claude.json` — ADR 0003), but an *empty* config dir also means **no faff skills** — so the spawned `claude` improvises a vanilla-model judgement instead of running the shipped faff-tidy prose. Both presets therefore default to **`--bare --plugin-dir <repo>/plugin`**:
+
+- `--plugin-dir` loads the repo's **own** plugin (skills as shipped in the commit under test, namespaced `/faff:faff-tidy`) — the only way to load a local plugin; project `.claude/skills` is **not** auto-loaded in `-p`, and no settings.json key exists for it.
+- `--bare` skips hooks / `CLAUDE.md` / plugin-sync but still resolves `--plugin-dir` skills — clean + host-independent.
+- `--plugin-dir <path>` overrides the dir; `--no-plugin` disables it for a **vanilla skill-less baseline**.
+
+This supersedes FAFF-132's "frontier is byte-identical to FAFF-130" note — that preserved the skill-less behaviour; both presets now load the same shipped skills so frontier and local measure the same prose. (Invoking tidy's *test-mode* against a fixture so the model actually runs the judgement is FAFF-131's measurement half.)
 
 ## Running it (FAFF-131, human-supervised)
 > ⚠ Needs a real `claude -p` + (for frontier) a budget. ~12 cases × K=20 base (+ escalation to ~50) ≈ 240+ reps.

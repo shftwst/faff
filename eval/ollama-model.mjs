@@ -14,6 +14,7 @@
 
 import http from "node:http";
 import https from "node:https";
+import { buildEvalPrompt, loadJudgementCriteria, estimateTokens, DEFAULT_PLUGIN_DIR } from "./cli-driver.mjs";
 
 // PURE: the request spec for ollama's /api/chat (single, non-streaming completion).
 // FAFF-137: `think` (false disables a reasoning model's hidden think-block — essential for local
@@ -76,5 +77,19 @@ export function makeOllamaModel({ baseUrl, model, think, options, post = default
     const req = buildOllamaRequest({ baseUrl, model, think, options }, prompt);
     const raw = await post(req, { timeoutMs });
     return parseOllamaResponse(raw);
+  };
+}
+
+// FAFF-144 — a run-evals-compatible driver backed by a direct /api/chat completion (no agent loop),
+// so the LOCAL lane can produce the same per-kind accuracy/stability/format table as frontier, fast.
+// driver(evalCase, repIndex) -> { rawText, tokens }: build the eval prompt (criteria + fixture +
+// envelope instruction, FAFF-134/140/144) and POST it. think:false by default (the local-speed lever,
+// FAFF-137); pluginDir null → the improvise baseline. `post` injectable so CI makes zero real calls.
+export function makeDirectOllamaDriver({ baseUrl, model, pluginDir = DEFAULT_PLUGIN_DIR, think = false, options, post, timeoutMs } = {}) {
+  const criteria = pluginDir ? loadJudgementCriteria(pluginDir) : null;
+  const ollama = makeOllamaModel({ baseUrl, model, think, options, ...(post ? { post } : {}), timeoutMs });
+  return async function directOllamaDriver(evalCase /* repIndex unused — stateless per rep */) {
+    const rawText = await ollama(buildEvalPrompt(evalCase, criteria));
+    return { rawText, tokens: estimateTokens(rawText) };
   };
 }

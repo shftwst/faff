@@ -4,11 +4,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { buildOllamaRequest, parseOllamaResponse, makeOllamaModel } from "../eval/ollama-model.mjs";
+import { buildOllamaRequest, parseOllamaResponse, makeOllamaModel, makeDirectOllamaDriver } from "../eval/ollama-model.mjs";
 import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
 import { runSkill } from "./helpers/skill-harness.mjs";
 import { liveDriver } from "../eval/live-driver.mjs";
+import { runEvals } from "../eval/run-evals.mjs";
+
+const envOf = (id, payload) => "```faff-eval:judgement\n" + JSON.stringify({ case_id: id, ...payload }) + "\n```";
+const ollamaReply = (content) => JSON.stringify({ message: { content } });
 
 // --- buildOllamaRequest: POST /api/chat, non-streaming, model + prompt in the body ---
 test("buildOllamaRequest targets /api/chat with a non-streaming chat body", () => {
@@ -87,4 +91,28 @@ test("ollama model + liveDriver: judgement flows through to DecisionRecord bucke
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   assert.equal(rec.driver, "live");
   assert.deepEqual(rec.buckets.dupe, ["ISS-A", "ISS-B"]); // the direct-completion judgement, captured at the seam
+});
+
+// --- FAFF-144: the run-evals-compatible direct driver builds the eval prompt + returns {rawText,tokens} ---
+test("makeDirectOllamaDriver builds the eval prompt and returns {rawText,tokens} via the injected post", async () => {
+  const seen = {};
+  const post = async (req) => { seen.body = JSON.parse(req.body); return ollamaReply(envOf("dupe-x", { classifications: { dupe: ["A", "B"] } })); };
+  const driver = makeDirectOllamaDriver({ baseUrl: "http://h:11434", model: "m", post, pluginDir: null }); // null → skip criteria read
+  const out = await driver({ id: "dupe-x", kind: "dupe", fixture: { issues: [{ id: "A" }, { id: "B" }] }, question: "dupes?" });
+  assert.match(out.rawText, /faff-eval:judgement/);
+  assert.ok(out.tokens > 0);
+  // the POST body carries the assembled eval prompt: the fixture + the envelope instruction, think:false
+  assert.match(seen.body.messages[0].content, /faff-eval:judgement/);
+  assert.match(seen.body.messages[0].content, /"A"/);
+  assert.equal(seen.body.think, false);
+});
+
+// --- FAFF-144: the direct driver runs through runEvals + grader (local per-kind table), zero network ---
+test("makeDirectOllamaDriver runs through runEvals and grades", async () => {
+  const post = async () => ollamaReply(envOf("c", { classifications: { dupe: ["A", "B"] } }));
+  const driver = makeDirectOllamaDriver({ baseUrl: "http://h:11434", model: "m", post, pluginDir: null });
+  const cases = [{ id: "c", kind: "dupe", fixture: { issues: [] }, question: "?", oracle: { closed_set: ["A", "B"] } }];
+  const s = await runEvals({ cases, driver, baseReps: 2, maxReps: 2 });
+  assert.equal(s.per_kind.dupe.accuracy, 1);
+  assert.equal(s.per_kind.dupe.format_adherence, 1); // exact tag → compliant
 });

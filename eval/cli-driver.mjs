@@ -140,7 +140,13 @@ function renderFixturePrompt(c, judgementProse = null) {
 }
 
 // Rough token proxy for the spike's cost column; FAFF-131 can replace with claude -p's reported usage.
-const estimateTokens = (s) => Math.ceil(String(s ?? "").length / 4);
+export const estimateTokens = (s) => Math.ceil(String(s ?? "").length / 4);
+
+// FAFF-144 — the full eval prompt for a case (criteria + fixture + the envelope instruction),
+// factored out of makeCliDriver so any driver (claude -p OR a direct ollama POST) builds it the same.
+export function buildEvalPrompt(evalCase, criteria = null) {
+  return `${renderFixturePrompt(evalCase, criteria)}\n\n${EVAL_MODE_INSTRUCTION.replace("<ID>", evalCase.id)}`;
+}
 
 // PURE: resolve the exact { bin, args, env } to spawn. No spawn, no fs, no clock — so a test can
 // import this and assert preset wiring (--model / --bare / --plugin-dir / ollama env) with zero I/O.
@@ -166,7 +172,7 @@ export function makeCliDriver(opts = {}) {
   return async function cliDriver(evalCase, repIndex) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
     forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
-    const prompt = `${renderFixturePrompt(evalCase, judgementProse)}\n\n${EVAL_MODE_INSTRUCTION.replace("<ID>", evalCase.id)}`;
+    const prompt = buildEvalPrompt(evalCase, judgementProse);
     const inv = buildInvocation(opts, prompt, cfgDir);
     const res = spawnSync(inv.bin, inv.args, {
       env: inv.env, // isolation (CLAUDE_CONFIG_DIR) + any preset redirect — no parent ~/.claude.json write

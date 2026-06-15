@@ -1,4 +1,4 @@
-// FAFF-130/FAFF-132/FAFF-133 — the CLI eval driver: drives faff-tidy's judgement pass via
+// FAFF-130/FAFF-132/FAFF-133/FAFF-134 — the CLI eval driver: drives faff-tidy's judgement pass via
 // `claude -p` headless, with per-run CLAUDE_CONFIG_DIR isolation so a rep never writes the parent
 // session's ~/.claude.json (ADR 0003 infra finding). Returns raw stdout for envelope parse.
 //
@@ -18,6 +18,11 @@
 //     the run clean + host-independent (and stops the repo Stop-hook firing inside the nested run).
 // Pass pluginDir: null for a vanilla (skill-less) baseline.
 //
+// FAFF-134 — loading the plugin didn't change the measurement on its own: the prompt never invoked
+// the skill, so the model improvised the rubric (smoke scored dupe 1.00 skill-less). The prompt now
+// carries faff-tidy's REAL classification rubric, read verbatim from the same pluginDir's SKILL.md
+// (loadTidyJudgementProse). pluginDir null still = the improvise baseline (the control).
+//
 // ⚠ NOT exercised in CI — eval/ is excluded from the `node --test` globs. Running a driver for
 // real (~240 reps) is FAFF-131's human-supervised job. The orchestrator (run-evals.mjs) takes
 // the driver as an argument, so tests inject a mock and never reach a real spawn. `buildInvocation`
@@ -27,7 +32,7 @@
 // Zero-dependency: node builtins only.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +43,30 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const DEFAULT_PLUGIN_DIR = join(REPO_ROOT, "plugin");
 
+// FAFF-134 — the eval prompt carries faff-tidy's REAL classification rubric (verbatim from the
+// shipped SKILL.md) so the model applies it instead of improvising one. The rubric is section "1. The
+// mess" of faff-tidy/SKILL.md (dupe / vague / spec-health stale/superseded). Anchored on stable
+// section headers; fail-loud if either moves (a refactor must consciously re-point this).
+const TIDY_RUBRIC_START = "### 1. The mess (needs action)";
+const TIDY_RUBRIC_END = "### 2. Ready to pick up";
+
+// Read faff-tidy's classification rubric verbatim from the plugin under test. Returns the section
+// text (incl. its START header). Throws (fail-loud) if the skill file or anchors are missing.
+export function loadTidyJudgementProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff-tidy", "SKILL.md");
+  let md;
+  try {
+    md = readFileSync(skillPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadTidyJudgementProse: cannot read ${skillPath}: ${e.message}`);
+  }
+  const start = md.indexOf(TIDY_RUBRIC_START);
+  if (start === -1) throw new Error(`loadTidyJudgementProse: START anchor not found in ${skillPath}: "${TIDY_RUBRIC_START}"`);
+  const end = md.indexOf(TIDY_RUBRIC_END, start + TIDY_RUBRIC_START.length);
+  if (end === -1) throw new Error(`loadTidyJudgementProse: END anchor not found in ${skillPath}: "${TIDY_RUBRIC_END}"`);
+  return md.slice(start, end).trim();
+}
+
 const EVAL_MODE_INSTRUCTION =
   "After your normal faff-tidy judgement pass over this fixture, emit EXACTLY ONE fenced code " +
   'block tagged `faff-eval:judgement` containing JSON of the shape ' +
@@ -45,9 +74,14 @@ const EVAL_MODE_INSTRUCTION =
   '"ordering": ["<issue-id>", ..], "gloss": { "<issue-id>": "<one-line gloss>" } } — include only the fields your ' +
   "judgement produced for this fixture, using the fixture's issue ids. Emit nothing after the block.";
 
-function renderFixturePrompt(c) {
+// `judgementProse` (when present) is faff-tidy's verbatim rubric, prepended so the model applies the
+// shipped criteria. Absent (the --no-plugin baseline) → the bare improvise-it prompt (the control).
+function renderFixturePrompt(c, judgementProse = null) {
+  const rubric = judgementProse
+    ? `Apply faff-tidy's judgement criteria below — these are the skill's own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
+    : "";
   return (
-    `Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
+    `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
   );
 }
@@ -72,9 +106,12 @@ export function buildInvocation(opts, prompt, cfgDir) {
 // Generic factory. opts: { bin, model, baseUrl, env, bare, pluginDir }. The closure spawns;
 // importing this does not.
 export function makeCliDriver(opts = {}) {
+  // FAFF-134: load faff-tidy's rubric once (from the same pluginDir the run loads skills from).
+  // pluginDir null (the --no-plugin baseline) → no rubric → the model improvises (the control).
+  const judgementProse = opts.pluginDir ? loadTidyJudgementProse(opts.pluginDir) : null;
   return async function cliDriver(evalCase, repIndex) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
-    const prompt = `${renderFixturePrompt(evalCase)}\n\n${EVAL_MODE_INSTRUCTION.replace("<ID>", evalCase.id)}`;
+    const prompt = `${renderFixturePrompt(evalCase, judgementProse)}\n\n${EVAL_MODE_INSTRUCTION.replace("<ID>", evalCase.id)}`;
     const inv = buildInvocation(opts, prompt, cfgDir);
     const res = spawnSync(inv.bin, inv.args, {
       env: inv.env, // isolation (CLAUDE_CONFIG_DIR) + any preset redirect — no parent ~/.claude.json write

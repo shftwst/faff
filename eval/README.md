@@ -22,6 +22,7 @@ both import `eval/` modules but spawn **zero** processes.
 | `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; both default to `--bare --plugin-dir <repo>/plugin` so the run loads the real skills (FAFF-133). Pure `buildInvocation` / `*Opts` factories resolve `{bin,args,env}` for the tests |
 | `run-evals.mjs` | orchestrator: load → drive K reps via an *injectable* driver → grade → escalate wobbly cases → aggregate. Owns the `--driver` selector, `--plugin-dir`/`--no-plugin`, and `--compare` |
 | `live-driver.mjs` | **faithful lane** (FAFF-135): a `live` SkillDriver for the FAFF-93 harness — reads a fixture via `runSkill`, prompts a real model with faff-tidy's rubric, records the judgement as DecisionRecord **buckets**. Model is injectable (mock in CI; `makeLiveModel` spawns `claude -p`) |
+| `ollama-model.mjs` | **fast local lane** (FAFF-136, path B): `makeOllamaModel` — a direct ollama `/api/chat` completion (no agent loop, ~seconds/rep) as the `liveDriver` model fn. Pure `buildOllamaRequest`/`parseOllamaResponse`; `post` injectable (mock in CI, zero network) |
 
 ## Two measurement lanes
 - **Black-box** (`cli-driver.mjs` + `run-evals.mjs`) — spawn `claude -p` over a self-contained prompt (rubric inlined, FAFF-134), grade the envelope. Coarse, fast, model-sweep-friendly.
@@ -35,6 +36,13 @@ both import `eval/` modules but spawn **zero** processes.
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   // rec.buckets.dupe / .vague / … are the model's judgement, captured at the harness seams.
   ```
+  **Fast local lane — direct ollama `/api/chat` (FAFF-136, path B).** The agentic `claude -p` model above is ~26 min/rep on a local 27B; a *direct* completion (no agent loop) is ~seconds/rep — measures model+prompt judgement (less faithful, but isolates flakiness cleanly) and makes a local sweep viable. Same `liveDriver` seam, different model fn:
+  ```js
+  import { makeOllamaModel } from "./ollama-model.mjs";
+  const model = makeOllamaModel({ baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx" });
+  const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
+  ```
+  The A/B choice (agentic-faithful vs direct-fast) per lane is FAFF-131 / ADR-0004's call.
 
 ## Drivers — frontier vs local (FAFF-132)
 Two presets of the **same** `claude -p` invocation; the orchestrator/grader are driver-agnostic.

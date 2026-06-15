@@ -19,7 +19,7 @@ both import `eval/` modules but spawn **zero** processes.
 | `cases/*.json` | `EvalCase` fixtures + human oracles (12: 2 per kind) |
 | `envelope.mjs` | parse the `faff-eval:judgement` block (fail-loud) — judgement capture stays out of the seam harness |
 | `grader.mjs` | two-tier **deterministic** grader: closed-set set-equality, ordering rank-correlation, gloss rubric pass-rate (LLM-judge advisory only) + per-case stability/accuracy aggregation |
-| `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; both default to `--bare --plugin-dir <repo>/plugin` so the run loads the real skills (FAFF-133). Pure `buildInvocation` / `*Opts` factories resolve `{bin,args,env}` for the tests |
+| `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; both load the real skills via `--plugin-dir <repo>/plugin` (FAFF-133); frontier forwards OAuth creds + drops `--bare` (FAFF-138), local keeps `--bare` + env-token auth. Pure `buildInvocation` / `*Opts` / `forwardCredentials` for the tests |
 | `run-evals.mjs` | orchestrator: load → drive K reps via an *injectable* driver → grade → escalate wobbly cases → aggregate. Owns the `--driver` selector, `--plugin-dir`/`--no-plugin`, and `--compare` |
 | `live-driver.mjs` | **faithful lane** (FAFF-135): a `live` SkillDriver for the FAFF-93 harness — reads a fixture via `runSkill`, prompts a real model with faff-tidy's rubric, records the judgement as DecisionRecord **buckets**. Model is injectable (mock in CI; `makeLiveModel` spawns `claude -p`) |
 | `ollama-model.mjs` | **fast local lane** (FAFF-136, path B): `makeOllamaModel` — a direct ollama `/api/chat` completion (no agent loop, ~seconds/rep) as the `liveDriver` model fn. Pure `buildOllamaRequest`/`parseOllamaResponse`; `post` injectable (mock in CI, zero network) |
@@ -58,10 +58,17 @@ Two presets of the **same** `claude -p` invocation; the orchestrator/grader are 
 The per-rep `CLAUDE_CONFIG_DIR` is isolated (so the nested `claude -p` can't clobber the parent `~/.claude.json` — ADR 0003), but an *empty* config dir also means **no faff skills** — so the spawned `claude` improvises a vanilla-model judgement instead of running the shipped faff-tidy prose. Both presets therefore default to **`--bare --plugin-dir <repo>/plugin`**:
 
 - `--plugin-dir` loads the repo's **own** plugin (skills as shipped in the commit under test, namespaced `/faff:faff-tidy`) — the only way to load a local plugin; project `.claude/skills` is **not** auto-loaded in `-p`, and no settings.json key exists for it.
-- `--bare` skips hooks / `CLAUDE.md` / plugin-sync but still resolves `--plugin-dir` skills — clean + host-independent.
 - `--plugin-dir <path>` overrides the dir; `--no-plugin` disables it for a **vanilla skill-less baseline**.
 
 This supersedes FAFF-132's "frontier is byte-identical to FAFF-130" note — that preserved the skill-less behaviour; both presets now load the same shipped skills so frontier and local measure the same prose.
+
+### Auth & isolation (FAFF-138)
+The isolated `CLAUDE_CONFIG_DIR` (ADR 0003) also strips the OAuth credential file (`.credentials.json`), so a **frontier** `claude -p` lands *"Not logged in"*. The local lane dodged this — `ANTHROPIC_AUTH_TOKEN=ollama` is env auth. The fix, per lane:
+
+- **frontier** — `forwardCreds: true` copies *only* `.credentials.json` into the per-rep `cfgDir` (mutable state stays isolated). And it runs **without `--bare`** — `--bare` only honours *env*-token auth, so it'd ignore the forwarded OAuth file. Isolation instead comes from the fresh `CLAUDE_CONFIG_DIR` + a **clean spawn cwd** (no project `CLAUDE.md`/hooks pulled in); `--plugin-dir` alone still loads the skills.
+- **local** — `forwardCreds: false` (**security:** never copy the real Anthropic credential to the ollama host) and keeps `--bare` (env-token auth works under it).
+
+Smoke (frontier, `dupe-001`, 1 rep): `accuracy 1.00 · stability 1.00 · format 1.00`, ~3.7 s — Opus is far faster than the local 27B.
 
 **FAFF-134 — the prompt carries the real rubric.** Loading the plugin alone didn't change the measurement: the prompt never invoked the skill, so the model *improvised* the rubric (the smoke scored `dupe` 1.00 skill-less). The eval prompt now prepends faff-tidy's **actual classification rubric, read verbatim from `<pluginDir>/skills/faff-tidy/SKILL.md`** (section "1. The mess" — dupe / vague / spec-health stale/superseded), via `loadTidyJudgementProse` (fail-loud if the section anchors move). So the **eval/ black-box** measures the *shipped* criteria, kept in sync with what ships. `--no-plugin` loads no rubric → the **improvise baseline** (the control). The faithful *structured* lane — driving the real skill seams via the FAFF-93 harness — is the live-driver (FAFF-135).
 

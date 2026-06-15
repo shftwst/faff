@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, forwardCredentials } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -36,6 +36,37 @@ test("localDriver throws without a base URL", () => {
   assert.throws(() => localDriver({ model: "m" }), /base.?url|no localhost default/i);
 });
 
+// --- FAFF-138: credential forwarding — frontier copies, local must NOT (security), best-effort on missing ---
+test("frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to ollama)", () => {
+  assert.equal(frontierOpts().forwardCreds, true);
+  assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).forwardCreds, false);
+});
+
+test("forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600", () => {
+  const calls = [];
+  const chmods = [];
+  const copyFile = (from, to) => calls.push([from, to]);
+  const chmod = (p, mode) => chmods.push([p, mode]);
+  const dst = forwardCredentials("/cfg", frontierOpts(), { copyFile, chmod, env: { CLAUDE_CONFIG_DIR: "/src" } });
+  assert.deepEqual(calls, [["/src/.credentials.json", "/cfg/.credentials.json"]]);
+  assert.deepEqual(chmods, [["/cfg/.credentials.json", 0o600]]); // owner-only on the copy
+  assert.equal(dst, "/cfg/.credentials.json");
+});
+
+test("forwardCredentials is a no-op for the local preset (forwardCreds:false)", () => {
+  let called = false;
+  const dst = forwardCredentials("/cfg", localOpts({ baseUrl: "http://h:11434", model: "m" }), { copyFile: () => { called = true; }, env: {} });
+  assert.equal(called, false);
+  assert.equal(dst, null);
+});
+
+test("forwardCredentials is best-effort: a missing creds file returns null, no throw", () => {
+  const dst = forwardCredentials("/cfg", { forwardCreds: true, credentialsSource: "/nope" }, {
+    copyFile: () => { throw new Error("ENOENT"); }, env: {},
+  });
+  assert.equal(dst, null);
+});
+
 // --- the CLI selector defaults to frontier and fails loud for an underspecified local run ---
 const PRESETS = { frontierDriver, localDriver };
 
@@ -65,34 +96,34 @@ test("resolveLocalParams resolves --base-url and --model from flags", () => {
 
 // ====================== FAFF-133 — repo-plugin loading into the isolated run ======================
 
-// --- both presets default to loading the repo's canonical plugin + --bare ---
-test("frontierOpts defaults to the repo plugin + --bare", () => {
-  assert.deepEqual(frontierOpts(), { bin: "claude", bare: true, pluginDir: DEFAULT_PLUGIN_DIR });
+// --- presets load the repo plugin; frontier drops --bare (FAFF-138: incompatible with OAuth auth) ---
+test("frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true", () => {
+  assert.deepEqual(frontierOpts(), { bin: "claude", bare: false, pluginDir: DEFAULT_PLUGIN_DIR, forwardCreds: true });
   assert.ok(DEFAULT_PLUGIN_DIR.endsWith("/plugin"), "DEFAULT_PLUGIN_DIR points at the repo plugin");
 });
 
 test("localOpts defaults to the repo plugin + --bare alongside the ollama redirect", () => {
   const o = localOpts({ baseUrl: "http://h:11434", model: "m" });
-  assert.equal(o.bare, true);
+  assert.equal(o.bare, true); // local: env-token auth works under --bare
   assert.equal(o.pluginDir, DEFAULT_PLUGIN_DIR);
   assert.equal(o.env.ANTHROPIC_BASE_URL, "http://h:11434");
 });
 
-// --- the args carry --bare --plugin-dir, in the right order, after --model ---
-test("buildInvocation emits --bare --plugin-dir for the frontier preset (skills loaded)", () => {
+// --- frontier args: --plugin-dir, NO --bare (FAFF-138) ---
+test("buildInvocation emits --plugin-dir (no --bare) for the frontier preset", () => {
   const inv = buildInvocation(frontierOpts(), "PROMPT", "/tmp/cfg");
-  assert.deepEqual(inv.args, ["-p", "PROMPT", "--bare", "--plugin-dir", DEFAULT_PLUGIN_DIR]);
+  assert.deepEqual(inv.args, ["-p", "PROMPT", "--plugin-dir", DEFAULT_PLUGIN_DIR]);
 });
 
-test("buildInvocation orders args: --model then --bare then --plugin-dir", () => {
+test("buildInvocation orders args: --model then --bare then --plugin-dir (local keeps --bare)", () => {
   const inv = buildInvocation(localOpts({ baseUrl: "http://h:11434", model: "m" }), "PROMPT", "/tmp/cfg");
   assert.deepEqual(inv.args, ["-p", "PROMPT", "--model", "m", "--bare", "--plugin-dir", DEFAULT_PLUGIN_DIR]);
 });
 
-// --- pluginDir: null is the vanilla skill-less baseline (no --plugin-dir) ---
-test("pluginDir:null disables the plugin (vanilla baseline) — --bare stays, --plugin-dir gone", () => {
+// --- pluginDir: null is the vanilla skill-less baseline (no --plugin-dir; frontier has no --bare) ---
+test("pluginDir:null disables the plugin (vanilla baseline) — frontier emits just -p PROMPT", () => {
   const inv = buildInvocation(frontierOpts({ pluginDir: null }), "PROMPT", "/tmp/cfg");
-  assert.deepEqual(inv.args, ["-p", "PROMPT", "--bare"]);
+  assert.deepEqual(inv.args, ["-p", "PROMPT"]);
 });
 
 // --- the CLI flag resolves: --plugin-dir overrides, --no-plugin disables, absent → preset default ---

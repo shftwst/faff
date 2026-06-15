@@ -26,6 +26,7 @@ import {
   loadTidyJudgementProse,
   EVAL_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
+  forwardCredentials,
 } from "./cli-driver.mjs";
 import { parseJudgementEnvelope } from "./envelope.mjs";
 import { CLOSED_SET_KINDS } from "./grader.mjs";
@@ -49,8 +50,9 @@ export function buildJudgementPrompt(issues, { pluginDir = DEFAULT_PLUGIN_DIR, c
 export function makeLiveModel(opts = {}) {
   return function liveModel(prompt) {
     const cfgDir = mkdtempSync(join(tmpdir(), "faff-live-"));
+    forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
     const inv = buildInvocation(opts, prompt, cfgDir);
-    const res = spawnSync(inv.bin, inv.args, { env: inv.env, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+    const res = spawnSync(inv.bin, inv.args, { env: inv.env, cwd: cfgDir, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
     if (res.error) throw new Error(`live model (${inv.bin}): ${res.error.message}`);
     return res.stdout ?? "";
   };

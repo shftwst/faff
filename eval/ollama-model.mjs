@@ -14,7 +14,7 @@
 
 import http from "node:http";
 import https from "node:https";
-import { buildEvalPrompt, loadJudgementCriteria, estimateTokens, DEFAULT_PLUGIN_DIR } from "./cli-driver.mjs";
+import { buildEvalPrompt, criteriaFor, estimateTokens, DEFAULT_PLUGIN_DIR } from "./cli-driver.mjs";
 
 // PURE: the request spec for ollama's /api/chat (single, non-streaming completion).
 // FAFF-137: `think` (false disables a reasoning model's hidden think-block — essential for local
@@ -86,10 +86,10 @@ export function makeOllamaModel({ baseUrl, model, think, options, post = default
 // envelope instruction, FAFF-134/140/144) and POST it. think:false by default (the local-speed lever,
 // FAFF-137); pluginDir null → the improvise baseline. `post` injectable so CI makes zero real calls.
 export function makeDirectOllamaDriver({ baseUrl, model, pluginDir = DEFAULT_PLUGIN_DIR, think = false, options, post, timeoutMs } = {}) {
-  const criteria = pluginDir ? loadJudgementCriteria(pluginDir) : null;
   const ollama = makeOllamaModel({ baseUrl, model, think, options, ...(post ? { post } : {}), timeoutMs });
   return async function directOllamaDriver(evalCase /* repIndex unused — stateless per rep */) {
-    const rawText = await ollama(buildEvalPrompt(evalCase, criteria));
+    // FAFF-146: criteria resolved per-case kind (tidy → combined; confidence/marker → prep rubric).
+    const rawText = await ollama(buildEvalPrompt(evalCase, criteriaFor(evalCase.kind, pluginDir)));
     return { rawText, tokens: estimateTokens(rawText) };
   };
 }

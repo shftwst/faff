@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
 import { runSkill } from "./helpers/skill-harness.mjs";
-import { liveDriver, buildJudgementPrompt, makeLiveModel } from "../eval/live-driver.mjs";
+import { liveDriver, buildJudgementPrompt, makeLiveModel, buildReconciliationPrompt, reconciliationLiveDriver } from "../eval/live-driver.mjs";
 
 // A fixture with a dupe pair (ISS-A / ISS-B) + an unrelated ISS-C.
 function fixtureModel() {
@@ -98,4 +98,72 @@ test("buildJudgementPrompt omits the rubric when pluginDir is null (baseline)", 
 test("liveDriver requires a model function; makeLiveModel returns one", () => {
   assert.throws(() => liveDriver({}), /requires a model/);
   assert.equal(typeof makeLiveModel({ bin: "claude" }), "function"); // construction only — no spawn
+});
+
+// ===================== FAFF-146 — reconciliation live-driver (design wiring) =====================
+// The live-driver is no longer faff-tidy-hardcoded: buildJudgementPrompt is one builder among
+// several, and a prep reconciliation builder + driver exist. The end-to-end frontier RUN (real thread
+// oracle + measured baseline) is the carved FAFF-145 follow-up; these tests prove the wiring composes
+// through the real harness with a mock model (zero spawn).
+
+const THREAD_FIXTURE = {
+  version: 1,
+  issue: { id: "ISS-7", title: "Add a webhook retry policy", description: "Retries on 5xx." },
+  spec_comment: { id: "sc", posted_at: "2026-06-10T10:00:00Z", body: "# Spec\nChosen: exponential backoff, 5 attempts." },
+  thread: [
+    { id: "c1", posted_at: "2026-06-11T09:00:00Z", author: "dev", body: "This breaks the SLA — 5 attempts can take 30s, but the gateway times out at 10s." },
+    { id: "c2", posted_at: "2026-06-11T10:00:00Z", author: "lead", body: "Decision: cap at 3 attempts with a 4s ceiling." },
+    { id: "c3", posted_at: "2026-06-11T11:00:00Z", author: "dev", body: "FYI the gateway also strips custom headers on retry — worth knowing." },
+    { id: "c4", posted_at: "2026-06-11T12:00:00Z", author: "pm", body: "+1, thanks" },
+  ],
+};
+
+// A mock model returning a reconciliation envelope; captures the prompt it was handed.
+function reconModel(payload, sink) {
+  return async (prompt) => {
+    if (sink) sink.prompt = prompt;
+    return "```faff-eval:judgement\n" + JSON.stringify({ case_id: "live", ...payload }) + "\n```";
+  };
+}
+
+// --- buildReconciliationPrompt folds in the verbatim Step-2a rubric, the thread, and the envelope ---
+test("FAFF-146 buildReconciliationPrompt carries the prep rubric, the spec anchor, the thread, and the envelope", () => {
+  const p = buildReconciliationPrompt(THREAD_FIXTURE, { caseId: "rc-x" });
+  assert.match(p, /Challenge/); // prep's real Step-2a rubric is present
+  assert.match(p, /Resolution/);
+  assert.match(p, /the spec comment/i); // the anchor framing
+  assert.match(p, /exponential backoff/); // the spec_comment body (anchor) is rendered
+  assert.match(p, /c2/); // the thread comments are rendered by id
+  assert.match(p, /"reconciliation"/); // the per-comment id:label envelope field
+  assert.match(p, /faff-eval:judgement/);
+  assert.match(p, /rc-x/); // caseId threaded into the instruction
+});
+
+test("FAFF-146 buildReconciliationPrompt omits the rubric when pluginDir is null (baseline)", () => {
+  const p = buildReconciliationPrompt(THREAD_FIXTURE, { pluginDir: null });
+  assert.ok(!p.includes("Challenge —"), "no rubric in the baseline prompt");
+  assert.match(p, /faff-eval:judgement/);
+});
+
+// --- reconciliationLiveDriver drives runSkill({ skill: "faff-prep" }) and records the bucket ---
+test("FAFF-146 reconciliationLiveDriver records per-comment id:label pairs via runSkill(faff-prep)", async (t) => {
+  const tracker = fixtureModel(); // the harness tracker port (the seam-faithful read)
+  const repo = seedFixtureRepo();
+  t.after(() => repo.teardown());
+
+  const driver = reconciliationLiveDriver({
+    fixture: THREAD_FIXTURE,
+    model: reconModel({ reconciliation: { c1: "challenge", c2: "resolution", c3: "context", c4: "noise" } }),
+  });
+  const rec = await runSkill({ skill: "faff-prep", tracker, repo, driver });
+
+  assert.equal(rec.driver, "live");
+  assert.equal(rec.skill, "faff-prep"); // the harness drove prep, not tidy (skill is opaque provenance)
+  assert.deepEqual(rec.buckets.reconciliation, ["c1:challenge", "c2:resolution", "c3:context", "c4:noise"]);
+  assert.deepEqual(rec.trackerReads.map((r) => r.method), ["listIssues"]); // read through the seam
+});
+
+test("FAFF-146 reconciliationLiveDriver guards its inputs", () => {
+  assert.throws(() => reconciliationLiveDriver({ fixture: THREAD_FIXTURE }), /requires a model/);
+  assert.throws(() => reconciliationLiveDriver({ model: async () => "" }), /ThreadFixture/);
 });

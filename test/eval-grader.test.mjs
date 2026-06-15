@@ -170,10 +170,94 @@ test("orchestrator: deadline ceiling yields a flagged partial, not a silent trun
   assert.equal(s.status, "incomplete (ceiling)");
 });
 
-// --- the 12 disk cases are all well-formed (kind matches oracle) ---
+// --- the disk cases are all well-formed (kind matches oracle; per-kind fixture shape present) ---
 test("all eval/cases load and validate", () => {
   const cases = loadCases();
-  assert.equal(cases.length, 12);
+  // 12 tidy cases + FAFF-146: 3 confidence + 2 marker prep classification cases.
+  assert.equal(cases.length, 17);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss"]) assert.ok(kinds.has(k), `missing kind ${k}`);
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker"]) {
+    assert.ok(kinds.has(k), `missing kind ${k}`);
+  }
+  // ≥2 cases each for the new prep classification kinds (the 2/kind convention).
+  for (const k of ["confidence", "marker"]) {
+    assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
+  }
+});
+
+// ============================= FAFF-146 — prep judgement-eval kinds =============================
+
+// --- confidence: a single-element closed set over {high,medium,low}, graded by set-equality ---
+test("FAFF-146 confidence grades the env.confidence level by exact set-equality", () => {
+  const c = { id: "cf", kind: "confidence", oracle: { closed_set: ["medium"] } };
+  assert.equal(grade(c, { confidence: "medium" }).graded, "PASS");
+  assert.equal(grade(c, { confidence: "high" }).score, 0); // a near-miss boundary is a real miss
+  // signature is the sorted predicted set, so a different level is a distinct signature (flakiness)
+  assert.notEqual(grade(c, { confidence: "medium" }).signature, grade(c, { confidence: "low" }).signature);
+});
+
+// --- FAFF-146 fail-safe: a malformed/out-of-enum confidence token is a clean FAIL, NOT a crash ---
+test("FAFF-146 confidence: a malformed token scores a clean FAIL with a distinct signature (no coerce)", () => {
+  const c = { id: "cf", kind: "confidence", oracle: { closed_set: ["low"] } };
+  const bad = grade(c, { confidence: "definitely-low" }); // not in {high,medium,low}
+  assert.equal(bad.graded, "FAIL");
+  assert.equal(bad.score, 0);
+  assert.equal(bad.signature, JSON.stringify(["definitely-low"])); // observed, not coerced to a level
+  // an ABSENT token is also a clean FAIL (empty predicted set), never a throw
+  const missing = grade(c, {});
+  assert.equal(missing.graded, "FAIL");
+  assert.equal(missing.signature, JSON.stringify([]));
+  // and the absent-token signature differs from the bad-token signature → it lowers stability
+  assert.notEqual(bad.signature, missing.signature);
+});
+
+// --- marker: per-section `key:class` closed set; one mislabelled section fails the whole set ---
+test("FAFF-146 marker grades per-section key:class pairs by set-equality", () => {
+  const c = { id: "mk", kind: "marker",
+    oracle: { closed_set: ["storage:chosen", "retention:punt", "metrics:assumes"] } };
+  assert.equal(grade(c, { markers: { storage: "chosen", retention: "punt", metrics: "assumes" } }).graded, "PASS");
+  // one section wrong → the set fails (the per-section signal is not discarded)
+  assert.equal(grade(c, { markers: { storage: "chosen", retention: "assumes", metrics: "assumes" } }).score, 0);
+});
+
+test("FAFF-146 marker: the missing-marker judgement encodes as key:none", () => {
+  const c = { id: "mk", kind: "marker", oracle: { closed_set: ["queue:none", "idem:chosen"] } };
+  assert.equal(grade(c, { markers: { queue: "none", idem: "chosen" } }).graded, "PASS");
+  // a model that invents a marker for the unmarked section fails
+  assert.equal(grade(c, { markers: { queue: "chosen", idem: "chosen" } }).score, 0);
+});
+
+// --- reconciliation: per-comment `id:label` closed set (mirrors the marker encoding) ---
+test("FAFF-146 reconciliation grades per-comment id:label pairs by set-equality", () => {
+  const c = { id: "rc", kind: "reconciliation",
+    oracle: { closed_set: ["c1:challenge", "c2:resolution", "c3:context", "c4:noise"] } };
+  const env = { reconciliation: { c1: "challenge", c2: "resolution", c3: "context", c4: "noise" } };
+  assert.equal(grade(c, env).graded, "PASS");
+  assert.equal(grade(c, { reconciliation: { c1: "noise" } }).score, 0);
+});
+
+// --- validateCase: the per-kind fixture-shape check (alongside the existing oracle check) ---
+test("FAFF-146 validateCase enforces the per-kind prep fixture shapes", () => {
+  // confidence needs spec_body
+  assert.throws(() => validateCase({ id: "x", kind: "confidence", fixture: { version: 1 }, oracle: { closed_set: ["high"] } }), CaseError);
+  assert.doesNotThrow(() => validateCase({ id: "x", kind: "confidence", fixture: { spec_body: "..." }, oracle: { closed_set: ["high"] } }));
+  // marker needs sections
+  assert.throws(() => validateCase({ id: "x", kind: "marker", fixture: { spec_body: "..." }, oracle: { closed_set: ["k:chosen"] } }), CaseError);
+  assert.doesNotThrow(() => validateCase({ id: "x", kind: "marker", fixture: { sections: [] }, oracle: { closed_set: ["k:chosen"] } }));
+  // reconciliation needs issue + spec_comment + thread
+  assert.throws(() => validateCase({ id: "x", kind: "reconciliation", fixture: { issue: {}, thread: [] }, oracle: { closed_set: ["c:noise"] } }), CaseError);
+  assert.doesNotThrow(() => validateCase({ id: "x", kind: "reconciliation",
+    fixture: { issue: {}, spec_comment: {}, thread: [] }, oracle: { closed_set: ["c:noise"] } }));
+  // a prep kind still must populate exactly the closed_set oracle field
+  assert.throws(() => validateCase({ id: "x", kind: "confidence", fixture: { spec_body: "..." }, oracle: { ordering: ["a"] } }), CaseError);
+});
+
+// --- orchestration end-to-end for a prep kind via the MOCK driver (no frontier calls) ---
+test("FAFF-146 orchestrator grades a confidence case through the closed-set path", async () => {
+  const cfCase = { id: "cf", kind: "confidence", fixture: { spec_body: "..." }, oracle: { closed_set: ["medium"] } };
+  const driver = async () => envOf("cf", { confidence: "medium" });
+  const s = await runEvals({ cases: [cfCase], driver, baseReps: 2, maxReps: 4 });
+  assert.equal(s.cases[0].accuracy, 1);
+  assert.equal(s.cases[0].stability, 1);
+  assert.ok(s.per_kind.confidence, "per_kind.confidence is reported");
 });

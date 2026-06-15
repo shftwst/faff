@@ -8,12 +8,26 @@
 //
 // Zero-dependency: node builtins only. Pure functions — no clock / random / network.
 
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded"]);
+// FAFF-146 — prep's three judgement surfaces join tidy's six. confidence + marker are isolatable
+// (black-box lane); reconciliation is execution-entangled (live-driver lane). All three grade through
+// the closed-set path (single-element level for confidence; per-unit `id:class` pairs for marker /
+// reconciliation), so the grader reuses CLOSED_SET_KINDS for every new kind.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation"]);
 
 export class CaseError extends Error {}
 
-// Validate one EvalCase: known kind, and the oracle populates exactly the field its kind needs.
+// FAFF-146 — prep surfaces carry a non-backlog fixture (a spec body / decision sections / a comment
+// thread), so the harness reads the shape the kind expects rather than the tidy `issues[]` backlog.
+// Each entry lists the fixture fields that kind's driver reads; validateCase asserts they are present.
+const FIXTURE_SHAPE = {
+  confidence: ["spec_body"],
+  marker: ["sections"],
+  reconciliation: ["issue", "spec_comment", "thread"],
+};
+
+// Validate one EvalCase: known kind, the oracle populates exactly the field its kind needs, and (for
+// the prep kinds) the fixture carries the shape that kind's driver reads.
 export function validateCase(c) {
   if (!c || typeof c !== "object") throw new CaseError("case must be an object");
   if (typeof c.id !== "string" || !c.id) throw new CaseError("case.id must be a non-empty string");
@@ -22,6 +36,13 @@ export function validateCase(c) {
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
     throw new CaseError(`case ${c.id}: oracle must populate exactly \`${want}\` for kind \`${c.kind}\``);
+  }
+  const shape = FIXTURE_SHAPE[c.kind];
+  if (shape) {
+    const fx = c.fixture || {};
+    for (const field of shape) {
+      if (fx[field] == null) throw new CaseError(`case ${c.id}: kind \`${c.kind}\` fixture must carry \`${field}\``);
+    }
   }
   return c;
 }
@@ -71,13 +92,39 @@ export function gradeGloss(env, rubric) {
   return { score: vector.length ? passed / vector.length : 0, checks: vector.length, passed, vector };
 }
 
+// FAFF-146 — read the predicted closed set out of the envelope for the kind under grade. The tidy
+// kinds read `classifications[kind]`; prep's surfaces carry their judgement under their own top-level
+// envelope field (a new field per the FAFF-134 anti-pattern: wire both ends together). All three
+// reduce to a flat string set the closed-set grader scores by set-equality:
+//   confidence    → [ "<level>" ]                 (single-element level set)
+//   marker        → [ "<section-key>:<class>" ]   (one per identified decision section)
+//   reconciliation→ [ "<comment-id>:<label>" ]    (one per post-spec comment)
+// A pair-map (marker/reconciliation) with no/garbage field yields an empty set → a clean FAIL, never
+// a crash (the malformed-confidence fail-safe and its marker/reconciliation analogues).
+function pairsOf(map) {
+  if (!map || typeof map !== "object") return [];
+  return Object.entries(map).map(([k, v]) => `${k}:${v}`);
+}
+function predictedSet(c, env) {
+  switch (c.kind) {
+    case "confidence":
+      return env.confidence == null ? [] : [String(env.confidence)];
+    case "marker":
+      return pairsOf(env.markers);
+    case "reconciliation":
+      return pairsOf(env.reconciliation);
+    default:
+      return (env.classifications && env.classifications[c.kind]) || [];
+  }
+}
+
 // grade(case, envelope) -> RepResult { graded, score, tokens, signature }.
 // `signature` is the canonical judgement identity used for flakiness (NOT the grade) —
 // two reps that both FAIL but classify differently are correctly counted as unstable.
 export function grade(c, env) {
   const tokens = (env && env.tokens) || 0;
   if (CLOSED_SET_KINDS.has(c.kind)) {
-    const predicted = (env.classifications && env.classifications[c.kind]) || [];
+    const predicted = predictedSet(c, env);
     const ok = setEqual(predicted, c.oracle.closed_set);
     return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, tokens, signature: JSON.stringify([...predicted].sort()) };
   }

@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -169,4 +169,79 @@ test("loadJudgementCriteria combines the classification rubric and the synthesis
   const c = loadJudgementCriteria(DEFAULT_PLUGIN_DIR);
   assert.ok(c.includes("Dupes:"), "has the classification rubric (faff-tidy)");
   assert.ok(c.includes("issue-gloss contract"), "has the synthesis-gloss contract (faffidavit-rendering)");
+});
+
+// ===================== FAFF-146 — prep rubric loaders + per-kind prompt wiring =====================
+
+// --- the confidence rubric is extracted verbatim from faffter-dark-nlspec/SKILL.md ---
+test("FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim", () => {
+  const prose = loadConfidenceRubricProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("## Confidence self-rating"), "starts at the START anchor");
+  for (const level of ["high", "medium", "low"]) assert.ok(prose.includes(`**${level}**`), `defines ${level}`);
+  assert.ok(!prose.includes("## Contract artifact"), "stops before the END anchor");
+});
+
+test("FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadConfidenceRubricProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- the marker dialect is extracted verbatim from faff/SKILL.md "Spec readiness (fixed)" ---
+test("FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim", () => {
+  const prose = loadMarkerDialectProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("### Spec readiness (fixed)"), "starts at the START anchor");
+  for (const marker of ["**Chosen:**", "**Punt:**", "**Assumes:**"]) assert.ok(prose.includes(marker), `has ${marker}`);
+  assert.ok(!prose.includes("The producer emits, the consumer parses"), "stops before the END anchor");
+});
+
+test("FAFF-146 loadMarkerDialectProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadMarkerDialectProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- the reconciliation rubric is extracted verbatim from faff-prep/SKILL.md Step 2a ---
+test("FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric", () => {
+  const prose = loadReconciliationProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("**Step 2a: Scan comments since the spec"), "starts at the START anchor");
+  for (const label of ["Challenge", "Resolution", "Context", "Noise"]) assert.ok(prose.includes(label), `has ${label}`);
+  assert.ok(!prose.includes("**Step 2b:"), "stops before the END anchor");
+});
+
+test("FAFF-146 loadReconciliationProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadReconciliationProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- criteriaFor resolves the right verbatim rubric per kind (tidy unchanged; prep per-surface) ---
+test("FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise", () => {
+  assert.ok(criteriaFor("confidence", DEFAULT_PLUGIN_DIR).startsWith("## Confidence self-rating"));
+  assert.ok(criteriaFor("marker", DEFAULT_PLUGIN_DIR).startsWith("### Spec readiness (fixed)"));
+  assert.ok(criteriaFor("dupe", DEFAULT_PLUGIN_DIR).includes("Dupes:")); // tidy combined criteria, unchanged
+  assert.equal(criteriaFor("confidence", null), null); // --no-plugin baseline → improvise (control)
+});
+
+// --- buildEvalPrompt renders the confidence surface over a spec body with the confidence envelope ---
+test("FAFF-146 buildEvalPrompt(confidence) carries the spec body and the confidence envelope shape", () => {
+  const c = { id: "cf-x", kind: "confidence", question: "Rate it.", fixture: { spec_body: "THE SPEC BODY TEXT" } };
+  const p = buildEvalPrompt(c, criteriaFor("confidence", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("THE SPEC BODY TEXT"), "includes the spec body");
+  assert.ok(p.includes("## Confidence self-rating"), "folds in the verbatim confidence rubric");
+  assert.ok(p.includes('"confidence": "<high|medium|low>"'), "asks for the confidence envelope field");
+  assert.ok(p.includes("cf-x"), "interpolates the case id");
+  assert.ok(!p.includes("Run faff-tidy"), "does NOT use the tidy framing");
+});
+
+// --- buildEvalPrompt renders the marker surface over decision sections with the marker envelope ---
+test("FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape", () => {
+  const c = { id: "mk-x", kind: "marker", question: "Classify each.",
+    fixture: { sections: [{ key: "auth", text: "Chosen: JWT." }] } };
+  const p = buildEvalPrompt(c, criteriaFor("marker", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes('"auth"'), "includes the section key");
+  assert.ok(p.includes("### Spec readiness (fixed)"), "folds in the verbatim marker dialect");
+  assert.ok(p.includes('"markers"'), "asks for the markers envelope field");
+});
+
+// --- the tidy prompt framing is unchanged (no regression for the six tidy kinds) ---
+test("FAFF-146 buildEvalPrompt(dupe) is unchanged — still the tidy backlog framing", () => {
+  const c = { id: "d-x", kind: "dupe", question: "Which are dupes?", fixture: { version: 1, issues: [{ id: "A" }] } };
+  const p = buildEvalPrompt(c, criteriaFor("dupe", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("Run faff-tidy's judgement pass"), "keeps the tidy framing");
+  assert.ok(p.includes('"classifications"'), "keeps the tidy envelope shape");
 });

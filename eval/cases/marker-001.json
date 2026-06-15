@@ -1,0 +1,12 @@
+{ "id": "marker-001", "kind": "marker",
+  "fixture": { "version": 1,
+    "sections": [
+      { "key": "storage-layer",
+        "text": "Storage layer. The run ledger needs durable per-run state. We use Postgres for every other persistence site and Redis only for caching. Chosen: Postgres — the ledger is relational and durable, matching existing persistence." },
+      { "key": "retention-window",
+        "text": "Retention window. How long to keep completed run ledgers before pruning — 30 days keeps recent history cheap, 365 days supports quarterly audits, or keep forever. Punt: 30 vs 365 vs forever — needs human; it is a product/compliance call, not an engineering one." },
+      { "key": "metrics-export",
+        "text": "Metrics export. The ledger summary is pushed to the existing StatsD sink. Assumes: the StatsD daemon configured in ops/statsd.conf is reachable from the run host; the exporter writes to it directly with no new transport." }
+    ] },
+  "question": "Classify each decision section's marker: chosen, punt, assumes, or none.",
+  "oracle": { "closed_set": ["storage-layer:chosen", "retention-window:punt", "metrics-export:assumes"] } }

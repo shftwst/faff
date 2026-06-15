@@ -1,7 +1,7 @@
 { "id": "stale-001", "kind": "stale",
   "fixture": { "version": 1, "issues": [
-    { "id": "ISS-L", "title": "Migrate from the v1 adaptor API (removed in #109)", "state": "Todo" },
+    { "id": "ISS-L", "title": "Add retry/backoff to the API client", "state": "Todo" },
     { "id": "ISS-M", "title": "Wire faff next into graft", "state": "Todo" } ],
-    "comments": [ { "id": "C1", "issueId": "ISS-L", "body": "the v1 adaptor API was deleted in FAFF-109; this no longer applies" } ] },
-  "question": "Which issues have specs/premises now stale?",
+    "comments": [ { "id": "C1", "issueId": "ISS-L", "body": "heads up: the API client was rewritten in FAFF-88 — the request() pipeline this spec hooks its retry logic into is now client.send(). The retry/backoff work is still wanted, but the spec's design no longer matches the code and needs a refresh before building." } ] },
+  "question": "Which issue has a spec whose design is now stale — still wanted, but needs a refresh (not cancellation)?",
   "oracle": { "closed_set": ["ISS-L"] } }

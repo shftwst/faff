@@ -183,6 +183,47 @@ export function loadReconciliationProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return extractSection(skillPath, RECONCILIATION_RUBRIC_START, RECONCILIATION_RUBRIC_END, "loadReconciliationProse");
 }
 
+// FAFF-148 — the review-verdict rubric, verbatim from the shipped review producer + the gateway's
+// fixed revert-test statement. This is the criteria the verdict-revert (revert-test discrimination)
+// eval measures: given a DESCRIBED finding, decide `fail` (a defect `git revert` undoes) vs
+// `needs-human` (an effect that persists after revert). Two verbatim sources, folded:
+//   - faffter-noon-review/SKILL.md: "### 5. Human-judgement flag" THROUGH the "## Output" that follows
+//     "## Verdict rules" (so the model gets pass-5 + the revert test (line 103) + the verdict mapping).
+//   - faff/SKILL.md: the "### Review verdict (fixed)" section (so it has the CANONICAL revert-test
+//     statement + the malformed→needs-human contract, not only the producer's restatement).
+// Anchored on stable headers; fail-loud if any anchor moves (the loadTidyJudgementProse contract).
+const REVIEW_VERDICT_START = "### 5. Human-judgement flag";
+const REVIEW_VERDICT_END = "## Output";          // the "## Output" that FOLLOWS "## Verdict rules"
+const GATEWAY_VERDICT_START = "### Review verdict (fixed)";
+const GATEWAY_VERDICT_END = "### Delivery outcome (fixed)";
+
+function sliceAnchored(md, skillPath, label, startAnchor, endAnchor) {
+  const start = md.indexOf(startAnchor);
+  if (start === -1) throw new Error(`${label}: START anchor not found in ${skillPath}: "${startAnchor}"`);
+  const end = md.indexOf(endAnchor, start + startAnchor.length);
+  if (end === -1) throw new Error(`${label}: END anchor not found in ${skillPath}: "${endAnchor}"`);
+  return md.slice(start, end).trim();
+}
+
+export function loadReviewVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const reviewPath = join(pluginDir, "skills", "faffter-noon-review", "SKILL.md");
+  const gatewayPath = join(pluginDir, "skills", "faff", "SKILL.md");
+  let reviewMd, gatewayMd;
+  try {
+    reviewMd = readFileSync(reviewPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadReviewVerdictProse: cannot read ${reviewPath}: ${e.message}`);
+  }
+  try {
+    gatewayMd = readFileSync(gatewayPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadReviewVerdictProse: cannot read ${gatewayPath}: ${e.message}`);
+  }
+  const reviewRubric = sliceAnchored(reviewMd, reviewPath, "loadReviewVerdictProse(review)", REVIEW_VERDICT_START, REVIEW_VERDICT_END);
+  const gatewayContract = sliceAnchored(gatewayMd, gatewayPath, "loadReviewVerdictProse(gateway)", GATEWAY_VERDICT_START, GATEWAY_VERDICT_END);
+  return `${gatewayContract}\n\n---\n\n${reviewRubric}`;
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -214,8 +255,21 @@ export const MARKER_MODE_INSTRUCTION =
   "section, using the section keys from the fixture. Output NOTHING except that single block: no reasoning, " +
   "no preamble, no prose, nothing before or after it.";
 
+// FAFF-148 — the envelope instruction for the verdict-revert (revert-test discrimination) surface.
+// The model classifies EACH described finding `fail` vs `needs-human` by the revert test, emitting a
+// `verdicts` object keyed by the finding key. Same OUTPUT-ONLY hardening as EVAL_MODE_INSTRUCTION.
+export const VERDICT_REVERT_INSTRUCTION =
+  "For each finding, apply the revert test and decide its verdict: `fail` if a `git revert` of the " +
+  "change fully undoes the finding's effect (a defect), or `needs-human` if the effect persists after " +
+  "revert (judgement / irreversible). Then OUTPUT ONLY one fenced code block tagged exactly " +
+  "`faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "verdicts": { "<finding-key>": "fail|needs-human", ... } } — one entry per ' +
+  "finding, using the fixture's finding keys. Output NOTHING except that single block: no reasoning, " +
+  "no preamble, no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
-// prep's two black-box surfaces get their own envelope-shape instruction.
+// prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
+// to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
 function modeInstructionFor(kind) {
   if (kind === "confidence") return CONFIDENCE_MODE_INSTRUCTION;
   if (kind === "marker") return MARKER_MODE_INSTRUCTION;
@@ -225,7 +279,8 @@ function modeInstructionFor(kind) {
 // `judgementProse` (when present) is faff's verbatim judgement criteria — prepended so the model
 // applies the shipped rules. Absent (the --no-plugin baseline) → the bare improvise-it prompt (the
 // control). FAFF-146 — the framing + fixture rendering is per-kind: tidy kinds run over a backlog;
-// confidence reads a spec body; marker reads identified decision sections.
+// confidence reads a spec body; marker reads identified decision sections. FAFF-148 — verdict-revert
+// renders described findings via renderVerdictRevertPrompt with the review-verdict rubric.
 function renderFixturePrompt(c, judgementProse = null) {
   const rubric = judgementProse
     ? `Apply faff's judgement criteria below — these are the skills' own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
@@ -250,22 +305,42 @@ function renderFixturePrompt(c, judgementProse = null) {
 
 // FAFF-146 — resolve the verbatim criteria for a case's kind from the plugin under test. Tidy's six
 // kinds use the combined classification + synthesis-gloss criteria (unchanged); confidence + marker
-// use their own prep rubric so each black-box surface measures the shipped prose it gates on.
+// use their own prep rubric; verdict-revert (FAFF-148) uses the review-verdict rubric — so each
+// black-box surface measures the shipped prose it gates on.
 // pluginDir null (the --no-plugin baseline) → no criteria → the model improvises (the control).
 export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (!pluginDir) return null;
   if (kind === "confidence") return loadConfidenceRubricProse(pluginDir);
   if (kind === "marker") return loadMarkerDialectProse(pluginDir);
+  if (kind === "verdict-revert") return loadReviewVerdictProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
+}
+
+// FAFF-148 — render a verdict-revert case: the review-verdict rubric (verbatim) + the described-finding
+// fixture (change_summary + findings[]) + the question. `verdictProse` null (the --no-plugin baseline)
+// → bare improvise prompt (the control), mirroring renderFixturePrompt.
+function renderVerdictRevertPrompt(c, verdictProse = null) {
+  const rubric = verdictProse
+    ? `Apply faff's review-verdict rubric below — these are faff's own rules, verbatim:\n\n${verdictProse}\n\n---\n\n`
+    : "";
+  return (
+    `${rubric}Classify each review finding below and answer: ${c.question}\n\n` +
+    `Change + findings:\n${JSON.stringify(c.fixture, null, 2)}`
+  );
 }
 
 // Rough token proxy for the spike's cost column; FAFF-131 can replace with claude -p's reported usage.
 export const estimateTokens = (s) => Math.ceil(String(s ?? "").length / 4);
 
-// FAFF-144 — the full eval prompt for a case (criteria + fixture + the envelope instruction),
+// FAFF-144/FAFF-148 — the full eval prompt for a case (criteria + fixture + the envelope instruction),
 // factored out of makeCliDriver so any driver (claude -p OR a direct ollama POST) builds it the same.
-// FAFF-146 — the envelope instruction is per-kind (confidence / marker carry their own field).
+// FAFF-146/148 — the envelope instruction is per-kind. verdict-revert uses the review-verdict rubric +
+// its verdict-shaped envelope; confidence/marker carry their own field (modeInstructionFor); the tidy
+// kinds keep EVAL_MODE_INSTRUCTION.
 export function buildEvalPrompt(evalCase, criteria = null) {
+  if (evalCase.kind === "verdict-revert") {
+    return `${renderVerdictRevertPrompt(evalCase, criteria)}\n\n${VERDICT_REVERT_INSTRUCTION.replace("<ID>", evalCase.id)}`;
+  }
   return `${renderFixturePrompt(evalCase, criteria)}\n\n${modeInstructionFor(evalCase.kind).replace("<ID>", evalCase.id)}`;
 }
 
@@ -290,7 +365,8 @@ export function makeCliDriver(opts = {}) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
     try {
       forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
-      // FAFF-146: criteria resolved per-case kind (tidy → combined; confidence/marker → prep rubric).
+      // FAFF-146/148: criteria resolved per-case kind via the module-level criteriaFor
+      // (tidy → combined; confidence/marker → prep rubric; verdict-revert → review-verdict rubric).
       const prompt = buildEvalPrompt(evalCase, criteriaFor(evalCase.kind, opts.pluginDir));
       const inv = buildInvocation(opts, prompt, cfgDir);
       const res = spawnSync(inv.bin, inv.args, {

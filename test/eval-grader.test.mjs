@@ -73,6 +73,35 @@ test("closed-set grades by exact set-equality", () => {
   assert.equal(grade(c, { classifications: { dupe: ["B", "A"] } }).score, 1); // order-independent
   assert.equal(grade(c, { classifications: { dupe: ["A"] } }).score, 0);
 });
+// --- FAFF-148: verdict-revert grades the per-finding revert-test classification as a closed-set ---
+test("verdict-revert maps env.verdicts to a key:verdict closed-set and grades by set-equality", () => {
+  const c = { id: "vr", kind: "verdict-revert",
+    oracle: { closed_set: ["debug-print:fail", "perm-migration:needs-human"] } };
+  // exact match (order-independent on the object) → PASS
+  const ok = grade(c, { verdicts: { "perm-migration": "needs-human", "debug-print": "fail" } });
+  assert.equal(ok.score, 1);
+  assert.equal(ok.graded, "PASS");
+  // one finding mislabelled → the whole set fails (per-finding signal is not thrown away)
+  const wrong = grade(c, { verdicts: { "debug-print": "needs-human", "perm-migration": "needs-human" } });
+  assert.equal(wrong.score, 0);
+  assert.equal(wrong.graded, "FAIL");
+});
+
+// --- FAFF-148: eval-side fail-safe — a malformed / out-of-enum verdict token is a clean FAIL, not a
+// crash and not a coercion (the deterministic malformed→needs-human coercion lives in computeReviewVerdict). ---
+test("verdict-revert: an out-of-enum token scores a clean FAIL with a distinct signature, no crash", () => {
+  const c = { id: "vr", kind: "verdict-revert", oracle: { closed_set: ["f1:fail"] } };
+  // model emits a token outside {fail, needs-human} — graded against the oracle, fails cleanly
+  const bad = grade(c, { verdicts: { f1: "pass" } });
+  assert.equal(bad.score, 0);
+  assert.equal(bad.graded, "FAIL");
+  assert.equal(bad.signature, JSON.stringify(["f1:pass"])); // the bad token is visible in the signature (lowers stability), NOT coerced
+  // a missing/garbled verdicts object does not throw — empty predicted set fails the non-empty oracle
+  assert.equal(grade(c, {}).score, 0);
+  assert.equal(grade(c, { verdicts: null }).score, 0);
+  assert.equal(grade(c, { verdicts: ["not", "an", "object"] }).score, 0);
+});
+
 test("ordering grades by rank correlation over the judgement portion", () => {
   assert.equal(rankCorrelation(["A", "B", "C"], ["A", "B", "C"]), 1);
   assert.equal(rankCorrelation(["C", "B", "A"], ["A", "B", "C"]), 0);
@@ -210,14 +239,14 @@ test("orchestrator: deadline ceiling yields a flagged partial, not a silent trun
 // --- the disk cases are all well-formed (kind matches oracle; per-kind fixture shape present) ---
 test("all eval/cases load and validate", () => {
   const cases = loadCases();
-  // 12 tidy cases + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable.
-  assert.equal(cases.length, 19);
+  // 12 tidy + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable; FAFF-148: +2 verdict-revert.
+  assert.equal(cases.length, 21);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
-  // ≥2 cases each for the new prep classification kinds (the 2/kind convention).
-  for (const k of ["confidence", "marker", "splittable"]) {
+  // ≥2 cases each for the new classification kinds (the 2/kind convention).
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
 });
@@ -297,4 +326,11 @@ test("FAFF-146 orchestrator grades a confidence case through the closed-set path
   assert.equal(s.cases[0].accuracy, 1);
   assert.equal(s.cases[0].stability, 1);
   assert.ok(s.per_kind.confidence, "per_kind.confidence is reported");
+});
+
+// --- FAFF-148: validateCase accepts the new kinds (closed-set oracle) and rejects a mismatched oracle ---
+test("validateCase accepts verdict-revert / verdict-build closed-set oracles", () => {
+  assert.doesNotThrow(() => validateCase({ id: "vr", kind: "verdict-revert", oracle: { closed_set: ["k:fail"] } }));
+  assert.doesNotThrow(() => validateCase({ id: "vb", kind: "verdict-build", oracle: { closed_set: ["pass"] } }));
+  assert.throws(() => validateCase({ id: "vr", kind: "verdict-revert", oracle: { ordering: ["k"] } }), CaseError);
 });

@@ -441,3 +441,4 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - Beep-boop is best run when you expect to be away (overnight, during meetings, over a weekend). Results are on the tracker and in `.faff/runs/…`.
 - For a quick list of what happened, run `/faff-wtf` — it reads the latest run summary and surfaces parked issues automatically.
 - If you want to try beep-boop on a known-good narrow set before trusting it with the whole backlog, use explicit-list mode: `/faff-beep-boop ISSUE-12 ISSUE-15 ISSUE-17`.
+- Running over SSH? A dropped connection or a closed laptop lid kills an in-flight run — launch `claude` inside `tmux` (or `mosh` + `tmux` for flaky links) so it survives. See [Running over SSH](../../../docs/unattended.md#running-over-ssh).

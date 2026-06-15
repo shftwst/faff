@@ -32,3 +32,36 @@ The safety net isn't you staying awake — it's mechanical and always on:
 ## The tracker is the control plane
 
 In an unattended run the tracker is the human-legible record, control plane, and observability surface that makes it safe to step back. Every issue's status, spec, park reason, and delivery outcome is reflected back into the tracker — so when you wake up, the morning view is the tracker plus the run-ledger, not a wall of logs. That's what makes L3 a place you can actually leave the building from.
+
+## Running over SSH
+
+If you run `claude` over a plain SSH session — laptop on the sofa, server in the cupboard — the `claude` process is a *child of that SSH connection*. Close the lid, switch networks, or drop Wi-Fi for a moment and the connection dies, taking the run with it. `/faff-beep-boop` is built for exactly the away-from-keyboard case (overnight, fire-and-forget), so it's exactly where a dropped link bites.
+
+The fix lives at the **`claude`-launch level**, not inside faff — a skill can't detach a process it's already running inside. Launch `claude` inside a terminal multiplexer so the session keeps running on the host after you disconnect, then reattach when you're back.
+
+**tmux (recommended).**
+
+```sh
+tmux new -s faff      # start a named session on the host
+claude                # launch claude inside it, then drive /faff-beep-boop as normal
+```
+
+- Detach (leaves it running): `Ctrl-b` then `d`.
+- Reattach later: `tmux attach -t faff`.
+
+**screen (fallback)** if `tmux` isn't available:
+
+```sh
+screen -S faff        # start a named session
+claude                # launch claude inside it
+```
+
+- Detach: `Ctrl-a` then `d`. Reattach: `screen -r faff`.
+
+**mosh + tmux (roaming or flaky links).** `mosh` survives IP changes and sleep/wake but doesn't itself keep a session alive if the server-side process dies; `tmux` survives the disconnect. Use both — `mosh` for the link, `tmux` for the session:
+
+```sh
+mosh user@host -- tmux new -A -s faff   # -A attaches to "faff" if it exists, else creates it
+```
+
+faff can't do any of this for you: by the time a skill is running it's already attached to your connection, so keeping the run alive is a launch-time choice — there's no faff flag for it.

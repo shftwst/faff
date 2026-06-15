@@ -1,0 +1,8 @@
+{ "id": "splittable-001", "kind": "splittable",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-S", "title": "Add request routing and set up the CI pipeline", "state": "Todo",
+      "spec": "This ticket covers two pieces of work. First, add URL routing to the web server: parse the request path, dispatch to the matching handler, and return 404 for unknown routes. Second, and entirely separately, set up the continuous-integration pipeline: a GitHub Actions workflow that installs dependencies, runs the test suite, and runs the linter on every pull request. The routing work touches src/server/*; the CI work touches .github/workflows/* — they share no code and could ship in either order." } ] },
+  "question": "Does ISS-S's spec cover two structurally-independent, each-ticket-sized concerns (splittable)? If so, list the independent concerns; if it is one cohesive concern, return an empty list.",
+  "oracle": { "closed_set": [
+    ["url routing", "request routing", "routing", "route dispatch"],
+    ["ci pipeline", "continuous integration", "ci", "github actions workflow", "test pipeline"] ] } }

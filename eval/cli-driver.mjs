@@ -113,6 +113,52 @@ export function loadJudgementCriteria(pluginDir = DEFAULT_PLUGIN_DIR) {
   return `${loadTidyJudgementProse(pluginDir)}\n\n${loadSynthesisGlossProse(pluginDir)}`;
 }
 
+// FAFF-146 — generic verbatim section extractor (the loadTidyJudgementProse contract: fail-loud if
+// the file or either anchor moves, so a prose refactor must consciously re-point the loader).
+function extractSection(skillPath, startAnchor, endAnchor, label) {
+  let md;
+  try {
+    md = readFileSync(skillPath, "utf8");
+  } catch (e) {
+    throw new Error(`${label}: cannot read ${skillPath}: ${e.message}`);
+  }
+  const start = md.indexOf(startAnchor);
+  if (start === -1) throw new Error(`${label}: START anchor not found in ${skillPath}: "${startAnchor}"`);
+  const end = md.indexOf(endAnchor, start + startAnchor.length);
+  if (end === -1) throw new Error(`${label}: END anchor not found in ${skillPath}: "${endAnchor}"`);
+  return md.slice(start, end).trim();
+}
+
+// FAFF-146 — prep CONFIDENCE rubric, verbatim from faffter-dark-nlspec/SKILL.md "## Confidence
+// self-rating" (the high/medium/low definitions). The black-box confidence surface folds this in so
+// the model applies the shipped rubric rather than improvising a level.
+const CONFIDENCE_RUBRIC_START = "## Confidence self-rating";
+const CONFIDENCE_RUBRIC_END = "## Contract artifact";
+export function loadConfidenceRubricProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faffter-dark-nlspec", "SKILL.md");
+  return extractSection(skillPath, CONFIDENCE_RUBRIC_START, CONFIDENCE_RUBRIC_END, "loadConfidenceRubricProse");
+}
+
+// FAFF-146 — prep MARKER dialect, verbatim from faff/SKILL.md "### Spec readiness (fixed)" (the
+// **Chosen**/**Punt**/**Assumes** classification). The black-box marker surface folds this in.
+const MARKER_DIALECT_START = "### Spec readiness (fixed)";
+const MARKER_DIALECT_END = "**The producer emits, the consumer parses.**";
+export function loadMarkerDialectProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff", "SKILL.md");
+  return extractSection(skillPath, MARKER_DIALECT_START, MARKER_DIALECT_END, "loadMarkerDialectProse");
+}
+
+// FAFF-146 — prep RECONCILIATION rubric, verbatim from faff-prep/SKILL.md "Step 2a" (the
+// Challenge / Resolution / Context / Noise classification of post-spec comments). This is the
+// execution-entangled surface: it rides the LIVE-DRIVER lane (see eval/live-driver.mjs), not the
+// black-box lane — the loader lives here so the verbatim-extraction contract stays single-sourced.
+const RECONCILIATION_RUBRIC_START = "**Step 2a: Scan comments since the spec";
+const RECONCILIATION_RUBRIC_END = "**Step 2b:";
+export function loadReconciliationProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff-prep", "SKILL.md");
+  return extractSection(skillPath, RECONCILIATION_RUBRIC_START, RECONCILIATION_RUBRIC_END, "loadReconciliationProse");
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -126,17 +172,64 @@ export const EVAL_MODE_INSTRUCTION =
   "judgement produced, using the fixture's issue ids. Output NOTHING except that single block: no reasoning, " +
   "no preamble, no prose, nothing before or after it.";
 
-// `judgementProse` (when present) is faff's verbatim judgement criteria — classification (faff-tidy)
-// + the synthesis-gloss contract (FAFF-140) — prepended so the model applies the shipped rules.
-// Absent (the --no-plugin baseline) → the bare improvise-it prompt (the control).
+// FAFF-146 — the prep classification surfaces (confidence + marker) emit their own envelope field,
+// so each needs its own envelope instruction (the FAFF-134 anti-pattern: a new field is wired at
+// both ends). Same output-only hardening as EVAL_MODE_INSTRUCTION.
+export const CONFIDENCE_MODE_INSTRUCTION =
+  "Rate this spec's confidence by the rubric above, then OUTPUT ONLY one fenced code block tagged " +
+  "exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "confidence": "<high|medium|low>" } — exactly one level. Output NOTHING ' +
+  "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+export const MARKER_MODE_INSTRUCTION =
+  "Classify each identified decision section by the marker dialect above, then OUTPUT ONLY one fenced " +
+  "code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "markers": { "<section-key>": "chosen|punt|assumes|none", ... } } — one entry per ' +
+  "section, using the section keys from the fixture. Output NOTHING except that single block: no reasoning, " +
+  "no preamble, no prose, nothing before or after it.";
+
+// FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
+// prep's two black-box surfaces get their own envelope-shape instruction.
+function modeInstructionFor(kind) {
+  if (kind === "confidence") return CONFIDENCE_MODE_INSTRUCTION;
+  if (kind === "marker") return MARKER_MODE_INSTRUCTION;
+  return EVAL_MODE_INSTRUCTION;
+}
+
+// `judgementProse` (when present) is faff's verbatim judgement criteria — prepended so the model
+// applies the shipped rules. Absent (the --no-plugin baseline) → the bare improvise-it prompt (the
+// control). FAFF-146 — the framing + fixture rendering is per-kind: tidy kinds run over a backlog;
+// confidence reads a spec body; marker reads identified decision sections.
 function renderFixturePrompt(c, judgementProse = null) {
   const rubric = judgementProse
-    ? `Apply faff's judgement + synthesis criteria below — these are the skills' own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
+    ? `Apply faff's judgement criteria below — these are the skills' own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
     : "";
+  if (c.kind === "confidence") {
+    return (
+      `${rubric}Run faff-prep's confidence self-rating on the following spec and answer: ${c.question}\n\n` +
+      `Spec body:\n${c.fixture.spec_body}`
+    );
+  }
+  if (c.kind === "marker") {
+    return (
+      `${rubric}Run faff-prep's decision-marker classification on the following spec sections and answer: ${c.question}\n\n` +
+      `Decision sections:\n${JSON.stringify(c.fixture.sections, null, 2)}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
   );
+}
+
+// FAFF-146 — resolve the verbatim criteria for a case's kind from the plugin under test. Tidy's six
+// kinds use the combined classification + synthesis-gloss criteria (unchanged); confidence + marker
+// use their own prep rubric so each black-box surface measures the shipped prose it gates on.
+// pluginDir null (the --no-plugin baseline) → no criteria → the model improvises (the control).
+export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
+  if (!pluginDir) return null;
+  if (kind === "confidence") return loadConfidenceRubricProse(pluginDir);
+  if (kind === "marker") return loadMarkerDialectProse(pluginDir);
+  return loadJudgementCriteria(pluginDir);
 }
 
 // Rough token proxy for the spike's cost column; FAFF-131 can replace with claude -p's reported usage.
@@ -144,8 +237,9 @@ export const estimateTokens = (s) => Math.ceil(String(s ?? "").length / 4);
 
 // FAFF-144 — the full eval prompt for a case (criteria + fixture + the envelope instruction),
 // factored out of makeCliDriver so any driver (claude -p OR a direct ollama POST) builds it the same.
+// FAFF-146 — the envelope instruction is per-kind (confidence / marker carry their own field).
 export function buildEvalPrompt(evalCase, criteria = null) {
-  return `${renderFixturePrompt(evalCase, criteria)}\n\n${EVAL_MODE_INSTRUCTION.replace("<ID>", evalCase.id)}`;
+  return `${renderFixturePrompt(evalCase, criteria)}\n\n${modeInstructionFor(evalCase.kind).replace("<ID>", evalCase.id)}`;
 }
 
 // PURE: resolve the exact { bin, args, env } to spawn. No spawn, no fs, no clock — so a test can
@@ -165,15 +259,12 @@ export function buildInvocation(opts, prompt, cfgDir) {
 // Generic factory. opts: { bin, model, baseUrl, env, bare, pluginDir }. The closure spawns;
 // importing this does not.
 export function makeCliDriver(opts = {}) {
-  // FAFF-134/FAFF-140: load faff's judgement criteria once (classification + synthesis gloss) from
-  // the same pluginDir the run loads skills from. pluginDir null (the --no-plugin baseline) → no
-  // criteria → the model improvises (the control).
-  const judgementProse = opts.pluginDir ? loadJudgementCriteria(opts.pluginDir) : null;
   return async function cliDriver(evalCase, repIndex) {
     const cfgDir = mkdtempSync(join(tmpdir(), `faff-eval-${evalCase.id}-${repIndex}-`));
     try {
       forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
-      const prompt = buildEvalPrompt(evalCase, judgementProse);
+      // FAFF-146: criteria resolved per-case kind (tidy → combined; confidence/marker → prep rubric).
+      const prompt = buildEvalPrompt(evalCase, criteriaFor(evalCase.kind, opts.pluginDir));
       const inv = buildInvocation(opts, prompt, cfgDir);
       const res = spawnSync(inv.bin, inv.args, {
         env: inv.env, // isolation (CLAUDE_CONFIG_DIR) + any preset redirect — no parent ~/.claude.json write

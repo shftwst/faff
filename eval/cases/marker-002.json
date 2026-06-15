@@ -1,0 +1,10 @@
+{ "id": "marker-002", "kind": "marker",
+  "fixture": { "version": 1,
+    "sections": [
+      { "key": "queue-backend",
+        "text": "Queue backend. We need a job queue for deferred sends. SQS is managed and durable; a Redis list is in-process-fast but loses jobs on restart; a Postgres SKIP LOCKED queue reuses our existing database. Each has clear tradeoffs around durability, ops burden, and latency. The section lays out all three but does not commit to one." },
+      { "key": "idempotency-key",
+        "text": "Idempotency key. Every enqueued job carries a key so a redelivery is a no-op. Chosen: a SHA-256 of (job-type, payload, target) — deterministic, collision-resistant, and computable without extra state." }
+    ] },
+  "question": "Classify each decision section's marker: chosen, punt, assumes, or none.",
+  "oracle": { "closed_set": ["queue-backend:none", "idempotency-key:chosen"] } }

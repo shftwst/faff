@@ -1,0 +1,5 @@
+{ "id": "confidence-003", "kind": "confidence",
+  "fixture": { "version": 1,
+    "spec_body": "# Add a `--json` flag to `faff config get`\n\n## WHY\nScripts that read faff config currently parse human-formatted stdout. A machine-readable mode removes that brittleness.\n\n## WHAT\n`faff config get <key> --json` prints `{ \"key\": <key>, \"value\": <resolved>, \"source\": \"file|default\" }` to stdout; exit codes unchanged.\n\n## HOW\n**Chosen:** extend the existing `config get` handler in `bin/faff` with a `--json` branch that wraps the already-resolved value; no new resolution path. The resolver already returns `{ value, source }` internally, so the flag only changes the print format.\n\n## DONE\n- [ ] `faff config get tracking.team_key --json` prints the documented object\n- [ ] an absent key prints `{\"value\": null, \"source\": \"default\"}` and exits 3 (unchanged)\n- [ ] a unit test asserts the JSON shape and the unchanged exit codes\n\nEvery decision is marked, no open questions remain, and DONE mirrors the body." },
+  "question": "Rate this spec's confidence per the rubric: high, medium, or low?",
+  "oracle": { "closed_set": ["high"] } }

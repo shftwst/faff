@@ -1,61 +1,83 @@
-# ADR 0004 — Judgement-eval spike: is the skill-judgement surface flaky? (SCAFFOLD)
+# ADR 0004 — Judgement-eval spike: is the skill-judgement surface flaky?
 
-- **Status:** Proposed — **scaffold only**. The harness (FAFF-130) is built; the **measured numbers
-  below are pending the supervised frontier run (FAFF-131)**. This ADR is not decided until FAFF-131
-  fills the `‹pending›` cells and writes the recommendation.
-- **Date:** 2026-06-14 (scaffold) · _measured run: pending_
-- **Tickets:** FAFF-130 (harness, this) · FAFF-131 (run + numbers) · follows ADR 0003 · feeds FAFF-93 (live-driver decision) · unblocks FAFF-114
-- **Supersedes/relates:** ADR 0003 left three lanes open; this is lane 2 (judgement-on-frontier).
+- **Status:** Accepted (measured). The judgement-eval harness was built (FAFF-130) and run for real on the frontier model (FAFF-131); the numbers below are measured, not pending.
+- **Date:** 2026-06-15 (measured) · scaffold 2026-06-14.
+- **Tickets:** FAFF-130 (harness) · FAFF-131 (run + this ADR) · FAFF-132/133/134/135/136/137/138/140/142/143/144 (driver/criteria/auth/oracle build-out) · follows ADR 0003 · unblocks FAFF-114 (lean-prompts).
+- **Relates:** ADR 0003 left three lanes open; this is lane 2 (judgement-on-frontier) and lane 3 (local-LLM), now both measured.
 
 ## Context
 
-ADR 0003 measured **0% kernel flakiness** — *because* skills route routing decisions into the
-deterministic `faff` CLI rather than judging in-head — and explicitly flagged that "the flakiness
-that actually matters is unmeasured": the **judgement residue** (`vague`/`dupe`/`stale`/`superseded`
-classification, `pick-ordering`, synthesis gloss). This spike measures that residue cheaply with
-offline evals against the shipped frontier model, to settle the **live-driver-vs-judgement-evals
-fork** with numbers instead of intuition.
+ADR 0003 measured **0% kernel flakiness** — *because* skills route routing decisions into the deterministic `faff` CLI rather than judging in-head — and flagged that "the flakiness that actually matters is unmeasured": the **judgement residue** (`vague`/`dupe`/`stale`/`superseded` classification, `pick-ordering`, synthesis gloss). This spike measures that residue with offline evals, to settle the **live-driver-vs-judgement-evals fork** with numbers.
 
-The harness: `eval/` (driver + two-tier deterministic grader + 12 cases + run-evals), with judgement
-captured out-of-band via a `faff-eval:judgement` envelope so the FAFF-93 seam-only invariant is
-preserved. Flakiness is measured as per-case **signature stability** across K=20 base reps (adaptive
-escalation to ~50 on disagreement). See `eval/README.md` and the FAFF-130 spec.
+The harness (`eval/`): an injectable driver → a two-tier **deterministic** grader (closed-set set-equality, ordering rank-correlation, gloss synonym-set rubric) → 12 cases (2/kind) → `run-evals` orchestration. Judgement is captured out-of-band via a `faff-eval:judgement` envelope so the FAFF-93 seam-only invariant holds. Flakiness = per-case **signature stability** across K reps. The eval prompt carries faff's *real* shipped criteria (faff-tidy classification + the synthesis-gloss contract, read verbatim from the plugin), so it measures the shipped judgement, not an improvised one. See `eval/README.md`.
 
-## Measured results — _pending FAFF-131_
+Two driver lanes were built and measured:
+- **frontier** — `claude -p` against the Anthropic API (real Opus), plugin-loaded, OAuth-forwarded (FAFF-138). The production-shaped number.
+- **local-direct** — a direct ollama `/api/chat` completion (FAFF-136/144), `qwen3.6:27b-mlx` over Tailscale, `think:false`. A cheap model-sweep proxy.
 
-### Per-kind accuracy & flakiness (12 cases, 2/kind, K=20 base)
+## Measured results
 
-| Kind | Accuracy | Stability (1.0 = no flakiness) | Escalated? |
+### Frontier (Opus) — K=20 base, escalation→50 on disagreement, 12 cases
+
+| Kind | Accuracy | Stability (1.0 = no flakiness) | Format | Escalated? |
+|---|---|---|---|---|
+| dupe | 1.00 | 1.00 | 1.00 | no |
+| vague | 1.00 | 1.00 | 1.00 | no |
+| stale | 1.00 | 1.00 | 1.00 | no |
+| superseded | 1.00 | 1.00 | 1.00 | no |
+| ordering | 1.00 | 1.00 | 1.00 | no |
+| gloss | 0.97 (rubric coverage) | 0.97 | 1.00 | yes (gloss-001) |
+
+**Judgement on the production model is stable.** Five of six kinds show **zero flakiness** — deterministic-grade reproducibility across 20+ reps, echoing ADR 0003's 0% kernel result. The lone variance is the **free-text synthesis gloss** at 0.97: gloss-001 escalated to 50 reps → **47 scored 1.00, 3 scored 0.80** (omitted one required concept). That is inherent free-text generation variance, not a classification failure (gloss-002 = 1.00). **Format adherence is perfect** (the FAFF-137 output-hardening + strict-or-classify envelope fallback).
+
+### Local (qwen3.6:27b-mlx, direct `/api/chat`) — K=5, 12 cases
+
+| Kind | Accuracy | Stability | Format |
 |---|---|---|---|
-| dupe | ‹pending› | ‹pending› | ‹pending› |
-| vague | ‹pending› | ‹pending› | ‹pending› |
-| stale | ‹pending› | ‹pending› | ‹pending› |
-| superseded | ‹pending› | ‹pending› | ‹pending› |
-| ordering | ‹pending› | ‹pending› | ‹pending› |
-| gloss | ‹pending› (rubric coverage) | ‹pending› | ‹pending› |
+| gloss | 1.00 | 1.00 | 1.00 |
+| ordering | 1.00 | 1.00 | 1.00 |
+| stale | 1.00 | 1.00 | 1.00 |
+| vague | 1.00 | 1.00 | 1.00 |
+| dupe | **0.40** | **0.50** | 1.00 |
+| superseded | **0.50** | **0.70** | 1.00 |
+
+**The split is the headline.** The cheap local model **matches frontier on the 4 single-issue-property kinds** (gloss / ordering / stale / vague), but **fails and is flaky on the 2 relational kinds** — `dupe` and `superseded`, which require cross-issue reasoning ("are these the same?" / "did another ticket supersede this premise?"). This is the **only judgement flakiness observed anywhere** in the spike: model-and-kind-dependent, on the *hard* kinds of the *small* model. Format adherence is 1.00 on local too — the hardened prompt is model-independent.
 
 ### Cost
-- Total reps: ‹pending› · total tokens (est): ‹pending› · **$/case: ‹pending›** · wall-clock: ‹pending›.
+
+| Lane | reps | est output tokens | $/run | per-rep (warm) | wall |
+|---|---|---|---|---|---|
+| frontier (K=20) | ~270 | ~27,800 | Opus tokens | ~3.7 s | ~15–20 min |
+| local-direct (K=5) | 60 | ~5,000 | **$0** | ~11 s | ~11 min |
+
+Frontier is fast and cheap enough that the full run is a *minutes* job (the original "240 reps = unbounded cost" fear was wrong once the driver was right). Local is free and viable for sweeps.
 
 ### Gloss judge↔human delta
-- Held-set spot-check size: ‹pending› · LLM-judge vs human agreement: ‹pending›. (Reported coverage is
-  the deterministic rubric pass-rate; the judge stays advisory per spec Decision 3.)
 
-## Decision — _pending FAFF-131_
+No separate LLM-judge pass was needed: the gloss is graded by a **deterministic synonym-set rubric** (FAFF-142) — a hand-authored "human" oracle of must-include/must-avoid concept sets (accepting synonyms, e.g. *throttle* = *rate-limit*). Reported gloss accuracy **is** that rubric pass-rate (frontier 0.97, local 1.00 @ K=5). The advisory LLM-judge stays out of the load-bearing path per spec Decision 3.
 
-**The fork:** evals-only / live-driver / both. ‹pending — grounded in the numbers above›.
+### The harness caught its own test-data bugs
 
-Guidance the harness is built to support:
-- If per-kind **stability is high** (judgement is reproducible) → targeted evals likely **suffice**; a
-  full live-driver integration is not yet warranted.
-- If **stability is low** on value-bearing kinds → judgement drift is real; either harden those
-  `faff-tidy` prose sections (separate tickets) or invest in the live driver — the numbers say which.
+Worth recording: the first frontier run scored `gloss` and `stale` a stable 0.00. Diagnosis (raw model output) showed **the model was right and the eval was wrong** in three ways — a missing synthesis-gloss prompt injection (FAFF-140), two `stale` fixtures mislabeled (premise-gone = *superseded*, not stale — FAFF-140/143), and a keyword-brittle gloss oracle (FAFF-142). A judgement eval that surfaces defects in its own oracle is doing its job.
+
+## Decision
+
+**Fork: evals-only** (for the production/frontier model). The harness's own guidance — *"if per-kind stability is high, targeted evals suffice; a full live-driver integration is not yet warranted"* — applies: frontier judgement is stable (5/6 perfect, gloss 0.97), so the offline eval is a sufficient regression net. The **live-driver** (FAFF-135, the FAFF-122 lane) is **built and available** for spot faithfulness checks, but is **not** the standing mechanism. The **local-direct** lane (FAFF-136/144) is the cheap sweep for the property-kinds.
+
+Concretely:
+- **Adopt `eval/` as the standing judgement-regression net**, run on the **frontier** driver (fast, stable, faithful).
+- **Use local-direct for breadth** (model sweeps, CI-free spot runs) on the 4 property-kinds; **distrust local on dupe/superseded** — relational judgement needs the frontier model.
+- **Keep the live-driver in reserve**; revisit only if a future change makes a kind go stable→flaky on frontier.
 
 ## Consequences
-- `eval/` exists and is CI-excluded; `npm test` cost unchanged (the deterministic grader + orchestration
-  are covered free by `test/eval-grader.test.mjs`).
-- FAFF-114 (and the lean-prompts chain) can proceed: judgement drift is now **checkable** via the harness,
-  even before this ADR's numbers land.
 
-## Costed follow-ups — _pending FAFF-131_
-‹pending — e.g. promote `eval/` to a standing on-demand suite; widen fixtures; target other skills›.
+- `eval/` exists, is CI-excluded (no real-model calls in `node --test`), and its deterministic grader + orchestration are covered free by `test/eval-grader.test.mjs` / `test/eval-cli-driver.test.mjs` / `test/eval-ollama-model.test.mjs`. `npm test` cost unchanged.
+- **FAFF-114 (lean-prompts) has its safety net + baseline.** The frontier K=20 numbers are the pre-edit baseline (recorded on FAFF-114): classification + ordering at a hard 1.00/1.00 (any post-edit drop = regression), gloss at 0.97 (watch it doesn't slide), format at 1.00. Re-run `node eval/run-evals.mjs --driver frontier` after the lean-prompts edits and diff per-kind.
+- Frontier judgement-flakiness is a *measured* 0 on five kinds — the lean-prompts edits can proceed with the eval as the gate.
+
+## Costed follow-ups
+
+- **Promote `eval/` to a standing on-demand suite** for the lean-prompts chain (the immediate consumer, FAFF-114) — a small "compare against the committed baseline" affordance would make it a mechanical gate.
+- **Widen fixtures, especially relational kinds** — `dupe`/`superseded` are where the local model wobbles and where 2 cases/kind is thin; more relational cases would sharpen the local-vs-frontier line and any future regression signal.
+- **FAFF-139** — clean up the per-rep `cfgDir`s (now holding forwarded credential copies on the frontier lane); minor hygiene before any large unattended run.
+- **Optional** — a full local K=20 (now known to be ~45 min, not hours) if a tighter local stability estimate is wanted; the K=5 split is already decisive.

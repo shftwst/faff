@@ -5,6 +5,7 @@
 - **Issue:** FAFF-122 (spike — live-driver prototype)
 - **Project:** Skill-behaviour harness
 - **Feeds:** FAFF-93 (skill-run harness — its live-driver punt)
+- **Lanes resolved:** lanes 2 (judgement-on-frontier) & 3 (local-LLM) were resolved in ADR 0004 (see its 2026-06-15 addendum for the per-surface lane scope).
 
 > This ADR records the outcome of a **reduced probe**, not the full Lean budget the FAFF-122 spec sized (5 SDK + 2 `claude -p` runs). At the operator's direction it ran **3 `claude -p` runs** over a throwaway substrate for **~$0.81 total** — a directional signal, with an explicit costed follow-up (below) for the parts the probe deliberately did not cover.
 

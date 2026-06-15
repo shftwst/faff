@@ -18,7 +18,7 @@
 // Zero-dependency: node builtins + repo siblings only.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -51,11 +51,15 @@ export function buildJudgementPrompt(issues, { pluginDir = DEFAULT_PLUGIN_DIR, c
 export function makeLiveModel(opts = {}) {
   return function liveModel(prompt) {
     const cfgDir = mkdtempSync(join(tmpdir(), "faff-live-"));
-    forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
-    const inv = buildInvocation(opts, prompt, cfgDir);
-    const res = spawnSync(inv.bin, inv.args, { env: inv.env, cwd: cfgDir, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
-    if (res.error) throw new Error(`live model (${inv.bin}): ${res.error.message}`);
-    return res.stdout ?? "";
+    try {
+      forwardCredentials(cfgDir, opts); // FAFF-138: frontier auth survives the isolation; local skips
+      const inv = buildInvocation(opts, prompt, cfgDir);
+      const res = spawnSync(inv.bin, inv.args, { env: inv.env, cwd: cfgDir, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+      if (res.error) throw new Error(`live model (${inv.bin}): ${res.error.message}`);
+      return res.stdout ?? "";
+    } finally {
+      try { rmSync(cfgDir, { recursive: true, force: true }); } catch { /* FAFF-139: best-effort cleanup */ }
+    }
   };
 }
 

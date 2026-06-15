@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  grade, gradeGloss, rankCorrelation, aggregateCase, validateCase, hasDisagreement, CaseError,
+  grade, gradeGloss, rankCorrelation, aggregateCase, validateCase, hasDisagreement, erroredRep, CaseError,
 } from "../eval/grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "../eval/envelope.mjs";
 import { runEvals, loadCases } from "../eval/run-evals.mjs";
@@ -19,6 +19,52 @@ test("envelope fails loud on a missing block", () => {
 });
 test("envelope fails loud on malformed JSON", () => {
   assert.throws(() => parseJudgementEnvelope("```faff-eval:judgement\n{ not json \n```"), EnvelopeError);
+});
+
+// --- FAFF-137: strict tag is `format: "compliant"` ---
+test("envelope tags an exact faff-eval:judgement block compliant", () => {
+  const env = parseJudgementEnvelope('```faff-eval:judgement\n{ "case_id": "x", "classifications": { "dupe": ["A"] } }\n```');
+  assert.equal(env.format, "compliant");
+});
+
+// --- FAFF-137: classify fallback recovers a mis-tagged ```json block, flagged noncompliant ---
+test("envelope recovers a mis-tagged ```json block as noncompliant", () => {
+  const raw = 'thinking...\n```json\n{ "case_id": "x", "classifications": { "dupe": ["A", "B"] } }\n```';
+  const env = parseJudgementEnvelope(raw, { expectedCaseId: "x" });
+  assert.equal(env.format, "noncompliant");
+  assert.deepEqual(env.classifications.dupe, ["A", "B"]); // judgement recovered, not lost to the quirk
+});
+
+test("classify fallback honours expectedCaseId and takes the last qualifying block", () => {
+  // wrong case_id is not recovered
+  assert.throws(
+    () => parseJudgementEnvelope('```json\n{ "case_id": "y", "classifications": {} }\n```', { expectedCaseId: "x" }),
+    EnvelopeError);
+  // two candidates → the LAST matching one wins
+  const raw = '```json\n{ "case_id": "x", "ordering": ["first"] }\n```\n```json\n{ "case_id": "x", "ordering": ["last"] }\n```';
+  assert.deepEqual(parseJudgementEnvelope(raw, { expectedCaseId: "x" }).ordering, ["last"]);
+});
+
+test("a MALFORMED exact-tag block still fails loud (not silently recovered from a later json block)", () => {
+  const raw = '```faff-eval:judgement\n{ broken\n```\n```json\n{ "case_id": "x" }\n```';
+  assert.throws(() => parseJudgementEnvelope(raw, { expectedCaseId: "x" }), EnvelopeError);
+});
+
+// --- FAFF-137: format_adherence aggregation (compliant / parsed reps; errored excluded) ---
+test("aggregateCase reports format_adherence over parsed reps, excluding errored", () => {
+  const c = { id: "d", kind: "dupe", oracle: { closed_set: ["A"] } };
+  const reps = [
+    { ...grade(c, { classifications: { dupe: ["A"] } }), format: "compliant" },
+    { ...grade(c, { classifications: { dupe: ["A"] } }), format: "noncompliant" },
+    erroredRep("no block"), // no format → excluded from the denominator
+  ];
+  const agg = aggregateCase(c, reps);
+  assert.equal(agg.format_adherence, 0.5); // 1 compliant of 2 parsed
+});
+
+test("aggregateCase format_adherence is null when no rep parsed", () => {
+  const c = { id: "d", kind: "dupe", oracle: { closed_set: ["A"] } };
+  assert.equal(aggregateCase(c, [erroredRep("x"), erroredRep("y")]).format_adherence, null);
 });
 
 // --- grader: closed-set is exact set-equality, no LLM in the path ---

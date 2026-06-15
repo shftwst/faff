@@ -26,6 +26,24 @@ test("buildOllamaRequest fails loud on a missing baseUrl or model", () => {
   assert.throws(() => buildOllamaRequest({ baseUrl: "http://h:11434" }, "P"), /requires a model/);
 });
 
+// --- FAFF-137: think / options are included only when defined (think:false is the local-speed lever) ---
+test("buildOllamaRequest threads think and options only when defined", () => {
+  const base = JSON.parse(buildOllamaRequest({ baseUrl: "http://h:11434", model: "m" }, "P").body);
+  assert.ok(!("think" in base) && !("options" in base), "omitted when undefined");
+
+  const withThink = JSON.parse(buildOllamaRequest({ baseUrl: "http://h:11434", model: "m", think: false, options: { temperature: 0 } }, "P").body);
+  assert.equal(withThink.think, false);
+  assert.deepEqual(withThink.options, { temperature: 0 });
+});
+
+test("makeOllamaModel forwards think to the request via the injected post", async () => {
+  let seen;
+  const post = async (req) => { seen = JSON.parse(req.body); return '{"message":{"content":"OK"}}'; };
+  const model = makeOllamaModel({ baseUrl: "http://h:11434", model: "m", think: false, post });
+  await model("P");
+  assert.equal(seen.think, false);
+});
+
 // --- parseOllamaResponse: extract message.content; fail loud otherwise ---
 test("parseOllamaResponse extracts message.content (string or parsed object)", () => {
   assert.equal(parseOllamaResponse('{"message":{"content":"hi"}}'), "hi");

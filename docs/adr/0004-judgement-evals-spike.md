@@ -4,6 +4,7 @@
 - **Date:** 2026-06-15 (measured) · scaffold 2026-06-14.
 - **Tickets:** FAFF-130 (harness) · FAFF-131 (run + this ADR) · FAFF-132/133/134/135/136/137/138/140/142/143/144 (driver/criteria/auth/oracle build-out) · follows ADR 0003 · unblocks FAFF-114 (lean-prompts).
 - **Relates:** ADR 0003 left three lanes open; this is lane 2 (judgement-on-frontier) and lane 3 (local-LLM), now both measured.
+- **Amended:** 2026-06-15 — wider-suite scope addendum (see below); original decision unchanged.
 
 ## Context
 
@@ -81,3 +82,14 @@ Concretely:
 - **Widen fixtures, especially relational kinds** — `dupe`/`superseded` are where the local model wobbles and where 2 cases/kind is thin; more relational cases would sharpen the local-vs-frontier line and any future regression signal.
 - **FAFF-139** — clean up the per-rep `cfgDir`s (now holding forwarded credential copies on the frontier lane); minor hygiene before any large unattended run.
 - **Optional** — a full local K=20 (now known to be ~45 min, not hours) if a tighter local stability estimate is wanted; the K=5 split is already decisive.
+
+## Addendum 2026-06-15 — wider-suite scope
+
+> Added after acceptance. This **qualifies the scope** of the Decision above; it does not reverse it. The evals-only-on-frontier decision **stands for the isolatable classification surface**.
+
+The "evals-only" decision was measured on faff-tidy's classification surface only. Extending judgement-eval coverage to the rest of the suite (FAFF-145) surfaced a scope limit worth recording:
+
+1. **The black-box eval lane does not execute the skill.** `eval/cli-driver.mjs` (`loadTidyJudgementProse` / `loadSynthesisGlossProse`) reads the rubric **verbatim** from the shipped `SKILL.md` into a one-shot prompt (`buildEvalPrompt` = rubric + fixture + `EVAL_MODE_INSTRUCTION`). The plugin is loaded via `--plugin-dir`, but **`/faff-tidy` is never invoked** — `EVAL_MODE_INSTRUCTION` asks the model to "run the judgement pass over this fixture internally." So the harness measures *model + extracted-rubric + fixture*, **not the skill as orchestrated**.
+2. **"Evals-only" therefore holds only for the *isolatable classification* surface** — judgement faithfully reproduced by "apply this rubric paragraph to this fixture." Lane selection (evals-only vs live-driver) is a **per-surface call**, not a global one.
+3. **Execution-entangled surfaces likely need the live-driver (FAFF-135), which this ADR benched.** Examples: faff-prep live-thread reconciliation (`Challenge`/`Resolution`/`Context`/`Noise`); faff-graft review verdict + the revert test; beep-boop/routing six-verdict assignment; faff-jot/faff-plot shaping & decomposition. For these the inlined-rubric proxy is not a faithful test.
+4. **FAFF-145's children (FAFF-146–150) are tagged per-surface.** Building the live-driver-lane slices is what decides whether the live-driver comes off the bench. Until then, treat "evals-only" as scoped to isolatable classification.

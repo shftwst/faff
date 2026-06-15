@@ -14,8 +14,17 @@
 // reconciliation), so the grader reuses CLOSED_SET_KINDS for every new kind.
 // FAFF-147 — splittable joins too; it grades via its own synonym-tolerant branch (gradeSplittable),
 // so it is deliberately NOT in CLOSED_SET_KINDS.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation"]);
+// FAFF-148 — the review-verdict surface adds two kinds:
+//   verdict-revert  — SHIPPED. Isolatable revert-test classification of DESCRIBED findings on the
+//                     black-box lane (fail vs needs-human per finding). Oracle = closed-set of
+//                     "<finding-key>:<verdict>" pairs; the envelope carries `verdicts: {key: verdict}`.
+//   verdict-build   — DESIGNED + CARVED to a follow-up child (live-driver lane). The whole-change
+//                     verdict over a real diff/build via runSkill; oracle = single-element closed-set
+//                     over {pass, fail, needs-human}. The kind is registered so a future case validates,
+//                     but no verdict-build case ships in this issue (the live-driver parameterisation
+//                     is the follow-up, shared with FAFF-146's reconciliation child).
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build"]);
 
 export class CaseError extends Error {}
 
@@ -172,10 +181,26 @@ export function gradeSplittable(predictedLabels, oracleSet) {
 // grade(case, envelope) -> RepResult { graded, score, tokens, signature }.
 // `signature` is the canonical judgement identity used for flakiness (NOT the grade) —
 // two reps that both FAIL but classify differently are correctly counted as unstable.
+// FAFF-148 — map a verdict-revert envelope's `verdicts` object ({ "<key>": "fail|needs-human", … })
+// onto the SAME closed-set shape the grader already scores: a flat ["<key>:<verdict>", …] array. A
+// missing/out-of-enum verdict (e.g. the model emitting "pass" for a per-finding call, or a garbled
+// token) is mapped through verbatim — so setEqual against the oracle FAILS it cleanly and it carries a
+// distinct signature (the eval-side fail-safe; the DETERMINISTIC coercion lives in computeReviewVerdict
+// and is deliberately NOT duplicated here — spec §3 coercion stance).
+function verdictRevertPredicted(env) {
+  const v = (env && env.verdicts) || {};
+  if (typeof v !== "object" || Array.isArray(v)) return [];
+  return Object.keys(v).map((k) => `${k}:${v[k]}`);
+}
+
 export function grade(c, env) {
   const tokens = (env && env.tokens) || 0;
   if (CLOSED_SET_KINDS.has(c.kind)) {
-    const predicted = predictedSet(c, env);
+    // verdict-revert carries env.verdicts ({key: verdict}); confidence/marker/reconciliation + the tidy
+    // closed-set kinds go through predictedSet. Both reduce to a flat predicted set for setEqual.
+    const predicted = c.kind === "verdict-revert"
+      ? verdictRevertPredicted(env)
+      : predictedSet(c, env);
     const ok = setEqual(predicted, c.oracle.closed_set);
     return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, tokens, signature: JSON.stringify([...predicted].sort()) };
   }

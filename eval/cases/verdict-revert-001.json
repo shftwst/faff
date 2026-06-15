@@ -1,0 +1,13 @@
+{ "id": "verdict-revert-001", "kind": "verdict-revert",
+  "fixture": { "version": 1,
+    "change_summary": "Adds an org-scoped permissions boundary and backfills the existing rows into the new table.",
+    "findings": [
+      { "key": "debug-print",
+        "category": "bug",
+        "description": "A leftover `console.log(req.session)` was added to src/auth/guard.js and ships to production logs. It is purely additive code: a git revert of the merge commit removes the line and nothing of it remains." },
+      { "key": "perm-migration",
+        "category": "human-judgement",
+        "description": "The migration in migrations/0042-perm-backfill.sql writes permission rows into the new org_permissions table for every existing user as part of the deploy. Those rows are committed to the database; reverting the merge commit removes the code path but leaves the already-written permission rows in place — the data effect persists after revert." } ] },
+  "question": "For each finding, decide fail or needs-human by the revert test.",
+  "oracle": { "closed_set": ["debug-print:fail", "perm-migration:needs-human"] },
+  "_comment": "Exercises BOTH sides of the revert test in one case: debug-print is a revert-reversible defect (fail); perm-migration's data effect persists after revert (needs-human). The deterministic malformed->needs-human coercion is covered by computeReviewVerdict (plugin/skills/faff/bin/faff) and is deliberately NOT re-tested here (spec section 3 coercion stance)." }

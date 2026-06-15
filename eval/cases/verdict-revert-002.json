@@ -1,0 +1,16 @@
+{ "id": "verdict-revert-002", "kind": "verdict-revert",
+  "fixture": { "version": 1,
+    "change_summary": "Adds a retry wrapper around the billing client and a one-off notice to affected customers.",
+    "findings": [
+      { "key": "unused-import",
+        "category": "scope",
+        "description": "An unused `import { backoff } from './util'` was left in src/billing/retry.js. It is dead code with no runtime effect; a git revert removes it entirely and nothing of it remains." },
+      { "key": "failing-test",
+        "category": "bug",
+        "description": "test/billing-retry.test.js asserts 3 attempts but the wrapper only retries twice, so the test fails. The defect is entirely in the diff under review; a git revert of the merge commit restores the prior passing state and leaves nothing behind." },
+      { "key": "customer-email",
+        "category": "human-judgement",
+        "description": "On deploy, scripts/notify.js sends a one-off email to every affected customer's real address announcing the billing change. The emails are dispatched to external recipients during the rollout; a git revert removes the script but cannot un-send the messages already delivered — the external effect persists after revert." } ] },
+  "question": "For each finding, decide fail or needs-human by the revert test.",
+  "oracle": { "closed_set": ["unused-import:fail", "failing-test:fail", "customer-email:needs-human"] },
+  "_comment": "Exercises the all-fail side (two revert-reversible defects) alongside an irreversible external effect (sent emails -> needs-human, persists after revert)." }

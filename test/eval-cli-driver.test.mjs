@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -244,4 +244,51 @@ test("FAFF-146 buildEvalPrompt(dupe) is unchanged — still the tidy backlog fra
   const p = buildEvalPrompt(c, criteriaFor("dupe", DEFAULT_PLUGIN_DIR));
   assert.ok(p.includes("Run faff-tidy's judgement pass"), "keeps the tidy framing");
   assert.ok(p.includes('"classifications"'), "keeps the tidy envelope shape");
+});
+
+// ====================== FAFF-148 — the review-verdict rubric + verdict-revert prompt ======================
+
+// --- the review-verdict rubric is extracted verbatim from BOTH shipped sources (review + gateway) ---
+test("loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim", () => {
+  const prose = loadReviewVerdictProse(DEFAULT_PLUGIN_DIR);
+  // gateway "Review verdict (fixed)" — the canonical revert test + malformed→needs-human coercion
+  assert.ok(prose.includes("### Review verdict (fixed)"), "carries the gateway's fixed contract section");
+  assert.ok(/never silently to `?pass`?/.test(prose), "carries the malformed→needs-human coercion statement");
+  // review producer — pass 5 + the verbatim revert test + the verdict mapping
+  assert.ok(prose.includes("### 5. Human-judgement flag"), "carries the review producer's pass-5 header");
+  assert.ok(prose.includes("Only flag when the effect persists after revert"), "carries the verbatim revert test (line 103)");
+  assert.ok(prose.includes("## Verdict rules"), "carries the verdict mapping");
+  // ...and stops before the END anchor (no Contract-artifact / Delivery-outcome bleed)
+  assert.ok(!prose.includes("### Delivery outcome (fixed)"), "stops before the gateway END anchor");
+  assert.ok(!prose.includes("## Contract artifact"), "stops before the review END anchor (## Output)");
+});
+
+test("loadReviewVerdictProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadReviewVerdictProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- buildEvalPrompt is kind-aware: a verdict-revert case uses the verdict-shaped envelope ---
+test("buildEvalPrompt(verdict-revert) emits the verdict envelope + folds the rubric + the fixture", () => {
+  const c = { id: "vr-x", kind: "verdict-revert",
+    fixture: { version: 1, change_summary: "adds a thing", findings: [{ key: "k1", category: "bug", description: "a leftover print" }] },
+    question: "For each finding, decide fail or needs-human by the revert test." };
+  const prompt = buildEvalPrompt(c, "RUBRIC-PROSE");
+  assert.ok(prompt.includes("RUBRIC-PROSE"), "folds the review-verdict rubric");
+  assert.ok(prompt.includes('"verdicts"'), "instructs the verdict-shaped envelope");
+  assert.ok(prompt.includes("vr-x"), "stamps the case id into the envelope instruction");
+  assert.ok(prompt.includes("a leftover print"), "includes the described-finding fixture");
+  assert.ok(!prompt.includes("faff-tidy's judgement pass"), "does NOT use the tidy classification prompt");
+});
+
+// --- a NON-verdict case is unchanged: the tidy classification envelope, not the verdict one ---
+test("buildEvalPrompt(dupe) still uses the tidy classification envelope (unchanged)", () => {
+  const c = { id: "d-x", kind: "dupe", fixture: { version: 1, issues: [] }, question: "find dupes" };
+  const prompt = buildEvalPrompt(c, "CRITERIA");
+  assert.ok(prompt.includes('"classifications"'), "tidy cases keep the classifications envelope");
+  assert.ok(!prompt.includes('"verdicts"'), "no verdict envelope on a tidy case");
+});
+
+test("VERDICT_REVERT_INSTRUCTION names the revert test and the closed enum", () => {
+  assert.ok(/revert test/i.test(VERDICT_REVERT_INSTRUCTION));
+  assert.ok(VERDICT_REVERT_INSTRUCTION.includes("fail|needs-human"));
 });

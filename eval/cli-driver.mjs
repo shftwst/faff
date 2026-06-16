@@ -370,6 +370,20 @@ export const ROUTING_MODE_INSTRUCTION =
   '{ "case_id": "<ID>", "verdict": "<one of the six>" } — exactly one verdict. Output NOTHING ' +
   "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-155 — the envelope instruction for the verdict-build (whole-change review verdict) surface. The
+// model applies the review-verdict rubric (loadReviewVerdictProse) to the rendered change and assigns
+// EXACTLY ONE of pass / fail / needs-human by the revert test, emitting a single `verdict` field (the
+// SAME field routing uses — one verdict → a one-element set). Same OUTPUT-ONLY hardening as the siblings.
+export const VERDICT_BUILD_INSTRUCTION =
+  "Apply the review-verdict rubric above to this whole change and assign EXACTLY ONE verdict by the " +
+  "revert test: `pass` (the diff matches its spec, ACs covered, nothing flagged), `fail` (a fixable " +
+  "defect a `git revert` on the merge commit fully undoes — failing tests, missing coverage, an obvious " +
+  "bug, scope creep), or `needs-human` (genuine human judgement — a product call, a security/privacy " +
+  "concern, an effect that persists AFTER revert, a spec gap respec can't close). Then OUTPUT ONLY one " +
+  "fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the " +
+  'shape { "case_id": "<ID>", "verdict": "pass|fail|needs-human" } — exactly one verdict. Output NOTHING ' +
+  "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
 // FAFF-150 — the envelope instruction for the modedetect surface. The model classifies the
 // ModeScenario as EXACTLY ONE of greenfield / single-item / ambiguous, emitting a single `mode`
 // field (the confidence/routing analogue — one verdict → a one-element set). Same OUTPUT-ONLY

@@ -141,10 +141,20 @@ export function seedRepo(spec = {}) {
   }
 
   // Run records under .faff/runs/<runId>/.
+  // FAFF-152: `runs[].parks_meta` (an array of {issue_id, root_cause_class, timestamp})
+  // is serialised into that run's summary.md as the fenced ```faff-parks JSON block the
+  // `faff park-history` seam parses. It coexists with `runs[].summary` (the block is
+  // appended to it) so a test can carry both human digest prose AND machine-readable
+  // park metadata in one summary — exactly the production shape the seam reads.
   for (const run of runs) {
     const runRel = path.join(".faff", "runs", run.runId);
-    writeRel(path.join(runRel, "run-ledger.json"), JSON.stringify(run.ledger));
-    if (run.summary != null) writeRel(path.join(runRel, "summary.md"), run.summary);
+    if (run.ledger != null) writeRel(path.join(runRel, "run-ledger.json"), JSON.stringify(run.ledger));
+    let summary = run.summary != null ? String(run.summary) : null;
+    if (run.parks_meta != null) {
+      const block = "```faff-parks\n" + JSON.stringify(run.parks_meta, null, 2) + "\n```\n";
+      summary = summary != null ? `${summary}\n\n${block}` : block;
+    }
+    if (summary != null) writeRel(path.join(runRel, "summary.md"), summary);
     for (const [issue, body] of Object.entries(run.parks ?? {})) {
       writeRel(path.join(runRel, issue, "park.md"), body);
     }

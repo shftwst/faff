@@ -26,8 +26,12 @@ import {
   loadJudgementCriteria,
   loadReconciliationProse,
   loadRoutingVerdictProse,
+  loadShapingProse,
+  loadDecompositionProse,
   EVAL_MODE_INSTRUCTION,
   ROUTING_MODE_INSTRUCTION,
+  SHAPING_MODE_INSTRUCTION,
+  DECOMPOSITION_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
   forwardCredentials,
 } from "./cli-driver.mjs";
@@ -110,6 +114,42 @@ export function buildRoutingPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_DIR, ca
     `Conflict-analysis independence:\n${JSON.stringify(conflict ?? null, null, 2)}\n\n` +
     `Park history:\n${JSON.stringify(park_history ?? [], null, 2)}\n\n` +
     `${ROUTING_MODE_INSTRUCTION.replace("<ID>", caseId)}`
+  );
+}
+
+// FAFF-161 — the jot/plot SHAPING prompt builder (a generative surface). It folds in jot's verbatim
+// ticket-shaping rubric (loadShapingProse) + the rendered discovery brief + the SHAPING envelope
+// instruction (the model emits a `shaping` array of one-line ticket glosses the grader scores by
+// must_include/must_avoid synonym-set coverage). pluginDir null → no rubric (the improvise baseline /
+// control), exactly as the siblings do. The fixture carries a `brief` (the rendered discovery brief);
+// fall back to the whole fixture if absent.
+export function buildShapingPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  const rubric = pluginDir
+    ? `Apply jot/plot's ticket-shaping rubric below — these are the skill's own rules, verbatim:\n\n${loadShapingProse(pluginDir)}\n\n---\n\n`
+    : "";
+  const brief = fixture && fixture.brief != null ? fixture.brief : JSON.stringify(fixture, null, 2);
+  return (
+    `${rubric}Run jot/plot's ticket-shaping pass. Shape the discovery brief below into a sensible set ` +
+    `of tickets.\n\n` +
+    `Discovery brief:\n${brief}\n\n` +
+    `${SHAPING_MODE_INSTRUCTION.replace("<ID>", caseId)}`
+  );
+}
+
+// FAFF-161 — the plot DECOMPOSITION prompt builder (a generative surface). It folds in plot's verbatim
+// top-down decomposition rule (loadDecompositionProse, incl. the stop rule) + the rendered discovery
+// brief + the DECOMPOSITION envelope instruction (the model emits a `decomposition` tree the grader
+// scores by coverage AND the three structural assertions). pluginDir null → no rubric (control).
+export function buildDecompositionPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  const rubric = pluginDir
+    ? `Apply plot's top-down decomposition rule below — these are the skill's own rules, verbatim:\n\n${loadDecompositionProse(pluginDir)}\n\n---\n\n`
+    : "";
+  const brief = fixture && fixture.brief != null ? fixture.brief : JSON.stringify(fixture, null, 2);
+  return (
+    `${rubric}Run plot's top-down decomposition pass (initiatives → projects → first-slice epics). ` +
+    `Decompose the discovery brief below.\n\n` +
+    `Discovery brief:\n${brief}\n\n` +
+    `${DECOMPOSITION_MODE_INSTRUCTION.replace("<ID>", caseId)}`
   );
 }
 
@@ -354,4 +394,75 @@ export async function driveRoutingCase(evalCase, { runSkill, tracker, repo, mode
   const driver = routingLiveDriver({ model, fixture: evalCase.fixture, pluginDir, caseId: evalCase.id });
   const record = await runSkill({ skill: "faff-tidy", tracker, repo, driver });
   return { record, verdict: record.buckets.routing?.[0] ?? null };
+}
+
+/**
+ * FAFF-161 — a live SkillDriver for faff's jot/plot SHAPING (generative ticket-shaping) surface, the
+ * fourth thin wrapper over makeLiveDriver (after liveDriver / reconciliationLiveDriver / routingLiveDriver).
+ * Reads through the harness tracker seam, prompts the model with jot's verbatim shaping rubric
+ * (buildShapingPrompt) + the rendered discovery brief, parses the emitted ticket-boundary set, and
+ * records it as a single `shaping` DecisionRecord bucket — the SAME `env.shaping` collection the
+ * gradeShaping path scores by must_include/must_avoid coverage (no grader change beyond the new fn).
+ *
+ * The shared core is EXTENDED, not re-cut (the FAFF-158 anti-pattern): `fixture` is a config field (the
+ * harness exposes no shaping-fixture port) and the core still issues a listIssues seam-read so the run is
+ * seam-faithful. A missing/garbage `shaping` field yields an empty bucket → coverage 0 → a clean low
+ * grade, never a throw. DESIGN NOTE: shipped as the driver + the model-free dry-smoke; the measured
+ * frontier baseline (real claude -p reps) is the carved human-supervised follow-up, recorded out-of-band.
+ *
+ * @param {{ model: Function, fixture: object, pluginDir?: string|null, caseId?: string }} cfg
+ * @returns {{ kind: "live", drive: (ctx) => Promise<void> }}
+ */
+export function shapingLiveDriver({ model, fixture, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  if (typeof model !== "function") {
+    throw new Error("shapingLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
+  }
+  if (!fixture) {
+    throw new Error("shapingLiveDriver requires a shaping fixture { brief, … }");
+  }
+  return makeLiveDriver({
+    model,
+    skill: "faff-jot",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, opts) => buildShapingPrompt(fixture, opts),
+    // the shaping bucket is the emitted ticket-boundary set (an array of one-line glosses); an absent
+    // field → [] → coverage 0, a clean low grade.
+    readEnvelope: (env) => [{ name: "shaping", items: Array.isArray(env.shaping) ? env.shaping : [] }],
+  });
+}
+
+/**
+ * FAFF-161 — a live SkillDriver for faff's plot DECOMPOSITION (generative tree) surface, the fifth thin
+ * wrapper over makeLiveDriver. Reads through the harness tracker seam, prompts the model with plot's
+ * verbatim decomposition rubric (buildDecompositionPrompt) + the rendered discovery brief, parses the
+ * emitted tree, and records it as a single `decomposition` DecisionRecord bucket carrying the WHOLE tree
+ * object (so the gradeDecomposition path can run both the coverage rubric over the tree's titles AND the
+ * three structural assertions over its structure). The bucket items are `[tree]` — a one-element array
+ * wrapping the tree object — so the bucket shape (an array) is preserved while the tree survives intact.
+ *
+ * The shared core is EXTENDED, not re-cut. A missing/garbage `decomposition` field yields an empty tree
+ * → coverage 0 + structural checks fail defensively → a clean low grade, never a throw. DESIGN NOTE: as
+ * shapingLiveDriver — driver + dry-smoke ship here; the measured frontier baseline is the carved follow-up.
+ *
+ * @param {{ model: Function, fixture: object, pluginDir?: string|null, caseId?: string }} cfg
+ * @returns {{ kind: "live", drive: (ctx) => Promise<void> }}
+ */
+export function decompositionLiveDriver({ model, fixture, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  if (typeof model !== "function") {
+    throw new Error("decompositionLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
+  }
+  if (!fixture) {
+    throw new Error("decompositionLiveDriver requires a decomposition fixture { brief, … }");
+  }
+  return makeLiveDriver({
+    model,
+    skill: "faff-plot",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, opts) => buildDecompositionPrompt(fixture, opts),
+    // the decomposition bucket wraps the WHOLE emitted tree in a one-element array (the recordBucket
+    // items must be an array); the grader reads env.decomposition, so the caller unwraps items[0].
+    readEnvelope: (env) => [{ name: "decomposition", items: [env.decomposition ?? {}] }],
+  });
 }

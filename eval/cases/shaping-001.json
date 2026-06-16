@@ -1,0 +1,7 @@
+{ "id": "shaping-001", "kind": "shaping",
+  "fixture": { "version": 1,
+    "brief": "Discovery brief: Account security hardening.\n\nGoal: make sign-in safer for our web app.\n\nItem: We want to (a) add rate limiting to the login endpoint so brute-force attempts are throttled, and (b) send the user an email notification when a new device signs in to their account. These are two separable pieces of work that could ship in either order; the rate-limit work touches the auth handler, the notification work touches the mailer." },
+  "question": "Shape this brief into a sensible set of tickets — one one-line gloss per ticket boundary.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["rate", "throttl", "limit"], ["login", "sign-in", "sign in", "auth"], ["email", "notif", "mail"], ["new device", "device", "sign-in alert"] ],
+    "must_avoid": ["leverage", "synergy", "as a user i want", "seamless"] } } }

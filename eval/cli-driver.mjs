@@ -292,6 +292,30 @@ export function loadModeDetectProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return `${jotRule}\n\n---\n\n${intakeDefs}`;
 }
 
+// FAFF-161 — the jot/plot TICKET-SHAPING rubric, verbatim from the shipped jot SKILL.md "### 3. Shape
+// into tickets" THROUGH "### 4. Confirm and create" (the methodology-driven structuring: workstreams /
+// containers, ticket boundaries, sequencing, dependency links — what a CORRECT shaping must surface).
+// This is the criteria the `shaping` generative coverage eval measures. Anchored on stable headers;
+// fail-loud if either moves (the loadModeDetectProse contract — a refactor must consciously re-point).
+const SHAPING_START = "### 3. Shape into tickets — apply the `methodology` slot";
+const SHAPING_END = "### 4. Confirm and create";
+export function loadShapingProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff-jot", "SKILL.md");
+  return extractSection(skillPath, SHAPING_START, SHAPING_END, "loadShapingProse");
+}
+
+// FAFF-161 — the plot DECOMPOSITION rubric, verbatim from the shipped plot SKILL.md "### 2. Recurse
+// top-down" THROUGH "### 4. Per-level gating" — the top-down decomposition rule incl. §3 the STOP RULE
+// (the parent-link / stop-past-first-slice / dependency-link invariants the structural checks assert).
+// This is the criteria the `decomposition` generative coverage eval measures. Anchored on stable
+// headers; fail-loud if either moves (the loadModeDetectProse contract).
+const DECOMP_START = "### 2. Recurse top-down";
+const DECOMP_END = "### 4. Per-level gating";
+export function loadDecompositionProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff-plot", "SKILL.md");
+  return extractSection(skillPath, DECOMP_START, DECOMP_END, "loadDecompositionProse");
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -359,6 +383,29 @@ export const MODE_EVAL_INSTRUCTION =
   '{ "case_id": "<ID>", "mode": "greenfield|single-item|ambiguous" } — exactly one mode. Output ' +
   "NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-161 — the envelope instruction for the `shaping` generative surface. The model emits the
+// ticket-boundary set it would shape from the brief, as a `shaping` array of one-line ticket glosses.
+// The grader scores must_include/must_avoid synonym-set coverage over them. Same OUTPUT-ONLY hardening.
+export const SHAPING_MODE_INSTRUCTION =
+  "Run jot/plot's ticket-shaping over the brief above, then OUTPUT ONLY one fenced code block tagged " +
+  "exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "shaping": ["<one-line ticket gloss>", ...] } — one entry per ticket you would ' +
+  "shape from the brief (its boundary as a one-line gloss). Output NOTHING except that single block: no " +
+  "reasoning, no preamble, no prose, nothing before or after it.";
+
+// FAFF-161 — the envelope instruction for the `decomposition` generative surface. The model emits the
+// top-down decomposition TREE it would produce from the brief. The grader scores coverage over the
+// tree's titles AND the three structural assertions (parent-link, stop-rule, DAG). OUTPUT-ONLY hardened.
+export const DECOMPOSITION_MODE_INSTRUCTION =
+  "Run plot's top-down decomposition over the brief above (initiatives → projects → first-slice epics), " +
+  "then OUTPUT ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) " +
+  'containing JSON of the shape { "case_id": "<ID>", "decomposition": { "initiatives": [{ "id", "title" }, ...], ' +
+  '"projects": [{ "id", "parent", "title" }, ...], "epics": [{ "id", "parent", "slice", "title" }, ...], ' +
+  '"deps": [["<from-id>", "<to-id>"], ...] } } — every epic links to a parent project; mark first-slice ' +
+  'epics with "slice": "first-slice" and do NOT recurse past the first slice; `deps` are the directed ' +
+  "dependency edges (they must form a DAG). Output NOTHING except that single block: no reasoning, no " +
+  "preamble, no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
 // prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
 // to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
@@ -367,6 +414,8 @@ function modeInstructionFor(kind) {
   if (kind === "marker") return MARKER_MODE_INSTRUCTION;
   if (kind === "routing") return ROUTING_MODE_INSTRUCTION;
   if (kind === "modedetect") return MODE_EVAL_INSTRUCTION;
+  if (kind === "shaping") return SHAPING_MODE_INSTRUCTION;
+  if (kind === "decomposition") return DECOMPOSITION_MODE_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -403,6 +452,20 @@ function renderFixturePrompt(c, judgementProse = null) {
       `Mode scenario:\n${JSON.stringify(c.fixture, null, 2)}`
     );
   }
+  // FAFF-161 — shaping/decomposition render the discovery brief the surface shapes from. The fixture
+  // carries a `brief` (the rendered discovery brief); fall back to the whole fixture if absent.
+  if (c.kind === "shaping") {
+    return (
+      `${rubric}Run jot/plot's ticket-shaping on the following discovery brief and answer: ${c.question}\n\n` +
+      `Discovery brief:\n${c.fixture.brief ?? JSON.stringify(c.fixture, null, 2)}`
+    );
+  }
+  if (c.kind === "decomposition") {
+    return (
+      `${rubric}Run plot's top-down decomposition on the following discovery brief and answer: ${c.question}\n\n` +
+      `Discovery brief:\n${c.fixture.brief ?? JSON.stringify(c.fixture, null, 2)}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
@@ -421,6 +484,8 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "verdict-revert") return loadReviewVerdictProse(pluginDir);
   if (kind === "routing") return loadRoutingVerdictProse(pluginDir);
   if (kind === "modedetect") return loadModeDetectProse(pluginDir);
+  if (kind === "shaping") return loadShapingProse(pluginDir);
+  if (kind === "decomposition") return loadDecompositionProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

@@ -1,0 +1,9 @@
+{ "id": "modedetect-001", "kind": "modedetect",
+  "fixture": { "version": 1,
+    "scenario": {
+      "user_request": "I want to kick off a brand-new CLI tool from scratch for tailing structured logs — empty repo, nothing exists yet.",
+      "project_context": null,
+      "existing_workstreams": [] } },
+  "question": "Greenfield, single-item, or ambiguous?",
+  "oracle": { "closed_set": ["greenfield"] },
+  "_comment": "No tracker project (project_context null), empty existing_workstreams, and the user says 'kick off a brand-new ... from scratch / empty repo / nothing exists yet' — jot's greenfield trigger fires unambiguously." }

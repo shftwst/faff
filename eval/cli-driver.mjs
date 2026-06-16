@@ -259,6 +259,39 @@ export function loadRoutingVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return `${gatewayContract}\n\n---\n\n${adaptorConditions}`;
 }
 
+// FAFF-150 — the jot/intake MODE-DETECTION rubric, verbatim from BOTH shipped sources, folded the
+// same two-source way loadReviewVerdictProse / loadRoutingVerdictProse do. This is the criteria the
+// `modedetect` (greenfield/single-item/ambiguous) eval measures: given a ModeScenario, assign exactly
+// one mode.
+//   - faff-jot/SKILL.md: "### 1. Detect the mode" THROUGH "### 2. Discover" — jot's own greenfield /
+//     single-item rule + the genuine-ambiguity ("ask once") branch.
+//   - faffter-noon-intake/SKILL.md: "### `greenfield` mode" THROUGH "## Output" — intake's
+//     greenfield/single-item mode definitions, appended so the call is not underspecified by the jot
+//     section alone (the spec's "append intake's defs if needed").
+// Anchored on stable headers; fail-loud if any anchor moves (the loadTidyJudgementProse contract).
+const JOT_MODE_START = "### 1. Detect the mode";
+const JOT_MODE_END = "### 2. Discover";
+const INTAKE_MODE_START = "### `greenfield` mode";
+const INTAKE_MODE_END = "## Output";
+export function loadModeDetectProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const jotPath = join(pluginDir, "skills", "faff-jot", "SKILL.md");
+  const intakePath = join(pluginDir, "skills", "faffter-noon-intake", "SKILL.md");
+  let jotMd, intakeMd;
+  try {
+    jotMd = readFileSync(jotPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadModeDetectProse: cannot read ${jotPath}: ${e.message}`);
+  }
+  try {
+    intakeMd = readFileSync(intakePath, "utf8");
+  } catch (e) {
+    throw new Error(`loadModeDetectProse: cannot read ${intakePath}: ${e.message}`);
+  }
+  const jotRule = sliceAnchored(jotMd, jotPath, "loadModeDetectProse(jot)", JOT_MODE_START, JOT_MODE_END);
+  const intakeDefs = sliceAnchored(intakeMd, intakePath, "loadModeDetectProse(intake)", INTAKE_MODE_START, INTAKE_MODE_END);
+  return `${jotRule}\n\n---\n\n${intakeDefs}`;
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -313,6 +346,19 @@ export const ROUTING_MODE_INSTRUCTION =
   '{ "case_id": "<ID>", "verdict": "<one of the six>" } — exactly one verdict. Output NOTHING ' +
   "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-150 — the envelope instruction for the modedetect surface. The model classifies the
+// ModeScenario as EXACTLY ONE of greenfield / single-item / ambiguous, emitting a single `mode`
+// field (the confidence/routing analogue — one verdict → a one-element set). Same OUTPUT-ONLY
+// hardening as EVAL_MODE_INSTRUCTION.
+export const MODE_EVAL_INSTRUCTION =
+  "Apply jot's mode-detection rule above to this scenario and decide EXACTLY ONE mode: greenfield " +
+  "(kicking off an empty/new project, no tracker container yet), single-item (one feature/bug/change " +
+  "inside an existing project), or ambiguous (an existing project but big cross-cutting work where " +
+  "jot's rule says ask once). Then OUTPUT ONLY one fenced code block tagged exactly " +
+  "`faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "mode": "greenfield|single-item|ambiguous" } — exactly one mode. Output ' +
+  "NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
 // prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
 // to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
@@ -320,6 +366,7 @@ function modeInstructionFor(kind) {
   if (kind === "confidence") return CONFIDENCE_MODE_INSTRUCTION;
   if (kind === "marker") return MARKER_MODE_INSTRUCTION;
   if (kind === "routing") return ROUTING_MODE_INSTRUCTION;
+  if (kind === "modedetect") return MODE_EVAL_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -350,6 +397,12 @@ function renderFixturePrompt(c, judgementProse = null) {
       `Assembled fixture-of-findings:\n${JSON.stringify(c.fixture, null, 2)}`
     );
   }
+  if (c.kind === "modedetect") {
+    return (
+      `${rubric}Run jot's mode detection on the following scenario and answer: ${c.question}\n\n` +
+      `Mode scenario:\n${JSON.stringify(c.fixture, null, 2)}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
@@ -367,6 +420,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "marker") return loadMarkerDialectProse(pluginDir);
   if (kind === "verdict-revert") return loadReviewVerdictProse(pluginDir);
   if (kind === "routing") return loadRoutingVerdictProse(pluginDir);
+  if (kind === "modedetect") return loadModeDetectProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

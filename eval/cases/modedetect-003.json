@@ -1,0 +1,9 @@
+{ "id": "modedetect-003", "kind": "modedetect",
+  "fixture": { "version": 1,
+    "scenario": {
+      "user_request": "I want to add full multi-tenancy to the platform — tenant isolation across auth, data storage, billing, and the admin UI, plus a tenant-provisioning flow.",
+      "project_context": "An existing single-tenant SaaS platform.",
+      "existing_workstreams": ["Auth & sessions", "Data storage", "Billing", "Admin UI"] } },
+  "question": "Greenfield, single-item, or ambiguous?",
+  "oracle": { "closed_set": ["ambiguous"] },
+  "_comment": "An existing project (non-null project_context, populated workstreams) BUT the request is big and cross-cutting (spans auth, storage, billing, admin + a new provisioning flow) — jot's genuine-ambiguity 'ask once' branch. A model that forces greenfield-or-single-item grades FAIL." }

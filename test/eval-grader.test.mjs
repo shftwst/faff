@@ -240,14 +240,14 @@ test("orchestrator: deadline ceiling yields a flagged partial, not a silent trun
 test("all eval/cases load and validate", () => {
   const cases = loadCases();
   // 12 tidy + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable; FAFF-148: +2 verdict-revert;
-  // FAFF-149: +6 routing (one per verdict).
-  assert.equal(cases.length, 27);
+  // FAFF-149: +6 routing (one per verdict); FAFF-150: +3 modedetect (greenfield/single-item/ambiguous).
+  assert.equal(cases.length, 30);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

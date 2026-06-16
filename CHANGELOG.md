@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.4.0](https://github.com/shftwst/faff/compare/faff--v0.3.0...faff--v0.4.0) (2026-06-16)
+
+
+### Features
+
+* **FAFF-10:** BDD scenarios for main spec objectives (born-verifiable) ([#64](https://github.com/shftwst/faff/issues/64)) ([820aaa5](https://github.com/shftwst/faff/commit/820aaa59ce48b14f57eed0bfe2a5f27bba5e42d2))
+* **FAFF-118:** response-side token discipline in skill output contracts ([#65](https://github.com/shftwst/faff/issues/65)) ([d07683a](https://github.com/shftwst/faff/commit/d07683adfc0620bbea17e502a95fb86a224b7f9c))
+* **FAFF-124:** slim, refresh & re-frame the root README around L3 ([#63](https://github.com/shftwst/faff/issues/63)) ([00b4dbd](https://github.com/shftwst/faff/commit/00b4dbdbf912a6676ffd9e37a2e9f9554ffe271a))
+* **FAFF-130:** judgement-eval harness + deterministic grader (measured run split to FAFF-131) ([#72](https://github.com/shftwst/faff/issues/72)) ([d7dc737](https://github.com/shftwst/faff/commit/d7dc7370aae22b598787de746f8f06db444b1312))
+* **FAFF-132:** local-model (ollama) eval driver preset + --driver selector ([#73](https://github.com/shftwst/faff/issues/73)) ([14d20a2](https://github.com/shftwst/faff/commit/14d20a246f71dc158780c1b10823c7e76eb682c6))
+* **FAFF-133:** load the repo plugin into the isolated eval run (--bare --plugin-dir) ([#74](https://github.com/shftwst/faff/issues/74)) ([41330b8](https://github.com/shftwst/faff/commit/41330b84b82161958d1c8f17875bd472ae4b1c02))
+* **FAFF-134:** inline faff-tidy's real judgement rubric into the eval prompt ([#75](https://github.com/shftwst/faff/issues/75)) ([94749b1](https://github.com/shftwst/faff/commit/94749b1941384289b4b6df0378a484d050086936))
+* **FAFF-135:** live driver for the skill-run harness (faithful judgement lane) ([#76](https://github.com/shftwst/faff/issues/76)) ([590a04e](https://github.com/shftwst/faff/commit/590a04ecd9d9f9606fd2beaff9e5223bdaf550bf))
+* **FAFF-136:** direct ollama /api/chat model for the live driver (fast local lane) ([#77](https://github.com/shftwst/faff/issues/77)) ([28844b4](https://github.com/shftwst/faff/commit/28844b4a4bfd45623f774820d3032a3a4a04e236))
+* **FAFF-137:** path-B graded-run enablers (think/options + envelope classify-fallback + format-adherence) ([#78](https://github.com/shftwst/faff/issues/78)) ([896af47](https://github.com/shftwst/faff/commit/896af47ae7544a0208063793c07d6835eedd888a))
+* **FAFF-138:** frontier eval auth — forward OAuth creds + drop --bare ([#79](https://github.com/shftwst/faff/issues/79)) ([a19f03b](https://github.com/shftwst/faff/commit/a19f03bf6de1dc5f6f8b554e3aacf3ae4519ecac))
+* **FAFF-144:** direct-ollama eval driver — run the orchestrator over /api/chat at local speed ([#83](https://github.com/shftwst/faff/issues/83)) ([c9cd21c](https://github.com/shftwst/faff/commit/c9cd21cd62dd06b14da54e249f8040a0f6cdab3f))
+* **FAFF-146:** confidence + decision-marker judgement-eval kinds (+ reconciliation design) ([#89](https://github.com/shftwst/faff/issues/89)) ([68d57c7](https://github.com/shftwst/faff/commit/68d57c76978e103b588caf91142aa1abe6580200))
+* **FAFF-147:** add splittable judgement-eval kind to eval/ ([#88](https://github.com/shftwst/faff/issues/88)) ([9325a55](https://github.com/shftwst/faff/commit/9325a551c73b50008301c97d4f1c5bc9fdcd386b))
+* **FAFF-148:** verdict-revert eval kind — revert-test discrimination of described findings ([#90](https://github.com/shftwst/faff/issues/90)) ([0aec301](https://github.com/shftwst/faff/commit/0aec301a5cbe0215bdf1bb2aaa27a5d7a570e465))
+* **FAFF-149:** routing eval kind — six-verdict assignment over an assembled fixture ([#91](https://github.com/shftwst/faff/issues/91)) ([d257147](https://github.com/shftwst/faff/commit/d257147f6d5d1584908aa2d686aff5458814ccf3))
+* **FAFF-150:** modedetect judgement-eval kind (jot/intake mode detection) ([#93](https://github.com/shftwst/faff/issues/93)) ([d51c5f3](https://github.com/shftwst/faff/commit/d51c5f3e8389bb84b92199d05df493d5706b9b7d))
+* **FAFF-152:** faff park-history seam + repeat-park scripted-driver test ([#94](https://github.com/shftwst/faff/issues/94)) ([2791efb](https://github.com/shftwst/faff/commit/2791efb61cd07f753e6527955be2946ee412df64))
+* **FAFF-153:** chain-gap judgement-eval kind (full-pipeline prose-parsing half) ([#104](https://github.com/shftwst/faff/issues/104)) ([4fbb22b](https://github.com/shftwst/faff/commit/4fbb22bdb0ed1f61c85e8c68770c7d4f74003c2f))
+* **FAFF-154:** reconciliation judgement-eval — ThreadFixture cases + live-driver runner + dry-smoke ([#95](https://github.com/shftwst/faff/issues/95)) ([219af7c](https://github.com/shftwst/faff/commit/219af7c72be26f260169d27f9ca4d2a5f96fb8e4))
+* **FAFF-155:** verdict-build live-driver — whole-change review verdict over a real build ([#102](https://github.com/shftwst/faff/issues/102)) ([23d08e5](https://github.com/shftwst/faff/commit/23d08e52370426f9f915defbf64186b53b3fb181))
+* **FAFF-157:** add confidence high/medium boundary-fuzz eval cases ([#98](https://github.com/shftwst/faff/issues/98)) ([092d3b8](https://github.com/shftwst/faff/commit/092d3b89d861c358b38e4b8d1b48b5daa215a8dc))
+* **FAFF-158:** routing live-driver + shared makeLiveDriver seam ([#92](https://github.com/shftwst/faff/issues/92)) ([42cec38](https://github.com/shftwst/faff/commit/42cec380dcb4271e35713ae18e5c6946192ca92a))
+* **FAFF-160:** routing live-driver frontier runner + measured baseline ([#100](https://github.com/shftwst/faff/issues/100)) ([1c4ec1a](https://github.com/shftwst/faff/commit/1c4ec1a1f46a7a533f020b4d5bbcc29e020389ee))
+* **FAFF-161:** advisory rubric-coverage oracle — gradeShaping / gradeDecomposition ([#101](https://github.com/shftwst/faff/issues/101)) ([ff70701](https://github.com/shftwst/faff/commit/ff707015280a040cd28a8a03727bf3c129aa3bfc))
+* **FAFF-162:** wire faff park-history seam into live repeat-park diagnostic ([#97](https://github.com/shftwst/faff/issues/97)) ([8e723e3](https://github.com/shftwst/faff/commit/8e723e323993b2e6d17d618693f2a8636c7c172c))
+* **FAFF-163:** shared live-driver frontier runner + reconciliation adapter ([#99](https://github.com/shftwst/faff/issues/99)) ([b67bce0](https://github.com/shftwst/faff/commit/b67bce0dd72c3831a11155f7026602407ec5982c))
+* **FAFF-19:** name 'Human curation is authoritative' gateway principle ([#66](https://github.com/shftwst/faff/issues/66)) ([f8944dc](https://github.com/shftwst/faff/commit/f8944dc6808af606b6dc78856211d1be5727f0c5))
+* **FAFF-89:** mock-tracker fixture format + loader ([#60](https://github.com/shftwst/faff/issues/60)) ([41d2fd8](https://github.com/shftwst/faff/commit/41d2fd84acc7b1593861e3f2b1d6ed8ba8dd20da))
+* **FAFF-90:** seeded-repo substrate — deterministic real git/.faff tree ([#62](https://github.com/shftwst/faff/issues/62)) ([25aeb74](https://github.com/shftwst/faff/commit/25aeb74439b6e0922bca91bb7264b3b261bd0d0e))
+* **FAFF-93:** skill-run harness — drive a skill in test mode, capture decisions ([#67](https://github.com/shftwst/faff/issues/67)) ([9e51e32](https://github.com/shftwst/faff/commit/9e51e32f8b4c48dc553a4934b7a51c55d9937d3e))
+* **FAFF-95:** decision-assertion matchers + refactor faff-tidy test onto them ([#69](https://github.com/shftwst/faff/issues/69)) ([be7a276](https://github.com/shftwst/faff/commit/be7a2762098695c720ac46a4067a66ae43ea5741))
+* **FAFF-97:** rendering-adaptor routing assertion — skills route human-facing output through the rendering pass ([#70](https://github.com/shftwst/faff/issues/70)) ([dc3e300](https://github.com/shftwst/faff/commit/dc3e300f972807404d4fc981ce0b6e5fa81914e5))
+
+
+### Bug Fixes
+
+* **FAFF-139:** remove per-rep cfgDirs (+ forwarded credential copies) after each rep ([#85](https://github.com/shftwst/faff/issues/85)) ([48a4fcd](https://github.com/shftwst/faff/commit/48a4fcde2ef1f9386aae0d624585a6fef43aa955))
+* **FAFF-140:** gloss/stale eval defects — synthesis-gloss injection + stale-001 oracle ([#80](https://github.com/shftwst/faff/issues/80)) ([770a2f4](https://github.com/shftwst/faff/commit/770a2f486612009360176cc170cd1968cf662abf))
+* **FAFF-142:** soften the gloss oracle with synonym-set rubric entries ([#81](https://github.com/shftwst/faff/issues/81)) ([321adb7](https://github.com/shftwst/faff/commit/321adb7942dd7c12713782c4076410df4f17cce3))
+* **FAFF-143:** re-author stale-002 as a genuine stale case (twin of FAFF-140) ([#82](https://github.com/shftwst/faff/issues/82)) ([2ffa32a](https://github.com/shftwst/faff/commit/2ffa32aa196f3626cc69d6992e797c0a3e0ec190))
+
 ## [0.3.0](https://github.com/shftwst/faff/compare/faff--v0.2.0...faff--v0.3.0) (2026-06-11)
 
 

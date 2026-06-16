@@ -123,7 +123,7 @@ The "evals-only" decision was measured on faff-tidy's classification surface onl
 
 **Scope caveat carries over.** Per the 2026-06-15 addendum, these are **black-box** numbers (model + extracted-rubric + fixture), not the skill-as-orchestrated. routing/verdict-revert/reconciliation are execution-entangled surfaces whose *faithful* measurement is the live-driver lane (FAFF-135/158); this baseline is the isolatable-classification proxy, recorded as the standing regression net.
 
-## Addendum 2026-06-16 — reconciliation live-driver lane: runner shipped, baseline sweep blocked on auth (FAFF-163)
+## Addendum 2026-06-16 — reconciliation live-driver lane: runner shipped + measured baseline recorded (FAFF-163)
 
 > Added by FAFF-163. The `reconciliation` kind is a **live-driver** surface (cases in `eval/cases-live/`, driven via `runSkill` + `reconciliationLiveDriver`) — a different input-assembly path the 2026-06-16 full-suite **black-box** addendum above provably never touches (`loadCases()` reads only `cases/`). This addendum records the **live-driver-lane** runner + the status of its measured frontier baseline. The Decision above is unchanged.
 
@@ -131,4 +131,12 @@ The "evals-only" decision was measured on faff-tidy's classification surface onl
 
 **Config isolation — OK.** The runner spawned real `claude -p` reps with per-rep isolated `CLAUDE_CONFIG_DIR`; the parent `~/.claude.json` was **untouched** across the run (no corrupted-global-config rep death — the ADR-0003 race stays solved at the model layer).
 
-**Measured baseline — NOT recorded this run; blocked on auth (environmental, not a code defect).** The human-supervised frontier sweep was attempted (`node eval/run-live-evals.mjs --kind reconciliation`) but **every rep errored** because the isolated config dir is unauthenticated: `claude -p` returned `Not logged in · Please run /login`. The credential-forwarding seam (FAFF-138) did not carry a usable OAuth session into the per-rep `CLAUDE_CONFIG_DIR` in this environment. Per the FAFF-131/156/159 family rule, **the numbers must never be faked** — so no accuracy/stability is recorded here. The runner + mock-test + report-writer are the durable deliverables; recording the actual reconciliation baseline is a **human follow-up**: re-run the sweep from a `claude /login`-authenticated session whose credentials the isolated config dir can inherit, then append the per-case table (accuracy · stability · per-comment label breakdown) here, replacing this paragraph.
+**Measured baseline — RECORDED 2026-06-16T11:42Z (re-run after the FAFF-160 cred fix).** The initial FAFF-163 sweep errored on auth (`Not logged in` in the isolated per-rep `CLAUDE_CONFIG_DIR`). **FAFF-160 fixed the runner's credential-forwarding** (`makeLiveModel(frontierOpts(...))` in `run-live-evals.mjs` `main()`), and the re-run authenticated cleanly — the live-driver lane now records baselines unattended (numbers never faked; this is a real sweep). Full run: `node eval/run-live-evals.mjs --kind reconciliation`, frontier (`claude -p`) via `reconciliationLiveDriver` + `runSkill(faff-prep)`, K=20 base (adaptive→50), config-isolated per rep (FAFF-138). Result — a hard **1.00/1.00, no escalation**:
+
+| case | accuracy | stability | reps | escalated |
+|---|---|---|---|---|
+| reconciliation-001 | 1.00 | 1.00 | 20 | 0 |
+| reconciliation-002 | 1.00 | 1.00 | 20 | 0 |
+| reconciliation-003 | 1.00 | 1.00 | 20 | 0 |
+
+Per-comment (modal-predicted vs oracle) — every comment stable and correct across the four labels: 001 {c1 challenge · c2 resolution · c3 context · c4 noise}, 002 {c1 resolution · c2 context · c3 noise}, 003 {c1/c2/c3 noise}. Config isolation OK — parent `~/.claude.json` untouched. Raw output in the gitignored `eval/report/reconciliation-live-baseline.json` + `eval/report/FAFF-163-reconciliation-baseline.md`. So faff-prep's **live-thread reconciliation** judgement — the load-bearing input to the verdict gate — is a stable **1.00** on frontier, matching the closed-set kinds.

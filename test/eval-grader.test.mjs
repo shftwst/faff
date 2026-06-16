@@ -241,7 +241,8 @@ test("all eval/cases load and validate", () => {
   const cases = loadCases();
   // 12 tidy + FAFF-146: 3 confidence + 2 marker; FAFF-147: +2 splittable; FAFF-148: +2 verdict-revert;
   // FAFF-149: +6 routing (one per verdict); FAFF-150: +3 modedetect (greenfield/single-item/ambiguous).
-  assert.equal(cases.length, 30);
+  // FAFF-157: +3 confidence high/medium boundary-fuzz (confidence-004/005/006, single-author medium oracle).
+  assert.equal(cases.length, 33);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

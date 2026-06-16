@@ -95,3 +95,28 @@ A **third lane** falls out of the probe's own finding: because the kernel's dete
 4. **Local-LLM seam-regression harness** (cheapest; spike-supported): the probe's key finding — the kernel's determinism comes from routing through `faff next`/`eligible`, not model judgement — means a **non-frontier local model** (e.g. via Ollama tool-calling) may be a good-enough tool-router for the *deterministic kernel*, yielding a **near-free, CI-friendly** plumbing-regression harness with no subscription-pool draw. Scope: a ~1–2h probe of a local model's **tool-call reliability** on this same kernel. **Caveat:** a model that flubs tool calls would surface *its* incompetence as false skill-flakiness — measure tool-call fidelity first. **Not** a substitute for judgement evals (those need the shipped frontier model).
 
 Total to a confident go/no-go: well within one Lean budget (~$25–50). The cheap probe spent ~$0.81 (subscription quota, API-equivalent) to de-risk the plumbing and **re-frame the real question** from "does the live driver work" (yes) to "does it earn its place over evals — and could a local model cover the plumbing for free" (open).
+
+---
+
+## Addendum — routing live-driver frontier baseline measured (FAFF-160, 2026-06-16)
+
+The "frontier live-driver" lane this ADR left open now has its **first measured baseline** on the **routing** surface (the live-driver input-assembly path FAFF-158 added: `routingLiveDriver` → `buildRoutingPrompt` → `runSkill` → the `routing` grade). FAFF-159 measured the routing kind's **black-box** lane (`cases/routing-*.json` via `run-evals.mjs`); this addendum records the **live-driver lane** counterpart — the new code path PR #92 added, previously exercised in CI only by a mock model.
+
+**Runner.** `eval/run-live-evals.mjs` (the shared live-lane runner FAFF-163 introduced) now carries a `routing` adapter in its open `LIVE_KINDS` registry (one additive append — the FAFF-163 reconciliation adapter is untouched). Routing cases are read straight from `eval/cases/routing-*.json` (`loadCases()`), not duplicated into `cases-live/` — the black-box and live lanes share the one oracle. `driveRoutingCase` (in `eval/live-driver.mjs`, verbatim-symmetric with `driveReconciliationCase`) binds each case's fixture into `routingLiveDriver` and drives it through the real FAFF-93 harness. A mock-model unit test (`node --test`, zero spawn) guards the wiring.
+
+**Measurement (human-supervised).** `node eval/run-live-evals.mjs --kind routing --reps 20` — 6 cases × 20 reps = 120 real `claude -p` reps, config-isolated per rep (FAFF-138: per-rep `CLAUDE_CONFIG_DIR` + forwarded OAuth credentials). Parent `~/.claude.json` untouched across the sweep (verified).
+
+| verdict (case) | accuracy | stability | reps | escalated |
+|---|---|---|---|---|
+| fire-and-forget (routing-001) | 1.00 | 1.00 | 20 | no |
+| likely-fire (routing-002) | 1.00 | 1.00 | 20 | no |
+| needs-decision-first (routing-003) | 1.00 | 1.00 | 20 | no |
+| gap-blocked (routing-004) | 1.00 | 1.00 | 20 | no |
+| circular-blocked (routing-005) | 1.00 | 1.00 | 20 | no |
+| repeat-parked (routing-006) | 1.00 | 1.00 | 20 | no |
+
+**per_kind routing: accuracy 1.00 · stability 1.00** (0 escalated, 0 errored). The full record (per-case raw rep JSON + standing-baseline table) lives gitignored under `eval/report/` (`routing-live-baseline.json`, `routing-live-standing-baseline.md`).
+
+**Finding (informs the open "earns its place" gate).** The routing live-driver input-assembly path shows **no measurable judgement drift** over the black-box lane on these six cases — perfect frontier accuracy and stability at K=20, matching FAFF-159's black-box baseline for the same six verdicts. On the routing surface specifically, the live-driver lane does not yet surface catchable flakiness a live integration would be uniquely positioned to guard; the load-bearing flakiness question remains the *prep/reconciliation* and *tidy multi-bucket* surfaces.
+
+**Cred-forwarding fix (shipped with FAFF-160).** The runner's `main()` originally built the frontier model via `makeLiveModel({ bin, pluginDir })` — missing `forwardCreds`, so the per-rep `CLAUDE_CONFIG_DIR` isolation stripped the OAuth credential and every rep landed "Not logged in" (the same auth blocker FAFF-163's reconciliation sweep hit). Fixed to `makeLiveModel(frontierOpts({ bin, pluginDir }))` — the proven `cli-driver.frontierDriver` path — which forwards `.credentials.json` into the isolated dir. This unblocks the live-lane runner for both routing and the latent reconciliation sweep. Every number above traces to a real rep; nothing was fabricated.

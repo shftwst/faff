@@ -46,7 +46,22 @@
 //                     (ticket shaping, plot decomposition) is CARVED to a follow-up that implements
 //                     the advisory rubric-coverage oracle (gradeShaping / gradeDecomposition mirroring
 //                     gradeGloss); no shaping/decomposition kind ships here.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect"];
+// FAFF-161 — that carved follow-up: the GENERATIVE jot/plot surfaces add two kinds, the advisory
+// rubric-coverage oracle FAFF-150 §7/§9 settled (policy Chosen, human decision 2026-06-15):
+//   shaping        — SHIPPED. jot/plot ticket-shaping coverage: a `gradeGloss`-style mechanical
+//                    must_include/must_avoid synonym-set coverage fraction over the emitted ticket-
+//                    boundary set (env.shaping). NO structural assertions (shaping has no tree). NON-
+//                    closed-set (generative, multi-valued — the gloss/splittable posture); carries its
+//                    oracle in the EXISTING `gloss_rubric` field. PARTIAL/PASS-on-1 like gloss.
+//   decomposition  — SHIPPED. plot decomposition coverage: the same gloss coverage fraction over the
+//                    emitted tree (env.decomposition), ANDed with THREE deterministic structural
+//                    assertions over the tree (structuralChecks): every proposed epic links to a parent
+//                    project; no branch recurses past first-slice; dep links form a DAG. The three
+//                    booleans append to the coverage vector before the score, so a structural violation
+//                    lowers reported coverage mechanically. NON-closed-set; `gloss_rubric` oracle.
+//   Any LLM judge stays strictly ADVISORY (ADR-0004) — never the reported metric, never gates a grade.
+//   The measured frontier baseline (real claude -p reps) is the human-supervised carved follow-up.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -78,7 +93,12 @@ export function validateCase(c) {
   if (!KINDS.includes(c.kind)) throw new CaseError(`case ${c.id}: unknown kind ${JSON.stringify(c.kind)}`);
   // splittable shares the `closed_set` oracle field (a set of independent-concern synonym-sets),
   // graded with synonym folding — see gradeSplittable.
-  const want = c.kind === "ordering" ? "ordering" : c.kind === "gloss" ? "gloss_rubric" : "closed_set";
+  // FAFF-161 — shaping + decomposition carry their oracle in the EXISTING `gloss_rubric` field
+  // ({ must_include, must_avoid }, synonym-set entries — the gradeGloss shape, FAFF-150 §9), so the
+  // populate-exactly-one exclusivity check is reused with zero new oracle-field machinery.
+  const want = c.kind === "ordering" ? "ordering"
+    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition") ? "gloss_rubric"
+    : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
     throw new CaseError(`case ${c.id}: oracle must populate exactly \`${want}\` for kind \`${c.kind}\``);
@@ -134,6 +154,141 @@ export function gradeGloss(env, rubric) {
     for (const inc of rubric.must_include || []) vector.push(entryMatches(t, inc));
     for (const avo of rubric.must_avoid || []) vector.push(!entryMatches(t, avo));
   }
+  const passed = vector.filter(Boolean).length;
+  return { score: vector.length ? passed / vector.length : 0, checks: vector.length, passed, vector };
+}
+
+// FAFF-161 — collection-level rubric coverage (the shaping/decomposition oracle). UNLIKE gradeGloss —
+// which scores a per-(gloss × entry) cross-product because a synthesis gloss is a SINGLE one-liner —
+// a shaping/decomposition output is a SET of many ticket glosses, and a concept is "covered" when it
+// appears ANYWHERE across the set (FAFF-150 §9 / spec SCENARIO 1: "covering both concept-sets" → 1.0),
+// not when it appears in EVERY item. So each must_include set yields ONE check (passes if any item
+// matches it) and each must_avoid set yields ONE check (passes if NO item matches it). The synonym
+// folding (entryMatches) is reused verbatim — still fully mechanical, no LLM. Returns the gradeGloss
+// { score, checks, passed, vector } shape so grade() handles it identically.
+export function gradeCoverage(items, rubric) {
+  const texts = (Array.isArray(items) ? items : Object.values(items || {})).map((x) => String(x).toLowerCase());
+  const vector = [];
+  for (const inc of (rubric && rubric.must_include) || []) vector.push(texts.some((t) => entryMatches(t, inc)));
+  for (const avo of (rubric && rubric.must_avoid) || []) vector.push(!texts.some((t) => entryMatches(t, avo)));
+  const passed = vector.filter(Boolean).length;
+  return { score: vector.length ? passed / vector.length : 0, checks: vector.length, passed, vector };
+}
+
+// FAFF-161 — gradeShaping: collection-level coverage over the model's emitted ticket-boundary set.
+// `env.shaping` is the glosses collection (a {id: gloss} map OR a flat array of one-line ticket
+// glosses). A missing/garbage field → empty collection → every must_include misses (coverage 0), never
+// a crash (the gradeGloss fail-safe stance). Shaping has NO tree, so NO structural checks.
+export function gradeShaping(env, rubric) {
+  return gradeCoverage((env && env.shaping) || [], rubric || {});
+}
+
+// FAFF-161 — the three DETERMINISTIC structural assertions over a decomposition tree (decomposition
+// only). They are case-INDEPENDENT universal invariants of a correct decomposition, so they live in
+// CODE (mechanical, DRY — one definition, not re-authored per case), not as per-case oracle data.
+// Returns a boolean VECTOR [parentLink, stopRule, dag] (one per assertion) appended to the coverage
+// vector before the score, so a structural violation lowers reported coverage mechanically.
+//   - parent-link: every epic.parent is a non-null id present in projects[].id.
+//   - stop-rule:   no epic recurses past first-slice (epic.slice === "first-slice" or absent for every
+//                  epic; any deeper/other marker fails) — no branch recurses past the first slice.
+//   - DAG:         the directed `deps` edges contain no cycle (a deterministic DFS over the edge list).
+// Malformed structure (non-array epics/projects/deps) → the relevant assertion fails DEFENSIVELY (treat
+// as a violation), never throws — the gradeSplittable Array.isArray guard stance. Empty deps → the DAG
+// check vacuously passes (no edges, no cycle).
+export function structuralChecks(tree) {
+  const t = tree && typeof tree === "object" ? tree : {};
+  const epics = Array.isArray(t.epics) ? t.epics : null;
+  const projects = Array.isArray(t.projects) ? t.projects : null;
+  const deps = Array.isArray(t.deps) ? t.deps : null;
+
+  // parent-link: every epic links to a parent project present in projects[].id.
+  let parentLink;
+  if (epics === null || projects === null) {
+    parentLink = false; // malformed → defensive violation
+  } else {
+    const projectIds = new Set(projects.map((p) => p && p.id).filter((id) => id != null));
+    parentLink = epics.every((e) => e && e.parent != null && projectIds.has(e.parent));
+  }
+
+  // stop-rule: no branch recurses past first-slice.
+  let stopRule;
+  if (epics === null) {
+    stopRule = false; // malformed → defensive violation
+  } else {
+    stopRule = epics.every((e) => e && (e.slice == null || e.slice === "first-slice"));
+  }
+
+  // DAG: the directed dep edges contain no cycle (DFS with a recursion stack).
+  let dag;
+  if (deps === null) {
+    dag = false; // malformed deps → defensive violation
+  } else {
+    dag = isDag(deps);
+  }
+
+  return [parentLink, stopRule, dag];
+}
+
+// Deterministic cycle detection over a directed edge list ([[from, to], …]). Returns true iff acyclic.
+// Empty edge list → true (vacuously a DAG). A malformed edge (not a 2-array) is skipped defensively.
+function isDag(edges) {
+  const adj = new Map();
+  const nodes = new Set();
+  for (const e of edges) {
+    if (!Array.isArray(e) || e.length < 2) continue; // skip malformed edge defensively
+    const [from, to] = e;
+    nodes.add(from); nodes.add(to);
+    if (!adj.has(from)) adj.set(from, []);
+    adj.get(from).push(to);
+  }
+  const WHITE = 0, GREY = 1, BLACK = 2;
+  const color = new Map([...nodes].map((n) => [n, WHITE]));
+  const visit = (n) => {
+    color.set(n, GREY);
+    for (const m of adj.get(n) || []) {
+      const c = color.get(m);
+      if (c === GREY) return false;          // back-edge → cycle
+      if (c === WHITE && !visit(m)) return false;
+    }
+    color.set(n, BLACK);
+    return true;
+  };
+  for (const n of nodes) {
+    if (color.get(n) === WHITE && !visit(n)) return false;
+  }
+  return true;
+}
+
+// FAFF-161 — gradeDecomposition: the gloss coverage fraction over the emitted tree's flattened
+// titles/glosses, ANDed with the three structuralChecks. The structural booleans are concatenated onto
+// the coverage vector before computing passed/total, so a structural violation lowers reported coverage
+// mechanically — the same `score`/`vector` shape grade() already handles for gloss. A missing/garbage
+// tree → empty glosses (coverage 0) + structural checks fail defensively → a clean low score, no crash.
+//
+// The glosses collection for the rubric is the tree's flattened titles/glosses: every node's `title` or
+// `gloss` across initiatives/projects/epics. (gradeGloss's Object.values shape — a {i: text} map.)
+function decompositionGlosses(tree) {
+  const t = tree && typeof tree === "object" ? tree : {};
+  const out = [];
+  for (const key of ["initiatives", "projects", "epics"]) {
+    const arr = Array.isArray(t[key]) ? t[key] : [];
+    for (const node of arr) {
+      if (node && typeof node === "object") {
+        const text = node.title ?? node.gloss;
+        if (text != null) out.push(String(text));
+      } else if (node != null) {
+        out.push(String(node));
+      }
+    }
+  }
+  return out;
+}
+
+export function gradeDecomposition(env, rubric) {
+  const tree = (env && env.decomposition) || {};
+  const { vector: covVector } = gradeCoverage(decompositionGlosses(tree), rubric || {});
+  const structural = structuralChecks(tree);
+  const vector = [...covVector, ...structural];
   const passed = vector.filter(Boolean).length;
   return { score: vector.length ? passed / vector.length : 0, checks: vector.length, passed, vector };
 }
@@ -257,6 +412,18 @@ export function grade(c, env) {
   }
   if (c.kind === "gloss") {
     const { score, vector } = gradeGloss(env, c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  // FAFF-161 — shaping/decomposition: gloss-style coverage metrics (PARTIAL on score in [0,1), PASS on
+  // 1) with a vector signature, mirroring the gloss branch. decomposition's vector folds in the three
+  // structural assertions so a structural violation alone drops it below 1.0 (PARTIAL) regardless of
+  // rubric coverage.
+  if (c.kind === "shaping") {
+    const { score, vector } = gradeShaping(env, c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  if (c.kind === "decomposition") {
+    const { score, vector } = gradeDecomposition(env, c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
   }
   if (c.kind === "splittable") {

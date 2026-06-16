@@ -1,0 +1,7 @@
+{ "id": "shaping-002", "kind": "shaping",
+  "fixture": { "version": 1,
+    "brief": "Discovery brief: CSV export for the reports page.\n\nGoal: let users download a report as a CSV file.\n\nItem: One cohesive feature — add a 'Download CSV' button to the existing reports page that streams the currently-filtered report rows as a CSV. It is a single deliverable: the button, the export endpoint, and the CSV serialisation are one ticket's worth of tightly-coupled work on the reports surface." },
+  "question": "Shape this brief into a sensible set of tickets — one one-line gloss per ticket boundary.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["csv", "comma-separated"], ["export", "download"], ["report", "reports page"] ],
+    "must_avoid": ["leverage", "synergy", "as a user i want", "seamless", "world-class"] } } }

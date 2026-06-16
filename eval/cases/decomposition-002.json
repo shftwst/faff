@@ -1,0 +1,7 @@
+{ "id": "decomposition-002", "kind": "decomposition",
+  "fixture": { "version": 1,
+    "brief": "Discovery brief: An analytics dashboard product (greenfield).\n\nGoal: a SaaS dashboard that ingests events and renders charts.\n\nCapabilities: (1) Ingestion — receive events over an HTTP API and store them. (2) Querying — aggregate stored events into time-series. (3) Dashboards — render the aggregates as charts on a web UI.\n\nFirst slice: ingest events and show a single hard-coded chart (ingestion + a minimal query + one chart).\n\nDependencies: querying depends on ingestion; dashboards depend on querying." },
+  "question": "Decompose this brief top-down into initiatives -> projects -> first-slice epics with dependency links.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["ingest", "events", "http api"], ["quer", "aggregat", "time-series"], ["dashboard", "chart", "render"] ],
+    "must_avoid": ["leverage", "synergy", "as a user i want", "seamless", "world-class"] } } }

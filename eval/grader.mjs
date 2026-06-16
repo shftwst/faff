@@ -83,6 +83,11 @@ const FIXTURE_SHAPE = {
   // FAFF-149 — the routing fixture is an assembled fixture-of-findings; the driver renders `issue` +
   // `spec` (plus the optional diagnostics / conflict / park_history inputs that drive the verdict).
   routing: ["issue", "spec"],
+  // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
+  // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
+  // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
+  // + driveVerdictBuildCase (the driver guards), not here. Keeping validateCase byte-identical for the
+  // already-registered kind is the constraint; the spec's FIXTURE_SHAPE guard was explicitly optional.
 };
 
 // Validate one EvalCase: known kind, the oracle populates exactly the field its kind needs, and (for
@@ -315,7 +320,13 @@ function predictedSet(c, env) {
     // passed through verbatim so setEqual fails it cleanly with a distinct signature (the eval-side
     // fail-safe; the deterministic fail-loud-on-out-of-enum lives in `faff contract automation-routing`,
     // NOT here — the verdict-revert/confidence coercion stance, spec §HOW edge cases).
+    // FAFF-155 — verdict-build: the whole-change review verdict is ALSO a single verdict → a
+    // single-element set (the routing analogue), so it reads the SAME `env.verdict` field. Joining
+    // routing's arm is the one grader touch; the eval-side fail-safe is identical (missing → [] → clean
+    // FAIL; out-of-enum → verbatim → distinct signature). NO eval-side coercion — the malformed→
+    // needs-human coercion is computeReviewVerdict's job (out of scope), exactly the routing stance.
     case "routing":
+    case "verdict-build":
       return env.verdict == null ? [] : [String(env.verdict)];
     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum

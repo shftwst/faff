@@ -33,7 +33,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { grade, aggregateCase, hasDisagreement, erroredRep } from "./grader.mjs";
 import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize } from "./run-evals.mjs";
-import { driveReconciliationCase, driveRoutingCase, makeLiveModel } from "./live-driver.mjs";
+import { driveReconciliationCase, driveRoutingCase, driveVerdictBuildCase, makeLiveModel } from "./live-driver.mjs";
 import { frontierOpts } from "./cli-driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -95,6 +95,23 @@ export const LIVE_KINDS = {
       // A missing/out-of-enum verdict is forwarded verbatim (null when absent) — grade scores a clean
       // FAIL via setEqual, never a throw (the eval-side fail-safe, the confidence/routing stance).
       const env = { verdict };
+      const tokens = (record && (record.tokens ?? record.usage?.output_tokens)) || 0;
+      return { env, tokens };
+    },
+  },
+  // FAFF-155 — the verdict-build live-driver adapter (the carved baseline becomes a pure re-run later).
+  // Unlike routing (cases/), verdict-build's BuildFixtures live in `cases-live/` (a non-backlog shape the
+  // black-box CLI driver has no render branch for — the reconciliation lane). driveVerdictBuildCase
+  // returns `{ record, bucket }` (a single-element `verdict-build` bucket); the adapter normalises the
+  // bucket's lone verdict into the rep-loop's `{ env: { verdict }, tokens }` so grade(evalCase, env) runs
+  // the existing single-element-set verdict-build path unchanged.
+  "verdict-build": {
+    loader: () => loadLiveCases().filter((c) => c.kind === "verdict-build"),
+    async driveCase(evalCase, { runSkill, tracker, repo, model }) {
+      const { record, bucket } = await driveVerdictBuildCase(evalCase, { runSkill, tracker, repo, model });
+      // A missing verdict → bucket [] → verdict null; an out-of-enum verdict is the verbatim token —
+      // grade scores a clean FAIL via setEqual, never a throw (the routing/confidence fail-safe stance).
+      const env = { verdict: bucket[0] ?? null };
       const tokens = (record && (record.tokens ?? record.usage?.output_tokens)) || 0;
       return { env, tokens };
     },

@@ -26,10 +26,12 @@ import {
   loadJudgementCriteria,
   loadReconciliationProse,
   loadRoutingVerdictProse,
+  loadReviewVerdictProse,
   loadShapingProse,
   loadDecompositionProse,
   EVAL_MODE_INSTRUCTION,
   ROUTING_MODE_INSTRUCTION,
+  VERDICT_BUILD_INSTRUCTION,
   SHAPING_MODE_INSTRUCTION,
   DECOMPOSITION_MODE_INSTRUCTION,
   DEFAULT_PLUGIN_DIR,
@@ -114,6 +116,30 @@ export function buildRoutingPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_DIR, ca
     `Conflict-analysis independence:\n${JSON.stringify(conflict ?? null, null, 2)}\n\n` +
     `Park history:\n${JSON.stringify(park_history ?? [], null, 2)}\n\n` +
     `${ROUTING_MODE_INSTRUCTION.replace("<ID>", caseId)}`
+  );
+}
+
+// FAFF-155 — the verdict-build (whole-change review verdict) prompt builder (the execution-entangled
+// surface, mirroring buildRoutingPrompt). It folds in the review-verdict rubric verbatim (the SAME
+// loadReviewVerdictProse FAFF-148 already added — REUSED, not re-cut), renders the BuildFixture's
+// change material (change_summary + spec + diff + test_results), then asks for EXACTLY ONE of
+// pass / fail / needs-human by the revert test via VERDICT_BUILD_INSTRUCTION. The envelope carries a
+// single `verdict` field the grader reads unchanged (the routing analogue — one verdict → one set):
+//   { "case_id": "<ID>", "verdict": "pass|fail|needs-human" }
+// pluginDir null → no rubric (the improvise baseline / control), exactly as the three siblings do.
+export function buildVerdictBuildPrompt(fixture, { pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  const rubric = pluginDir
+    ? `Apply faff's review-verdict rubric below — these are the review producer's + gateway's fixed rules, verbatim:\n\n${loadReviewVerdictProse(pluginDir)}\n\n---\n\n`
+    : "";
+  const { change_summary, spec, diff, test_results } = fixture;
+  return (
+    `${rubric}Run faff-graft's Step-9 review pass over the whole change below and assign the single ` +
+    `verdict it implies.\n\n` +
+    `Change summary:\n${change_summary ?? "(none)"}\n\n` +
+    `Spec (the change is reviewed against this):\n${spec ?? "(none)"}\n\n` +
+    `Diff (unified):\n${diff ?? "(none)"}\n\n` +
+    `Test results:\n${test_results ?? "(none)"}\n\n` +
+    `${VERDICT_BUILD_INSTRUCTION.replace("<ID>", caseId)}`
   );
 }
 
@@ -394,6 +420,79 @@ export async function driveRoutingCase(evalCase, { runSkill, tracker, repo, mode
   const driver = routingLiveDriver({ model, fixture: evalCase.fixture, pluginDir, caseId: evalCase.id });
   const record = await runSkill({ skill: "faff-tidy", tracker, repo, driver });
   return { record, verdict: record.buckets.routing?.[0] ?? null };
+}
+
+/**
+ * FAFF-155 — a live SkillDriver for faff-graft's REVIEW (whole-change verdict-build) surface — the
+ * execution-entangled half FAFF-148 carved. The FOURTH thin wrapper over makeLiveDriver, symmetric with
+ * routingLiveDriver: reads the assembled BuildFixture through the harness tracker seam, prompts the model
+ * with faff's verbatim review-verdict rubric (buildVerdictBuildPrompt) + the rendered change material,
+ * parses the single assigned verdict, and records it as a single-element `verdict-build` DecisionRecord
+ * bucket — the SAME `env.verdict` field routing uses, which predictedSet's verdict-build arm scores by
+ * single-element set-equality (no grader change beyond joining that arm).
+ *
+ * `fixture` is passed as a config field (the harness exposes no review-fixture port) and the core still
+ * issues a listIssues seam-read so the run is seam-faithful. A missing model / a malformed fixture (no
+ * `spec` or `diff`) throws. A missing/out-of-enum verdict yields items:[] (missing) or the verbatim token
+ * (out-of-enum) → a clean grader FAIL, never a throw — the routing/confidence fail-safe stance.
+ *
+ * DESIGN NOTE: shipped as the verdict-build live-driver DESIGN + the model-free dry-smoke (mock model →
+ * driver → recorded bucket → the verdict-build grade). The measured frontier baseline (real claude -p
+ * reps) is the carved human-supervised follow-up (FAFF-131/156 pattern), recorded out-of-band, never faked.
+ *
+ * @param {{ model: Function, fixture: object, pluginDir?: string|null, caseId?: string }} cfg
+ * @returns {{ kind: "live", drive: (ctx) => Promise<void> }}
+ */
+export function verdictBuildLiveDriver({ model, fixture, pluginDir = DEFAULT_PLUGIN_DIR, caseId = "live" } = {}) {
+  if (typeof model !== "function") {
+    throw new Error("verdictBuildLiveDriver requires a model(prompt) function (inject a mock in CI; makeLiveModel for real)");
+  }
+  if (!fixture || fixture.spec == null || fixture.diff == null) {
+    throw new Error("verdictBuildLiveDriver requires a BuildFixture { spec, diff, … }");
+  }
+  // FAFF-155 — a wrapper over makeLiveDriver (NOT a re-cut): the verdict-build reducer returns one
+  // { name: "verdict-build", items: [verdict] } pair. A missing/out-of-enum verdict yields items:[] (a
+  // missing verdict) or the verbatim token (out-of-enum) → a clean grader FAIL, never a throw.
+  return makeLiveDriver({
+    model,
+    skill: "faff-graft",
+    pluginDir,
+    caseId,
+    buildPrompt: (ctx, opts) => buildVerdictBuildPrompt(fixture, opts),
+    readEnvelope: (env) => [{ name: "verdict-build", items: env.verdict == null ? [] : [String(env.verdict)] }],
+  });
+}
+
+/**
+ * FAFF-155 — the verdict-build live-fixture RUNNER, the verbatim symmetric twin of driveReconciliationCase
+ * (FAFF-154) and driveRoutingCase (FAFF-160). Given a loaded verdict-build EvalCase (a
+ * `cases-live/verdict-build-*.json` BuildFixture + single-verdict `oracle.closed_set`) and an injected
+ * model, it binds the case's `fixture` into verdictBuildLiveDriver (the inherited makeLiveDriver wrapper —
+ * no driver re-cut) and drives it through the REAL FAFF-93 harness via `runSkill({ skill: "faff-graft" })`,
+ * returning the recorded `verdict-build` bucket so the caller can grade it through the existing
+ * single-element set-equality path (no grader change beyond predictedSet's verdict-build arm).
+ *
+ * `runSkill`, `tracker`, and `repo` are injected (not imported) so eval/ stays free of test-helper deps
+ * and the runner is the single place a verdict-build case reaches the live-driver seam. The driver still
+ * issues the listIssues seam-read, so the run is seam-faithful at the harness boundary, exactly like its
+ * two siblings. Unlike routing (cases/), verdict-build cases live in `cases-live/` (the BuildFixture has a
+ * non-backlog shape the black-box CLI driver has no render branch for — the reconciliation lane pattern).
+ *
+ * @param {object} evalCase a loaded verdict-build case ({ id, kind:"verdict-build", fixture, oracle })
+ * @param {{ runSkill: Function, tracker: object, repo: object, model: Function,
+ *           pluginDir?: string|null }} cfg
+ * @returns {Promise<{ record: object, bucket: string[] }>} the DecisionRecord + the verdict-build bucket
+ */
+export async function driveVerdictBuildCase(evalCase, { runSkill, tracker, repo, model, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
+  if (!evalCase || evalCase.kind !== "verdict-build" || !evalCase.fixture) {
+    throw new Error("driveVerdictBuildCase requires a verdict-build EvalCase with a `fixture`");
+  }
+  if (typeof runSkill !== "function") {
+    throw new Error("driveVerdictBuildCase requires the FAFF-93 runSkill (injected, not imported)");
+  }
+  const driver = verdictBuildLiveDriver({ model, fixture: evalCase.fixture, pluginDir, caseId: evalCase.id });
+  const record = await runSkill({ skill: "faff-graft", tracker, repo, driver });
+  return { record, bucket: record.buckets["verdict-build"] ?? [] };
 }
 
 /**

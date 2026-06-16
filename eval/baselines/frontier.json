@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "captured_at": "2026-06-16",
+    "commit": "8905b7e",
+    "driver": "frontier",
+    "base_reps": 20,
+    "source": "Seeded from the ADR-0004 recorded frontier baseline (addendum 2026-06-16) + FAFF-166 carved new-kind baselines. PROVISIONAL: re-seed from a real `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json` run before relying on the gate for a release. The gate mechanism (diffAgainstBaseline) is correct independent of these exact numbers."
+  },
+  "per_kind": {
+    "dupe":           { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "vague":          { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "stale":          { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "superseded":     { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "ordering":       { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "marker":         { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "modedetect":     { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "routing":        { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "splittable":     { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "verdict-revert": { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "shaping":        { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "decomposition":  { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
+    "gloss":          { "accuracy": 0.99, "stability": 0.99, "format_adherence": 1.00 },
+    "confidence":     { "accuracy": 0.93, "stability": 0.93, "format_adherence": 1.00 }
+  },
+  "policy": {
+    "warn_kinds": ["confidence"],
+    "tolerances": { "closed_set": 0.0, "ordering": 0.0, "free_text": 0.03, "format": 0.0 }
+  }
+}

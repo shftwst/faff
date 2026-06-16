@@ -11,7 +11,7 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { grade, aggregateCase, validateCase, hasDisagreement, erroredRep } from "./grader.mjs";
+import { grade, aggregateCase, validateCase, hasDisagreement, erroredRep, CLOSED_SET_KINDS } from "./grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "./envelope.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -117,6 +117,130 @@ function argFlag(argv, name) {
   return i !== -1 ? argv[i + 1] : null;
 }
 
+// FAFF-169 — the committed-baseline regression gate. The lean-prompts passes (FAFF-116/117) re-run
+// frontier and assert per-kind accuracy/stability haven't dropped below the committed baseline. The
+// gate is HUMAN-RUN (frontier costs spend; eval/ is CI-excluded — ADR-0004), never a validate.yml step.
+
+// Default policy when a baseline omits one. Tolerance is keyed by GRADER-CLASS (not the kind name):
+// closed-set + ordering grade by exact set-equality / rank-correlation, so any drop is real (tol 0);
+// free-text kinds (rubric/coverage) carry inherent generation variance, so a small tolerance absorbs
+// a ~1-rep dip. `warn_kinds` is ORTHOGONAL to grader-class: a listed kind is reported-not-failed
+// regardless of how it grades (today: confidence — closed-set-graded but empirically flaky per ADR-0004,
+// pending fixture widening). `escalated_cases` is NEVER a gate input (which cases escalate is run-to-run noise).
+export const DEFAULT_POLICY = { warn_kinds: ["confidence"], tolerances: { closed_set: 0.0, ordering: 0.0, free_text: 0.03, format: 0.0 } };
+
+// PURE: classify a kind to its grader-class tolerance. closed_set ← CLOSED_SET_KINDS; ordering ← its
+// rank-correlation kind; everything else (gloss/shaping/decomposition/splittable) is free_text.
+export function toleranceFor(kind, tolerances = DEFAULT_POLICY.tolerances) {
+  if (CLOSED_SET_KINDS.has(kind)) return tolerances.closed_set ?? 0;
+  if (kind === "ordering") return tolerances.ordering ?? 0;
+  return tolerances.free_text ?? 0;
+}
+
+// PURE — no I/O, no clock. Diff a current summary's per_kind against a committed baseline. Returns
+// { kinds: [{kind, status: "pass"|"warn"|"fail", reason?, acc_delta, stab_delta}], failed, warned, new_kinds }.
+// failed=true ⇒ the gate exits non-zero. A baseline kind missing from the run is a FAIL (silently
+// dropping a kind is the regression this guards). A run kind absent from the baseline is informational.
+export function diffAgainstBaseline(currentSummary, baseline) {
+  if (!baseline || typeof baseline !== "object" || !baseline.per_kind) {
+    throw new Error("diffAgainstBaseline: baseline missing a per_kind block");
+  }
+  const policy = baseline.policy ?? DEFAULT_POLICY;
+  const warn = new Set(policy.warn_kinds ?? []);
+  const tol = policy.tolerances ?? DEFAULT_POLICY.tolerances;
+  const cur = currentSummary.per_kind ?? {};
+  const kinds = [];
+  for (const [kind, base] of Object.entries(baseline.per_kind)) {
+    const c = cur[kind];
+    if (!c) { kinds.push({ kind, status: "fail", reason: "kind dropped from the run" }); continue; }
+    const t = toleranceFor(kind, tol);
+    const accDelta = round(c.accuracy - base.accuracy);
+    const stabDelta = round(c.stability - base.stability);
+    const formatBad = base.format_adherence === 1.0 && c.format_adherence != null && c.format_adherence < 1.0;
+    const regressed = (c.accuracy < base.accuracy - t) || (c.stability < base.stability - t) || formatBad;
+    let status = "pass", reason;
+    if (regressed) {
+      reason = formatBad ? "format_adherence dropped below 1.00" : `accuracy/stability below baseline − ${t}`;
+      status = warn.has(kind) ? "warn" : "fail";
+    }
+    kinds.push({ kind, status, reason, acc_delta: accDelta, stab_delta: stabDelta });
+  }
+  const newKinds = Object.keys(cur).filter((k) => !(k in baseline.per_kind));
+  return {
+    kinds,
+    new_kinds: newKinds,
+    warned: kinds.some((k) => k.status === "warn"),
+    failed: kinds.some((k) => k.status === "fail"),
+  };
+}
+const round = (x) => Math.round(x * 1000) / 1000;
+
+// Read + parse a committed baseline; fail loud (a gate with no baseline is not a pass, never a silent green).
+export function loadBaseline(path) {
+  let raw;
+  try { raw = readFileSync(path, "utf8"); }
+  catch (e) { throw new Error(`--against: cannot read baseline ${path}: ${e.message}`); }
+  let b;
+  try { b = JSON.parse(raw); }
+  catch (e) { throw new Error(`--against: baseline ${path} is not valid JSON: ${e.message}`); }
+  if (!b.per_kind) throw new Error(`--against: baseline ${path} has no per_kind block`);
+  return b;
+}
+
+function printGateTable(report, baselinePath) {
+  console.log(`\n=== regression gate vs ${baselinePath} ===`);
+  for (const k of report.kinds) {
+    const tag = k.status.toUpperCase().padEnd(4);
+    const d = k.reason ? `  (${k.reason})` : `  Δacc ${fmtDelta(k.acc_delta)} Δstab ${fmtDelta(k.stab_delta)}`;
+    console.log(`  ${tag} ${k.kind.padEnd(14)}${d}`);
+  }
+  if (report.new_kinds.length) console.log(`  (new, un-baselined kinds — informational: ${report.new_kinds.join(", ")})`);
+  console.log(`  → ${report.failed ? "FAIL (regression)" : report.warned ? "PASS (with warnings)" : "PASS"}`);
+}
+const fmtDelta = (x) => (x == null ? "n/a" : (x >= 0 ? `+${x.toFixed(2)}` : x.toFixed(2)));
+
+// --against: run frontier, diff vs the committed baseline, exit non-zero on any FAIL (warns don't fail).
+async function gateAgainst(argv, presets, baselinePath) {
+  const baseline = loadBaseline(baselinePath); // fail-loud before the (costly) run
+  const only = argFlag(argv, "--only");
+  const repsArg = argFlag(argv, "--reps");
+  const driver = resolveDriver(argv, presets);
+  let cases = loadCases();
+  if (only) cases = cases.filter((c) => c.id === only);
+  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
+  const reportDir = join(HERE, "report");
+  mkdirSync(reportDir, { recursive: true });
+  writeFileSync(join(reportDir, "latest.json"), JSON.stringify(summary, null, 2));
+  printHeadline(summary);
+  const report = diffAgainstBaseline(summary, baseline);
+  printGateTable(report, baselinePath);
+  // Incomplete runs can't clear the gate either; only a complete, non-failing run exits 0.
+  return summary.status === "complete" && !report.failed ? 0 : 1;
+}
+
+// --update-baseline: run frontier, write the current per_kind + meta to the baseline path (the
+// deliberate re-baseline — never auto on a passing --against run). Preserves the existing policy block.
+async function updateBaseline(argv, presets, baselinePath) {
+  const only = argFlag(argv, "--only");
+  const repsArg = argFlag(argv, "--reps");
+  const driver = resolveDriver(argv, presets);
+  let cases = loadCases();
+  if (only) cases = cases.filter((c) => c.id === only);
+  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
+  let prevPolicy = DEFAULT_POLICY;
+  try { prevPolicy = JSON.parse(readFileSync(baselinePath, "utf8")).policy ?? DEFAULT_POLICY; } catch { /* new baseline */ }
+  const out = {
+    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: argFlag(argv, "--driver") ?? "frontier", base_reps: repsArg ? Number(repsArg) : BASE_REPS, source: "real run via --update-baseline" },
+    per_kind: summary.per_kind,
+    policy: prevPolicy,
+  };
+  mkdirSync(dirname(baselinePath), { recursive: true });
+  writeFileSync(baselinePath, JSON.stringify(out, null, 2) + "\n");
+  printHeadline(summary);
+  console.log(`\n=== baseline written to ${baselinePath} (${Object.keys(summary.per_kind).length} kinds) ===`);
+  return summary.status === "complete" ? 0 : 1;
+}
+
 function printHeadline(s) {
   console.log(`\n=== judgement-eval headline (${s.status}) ===`);
   for (const [kind, m] of Object.entries(s.per_kind)) {
@@ -210,6 +334,8 @@ async function compare(argv, presets) {
 // CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
 // `node eval/run-evals.mjs [--driver frontier|local|ollama-direct] [--model M] [--base-url URL] [--think] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
 // `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
+// `node eval/run-evals.mjs --driver frontier --against eval/baselines/frontier.json`   (FAFF-169: regression gate — exit non-zero on a per-kind drop)
+// `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json`   (FAFF-169: deliberate re-baseline)
 // frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
 // Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less baseline.
 async function main(argv) {
@@ -217,6 +343,10 @@ async function main(argv) {
   const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
   const presets = { ...cliPresets, makeDirectOllamaDriver };
   if (argv.includes("--compare")) return compare(argv, presets);
+  const againstPath = argFlag(argv, "--against");
+  if (againstPath) return gateAgainst(argv, presets, againstPath);           // FAFF-169 regression gate
+  const updatePath = argFlag(argv, "--update-baseline");
+  if (updatePath) return updateBaseline(argv, presets, updatePath);          // FAFF-169 deliberate re-baseline
   const only = argFlag(argv, "--only");
   const repsArg = argFlag(argv, "--reps");
   const driver = resolveDriver(argv, presets); // fail-loud before loadCases/runEvals if local underspecified

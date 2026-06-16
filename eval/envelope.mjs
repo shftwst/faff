@@ -17,6 +17,8 @@
 // `splittable` field (an array of independent-concern labels; [] = not splittable) needs no parser
 // change — it surfaces like `ordering`/`gloss`, and its absence on a non-splittable case is tolerated
 // exactly as those are (the grader reads only the field its case kind needs).
+// FAFF-153 — the chain-gap `chain_gap` field (an array of { reference, sub_type } pairs; [] = no gap
+// after the conservative skips) surfaces the SAME generic pass-through way — no parser change.
 // Zero-dependency: node builtins + JSON only.
 
 export class EnvelopeError extends Error {}

@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -236,6 +236,33 @@ test("FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envel
   assert.ok(p.includes('"auth"'), "includes the section key");
   assert.ok(p.includes("### Spec readiness (fixed)"), "folds in the verbatim marker dialect");
   assert.ok(p.includes('"markers"'), "asks for the markers envelope field");
+});
+
+// ====================== FAFF-153 — the chain-gap criteria anchor + prompt ======================
+
+// --- the chain-gap criteria is the verbatim `#### Chain gaps` §5 sub-section (anchor resolves, fail-loud) ---
+test("FAFF-153 loadTidyChainGapProse extracts the verbatim `#### Chain gaps` sub-section", () => {
+  const prose = loadTidyChainGapProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("#### Chain gaps"), "starts at the chain-gap sub-heading");
+  assert.ok(prose.includes("upstream"), "carries the sub-type vocabulary");
+  assert.ok(prose.includes("Conservative skips"), "carries the conservative-skip criteria");
+  assert.ok(!prose.includes("### 6. Calibration signals"), "stops before the next `### ` heading");
+});
+test("FAFF-153 loadTidyChainGapProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadTidyChainGapProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- criteriaFor + buildEvalPrompt wire the chain-gap surface (criteria folded, chain_gap envelope) ---
+test("FAFF-153 buildEvalPrompt(chain-gap) folds the criteria + the chain_gap envelope over raw spec prose", () => {
+  const c = { id: "cg-x", kind: "chain-gap", question: "Any chain gaps?",
+    fixture: { version: 1, issues: [{ id: "ISS-CG", spec: "blocked by the ingestion job" }] } };
+  const p = buildEvalPrompt(c, criteriaFor("chain-gap", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("#### Chain gaps"), "folds in the verbatim chain-gap criteria");
+  assert.ok(p.includes("blocked by the ingestion job"), "includes the raw spec prose");
+  assert.ok(p.includes('"chain_gap"'), "asks for the chain_gap envelope field");
+  assert.ok(p.includes("upstream|downstream|peer|sub-ticket"), "names the closed sub_type enum");
+  assert.ok(p.includes("cg-x"), "interpolates the case id");
+  assert.ok(!p.includes('"classifications"'), "does NOT use the tidy classification envelope");
 });
 
 // --- the tidy prompt framing is unchanged (no regression for the six tidy kinds) ---

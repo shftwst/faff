@@ -113,7 +113,11 @@ export function loadSynthesisGlossProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 // loader read exactly the splittable criteria. Anchored on that sub-heading and the next `### ` heading
 // (`### 6. Calibration signals`); fail-loud if either moves (a refactor must consciously re-point this).
 const SPLITTABLE_START = "#### Splittable specs";
-const SPLITTABLE_END = "### 6. Calibration signals";
+// FAFF-153 — END now anchors on the sibling `#### Chain gaps` sub-heading (added directly after the
+// splittable sub-section), keeping the splittable read scoped to its own criteria. Was `### 6.
+// Calibration signals` (FAFF-147); the chain-gap sub-section now sits between, so the older anchor
+// would over-read. Fail-loud if either moves.
+const SPLITTABLE_END = "#### Chain gaps";
 export function loadTidySplittableSpecProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const skillPath = join(pluginDir, "skills", "faff-tidy", "SKILL.md");
   let md;
@@ -126,6 +130,27 @@ export function loadTidySplittableSpecProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   if (start === -1) throw new Error(`loadTidySplittableSpecProse: START anchor not found in ${skillPath}: "${SPLITTABLE_START}"`);
   const end = md.indexOf(SPLITTABLE_END, start + SPLITTABLE_START.length);
   if (end === -1) throw new Error(`loadTidySplittableSpecProse: END anchor not found in ${skillPath}: "${SPLITTABLE_END}"`);
+  return md.slice(start, end).trim();
+}
+
+// FAFF-153 — the eval prompt also carries faff-tidy's CHAIN-GAP criteria (verbatim from the shipped
+// skill), the sibling `#### Chain gaps` sub-section of §5. Read between that sub-heading and the next
+// `### ` heading (`### 6. Calibration signals`); fail-loud if either moves (a refactor must consciously
+// re-point this — the loadTidySplittableSpecProse contract).
+const CHAIN_GAP_START = "#### Chain gaps";
+const CHAIN_GAP_END = "### 6. Calibration signals";
+export function loadTidyChainGapProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faff-tidy", "SKILL.md");
+  let md;
+  try {
+    md = readFileSync(skillPath, "utf8");
+  } catch (e) {
+    throw new Error(`loadTidyChainGapProse: cannot read ${skillPath}: ${e.message}`);
+  }
+  const start = md.indexOf(CHAIN_GAP_START);
+  if (start === -1) throw new Error(`loadTidyChainGapProse: START anchor not found in ${skillPath}: "${CHAIN_GAP_START}"`);
+  const end = md.indexOf(CHAIN_GAP_END, start + CHAIN_GAP_START.length);
+  if (end === -1) throw new Error(`loadTidyChainGapProse: END anchor not found in ${skillPath}: "${CHAIN_GAP_END}"`);
   return md.slice(start, end).trim();
 }
 
@@ -420,6 +445,21 @@ export const DECOMPOSITION_MODE_INSTRUCTION =
   "dependency edges (they must form a DAG). Output NOTHING except that single block: no reasoning, no " +
   "preamble, no prose, nothing before or after it.";
 
+// FAFF-153 — the envelope instruction for the `chain-gap` prose-parsing surface. The model reads the
+// spec's implementation-advice prose, identifies references no ticket tracks, classifies each, applies
+// the conservative skips, and emits a `chain_gap` array of { reference, sub_type } pairs ([] when no
+// real gap remains). Same OUTPUT-ONLY hardening as EVAL_MODE_INSTRUCTION.
+export const CHAIN_GAP_INSTRUCTION =
+  "Run faff-tidy's chain-gap prose parsing over the spec above: identify the references its " +
+  "implementation advice names but no ticket tracks, classify each, and apply the conservative skips. " +
+  "Then OUTPUT ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) " +
+  'containing JSON of the shape { "case_id": "<ID>", "chain_gap": [{ "reference": "<the referenced work>", ' +
+  '"sub_type": "upstream|downstream|peer|sub-ticket" }, ...] } — one entry per real chain gap, with ' +
+  "`sub_type` exactly one of upstream / downstream / peer / sub-ticket. Emit an empty list [] when there " +
+  "is NO real gap after the conservative skips (illustrative-only, explicitly-disclaimed future work, " +
+  "in-scope-for-this-PR, unitary-spec-no-reference). Output NOTHING except that single block: no " +
+  "reasoning, no preamble, no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
 // prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
 // to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
@@ -430,6 +470,7 @@ function modeInstructionFor(kind) {
   if (kind === "modedetect") return MODE_EVAL_INSTRUCTION;
   if (kind === "shaping") return SHAPING_MODE_INSTRUCTION;
   if (kind === "decomposition") return DECOMPOSITION_MODE_INSTRUCTION;
+  if (kind === "chain-gap") return CHAIN_GAP_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -480,6 +521,15 @@ function renderFixturePrompt(c, judgementProse = null) {
       `Discovery brief:\n${c.fixture.brief ?? JSON.stringify(c.fixture, null, 2)}`
     );
   }
+  // FAFF-153 — chain-gap feeds the raw spec prose (the full-pipeline parse). The fixture mirrors the
+  // splittable shape (a `{ version, issues: [{ id, title, spec }] }` backlog), so render it the same
+  // tracker-shape way; the CHAIN_GAP_INSTRUCTION tells the model to parse the implementation advice.
+  if (c.kind === "chain-gap") {
+    return (
+      `${rubric}Run faff-tidy's chain-gap prose parsing on the following active ticket and answer: ${c.question}\n\n` +
+      `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
@@ -500,6 +550,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "modedetect") return loadModeDetectProse(pluginDir);
   if (kind === "shaping") return loadShapingProse(pluginDir);
   if (kind === "decomposition") return loadDecompositionProse(pluginDir);
+  if (kind === "chain-gap") return loadTidyChainGapProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

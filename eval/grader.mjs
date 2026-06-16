@@ -61,7 +61,22 @@
 //                    lowers reported coverage mechanically. NON-closed-set; `gloss_rubric` oracle.
 //   Any LLM judge stays strictly ADVISORY (ADR-0004) — never the reported metric, never gates a grade.
 //   The measured frontier baseline (real claude -p reps) is the human-supervised carved follow-up.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition"];
+// FAFF-153 — the CHAIN-GAP prose-parsing surface adds one kind:
+//   chain-gap      — SHIPPED. The full-pipeline LLM half of tidy's chain-gap structural diagnostic:
+//                    read a spec's free-text implementation advice, IDENTIFY the references it names
+//                    but doesn't ticket, classify each as upstream/downstream/peer/sub-ticket, and
+//                    apply the conservative skips ([] when no real gap remains). It grades via its OWN
+//                    synonym-tolerant branch (gradeChainGap) over `{reference, sub_type}` pairs — the
+//                    gradeSplittable SHAPE, but a pair (reference synonym-folded + EXACT sub_type enum)
+//                    rather than a bare label — so it is deliberately NOT in CLOSED_SET_KINDS. The
+//                    envelope carries `chain_gap: [{reference, sub_type}, …]`; the oracle rides the
+//                    EXISTING `closed_set` field (validateCase's default `want`, no change). A
+//                    missing/garbage field or out-of-enum sub_type → empty/verbatim canon → a clean
+//                    FAIL with a distinct signature (the gradeSplittable Array.isArray fail-safe). The
+//                    DETERMINISTIC graph-traversal half (does a matching ticket exist) is carved to a
+//                    scripted test (mirroring FAFF-152), NOT this eval. The measured frontier baseline
+//                    is the human-supervised carved follow-up.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -390,6 +405,49 @@ export function gradeSplittable(predictedLabels, oracleSet) {
   return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, signature };
 }
 
+// FAFF-153 — chain-gap grading. The model returns `chain_gap`: an array of { reference, sub_type }
+// pairs ([] = no real gap after the conservative skips). The oracle's `closed_set` is an array of
+// { reference: <synonym-set>, sub_type: <enum> } entries — the reference a string OR an array of
+// synonyms (the gloss/splittable shape — FAFF-142), the sub_type one of upstream/downstream/peer/
+// sub-ticket. This is the gradeSplittable SHAPE one level richer: a predicted pair matches an oracle
+// entry iff the reference matches synonym-tolerantly (reuse labelMatchesEntry/normLabel) AND the
+// sub_type matches EXACTLY (a misclassified gap is a real miss — the chain-fill relationship differs
+// per sub-type). Grading stays fully mechanical (no LLM).
+//
+// A predicted pair canonicalises to the FIRST oracle entry it matches (its index), marking it covered;
+// an unmatched pair canonicalises to `extra:<norm reference>:<sub_type>` (so a phantom or misclassified
+// gap breaks equality). Returns { graded, score, signature }:
+//   PASS  — every oracle entry covered AND no predicted pair extra (synonym-tolerant equality)
+//   FAIL  — otherwise (incl. missing/garbage field, out-of-enum sub_type → a verbatim canon, distinct sig)
+// signature = the sorted canonicalised pair set (deterministic; for cross-rep stability).
+export function gradeChainGap(predictedPairs, oracleSet) {
+  const predicted = Array.isArray(predictedPairs) ? predictedPairs : [];
+  const oracle = Array.isArray(oracleSet) ? oracleSet : [];
+  const coveredOracleIdx = new Set();
+  const canon = [];
+  for (const pair of predicted) {
+    const ref = pair == null ? "" : pair.reference;
+    const sub = pair == null ? undefined : pair.sub_type;
+    const idx = oracle.findIndex(
+      (entry) =>
+        entry != null &&
+        labelMatchesEntry(ref, entry.reference) &&
+        String(sub) === String(entry.sub_type)
+    );
+    if (idx === -1) {
+      canon.push(`extra:${normLabel(ref)}:${sub}`);
+    } else {
+      coveredOracleIdx.add(idx);
+      canon.push(`oracle:${idx}`);
+    }
+  }
+  const allCovered = coveredOracleIdx.size === oracle.length;
+  const noExtra = !canon.some((c) => c.startsWith("extra:"));
+  const ok = allCovered && noExtra;
+  const signature = JSON.stringify([...new Set(canon)].sort());
+  return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, signature };
+}
+
 // grade(case, envelope) -> RepResult { graded, score, tokens, signature }.
 // `signature` is the canonical judgement identity used for flakiness (NOT the grade) —
 // two reps that both FAIL but classify differently are correctly counted as unstable.
@@ -439,6 +497,10 @@ export function grade(c, env) {
   }
   if (c.kind === "splittable") {
     const { graded, score, signature } = gradeSplittable(env.splittable, c.oracle.closed_set);
+    return { graded, score, tokens, signature };
+  }
+  if (c.kind === "chain-gap") {
+    const { graded, score, signature } = gradeChainGap(env.chain_gap, c.oracle.closed_set);
     return { graded, score, tokens, signature };
   }
   throw new CaseError(`grade: unknown kind ${c.kind}`);

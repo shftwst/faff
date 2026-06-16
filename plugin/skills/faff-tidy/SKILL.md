@@ -156,6 +156,20 @@ Splittable-spec detection is the one structural diagnostic that is genuine LLM i
 
 The eval harness (FAFF-147) reads this sub-section verbatim — between the `#### Splittable specs` heading and the next `### ` heading — so the splittable eval measures the shipped criteria, not an improvised rubric.
 
+#### Chain gaps
+
+Chain-gap detection's prose-parsing half is genuine LLM inspection (the graph-traversal half — does a matching ticket exist — is deterministic). It reads an active ticket's implementation-advice prose and identifies references to work no ticket tracks, then classifies and skips. The criteria the judgement applies:
+
+- **Identify** references in the implementation-advice prose — work the spec names but doesn't necessarily ticket.
+- **Classify** each reference by its prose markers into exactly one sub-type:
+  - **upstream** — a prerequisite ("blocked by X", "needs Y first", "assumes Z has shipped", "depends on", "prerequisite").
+  - **downstream** — follow-up work ("subsequent PR will…", "leaves W for later", "after this, wire up V", "follow-up ticket", "next phase").
+  - **peer** — parallel work that must also happen for the change to be useful ("consumer-side changes in X", "also needs Y in the same workstream", "integration changes in service Z", "related refactor").
+  - **sub-ticket** — an umbrella's enumerated remaining deliverables (multi-PR, multi-phase, "PR 1 / PR 2", "Step N of M", numbered lists with PR-shaped action verbs) with no sub-ticket for the next deliverable.
+- **Conservative skips** — do NOT flag a reference that is: illustrative-only (not load-bearing); explicitly disclaimed ("future work — not ticketed by design"); in scope for the current PR; or a unitary spec with no external reference. Emit `[]` when no real gap remains after skips.
+
+The eval harness (FAFF-153) reads this sub-section verbatim — between the `#### Chain gaps` heading and the next `### ` heading — so the chain-gap eval measures the shipped criteria, not an improvised rubric.
+
 ### 6. Calibration signals
 
 Read `.faff/calibration/` at end of every tidy pass. See gateway → **Autonomous Mode Contract → Calibration log** for the capture points and the immutability invariant.

@@ -1,0 +1,7 @@
+{ "id": "chain-gap-001", "kind": "chain-gap",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-CG", "title": "Add the search-results endpoint", "state": "Todo",
+      "spec": "Implement GET /search that takes a query string, runs it against the search index, and returns ranked results as JSON. Implementation note: this endpoint is blocked by the search-index ingestion job — it needs the inverted-index builder to have run and populated the index store first; that ingestion pipeline does not exist yet and has no ticket. Once the index is populated, wiring the query path here is straightforward: tokenise the query, look up postings, rank by BM25, and serialise." } ] },
+  "question": "Does ISS-CG's implementation advice reference any work that no ticket tracks (a chain gap)? If so, list each as { reference, sub_type } where sub_type is upstream/downstream/peer/sub-ticket; if there is no real gap after conservative skips, return an empty list.",
+  "oracle": { "closed_set": [
+    { "reference": ["search-index ingestion job", "inverted-index builder", "ingestion pipeline", "index ingestion"], "sub_type": "upstream" } ] } }

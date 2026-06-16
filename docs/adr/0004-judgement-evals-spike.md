@@ -140,3 +140,17 @@ The "evals-only" decision was measured on faff-tidy's classification surface onl
 | reconciliation-003 | 1.00 | 1.00 | 20 | 0 |
 
 Per-comment (modal-predicted vs oracle) — every comment stable and correct across the four labels: 001 {c1 challenge · c2 resolution · c3 context · c4 noise}, 002 {c1 resolution · c2 context · c3 noise}, 003 {c1/c2/c3 noise}. Config isolation OK — parent `~/.claude.json` untouched. Raw output in the gitignored `eval/report/reconciliation-live-baseline.json` + `eval/report/FAFF-163-reconciliation-baseline.md`. So faff-prep's **live-thread reconciliation** judgement — the load-bearing input to the verdict gate — is a stable **1.00** on frontier, matching the closed-set kinds.
+
+## Addendum 2026-06-16 — chain-gap black-box baseline (FAFF-153)
+
+> Added by FAFF-153. `chain-gap` is a new **black-box** judgement-eval kind (cases in `eval/cases/`, graded by `gradeChainGap` — synonym-tolerant reference + exact `sub_type`, set-equality), the full-pipeline prose-parsing + conservative-skip half of faff-tidy's chain-gap diagnostic. The deterministic graph-traversal half is out of scope here (a scripted `test/`, per FAFF-152). This records its **human-supervised measured frontier baseline**. The Decision above is unchanged.
+
+**Measured — frontier `claude -p`, K=20/case (no escalation).** Auth worked this run: the black-box `frontierOpts` credential forwarding (`forwardCreds`, FAFF-138) carried a usable OAuth session into the per-rep isolated `CLAUDE_CONFIG_DIR` (`~/.claude/.credentials.json` present), so every rep ran clean.
+
+| Kind | Case | Accuracy | Stability | Format | Escalated |
+|---|---|---|---|---|---|
+| chain-gap | chain-gap-001 (un-ticketed upstream prerequisite) | 1.00 | 1.00 | 1.00 | no |
+| chain-gap | chain-gap-002 (conservative skip → empty oracle) | 1.00 | 1.00 | 1.00 | no |
+| **chain-gap (kind)** | **2 cases** | **1.00** | **1.00** | **1.00** | **no** |
+
+**What this confirms.** chain-gap joins the hard **1.00/1.00** frontier cohort alongside the other non-closed-set synonym-tolerant kind (`splittable`) — zero flakiness across 20 reps/case, perfect format adherence. The full-pipeline boundary (identify references *and* classify, incl. the conservative-skip judgement that chain-gap-002 exercises) reproduces stably on Opus, so the offline eval is a sufficient regression net for chain-gap. Raw run JSON is in the gitignored `eval/report/`; these numbers are measured, not fabricated.

@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  grade, gradeGloss, gradeSplittable, rankCorrelation, aggregateCase, validateCase, hasDisagreement, erroredRep, CaseError,
+  grade, gradeGloss, gradeSplittable, gradeChainGap, rankCorrelation, aggregateCase, validateCase, hasDisagreement, erroredRep, CaseError,
 } from "../eval/grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "../eval/envelope.mjs";
 import { runEvals, loadCases } from "../eval/run-evals.mjs";
@@ -166,6 +166,58 @@ test("splittable wired through grade() on a splittable case", () => {
   assert.equal(grade(c, {}).graded, "FAIL");
 });
 
+// --- FAFF-153: chain-gap — synonym-tolerant reference + EXACT sub_type set-equality over {ref, sub} pairs ---
+test("chain-gap PASS: one upstream ref identified, synonym-tolerant reference (set-equality)", () => {
+  const oracle = [{ reference: ["search-index ingestion", "ingestion pipeline"], sub_type: "upstream" }];
+  // model uses a synonym for the reference + the exact sub_type → PASS
+  const r = gradeChainGap([{ reference: "ingestion pipeline", sub_type: "upstream" }], oracle);
+  assert.equal(r.graded, "PASS");
+  assert.equal(r.score, 1);
+});
+test("chain-gap PASS: conservative-skip empty case (empty oracle + empty prediction)", () => {
+  assert.equal(gradeChainGap([], []).graded, "PASS");
+  // a model that over-flags a skip-only spec FAILs
+  assert.equal(gradeChainGap([{ reference: "a dashboard", sub_type: "downstream" }], []).graded, "FAIL");
+});
+test("chain-gap FAIL: right reference but WRONG sub_type (misclassified gap is a real miss)", () => {
+  const oracle = [{ reference: ["ingestion pipeline"], sub_type: "upstream" }];
+  assert.equal(gradeChainGap([{ reference: "ingestion pipeline", sub_type: "downstream" }], oracle).graded, "FAIL");
+});
+test("chain-gap FAIL: a phantom/extra reference not in the oracle", () => {
+  const oracle = [{ reference: ["ingestion pipeline"], sub_type: "upstream" }];
+  const pred = [
+    { reference: "ingestion pipeline", sub_type: "upstream" },
+    { reference: "a logging refactor", sub_type: "peer" },
+  ];
+  assert.equal(gradeChainGap(pred, oracle).graded, "FAIL");
+});
+test("chain-gap missing/malformed field → clean FAIL, no throw, distinct signature", () => {
+  const oracle = [{ reference: ["ingestion pipeline"], sub_type: "upstream" }];
+  // absent / non-array → empty predicted set → clean FAIL (oracle expected 1), never a throw
+  const missing = gradeChainGap(undefined, oracle);
+  assert.equal(missing.graded, "FAIL");
+  assert.equal(missing.signature, JSON.stringify([]));
+  assert.equal(gradeChainGap("garbage", oracle).graded, "FAIL");
+  // a malformed pair (null / out-of-enum sub_type) canonicalises verbatim → distinct sig, clean FAIL
+  const outOfEnum = gradeChainGap([{ reference: "ingestion pipeline", sub_type: "sideways" }], oracle);
+  assert.equal(outOfEnum.graded, "FAIL");
+  assert.notEqual(outOfEnum.signature, missing.signature);
+});
+test("chain-gap signature is deterministic and order-independent (for stability)", () => {
+  const oracle = [{ reference: ["a"], sub_type: "upstream" }, { reference: ["b"], sub_type: "peer" }];
+  const s1 = gradeChainGap([{ reference: "a", sub_type: "upstream" }, { reference: "b", sub_type: "peer" }], oracle).signature;
+  const s2 = gradeChainGap([{ reference: "b", sub_type: "peer" }, { reference: "a", sub_type: "upstream" }], oracle).signature;
+  assert.equal(s1, s2);
+});
+test("chain-gap wired through grade() on a chain-gap case", () => {
+  const c = { id: "cg", kind: "chain-gap",
+    oracle: { closed_set: [{ reference: ["ingestion pipeline"], sub_type: "upstream" }] } };
+  assert.equal(grade(c, { chain_gap: [{ reference: "ingestion pipeline", sub_type: "upstream" }] }).graded, "PASS");
+  assert.equal(grade(c, { chain_gap: [{ reference: "ingestion pipeline", sub_type: "peer" }] }).graded, "FAIL");
+  // absent chain_gap field on a chain-gap case → no gaps → FAIL (oracle expected 1)
+  assert.equal(grade(c, {}).graded, "FAIL");
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);
@@ -173,6 +225,9 @@ test("validateCase rejects an oracle that doesn't match the kind", () => {
   // FAFF-147: splittable uses the closed_set oracle field
   assert.doesNotThrow(() => validateCase({ id: "sp", kind: "splittable", oracle: { closed_set: [["a"], ["b"]] } }));
   assert.throws(() => validateCase({ id: "sp", kind: "splittable", oracle: { gloss_rubric: {} } }), CaseError);
+  // FAFF-153: chain-gap uses the closed_set oracle field (default `want`, no validateCase change)
+  assert.doesNotThrow(() => validateCase({ id: "cg", kind: "chain-gap", oracle: { closed_set: [{ reference: ["a"], sub_type: "upstream" }] } }));
+  assert.throws(() => validateCase({ id: "cg", kind: "chain-gap", oracle: { gloss_rubric: {} } }), CaseError);
 });
 
 // --- aggregation: stability (signature) is DISTINCT from accuracy (oracle) ---
@@ -243,13 +298,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-149: +6 routing (one per verdict); FAFF-150: +3 modedetect (greenfield/single-item/ambiguous).
   // FAFF-157: +3 confidence high/medium boundary-fuzz (confidence-004/005/006, single-author medium oracle).
   // FAFF-161: +2 shaping + 2 decomposition (the generative advisory rubric-coverage surfaces).
-  assert.equal(cases.length, 37);
+  // FAFF-153: +2 chain-gap (one positive upstream gap + one conservative-skip empty-oracle case).
+  assert.equal(cases.length, 39);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

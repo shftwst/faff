@@ -319,3 +319,39 @@ export function routingLiveDriver({ model, fixture, pluginDir = DEFAULT_PLUGIN_D
     readEnvelope: (env) => [{ name: "routing", items: env.verdict == null ? [] : [String(env.verdict)] }],
   });
 }
+
+/**
+ * FAFF-160 — the routing live-fixture RUNNER, the verbatim symmetric twin of driveReconciliationCase
+ * (FAFF-154). Given a loaded routing EvalCase (a `cases/routing-*.json` assembled fixture-of-findings +
+ * single-verdict `oracle.closed_set`) and an injected model, it binds the case's `fixture` into
+ * routingLiveDriver (the inherited FAFF-158 makeLiveDriver wrapper — no driver re-cut) and drives it
+ * through the REAL FAFF-93 harness via `runSkill({ skill: "faff-tidy" })`, returning the recorded
+ * `routing` bucket's single assigned verdict so the caller can grade it through the existing FAFF-149
+ * `routing` grade path (single-element set-equality, no grader change).
+ *
+ * `runSkill`, `tracker`, and `repo` are injected (not imported) so eval/ stays free of test-helper deps
+ * and the runner is the single place a routing case reaches the live-driver seam. The driver still
+ * issues the listIssues seam-read, so the run is seam-faithful at the harness boundary, exactly like
+ * driveReconciliationCase. Unlike reconciliation (cases-live/), routing cases are read straight from
+ * `cases/routing-*.json` (FAFF-160 spec Decision: the assembled fixtures already live there — the
+ * black-box lane and the live lane share the one oracle, never duplicated into cases-live/).
+ *
+ * A missing / out-of-enum verdict surfaces as `verdict: null` (or the verbatim token), which the
+ * LIVE_KINDS routing adapter forwards into `{ env: { verdict } }` → a clean grader FAIL, never a throw.
+ *
+ * @param {object} evalCase a loaded routing case ({ id, kind:"routing", fixture, oracle })
+ * @param {{ runSkill: Function, tracker: object, repo: object, model: Function,
+ *           pluginDir?: string|null }} cfg
+ * @returns {Promise<{ record: object, verdict: string|null }>} the DecisionRecord + the assigned verdict
+ */
+export async function driveRoutingCase(evalCase, { runSkill, tracker, repo, model, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
+  if (!evalCase || evalCase.kind !== "routing" || !evalCase.fixture) {
+    throw new Error("driveRoutingCase requires a routing EvalCase with a `fixture`");
+  }
+  if (typeof runSkill !== "function") {
+    throw new Error("driveRoutingCase requires the FAFF-93 runSkill (injected, not imported)");
+  }
+  const driver = routingLiveDriver({ model, fixture: evalCase.fixture, pluginDir, caseId: evalCase.id });
+  const record = await runSkill({ skill: "faff-tidy", tracker, repo, driver });
+  return { record, verdict: record.buckets.routing?.[0] ?? null };
+}

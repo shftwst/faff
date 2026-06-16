@@ -15,8 +15,19 @@ import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
 import { runSkill } from "./helpers/skill-harness.mjs";
 import { LIVE_KINDS, runLiveEvals, renderBaselineMarkdown } from "../eval/run-live-evals.mjs";
-import { loadLiveCases } from "../eval/run-evals.mjs";
+import { loadCases, loadLiveCases } from "../eval/run-evals.mjs";
 import { BASE_REPS, MAX_REPS } from "../eval/run-evals.mjs";
+
+// FAFF-160 — a mock model that returns a fixed routing envelope (the per-rep `claude -p` stand-in, zero
+// spawn). The routing envelope carries a single `verdict` field the grader reads by single-element set.
+function routeModel(verdict) {
+  return async () => "```faff-eval:judgement\n" + JSON.stringify({ case_id: "live", verdict }) + "\n```";
+}
+
+// The first oracle verdict of a routing case (routing oracle.closed_set is a single-element verdict set).
+function oracleVerdict(c) {
+  return c.oracle.closed_set[0];
+}
 
 // A minimal harness substrate (the seam-faithful listIssues read + a seeded repo). The reconciliation
 // classification rides the injected fixture/oracle, not the tracker contents.
@@ -41,17 +52,90 @@ function reconModel(labelMap) {
   return async () => "```faff-eval:judgement\n" + JSON.stringify({ case_id: "live", reconciliation: labelMap }) + "\n```";
 }
 
-// --- the open registry holds reconciliation and leaves the kind list extensible (FAFF-160) ---
-test("LIVE_KINDS registers reconciliation with a { loader, driveCase } adapter, open for FAFF-160", () => {
+// --- the open registry holds reconciliation (FAFF-163) and now routing (FAFF-160), both additive ---
+test("LIVE_KINDS registers reconciliation + routing with { loader, driveCase } adapters", () => {
+  // FAFF-163's reconciliation adapter is untouched (additive append, no core change)
   assert.ok(LIVE_KINDS.reconciliation, "reconciliation adapter is registered");
   assert.equal(typeof LIVE_KINDS.reconciliation.loader, "function");
   assert.equal(typeof LIVE_KINDS.reconciliation.driveCase, "function");
-  // the loader returns ONLY reconciliation cases from cases-live/
-  const cases = LIVE_KINDS.reconciliation.loader();
-  assert.ok(cases.length >= 1, "loader returns the committed reconciliation cases");
-  assert.ok(cases.every((c) => c.kind === "reconciliation"));
-  // routing is NOT registered by FAFF-163 (left for FAFF-160) — the registry is open, not pre-filled
-  assert.ok(!("routing" in LIVE_KINDS), "FAFF-163 leaves LIVE_KINDS open; FAFF-160 appends routing");
+  const reconCases = LIVE_KINDS.reconciliation.loader();
+  assert.ok(reconCases.length >= 1, "loader returns the committed reconciliation cases");
+  assert.ok(reconCases.every((c) => c.kind === "reconciliation"));
+  // FAFF-160 appends routing — the one append FAFF-163 left the registry open for
+  assert.ok(LIVE_KINDS.routing, "routing adapter is registered (FAFF-160 append)");
+  assert.equal(typeof LIVE_KINDS.routing.loader, "function");
+  assert.equal(typeof LIVE_KINDS.routing.driveCase, "function");
+  // routing reads cases/ (the assembled fixtures-of-findings), NOT cases-live/ — the two lanes share
+  // the one oracle, never duplicated (spec §2 OUT OF SCOPE)
+  const routeCases = LIVE_KINDS.routing.loader();
+  assert.ok(routeCases.length >= 1, "loader returns the committed routing cases from cases/");
+  assert.ok(routeCases.every((c) => c.kind === "routing"));
+});
+
+// --- FAFF-160 routing: a correct mock verdict yields accuracy 1.0 / stability 1.0 over every case ---
+test("runLiveEvals drives every routing case via the harness + mock model and grades PASS", async (t) => {
+  for (const c of loadCases().filter((x) => x.kind === "routing")) {
+    const { tracker, repo } = substrate();
+    t.after(() => repo.teardown());
+    const s = await runLiveEvals({
+      kind: "routing",
+      only: c.id,
+      ctx: { runSkill, tracker, repo, model: routeModel(oracleVerdict(c)) },
+      baseReps: 3, // small K — deterministic mock
+    });
+    assert.equal(s.cases.length, 1, `${c.id} drove exactly one case`);
+    const cr = s.cases[0];
+    assert.equal(cr.case_id, c.id);
+    assert.equal(cr.accuracy, 1, `${c.id} grades PASS against its own oracle verdict`);
+    assert.equal(cr.stability, 1, `${c.id} is stable (deterministic mock)`);
+    assert.equal(cr.escalated, false, "a stable case never escalates");
+  }
+});
+
+// --- FAFF-160 routing: the adapter NORMALISES driveRoutingCase's { record, verdict } -> { env: { verdict }, tokens } ---
+test("the routing adapter normalises driveRoutingCase's verdict into a gradeable env", async (t) => {
+  const c = loadCases().find((x) => x.kind === "routing");
+  const { tracker, repo } = substrate();
+  t.after(() => repo.teardown());
+  const { env, tokens } = await LIVE_KINDS.routing.driveCase(c, {
+    runSkill, tracker, repo, model: routeModel(oracleVerdict(c)),
+  });
+  // env is envelope-shaped { verdict } — the exact shape grade() reads for the routing kind
+  assert.equal(env.verdict, oracleVerdict(c), "the recorded routing bucket surfaced the assigned verdict");
+  assert.equal(typeof tokens, "number", "tokens is a number (0 when the record carries no tally)");
+});
+
+// --- FAFF-160 routing: a WRONG verdict -> a clean FAIL (accuracy 0), no throw (fail-safe) ---
+test("a wrong mock routing verdict yields accuracy 0 with no throw (rep-loop fail-safe)", async (t) => {
+  const c = loadCases().find((x) => x.kind === "routing");
+  const { tracker, repo } = substrate();
+  t.after(() => repo.teardown());
+  const right = oracleVerdict(c);
+  const wrong = right === "gap-blocked" ? "fire-and-forget" : "gap-blocked";
+  const s = await runLiveEvals({
+    kind: "routing",
+    only: c.id,
+    ctx: { runSkill, tracker, repo, model: routeModel(wrong) },
+    baseReps: 3,
+  });
+  assert.equal(s.cases[0].accuracy, 0, "a wrong verdict fails the oracle");
+  assert.equal(s.cases[0].stability, 1, "still stable — the mock is deterministic");
+});
+
+// --- FAFF-160 routing: a missing verdict (null) is a clean FAIL through the adapter, never a crash ---
+test("a missing routing verdict (null) yields accuracy 0 with no throw", async (t) => {
+  const c = loadCases().find((x) => x.kind === "routing");
+  const { tracker, repo } = substrate();
+  t.after(() => repo.teardown());
+  // an envelope with no `verdict` field -> driver records [] -> driveRoutingCase verdict null
+  const noVerdict = async () => "```faff-eval:judgement\n" + JSON.stringify({ case_id: "live" }) + "\n```";
+  const s = await runLiveEvals({
+    kind: "routing",
+    only: c.id,
+    ctx: { runSkill, tracker, repo, model: noVerdict },
+    baseReps: 2,
+  });
+  assert.equal(s.cases[0].accuracy, 0, "a missing verdict fails the oracle cleanly");
 });
 
 // --- happy path: a correct mock model yields accuracy 1.0 / stability 1.0 across every committed case ---

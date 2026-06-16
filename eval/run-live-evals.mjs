@@ -32,8 +32,9 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { grade, aggregateCase, hasDisagreement, erroredRep } from "./grader.mjs";
-import { BASE_REPS, MAX_REPS, loadLiveCases, summarize } from "./run-evals.mjs";
-import { driveReconciliationCase, makeLiveModel } from "./live-driver.mjs";
+import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize } from "./run-evals.mjs";
+import { driveReconciliationCase, driveRoutingCase, makeLiveModel } from "./live-driver.mjs";
+import { frontierOpts } from "./cli-driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -80,8 +81,24 @@ export const LIVE_KINDS = {
       return { env, tokens };
     },
   },
-  // FAFF-160 registers `routing` here: { loader: () => loadLiveCases().filter(c => c.kind === "routing"),
-  //   driveCase: (c, ctx) => driveRoutingCase(c, ctx) -> { env: { verdict }, tokens } } — one append.
+  // FAFF-160 — the routing live-driver adapter (the one append FAFF-163 left this registry open for).
+  // Unlike reconciliation (cases-live/ ThreadFixtures), routing's assembled fixtures-of-findings already
+  // live in `cases/routing-*.json` (FAFF-149's black-box lane), and the live-driver consumes that SAME
+  // fixture+oracle — so the loader reads `loadCases()` (the `cases/` reader), never loadLiveCases(): the
+  // two lanes share the one oracle, never duplicated into cases-live/ (spec §2 OUT OF SCOPE). driveCase
+  // normalises driveRoutingCase's `{ record, verdict }` into the rep-loop's `{ env: { verdict }, tokens }`
+  // so grade(evalCase, env) runs the existing FAFF-149 single-element-set routing path unchanged.
+  routing: {
+    loader: () => loadCases().filter((c) => c.kind === "routing"),
+    async driveCase(evalCase, { runSkill, tracker, repo, model }) {
+      const { record, verdict } = await driveRoutingCase(evalCase, { runSkill, tracker, repo, model });
+      // A missing/out-of-enum verdict is forwarded verbatim (null when absent) — grade scores a clean
+      // FAIL via setEqual, never a throw (the eval-side fail-safe, the confidence/routing stance).
+      const env = { verdict };
+      const tokens = (record && (record.tokens ?? record.usage?.output_tokens)) || 0;
+      return { env, tokens };
+    },
+  },
 };
 
 // Drive one live case for K reps via the kind adapter, normalising each rep to a graded RepResult.
@@ -218,7 +235,12 @@ async function main(argv) {
   const { seedRepo } = await import("../test/helpers/seed-repo.mjs");
   const tracker = loadFixture({ version: 1, issues: [{ id: "ISS-A", title: "anything", state: "Todo", stateCategory: "unstarted" }] });
   const repo = seedRepo({ commits: [{ message: "init", files: { "README.md": "x" } }] });
-  const model = makeLiveModel({ bin, pluginDir });
+  // FAFF-160 — build the frontier model via frontierOpts (NOT bare opts): frontierOpts sets
+  // forwardCreds:true + bare:false, so makeLiveModel's per-rep forwardCredentials actually copies the
+  // OAuth `.credentials.json` into the isolated CLAUDE_CONFIG_DIR. Without it, `forwardCreds` defaulted
+  // falsy and every rep landed "Not logged in" in the isolated dir (the FAFF-138 gap the live-runner
+  // path missed — the proven cli-driver frontierDriver already wraps frontierOpts; this matches it).
+  const model = makeLiveModel(frontierOpts({ bin, pluginDir }));
 
   try {
     const summary = await runLiveEvals({ kind, ctx: { runSkill, tracker, repo, model }, only, baseReps: repsArg ? Number(repsArg) : BASE_REPS });

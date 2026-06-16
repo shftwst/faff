@@ -22,7 +22,7 @@ Buildable spec for **FAFF-129**, a time-boxed (~1–2h) spike. Audience: the bui
 | System | Language | Relevance |
 |---|---|---|
 | `docs/adr/0003-live-driver-spike.md` | Markdown | The frontier kernel probe this re-runs locally; its oracle, substrate shape, and 0%-flakiness baseline are the comparison point. The finding lands as an addendum here. |
-| `eval/cli-driver.mjs` (`localOpts`, `buildInvocation`, `forwardCredentials`) | Node (ESM) | Source of the ollama Anthropic-API env-redirect (`ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN=ollama` / `ANTHROPIC_API_KEY=""`) and the per-run `CLAUDE_CONFIG_DIR` isolation pattern the probe reuses. Note: its `makeCliDriver` runs single-shot — the spike borrows the *wiring*, not that call path. |
+| `eval/cli-driver.mjs` (`localOpts`) / `eval/ollama-model.mjs` | Node (ESM) | Prior art for reaching the local model: `localOpts` documents the `claude -p` Anthropic-API env-redirect (the path the build rejected — see §3), and `ollama-model.mjs` the native `/api/chat` + `think:false` knobs the probe actually uses. Both confirm host/model are caller-supplied (no localhost default). |
 | `plugin/skills/faff/bin/faff` (`eligible`, `next`) | Node (CLI) | The deterministic kernel under test; also the oracle (`faff next`/`faff eligible` give ground truth). Both carry `--selftest`. |
 | `eval/ollama-model.mjs` | Node (ESM) | Source of the host/model/`think` knobs — all **caller-supplied** (host `studio.longhair-escalator.ts.net:11434` and model `qwen3.6:27b-mlx` live in fixtures; `think:false` defaults in `makeDirectOllamaDriver`, not the low-level request builder). Confirms "no localhost default". |
 
@@ -59,10 +59,9 @@ RECORD ProbeConfig:
   model:      String    # qwen3.6:27b-mlx
   think:      Bool      # default false (FAFF-137 speed); see HOW edge case
   reps:       Int       # 3–5 (spike, directional — NOT the production K=20)
-  env:        Map       # ANTHROPIC_BASE_URL=base_url, ANTHROPIC_AUTH_TOKEN="ollama",
-                        #   ANTHROPIC_API_KEY="" — verbatim from cli-driver.localOpts
-  config_dir: Path      # per-rep mkdtemp CLAUDE_CONFIG_DIR; forwardCreds=false (never
-                        #   copy the real Anthropic credential to the ollama host)
+  transport:  Native    # native /api/chat agentic tool-loop (revised — see §3). POSTs directly to
+                        #   base_url/api/chat with think:false, tools=[bash]. No claude binary, no
+                        #   ANTHROPIC_* env, no credential — so no config-isolation is needed.
 ```
 
 **Per-rep capture shape (what the probe records).**
@@ -71,7 +70,7 @@ RECORD ProbeConfig:
 RECORD RepResult:
   rep_index:        Int
   seam_log:         List<SeamCall>     # appended by ./bin/tracker + ./bin/faff wrappers
-  transcript:       JSON               # claude -p --output-format stream-json (fidelity cross-check)
+  transcript:       JSON               # the /api/chat message list + every issued bash command (fidelity cross-check)
   decisions:        BucketSet          # { ready, on_hold, needs_prep, blocked, park_clear }
   mutations:        List<Mutation>     # { setStatus, removeLabel, ... }
   toolcall_flubs:   List<Flub>         # malformed/bypassed/hallucinated calls
@@ -95,27 +94,28 @@ RECORD SeamCall:
 
 ## 4. HOW — Behavior
 
-**Architecture.** Reconstruct ADR 0003's probe, swapping the frontier invocation for the ollama env-redirect. The substrate is a scratch dir with a mock tracker and two logging-port wrappers; the kernel brief instructs the agent to drive the kernel by *calling those ports*; `claude -p --output-format stream-json --permission-mode bypassPermissions --allowedTools Bash` runs it; the probe scrapes the transcript + seam log; a tiny diff compares against the oracle and across reps.
+**Architecture.** Reconstruct ADR 0003's probe, but drive it with a native `/api/chat` agentic tool-loop (revised — see §3) instead of `claude -p`. The substrate is a scratch dir with a mock tracker and two logging-port wrappers; the kernel brief instructs the agent to drive the kernel by *calling those ports*; a small loop POSTs to `base_url/api/chat` with `think:false` and a single generic `bash` tool, feeding each tool result back until the model emits its final answer — so the model issues the same `./bin/tracker` / `./bin/faff` Bash calls a `claude -p` agent would; the probe records the seam log + every issued bash command; a tiny diff compares the final answer against the oracle and across reps.
 
 **Behaviour summary — one rep.** Spawn the ollama-redirected agent over the substrate brief; it should issue tracker reads + `faff eligible`/`faff next` calls through the ports and emit buckets+mutations; the probe captures every seam, flags flubs, and records the decisions.
 
 ```
 PROCEDURE run_probe(cfg):
   1. Validate preconditions (Assumptions §7): ollama host reachable + serving model;
-     one agentic smoke rep proves the env-redirect supports tool-use blocks.
-     IF the redirect cannot drive an agentic tool-loop:
+     faff next/eligible selftests pass; one agentic smoke rep proves the /api/chat tool-loop
+     drives the kernel (issues ≥1 well-formed ./bin/faff call through the port).
+     IF the model cannot sustain a tool-loop at all:
         record it as a NO-GO finding (mechanism blocker) and STOP — this is a valid outcome.
   2. Materialise the ADR-0003 substrate in a scratch dir (tracker.json + ./bin/tracker +
      ./bin/faff logging wrappers over the real CLI + the kernel brief).
   3. FOR rep in 1..cfg.reps:
-     a. mkdtemp a CLAUDE_CONFIG_DIR (isolation); set env = ollama redirect; forwardCreds=false.
-     b. spawn `claude -p <kernel-brief> --model <model> --output-format stream-json
-        --permission-mode bypassPermissions --allowedTools Bash` with cwd = scratch dir.
-     c. Capture: the seam log, the stream-json transcript, the emitted buckets+mutations, wall time.
-     d. Compute toolcall_flubs by cross-checking transcript tool calls vs the seam log
-        (every decision must trace to a captured well-formed seam; flag malformed flags,
-        wrong/hallucinated subcommands, and port bypasses).
-     e. rm the per-rep config dir.
+     a. POST to base_url/api/chat with think:false, messages=[kernel brief], tools=[bash];
+        each bash tool_call runs in the scratch cwd (SEAM_LOG set) and its stdout is fed back;
+        loop until the model returns a final answer with no tool_calls.
+     b. Capture: the seam log (./bin ports), every issued bash command, the /api/chat message
+        list, the final buckets+mutations, turns, wall time.
+     c. Compute toolcall_flubs by cross-checking issued bash commands vs the seam log
+        (every decision must trace to a captured well-formed ./bin/faff seam; flag malformed
+        flags, wrong/hallucinated subcommands, and port bypasses — e.g. reading tracker.json direct).
   4. AGGREGATE:
      - tool_call_fidelity = wellformed_routed_seams / total_decision_relevant_seams (across reps)
      - decision_fidelity  = (buckets,verdicts,mutations) == oracle, AND identical across reps
@@ -141,14 +141,14 @@ The ≈0.95 figure is the author's directional bar for *this go/no-go*, not a CI
 **Edge cases and error handling.**
 
 - **Ollama host unreachable / model not pulled** → terminal for the run; the build agent reports the blocker (do not fabricate numbers). This is the §7 assumption's failure.
-- **Env-redirect doesn't support agentic tool-use blocks** → terminal for the *mechanism*, but a legitimate **NO-GO finding** (record it; the local lane isn't viable via `claude -p` today), not a silent failure.
+- **`claude -p` transport can't disable thinking (the resolved mechanism finding)** → `claude -p` reaches ollama only via `/v1/messages`, which has no thinking toggle, so a reasoning model thinks every turn (impractically slow). This is *why* the driver path was revised to the native `/api/chat` loop (§3). If even the native loop couldn't sustain a tool-loop, that would be a terminal **NO-GO finding** (record it, don't fail silently) — but it does sustain one.
 - **`think:false` degrades multi-step routing** → permitted fallback: one `think:true` diagnostic rep; record whether reasoning-on changes tool-call fidelity, noting the wall-time cost.
 - **Path variance without decision change** → expected and acceptable: ADR 0003 saw 16 vs 19 seam calls (a redundant `faff eligible`) with identical decisions. Count it as fidelity-neutral, not a flub.
-- **Per-rep config-dir race on `~/.claude.json`** → the per-rep `CLAUDE_CONFIG_DIR` isolation (ADR 0003 infra finding, FAFF-138) prevents it; verify the parent `~/.claude.json` is untouched after the sweep.
+- **Per-rep config-dir race on `~/.claude.json`** → moot on the native `/api/chat` path: the loop never spawns `claude` and never touches `~/.claude.json` or any credential, so the FAFF-138 race the ADR-0003 `claude -p` probe hit simply does not arise.
 
 **Anti-pattern:** running the shipped single-shot black-box driver (`buildEvalPrompt` → JSON envelope) or the direct `/api/chat` path and calling it a tool-routing result. Why: neither issues tool calls, so tool-call fidelity — the whole point — is unmeasured.
 
-**Anti-pattern:** forwarding the real Anthropic OAuth credential into the local lane's config dir. Why: it would ship a real credential to a third-party endpoint; `localOpts` sets `forwardCreds:false` for exactly this.
+**Anti-pattern:** sending any real Anthropic credential to the ollama host. Why: it would ship a credential to a third-party endpoint. The native `/api/chat` path needs no auth token at all, so it carries none — the strongest form of this guard.
 
 **Anti-pattern:** comparing local decision fidelity to the oracle while tool-call fidelity is low. Why: low fidelity manufactures false flakiness — the guardrail's exact failure mode.
 
@@ -156,7 +156,7 @@ The ≈0.95 figure is the author's directional bar for *this go/no-go*, not a CI
 
 ```
 Given the ollama host is reachable and serving qwen3.6:27b-mlx, and the ADR-0003 substrate is materialised
-When the ollama-redirected agentic claude -p drives the kernel for N reps
+When the native /api/chat agentic tool-loop (think:false) drives the kernel for N reps
 Then every decision-relevant call is cross-checked against the seam log and a tool_call_fidelity
      fraction (well-formed + port-routed) is produced before any decision-fidelity number is reported
 ```
@@ -168,14 +168,14 @@ Then a GO/NO-GO/PARTIAL verdict is recorded with the supporting numbers and obse
 ```
 
 ```
-Given the local lane's env-redirect cannot sustain an agentic tool-use loop through claude -p
-When the smoke rep reveals it
-Then the run records this as a NO-GO mechanism finding (not a crash, not fabricated numbers)
+Given the local model cannot sustain an agentic tool-loop (or the claude -p transport proves impractical)
+When the smoke rep / connectivity probe reveals it
+Then the run records this as a NO-GO / mechanism finding (not a crash, not fabricated numbers)
 ```
 
 Non-functional assertions:
-- The probe forwards **no** Anthropic credential to the ollama host (`forwardCreds:false`).
-- The parent `~/.claude.json` is unchanged after the full rep sweep (config isolation held).
+- The probe sends **no** Anthropic credential to the ollama host (the native `/api/chat` path uses none).
+- The parent `~/.claude.json` is untouched (the native loop never spawns `claude`; config-isolation is moot).
 - No production harness code is committed; the substrate/runner are scratch.
 
 ## 6. DESIGN DECISION RATIONALE
@@ -190,7 +190,7 @@ Non-functional assertions:
 
 **Where does the finding land?** A standalone doc fragments the lane history; ADR 0003 already collects lane baselines via addenda (FAFF-160). **Chosen:** an ADR 0003 addendum + conditional follow-up ticket.
 
-*Temporal anchor:* at the time of writing, ollama's Anthropic-Messages-API emulation is proven for **single-shot** completions (the shipped `localOpts` preset) but **not** verified for an agentic tool-use loop through `claude -p`; the smoke rep (§7) settles this, and a negative result is itself a finding.
+*Temporal anchor (resolved in build):* ollama's Anthropic `/v1/messages` emulation (what `claude -p` uses) carries **no thinking toggle**, so a reasoning model thinks every turn — impractical. ollama's **native `/api/chat`** does honour `think:false` and multi-turn tool-calling, so the native loop is the viable transport; the smoke rep confirmed it (1.00 fidelity).
 
 ## 7. OPEN QUESTIONS AND ASSUMPTIONS
 
@@ -199,7 +199,7 @@ Non-functional assertions:
 **Assumptions.**
 
 - **Assumes:** the ollama host `http://studio.longhair-escalator.ts.net:11434` (Tailscale) is reachable and has `qwen3.6:27b-mlx` pulled. *Validate:* `curl -s $base_url/api/tags` lists the model before any rep; if not, report the blocker and stop.
-- **Assumes:** `claude -p` driven against the ollama Anthropic-API env-redirect can sustain an **agentic tool-use loop** (`tool_use`/`tool_result` blocks for Bash calls), not only single-shot completions. *Validate:* one agentic smoke rep that must issue at least one real `./bin/faff` call through the port; if the redirect can't drive tool-use, record the NO-GO mechanism finding (HOW step 1) rather than proceeding.
+- **Assumes (resolved in build):** the local model can sustain an **agentic tool-loop**. Originally framed around `claude -p`; the build found that transport impractical for a reasoning model and used the native `/api/chat` loop instead (§3), which the smoke rep confirmed sustains a tool-loop (issues real `./bin/faff` calls through the port). A future model that couldn't would be the NO-GO mechanism finding (HOW step 1).
 - **Assumes:** the real `faff` CLI (`bin/faff eligible` / `next`) is on PATH or resolvable in the scratch dir to back the `./bin/faff` logging wrapper and to generate the oracle. *Validate:* `faff next --selftest` and `faff eligible --selftest` pass before the run.
 
 ## 8. DONE — Definition of Done
@@ -210,13 +210,13 @@ Non-functional assertions:
 - [ ] No production harness code is committed (substrate + runner are scratch).
 
 ### From WHAT (config & capture)
-- [ ] The probe uses the ollama env-redirect (`ANTHROPIC_BASE_URL`/`AUTH_TOKEN=ollama`/`API_KEY=""`) with `base_url` supplied (no localhost default) and `forwardCreds:false`.
-- [ ] Each rep captures the seam log, the `stream-json` transcript, emitted buckets+mutations, flubs, and wall time.
+- [ ] The probe POSTs to the native `/api/chat` with `base_url` supplied (no localhost default), `think:false`, and a single `bash` tool — no credential sent to the host.
+- [ ] Each rep captures the seam log, the `/api/chat` message list + issued bash commands, emitted buckets+mutations, flubs, and wall time.
 
 ### From HOW (behaviour)
-- [ ] Preconditions (§7) are validated first; an unreachable host or a non-agentic redirect produces a recorded finding, not fabricated numbers.
+- [ ] Preconditions (§7) are validated first; an unreachable host or a model that can't sustain a tool-loop produces a recorded finding, not fabricated numbers.
 - [ ] The ADR 0003 7-issue substrate + logging ports + published oracle are reconstructed faithfully.
-- [ ] 3–5 reps run via agentic `claude -p` with per-rep `CLAUDE_CONFIG_DIR` isolation.
+- [ ] 3–5 reps run via the native `/api/chat` agentic tool-loop (`think:false`); no config-isolation needed (no `claude` spawn).
 - [ ] `tool_call_fidelity` and `decision_fidelity` are aggregated and the GO/NO-GO/PARTIAL bar is applied.
 - [ ] A GO/NO-GO/PARTIAL verdict + observed failure modes are written as an addendum to `docs/adr/0003-live-driver-spike.md`.
 
@@ -231,8 +231,8 @@ Non-functional assertions:
 PROCEDURE smoke():
   1. curl -s $base_url/api/tags | grep qwen3.6:27b-mlx           # host + model present
   2. materialise substrate; faff next --selftest                 # oracle backing works
-  3. one agentic rep: claude -p <kernel-brief> --model qwen3.6:27b-mlx \
-       --output-format stream-json --permission-mode bypassPermissions --allowedTools Bash
+  3. one agentic rep: native /api/chat tool-loop (think:false, tools=[bash]) over <kernel-brief>,
+       model qwen3.6:27b-mlx, cwd = scratch dir
   4. ASSERT the seam log contains ≥1 well-formed ./bin/faff call routed through the port
      # if yes → the mechanism works, proceed to the full N-rep sweep
      # if no  → record the NO-GO mechanism finding and stop

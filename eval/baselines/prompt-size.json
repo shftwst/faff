@@ -1,0 +1,151 @@
+{
+  "meta": {
+    "captured_at": "2026-06-16"
+  },
+  "per_file": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "lines": 445,
+      "chars": 46499,
+      "est_tokens": 11625
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "lines": 385,
+      "chars": 41986,
+      "est_tokens": 10497
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "lines": 155,
+      "chars": 18060,
+      "est_tokens": 4515
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "lines": 220,
+      "chars": 20184,
+      "est_tokens": 5046
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "lines": 114,
+      "chars": 10435,
+      "est_tokens": 2609
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "lines": 115,
+      "chars": 11827,
+      "est_tokens": 2957
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "lines": 322,
+      "chars": 37441,
+      "est_tokens": 9361
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "lines": 280,
+      "chars": 49749,
+      "est_tokens": 12438
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "lines": 298,
+      "chars": 27719,
+      "est_tokens": 6930
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "lines": 910,
+      "chars": 143281,
+      "est_tokens": 35821
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "lines": 312,
+      "chars": 23463,
+      "est_tokens": 5866
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "lines": 117,
+      "chars": 10106,
+      "est_tokens": 2527
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "lines": 168,
+      "chars": 10263,
+      "est_tokens": 2566
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "lines": 95,
+      "chars": 11090,
+      "est_tokens": 2773
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "lines": 54,
+      "chars": 5593,
+      "est_tokens": 1399
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "lines": 178,
+      "chars": 15349,
+      "est_tokens": 3838
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "lines": 229,
+      "chars": 11662,
+      "est_tokens": 2916
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "lines": 40,
+      "chars": 3718,
+      "est_tokens": 930
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "lines": 118,
+      "chars": 7624,
+      "est_tokens": 1906
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-structural/SKILL.md",
+      "lines": 227,
+      "chars": 23740,
+      "est_tokens": 5935
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "lines": 154,
+      "chars": 9005,
+      "est_tokens": 2252
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "lines": 70,
+      "chars": 10378,
+      "est_tokens": 2595
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "lines": 136,
+      "chars": 12719,
+      "est_tokens": 3180
+    }
+  ],
+  "totals": {
+    "files": 23,
+    "lines": 5142,
+    "chars": 561891,
+    "est_tokens": 140482
+  }
+}

@@ -154,3 +154,42 @@ Per-comment (modal-predicted vs oracle) — every comment stable and correct acr
 | **chain-gap (kind)** | **2 cases** | **1.00** | **1.00** | **1.00** | **no** |
 
 **What this confirms.** chain-gap joins the hard **1.00/1.00** frontier cohort alongside the other non-closed-set synonym-tolerant kind (`splittable`) — zero flakiness across 20 reps/case, perfect format adherence. The full-pipeline boundary (identify references *and* classify, incl. the conservative-skip judgement that chain-gap-002 exercises) reproduces stably on Opus, so the offline eval is a sufficient regression net for chain-gap. Raw run JSON is in the gitignored `eval/report/`; these numbers are measured, not fabricated.
+
+## Addendum 2026-06-16 — carved new-kind frontier baselines: verdict-build (live) + shaping / decomposition / confidence-fuzz (black-box) (FAFF-166)
+
+> Added by FAFF-166. Consolidates the frontier-baseline carve-outs deferred by FAFF-155 (verdict-build), FAFF-161 (shaping / decomposition), and FAFF-157 (confidence boundary-fuzz 004–006) — the kinds added *after* the 2026-06-16 full-suite addendum, so absent from it. **reconciliation** (FAFF-163) and **routing** (FAFF-160) were already recorded in the addenda above and are out of scope here. Run depends on the FAFF-160 credential-forwarding fix (`makeLiveModel(frontierOpts(...))`) and the FAFF-155 verdict-build `LIVE_KINDS` adapter, both already merged. The Decision above is unchanged.
+
+**Run.** Human-supervised, 2026-06-16. `verdict-build` via `node eval/run-live-evals.mjs --kind verdict-build` (live-driver lane, `driveVerdictBuildCase` over `cases-live/`); shaping / decomposition / confidence via `node eval/run-evals.mjs --only <id>` (black-box lane, `cases/`). Frontier (`claude -p`, Opus), K=20 base, adaptive escalation→50 on disagreement, config-isolated per rep (FAFF-138). **Targeted scope** — only the new kinds were run; the ~33 already-baselined cases (addenda above) were deliberately not re-run. Raw reports in the gitignored `eval/report/verdict-build-live-baseline.json` + `eval/report/faff166-<case>.json`.
+
+**verdict-build — live-driver lane:**
+
+| case | accuracy | stability | reps | escalated |
+|---|---|---|---|---|
+| verdict-build-001 | 1.00 | 1.00 | 20 | 0 |
+
+**shaping / decomposition — black-box generative-coverage lane (advisory rubric oracle, FAFF-161):**
+
+| case | accuracy | stability | format | reps | escalated |
+|---|---|---|---|---|---|
+| shaping-001 | 1.00 | 1.00 | 1.00 | 20 | no |
+| shaping-002 | 1.00 | 1.00 | 1.00 | 20 | no |
+| decomposition-001 | 0.86 | 0.86 | 1.00 | 50 | yes |
+| decomposition-002 | 0.98 | 0.98 | 1.00 | 50 | yes |
+
+**confidence high/medium boundary-fuzz (FAFF-157) — black-box lane:**
+
+| case | accuracy | stability | format | reps | escalated |
+|---|---|---|---|---|---|
+| confidence-004 | 0.82 | 0.82 | 1.00 | 50 | yes |
+| confidence-005 | 0.98 | 0.98 | 1.00 | 50 | yes |
+| confidence-006 | 0.90 | 0.90 | 1.00 | 50 | yes |
+
+**What this confirms.**
+
+- **verdict-build is a hard 1.00/1.00** on frontier — faff-graft's whole-change build verdict is as stable as the other closed-set live-driver surfaces, matching reconciliation's 1.00 (FAFF-163). The live-driver lane now has three recorded surfaces: reconciliation, routing, verdict-build.
+- **shaping is a clean 1.00/1.00** across both fixtures — the ticket-shaping generative surface reproduces its rubric coverage perfectly on frontier.
+- **decomposition is the least-stable new surface** — decomposition-001 escalated to 50 reps at **0.86/0.86**, decomposition-002 at **0.98/0.98**. The top-down decomposition tree is a generative free-text task (initiatives→projects→epics) graded on coverage + structural assertions, so higher run-to-run variance than the closed-set kinds is expected. Keep it **advisory** (its FAFF-161 stance), not a hard gate; 0.86 is a thin single-fixture-low signal — widen decomposition fixtures before leaning on it.
+- **confidence boundary-fuzz spreads 0.82–0.98**, exactly as FAFF-157 anticipated: confidence-004 is the wobbliest at **0.82** (echoing confidence-001's ~0.80 boundary flip in the full-suite addendum), 005 near-stable at **0.98**, 006 mid at **0.90**. The high/medium confidence boundary genuinely flips run-to-run on Opus — **widen confidence fixtures before any hard confidence gate**, consistent with the earlier finding.
+- **Format adherence is 1.00 across every new black-box kind** — the FAFF-137 envelope hardening holds for the generative surfaces too.
+
+**Scope caveat.** shaping / decomposition / confidence are **black-box** numbers (model + extracted-rubric + fixture), per the 2026-06-15 caveat; verdict-build is the **live-driver** lane (`driveVerdictBuildCase` + the recorded fixture, the faithful path). Config isolation OK — the parent `~/.claude.json` was re-validated as untouched after the run.

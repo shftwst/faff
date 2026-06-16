@@ -162,6 +162,7 @@ estimated, or carried over from a sweep that errored.
 
 **Full-suite vs targeted black-box run?**
 - **Chosen:** full suite — rationale: two commands total, matches the precedent addendum, and yields the confidence-over-6-fixtures aggregate FAFF-157 wanted; smoke-first contains the extra cost risk. (Targeted `--only` documented as the cheaper alternative if an operator wants to minimise tokens.)
+- **Build-time note (2026-06-16):** the operator chose the documented **targeted** alternative — only the 8 new cases were run at K=20, skipping the ~33 already-baselined refreshers (recorded today in the prior ADR-0004 addenda) to control token cost. The recorded ADR-0004 addendum reflects this; confidence is fully baselined across all 6 fixtures across the two addenda (001–003 prior, 004–006 here).
 
 **Numbers committability?**
 - **Chosen:** raw JSON gitignored, summary table committed in the ADR addendum — rationale: the established FAFF-156/163 pattern; keeps the repo free of churny per-rep blobs while preserving the durable record.

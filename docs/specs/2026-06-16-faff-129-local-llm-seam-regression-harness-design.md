@@ -3,6 +3,8 @@
 Buildable spec for **FAFF-129**, a time-boxed (~1–2h) spike. Audience: the build agent running the probe, and the human reviewer deciding the go/no-go on a local-model plumbing-regression harness. It produces a **measurement + a go/no-go finding** (an ADR 0003 addendum), not production CI wiring.
 
 > Spec: faffter-dark-nlspec · 2026-06-16 · interactive · confidence: high. Full spec on Linear FAFF-129.
+>
+> **Revised 2026-06-16 (during build)** — the driver-path decision changed from agentic `claude -p` to a native `/api/chat` agentic tool-loop with `think:false`, on evidence gathered in the build (the `claude -p` → ollama `/v1/messages` transport cannot disable a reasoning model's thinking, making it impractically slow; see §3/§6). Purpose sharpened to the confirmed use case: **feasibility of an occasional cheap CI smoke check** that guards the kernel's seam-plumbing during the upcoming lean prose refactor — the *authoritative* post-refactor reverify stays a frontier apples-to-apples run; this lane is only the cheap canary.
 
 ## 1. WHY — Problem and Principles
 
@@ -81,7 +83,7 @@ RECORD SeamCall:
   wellformed: Bool                     # recognised subcommand + valid flags for this kernel
 ```
 
-**Design decision — driver path.** Three candidates: (a) agentic `claude -p` with the ollama env-redirect, brief = ADR 0003's kernel brief, model issues real `./bin/faff` Bash calls; (b) the shipped single-shot black-box path (`buildEvalPrompt` → JSON envelope); (c) direct `/api/chat` POST (`ollama-model.mjs`). Only (a) makes the model *issue tool calls*; (b) and (c) ask for a judgement answer with no tool-loop, measuring the wrong thing. **Chosen:** (a) — agentic `claude -p` over the ollama env-redirect. Tool-call fidelity is unobservable without an agent loop.
+**Design decision — driver path.** Candidates: (a) agentic `claude -p` with the ollama env-redirect (model issues real `./bin/faff` Bash calls); (b) the shipped single-shot black-box path (`buildEvalPrompt` → JSON envelope); (c) a native `/api/chat` *agentic tool-loop* exposing a generic `bash` tool, so the model still issues `./bin/faff` calls but over a transport that supports `think:false`. (b) is single-shot — no tool-loop, measures the wrong thing. (a) and (c) are behaviourally identical from the seam's view (the model issues the same `./bin/*` Bash calls); they differ only in transport. **Chosen (revised during build):** (c) — native `/api/chat` agentic tool-loop with `think:false`. **Why not (a):** `claude -p` can only reach ollama via the Anthropic `/v1/messages` endpoint, which carries no thinking toggle; `qwen3.6:27b-mlx` then thinks on every turn (measured ~30s/turn, vs ~2–6s with `think:false`), and a trivial prompt timed out at 240s — impractical for the cheap/repeatable CI-smoke-check use case this serves. The native loop keeps the exact agent behaviour (Bash → `./bin/faff`, same seam capture and fidelity metric) while letting thinking be disabled. **Trade-off recorded:** `think:false` is Qwen3's *trained non-thinking mode* (genuinely less deliberation, not hidden tokens); adequate here because the kernel offloads all judgement to the deterministic CLI — confirmed empirically (kernel sub-task determinations correct under `think:false`).
 
 **Design decision — substrate.** **Chosen:** reconstruct ADR 0003's 7-issue throwaway substrate in a scratch dir (mock `tracker.json`; the `./bin/tracker` + `./bin/faff` logging-port wrappers; the published oracle `ready=[ISS-1]`, `on_hold=[ISS-2]`, `needs_prep=[ISS-6]`, `blocked=[ISS-4]`, `park_clear=[ISS-3]`; mutations `setStatus ISS-1→Todo`, `removeLabel faff-parked ISS-3`). Reusing the exact substrate + oracle makes the local result directly comparable to the frontier 0%-flakiness baseline. Not committed (spike rule).
 
@@ -178,7 +180,7 @@ Non-functional assertions:
 
 ## 6. DESIGN DECISION RATIONALE
 
-**Which driver path exercises tool-call fidelity?** Options: agentic `claude -p` (ollama redirect) / single-shot black-box envelope / direct `/api/chat`. Only the agentic path makes the model issue `./bin/faff` calls; the other two ask for a judgement answer with no tool-loop. **Chosen:** agentic `claude -p` over the ollama env-redirect — tool-call fidelity is unobservable otherwise.
+**Which driver path exercises tool-call fidelity?** Options: agentic `claude -p` (ollama redirect) / single-shot black-box envelope / native `/api/chat` agentic tool-loop. The single-shot envelope has no tool-loop. `claude -p` and the native loop both make the model issue `./bin/faff` Bash calls (faithful seam capture), but `claude -p`'s `/v1/messages` transport can't disable the reasoning model's thinking (impractically slow). **Chosen (revised during build):** native `/api/chat` agentic tool-loop with `think:false` — same agent behaviour, a transport where thinking can be turned off, which the cheap/repeatable CI-smoke-check use case requires.
 
 **Reuse ADR 0003's substrate or author a new one?** A new fixture loses direct comparability to the frontier 0% baseline; reuse keeps the oracle identical. **Chosen:** reconstruct the ADR 0003 7-issue throwaway substrate + oracle (uncommitted scratch).
 

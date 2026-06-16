@@ -1,0 +1,23 @@
+{
+  "id": "reconciliation-001",
+  "kind": "reconciliation",
+  "note": "Scenario 1 — a clean post-spec thread covering all four labels (challenge + resolution + context + noise). Single-author oracle (Decision 7). Promotes the inline THREAD_FIXTURE (test/eval-live-driver.test.mjs) into a committed case.",
+  "fixture": {
+    "version": 1,
+    "issue": { "id": "ISS-7", "title": "Add a webhook retry policy", "description": "Retries on 5xx." },
+    "spec_comment": {
+      "id": "sc",
+      "posted_at": "2026-06-10T10:00:00Z",
+      "body": "# Spec\nChosen: exponential backoff, 5 attempts."
+    },
+    "thread": [
+      { "id": "c1", "posted_at": "2026-06-11T09:00:00Z", "author": "dev", "body": "This breaks the SLA — 5 attempts can take 30s, but the gateway times out at 10s." },
+      { "id": "c2", "posted_at": "2026-06-11T10:00:00Z", "author": "lead", "body": "Decision: cap at 3 attempts with a 4s ceiling." },
+      { "id": "c3", "posted_at": "2026-06-11T11:00:00Z", "author": "dev", "body": "FYI the gateway also strips custom headers on retry — worth knowing." },
+      { "id": "c4", "posted_at": "2026-06-11T12:00:00Z", "author": "pm", "body": "+1, thanks" }
+    ]
+  },
+  "oracle": {
+    "closed_set": ["c1:challenge", "c2:resolution", "c3:context", "c4:noise"]
+  }
+}

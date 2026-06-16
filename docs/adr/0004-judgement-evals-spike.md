@@ -4,7 +4,7 @@
 - **Date:** 2026-06-15 (measured) · scaffold 2026-06-14.
 - **Tickets:** FAFF-130 (harness) · FAFF-131 (run + this ADR) · FAFF-132/133/134/135/136/137/138/140/142/143/144 (driver/criteria/auth/oracle build-out) · follows ADR 0003 · unblocks FAFF-114 (lean-prompts).
 - **Relates:** ADR 0003 left three lanes open; this is lane 2 (judgement-on-frontier) and lane 3 (local-LLM), now both measured.
-- **Amended:** 2026-06-15 — wider-suite scope addendum (see below); original decision unchanged.
+- **Amended:** 2026-06-15 — wider-suite scope addendum; 2026-06-16 — full-suite frontier baselines, all 12 kinds (see below); original decision unchanged.
 
 ## Context
 
@@ -93,3 +93,32 @@ The "evals-only" decision was measured on faff-tidy's classification surface onl
 2. **"Evals-only" therefore holds only for the *isolatable classification* surface** — judgement faithfully reproduced by "apply this rubric paragraph to this fixture." Lane selection (evals-only vs live-driver) is a **per-surface call**, not a global one.
 3. **Execution-entangled surfaces likely need the live-driver (FAFF-135), which this ADR benched.** Examples: faff-prep live-thread reconciliation (`Challenge`/`Resolution`/`Context`/`Noise`); faff-graft review verdict + the revert test; beep-boop/routing six-verdict assignment; faff-jot/faff-plot shaping & decomposition. For these the inlined-rubric proxy is not a faithful test.
 4. **FAFF-145's children (FAFF-146–150) are tagged per-surface.** Building the live-driver-lane slices is what decides whether the live-driver comes off the bench. Until then, treat "evals-only" as scoped to isolatable classification.
+
+## Addendum 2026-06-16 — full-suite frontier baselines (all 12 kinds)
+
+> Added after the FAFF-145 children landed (FAFF-146/147/148/149/150/158). The original "Measured results" table (FAFF-131) baselined six kinds; this records the **measured frontier baseline for every kind now in `eval/cases/`** — the per-surface human-supervised run the kind-adding tickets each deferred. The Decision above is unchanged.
+
+**Run:** `claude -p` frontier (Opus), full suite, **30 cases / 12 kinds**, K=20 base, escalation→50 on disagreement. Plugin-loaded, OAuth-forwarded (FAFF-138). One run, ~45,100 est. output tokens, status `complete`. Report: `eval/report/full-standings-frontier.json`.
+
+| Kind | Cases | Accuracy | Stability | Format | Escalated | Newly baselined here? |
+|---|---|---|---|---|---|---|
+| confidence | 3 | **0.93** | **0.93** | 1.00 | confidence-001 | yes (FAFF-146) |
+| dupe | 2 | 1.00 | 1.00 | 1.00 | no | reproduced (FAFF-131) |
+| gloss | 2 | 0.99 | 0.99 | 1.00 | gloss-001 | reproduced (FAFF-131) |
+| marker | 2 | 1.00 | 1.00 | 1.00 | no | yes (FAFF-146) |
+| modedetect | 3 | 1.00 | 1.00 | 1.00 | no | yes (FAFF-150) |
+| ordering | 2 | 1.00 | 1.00 | 1.00 | no | reproduced (FAFF-131) |
+| routing | 6 | 1.00 | 1.00 | 1.00 | no | yes (FAFF-149/158) |
+| splittable | 2 | 1.00 | 1.00 | 1.00 | no | yes (FAFF-147) |
+| stale | 2 | 1.00 | 1.00 | 1.00 | no | reproduced (FAFF-131) |
+| superseded | 2 | 1.00 | 1.00 | 1.00 | no | reproduced (FAFF-131) |
+| vague | 2 | 1.00 | 1.00 | 1.00 | no | reproduced (FAFF-131) |
+| verdict-revert | 2 | 1.00 | 1.00 | 1.00 | no | yes (FAFF-148) |
+
+**What this confirms.** The five new closed-set kinds — `marker`, `splittable`, `verdict-revert`, `routing` (all six fixtures), `modedetect` — are a hard **1.00/1.00** on frontier, matching the original-six pattern. The original six reproduce (gloss now 0.99 vs the recorded 0.97; same free-text story below). So the "evals-only-on-frontier" net extends cleanly across the whole suite for the closed-set surfaces.
+
+**The one wobble worth flagging — `confidence` is not perfect.** confidence-001 escalated to 50 reps and split **40× correct / 10× wrong** (accuracy 0.80, stability 0.80; the other two confidence fixtures are 1.00/1.00, so the kind means 0.93). This is the **first sub-perfect *closed-set* case observed on frontier** — every prior frontier miss was the free-text gloss. confidence is a graded judgement (`high`/`medium`/`low`) where the boundary case genuinely flips run-to-run on Opus. Treat confidence-001 as a live flakiness signal: it is a thin (single-fixture) result, so **widen the confidence fixtures before leaning on confidence as a hard gate**, and re-measure.
+
+**gloss is the same inherent free-text variance, not a regression.** gloss-001 escalated to 50 reps → **49× 1.00, 1× 0.80** (one rep omitted a required concept). This is the FAFF-131 phenomenon (then 47/50), not a slide; gloss-002 = 1.00. Format adherence is **1.00 across all 12 kinds** — the FAFF-137 hardening holds suite-wide.
+
+**Scope caveat carries over.** Per the 2026-06-15 addendum, these are **black-box** numbers (model + extracted-rubric + fixture), not the skill-as-orchestrated. routing/verdict-revert/reconciliation are execution-entangled surfaces whose *faithful* measurement is the live-driver lane (FAFF-135/158); this baseline is the isolatable-classification proxy, recorded as the standing regression net.

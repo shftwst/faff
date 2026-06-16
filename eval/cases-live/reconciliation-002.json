@@ -1,0 +1,22 @@
+{
+  "id": "reconciliation-002",
+  "kind": "reconciliation",
+  "note": "Scenario 2 — a Resolution that closes an open **Punt:** in the spec_comment. The oracle labels the resolving comment `resolution` per Step 2a (a Resolution closes out a Punt/Assumes/TBD marker). Proves the eval covers the exact gateway Live-thread-reconciliation control-surface property (FAFF-19/110). Single-author oracle (Decision 7).",
+  "fixture": {
+    "version": 1,
+    "issue": { "id": "ISS-12", "title": "Persist user session tokens", "description": "Sessions must survive a restart." },
+    "spec_comment": {
+      "id": "sc",
+      "posted_at": "2026-06-12T08:00:00Z",
+      "body": "# Spec\nChosen: store sessions server-side.\n\n**Punt:** Redis vs Postgres for the session store — needs a human to pick before build."
+    },
+    "thread": [
+      { "id": "c1", "posted_at": "2026-06-12T09:30:00Z", "author": "lead", "body": "Resolved: use Postgres for the session store — we already run it for every other persistence site and don't want a second datastore to operate." },
+      { "id": "c2", "posted_at": "2026-06-12T10:00:00Z", "author": "ops", "body": "Note: the Postgres connection pool is capped at 20 on staging, keep that in mind for session-heavy load." },
+      { "id": "c3", "posted_at": "2026-06-12T10:15:00Z", "author": "pm", "body": "great, sounds good" }
+    ]
+  },
+  "oracle": {
+    "closed_set": ["c1:resolution", "c2:context", "c3:noise"]
+  }
+}

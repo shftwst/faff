@@ -1,0 +1,22 @@
+{
+  "id": "reconciliation-003",
+  "kind": "reconciliation",
+  "note": "Scenario 3 — a noise-only thread (negative control). Only status pings / +1s after the spec. Oracle labels all `noise`. Proves the model doesn't hallucinate Challenges/Resolutions out of chatter (the false-positive guard). Single-author oracle (Decision 7).",
+  "fixture": {
+    "version": 1,
+    "issue": { "id": "ISS-30", "title": "Add a dark-mode toggle", "description": "User-facing theme switch." },
+    "spec_comment": {
+      "id": "sc",
+      "posted_at": "2026-06-13T14:00:00Z",
+      "body": "# Spec\nChosen: a CSS-variable theme with a persisted toggle in localStorage."
+    },
+    "thread": [
+      { "id": "c1", "posted_at": "2026-06-13T15:00:00Z", "author": "pm", "body": "any update on this?" },
+      { "id": "c2", "posted_at": "2026-06-13T15:30:00Z", "author": "dev", "body": "+1" },
+      { "id": "c3", "posted_at": "2026-06-13T16:00:00Z", "author": "designer", "body": "nice, looking forward to it" }
+    ]
+  },
+  "oracle": {
+    "closed_set": ["c1:noise", "c2:noise", "c3:noise"]
+  }
+}

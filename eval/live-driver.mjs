@@ -251,6 +251,36 @@ export function reconciliationLiveDriver({ model, fixture, pluginDir = DEFAULT_P
 }
 
 /**
+ * FAFF-154 — the reconciliation live-fixture RUNNER (the harness-wiring half AC 3 asks for). Given a
+ * loaded reconciliation EvalCase (a `cases-live/reconciliation-*.json` ThreadFixture + per-comment
+ * `id:label` oracle) and an injected model, it binds the case's `fixture` into reconciliationLiveDriver
+ * (the inherited FAFF-158 makeLiveDriver wrapper — no driver re-cut) and drives it through the REAL
+ * FAFF-93 harness via `runSkill({ skill: "faff-prep" })`, returning the recorded `reconciliation`
+ * bucket so the caller can grade it through the existing `reconciliation` grade path.
+ *
+ * `runSkill`, `tracker`, and `repo` are injected (not imported) so eval/ stays free of test-helper
+ * deps and the runner is the single place the cases reach the live-driver seam — never loadCases()'s
+ * black-box CLI sweep (which has no reconciliation branch). The driver still issues the listIssues
+ * seam-read, so the run is seam-faithful at the harness boundary, exactly like its two siblings.
+ *
+ * @param {object} evalCase a loaded reconciliation case ({ id, kind:"reconciliation", fixture, oracle })
+ * @param {{ runSkill: Function, tracker: object, repo: object, model: Function,
+ *           pluginDir?: string|null }} cfg
+ * @returns {Promise<{ record: object, bucket: string[] }>} the DecisionRecord + the reconciliation bucket
+ */
+export async function driveReconciliationCase(evalCase, { runSkill, tracker, repo, model, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
+  if (!evalCase || evalCase.kind !== "reconciliation" || !evalCase.fixture) {
+    throw new Error("driveReconciliationCase requires a reconciliation EvalCase with a `fixture`");
+  }
+  if (typeof runSkill !== "function") {
+    throw new Error("driveReconciliationCase requires the FAFF-93 runSkill (injected, not imported)");
+  }
+  const driver = reconciliationLiveDriver({ model, fixture: evalCase.fixture, pluginDir, caseId: evalCase.id });
+  const record = await runSkill({ skill: "faff-prep", tracker, repo, driver });
+  return { record, bucket: record.buckets.reconciliation ?? [] };
+}
+
+/**
  * FAFF-158 — a live SkillDriver for faff's ROUTING (automation-routing verdict-assignment) surface,
  * completing the execution-entangled half of the routing judgement-eval FAFF-149 carved. Reads the
  * assembled fixture-of-findings through the harness tracker seam, prompts the model with faff's

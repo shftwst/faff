@@ -25,6 +25,20 @@ export function loadCases(dir = join(HERE, "cases")) {
     .map((f) => validateCase(JSON.parse(readFileSync(join(dir, f), "utf8"))));
 }
 
+// FAFF-154 — the LIVE-fixture loader (separate from loadCases / the black-box sweep). The
+// execution-entangled kinds (reconciliation today; verdict-build to follow) ride the live-driver
+// lane: their fixtures carry a non-backlog shape (an issue + spec_comment anchor + thread) the
+// black-box CLI driver has no render branch for, so dropping them into `cases/` would fall through
+// to the wrong renderer. They live in `cases-live/` and are driven through runSkill + the matching
+// live-driver, NEVER through loadCases()'s total-over-`cases/` black-box sweep. `loadCases` is the
+// sole reader of `cases/`, so a case here is provably never picked up by the black-box run.
+export function loadLiveCases(dir = join(HERE, "cases-live")) {
+  return readdirSync(dir)
+    .filter((n) => n.endsWith(".json"))
+    .sort()
+    .map((f) => validateCase(JSON.parse(readFileSync(join(dir, f), "utf8"))));
+}
+
 // Drive one case. `driver(evalCase, repIndex) -> Promise<{ rawText, tokens, transcript? }>`.
 async function runCase(c, driver, { baseReps, maxReps }) {
   const base = Math.min(c.reps || baseReps, maxReps);

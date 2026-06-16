@@ -1,0 +1,6 @@
+{ "id": "chain-gap-002", "kind": "chain-gap",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-CH", "title": "Add structured request logging", "state": "Todo",
+      "spec": "Add a structured logging middleware that emits one JSON line per request: method, path, status, and duration_ms. This is a self-contained change on the HTTP middleware stack. For illustration, a downstream consumer like a log-shipping dashboard could later read these lines — but that is explicitly future work, not ticketed by design and out of scope for this change. No other work is required to make this useful: the log lines stand on their own." } ] },
+  "question": "Does ISS-CH's implementation advice reference any work that no ticket tracks (a chain gap)? If so, list each as { reference, sub_type } where sub_type is upstream/downstream/peer/sub-ticket; if there is no real gap after conservative skips, return an empty list.",
+  "oracle": { "closed_set": [] } }

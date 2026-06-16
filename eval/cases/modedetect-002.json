@@ -1,0 +1,9 @@
+{ "id": "modedetect-002", "kind": "modedetect",
+  "fixture": { "version": 1,
+    "scenario": {
+      "user_request": "Add a 401 response when an expired JWT is presented to the auth middleware.",
+      "project_context": "An existing payments API service with an established auth layer.",
+      "existing_workstreams": ["Auth & sessions", "Payments core", "Billing webhooks", "Admin dashboard"] } },
+  "question": "Greenfield, single-item, or ambiguous?",
+  "oracle": { "closed_set": ["single-item"] },
+  "_comment": "A tracker project already exists (non-null project_context, populated existing_workstreams) and the user describes one well-bounded change (a single 401 behaviour in an existing middleware) — jot's single-item trigger." }

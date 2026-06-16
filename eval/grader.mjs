@@ -35,8 +35,19 @@
 //                     validates with no grader change. The admission rule (only fire-and-forget +
 //                     likely-fire admit) is a DETERMINISTIC derived check over the assigned verdict,
 //                     asserted in the cases / tests, NOT a second LLM judgement (spec §6.B).
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing"]);
+// FAFF-150 — the jot/intake MODE-DETECTION surface adds one kind:
+//   modedetect      — SHIPPED. Isolatable greenfield/single-item/ambiguous classification of a
+//                     ModeScenario fixture on the black-box lane. Oracle = single-element closed-set
+//                     over {greenfield, single-item, ambiguous}; the envelope carries `mode: "<one
+//                     of the three>"` (the confidence/routing analogue, one verdict → a one-element
+//                     set). It grades through the EXISTING closed-set/`setEqual` path — zero new
+//                     grader logic — so a missing/out-of-enum `mode` → empty/verbatim set → a clean
+//                     FAIL with a distinct signature (flakiness preserved). The GENERATIVE half
+//                     (ticket shaping, plot decomposition) is CARVED to a follow-up that implements
+//                     the advisory rubric-coverage oracle (gradeShaping / gradeDecomposition mirroring
+//                     gradeGloss); no shaping/decomposition kind ships here.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -151,6 +162,12 @@ function predictedSet(c, env) {
     // NOT here — the verdict-revert/confidence coercion stance, spec §HOW edge cases).
     case "routing":
       return env.verdict == null ? [] : [String(env.verdict)];
+    // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
+    // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum
+    // value (e.g. "feature") is passed through verbatim so setEqual fails it cleanly with a distinct
+    // signature (the eval-side fail-safe — same stance as confidence/routing).
+    case "modedetect":
+      return env.mode == null ? [] : [String(env.mode)];
     case "marker":
       return pairsOf(env.markers);
     case "reconciliation":

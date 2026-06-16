@@ -132,3 +132,17 @@ The "evals-only" decision was measured on faff-tidy's classification surface onl
 **Config isolation — OK.** The runner spawned real `claude -p` reps with per-rep isolated `CLAUDE_CONFIG_DIR`; the parent `~/.claude.json` was **untouched** across the run (no corrupted-global-config rep death — the ADR-0003 race stays solved at the model layer).
 
 **Measured baseline — NOT recorded this run; blocked on auth (environmental, not a code defect).** The human-supervised frontier sweep was attempted (`node eval/run-live-evals.mjs --kind reconciliation`) but **every rep errored** because the isolated config dir is unauthenticated: `claude -p` returned `Not logged in · Please run /login`. The credential-forwarding seam (FAFF-138) did not carry a usable OAuth session into the per-rep `CLAUDE_CONFIG_DIR` in this environment. Per the FAFF-131/156/159 family rule, **the numbers must never be faked** — so no accuracy/stability is recorded here. The runner + mock-test + report-writer are the durable deliverables; recording the actual reconciliation baseline is a **human follow-up**: re-run the sweep from a `claude /login`-authenticated session whose credentials the isolated config dir can inherit, then append the per-case table (accuracy · stability · per-comment label breakdown) here, replacing this paragraph.
+
+## Addendum 2026-06-16 — chain-gap black-box baseline (FAFF-153)
+
+> Added by FAFF-153. `chain-gap` is a new **black-box** judgement-eval kind (cases in `eval/cases/`, graded by `gradeChainGap` — synonym-tolerant reference + exact `sub_type`, set-equality), the full-pipeline prose-parsing + conservative-skip half of faff-tidy's chain-gap diagnostic. The deterministic graph-traversal half is out of scope here (a scripted `test/`, per FAFF-152). This records its **human-supervised measured frontier baseline**. The Decision above is unchanged.
+
+**Measured — frontier `claude -p`, K=20/case (no escalation).** Auth worked this run: the black-box `frontierOpts` credential forwarding (`forwardCreds`, FAFF-138) carried a usable OAuth session into the per-rep isolated `CLAUDE_CONFIG_DIR` (`~/.claude/.credentials.json` present), so — unlike the reconciliation live-lane attempt above — every rep ran clean.
+
+| Kind | Case | Accuracy | Stability | Format | Escalated |
+|---|---|---|---|---|---|
+| chain-gap | chain-gap-001 (un-ticketed upstream prerequisite) | 1.00 | 1.00 | 1.00 | no |
+| chain-gap | chain-gap-002 (conservative skip → empty oracle) | 1.00 | 1.00 | 1.00 | no |
+| **chain-gap (kind)** | **2 cases** | **1.00** | **1.00** | **1.00** | **no** |
+
+**What this confirms.** chain-gap joins the hard **1.00/1.00** frontier cohort alongside the other non-closed-set synonym-tolerant kind (`splittable`) — zero flakiness across 20 reps/case, perfect format adherence. The full-pipeline boundary (identify references *and* classify, incl. the conservative-skip judgement that chain-gap-002 exercises) reproduces stably on Opus, so the offline eval is a sufficient regression net for chain-gap. Raw run JSON is in the gitignored `eval/report/`; these numbers are measured, not fabricated.

@@ -140,15 +140,15 @@ All hand-offs are yes/no gates (or short-choice where a real branch exists). No 
 
 After presenting the output:
 
-- **Picked a focus item:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke `/faff-prep` via the Skill tool. If the issue already has a spec, the gate becomes "Start building now via `/faff-graft`? (y/n)".
-- **Multiple picked:** invoke `/faff-prep` (or `/faff-graft` if already prepped) on the first; note the rest for later.
+- **Picked a focus item:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**). If the issue already has a spec, the gate becomes "Start building now via `/faff-graft`? (y/n)".
+- **Multiple picked:** invoke the `faff-prep` skill (or `faff-graft` if already prepped) via the Skill tool on the first; note the rest for later.
 - **"Done" reported by user:** move the issue to Done (no further chain).
 - **"Blocked" reported by user:** mark blocked, ask the blocking reason.
 - **"Reprep" or "update the spec":** yes/no "Re-prep via `/faff-prep`? (y/n)".
 - **Full groom:** "Run a full groom via `/faff-tidy`? (y/n)".
-- **Parked overnight issue:** for each, offer three-way choice "open log / re-run `/faff-prep` / leave parked (log/reprep/leave)". On `log`, print the log file contents. On `reprep`, invoke `/faff-prep` via the Skill tool. On `leave`, move on.
+- **Parked overnight issue:** for each, offer three-way choice "open log / re-run `/faff-prep` / leave parked (log/reprep/leave)". On `log`, print the log file contents. On `reprep`, invoke the `faff-prep` skill via the Skill tool. On `leave`, move on.
 - **Ready to pick up candidate:** yes/no "Promote to Todo? (y/n)".
-- **Build queue non-empty:** yes/no "Build queue has N issues (M independents, K collision groups), plus P prep candidates. Run `/faff-beep-boop` (full pipeline — tidy + prep + build)? (y/n)". On confirm, invoke `/faff-beep-boop`. On deny, move on.
+- **Build queue non-empty:** yes/no "Build queue has N issues (M independents, K collision groups), plus P prep candidates. Run `/faff-beep-boop` (full pipeline — tidy + prep + build)? (y/n)". On confirm, invoke the `faff-beep-boop` skill via the Skill tool. On deny, move on.
 - **Prep queue non-empty with build queue empty:** yes/no "Nothing ready to build, but N prep candidates. Run `/faff-beep-boop` (default full pipeline) to drain the prep queue (will also build anything that lands at confidence: high)? (y/n)".
 
 Keep the tracker in sync with reality. No one starts building without a spec.

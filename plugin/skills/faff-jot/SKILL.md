@@ -48,7 +48,7 @@ When it's genuinely ambiguous (existing project, but the user is describing some
 
 ### 2. Discover — delegate to the `intake` slot
 
-Invoke the configured `intake` skill (default `faffter-noon-intake`; override with `superpowers:brainstorming`, `gstack:office-hours`, or any ideation skill) via the `Skill` tool. Pass it: the detected mode, the human's starting description, and — for single-item — the live workstream/container list + naming conventions + current-priority signal so it can place the item.
+Invoke the configured `intake` skill (default `faffter-noon-intake`; override with `superpowers:brainstorming`, `gstack:office-hours`, or any ideation skill) via the Skill tool (resolve the slot value per gateway → **Sibling-skill invocation**: a bundled default like `faffter-noon-intake` is a canonical name, an explicitly-namespaced override is used verbatim). Pass it: the detected mode, the human's starting description, and — for single-item — the live workstream/container list + naming conventions + current-priority signal so it can place the item.
 
 The intake skill runs the discovery conversation and returns a **discovery brief** (the `intake`-slot output contract — see `faffter-noon-intake`). **Whatever intake skill ran, its output comes back into this orchestrator lane** — `/faff-jot` owns everything from here. A third-party intake skill only has to emit the discovery-brief shape; it never touches the tracker.
 
@@ -66,7 +66,7 @@ Hand the discovery brief to the configured `methodology` skill's **`ticket-shapi
 
 > "This looks application-scale — decompose into a full roadmap (initiatives → projects → first-slice epics) via `/faff-plot` first? (y/n)"
 
-On confirm, hand the **discovery brief** to `/faff-plot` via the Skill tool and stop here — do **not** also create the flat set (plot writes the skeleton, including the first-slice epics). On deny, or for a single-item / small greenfield brief, proceed with the flat create below exactly as before. The fork is a one-time offer at the shape boundary, not a new mode.
+On confirm, hand the **discovery brief** to the `faff-plot` skill via the Skill tool and stop here — do **not** also create the flat set (plot writes the skeleton, including the first-slice epics). On deny, or for a single-item / small greenfield brief, proceed with the flat create below exactly as before. The fork is a one-time offer at the shape boundary, not a new mode.
 
 Show the proposed structure (containers + tickets + relationships) and gate before writing:
 
@@ -76,7 +76,7 @@ Show the proposed structure (containers + tickets + relationships) and gate befo
 
 ### 5. Chain to prep
 
-After creating, offer the next step via the standard chaining gate: "Tickets created. Prep the first one for build now? (`/faff-prep <first-ticket>`) (y/n)". On confirm, invoke `/faff-prep` on the highest-sequenced ticket. On deny, stop cleanly. (For greenfield, the "first one" is the first ticket of the first-slice workstream.)
+After creating, offer the next step via the standard chaining gate: "Tickets created. Prep the first one for build now? (`/faff-prep <first-ticket>`) (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool on the highest-sequenced ticket. On deny, stop cleanly. (For greenfield, the "first one" is the first ticket of the first-slice workstream.)
 
 ## Existing-ticket interactor (`/faff-jot ISSUE-XX`)
 

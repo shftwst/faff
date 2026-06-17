@@ -1,0 +1,53 @@
+name: release-gate
+
+# FAFF-174 — guarantee that a PR touching user-facing paths carries a releasing
+# (feat:/fix:) title, so release-please cuts a release. Separate from validate.yml
+# because the title can change after open: this needs the `edited` trigger (validate.yml
+# is bare `pull_request`, which omits `edited`) and must not re-run validate's selftests
+# on every title edit.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Detect user-facing changes
+        id: detect
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Fail closed: if the base..head diff can't be computed, treat the change as
+          # user-facing so an ambiguous case still enforces a releasing title.
+          if ! diff="$(git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null)"; then
+            echo "could not compute base..head diff — failing closed (user_facing=true)" >&2
+            echo "user_facing=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s\n' "$diff" | grep -Eq '^plugin/(skills|\.claude-plugin)/'; then
+            echo "user-facing paths changed" >&2
+            echo "user_facing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no user-facing paths changed" >&2
+            echo "user_facing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assert releasing PR title
+        if: steps.detect.outputs.user_facing == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/release-gate.mjs --title "$PR_TITLE"

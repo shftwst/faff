@@ -26,7 +26,7 @@ The `concurrency` slot contract is **fixed in the gateway** — see the sibling 
 Strictly one issue at a time, no worktree concurrency:
 
 1. Order the work: independents first (in the order beep-boop supplied — already priority → chainable-unlock-value, reframed by any methodology), then each collision group as a contiguous block (members in listed order).
-2. For each issue in that flattened order, invoke `/faff-graft ISSUE-XX` autonomously and **wait for it to reach a terminal state** before starting the next. `/faff-graft` owns its own worktree, build, review, CI wait, and auto-merge.
+2. For each issue in that flattened order, invoke the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) autonomously on `ISSUE-XX` and **wait for it to reach a terminal state** before starting the next. `faff-graft` owns its own worktree, build, review, CI wait, and auto-merge.
 3. Write the terminal outcome to the run ledger as each issue lands.
 4. When the list is exhausted, return to beep-boop.
 

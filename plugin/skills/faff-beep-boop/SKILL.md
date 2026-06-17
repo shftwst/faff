@@ -77,7 +77,7 @@ Two independent phases. The **prep queue** drains fully first. Then the **build 
 
 ### 1. Tidy pass
 
-Invoke `/faff-tidy` in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans, strip dead references, canonicalise overlooked specs, clear stale park labels) and tags stale-spec / superseded-spec issues so the prep queue picks them up in step 2. Logs remaining findings for morning review.
+Invoke the `faff-tidy` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans, strip dead references, canonicalise overlooked specs, clear stale park labels) and tags stale-spec / superseded-spec issues so the prep queue picks them up in step 2. Logs remaining findings for morning review.
 
 ### 2. Prep queue build
 
@@ -95,7 +95,7 @@ This is the prep queue. The eligibility-exclusion here (and at build-queue assem
 
 ### 3. Prep queue drain
 
-For each candidate, invoke `/faff-prep` in autonomous mode. Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
+For each candidate, invoke the `faff-prep` skill via the Skill tool in autonomous mode. Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
 - `refreshed` — spec updated, issue stays in Todo (contributes to build queue)
 - `promoted` — fresh high-confidence spec, moved to Todo (contributes to build queue)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; it joins the candidate set but its verdict is `needs-decision-first`, so it routes out of the build queue and surfaces in the morning brief rather than auto-building
@@ -116,7 +116,7 @@ Do not require a repo-side spec file at this stage — faff-graft commits the sp
 
 **Gate eligibility via `faff next` first** (gateway → **Next-step transition**): consult `faff next` per candidate; only issues returning `next: graft` are build-eligible (`prep` rejoins the prep queue, `skip-ineligible`→On-hold, `needs-human`→routed-out, `blocked`/`done`/`none`→excluded). `faff next`'s `--blocked` carries **external** blockers only — in-queue dependencies stay with conflict analysis. Then, on the `graft`-eligible set:
 
-**Re-scan the live comment thread first (mandatory — gateway → Automation-routing contract → _Live-thread reconciliation_).** Before computing **or trusting a cached** verdict for any spec-gated candidate, fetch its comments and scan everything posted *after* the spec (faff-prep → **Scenario B Step 2a**: Challenge / Resolution / Context / Noise). A **Resolution** (a human picking an option, answering a `**Punt:**`, closing an open decision) or a **Challenge** (a new constraint contradicting the spec) means the attached spec's retained rating is **stale** — the human steered the decision on the control surface. Route that candidate through **narrow prep** (`/faff-prep` autonomous) to fold the resolution in and **re-rate**, then compute the verdict on the refreshed spec — never the pre-resolution snapshot. A cached verdict from the tidy pass only reflects the thread as of tidy; any comment since supersedes it. (This is the step whose absence stranded a `medium`-spec issue whose open `**Punt:**` a human had already resolved by comment — it routed out as `needs-decision-first` instead of re-rating to `high` → `fire-and-forget`.) This re-scan is beep-boop's discharge of the steer-loop re-read in gateway → **Human curation is authoritative** assertion 2 — the wave honours a human's mid-flight edit, never an over-ridden snapshot.
+**Re-scan the live comment thread first (mandatory — gateway → Automation-routing contract → _Live-thread reconciliation_).** Before computing **or trusting a cached** verdict for any spec-gated candidate, fetch its comments and scan everything posted *after* the spec (faff-prep → **Scenario B Step 2a**: Challenge / Resolution / Context / Noise). A **Resolution** (a human picking an option, answering a `**Punt:**`, closing an open decision) or a **Challenge** (a new constraint contradicting the spec) means the attached spec's retained rating is **stale** — the human steered the decision on the control surface. Route that candidate through **narrow prep** (the `faff-prep` skill, autonomous) to fold the resolution in and **re-rate**, then compute the verdict on the refreshed spec — never the pre-resolution snapshot. A cached verdict from the tidy pass only reflects the thread as of tidy; any comment since supersedes it. (This is the step whose absence stranded a `medium`-spec issue whose open `**Punt:**` a human had already resolved by comment — it routed out as `needs-decision-first` instead of re-rating to `high` → `fire-and-forget`.) This re-scan is beep-boop's discharge of the steer-loop re-read in gateway → **Human curation is authoritative** assertion 2 — the wave honours a human's mid-flight edit, never an over-ridden snapshot.
 
 **Compute the automation-routing verdict** for every spec-gated candidate. The verdict is normally already in `.faff/runs/<run-id>/automation-verdicts.md` from the tidy pass in step 1 — read it from there to avoid recomputation, **but only after the live-thread re-scan above clears it as current** (a post-tidy Resolution/Challenge invalidates the cache entry and forces the narrow-prep refresh). Any candidate **not** in that cache — an issue prep promoted during a wave (step 8), or one whose spec was refreshed since the tidy pass — is computed **inline** at assembly and written back to the cache; the top-of-run cache only covers the issues tidy saw. **Admit only** `fire-and-forget` and `likely-fire` verdicts to the build queue.
 
@@ -134,7 +134,7 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 ### 6. Build pass
 
-Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives `/faff-graft` in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**); beep-boop states no ordering of its own. The structural default supplies priority + chainable unlock value when no methodology is set; an opinionated lens supplies its own (value × risk × dep-aware).
+Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives the `faff-graft` skill in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**); beep-boop states no ordering of its own. The structural default supplies priority + chainable unlock value when no methodology is set; an opinionated lens supplies its own (value × risk × dep-aware).
 
 ### 7. Wave drain
 
@@ -146,7 +146,7 @@ After the wave drains, re-check the tracker for work newly unlocked by issues th
 
 1. **Budget check.** If `--until HH:MM` is set and the wall clock has passed HH:MM, OR `--max N` is set and N build attempts have been launched, exit to reporting with `Stop reason: budget-hit (--until …)` or `budget-hit (--max N)` accordingly. The wave re-entry step is the last point at which the budget gate fires for the run; if it fires here, the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary.
 2. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
-3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start) **and which is automation-eligible** (skip anything not automation-eligible — gateway → **Automation eligibility**), invoke **narrow prep**: `/faff-prep` autonomous on just that issue. (Prep itself also returns `ineligible` for a not-eligible issue, so this filter is the early-exit, not the guarantee.) Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
+3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start) **and which is automation-eligible** (skip anything not automation-eligible — gateway → **Automation eligibility**), invoke **narrow prep** — the `faff-prep` skill via the Skill tool, autonomous on just that issue. (Prep itself also returns `ineligible` for a not-eligible issue, so this filter is the early-exit, not the guarantee.) Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
    - **Backlog, unspecced** (was blocked from being specced): prep generates a fresh spec and, on high confidence, promotes to Todo (`promoted`).
    - **Backlog, specced** (was specced but never promoted, or was demoted): prep confirms the spec is still valid (or refreshes if stale — upstream work just shipped) and promotes (`refreshed` or `promoted`).
    - **Todo, specced** (was specced-and-blocked, now unblocked): prep confirms or refreshes the spec — staleness matters here since the upstream work just landed; the item stays in Todo (`refreshed`).
@@ -232,8 +232,8 @@ In `--hook` mode runcheck stays silent for any session without an open beep-boop
 For each listed issue:
 - Skip if cancelled or archived (log the skip with reason).
 - Skip if the issue doesn't exist (log and continue).
-- If spec missing → invoke `/faff-prep` autonomous. Apply return per the full mode prep queue logic.
-- If spec present → **re-scan the live comment thread before queueing** (gateway → **Automation-routing contract → _Live-thread reconciliation_**; faff-prep → **Scenario B Step 2a**). A **Resolution** or **Challenge** posted after the spec supersedes its retained rating — route the issue through narrow prep (`/faff-prep` autonomous) to fold it in and re-rate first; otherwise queue for build.
+- If spec missing → invoke the `faff-prep` skill (autonomous). Apply return per the full mode prep queue logic.
+- If spec present → **re-scan the live comment thread before queueing** (gateway → **Automation-routing contract → _Live-thread reconciliation_**; faff-prep → **Scenario B Step 2a**). A **Resolution** or **Challenge** posted after the spec supersedes its retained rating — route the issue through narrow prep (the `faff-prep` skill, autonomous) to fold it in and re-rate first; otherwise queue for build.
 
 After the list is processed:
 - **Compute the automation-routing verdict** inline for every spec-gated issue (gateway → **Automation-routing contract**) — there is no tidy pass to read a cached verdict from, **so the live-thread re-scan above is the only thing standing between a stale retained rating and the verdict; it is mandatory, not optional, in explicit-list mode.** Admit only `fire-and-forget` and `likely-fire`; route the other four verdicts out with a one-line reason in the run summary's "Routed out" section.
@@ -277,7 +277,7 @@ Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`
 
 ## Build-pass execution (the `concurrency` slot)
 
-The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives `/faff-graft` per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
+The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives the `faff-graft` skill per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
 
 Every executor honours the same slot contract: build every issue in the partition, serialise within collision groups, record each terminal outcome to the run ledger (so `runcheck` can verify completeness), and never weaken the merge gate. A missing slot is never a park reason — it defaults to sequential. The contract is fixed in the gateway → **Mechanism slot (`concurrency`)** → _The `concurrency` slot contract_ — see it for the full obligations.
 
@@ -412,7 +412,7 @@ On budget-hit, in-flight units complete naturally — see `## Budget flags` for 
 
 ## Autonomous-mode signal to sub-skills
 
-When beep-boop invokes any sub-skill (`/faff-tidy`, `/faff-prep`, `/faff-graft`), it prefixes the invocation with an explicit autonomous-mode signal:
+When beep-boop invokes any sub-skill (the `faff-tidy`, `faff-prep`, `faff-graft` skills, each resolved per gateway → **Sibling-skill invocation**), it prefixes the invocation with an explicit autonomous-mode signal:
 
 > _Running in autonomous mode (invoked by /faff-beep-boop, run <run-id>). Skip all prompts. Park on ambiguity. Log everything to `.faff/runs/<run-id>/`. Return structured result to caller._
 

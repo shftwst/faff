@@ -206,7 +206,7 @@ After presenting, drive action via yes/no gates (never passive suggestions):
 
 - **Mess fixes:** "Apply the recommended actions for the mess? (y/n, or 'pick' to choose per issue)". On confirm, apply them.
 - **Stuck-in-prep → resolve:** "N issues are parked waiting on a human decision, ordered by the methodology's `pick-ordering`. Walk through them now? (y/n, or 'pick')". On confirm, present each with its park reason and the decision being asked, then offer to remove the park label / re-run `/faff-prep` once the human commits to a direction.
-- **Almost-ready → prep:** "N issues are almost ready — missing a spec. Run `/faff-prep` on all / pick some / skip? (all/pick/skip)". On `all` or `pick`, invoke `/faff-prep` via the Skill tool for the chosen issues.
+- **Almost-ready → prep:** "N issues are almost ready — missing a spec. Run `/faff-prep` on all / pick some / skip? (all/pick/skip)". On `all` or `pick`, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) for the chosen issues.
 - **Ready → promote:** "N issues are ready for Todo, ordered by the methodology's `pick-ordering`. Promote all / pick some / skip? (all/pick/skip)". On confirm, move them.
 - **After promotion → build:** "Start building one of these now via `/faff-graft`? (y/n)". On confirm, ask which (default to the top of the methodology's `pick-ordering`) and invoke.
 - **Structural diagnostics found cycles or ghost pointers (mechanical fixes auto-applied):** "Auto-applied N mechanical fixes (M cycles stripped, K ghost pointers repointed, L repeat-parks demoted). Review the log? (y/n)" — on confirm, print the structural-diagnostics findings + log path.

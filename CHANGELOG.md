@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0](https://github.com/shftwst/faff/compare/faff--v0.4.0...faff--v0.5.0) (2026-06-17)
+
+
+### Features
+
+* **FAFF-164:** install-mode-portable cross-skill delegation convention ([#110](https://github.com/shftwst/faff/issues/110)) ([201d83a](https://github.com/shftwst/faff/commit/201d83a6adc2ecc11ffbf33104adb5f7a5e1fe87))
+* **FAFF-114:** skill-prompt cruft + cross-skill duplication audit ([#109](https://github.com/shftwst/faff/issues/109)) ([933a08a](https://github.com/shftwst/faff/commit/933a08a63671046b0a9bc00d7672df0a229cc407))
+* **FAFF-169:** committed judgement-eval baseline + `--against` regression gate ([#107](https://github.com/shftwst/faff/issues/107)) ([403bc7d](https://github.com/shftwst/faff/commit/403bc7d092ac527c57c51ce22830c69d8a978f4e))
+* **FAFF-170:** pre/post-lean tokenomics report (prompt-size census + quality pairing) ([#108](https://github.com/shftwst/faff/issues/108)) ([9f75a8c](https://github.com/shftwst/faff/commit/9f75a8cf683f97f9a2d8f90beae93b9c13024c59))
+* **FAFF-129:** local-LLM seam-regression harness spike — cheap CI smoke lane ([#106](https://github.com/shftwst/faff/issues/106)) ([8905b7e](https://github.com/shftwst/faff/commit/8905b7e245acb6065481a51ba9908ad8aa02bc4b))
+
 ## [0.4.0](https://github.com/shftwst/faff/compare/faff--v0.3.0...faff--v0.4.0) (2026-06-16)
 
 

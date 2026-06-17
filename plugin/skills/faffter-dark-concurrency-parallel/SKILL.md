@@ -39,7 +39,7 @@ Several PRs going green in parallel were each tested against the `main` they bra
 
 1. **One merge at a time.** Acquire a logical merge lock before merging any PR (only one build is in its merge step at once); the others keep building.
 2. **Rebase onto latest `main`, then re-confirm green.** Before merging, rebase (or merge `main` into) the PR branch and re-run the checks the gateway merge gate requires — AC verification stays valid, CI must be **green on the rebased head**, review `pass` still stands. Merging on pre-rebase green is forbidden under concurrency.
-3. **If the rebase conflicts** → this is a real collision the partition missed (two independents that turned out to share surface). Hand it back to `/faff-graft` to resolve on the rebased branch (iterate), or park per the shared protocol if it can't be resolved autonomously. Then release the lock; the next ready PR rebases against the now-updated `main`.
+3. **If the rebase conflicts** → this is a real collision the partition missed (two independents that turned out to share surface). Hand it back to the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) to resolve on the rebased branch (iterate), or park per the shared protocol if it can't be resolved autonomously. Then release the lock; the next ready PR rebases against the now-updated `main`.
 4. **If CI fails after rebase** → treat as a normal post-build CI failure (graft Step 10: one fix attempt if fixable, else park). The stale-green never reaches `main`.
 5. Release the merge lock; the next ready build takes it.
 

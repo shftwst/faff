@@ -62,7 +62,7 @@ When **any** faff entry resolves config and finds **no `.faffrc.yaml`** (`faff c
 > `No .faffrc found. Set up faff for this repo now? (y/n)`
 
 - **Soft-offer, not a gate.** Declining is fine — the command proceeds on built-in defaults exactly as a config-less repo does today. The offer is a convenience, never a blocker.
-- **On accept** → delegate to `/faff-onboard` (via the `Skill` tool) for the conversational bootstrap, then resume the original command with the new config in hand.
+- **On accept** → invoke the `faff-onboard` skill via the Skill tool (resolve per **Sibling-skill invocation**) for the conversational bootstrap, then resume the original command with the new config in hand.
 - **On decline** → write a **minimal stub `.faffrc.yaml`** via `faff config init --set tracking.spec_docs_path=` (a single empty-value leaf key the writer always accepts) so `faff config path` returns **exit 0** thereafter and the offer **does not re-fire** on the next command. A *keyless* `tracking:` block is not writable (`config init` exits 2 with no `--set`), so the stub must carry exactly one empty-value key; use `spec_docs_path` (not `repo`/`git_host`/`tracker`) so the stub never makes `config get tracking.repo` return an empty string a later consumer might misread — those keys stay cleanly unset. Declining once is remembered; faff does not nag.
 - **Autonomous/beep-boop runs never emit the offer.** Onboarding and the first-run offer are **interactive-only** (gateway → Autonomous Mode Contract): an unattended run with no config proceeds silently on defaults — it never prompts and never conjures a config behind the human's back. The offer fires only in interactive entry.
 
@@ -544,7 +544,7 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 | faff-wtf | Return the ready-queue as a plain list. No focus recommendation. |
 | faff-map | Return the structured roadmap synthesis (initiatives, workstreams, chain join-up, fireable/blocked gates, structural risks). Read-only — never writes to the tracker. |
 | faff-prep | Stale-refresh when original design still holds; auto-spec from scratch (always delegated to the `spec` slot) when the producer's self-rating clears the appetite-aware confidence gate (see **Appetite for destruction**). `high` → attach + promote (build-eligible). `medium` → attach with the rating retained (Todo, routes out as `needs-decision-first`); whether an autonomous build then proceeds is appetite-modulated per the matrix above — `low`/`medium` surface for human, `high` (default) resolve-attempt → proceed if defensible, `full` proceed. `low` confidence parks. A missing `spec` override is **not** a park reason — the default `faffter-noon-spec` producer always exists and self-rates against the same gate. |
-| faff-graft | Skip prompts. Mid-build ambiguity → invoke `/faff-prep` respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
+| faff-graft | Skip prompts. Mid-build ambiguity → invoke the `faff-prep` skill respec. Still ambiguous → park. Post-build → AC verification → review (pass/fail/needs-human). `pass` → auto-merge on green CI (unblocks chained issues). `fail` → iterate. `needs-human` → flip PR to draft, park. |
 
 ### Appetite for destruction
 
@@ -736,9 +736,31 @@ The single canonical definition of the **type-appropriate templates** that `/faf
 
 **Out-of-scope seams (documented, not built here):** the native-template resolution slot (G / FAFF-15); persisting type as a `faff-type-<type>` control label (a later ticket, via **Control-label provisioning**, reading the type the fill step already determined); and a configurable `tracking.templates_path` key (mirroring `spec_docs_path` — a clean follow-up that touches the CLI allowlist).
 
+### Sibling-skill invocation (install-mode portable)
+
+faff skills appear in your available-skills list under **one of two name forms**, depending on how faff is installed:
+
+- bare `<canonical>` — when linked for development (e.g. `faff-prep`)
+- `faff:<canonical>` — when installed as a distributed plugin (e.g. `faff:faff-prep`)
+
+Wherever a faff skill tells you to "invoke the `<name>` skill via the Skill tool", it names the sibling by its **canonical name** (its directory / `name:` value — no namespace, no leading slash). To invoke it:
+
+1. Take the canonical name the instruction gives you.
+2. Find the matching entry in your available-skills list — the entry **equal to** the canonical name, **or** the canonical name **prefixed with `faff:`**. Prefer the `faff:`-prefixed entry if both appear.
+3. Pass **that** resolved name to the Skill tool. Never pass a leading-slash form (`/faff-prep`, `/faff:prep`), and never assume the literal — always resolve against the live list.
+
+**Edge cases.**
+
+- **Both forms present** (a repo that links bare *and* installs the plugin): prefer the `faff:`-prefixed entry — deterministic, no ambiguity.
+- **Neither form present** (the sibling genuinely isn't installed): unchanged from today — the existing "a missing slot/skill is never a blocker" handling applies. The convention never invents a skill that isn't there.
+
+**Configured slots resolve the same way.** A slot left at its **bundled default** (a `faffter-*` / `faffidavit-*` name) is a canonical name resolved per the three steps above; a slot value that **already carries a `:` namespace** (e.g. `gstack:autoplan`) is used **verbatim**.
+
+**Why this exists (not a hardcoded literal).** A fixed `/faff-prep` string is correct in at most one install mode — the Skill tool takes a skill *name*, and that name differs per mode. So every delegation resolves against the live available-skills list rather than a frozen literal, keying off *whatever the canonical name is* — which composes with a future skill rename (FAFF-165) without editing this rule. Human-facing "type `/faff-prep`" prose is **not** a delegation: it keeps its slash; this rule governs only Skill-tool invocations.
+
 ## Chaining pattern
 
-When a faff skill's flow leads naturally into another faff skill, it offers the next step via a yes/no gate (or a short-choice prompt where there is a real branch like Build/Review/Reprep). On confirm, it invokes the next skill via the `Skill` tool in the same conversation. On deny, it stops cleanly.
+When a faff skill's flow leads naturally into another faff skill, it offers the next step via a yes/no gate (or a short-choice prompt where there is a real branch like Build/Review/Reprep). On confirm, it invokes the next skill via the Skill tool in the same conversation, resolving the sibling by its canonical name per **Sibling-skill invocation** above. On deny, it stops cleanly.
 
 No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
 
@@ -771,7 +793,7 @@ Skills load independently. When you enter via a slash command (`/faff-graft`), a
 A sub-skill that delegates to a **non-default** slot occupant validates it *before first use* in the run. This is **always on** — not a config knob. A misconfigured or non-conformant occupant can emit output the pipeline misbranches on, so there is no case where you'd want it off; the only cost is one validation per distinct non-default occupant per run (cached), which is negligible.
 
 - **Scope: non-default occupants only.** A slot left unset (using its shipped default), or set to the slot's documented default name, is **not** validated — the shipped defaults are conformant by construction (and `faff validate-adapters` lints them in CI). Validation fires only when the configured occupant differs from the slot's default (a third-party or user-authored skill). This covers every slot type the authoring tool knows — adaptors (`routing_adaptor`, `rendering_adaptor`), producers (including the `spec` / `review` / `ship` producers that emit their `faff-contract:<name>` block), `methodology`, and the `concurrency` mechanism.
-- **How.** Invoke `faffter-dark-authoring-adaptors` → Validate face on the occupant (by name/path), passing the slot it occupies. It returns `pass` / `fail` + violations against the conformance checklist.
+- **How.** Invoke the `faffter-dark-authoring-adaptors` skill via the Skill tool (resolve per **Sibling-skill invocation**) → Validate face on the occupant (by name/path), passing the slot it occupies. It returns `pass` / `fail` + violations against the conformance checklist.
 - **Cache once per run.** Validate each distinct occupant **once** per session/run and cache the verdict — autonomous runs write it to `.faff/runs/<run-id>/slot-validation.md` (interactive: hold it in-session). Don't re-validate on every delegation.
 - **On `fail`:**
   - *Autonomous* — **park** the work unit (cause: `slot non-conformant — <slot>:<occupant>`), citing the violations in the park comment + log. This is a legitimate park, **not** a forbidden capacity excuse: a non-conformant occupant can emit output the pipeline misbranches on. The whole run does not abort — only units that would route through that slot park.
@@ -891,7 +913,7 @@ The `concurrency` slot is a pure **mechanism** — it *performs an action* in th
 
 Executes `/faff-beep-boop`'s build pass. Default `faffter-noon-concurrency-sequential`; override `faffter-dark-concurrency-parallel`.
 
-**Input.** The conflict-analysis partition for the current wave — `{ "independents": [...], "groups": [[...]] }` — plus the per-issue build action (invoke `/faff-graft ISSUE-XX` autonomously) and the run ledger at `.faff/runs/<run-id>/run-ledger.json`.
+**Input.** The conflict-analysis partition for the current wave — `{ "independents": [...], "groups": [[...]] }` — plus the per-issue build action (invoke the `faff-graft` skill autonomously on `ISSUE-XX`) and the run ledger at `.faff/runs/<run-id>/run-ledger.json`.
 
 **Obligations every `concurrency` occupant must honour:**
 

@@ -77,7 +77,7 @@ Two independent phases. The **prep queue** drains fully first. Then the **build 
 
 ### 1. Tidy pass
 
-Invoke `/faff-tidy` in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans, strip dead references, canonicalise overlooked specs, clear stale park labels) and tags stale-spec / superseded-spec issues so the prep queue picks them up in step 2. Logs remaining findings for morning review.
+Invoke the `faff-tidy` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans, strip dead references, canonicalise overlooked specs, clear stale park labels) and tags stale-spec / superseded-spec issues so the prep queue picks them up in step 2. Logs remaining findings for morning review.
 
 ### 2. Prep queue build
 
@@ -95,7 +95,7 @@ This is the prep queue. The eligibility-exclusion here (and at build-queue assem
 
 ### 3. Prep queue drain
 
-For each candidate, invoke `/faff-prep` in autonomous mode. Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
+For each candidate, invoke the `faff-prep` skill via the Skill tool in autonomous mode. Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
 - `refreshed` — spec updated, issue stays in Todo (contributes to build queue)
 - `promoted` — fresh high-confidence spec, moved to Todo (contributes to build queue)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; it joins the candidate set but its verdict is `needs-decision-first`, so it routes out of the build queue and surfaces in the morning brief rather than auto-building
@@ -134,7 +134,7 @@ Run once over the build queue. See _Conflict analysis_ below.
 
 ### 6. Build pass
 
-Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives `/faff-graft` in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**); beep-boop states no ordering of its own. The structural default supplies priority + chainable unlock value when no methodology is set; an opinionated lens supplies its own (value × risk × dep-aware).
+Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-pass execution_ below), which drives the `faff-graft` skill in autonomous mode per issue — sequentially by default, or concurrently when the parallel executor is configured — respecting the partition (independents in parallel where the executor supports it, serial within collision groups). Independents are ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**); beep-boop states no ordering of its own. The structural default supplies priority + chainable unlock value when no methodology is set; an opinionated lens supplies its own (value × risk × dep-aware).
 
 ### 7. Wave drain
 
@@ -232,7 +232,7 @@ In `--hook` mode runcheck stays silent for any session without an open beep-boop
 For each listed issue:
 - Skip if cancelled or archived (log the skip with reason).
 - Skip if the issue doesn't exist (log and continue).
-- If spec missing → invoke `/faff-prep` autonomous. Apply return per the full mode prep queue logic.
+- If spec missing → invoke the `faff-prep` skill (autonomous). Apply return per the full mode prep queue logic.
 - If spec present → **re-scan the live comment thread before queueing** (gateway → **Automation-routing contract → _Live-thread reconciliation_**; faff-prep → **Scenario B Step 2a**). A **Resolution** or **Challenge** posted after the spec supersedes its retained rating — route the issue through narrow prep (`/faff-prep` autonomous) to fold it in and re-rate first; otherwise queue for build.
 
 After the list is processed:
@@ -277,7 +277,7 @@ Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`
 
 ## Build-pass execution (the `concurrency` slot)
 
-The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives `/faff-graft` per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
+The build pass is executed by the configured **`concurrency` slot**, a mechanism slot that consumes the conflict-analysis partition and drives the `faff-graft` skill per issue. It defaults to `faffter-noon-concurrency-sequential` (one build at a time — no worktree contention, no merge races) and is overridable with `faffter-dark-concurrency-parallel` (runs independents concurrently, each in its own worktree, up to `concurrency_max` — default 4 — with rebase-before-merge so a moving `main` can't merge stale-green).
 
 Every executor honours the same slot contract: build every issue in the partition, serialise within collision groups, record each terminal outcome to the run ledger (so `runcheck` can verify completeness), and never weaken the merge gate. A missing slot is never a park reason — it defaults to sequential. The contract is fixed in the gateway → **Mechanism slot (`concurrency`)** → _The `concurrency` slot contract_ — see it for the full obligations.
 

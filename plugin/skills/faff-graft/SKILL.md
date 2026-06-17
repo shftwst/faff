@@ -88,7 +88,7 @@ If the issue doesn't exist, tell the user and stop.
 Check the issue for an attached spec. Follow the shared **Spec discovery** rule in the sibling `faff/SKILL.md` — look in tracker comments, the main description/body, committed `docs/` paths, and (git-only mode) the `.faff/specs/<issue-id>.md` store. A hit in any of those counts as the spec.
 
 - **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec. (This is the same call `faff next` makes: with a spec present it returns `graft` (proceed); with no spec, `prep` — consult it per gateway → **Next-step transition** rather than re-deriving, then act as below.)
-- **No spec (none of those sources):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke `/faff-prep` via the Skill tool. On deny, stop.
+- **No spec (none of those sources):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**). On deny, stop.
 
 The gate ensures no one starts building without a validated spec. Per the shared **Spec discovery** rule, **a description is never a spec**: if the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep`. Never build straight from a description, and never skip prep because it "reads clear".
 
@@ -150,7 +150,7 @@ Validate the spec's freshness against the current codebase. Then present a summa
 
 - **build** — proceed to Step 7 (build loop)
 - **review** — walk through the spec in detail before starting, then return here
-- **reprep** — something changed; invoke `/faff-prep ISSUE-XX` in respec mode via the Skill tool
+- **reprep** — something changed; invoke the `faff-prep` skill via the Skill tool in respec mode on `ISSUE-XX`
 
 **Step 7: Build**
 
@@ -158,7 +158,7 @@ Implementer chooses execution strategy. Build directly from the spec.
 
 During the build, if a decision arises that the spec doesn't resolve:
 - **Interactive mode:** ask the user.
-- **Autonomous mode:** see _Autonomous Mode_ below (invoke `/faff-prep` respec; if still ambiguous, park).
+- **Autonomous mode:** see _Autonomous Mode_ below (invoke the `faff-prep` skill respec; if still ambiguous, park).
 
 If the build reveals concrete, separable work this PR shouldn't absorb (an unforeseen seam, an untracked dependency), **record it** as discovered scope (see Step 9 → _Discovered scope_) and carry on — don't expand this PR to cover it, and don't park for it.
 
@@ -199,7 +199,7 @@ This step runs in **both** interactive and autonomous modes.
 
 Runs after AC verification, before the merge-confidence gate. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed and the PR is already open. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against. (Step 0 forces this into the todo list; Step 10's gate makes merge impossible without a `pass`, and Step 11 verifies it before any merge prompt — so a skipped review can't reach `main`.)
 
-Invoke the `review` slot, passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-graft's. faff-graft owns only the sequencing around the result.
+Invoke the `review` slot via the Skill tool (resolve per gateway → **Sibling-skill invocation**; the default `faffter-noon-review` is a canonical name), passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-graft's. faff-graft owns only the sequencing around the result.
 
 The review returns one of three signals. The verdict vocabulary, their semantics, and the revert test below are the **fixed review-verdict contract** in the gateway. **faff-graft is the consumer (FAFF-109):** it locates the reviewer's `faff-contract:review-verdict` block, `JSON.parse`s it, and pipes it to `faff contract review-verdict` — the sole source of contract data — then branches on the script's verdict (a malformed/unknown signal coerces to `needs-human`, never `pass`). A reviewer that emits no block falls back to reading its native `signal:` / `## Findings` prose into the same extraction JSON. faff-graft branches on the verdict; it does not redefine it:
 
@@ -242,7 +242,7 @@ Merge happens only when **all** conditions hold:
 
 **Decision:**
 
-- **All three hold (integrity floor passed):** these three conditions *are* the integrity floor — assert them here; this floor is **non-delegable** and is never re-run or weakened inside the `ship` producer (there is no adaptor — the consumer parses the producer's block directly). **Re-read the issue's live status / PR state immediately before the ship handoff** (multi-orchestrator safety — gateway → **Issue claim & status monotonicity**): if the PR is **already merged** or a peer has advanced the issue to `Done`, do **not** double-merge and do **not** revert — treat it as an already-shipped no-op. Otherwise hand off to the `ship` producer (configured occupant, or the default `faffter-noon-ship`, which runs `gh pr merge`); **locate its `faff-contract:delivery-outcome` block, `JSON.parse` it, and pipe it to `faff contract delivery-outcome`** (the sole source of contract data — FAFF-109 retired `ship_adaptor`), and **route on the script's outcome** (an unmappable or uncorroborated result coerces to `failed`, never `shipped` — gateway → _Delivery outcome_):
+- **All three hold (integrity floor passed):** these three conditions *are* the integrity floor — assert them here; this floor is **non-delegable** and is never re-run or weakened inside the `ship` producer (there is no adaptor — the consumer parses the producer's block directly). **Re-read the issue's live status / PR state immediately before the ship handoff** (multi-orchestrator safety — gateway → **Issue claim & status monotonicity**): if the PR is **already merged** or a peer has advanced the issue to `Done`, do **not** double-merge and do **not** revert — treat it as an already-shipped no-op. Otherwise hand off to the `ship` producer via the Skill tool (configured occupant, or the default `faffter-noon-ship`, which runs `gh pr merge`; resolve per gateway → **Sibling-skill invocation**); **locate its `faff-contract:delivery-outcome` block, `JSON.parse` it, and pipe it to `faff contract delivery-outcome`** (the sole source of contract data — FAFF-109 retired `ship_adaptor`), and **route on the script's outcome** (an unmappable or uncorroborated result coerces to `failed`, never `shipped` — gateway → _Delivery outcome_):
   - `shipped` → merged/deployed. The worktree becomes eligible for cleanup (housekeeping, per gateway → **Worktree policy**) — the `ship` producer never touches it. Chained issues unblock. Done.
   - `not-ready:<reason>` → the merge was deferred **without merging** — either the producer's deploy-readiness tier (only a deploy-capable producer yields this; the default never does) **or** a mechanical **delivery-precondition** block (`not-ready:precondition:<kind>` — push / token-scope / merge-method / actions-policy; the default *does* yield this). Leave the PR open and mergeable, record the reason, and park as **retry-later** — not a defect, not `needs-human`. For a `precondition:<kind>` reason, **surface the specific blocker + `remedy:` in the park comment** so the operator can apply the one-time fix and re-invoke `/faff-graft` to resume.
   - `failed:<reason>` → merge conflict or deploy error (or an unmappable result coerced to `failed`). Treat as a post-build failure: autonomous → one fix attempt if obvious from the error, else park; interactive → surface and ask per Step 11.
@@ -306,7 +306,7 @@ Once the wait resolves to a terminal state, classify the result into the `ci-gre
 After build is complete and PR has been raised:
 
 - **Discovered scope (only if `concrete` items were recorded in Step 9 → _Discovered scope_):** list them and offer a yes/no gate — "Found N out-of-scope item(s) while building: [titles]. File as Backlog tickets? (y/n)". On confirm, file each per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_): status `Backlog`, tag `faff-chain-gap-fill`, the recorded relationship link, and a "discovered during build of ISSUE-XX" provenance line + back-link. On deny, leave them in `discovered-scope.json` for a later pass. `vague` items are listed for awareness only — never offered for filing. (Interactive use has no orchestrator above graft, so the human confirming *is* the orchestrator authorising the file; autonomous runs file via beep-boop instead, never here.)
-- **Next ticket:** yes/no "Pick next ticket via `/faff-wtf`? (y/n)". On confirm, invoke `/faff-wtf` via the Skill tool. On deny, stop cleanly.
+- **Next ticket:** yes/no "Pick next ticket via `/faff-wtf`? (y/n)". On confirm, invoke the `faff-wtf` skill via the Skill tool. On deny, stop cleanly.
 
 ## Autonomous Mode
 
@@ -318,7 +318,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 
 **Flow:**
 1. **Delivery pre-flight (before building).** Run the read-only delivery-precondition probe (the same one the `ship` producer runs at ship time — push / merge-method always; token-scope / actions-policy when the spec declares the touched surface, e.g. `.github/workflows/*`). On a **diff-independent** block (`push` or `merge-method` — these don't need the built diff), do **not** build: park **retry-later** with cause `not-ready:precondition:<kind> — <detail>; remedy: <remedy>` (commit nothing built; ensure the `faff-parked` label; post the cause + remedy) and return `parked` — a guaranteed-fail delivery must never waste a build. An *indeterminate* probe (network/`gh` outage) is not a confirmed block — proceed to build; the ship-time backstop is the real gate. Diff-triggered checks the pre-flight couldn't see are caught at ship time. Then skip Step 6's build/review/reprep choice and proceed directly to build (Step 7).
-2. During Step 7, if a decision arises that the spec doesn't resolve, run resolve-attempt first (see Resolve-attempt before park section below). If resolve-attempt proceeds, log to `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` and write the audit-trail tracker comment, then continue. If resolve-attempt fails, invoke `/faff-prep` respec. If respec is still ambiguous, park.
+2. During Step 7, if a decision arises that the spec doesn't resolve, run resolve-attempt first (see Resolve-attempt before park section below). If resolve-attempt proceeds, log to `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` and write the audit-trail tracker comment, then continue. If resolve-attempt fails, invoke the `faff-prep` skill respec. If respec is still ambiguous, park.
    - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see the sibling `faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 3. After build, run Step 8 (AC verification) — mandatory.
 4. Push the branch and open the PR as a **regular (non-draft) PR**. Regular PRs are the default in autonomous mode; the review step decides whether to keep it that way or flip to draft.

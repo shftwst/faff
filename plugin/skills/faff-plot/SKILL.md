@@ -33,7 +33,7 @@ discovery brief → recurse top-down (ticket-shaping per level) → write skelet
 ### 1. Entry — get a discovery brief
 
 - **Chained from `/faff-jot`** (the common path): jot hands over the brief it already gathered when it judged the work application-scale. Use it directly — do not re-run discovery.
-- **Standalone** (`/faff-plot` invoked directly): run discovery first, exactly as jot does — invoke the configured `intake` skill (default `faffter-noon-intake`) via the `Skill` tool, passing the human's description, and take back a discovery brief. A missing `intake` slot is never a blocker: run the default inline.
+- **Standalone** (`/faff-plot` invoked directly): run discovery first, exactly as jot does — invoke the configured `intake` skill (default `faffter-noon-intake`) via the Skill tool (resolve the slot value per gateway → **Sibling-skill invocation**: a bundled default is a canonical name, an explicitly-namespaced override is used verbatim), passing the human's description, and take back a discovery brief. A missing `intake` slot is never a blocker: run the default inline.
 
 If the brief is too thin to plan a coherent roadmap (one vague capability, no stated dependencies), say so and offer to deepen discovery rather than inventing structure.
 
@@ -71,8 +71,8 @@ Create top-down as each level is confirmed: initiative containers → project co
 
 After the skeleton is written, offer two gates in order:
 
-- **Audit:** "Roadmap created — audit whether it joins up via `/faff-map`? (y/n)". On confirm, invoke `/faff-map` via the Skill tool. This is the coherence check on what plot just wrote — chain join-up, gate fireability, ghost projects.
-- **Start:** "Prep the first slice for build via `/faff-prep <first-epic>`? (y/n)". On confirm, invoke `/faff-prep` on the highest-sequenced first-slice epic. On deny, stop cleanly.
+- **Audit:** "Roadmap created — audit whether it joins up via `/faff-map`? (y/n)". On confirm, invoke the `faff-map` skill via the Skill tool. This is the coherence check on what plot just wrote — chain join-up, gate fireability, ghost projects.
+- **Start:** "Prep the first slice for build via `/faff-prep <first-epic>`? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool on the highest-sequenced first-slice epic. On deny, stop cleanly.
 
 ## Methodology influence
 

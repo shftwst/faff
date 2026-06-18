@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/shftwst/faff/compare/faff--v0.4.0...faff--v0.4.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* **FAFF-164:** install-mode-portable cross-skill delegation convention ([#110](https://github.com/shftwst/faff/issues/110)) ([b14b8e5](https://github.com/shftwst/faff/commit/b14b8e545b4ea13df4f84216b0db0f46cdc874bc))
+
 ## [0.4.0](https://github.com/shftwst/faff/compare/faff--v0.3.0...faff--v0.4.0) (2026-06-16)
 
 

@@ -61,7 +61,7 @@ Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed
 
 The **gateway Spec-readiness contract** defines the **provenance stamp** — its format and placement (_Spec readiness (fixed)_; not duplicated here). **prep populates its values _and_ detects it** (the consumer owns stamp-detection — prep writes the stamp after the producer returns, so it has the regex and timing to set `provenance_present`). At every spec-attach point — and **before** validation and attach — write the stamp line into the spec body, directly under the H1 title:
 
-- `producer := faff config get slots.spec -d faffter-noon-spec`
+- `producer := faff config get slots.spec` (the CLI applies the `faffter-noon-spec` default — FAFF-182)
 - `date := today` (ISO `YYYY-MM-DD`)
 - `mode := autonomous` when running under the autonomous-mode signal (gateway → **Autonomous Mode Contract**), else `interactive`
 

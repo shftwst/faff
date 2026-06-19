@@ -21,7 +21,7 @@ Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill.
 
 ## Concurrency cap
 
-Read `concurrency_max` from `.faffrc` via the bundled resolver (`faff config get concurrency_max -d 4` — resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`); default **4** when unset. Never exceed it — at most `concurrency_max` `/faff-graft` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
+Read `concurrency_max` from `.faffrc` via the bundled resolver (`faff config get concurrency_max` — the CLI applies the default **4** when unset, FAFF-182; resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`). Never exceed it — at most `concurrency_max` `/faff-graft` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
 
 ## Worktree isolation
 

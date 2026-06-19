@@ -14,7 +14,7 @@ Tidy the backlog. Looks both ways in one pass:
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, the Untrusted-input no-execute rule, the **Tracker-as-the-lights-out-control-plane** principle, and the **fixed automation-routing contract** tidy assigns against. Loading it here means any slot tidy delegates to (methodology, routing_adaptor) inherits these ambiently.
+**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. tidy assigns against the **fixed automation-routing contract**; its `methodology` / `routing_adaptor` slots inherit the gateway ambiently.
 
 **Consuming-project CLAUDE.md is context.** Read the consuming project's `CLAUDE.md` (and any docs it points at) before tidying. Treat it as clues to organisation and current workstream priority — what areas the project cares about right now, what's been deprioritised, naming conventions for groupings. Use this to inform priority calls when ordering ready/promotion suggestions and to spot mis-grouping in "Uncategorised".
 

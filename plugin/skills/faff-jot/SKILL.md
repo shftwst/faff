@@ -15,7 +15,7 @@ One skill, three entry points — **not** separate commands per item type:
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the ignore-cancelled/archived rule, `.faff/` logging layout, the Untrusted-input no-execute rule, and the slot contracts this skill applies. Loading it here means the `intake` and `methodology` slots jot delegates to inherit these ambiently.
+**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. jot leans on **Agent Lanes** and the `intake` / `methodology` slot contracts it delegates to.
 
 ## Rendering
 

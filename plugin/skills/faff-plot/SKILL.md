@@ -11,7 +11,7 @@ plot is jot's recursion applied to jot's discovery. They share the same `ticket-
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command) or chained from `/faff-jot`, so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the shared `.faffrc` configuration, the Agent Lanes definition, the `methodology` slot's `ticket-shaping` contract (including the `shape-level` input plot uses), the `appetite` dial, the ignore-cancelled/archived rule, the Untrusted-input no-execute rule, and the `.faff/` logging layout. Loading it here means the `intake` and `methodology` slots plot delegates to inherit these ambiently.
+**Load the gateway first.** Entered directly or chained from `/faff-jot`; if `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. plot leans on **Agent Lanes**, the `methodology` `ticket-shaping` contract (the `shape-level` input), and the `appetite` dial; its `intake` / `methodology` slots inherit the gateway ambiently.
 
 ## Rendering
 

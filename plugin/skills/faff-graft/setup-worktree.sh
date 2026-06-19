@@ -40,8 +40,11 @@ cd "$CWD" || exit 1
 git worktree add -b "${SAFE_NAME}" "$WORKTREE_PATH" HEAD >&2 2>&1
 cd "$WORKTREE_PATH"
 
-# Copy common gitignored config files from main worktree
-for f in .env .env.local .env.development .env.production.local .claude/settings.local.json; do
+# Copy common gitignored config files from main worktree. .faffrc.yaml is per-repo faff config
+# (slots, appetite, adversarial backend) the build needs; without it `faff config` resolves to
+# defaults and the build silently ignores the repo's config (FAFF-186). Canonical name only — the
+# resolver errors loudly on legacy .faffrc / .faffrc.yml, so copying those would break the worktree.
+for f in .env .env.local .env.development .env.production.local .claude/settings.local.json .faffrc.yaml; do
   if [ -f "$CWD/$f" ]; then
     mkdir -p "$WORKTREE_PATH/$(dirname "$f")"
     cp "$CWD/$f" "$WORKTREE_PATH/$f"

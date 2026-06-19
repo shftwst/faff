@@ -17,7 +17,7 @@ slots:
 
 ## No internal contract — a pure adaptor
 
-The surviving sibling adaptor slot (`routing_adaptor`) sits in front of a **fixed internal contract** in the gateway — the six-verdict vocabulary the pipeline branches on — and the `spec` / `review` / `ship` contracts are producer-emitted (the producer self-declares a `faff-contract:<name>` block the consumer parses; FAFF-109 retired their adaptor slots). Rendering has none of that: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* — the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.
+The surviving sibling adaptor slot (`routing_adaptor`) sits in front of a **fixed internal contract** in the gateway — the six-verdict vocabulary the pipeline branches on — and the `spec` / `review` / `ship` contracts are producer-emitted (the producer self-declares a `faff-contract:<name>` block the consumer parses; their adaptor slots were retired). Rendering has none of that: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* — the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.
 
 ## Why an adaptor, not a producer
 

@@ -66,8 +66,8 @@
     {
       "path": "plugin/skills/faffidavit-rendering/SKILL.md",
       "lines": 312,
-      "chars": 23463,
-      "est_tokens": 5866
+      "chars": 23459,
+      "est_tokens": 5865
     },
     {
       "path": "plugin/skills/faffidavit-routing/SKILL.md",
@@ -78,14 +78,14 @@
     {
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
       "lines": 168,
-      "chars": 10263,
-      "est_tokens": 2566
+      "chars": 10242,
+      "est_tokens": 2561
     },
     {
       "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
       "lines": 95,
-      "chars": 11090,
-      "est_tokens": 2773
+      "chars": 11075,
+      "est_tokens": 2769
     },
     {
       "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
@@ -126,14 +126,14 @@
     {
       "path": "plugin/skills/faffter-noon-review/SKILL.md",
       "lines": 154,
-      "chars": 9005,
-      "est_tokens": 2252
+      "chars": 8979,
+      "est_tokens": 2245
     },
     {
       "path": "plugin/skills/faffter-noon-ship/SKILL.md",
       "lines": 70,
-      "chars": 10378,
-      "est_tokens": 2595
+      "chars": 10352,
+      "est_tokens": 2588
     },
     {
       "path": "plugin/skills/faffter-noon-spec/SKILL.md",
@@ -145,7 +145,7 @@
   "totals": {
     "files": 23,
     "lines": 5182,
-    "chars": 561854,
-    "est_tokens": 140472
+    "chars": 561762,
+    "est_tokens": 140448
   }
 }

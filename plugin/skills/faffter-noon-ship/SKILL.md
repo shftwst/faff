@@ -15,7 +15,7 @@ slots:
 
 ## When it runs
 
-Invoked by `/faff-graft`'s **Step 10** (the merge-confidence gate) once the integrity floor has passed — in interactive mode after the user confirms "merge now", in autonomous mode automatically on green. It is **not** a user-invokable slash command. It is a **producer**: it *performs* delivery, emits a native result, and self-declares it in a `faff-contract:delivery-outcome` block; faff-graft (the consumer) parses that block onto the fixed outcome vocabulary (FAFF-109 retired the `ship_adaptor` slot).
+Invoked by `/faff-graft`'s **Step 10** (the merge-confidence gate) once the integrity floor has passed — in interactive mode after the user confirms "merge now", in autonomous mode automatically on green. It is **not** a user-invokable slash command. It is a **producer**: it *performs* delivery, emits a native result, and self-declares it in a `faff-contract:delivery-outcome` block; faff-graft (the consumer) parses that block onto the fixed outcome vocabulary (the `ship_adaptor` slot was retired).
 
 ## The contract
 
@@ -43,7 +43,7 @@ On a merge conflict or any `gh` failure, the producer declares `failed:<reason>`
 
 ## Contract artifact (FAFF-108)
 
-After emitting the native result (step 5), append **one** fenced code block — tagged `faff-contract:delivery-outcome`, as the **last** thing in the output — declaring the delivery outcome you just produced, so faff-graft (the consumer) parses it **deterministically** (no LLM re-read of the `gh`/deploy result) via `faff contract delivery-outcome`. You ran the merge and read its exit, so you declare the outcome directly; the block mirrors the native result, it is not a second source of truth. (Same pattern the `spec` producer adopted in FAFF-81 for `faff-contract:spec-readiness`.)
+After emitting the native result (step 5), append **one** fenced code block — tagged `faff-contract:delivery-outcome`, as the **last** thing in the output — declaring the delivery outcome you just produced, so faff-graft (the consumer) parses it **deterministically** (no LLM re-read of the `gh`/deploy result) via `faff contract delivery-outcome`. You ran the merge and read its exit, so you declare the outcome directly; the block mirrors the native result, it is not a second source of truth. (Same pattern the `spec` producer adopted for `faff-contract:spec-readiness`.)
 
 ````
 ```faff-contract:delivery-outcome
@@ -56,7 +56,7 @@ After emitting the native result (step 5), append **one** fenced code block — 
 - `outcome` — your real delivery result; `reason` — a short, specific cause (empty for `shipped`; the `not-ready:precondition:<kind>` reason convention still applies).
 - **Honesty rule — `corroborated: true` ONLY when the native result actually confirms the merge/deploy succeeded.** A clean `gh pr merge` exit you observed is corroboration; an unconfirmable / timed-out / unread result is **not** — set `corroborated: false`, never a phantom `true`.
 - **The script's fail-safe stands:** an `outcome: shipped` with `corroborated: false` still coerces → `failed` (CLI fixture `uncorroborated-shipped-coerced`). So honest self-declaration **cannot weaken** the corroboration guard — declaring `false` when unsure is always safe.
-- Do **not** include `provenance_present` — that field is spec-specific (FAFF-81); the delivery-outcome extraction is just `{ outcome, reason, corroborated }`.
+- Do **not** include `provenance_present` — that field is spec-specific; the delivery-outcome extraction is just `{ outcome, reason, corroborated }`.
 - **One** block, at the very end, machine-only. **Always emit it** — a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-graft reading your native result — the absent-block fallback.)
 
 ## Rules

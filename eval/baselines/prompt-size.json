@@ -59,9 +59,9 @@
     },
     {
       "path": "plugin/skills/faff/SKILL.md",
-      "lines": 932,
-      "chars": 145681,
-      "est_tokens": 36421
+      "lines": 941,
+      "chars": 145347,
+      "est_tokens": 36337
     },
     {
       "path": "plugin/skills/faffidavit-rendering/SKILL.md",
@@ -144,8 +144,8 @@
   ],
   "totals": {
     "files": 23,
-    "lines": 5182,
-    "chars": 561762,
-    "est_tokens": 140448
+    "lines": 5191,
+    "chars": 561428,
+    "est_tokens": 140364
   }
 }

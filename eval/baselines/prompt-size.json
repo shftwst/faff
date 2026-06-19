@@ -5,20 +5,20 @@
   "per_file": [
     {
       "path": "plugin/skills/faff-beep-boop/SKILL.md",
-      "lines": 445,
-      "chars": 46413,
-      "est_tokens": 11604
+      "lines": 463,
+      "chars": 46236,
+      "est_tokens": 11559
     },
     {
       "path": "plugin/skills/faff-graft/SKILL.md",
       "lines": 385,
-      "chars": 41640,
-      "est_tokens": 10410
+      "chars": 41505,
+      "est_tokens": 10377
     },
     {
       "path": "plugin/skills/faff-jot/SKILL.md",
       "lines": 155,
-      "chars": 17990,
+      "chars": 17991,
       "est_tokens": 4498
     },
     {
@@ -30,8 +30,8 @@
     {
       "path": "plugin/skills/faff-onboard/SKILL.md",
       "lines": 114,
-      "chars": 10186,
-      "est_tokens": 2547
+      "chars": 10160,
+      "est_tokens": 2540
     },
     {
       "path": "plugin/skills/faff-plot/SKILL.md",
@@ -42,14 +42,14 @@
     {
       "path": "plugin/skills/faff-prep/SKILL.md",
       "lines": 322,
-      "chars": 37065,
-      "est_tokens": 9267
+      "chars": 37038,
+      "est_tokens": 9260
     },
     {
       "path": "plugin/skills/faff-tidy/SKILL.md",
       "lines": 280,
-      "chars": 49357,
-      "est_tokens": 12340
+      "chars": 49315,
+      "est_tokens": 12329
     },
     {
       "path": "plugin/skills/faff-wtf/SKILL.md",
@@ -144,8 +144,8 @@
   ],
   "totals": {
     "files": 23,
-    "lines": 5164,
-    "chars": 562260,
-    "est_tokens": 140575
+    "lines": 5182,
+    "chars": 561854,
+    "est_tokens": 140472
   }
 }

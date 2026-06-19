@@ -45,7 +45,7 @@ bail check → detect (discovery) → ask team_key → preview → confirm → w
 Run `"$faff" config path` and branch on the exit code **before doing anything else**:
 
 - **Exit 0** — a config already exists. Print the resolved path, report that faff is already set up for this repo, and **stop**. Onboarding never overwrites a live config. (If the human wants to change a value, that's a targeted `faff config init --set …`, not a re-onboard.)
-- **Exit 2** — a legacy-named config (`.faffrc` / `.faffrc.yml`) is present. **Surface the loud FAFF-50 rename error verbatim** and stop — do **not** bootstrap a fresh config over it. The fix is to rename the file to `.faffrc.yaml`, not to write a second one.
+- **Exit 2** — a legacy-named config (`.faffrc` / `.faffrc.yml`) is present. **Surface the loud config-rename error verbatim** and stop — do **not** bootstrap a fresh config over it. The fix is to rename the file to `.faffrc.yaml`, not to write a second one.
 - **Exit 3** — no config. **Proceed** to detection.
 
 ### 2. Detect (discovery, not interrogation)
@@ -79,7 +79,7 @@ Assemble a **single** `faff config init` call with one `--set tracking.<key>=<va
 
 - Only the allowlisted keys: **`tracker`, `team_key`, `repo`, `git_host`, `spec_docs_path`**. **Never `project_id`** — it is not in the writer's allowlist and `config init` exits 2 on it (deferred to a separate ticket). Omit any key that wasn't detected/confirmed.
 - **Dry-run first:** run the same command with `--dry-run` and show the human the exact `.faffrc.yaml` text that will be written. One confirm gate ("Write this config? (y/n)").
-- On confirm, run it **without** `--dry-run` to write. The writer is surgical and round-trip-verified (FAFF-5); it creates `.faffrc.yaml` (the single canonical filename).
+- On confirm, run it **without** `--dry-run` to write. The writer is surgical and round-trip-verified; it creates `.faffrc.yaml` (the single canonical filename).
 
 Example shape (values illustrative):
 
@@ -93,11 +93,11 @@ Example shape (values illustrative):
 
 ### 5. Ensure gitignore
 
-After the write succeeds, run `"$faff" gitignore-ensure` (FAFF-67) so `.faff/` and the rc file are ignored. It is idempotent and non-destructive — a no-op when they're already ignored.
+After the write succeeds, run `"$faff" gitignore-ensure` so `.faff/` and the rc file are ignored. It is idempotent and non-destructive — a no-op when they're already ignored.
 
 ### 6. Re-run never clobbers
 
-Onboard relies on FAFF-5's idempotent, conflict-guarded writer: re-running `/faff-onboard` hits the **Exit 0** bail in step 1 and stops. Even if invoked past that, `config init` refuses to overwrite a **differing** existing value without `--force` (exits 2) — so a second pass never silently rewrites a value the human set. Onboard never passes `--force`.
+Onboard relies on an idempotent, conflict-guarded writer: re-running `/faff-onboard` hits the **Exit 0** bail in step 1 and stops. Even if invoked past that, `config init` refuses to overwrite a **differing** existing value without `--force` (exits 2) — so a second pass never silently rewrites a value the human set. Onboard never passes `--force`.
 
 ### 7. Report and log
 

@@ -109,7 +109,7 @@ Issues that are **not automation-eligible** (gateway → **Automation eligibilit
 
 **Interactive tidy** also offers single bless (outside a proposal card): "Make any of these automation-eligible? (pick / none)" — on confirm, add `faff-automate` to the chosen issues (ensure the label exists first, gateway → **Control-label provisioning**); for an explicitly-held ticket, removing its `faff-automation-hold` is the separate hard-stop control. Either way the issue rejoins normal eligibility next pass; it is **not** auto-promoted. **Autonomous tidy only lists — it never blesses or lifts** (eligibility is always human-gated; gateway → **Automation eligibility**).
 
-tidy's bless and `/faff-jot ISSUE-XX`'s promote/demote are **complementary entry points to the same `faff-automate` eligibility primitive**: tidy is the **grooming-batch** entry ("bless across the On-hold items I'm reviewing"); jot is the **ticket-centric** entry ("promote/demote *this* named ticket", tracked by FAFF-98). Both human-gated, no canonical-owner conflict. See `faff-jot` → **Existing-ticket interactor**.
+tidy's bless and `/faff-jot ISSUE-XX`'s promote/demote are **complementary entry points to the same `faff-automate` eligibility primitive**: tidy is the **grooming-batch** entry ("bless across the On-hold items I'm reviewing"); jot is the **ticket-centric** entry ("promote/demote *this* named ticket"). Both human-gated, no canonical-owner conflict. See `faff-jot` → **Existing-ticket interactor**.
 
 ### 5. Structural diagnostics
 
@@ -154,7 +154,7 @@ Splittable-spec detection is the one structural diagnostic that is genuine LLM i
 
 - **Splittable specs** — specs that cover two structurally independent concerns, each a valid ticket-sized unit. Restricted to specs already flagged stale/challenged — do not sweep every spec every run.
 
-The eval harness (FAFF-147) reads this sub-section verbatim — between the `#### Splittable specs` heading and the next `### ` heading — so the splittable eval measures the shipped criteria, not an improvised rubric.
+The eval harness reads this sub-section verbatim — between the `#### Splittable specs` heading and the next `### ` heading — so the splittable eval measures the shipped criteria, not an improvised rubric.
 
 #### Chain gaps
 
@@ -168,7 +168,7 @@ Chain-gap detection's prose-parsing half is genuine LLM inspection (the graph-tr
   - **sub-ticket** — an umbrella's enumerated remaining deliverables (multi-PR, multi-phase, "PR 1 / PR 2", "Step N of M", numbered lists with PR-shaped action verbs) with no sub-ticket for the next deliverable.
 - **Conservative skips** — do NOT flag a reference that is: illustrative-only (not load-bearing); explicitly disclaimed ("future work — not ticketed by design"); in scope for the current PR; or a unitary spec with no external reference. Emit `[]` when no real gap remains after skips.
 
-The eval harness (FAFF-153) reads this sub-section verbatim — between the `#### Chain gaps` heading and the next `### ` heading — so the chain-gap eval measures the shipped criteria, not an improvised rubric.
+The eval harness reads this sub-section verbatim — between the `#### Chain gaps` heading and the next `### ` heading — so the chain-gap eval measures the shipped criteria, not an improvised rubric.
 
 ### 6. Calibration signals
 

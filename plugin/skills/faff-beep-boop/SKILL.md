@@ -384,7 +384,25 @@ See logs/YYYY-MM-DD/HHMMSS-tidy.md
 
 The **Human follow-ups** section captures post-merge housekeeping that was skipped so the run could continue — branch/worktree cleanup, tracker status bumps, label cleanup, shell return-to-main. See the gateway's Autonomous Mode Contract ("Post-merge housekeeping failures never halt the queue"). These are one-liners the human can clear in a minute the next morning; none of them block shipped work, so none of them justify stopping the pipeline.
 
-**The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of: Shipped / PR open for human review / Parked / Errored / Routed out (not built) / Unreached (budget hit) / Claimed by peer (a peer orchestrator holds it — FAFF-82). The "Claimed by peer" bucket is **not** a deferral and **not** a park — the issue is being built by another live run; it never entered this run's `admitted` array, so it does not affect `runcheck`. The "Routed out" bucket is the build-queue-admission verdict surfacing — issues that were spec-gated successfully but whose verdict was not `fire-and-forget` / `likely-fire` so they didn't enter the build pass. The "Unreached (budget hit)" bucket appears **only** when `--until` or `--max` was passed and fired with non-empty build-queue remaining; it captures issues that reached build-ready but were not dispatched before the budget fire (see `## Budget flags`). Do **not** invent additional sections — "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass" are all banned. They are euphemisms for "Parked on capacity grounds", which is forbidden. If the report you're about to write contains one of those headings AND no budget flag was set, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a user-set budget firing.
+**The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of:
+
+- **Shipped**
+- **PR open for human review**
+- **Parked**
+- **Errored**
+- **Routed out (not built)** — spec-gated successfully but the verdict was not `fire-and-forget` / `likely-fire`, so it never entered the build pass.
+- **Unreached (budget hit)** — appears **only** when `--until` / `--max` was passed and fired with a non-empty build queue remaining; reached build-ready but wasn't dispatched before the budget fire (see `## Budget flags`).
+- **Claimed by peer** (FAFF-82) — a peer orchestrator holds it (built by another live run); **not** a deferral and **not** a park, and it never entered this run's `admitted` array, so it does not affect `runcheck`.
+
+Do **not** invent additional sections. These are all **banned** — euphemisms for "Parked on capacity grounds", which is forbidden:
+
+- "Deferred"
+- "Queued for next run"
+- "Saved for later"
+- "Not dispatched this conversation"
+- "Build queue ready for next pass"
+
+If the report contains one of those headings AND no budget flag was set, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a user-set budget firing.
 
 ### 2. Tracker status update
 

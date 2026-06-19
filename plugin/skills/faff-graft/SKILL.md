@@ -336,7 +336,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 
 ### Resolve-attempt before park
 
-In autonomous mode, before parking on `needs-decision-first` / `gap-blocked` / `circular-blocked` verdicts (read from `.faff/runs/<run-id>/automation-verdicts.md` if available, otherwise compute inline per gateway → **Automation-routing contract**), run a **resolve-attempt** as specified in gateway → **Autonomous Mode Contract → Resolve-attempt before park**.
+In autonomous mode, before parking on `needs-decision-first` / `gap-blocked` / `circular-blocked` verdicts (read from `.faff/runs/<run-id>/automation-verdicts.md` if available, otherwise compute inline per gateway → **Automation-routing verdict (fixed)**), run a **resolve-attempt** as specified in gateway → **Autonomous Mode Contract → Resolve-attempt before park**.
 
 Behaviour per verdict (full rules in gateway):
 

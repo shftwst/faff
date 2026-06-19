@@ -124,7 +124,7 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 Before Step 1 of **either** scenario — and before any exploration narration — prep's **first output** is a short, skimmable outline of the issue, so a reader who isn't already holding the ticket in their head can follow what's being prepped. Keep it to ~3 lines:
 
-- the **synthesis gloss** — the plain-English one-liner for the issue (defined in the sibling gateway → **Synthesis contract** / `rendering_adaptor`; not redefined here);
+- the **synthesis gloss** — the plain-English one-liner for the issue (defined in the sibling gateway → **Rendering → `rendering_adaptor`** (synthesis gloss); not redefined here);
 - the issue's current **status**;
 - a one-line **what it's about**.
 

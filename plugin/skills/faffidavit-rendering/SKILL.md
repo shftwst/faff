@@ -160,7 +160,7 @@ Every issue rendered in any faff output — wtf's "Do this", map's workstreams, 
 2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
 3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
 
-This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split. References elsewhere to "gateway → Synthesis contract" resolve to the `rendering_adaptor` slot.
+This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split.
 
 ### Canonical rendering
 
@@ -246,7 +246,7 @@ Glosses generated for a given issue id during one invocation are reused within t
 
 ### Consumption
 
-Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references it via `See the rendering_adaptor slot → Synthesis` (or the legacy `gateway → Synthesis contract`, which resolves here) rather than re-stating.
+Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references it via `See the rendering_adaptor slot → Synthesis` rather than re-stating.
 
 ## Tabular data: markdown tables vs definition lists
 

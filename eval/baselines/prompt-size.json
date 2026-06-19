@@ -6,14 +6,14 @@
     {
       "path": "plugin/skills/faff-beep-boop/SKILL.md",
       "lines": 463,
-      "chars": 46236,
-      "est_tokens": 11559
+      "chars": 46257,
+      "est_tokens": 11565
     },
     {
       "path": "plugin/skills/faff-graft/SKILL.md",
       "lines": 385,
-      "chars": 41505,
-      "est_tokens": 10377
+      "chars": 41512,
+      "est_tokens": 10378
     },
     {
       "path": "plugin/skills/faff-jot/SKILL.md",
@@ -24,8 +24,8 @@
     {
       "path": "plugin/skills/faff-map/SKILL.md",
       "lines": 220,
-      "chars": 19884,
-      "est_tokens": 4971
+      "chars": 19897,
+      "est_tokens": 4975
     },
     {
       "path": "plugin/skills/faff-onboard/SKILL.md",
@@ -42,38 +42,38 @@
     {
       "path": "plugin/skills/faff-prep/SKILL.md",
       "lines": 322,
-      "chars": 37038,
-      "est_tokens": 9260
+      "chars": 37047,
+      "est_tokens": 9262
     },
     {
       "path": "plugin/skills/faff-tidy/SKILL.md",
       "lines": 280,
-      "chars": 49315,
-      "est_tokens": 12329
+      "chars": 49363,
+      "est_tokens": 12341
     },
     {
       "path": "plugin/skills/faff-wtf/SKILL.md",
       "lines": 298,
-      "chars": 27406,
-      "est_tokens": 6852
+      "chars": 27426,
+      "est_tokens": 6857
     },
     {
       "path": "plugin/skills/faff/SKILL.md",
-      "lines": 941,
-      "chars": 145347,
-      "est_tokens": 36337
+      "lines": 927,
+      "chars": 144076,
+      "est_tokens": 36019
     },
     {
       "path": "plugin/skills/faffidavit-rendering/SKILL.md",
       "lines": 312,
-      "chars": 23459,
-      "est_tokens": 5865
+      "chars": 23295,
+      "est_tokens": 5824
     },
     {
       "path": "plugin/skills/faffidavit-routing/SKILL.md",
       "lines": 117,
-      "chars": 10106,
-      "est_tokens": 2527
+      "chars": 10101,
+      "est_tokens": 2526
     },
     {
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
@@ -144,8 +144,8 @@
   ],
   "totals": {
     "files": 23,
-    "lines": 5191,
-    "chars": 561428,
-    "est_tokens": 140364
+    "lines": 5177,
+    "chars": 560106,
+    "est_tokens": 140034
   }
 }

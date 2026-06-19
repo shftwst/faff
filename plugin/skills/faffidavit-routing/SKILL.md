@@ -81,7 +81,7 @@ Needs your call before automation can pick up:
     ISSUE-VV  Storage migration (parked 4 runs with same Punt: schema versioning unresolved). Decide.
 ```
 
-The synthesis gloss (gateway → Synthesis contract, owned by the `rendering_adaptor` slot) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the rendering contract.
+The synthesis gloss (gateway → **Rendering → `rendering_adaptor`**, synthesis gloss) supplies the human-language description for every ID; the diagnosis lines ("Punt in spec: …", "recommend breaking …") follow the prose carve-outs from the rendering contract.
 
 ## Validate — wired to the contract script (FAFF-80)
 

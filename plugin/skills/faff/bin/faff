@@ -1642,6 +1642,7 @@ Subcommands:
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
+  doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
 `;
 
 // ===========================================================================
@@ -1937,6 +1938,50 @@ function cmdContract(args) {
   return (result.contractData.violations || []).length === 0 ? 0 : 1;
 }
 
+// FAFF-190: install-health check. The faff skills can be installed as real-dir COPIES (e.g. a
+// marketplace install) rather than symlinks to the repo — in which case shipped repo changes don't
+// go live until `link-skills.sh --global --replace`. This reads the FILESYSTEM (is <dir> a symlink?),
+// so it reports correctly even when run from a stale installed bin/faff — it is not circular.
+function cmdDoctor(args) {
+  let target = null;
+  for (let i = 0; i < args.length; i++) if (args[i] === "--target") target = args[++i];
+  if (!target) {
+    const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
+    target = pluginRoot ? path.join(pluginRoot, "skills") : path.join(process.env.HOME || "", ".claude", "skills");
+  }
+  const isFaffSkill = (n) => n === "faff" || n.startsWith("faff-") || n.startsWith("faffter-") || n.startsWith("faffidavit-");
+  let entries;
+  try { entries = fs.readdirSync(target).filter(isFaffSkill).sort(); }
+  catch (e) { process.stderr.write(`faff doctor: cannot read install target ${target}: ${e.message}\n`); return 2; }
+  if (entries.length === 0) { process.stderr.write(`faff doctor: no faff skills found under ${target}\n`); return 2; }
+
+  console.log(`faff doctor — install health (${target})`);
+  let copies = 0;
+  for (const name of entries) {
+    let st;
+    try { st = fs.lstatSync(path.join(target, name)); } catch { continue; }
+    if (st.isSymbolicLink()) {
+      console.log(`  ✓ ${name}  symlink (live → repo)`);
+    } else {
+      copies++;
+      console.log(`  ✗ ${name}  COPY — not dev-linked; shipped changes won't go live`);
+    }
+  }
+  const bin = path.join(process.env.HOME || "", ".local", "bin", "faff");
+  try {
+    const bst = fs.lstatSync(bin);
+    console.log(`  ${bst.isSymbolicLink() ? "✓" : "•"} bin/faff  ${bst.isSymbolicLink() ? "symlink (live)" : "real file (copy)"}`);
+  } catch { /* bin link optional */ }
+
+  if (copies > 0) {
+    console.log(`\nRESULT: ${copies} skill(s) are COPIES, not dev-linked — repo changes are NOT live.`);
+    console.log(`Fix: bash scripts/link-skills.sh --global --replace`);
+    return 1;
+  }
+  console.log(`\nRESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
+  return 0;
+}
+
 function main(argv) {
   const [sub, ...rest] = argv;
   if (!sub) { process.stderr.write(USAGE); return 2; }
@@ -1951,6 +1996,7 @@ function main(argv) {
   if (sub === "park-history") return cmdParkHistory(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
   if (sub === "contract") return cmdContract(rest);
+  if (sub === "doctor") return cmdDoctor(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

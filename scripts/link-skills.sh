@@ -251,7 +251,7 @@ for src in "${SKILL_DIRS[@]}"; do
       replaced=$((replaced + 1))
       continue
     fi
-    printf "  ⚠  %-30s (exists and is not a symlink — skipping; use --replace to override)\n" "$name"
+    printf "  ⚠  %-30s COPY install — NOT dev-linked; shipped repo changes won't go live. Re-run with --replace (or run 'faff doctor').\n" "$name"
     skipped=$((skipped + 1))
     errors=$((errors + 1))
     continue

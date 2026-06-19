@@ -124,8 +124,11 @@ test("the committed baseline gates cleanly against itself (no self-regression)",
   assert.equal(r.warned, false);
 });
 
-// --- regression guard: the gate is NOT wired into CI (it's human-run; frontier costs spend) ---
-test("the gate is not referenced in validate.yml (human-run, not CI — ADR-0004)", () => {
+// --- regression guard: the FRONTIER judgement gate is NOT wired into CI (it's human-run; frontier
+// costs spend — ADR-0004). Scoped to the frontier gate specifically: the free, deterministic
+// prompt-SIZE gate (FAFF-171: size-census.mjs --gate --against prompt-size.json) legitimately DOES
+// run in CI, so this guard targets run-evals.mjs / the frontier baseline, not a bare --against. ---
+test("the frontier judgement gate is not referenced in validate.yml (human-run, not CI — ADR-0004)", () => {
   const ci = readFileSync(join(HERE, "..", ".github", "workflows", "validate.yml"), "utf8");
-  assert.equal(/--against|--update-baseline/.test(ci), false, "the human-run gate must not be a CI step");
+  assert.equal(/run-evals\.mjs|baselines\/frontier/.test(ci), false, "the human-run frontier judgement gate must not be a CI step (the free size gate may be)");
 });

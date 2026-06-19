@@ -11,6 +11,9 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import http from "node:http";
+import https from "node:https";
+import { execSync } from "node:child_process";
 import { grade, aggregateCase, validateCase, hasDisagreement, erroredRep, CLOSED_SET_KINDS } from "./grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "./envelope.mjs";
 
@@ -331,9 +334,114 @@ async function compare(argv, presets) {
   return fr.status === "complete" && lo.status === "complete" ? 0 : 1;
 }
 
+// ─── FAFF-180: the proportionate judgement-eval gate ───────────────────────────
+// Selectable driver: `smart` (default) | `local` | `frontier`.
+//   local / smart→local  = SOFT  (advisory comparison signal; ALWAYS exits 0; tolerates a sub-par
+//                                   or absent local model — a drift/trend tool, never a build blocker)
+//   frontier             = HARD  (the real degradation gate; exits non-zero on a baseline regression)
+//   smart                = routes by diff surface + local availability; for a substantive diff it runs
+//                          local soft AND *recommends* frontier — it NEVER auto-runs the multi-hour
+//                          frontier (no silent CI cost). Driver is resolved ONCE (no death loop).
+
+// The local/smoke case-set — the prose-sensitive judgement kinds most likely to move on a skill-prose
+// edit (classification + ordering + synthesis-gloss + marker). A subset of grader KINDS.
+export const SMOKE_KINDS = new Set(["dupe", "vague", "stale", "superseded", "ordering", "gloss", "marker"]);
+export const SMOKE_REPS = 5; // low reps — minutes, not hours
+
+// PURE. Resolve the gate driver string (default `smart`). Resolved ONCE per invocation — the
+// idempotence that makes the "route local → unavailable → retry local" death loop unrepresentable.
+export function resolveGateDriver(argv) {
+  const d = argFlag(argv, "--driver") ?? "smart";
+  if (!["smart", "local", "frontier"].includes(d)) {
+    throw new Error(`--gate --driver expects smart|local|frontier, got ${JSON.stringify(d)}`);
+  }
+  return d;
+}
+
+// PURE. Classify a changed-file list as `prose` (→ local soft) or `substantive` (→ frontier recommended).
+// Advisory only: substantive iff the diff touches code (*.mjs), a contract, the CLI, or the grader.
+// A pure skill-prose diff (only *.md) is `prose`. Empty list → `prose` (nothing code-bearing to judge).
+export function classifyDiffSurface(files) {
+  const substantive = (files ?? []).some((f) =>
+    /(^|\/)contracts\//.test(f) || /\/bin\/faff$/.test(f) || /eval\/grader\.mjs$/.test(f) || /\.mjs$/.test(f));
+  return substantive ? "substantive" : "prose";
+}
+
+// Read changed files vs main (best-effort; the gate degrades to `prose` if git is unavailable).
+function changedFilesFromGit() {
+  try {
+    return execSync("git diff --name-only main...HEAD", { encoding: "utf8" }).split("\n").map((s) => s.trim()).filter(Boolean);
+  } catch { return []; }
+}
+
+// Cheap reachability probe — a single GET to the ollama base URL; resolves true on ANY response,
+// false on error/timeout. Injectable so tests never open a socket. ONE shot — never retried.
+function defaultProbe(baseUrl, { timeoutMs = 3000 } = {}) {
+  return new Promise((resolve) => {
+    let url; try { url = new URL(baseUrl); } catch { return resolve(false); }
+    const lib = url.protocol === "https:" ? https : http;
+    const req = lib.request(url, { method: "GET", timeout: timeoutMs }, (res) => { res.resume(); resolve(true); });
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => { req.destroy(); resolve(false); });
+    req.end();
+  });
+}
+
+// Preflight the local backend ONCE. Returns {ok:true, baseUrl, model} | {ok:false, reason}. Unconfigured
+// (no --base-url/--model) and unreachable both resolve to {ok:false} — a soft-skip, never a thrown error.
+export async function preflightLocal(argv, { probe = defaultProbe } = {}) {
+  let baseUrl, model;
+  try { ({ baseUrl, model } = resolveLocalParams(argv)); }
+  catch (e) { return { ok: false, reason: `local model not configured (${e.message})` }; }
+  let reachable = false;
+  try { reachable = await probe(baseUrl); } catch { reachable = false; }
+  return reachable ? { ok: true, baseUrl, model } : { ok: false, reason: `local model unreachable at ${baseUrl}` };
+}
+
+// SOFT local gate — ALWAYS returns 0. Preflight (one shot); unavailable → soft-skip; else run the scoped
+// smoke kinds at low reps and print an advisory drift report. A regression is a WARNING, never a failure.
+async function softLocalGate(argv, presets, baselinePath, { probe, runEvalsFn = runEvals } = {}) {
+  const pf = await preflightLocal(argv, { probe });
+  if (!pf.ok) {
+    console.log(`[gate] skipped: ${pf.reason} — soft smoke not run (advisory; not a failure). exit 0.`);
+    return 0; // ← soft skip; single-shot; NO retry, NO re-route, NO frontier fallback
+  }
+  const baseline = loadBaseline(baselinePath);
+  const only = argFlag(argv, "--only");
+  const repsArg = argFlag(argv, "--reps");
+  const driver = presets.localDriver({
+    baseUrl: pf.baseUrl, model: pf.model, bin: argFlag(argv, "--bin") ?? "claude", pluginDir: resolvePluginDir(argv),
+  });
+  let cases = loadCases().filter((c) => SMOKE_KINDS.has(c.kind));
+  if (only) cases = cases.filter((c) => c.id === only);
+  const summary = await runEvalsFn({ cases, driver, baseReps: repsArg ? Number(repsArg) : SMOKE_REPS });
+  const report = diffAgainstBaseline(summary, baseline);
+  printGateTable(report, baselinePath);
+  if (report.failed) {
+    console.log(`[gate] ⚠ drift vs baseline (ADVISORY) — review, and run \`--gate --driver frontier\` for the hard gate. NOT blocking (exit 0).`);
+  }
+  return 0; // ← SOFT: always 0, regardless of drift
+}
+
+// The FAFF-180 gate entry. Driver resolved ONCE; soft/hard follows the running driver.
+export async function gate(argv, presets, baselinePath, opts = {}) {
+  const driver = resolveGateDriver(argv);
+  if (driver === "frontier") return gateAgainst(argv, presets, baselinePath);     // HARD
+  if (driver === "local") return softLocalGate(argv, presets, baselinePath, opts); // SOFT
+  // smart — route by diff surface; ALWAYS soft, never auto-runs frontier
+  const files = opts.changedFiles ?? changedFilesFromGit();
+  const surface = classifyDiffSurface(files);
+  const code = await softLocalGate(argv, presets, baselinePath, opts);
+  if (surface === "substantive") {
+    console.log(`[gate] substantive change detected — the hard gate is RECOMMENDED: \`--gate --driver frontier\` (a human runs it; smart never auto-incurs the frontier cost).`);
+  }
+  return code; // 0 — smart inherits the soft path it ran
+}
+
 // CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
 // `node eval/run-evals.mjs [--driver frontier|local|ollama-direct] [--model M] [--base-url URL] [--think] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
 // `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
+// `node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]`   (FAFF-180: proportionate gate — smart default; local/smart soft+exit-0, frontier hard)
 // `node eval/run-evals.mjs --driver frontier --against eval/baselines/frontier.json`   (FAFF-169: regression gate — exit non-zero on a per-kind drop)
 // `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json`   (FAFF-169: deliberate re-baseline)
 // frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
@@ -342,6 +450,10 @@ async function main(argv) {
   const cliPresets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
   const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
   const presets = { ...cliPresets, makeDirectOllamaDriver };
+  if (argv.includes("--gate")) {                                              // FAFF-180 proportionate gate
+    const baselinePath = argFlag(argv, "--against") ?? join(HERE, "baselines", "frontier.json");
+    return gate(argv, presets, baselinePath);
+  }
   if (argv.includes("--compare")) return compare(argv, presets);
   const againstPath = argFlag(argv, "--against");
   if (againstPath) return gateAgainst(argv, presets, againstPath);           // FAFF-169 regression gate

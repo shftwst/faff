@@ -13,6 +13,26 @@ calls (cost + the `~/.claude.json` config race). `npm test` / CI run only the de
 `test/eval-cli-driver.test.mjs` (driver-preset wiring via the **pure** `buildInvocation` seam) —
 both import `eval/` modules but spawn **zero** processes.
 
+## Proportionate gate — `--gate` (FAFF-180)
+
+The full frontier reverify is a ~780–1,950-run, multi-hour sweep — right for a substantive change, disproportionate for a small prose diff (so it gets waived). `--gate` makes the gate **proportionate** and **safe to run anywhere** via a selectable driver:
+
+```
+node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
+```
+
+| `--driver` | Runs | Hardness | Use |
+|---|---|---|---|
+| `local` | scoped smoke kinds × low reps (ollama) | **soft** — drift report, **always exits 0**, tolerates an absent/sub-par model | CI default-pin; fast trend signal |
+| `frontier` | full sweep (`claude -p`) | **hard** — exits non-zero on a baseline regression | substantive change / re-baseline / human |
+| `smart` (**default**) | routes by diff surface + local preflight | inherits its route | "do the right thing" |
+
+**Guarantees (tested in `test/eval-gate.test.mjs`):**
+- **Soft = advisory.** `local` and `smart→local` **always exit 0** — a regression is a *warning*, never a build blocker. The hard frontier gate is the only non-zero-on-regression path.
+- **No death loop.** The driver is resolved **once**; a cheap local **preflight** probes reachability a single time. Unconfigured/unreachable → soft-skip exit 0 — never re-resolved, retried, or fallen back to frontier.
+- **No silent frontier cost in CI.** `smart` *recommends* the frontier hard gate for a substantive diff but **never auto-runs it**; only an explicit `--driver frontier` pays the multi-hour cost. Pin CI to `--gate --driver local` (or `smart`).
+- The local lane (`FAFF-129` fidelity, `FAFF-183` full preflight hardening) are **enhancements, not blockers** — the soft gate degrades gracefully without them.
+
 ## Pieces
 | File | Role |
 |---|---|

@@ -150,6 +150,26 @@ function dig(data, dotted) {
   return cur;
 }
 
+// FAFF-182: the single source of truth for config defaults, keyed by dotted config path.
+// `config get <key>` applies these so no caller (skill prose) ever supplies a default via `-d` —
+// a prose-supplied default can be forgotten/mistyped/shortcut (the slot-dispatch bug). Slots are
+// entries here too (slots are just config-path keys). Computed defaults (spec-docs-path, eligible,
+// next, worktree_root) keep their own resolvers — this registry is for simple-scalar + slot defaults.
+const DEFAULTS = {
+  "slots.intake": "faffter-noon-intake",
+  "slots.spec": "faffter-noon-spec",
+  "slots.review": "faffter-noon-review",
+  "slots.ship": "faffter-noon-ship",
+  "slots.concurrency": "faffter-noon-concurrency-sequential",
+  "slots.methodology": "faffter-noon-methodology-structural",
+  "slots.routing_adaptor": "faffidavit-routing",
+  "slots.rendering_adaptor": "faffidavit-rendering",
+  "logging": "full",
+  "concurrency_max": "4",
+  "automation_default": "opt-in",
+  "appetite": "high",
+};
+
 function fmt(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -523,10 +543,31 @@ function cmdConfig(args) {
       const [data] = loadConfig(root);
       const value = dig(data, key);
       if (value === null || value === undefined) {
+        // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
+        if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) {
+          console.log(DEFAULTS[key]);
+          return 0;
+        }
         if (def !== null) console.log(def);
         return 3;
       }
       console.log(fmt(value));
+      return 0;
+    }
+    if (cmd === "defaults") {
+      // FAFF-182: print the registry; --selftest asserts it covers the expected slots + scalars.
+      if (rest.includes("--selftest")) {
+        const expected = [
+          "slots.intake", "slots.spec", "slots.review", "slots.ship", "slots.concurrency",
+          "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor",
+          "logging", "concurrency_max", "automation_default", "appetite",
+        ];
+        const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
+        if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
+        console.log("config defaults --selftest: ok");
+        return 0;
+      }
+      console.log(JSON.stringify(DEFAULTS, null, 2));
       return 0;
     }
     if (cmd === "spec-docs-path") {

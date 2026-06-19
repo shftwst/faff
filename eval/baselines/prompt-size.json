@@ -42,8 +42,8 @@
     {
       "path": "plugin/skills/faff-prep/SKILL.md",
       "lines": 322,
-      "chars": 37047,
-      "est_tokens": 9262
+      "chars": 37087,
+      "est_tokens": 9272
     },
     {
       "path": "plugin/skills/faff-tidy/SKILL.md",
@@ -60,8 +60,8 @@
     {
       "path": "plugin/skills/faff/SKILL.md",
       "lines": 927,
-      "chars": 144076,
-      "est_tokens": 36019
+      "chars": 144156,
+      "est_tokens": 36039
     },
     {
       "path": "plugin/skills/faffidavit-rendering/SKILL.md",
@@ -90,8 +90,8 @@
     {
       "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
       "lines": 54,
-      "chars": 5674,
-      "est_tokens": 1419
+      "chars": 5699,
+      "est_tokens": 1425
     },
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
@@ -145,7 +145,7 @@
   "totals": {
     "files": 23,
     "lines": 5187,
-    "chars": 561944,
-    "est_tokens": 140493
+    "chars": 562089,
+    "est_tokens": 140529
   }
 }

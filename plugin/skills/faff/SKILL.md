@@ -280,7 +280,7 @@ Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, a
 
 - `faff-automate` — explicit **include**: this ticket may be picked up by the autonomous pipeline.
 - `faff-automation-hold` — explicit **hard exclude**: never automate this ticket, even if it also carries `faff-automate`. (For work captured but not yet validated — "on paper, way off building" — or a human's own territory.)
-- `automation_default` (`.faffrc`, `opt-in | opt-out`, **ships `opt-in`**) — decides an **unlabelled** ticket. Read via `faff config get automation_default -d opt-in`.
+- `automation_default` (`.faffrc`, `opt-in | opt-out`, **ships `opt-in`**) — decides an **unlabelled** ticket. Read via `faff config get automation_default` (the CLI applies the `opt-in` default — FAFF-182).
 
 Labels are *orthogonal to status* — they ride on whatever status the ticket has. The eligibility decision is the pure function `automation_eligible(labels, automation_default)` (the CLI's `faff eligible` / its `--selftest`):
 
@@ -476,7 +476,7 @@ The `calibration/` directory is **append-only** and **never authoritative for cu
 
 The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verdicts.md` equivalent) lets other sub-skills read the verdict computed by `/faff-tidy` without recomputing within a single pass. Across passes, always recompute — same "always pull fresh" rule that governs spec discovery.
 
-**Logging gate (the single gate).** Before writing the per-invocation narrative `logs/YYYY-MM-DD/HHMMSS-<skill>.md`, resolve `faff config get logging -d full`; when the value is `essential`, skip that Write entirely. The gate applies **only** to that narrative file. The hard floor — always written regardless of the knob — is: `run-ledger.json`; `automation-verdicts.md` + the standalone `HHMMSS-tidy-verdicts.md`; `calibration/*`; `slot-validation.md`; the per-issue `runs/<id>/ISSUE-XX/*.md` resume artifacts; `summary.md`; **and `HHMMSS-tidy.md`** (load-bearing within a pass — wtf/map read its backlog-diagnostics block same-pass; it stays floor even when tidy runs standalone). The silenced set is the narrative `HHMMSS-<skill>.md` for `<skill>` ∈ {jot, prep, graft, map, wtf} — every narrative writer **except** tidy's. Default `full` writes every narrative log as today.
+**Logging gate (the single gate).** Before writing the per-invocation narrative `logs/YYYY-MM-DD/HHMMSS-<skill>.md`, resolve `faff config get logging` (the CLI applies the `full` default — FAFF-182); when the value is `essential`, skip that Write entirely. The gate applies **only** to that narrative file. The hard floor — always written regardless of the knob — is: `run-ledger.json`; `automation-verdicts.md` + the standalone `HHMMSS-tidy-verdicts.md`; `calibration/*`; `slot-validation.md`; the per-issue `runs/<id>/ISSUE-XX/*.md` resume artifacts; `summary.md`; **and `HHMMSS-tidy.md`** (load-bearing within a pass — wtf/map read its backlog-diagnostics block same-pass; it stays floor even when tidy runs standalone). The silenced set is the narrative `HHMMSS-<skill>.md` for `<skill>` ∈ {jot, prep, graft, map, wtf} — every narrative writer **except** tidy's. Default `full` writes every narrative log as today.
 
 Each log entry captures:
 

@@ -92,6 +92,26 @@ export function buildReport(currentCensus, sizeBaseline, qualityRun = null, fron
   return { size, quality, headline: `${verb} ${sizeStr}; ${qualStr}` };
 }
 
+// PURE — the budget GATE (FAFF-171). Turn the size diff into a pass/over verdict against a growth
+// budget, and surface how far the floor could descend on a shrink (nudge-on-shrink — the down-click
+// of the ratchet). delta_est <= budget → within (floor holds); > budget → over. under_by > 0 means
+// the committed floor can drop. No I/O — main() owns reading the baseline + printing the summary.
+export function evaluateGate(currentCensus, baseline, budget = 0) {
+  const size = diffSizes(currentCensus, baseline);
+  const delta_est = size.delta.est_tokens;
+  return {
+    before_est: size.before.est_tokens,
+    after_est: size.after.est_tokens,
+    delta_est,
+    delta_pct: size.delta.pct.est_tokens,
+    budget,
+    over_by: Math.max(0, delta_est - budget),
+    under_by: Math.max(0, -delta_est),
+    status: delta_est <= budget ? "within" : "over",
+    per_file_deltas: size.per_file_deltas,
+  };
+}
+
 const round = (x) => Math.round(x * 1000) / 1000;
 
 // --- I/O helpers (CLI only; the pure functions above are what node --test covers) ---
@@ -120,6 +140,20 @@ function printReport(r, against) {
 }
 const fmtPct = (x) => (x == null ? "n/a" : `${x >= 0 ? "+" : ""}${x.toFixed(1)}%`);
 
+// The gate summary (FAFF-171). Markdown-ish so the CI step can append it to $GITHUB_STEP_SUMMARY
+// and it renders on the PR's checks page — no PR-comment write permission needed.
+function emitGateSummary(r) {
+  console.log(`### prompt-size budget gate`);
+  console.log(r.status === "within" ? `within budget ✓` : `OVER BUDGET ⚠ by ${r.over_by} est tokens`);
+  console.log(`total: ${r.before_est} → ${r.after_est} est  (Δ ${r.delta_est >= 0 ? "+" : ""}${r.delta_est}, ${fmtPct(r.delta_pct)})`);
+  if (r.under_by > 0) console.log(`floor can drop to ${r.after_est} — run --update-baseline to lock it in`);
+  const growth = r.per_file_deltas.filter((d) => d.est_tokens > 0).sort((a, b) => b.est_tokens - a.est_tokens).slice(0, 10);
+  if (growth.length) {
+    console.log(`top growth:`);
+    for (const d of growth) console.log(`  ${(d.status || "changed").padEnd(7)} ${d.path}  +${d.est_tokens} est`);
+  }
+}
+
 function main(argv) {
   const census = sizeCensus();
   const updatePath = argFlag(argv, "--update-baseline");
@@ -130,6 +164,19 @@ function main(argv) {
     printCensus(census);
     console.log(`\n=== size baseline written to ${updatePath} ===`);
     return 0;
+  }
+  if (argv.includes("--gate")) {
+    const against = argFlag(argv, "--against");
+    if (!against) throw new Error("--gate requires --against <size-baseline>");
+    const baseline = loadJson(against, "--against");
+    if (!baseline.totals || !baseline.per_file) throw new Error(`--against: ${against} is not a size baseline (no totals/per_file)`);
+    const budgetRaw = argFlag(argv, "--budget");
+    const budget = budgetRaw == null ? 0 : Number.parseInt(budgetRaw, 10);
+    if (Number.isNaN(budget)) throw new Error(`--budget must be an integer, got "${budgetRaw}"`);
+    const result = evaluateGate(census, baseline, budget);
+    emitGateSummary(result);
+    if (result.status === "within") return 0;     // shrink/hold — exit 0
+    return argv.includes("--enforce") ? 2 : 0;     // over budget: enforcing → 2 (distinct from operational 1); advisory → 0
   }
   if (argv.includes("--report")) {
     const against = argFlag(argv, "--against");

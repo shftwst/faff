@@ -6,7 +6,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fileSize, sizeCensus, skillFiles, diffSizes, qualityDelta, buildReport } from "../eval/size-census.mjs";
+import { fileSize, sizeCensus, skillFiles, diffSizes, qualityDelta, buildReport, evaluateGate } from "../eval/size-census.mjs";
+import { spawnSync } from "node:child_process";
+import { writeFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -99,7 +102,76 @@ test("the committed eval/baselines/prompt-size.json is a valid size baseline", (
   assert.ok(b.totals && b.per_file && b.totals.est_tokens > 0);
   assert.equal(b.totals.files, b.per_file.length);
 });
-test("the gate/report is not wired into validate.yml CI (the size half could be later — FAFF-167 — but isn't here)", () => {
+test("the budget gate IS wired into validate.yml CI, advisory (FAFF-171 — active step has no --enforce)", () => {
   const ci = readFileSync(join(REPO, ".github", "workflows", "validate.yml"), "utf8");
-  assert.equal(/size-census/.test(ci), false);
+  assert.match(ci, /size-census\.mjs --gate --against eval\/baselines\/prompt-size\.json/);
+  // advisory-first: the ACTIVE (uncommented) gate invocation must not enforce. A commented
+  // "how to enforce later" hint may mention --enforce; only the live run line is asserted.
+  const activeGate = ci.split("\n").find((l) => /^\s*node eval\/size-census\.mjs --gate/.test(l));
+  assert.ok(activeGate, "an uncommented gate step runs in CI");
+  assert.equal(/--enforce/.test(activeGate), false, "ships advisory: the active gate step is warn-only");
+});
+
+// --- evaluateGate (PURE): the ratchet verdict (FAFF-171) ---
+test("evaluateGate: hold (delta 0) is within budget", () => {
+  const census = { per_file: baseCensus.per_file, totals: { ...baseCensus.totals } };
+  const g = evaluateGate(census, baseCensus, 0);
+  assert.equal(g.status, "within");
+  assert.equal(g.delta_est, 0);
+  assert.equal(g.over_by, 0);
+  assert.equal(g.under_by, 0);
+});
+test("evaluateGate: growth past budget is 'over' with over_by", () => {
+  const census = { per_file: baseCensus.per_file, totals: { ...baseCensus.totals, est_tokens: 1700 } }; // +200 over 1500
+  const g = evaluateGate(census, baseCensus, 0);
+  assert.equal(g.status, "over");
+  assert.equal(g.delta_est, 200);
+  assert.equal(g.over_by, 200);
+});
+test("evaluateGate: growth within the --budget tolerance band stays 'within'", () => {
+  const census = { per_file: baseCensus.per_file, totals: { ...baseCensus.totals, est_tokens: 1520 } }; // +20
+  assert.equal(evaluateGate(census, baseCensus, 50).status, "within"); // 20 <= 50 band
+  assert.equal(evaluateGate(census, baseCensus, 0).status, "over");    // 20 > 0
+});
+test("evaluateGate: a shrink reports under_by (the nudge signal)", () => {
+  const census = { per_file: baseCensus.per_file, totals: { ...baseCensus.totals, est_tokens: 1100 } }; // -400
+  const g = evaluateGate(census, baseCensus, 0);
+  assert.equal(g.status, "within");
+  assert.equal(g.delta_est, -400);
+  assert.equal(g.under_by, 400);
+});
+
+// --- the --gate CLI exit contract: 0 within/advisory-over · 2 enforcing-over · 1 operational ---
+const SCRIPT = join(REPO, "eval", "size-census.mjs");
+function runGate(baselineTotals, extra = []) {
+  // build a synthetic baseline relative to the CURRENT real census so the delta sign is controlled
+  const cur = sizeCensus();
+  const dir = mkdtempSync(join(tmpdir(), "faff-gate-"));
+  const file = join(dir, "baseline.json");
+  writeFileSync(file, JSON.stringify({ meta: { captured_at: "test" }, per_file: cur.per_file, totals: { ...cur.totals, est_tokens: baselineTotals } }) + "\n");
+  return spawnSync(process.execPath, [SCRIPT, "--gate", "--against", file, ...extra], { encoding: "utf8" });
+}
+test("--gate exits 0 and says 'within budget' when the tree holds/shrinks vs the floor", () => {
+  const r = runGate(sizeCensus().totals.est_tokens + 1000); // floor ABOVE current → current is a shrink
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /within budget/);
+});
+test("--gate --enforce exits 2 when the tree is over the floor", () => {
+  const r = runGate(sizeCensus().totals.est_tokens - 1000, ["--enforce"]); // floor BELOW current → over by ~1000
+  assert.equal(r.status, 2);
+  assert.match(r.stdout, /OVER BUDGET/);
+});
+test("--gate WITHOUT --enforce exits 0 even when over (advisory) but still surfaces the delta", () => {
+  const r = runGate(sizeCensus().totals.est_tokens - 1000); // over, advisory
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /OVER BUDGET/);
+});
+test("--gate with a missing/garbage baseline exits 1 (operational error, distinct from the gate verdict 2)", () => {
+  const r = spawnSync(process.execPath, [SCRIPT, "--gate", "--against", join(tmpdir(), "does-not-exist-xyz.json")], { encoding: "utf8" });
+  assert.equal(r.status, 1);
+});
+test("--gate without --against exits 1 (operational error)", () => {
+  const r = spawnSync(process.execPath, [SCRIPT, "--gate"], { encoding: "utf8" });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /requires --against/);
 });

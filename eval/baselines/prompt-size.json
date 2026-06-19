@@ -77,9 +77,9 @@
     },
     {
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "lines": 168,
-      "chars": 10242,
-      "est_tokens": 2561
+      "lines": 178,
+      "chars": 12080,
+      "est_tokens": 3020
     },
     {
       "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
@@ -144,8 +144,8 @@
   ],
   "totals": {
     "files": 23,
-    "lines": 5177,
-    "chars": 560106,
-    "est_tokens": 140034
+    "lines": 5187,
+    "chars": 561944,
+    "est_tokens": 140493
   }
 }

@@ -29,7 +29,7 @@ Runs the full `faffter-noon-review` five-pass review (AC coverage, obvious bugs,
 
 ### Phase 2: Adversarial review (different LLM)
 
-Only runs if Phase 1 returned `pass`. Sends the diff to a structurally different model for an independent second opinion. This is not a repeat of Phase 1 — it targets what same-model review is likely to miss.
+Only runs if Phase 1 returned `pass`. Sends the diff to a structurally different model for an independent second opinion. This is not a repeat of Phase 1 — it targets what same-model review is likely to miss. The backend call is made by the bundled **`review-call.mjs`** helper (preflight + streaming + `think:false` + token budget) — **not** a hand-rolled API call; see **Backend call** below.
 
 ## Input
 
@@ -43,10 +43,10 @@ Faff-graft provides:
 
 Phase 1 returns a hard signal (`pass` / `fail` / `needs-human`) per `faffter-noon-review`.
 
-Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial reviewer may be a less capable model; its findings are hypotheses, not rulings.
+Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial reviewer may be a less capable model; its findings are hypotheses, not rulings. The output **must name the model used** (`provider/model`) as its first line — so a finding can be investigated/tuned in retrospect, and so a quality difference between models is attributable (FAFF-183: a 27B and an 80B gave materially different findings on the same diff).
 
 ```
-## Adversarial findings
+## Adversarial findings — `<provider>/<model>`
 
 ### [severity]: [title]
 [description of the concern and why it might matter]
@@ -125,18 +125,28 @@ faffter_dark:
 
 The key principle is **independence from the primary model**. If Claude wrote the code and ran the primary review, don't configure Claude here. Use a structurally different model (different architecture, different training data, different fine-tuning) to maximise the chance of catching correlated blind spots.
 
-**Prompt construction:**
+**Backend call — the bundled `review-call.mjs` helper (do not hand-roll the API call).** The robust call is a tool, not prose (FAFF-183): `plugin/skills/faffter-dark-adversarial-review/review-call.mjs` does model **preflight** (against `/api/tags`), `think:false` (so a reasoning model doesn't return empty `content`), **streaming** (so a long response doesn't drop the connection), and a **token budget** with one truncation retry. Resolve the host/model/timeout from `faffter_dark.adversarial` via `faff config get`, then invoke:
 
-1. System prompt: the review lens above (verbatim — the five categories and their sub-points)
-2. User message: the diff, preceded by the spec in a `<spec>` block
-3. Response format instruction: verdict line + findings in the format above
+```bash
+node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
+  --system <review-lens-file> \
+  --context plugin/skills/faff/SKILL.md --context <each file the diff touches> \
+  --diff <git-diff-file>
+```
 
-**Fallback behaviour:**
+- **`--system`** = the review lens above (the five categories), written to a file.
+- **`--context`** = the **gateway** (`plugin/skills/faff/SKILL.md`) **plus every file the diff touches** — so the reviewer can verify existence/structure claims instead of hallucinating "this heading doesn't exist" from a diff-only view. (FAFF-183: a model given only the diff produced confident false criticals; a *more* capable model was *more* wrong for exactly this reason.)
+- **`--diff`** = `git diff main...HEAD` written to a file.
 
-- Provider unreachable → log warning, return `pass` with a finding noting the skip. Do not block the pipeline on infrastructure issues.
-- Timeout → same as unreachable.
-- Malformed response (no parseable verdict) → return `needs-human` with the raw response as a finding. Let a human decide.
-- Auth failure (bad/expired key) → return `needs-human` with the error. Don't retry with broken credentials.
+**Exit code → Phase-2 outcome (mechanical — the helper decides, not prose):**
+
+| exit | meaning | outcome |
+|---|---|---|
+| `0` | findings on stdout | parse `## Adversarial findings`, disposition each (below) |
+| `4` | configured model **not served** by the host (config fault — e.g. a name typo) | **`needs-human`**, naming the mismatch. **Never** silent `pass` — a misconfigured model must not invisibly disable the review. |
+| `5` / timeout | provider **unreachable** (genuine infra outage) | `pass` + a finding noting the skip — don't block the pipeline on infra. |
+
+Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides). Auth failure (cloud providers) → `needs-human`; don't retry with broken credentials.
 
 ## Output to faff-graft
 

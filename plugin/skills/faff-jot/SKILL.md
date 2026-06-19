@@ -36,7 +36,7 @@ ISSUE-XX → existing ticket:  load → shaping/gating menu → promote/demote (
 
 **Check for an issue-id argument first** — its presence is the unambiguous switch, so no "new or existing?" gate is needed:
 
-- **Issue-id argument present** (`/faff-jot FAFF-23`) → the **existing-ticket interactor** (see **Existing-ticket interactor** below). Skip discovery, shaping, and creation — those are for new work only.
+- **Issue-id argument present** (`/faff-jot ISSUE-XX`) → the **existing-ticket interactor** (see **Existing-ticket interactor** below). Skip discovery, shaping, and creation — those are for new work only.
 - **No argument** (`/faff-jot`) → new-work intake: continue to mode detection below, unchanged.
 
 ### 1. Detect the mode (new work only)

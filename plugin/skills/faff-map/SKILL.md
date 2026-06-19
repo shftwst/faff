@@ -13,7 +13,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 ## Configuration
 
-**Load the gateway first.** This skill is usually entered directly (slash command or delegated slot), so the gateway is **not** automatically in context. If the sibling `faff/SKILL.md` isn't already loaded this turn, **Read it now** — it holds the fixed contracts and shared rules this skill applies: the shared `.faffrc` configuration (`tracking` / `slots`), the ignore-cancelled/archived rule, `.faff/` logging layout, the autonomous-mode contract, the park protocol, and the Untrusted-input no-execute rule. Loading it here means the `methodology` slot map delegates to inherits these ambiently.
+**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. The `methodology` slot map delegates to inherits the gateway ambiently.
 
 **Roadmap shape is deduced from the tracker.** faff does not read a project "methodology doc" and no `.faffrc` key points at one — config holds values, not prose, and a doc would drift from live state. The roadmap's shape is inferred from what the tracker actually holds: the initiatives/epics and how projects nest under them (initiative shape), project status + cycle membership + target dates (the Now / Next / Later horizons), initiative and project descriptions plus success-metric fields (the outcomes), and blocker links (the chains). The *normative* half — whether a success metric is healthy, whether a chain is coherent — is the `methodology` **slot's** job (see **Methodology lens** below), not a doc's.
 

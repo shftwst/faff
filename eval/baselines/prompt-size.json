@@ -6,56 +6,56 @@
     {
       "path": "plugin/skills/faff-beep-boop/SKILL.md",
       "lines": 445,
-      "chars": 46753,
-      "est_tokens": 11689
+      "chars": 46413,
+      "est_tokens": 11604
     },
     {
       "path": "plugin/skills/faff-graft/SKILL.md",
       "lines": 385,
-      "chars": 42287,
-      "est_tokens": 10572
+      "chars": 41640,
+      "est_tokens": 10410
     },
     {
       "path": "plugin/skills/faff-jot/SKILL.md",
       "lines": 155,
-      "chars": 18281,
-      "est_tokens": 4571
+      "chars": 17990,
+      "est_tokens": 4498
     },
     {
       "path": "plugin/skills/faff-map/SKILL.md",
       "lines": 220,
-      "chars": 20264,
-      "est_tokens": 5066
+      "chars": 19884,
+      "est_tokens": 4971
     },
     {
       "path": "plugin/skills/faff-onboard/SKILL.md",
       "lines": 114,
-      "chars": 10435,
-      "est_tokens": 2609
+      "chars": 10186,
+      "est_tokens": 2547
     },
     {
       "path": "plugin/skills/faff-plot/SKILL.md",
       "lines": 115,
-      "chars": 12021,
-      "est_tokens": 3006
+      "chars": 11762,
+      "est_tokens": 2941
     },
     {
       "path": "plugin/skills/faff-prep/SKILL.md",
       "lines": 322,
-      "chars": 37522,
-      "est_tokens": 9381
+      "chars": 37065,
+      "est_tokens": 9267
     },
     {
       "path": "plugin/skills/faff-tidy/SKILL.md",
       "lines": 280,
-      "chars": 49811,
-      "est_tokens": 12453
+      "chars": 49357,
+      "est_tokens": 12340
     },
     {
       "path": "plugin/skills/faff-wtf/SKILL.md",
       "lines": 298,
-      "chars": 27845,
-      "est_tokens": 6962
+      "chars": 27406,
+      "est_tokens": 6852
     },
     {
       "path": "plugin/skills/faff/SKILL.md",
@@ -145,7 +145,7 @@
   "totals": {
     "files": 23,
     "lines": 5164,
-    "chars": 565776,
-    "est_tokens": 141454
+    "chars": 562260,
+    "est_tokens": 140575
   }
 }

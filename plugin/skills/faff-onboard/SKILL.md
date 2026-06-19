@@ -11,7 +11,7 @@ It is **discovery, not interrogation** — every value it can detect is offered 
 
 ## Configuration
 
-**Load the gateway first — but note onboard runs *before* a config exists.** This skill is entered directly (slash command), so the sibling `faff/SKILL.md` is **not** automatically in context. If it isn't already loaded this turn, **Read it now** — it holds the `.faff/` logging layout, the Untrusted-input no-execute rule, the canonical Resolver snippet, and the Control-label conventions this skill leans on. Loading it does **not** require a resolvable `.faffrc.yaml`: the gateway content is static skill prose, and onboard's whole reason for existing is the no-config case. Do **not** call `faff config get …` for slot/appetite values here — there is nothing to resolve yet; the only config call onboard makes is the bail check (`faff config path`) and the final write (`faff config init`).
+**Load the gateway first — note onboard runs *before* a config exists.** If `faff/SKILL.md` isn't in context this turn, Read it now — onboard uses the `.faff/` logging layout, the Untrusted-input no-execute rule, the canonical Resolver snippet, and the Control-label conventions. Loading it needs no resolvable `.faffrc.yaml` (the gateway is static skill prose, and onboard exists for the no-config case). Don't call `faff config get …` here — onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
 
 **Resolving the `faff` executable.** Use the canonical gateway snippet (gateway → **Resolving the `faff` executable**) — onboard cannot assume `faff` is on `PATH`:
 

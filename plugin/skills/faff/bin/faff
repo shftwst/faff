@@ -953,6 +953,33 @@ function cmdValidateAdapters(args) {
       }
     }
   }
+  // FAFF-172: delegation-conformance lint — a Skill-tool delegation site must name the sibling by its
+  // canonical name, never a hardcoded install-mode literal (a leading-slash /faff-… or the faff: plugin
+  // namespace). The FAFF-164 convention's notation is `<canonical-name>` skill … via the Skill tool, so
+  // the delegation TARGET is the backtick bound to the word "skill" on a "via the Skill tool" line.
+  // Keying on `<target>` skill (not any backtick on the line) is what avoids false-positiving on the
+  // human-command slash prose that legitimately shares the line (e.g. "Prep now via `/faff-prep`? … invoke
+  // the `faff-prep` skill via the Skill tool"): a human-command `/faff-…` reference is never in `…` skill
+  // form. Reuses allSkills above. Enforces the gateway Sibling-skill-invocation convention.
+  const DELEGATION_ANCHOR = /via the Skill tool/i;
+  const isInstallModeLiteral = (tok) => tok.startsWith("/") || tok.startsWith("faff:");
+  for (const name of allSkills) {
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    const lines = text.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.includes(".example")) continue;
+      if (!DELEGATION_ANCHOR.test(line)) continue;
+      const targets = [...line.matchAll(/`([^`]+)`\s+skill\b/gi)].map((m) => m[1]);
+      const bad = targets.find(isInstallModeLiteral);
+      if (bad) {
+        failed = true;
+        console.log(`FAIL  ${name} (delegation conformance)`);
+        console.log(`        ✗ line ${i + 1}: hardcoded install-mode literal "${bad}" at a Skill-tool delegation site —`);
+        console.log(`          name the sibling by its canonical name and resolve per gateway → Sibling-skill invocation (FAFF-164/172)`);
+      }
+    }
+  }
   for (const n of Object.keys(REGISTRY)) {
     if (!present.includes(n)) console.log(`WARN  ${n} is registered but not present on disk`);
   }

@@ -606,7 +606,7 @@ The methodology slot's per-level response lives in the configured methodology sk
 
 ### Resolve-attempt before park
 
-Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing contract**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments).
+Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing verdict (fixed)**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments).
 
 `repeat-parked` does **not** get a resolve-attempt — the pattern itself signals that a human needs to act.
 
@@ -840,7 +840,7 @@ Per **Contract loading & conformance** above, every consumer already loads this 
 
 **Internal contract (fixed):** the closed **six-verdict vocabulary** (`fire-and-forget`, `likely-fire`, `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`); the **build-queue admission rule** (only `fire-and-forget` + `likely-fire` ever enter the queue; all others route out with a one-line reason surfaced in wtf, never silently dropped); and the **root-cause class enum** (`punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`) shared by repeat-park detection and the calibration log. The verdict survives a `methodology` swap precisely because it is fixed here, not inside the methodology.
 
-**Adaptor slot:** `routing_adaptor` (default `faffidavit-routing`) — assigning a verdict from `backlog-diagnostics` findings + spec confidence + markers + park history, the computation locus (`/faff-tidy` writes per pass into `.faff/runs/<run-id>/automation-verdicts.md`; consumers read within a pass, recompute across passes), and the display format. References elsewhere to "gateway → Automation-routing contract" and "gateway → Root-cause class enum" resolve to this fixed contract; the `routing_adaptor` slot supplies assignment + display.
+**Adaptor slot:** `routing_adaptor` (default `faffidavit-routing`) — assigning a verdict from `backlog-diagnostics` findings + spec confidence + markers + park history, the computation locus (`/faff-tidy` writes per pass into `.faff/runs/<run-id>/automation-verdicts.md`; consumers read within a pass, recompute across passes), and the display format.
 
 **Live-thread reconciliation (fixed — the tracker is the control surface).** The `spec confidence + markers` inputs to verdict assignment are the **live-thread-reconciled** values, never a bare retained snapshot. Before a verdict is assigned for any spec-gated issue, the comments posted *after* the spec must be scanned (faff-prep → **Scenario B Step 2a**: Challenge / Resolution / Context / Noise): a **Resolution** (a human picking an option, answering a `**Punt:**`, or otherwise closing an open decision) or a **Challenge** (a new constraint contradicting a decision) **supersedes the retained rating** — the human has steered the decision on the control surface. The verdict is then computed against a prep-refreshed spec (route the issue through narrow prep to fold the resolution in and re-rate), not the pre-resolution snapshot — so a `medium` / open-`**Punt:**` spec whose Punt a human has since resolved re-rates (typically → `high` → `fire-and-forget`) instead of routing out as `needs-decision-first`. This holds at **every** computation locus: the `/faff-tidy` spec-health pass that writes the cache, **and** any consumer recomputing inline when no tidy ran (e.g. `/faff-beep-boop` explicit-list) or when a comment landed after the tidy pass. A cached verdict is valid only against the thread as of its computation; a later comment invalidates it. This is what makes a tracker comment an effective control surface for steering an autonomous decision — without it, a human's resolution is silently ignored and the run acts on a stale snapshot.
 
@@ -859,7 +859,7 @@ Per **Contract loading & conformance** above, every consumer already loads this 
 
 ### Rendering — no internal contract → `rendering_adaptor`
 
-Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `rendering_adaptor` slot (default `faffidavit-rendering`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, output token economy (token-lean responses — no preamble/postamble, ticket restatement, or redundant narration), and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `rendering_adaptor`; the catalogue is closed there, not extended inline. References elsewhere to "gateway → Synthesis contract" resolve to this slot.
+Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contract** to fix. The `rendering_adaptor` slot (default `faffidavit-rendering`) is therefore a pure adaptor — the visual-vs-prose split, the closed catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps, output token economy (token-lean responses — no preamble/postamble, ticket restatement, or redundant narration), and the **synthesis** issue-gloss (tracker ID + one-sentence plain-English gloss + unlock-chain consequence, the humanisation rule, the banned project-management shorthand). Any sub-skill that emits user-facing output renders through the configured `rendering_adaptor`; the catalogue is closed there, not extended inline.
 
 **Universal-routing rule (load-bearing).** "User-facing output" means **all** human-facing output a sub-skill produces — **terminal output, tracker descriptions, and tracker comments alike** — and every one routes through the configured `rendering_adaptor`'s normalise pass before it is printed or written. The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs, which are not human-facing in this sense. faff has no central emit function, so this is a **per-skill final pass** against the one shared adaptor, not a single runtime chokepoint — each skill applies it at every emit/write site. This is what keeps tracker descriptions and comments as skimmable as terminal output (per the adaptor's prose-skimmability rule); a skill that writes a raw, un-normalised description or comment is non-conformant.
 
@@ -871,20 +871,6 @@ The `spec` / `review` / `ship` contracts are **producer-emitted** (FAFF-109): th
 - **Adaptor slots** (`routing_adaptor`, `rendering_adaptor`) *translate and validate*. `routing_adaptor` assigns a **computed** verdict (no producer authors it, so there's no artifact to emit); `rendering_adaptor` has **no** fixed internal contract (human-facing only). Swap either to change translation / house-style; the fixed internal contract never moves.
 
 **Rule of thumb for a slot swap:** change the **producer** to change behaviour. A producer whose output the consumer can't parse from the standard `faff-contract:<name>` block is **wrapped via the fused wrapper**, not handed a bespoke adaptor slot. `intake` and `concurrency` have no contract pairing — `intake` emits a brief directly (see `faffter-noon-intake`), `concurrency` drives faff's own graft, which already speaks faff's vocabulary. The `methodology` slot is a named-output lens governed by its own contract (see **The `methodology` slot**).
-
-### Legacy contract aliases
-
-Sub-skills written before this restructure cross-reference the contracts by their old names. Those names are **not** headings anywhere; they resolve to the sections above:
-
-| Legacy reference | Resolves to |
-|---|---|
-| `gateway → Automation-routing contract` | **Automation-routing verdict (fixed) → `routing_adaptor`** |
-| `gateway → Root-cause class enum` | the root-cause class enum inside **Automation-routing verdict (fixed)** |
-| `gateway → Synthesis contract` | the synthesis issue-gloss inside **Rendering → `rendering_adaptor`** |
-| `gateway → The ship slot contract` / `gateway → Mechanism slots → ship` | **Delivery outcome (fixed)** |
-| `gateway → … → `spec_adaptor` / `review_adaptor` / `ship_adaptor`` (retired slots) | **Spec readiness (fixed)** / **Review verdict (fixed)** / **Delivery outcome (fixed)** — now producer-emitted, consumed directly |
-
-When renaming any contract section, update this table — it is the single place the legacy names are reconciled.
 
 ## The `methodology` slot
 

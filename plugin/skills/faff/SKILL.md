@@ -274,7 +274,7 @@ No exceptions. Cancelled/archived items (across every state above) are invisible
 
 ### Automation eligibility
 
-Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, auto-promoted, or auto-built — is its **automation eligibility**. The default posture is **fail-safe opt-in**: nothing is automatable unless a human explicitly blesses it, so a forgotten label means "left alone," never "picked up." A human steers the backlog with two labels plus one config knob; read/report skills are never gated by eligibility.
+Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, auto-promoted, or auto-built — is its **automation eligibility**. The default posture is **fail-safe opt-in**: nothing is automatable unless a human explicitly cranks it up, so a forgotten label means "left alone," never "picked up." A human steers the backlog with two labels plus one config knob; read/report skills are never gated by eligibility.
 
 **The two control labels + the knob.**
 
@@ -304,13 +304,13 @@ Precedence: **hard-exclude > include > default.** Any `automation_default` value
 
 Each chokepoint computes eligibility (resolve the issue's labels + `automation_default`, via `faff eligible`) and, when consulting `faff next` (gateway → **Next-step transition**), passes `--not-eligible` for a not-eligible issue. `faff next` returns `skip-ineligible`.
 
-**Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` any ticket regardless of eligibility; those skills proceed (emitting a "not automation-eligible" note when relevant) and **never auto-bless or auto-exclude** (they never add/remove `faff-automate` or `faff-automation-hold`).
+**Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` any ticket regardless of eligibility; those skills proceed (emitting a "not automation-eligible" note when relevant) and **never auto-crank-up or auto-exclude** (they never add/remove `faff-automate` or `faff-automation-hold`).
 
-**Release / blessing is human-gated, multi-path.** Adding `faff-automate` (promote) or removing it (demote), and adding/removing `faff-automation-hold` (the hard-stop control), always work in the tracker (the irreducible control-surface baseline). faff may **offer** to promote/demote, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`'s bless/unbless, or `/faff-prep`'s held-ticket lift gate after a spec is attached). **No autonomous path ever adds `faff-automate` or removes `faff-automation-hold`** — otherwise the guard is no guard. Blessing does not auto-promote to `Todo`; the issue simply rejoins normal eligibility on the next pass.
+**Release / crank-up is human-gated, multi-path.** Adding `faff-automate` (crank up) or removing it (crank down), and adding/removing `faff-automation-hold` (the hard-stop control), always work in the tracker (the irreducible control-surface baseline). faff may **offer** to crank up/crank down, but **only on explicit human confirm** (e.g. interactive `/faff-tidy`'s crank up/crank down, or `/faff-prep`'s held-ticket lift gate after a spec is attached). **No autonomous path ever adds `faff-automate` or removes `faff-automation-hold`** — otherwise the guard is no guard. Cranking up does not auto-promote to `Todo`; the issue simply rejoins normal eligibility on the next pass.
 
 **Not-eligible ≠ parked.** `faff-parked` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); ineligibility is a *pre-emptive human* posture with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
 
-**Surfacing (so held-back work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing not-automation-eligible issues that a human may want to bless (separate from *Parked work*). Interactive `/faff-tidy` offers to bless/unbless; autonomous passes only list, never mutate the labels.
+**Surfacing (so held-back work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing not-automation-eligible issues that a human may want to crank up (separate from *Parked work*). Interactive `/faff-tidy` offers to crank up/crank down; autonomous passes only list, never mutate the labels.
 
 **Migration.** No migration of existing `faff-automation-hold` tickets is needed: under the shipped `opt-in` default they are already not-eligible (no `faff-automate`), so the holds are redundant-but-harmless hard stops and keep working unchanged. Setting `automation_default: opt-out` restores the legacy opt-out behaviour exactly.
 
@@ -323,7 +323,7 @@ Each chokepoint computes eligibility (resolve the issue's labels + `automation_d
 **Named output per context:**
 
 1. **Sequencing — "what order to take these issues"** (Ready, Today's Focus, build-queue independents, the On-hold list, value-chain heads) → the methodology's **`pick-ordering`**. It is the general "order this set of issues" answer — including sets that are not themselves pickup-able (e.g. the not-eligible On-hold list).
-2. **Build queue** → `build-queue`; **sizing / right-sizing** → `ticket-shaping`; **per-issue lens** → `issue-critique`; **bless batches** → `bless-set`.
+2. **Build queue** → `build-queue`; **sizing / right-sizing** → `ticket-shaping`; **per-issue lens** → `issue-critique`; **crank-up batches** → `crank-up-set`.
 
 **The slot always resolves.** Unset → `faffter-noon-methodology-structural`, which owns the zero-config baseline (priority + chainable unlock value, and "never reorders by value/risk"). So zero-config ordering is **unchanged** — the opinion simply lives on the methodology side, never in the orchestration skill. (Priority can live on the issue or any **ancestor**; the structural default inherits from the nearest ancestor that has a value and weights up a `CLAUDE.md`-flagged workstream — but that logic is the *methodology's*, surfaced via `pick-ordering`, not an orchestration-layer rule.)
 
@@ -347,7 +347,7 @@ faff next --status <S> --spec none|low|medium|high [--not-eligible] [--parked] [
 
 It prints `{next, reason}` where `next` ∈ `prep | graft | skip-ineligible | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
 
-**Advisory: `--if-eligible` (read-only hypothetical).** When a **not-eligible** item carries `--if-eligible`, `faff next` bypasses the `skip-ineligible` short-circuit and returns the route the item *would* take **if it were blessed** (made automation-eligible), tagged `would_be_eligible: true`. It is purely advisory — never grants eligibility, never mutates, and is a no-op for an already-eligible item; terminal states (`done`/`cancelled`/`duplicate`) still win. Decision-support layers (bless-set proposals, the On-hold render) use it to show a not-eligible item's runway; the live `skip-ineligible` path is unchanged.
+**Advisory: `--if-eligible` (read-only hypothetical).** When a **not-eligible** item carries `--if-eligible`, `faff next` bypasses the `skip-ineligible` short-circuit and returns the route the item *would* take **if it were cranked up** (made automation-eligible), tagged `would_be_eligible: true`. It is purely advisory — never grants eligibility, never mutates, and is a no-op for an already-eligible item; terminal states (`done`/`cancelled`/`duplicate`) still win. Decision-support layers (crank-up-set proposals, the On-hold render) use it to show a not-eligible item's runway; the live `skip-ineligible` path is unchanged.
 
 **Three hard boundaries:**
 - **Reports, never executes or gates.** `faff next` says what's *legal next*; the sub-skill still runs the interactive chain-to-build gate (**faff-jot**/prep's standalone gate) and still executes the step itself. A returned `graft` is **not** consent to build.
@@ -888,7 +888,7 @@ The `methodology` slot is a **diagnostic lens** over backlog and build state. Un
 | `standup-digest` | faff-wtf | Optional | recent + ready + heads-up state → a brief. Unanswered → faff-wtf renders the ready-queue plainly. |
 | `horizon-assignment` | faff-map | Optional | active issues → Now/Next/Later horizons + chain diagram. Unanswered → faff-map degrades to a flat structural roadmap. |
 | `issue-critique` | faff-prep | Optional | one issue + its spec → a per-issue critique through the methodology's lens (right-sizing, workstream fit, surfaced deps, risk — whatever the lens cares about). Unanswered → faff-prep omits the `## Methodology critique` block. The lens decides the critique's shape; faff-prep does not impose one. |
-| `bless-set` | faff-wtf, faff-tidy | Optional | the **not-automation-eligible** issue set + dependency graph + each member's `faff next --if-eligible` hypothetical transition + hypothetical routing verdict + appetite → a ranked list of **bless-sets**, each `{root, ordered slice-members, stop-reason, hypothetical-verdict distribution, prep-needed members, deferred-with-reason notes}` (which not-eligible root to bless and how far down its chain, as one approvable batch). Unanswered → wtf/tidy show today's flat On-hold list (zero-config safe). Read-only analysis — it never mutates eligibility; the act of blessing is human-gated in `/faff-tidy`. |
+| `crank-up-set` | faff-wtf, faff-tidy | Optional | the **not-automation-eligible** issue set + dependency graph + each member's `faff next --if-eligible` hypothetical transition + hypothetical routing verdict + appetite → a ranked list of **crank-up-sets**, each `{root, ordered slice-members, stop-reason, hypothetical-verdict distribution, prep-needed members, deferred-with-reason notes}` (which not-eligible root to crank up and how far down its chain, as one approvable batch). Unanswered → wtf/tidy show today's flat On-hold list (zero-config safe). Read-only analysis — it never mutates eligibility; the act of cranking up is human-gated in `/faff-tidy`. |
 
 **Standard envelope (every output).** Inputs a caller always supplies: the relevant issues, their state, sequencing, workstream grouping, and the dependency graph. Every output returns its named answer plus structured findings the caller can render, and a `Methodology: <name>` banner line for display. A methodology **does not know or describe its callers** — it answers the request from the state it's given; it never writes to the tracker (that's the orchestrator lane).
 

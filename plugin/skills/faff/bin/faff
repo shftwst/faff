@@ -1045,7 +1045,7 @@ function cmdValidateAdapters(args) {
 // ===========================================================================
 const CONTROL_LABELS = [
   { name: "faff-automate", color: "#6fcf97",
-    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). Under the default opt-in posture, absence = not automatable. Removing it demotes the ticket back to hands-off." },
+    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). Under the default opt-in posture, absence = not automatable. Removing it cranks the ticket down to hands-off." },
   { name: "faff-automation-hold", color: "#5e6ad2",
     description: "Human-set hard exclude: NEVER automate this ticket, even if it also carries faff-automate. Highest precedence in the eligibility model. Visible to read skills." },
   { name: "faff-parked", color: "#e8a33d",
@@ -1131,9 +1131,9 @@ function nextStep({ status, spec, eligible, parked, blocked, ifEligible }) {
   if (status === "cancelled" || status === "duplicate") return ["none", "cancelled/duplicate — ignored"];
   if (status === "done") return ["done", "complete"];
   // FAFF-83: --if-eligible is advisory — when a not-eligible item carries it, bypass the
-  // skip-ineligible short-circuit and compute the hypothetical route it WOULD take if blessed.
+  // skip-ineligible short-circuit and compute the hypothetical route it WOULD take if cranked up.
   // Terminal states (above) still win; the live skip-ineligible path is unchanged when the flag is absent.
-  if (!eligible && !ifEligible) return ["skip-ineligible", "not automation-eligible — human blesses (faff-automate)"];
+  if (!eligible && !ifEligible) return ["skip-ineligible", "not automation-eligible — human cranks it up (faff-automate)"];
   if (parked) return ["needs-human", "parked — human decision"];
   if (spec === "none") return ["prep", "no spec — needs prep"];
   if (spec === "low") return ["needs-human", "low-confidence spec"];
@@ -1164,8 +1164,8 @@ function nextSelftest() {
     [C("in-review", "high"), "graft"],
     [C("todo", "high", { blocked: true }), "blocked"], // blocked gates graft
     // FAFF-83: --if-eligible bypasses the skip-ineligible short-circuit (advisory hypothetical)
-    [C("backlog", "none", { eligible: false, ifEligible: true }), "prep"],          // would-prep if blessed
-    [C("todo", "high", { eligible: false, ifEligible: true }), "graft"],            // would-graft if blessed
+    [C("backlog", "none", { eligible: false, ifEligible: true }), "prep"],          // would-prep if cranked up
+    [C("todo", "high", { eligible: false, ifEligible: true }), "graft"],            // would-graft if cranked up
     [C("todo", "medium", { eligible: false, ifEligible: true }), "needs-human"],    // would-need-human (medium)
     [C("todo", "high", { eligible: false, ifEligible: true, blocked: true }), "blocked"], // would-be-blocked
     [C("todo", "high", { ifEligible: true }), "graft"],                             // no-op when already eligible
@@ -1637,7 +1637,7 @@ Subcommands:
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
-  next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if blessed, adds would_be_eligible:true)
+  next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore

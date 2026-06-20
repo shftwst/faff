@@ -211,19 +211,14 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
 
 ### Stop hook (harness-enforced backstop)
 
-Step 11 is agent-run, so it shares the failure mode it guards against — a non-compliant run could skip it. The Stop hook closes that gap: it runs `runcheck --hook` outside the agent's control when the session ends and blocks Stop with a reason if the latest run left admitted issues undispatched. On first autonomous run, check `.claude/settings.json` for a faff Stop hook; if none exists, register:
+Step 11 is agent-run, so it shares the failure mode it guards against — a non-compliant run could skip it. The Stop hook closes that gap: it runs `runcheck --hook` outside the agent's control when the session ends and blocks Stop with a reason if the latest run left admitted issues undispatched. On first autonomous run, register faff's Stop-hook command set deterministically — **run `faff hooks-ensure`** (never hand-edit `settings.json`):
 
-```json
-{
-  "hooks": {
-    "Stop": [
-      { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff\" runcheck --hook" }
-    ]
-  }
-}
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+"$faff" hooks-ensure
 ```
 
-In `--hook` mode runcheck stays silent for any session without an open beep-boop ledger, so it never disrupts ordinary work — it only fires when a beep-boop run left admitted issues undispatched. Tell the user when you add the hook and why.
+`hooks-ensure` (FAFF-192) idempotently ensures **both** faff Stop-hook commands are in `.claude/settings.json` — `runcheck --hook` (this backstop) and `prepcheck --hook` (faff-prep's same-turn-attach guard, FAFF-178) — non-destructively (a byte-stable no-op when already present), and **skips** any command the resolved `faff` can't serve (a stale/copy install) rather than wiring a session-blocking hook. In `--hook` mode runcheck stays silent for any session without an open beep-boop ledger, so it never disrupts ordinary work — it only fires when a beep-boop run left admitted issues undispatched. Tell the user when the hook set is added and why.
 
 ## Explicit-list mode
 

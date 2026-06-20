@@ -85,7 +85,12 @@ Same-turn attach is a **mechanical guarantee**, not prose discipline — it has 
 - **On a successful attach** — immediately after `save_comment` (tracker) or the `.faff/specs/<issue-id>.md` write (git-only) — flip the marker to `attached: true`.
 - **On a by-design park** (a `low`-confidence spec that is parked, not attached) — record `"disposition": "parked"` on the marker so `prepcheck` does not false-block a legitimate non-attach.
 
-`prepcheck` trusts this marker exactly as `runcheck` trusts the run-ledger — it never calls the tracker (the pure-function CLI invariant). This runs on the same **all** attach paths as the provenance stamp above. **Stop-hook registration:** mirror `runcheck --hook` — see `/faff-beep-boop` → _Stop hook_; add (or extend the existing faff Stop hook with) `"${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff" prepcheck --hook`.
+`prepcheck` trusts this marker exactly as `runcheck` trusts the run-ledger — it never calls the tracker (the pure-function CLI invariant). This runs on the same **all** attach paths as the provenance stamp above. **Stop-hook registration:** the `prepcheck --hook` Stop hook is registered deterministically by **`faff hooks-ensure`** (FAFF-192) — never hand-edit `settings.json`. On first run, run it (idempotent — a byte-stable no-op when already wired, and it skips the hook if the resolved `faff` can't serve `prepcheck`):
+
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+"$faff" hooks-ensure
+```
 
 ## Spec quality bar (owned by the producer)
 

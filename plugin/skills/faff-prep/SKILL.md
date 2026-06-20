@@ -71,6 +71,22 @@ Resolve `producer` **via the `faff config get` CLI only** — never hand-read th
 
 This runs on **all** attach paths: Scenario A fresh-spec (Step 2), Scenario B refresh/iterate, and both autonomous paths (Path 1 stale-refresh re-stamps with fresh date + current config; Path 2 fresh-spec stamps the just-produced spec).
 
+### Attach-state marker (write at produce time — FAFF-178)
+
+Same-turn attach is a **mechanical guarantee**, not prose discipline — it has silently failed twice (a spec rendered to the user, the turn felt done, and the ticket stayed Backlog with no spec). The guard is `faff prepcheck`, the Stop-hook sibling of `runcheck`: it reads an externalised attach-state marker prep writes and **blocks session-end on any produced-but-not-attached spec**. prep's only job is to keep that marker honest:
+
+- **At produce time — the instant the `spec` slot returns, and _before_ rendering the spec into the conversation** — write the marker `.faff/prep/<ISSUE-XX>.json`:
+
+  ```json
+  { "issue": "FAFF-XX", "spec_produced": true, "attached": false, "mode": "tracker|git-only", "ts": "<ISO-8601>" }
+  ```
+
+  The write-before-render ordering is the pin: a render-and-pause leaves `attached:false` for the hook to catch. (Hard floor — written in **both** interactive and autonomous modes, regardless of `logging: essential`, since the hook must find it.)
+- **On a successful attach** — immediately after `save_comment` (tracker) or the `.faff/specs/<issue-id>.md` write (git-only) — flip the marker to `attached: true`.
+- **On a by-design park** (a `low`-confidence spec that is parked, not attached) — record `"disposition": "parked"` on the marker so `prepcheck` does not false-block a legitimate non-attach.
+
+`prepcheck` trusts this marker exactly as `runcheck` trusts the run-ledger — it never calls the tracker (the pure-function CLI invariant). This runs on the same **all** attach paths as the provenance stamp above. **Stop-hook registration:** mirror `runcheck --hook` — see `/faff-beep-boop` → _Stop hook_; add (or extend the existing faff Stop hook with) `"${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff" prepcheck --hook`.
+
 ## Spec quality bar (owned by the producer)
 
 The clean-context review of a freshly drafted spec — dispatching a fresh-context subagent to verify every claim against the codebase before the spec is trusted — is the **producer's** responsibility, not prep's. The gateway makes a delegated `spec` skill responsible for its own quality bar; the default producer discharges it via its own _Self-review before returning_ step (see `faffter-noon-spec/SKILL.md`), which runs for every fresh spec regardless of size, applies the same `blocker`/`major`/`minor` severities, and enforces the self-rating downgrade rule (≥1 blocker or ≥3 major → can't self-rate `high`). prep does not re-run that review — it trusts the producer's self-rating and the markers, then applies its own gates below.
@@ -146,9 +162,9 @@ Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) —
 
 Invoke the configured/default `spec` skill (default `faffter-noon-spec`) with the issue context and explore findings. The producer runs its own clean-context self-review and returns the spec body, that review's findings, and a `confidence:` self-rating. Read its output, attach the content to the issue as a comment, and clean up any local file the producer wrote.
 
-**Write the provenance stamp under the H1 first** (see _Provenance stamp (populate at attach)_ above; `mode := interactive` here), then run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park**. Log the producer's returned review findings + resolutions to the prep log.
+**Write the attach-state marker the instant the producer returns** (`attached:false`, before rendering — see _Attach-state marker (write at produce time)_ above), then **write the provenance stamp under the H1** (see _Provenance stamp (populate at attach)_ above; `mode := interactive` here), then run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park** (record `disposition:"parked"` on the attach-state marker). Log the producer's returned review findings + resolutions to the prep log.
 
-**→ Immediately attach spec to the issue as a comment.**
+**→ Immediately attach spec to the issue as a comment** — then flip the attach-state marker to `attached:true`.
 - If the spec surfaced that the issue should be split, recommend the split
 - If there are open questions, note them and leave the issue in backlog
 - If clean, **move the issue to Todo** — it's prepped and ready to be picked up
@@ -165,7 +181,7 @@ Then the build gate — a separate yes/no, confidence-aware:
 > **`confidence: medium`:** "Prepped at medium confidence (N open punt(s) / thin rationale: …). Moved to Todo but flagged for review. Resolve the open items now, or build anyway? (resolve/build/leave)"
 > **`confidence: low`:** "Prepped at low confidence — explore couldn't resolve [the core question]. Resolve it together now, or park for later? (resolve/park)"
 
-On `high` confirm (or `medium` → `build`), invoke the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) on `ISSUE-XX` in the same conversation — **only on this standalone affirmative; the build decision is never bundled into the spec-resolution choice** (gateway → **Chaining pattern**). On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach, then **re-present this standalone build gate** — resolving a punt is not itself build consent. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `faff-parked` and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
+On `high` confirm (or `medium` → `build`), invoke the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) on `ISSUE-XX` in the same conversation — **only on this standalone affirmative; the build decision is never bundled into the spec-resolution choice** (gateway → **Chaining pattern**). On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach, then **re-present this standalone build gate** — resolving a punt is not itself build consent. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag the issue `faff-parked`, record `disposition:"parked"` on the attach-state marker (so `prepcheck` doesn't false-block a by-design non-attach), and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
 
 ### Scenario B: Resume (existing spec found)
 
@@ -286,7 +302,7 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 
-**Step 3 — validate and gate the spec.** **Write the provenance stamp under the H1 first** (`mode := autonomous`; see _Provenance stamp (populate at attach)_ above), then run marker validation per the _spec contract_. The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
+**Step 3 — validate and gate the spec.** **Write the attach-state marker the instant the producer returned** (`attached:false`, before any rendering — see _Attach-state marker (write at produce time)_ above), then **write the provenance stamp under the H1** (`mode := autonomous`; see _Provenance stamp (populate at attach)_ above), then run marker validation per the _spec contract_. (Flip the marker to `attached:true` on each successful attach below; on either `park` outcome record `disposition:"parked"`.) The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
 
 - `high` — every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` escalates a genuine product/architecture question, the ACs are concrete and testable, and the self-review surfaced no `blocker` / fewer than 3 `major`.
 - `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.

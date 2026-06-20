@@ -5,6 +5,7 @@
 //   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
 //   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml; --selftest
 //   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
+//   prepcheck [--hook] [--json] [--root DIR]      audit faff-prep attach-state markers; --selftest (FAFF-178)
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //   labels [--names]                              print the canonical faff control-label manifest
@@ -709,6 +710,109 @@ function cmdRuncheck(args) {
   if (result.undispatched.length) return 3;
   if (result.invalid_outcomes.length) return 2;
   return 0;
+}
+
+// ===========================================================================
+// prepcheck — verify faff-prep attached every spec it produced (same-turn).
+// The Stop-hook sibling of runcheck (FAFF-178): "attach the produced spec" is a
+// mechanical guarantee, not prose. prep writes an externalised attach-state marker
+// at produce time (attached:false, before rendering) and flips it true after the
+// tracker save_comment / git-only .faff/specs write; prepcheck audits those markers.
+// Like runcheck it trusts prep's externalised marker — the CLI never touches the
+// tracker (pure-function invariant). An open marker surfaces until resolved (attach,
+// record disposition, or remove the marker); the happy-path flip keeps false-positives
+// near-zero.
+// ===========================================================================
+
+// An "open" marker = a produced-but-not-attached spec that wasn't parked by design.
+function isPrepMarkerOpen(m) {
+  return !!m && m.spec_produced === true && m.attached !== true && m.disposition !== "parked";
+}
+
+// Pure audit over a marker array (mirrors computeParkHistory's pure shape so the
+// selftest drives it without touching the filesystem).
+function auditPrepMarkers(markers) {
+  const open = [...new Set(markers.filter(isPrepMarkerOpen).map((m) => m.issue))].sort();
+  return { open, scanned: markers.length };
+}
+
+// Read .faff/prep/*.json into a marker array; malformed / non-file entries are
+// skipped (never fatal) — same tolerance as latestRunDir/readLedger.
+function readPrepMarkers(root) {
+  const dir = path.join(root, ".faff", "prep");
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const name of fs.readdirSync(dir)) {
+    if (!name.endsWith(".json")) continue;
+    const p = path.join(dir, name);
+    let st; try { st = fs.statSync(p); } catch { continue; }
+    if (!st.isFile()) continue;
+    let m; try { m = JSON.parse(fs.readFileSync(p, "utf8")); } catch { continue; }
+    if (!m || typeof m !== "object") continue;
+    if (!m.issue) m.issue = name.replace(/\.json$/, "");
+    out.push(m);
+  }
+  return out;
+}
+
+function prepReason(open) {
+  return (
+    `faff prepcheck: faff-prep produced a spec for ${open.length} issue(s) but never ` +
+    `attached it: ${open.join(", ")}. The spec was rendered but not written to the tracker ` +
+    `(or .faff/specs in git-only mode) — that is a dropped spec, not a finished prep. Attach ` +
+    `it (stamp → validate → save_comment → Todo), or record the park disposition, before stopping.`
+  );
+}
+
+function cmdPrepcheck(args) {
+  if (args.includes("--selftest")) return prepcheckSelftest();
+  const hook = args.includes("--hook");
+  const asJson = args.includes("--json");
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const result = auditPrepMarkers(readPrepMarkers(root));
+
+  if (hook) {
+    // block via the decision payload, not the exit code — same as runcheck --hook
+    if (result.open.length) console.log(JSON.stringify({ decision: "block", reason: prepReason(result.open) }));
+    return 0;
+  }
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+  } else if (result.open.length) {
+    console.log(`OPEN (${result.open.length}): ${result.open.join(", ")}`);
+    console.log("→ prep produced these specs but never attached them: attach, or record the park disposition.");
+  } else {
+    console.log(`clean: ${result.scanned} prep marker(s), every produced spec attached.`);
+  }
+  return result.open.length ? 3 : 0;
+}
+
+// Selftest cases drive the pure auditor directly (no filesystem), mirroring the
+// park-history / eligible selftest shape. [markers, wantOpen]
+const PREPCHECK_SELFTEST_CASES = [
+  [[{ issue: "FAFF-1", spec_produced: true, attached: true }], []],                            // attached → clean
+  [[{ issue: "FAFF-2", spec_produced: true, attached: false }], ["FAFF-2"]],                   // produced-not-attached → open
+  [[{ issue: "FAFF-3", spec_produced: true, attached: false, disposition: "parked" }], []],    // parked by design → clean
+  [[{ issue: "FAFF-4", spec_produced: false, attached: false }], []],                          // no spec produced → clean
+  [[{ issue: "FAFF-5", spec_produced: true, attached: false, mode: "git-only" }], ["FAFF-5"]], // git-only drop → open
+  [[
+    { issue: "FAFF-6", spec_produced: true, attached: true },
+    { issue: "FAFF-7", spec_produced: true, attached: false },
+  ], ["FAFF-7"]],                                                                              // multi-issue: blocks on the open one
+  [[], []],                                                                                    // no markers → clean
+];
+
+function prepcheckSelftest() {
+  let fail = 0;
+  for (const [markers, want] of PREPCHECK_SELFTEST_CASES) {
+    const got = auditPrepMarkers(markers).open;
+    const ok = JSON.stringify(got) === JSON.stringify(want);
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} markers=${markers.length} → open=${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
+  }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${PREPCHECK_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
 }
 
 // ===========================================================================
@@ -1633,6 +1737,7 @@ Subcommands:
   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
+  prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
@@ -1988,6 +2093,7 @@ function main(argv) {
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
   if (sub === "config") return cmdConfig(rest);
   if (sub === "runcheck") return cmdRuncheck(rest);
+  if (sub === "prepcheck") return cmdPrepcheck(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
   if (sub === "labels") return cmdLabels(rest);
   if (sub === "eligible") return cmdEligible(rest);

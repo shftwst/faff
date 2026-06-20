@@ -52,6 +52,9 @@ jobs:
       - name: Validate park-history repeat-park counting table
         run: node plugin/skills/faff/bin/faff park-history --selftest
 
+      - name: Validate prepcheck attach-state audit table
+        run: node plugin/skills/faff/bin/faff prepcheck --selftest
+
       - name: Prompt-size budget gate (advisory)
         run: |
           node eval/size-census.mjs --gate --against eval/baselines/prompt-size.json | tee -a "$GITHUB_STEP_SUMMARY"

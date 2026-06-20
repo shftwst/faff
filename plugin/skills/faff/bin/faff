@@ -6,6 +6,7 @@
 //   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml; --selftest
 //   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
 //   prepcheck [--hook] [--json] [--root DIR]      audit faff-prep attach-state markers; --selftest (FAFF-178)
+//   hooks-ensure [--root DIR] [--json] [--dry-run]   idempotently register faff's Stop-hook set in .claude/settings.json; --selftest (FAFF-192)
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //   labels [--names]                              print the canonical faff control-label manifest
@@ -21,6 +22,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 
 const HERE = __dirname;
@@ -812,6 +814,197 @@ function prepcheckSelftest() {
     console.log(`${ok ? "ok  " : "FAIL"} markers=${markers.length} → open=${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
   }
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${PREPCHECK_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
+// hooks-ensure — idempotently register faff's Stop-hook command set into
+// .claude/settings.json (FAFF-192). The deterministic, repeatable replacement
+// for the per-install manual settings edit. Sibling of gitignore-ensure:
+// non-destructive, byte-stable no-op when present, fail-loud (exit 2) on
+// malformed JSON. Never registers a hook the resolved bin can't serve — a Stop
+// command that exits 2 blocks every session end.
+// ===========================================================================
+const FAFF_STOP_HOOKS = ["runcheck", "prepcheck"];
+
+// Token identity: a Stop command "invokes faff's <sub> --hook" if, split on
+// whitespace, some token's basename is `faff`, the subcommand token is present,
+// and `--hook` is present. Path-agnostic, so a differently-resolved path or an
+// env-prefixed invocation still counts as present — never duplicated/clobbered.
+function commandInvokesFaffHook(command, sub) {
+  if (typeof command !== "string") return false;
+  const toks = command.trim().split(/\s+/);
+  return toks.some((t) => path.basename(t) === "faff") && toks.includes(sub) && toks.includes("--hook");
+}
+
+// Every Stop-hook command string across a settings object (defensive against shape drift).
+function stopCommands(settings) {
+  const stop = settings && settings.hooks && settings.hooks.Stop;
+  if (!Array.isArray(stop)) return [];
+  const out = [];
+  for (const group of stop) {
+    const hooks = group && group.hooks;
+    if (!Array.isArray(hooks)) continue;
+    for (const h of hooks) if (h && typeof h.command === "string") out.push(h.command);
+  }
+  return out;
+}
+
+function isPresent(sub, settings) {
+  return stopCommands(settings).some((c) => commandInvokesFaffHook(c, sub));
+}
+
+// Pure planner — no I/O. present/served are subcommand-name lists; binInvocation(sub)
+// builds the command string to register. Mirrors gitignoreEnsure's pure-core shape.
+function planStopHooks(settings, present, served, binInvocation) {
+  const P = new Set(present), S = new Set(served);
+  const added = FAFF_STOP_HOOKS.filter((s) => !P.has(s) && S.has(s));
+  const already = FAFF_STOP_HOOKS.filter((s) => P.has(s));
+  const skipped_stale = FAFF_STOP_HOOKS.filter((s) => !P.has(s) && !S.has(s));
+  const next = JSON.parse(JSON.stringify(settings ?? {}));
+  if (added.length) {
+    if (!next.hooks || typeof next.hooks !== "object") next.hooks = {};
+    if (!Array.isArray(next.hooks.Stop)) next.hooks.Stop = [];
+    let group = next.hooks.Stop.find((g) => g && Array.isArray(g.hooks));
+    if (!group) { group = { hooks: [] }; next.hooks.Stop.push(group); }
+    for (const s of added) group.hooks.push({ type: "command", command: binInvocation(s) });
+  }
+  return { added, already, skipped_stale, nextSettings: next };
+}
+
+function readJsonOrEmpty(p) {
+  if (!fs.existsSync(p)) return {};
+  return JSON.parse(fs.readFileSync(p, "utf8")); // throws on malformed → caller maps to exit 2
+}
+
+// First `faff` on PATH (no shell), else null.
+function whichFaff() {
+  for (const d of (process.env.PATH || "").split(path.delimiter)) {
+    if (!d) continue;
+    const p = path.join(d, "faff");
+    try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { /* keep looking */ }
+  }
+  return null;
+}
+
+// Does `bin` serve `<sub>`? Probe `<bin> <sub> --hook` against an empty throwaway
+// root (read-only, no side effects). An un-served subcommand hits main()'s
+// "unknown subcommand" path → exit 2; anything else (incl. a clean 0) counts served.
+function probeServes(bin, sub, probeRoot) {
+  try {
+    const r = spawnSync(bin, [sub, "--hook", "--root", probeRoot], { encoding: "utf8", timeout: 5000 });
+    if (r.error) return false; // couldn't even run the bin (missing / not executable)
+    // The ONLY "not served" signal is main()'s unknown-subcommand path (exit 2 + that message).
+    // Anything else — including a clean exit 0 — means the bin recognises the subcommand.
+    return !(r.status === 2 && /unknown subcommand/i.test(r.stderr || ""));
+  } catch { return false; }
+}
+
+// Prefer an on-PATH `faff` that serves the whole set (stable across worktrees);
+// else the running binary's own real path (serves the set by construction).
+function resolveHookBin(probeRoot) {
+  const onPath = whichFaff();
+  if (onPath && FAFF_STOP_HOOKS.every((s) => probeServes(onPath, s, probeRoot))) return onPath;
+  try { return fs.realpathSync(process.argv[1]); } catch { return process.argv[1]; }
+}
+
+function cmdHooksEnsure(args) {
+  if (args.includes("--selftest")) return hooksEnsureSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const asJson = args.includes("--json");
+  const dryRun = args.includes("--dry-run");
+  const target = path.join(root, ".claude", "settings.json");
+  const local = path.join(root, ".claude", "settings.local.json");
+  const existed = fs.existsSync(target);
+
+  let targetObj, localObj;
+  try { targetObj = readJsonOrEmpty(target); }
+  catch (e) { process.stderr.write(`faff hooks-ensure: malformed ${target}: ${e.message}\n`); return 2; }
+  try { localObj = readJsonOrEmpty(local); }
+  catch (e) { process.stderr.write(`faff hooks-ensure: malformed ${local}: ${e.message}\n`); return 2; }
+
+  const probeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-hooks-probe-"));
+  let bin, served;
+  try {
+    bin = resolveHookBin(probeRoot);
+    served = FAFF_STOP_HOOKS.filter((s) => probeServes(bin, s, probeRoot));
+  } finally {
+    try { fs.rmSync(probeRoot, { recursive: true, force: true }); } catch { /* best-effort */ }
+  }
+
+  const present = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
+  const plan = planStopHooks(targetObj, present, served, (s) => `${bin} ${s} --hook`);
+
+  const willWrite = !dryRun && plan.added.length > 0;
+  if (willWrite) {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, JSON.stringify(plan.nextSettings, null, 2) + "\n");
+  }
+
+  for (const s of plan.skipped_stale) {
+    process.stderr.write(
+      `faff hooks-ensure: WARNING — resolved faff (${bin}) does not serve '${s}'; skipped to avoid a ` +
+      `session-blocking hook. Fix the install, then re-run: bash scripts/link-skills.sh --global --replace\n`);
+  }
+
+  const result = { path: target, created: willWrite && !existed, bin, added: plan.added, already: plan.already, skipped_stale: plan.skipped_stale };
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+  } else if (plan.added.length) {
+    console.log(`${dryRun ? "[dry-run] would add" : "added"} ${plan.added.join(", ")} → ${target}`);
+  } else {
+    const note = plan.already.length ? `already present (${plan.already.join(", ")})` : "nothing to add";
+    console.log(`${target} — faff Stop hooks ${note}; no change`);
+  }
+  return 0;
+}
+
+// Selftest drives the pure planner over in-memory cases (no filesystem), as the
+// park-history / eligible / prepcheck selftests do. [label, settings, present, served, +added, =already, skip]
+const HOOKS_ENSURE_SELFTEST_CASES = [
+  ["empty + both served", {}, [], ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], []],
+  ["runcheck present, prepcheck served",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "/x/bin/faff runcheck --hook" }] }] } },
+    ["runcheck"], ["runcheck", "prepcheck"], ["prepcheck"], ["runcheck"], []],
+  ["both present → no-op",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }, { type: "command", command: "faff prepcheck --hook" }] }] } },
+    ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], ["runcheck", "prepcheck"], []],
+  ["stale bin serves neither", {}, [], [], [], [], ["runcheck", "prepcheck"]],
+  ["present-but-unserved counts present (not skipped)", {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], []],
+];
+
+function hooksEnsureSelftest() {
+  let fail = 0;
+  const inv = (s) => `faff ${s} --hook`;
+  for (const [label, settings, present, served, wAdded, wAlready, wSkip] of HOOKS_ENSURE_SELFTEST_CASES) {
+    const p = planStopHooks(settings, present, served, inv);
+    const ok = JSON.stringify(p.added) === JSON.stringify(wAdded)
+      && JSON.stringify(p.already) === JSON.stringify(wAlready)
+      && JSON.stringify(p.skipped_stale) === JSON.stringify(wSkip);
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} skip${JSON.stringify(p.skipped_stale)}`);
+  }
+  // structural: adding into {} builds one Stop group carrying the two command hooks
+  const built = planStopHooks({}, [], ["runcheck", "prepcheck"], inv).nextSettings;
+  const cmds = (((built.hooks || {}).Stop || [])[0] || {}).hooks || [];
+  const structOk = cmds.length === 2 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck) --hook/.test(h.command));
+  if (!structOk) fail++;
+  console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 2 command hooks`);
+  // identity: token match ignores path / env prefix, requires --hook
+  const idCases = [
+    ["/abs/faff prepcheck --hook", "prepcheck", true],
+    ["FOO=1 /x/faff prepcheck --hook", "prepcheck", true],
+    ["faff prepcheck", "prepcheck", false],
+    ["faff runcheck --hook", "prepcheck", false],
+  ];
+  for (const [cmd, sub, want] of idCases) {
+    const got = commandInvokesFaffHook(cmd, sub);
+    if (got !== want) fail++;
+    console.log(`${got === want ? "ok  " : "FAIL"} identity '${cmd}' ~ ${sub} → ${got} (want ${want})`);
+  }
+  const total = HOOKS_ENSURE_SELFTEST_CASES.length + 1 + idCases.length;
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -1738,6 +1931,7 @@ Subcommands:
   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
   prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
+  hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json — non-destructive, byte-stable no-op when present, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
@@ -2094,6 +2288,7 @@ function main(argv) {
   if (sub === "config") return cmdConfig(rest);
   if (sub === "runcheck") return cmdRuncheck(rest);
   if (sub === "prepcheck") return cmdPrepcheck(rest);
+  if (sub === "hooks-ensure") return cmdHooksEnsure(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
   if (sub === "labels") return cmdLabels(rest);
   if (sub === "eligible") return cmdEligible(rest);

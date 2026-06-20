@@ -893,9 +893,10 @@ function whichFaff() {
 function probeServes(bin, sub, probeRoot) {
   try {
     const r = spawnSync(bin, [sub, "--hook", "--root", probeRoot], { encoding: "utf8", timeout: 5000 });
-    if (r.error) return false;
-    if (r.status === 2 && /unknown subcommand/i.test(r.stderr || "")) return false;
-    return r.status === 0 || r.status === 3; // 0 clean; runcheck/prepcheck never return 2-served
+    if (r.error) return false; // couldn't even run the bin (missing / not executable)
+    // The ONLY "not served" signal is main()'s unknown-subcommand path (exit 2 + that message).
+    // Anything else — including a clean exit 0 — means the bin recognises the subcommand.
+    return !(r.status === 2 && /unknown subcommand/i.test(r.stderr || ""));
   } catch { return false; }
 }
 

@@ -79,6 +79,13 @@ appetite: high
 # faff-automation-hold to hard-exclude. faff-automation-hold always wins regardless.
 automation_default: opt-in   # opt-in | opt-out
 
+# Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
+# whether it offers to promote that spec's architecturally-significant Chosen: decisions into
+# the repo's append-only docs/adr/ log. The `faff adr` CLI (next-number/new/list/validate) is
+# always available regardless; this only gates the prep-time promotion offer.
+adr:
+  mode: offer   # offer (default): surface candidates + human-gated y/n write · surface: list only · off: nothing
+
 # faffter-dark: LLM provider config for adversarial review.
 # Used by the faffter-dark-adversarial-review skill (when set as the review slot).
 faffter_dark:

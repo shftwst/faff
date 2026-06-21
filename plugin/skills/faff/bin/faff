@@ -171,6 +171,7 @@ const DEFAULTS = {
   "concurrency_max": "4",
   "automation_default": "opt-in",
   "appetite": "high",
+  "adr.mode": "offer",
 };
 
 function fmt(value) {
@@ -563,7 +564,7 @@ function cmdConfig(args) {
         const expected = [
           "slots.intake", "slots.spec", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor",
-          "logging", "concurrency_max", "automation_default", "appetite",
+          "logging", "concurrency_max", "automation_default", "appetite", "adr.mode",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -1999,6 +2000,172 @@ function cmdGitignoreEnsure(args) {
 }
 
 // ===========================================================================
+// adr — architecture decision records (FAFF-16). Deterministic mechanics over the
+// repo's append-only docs/adr/NNNN-title.md Nygard log: number / scaffold / list / validate.
+// The judgement (is a decision significant? record it?) stays with the human in faff-prep;
+// this command owns only the mechanical parts. Append-only: `new` never overwrites.
+// ===========================================================================
+const ADR_STATUSES = ["Proposed", "Accepted", "Superseded", "Deprecated", "Rejected"];
+const ADR_FILE_RE = /^(\d{4})-(.+)\.md$/;
+
+function adrDir(root) { return path.join(root, "docs", "adr"); }
+
+function adrSlug(title) {
+  return String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "adr";
+}
+
+// Match a header field "- **Status:** value" / "- Status: value" (bold optional). Existing
+// ADRs carry freeform trailing text (e.g. "Accepted (spike outcome …)"), so the value is the
+// whole remainder; callers interpret only its leading token.
+function adrField(text, name) {
+  // Tolerate every bold/colon arrangement: "- **Status:** v", "- **Status**: v", "- Status: v".
+  // Leading "[\s>*-]*" eats list/bold markers; "[\s:*]+" eats the colon + closing bold; the value
+  // begins at the first non-space/non-asterisk char and runs to end of line.
+  const m = text.match(new RegExp(`^[\\s>*-]*${name}[\\s:*]+([^\\s*].*)$`, "mi"));
+  return m ? m[1].trim() : null;
+}
+
+function listAdrs(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const f of fs.readdirSync(dir).sort()) {
+    const m = f.match(ADR_FILE_RE);
+    if (!m) continue;
+    const text = fs.readFileSync(path.join(dir, f), "utf8");
+    const titleM = text.match(/^#\s*ADR\s+\d+\s*[—\-]\s*(.+)$/mi);
+    out.push({
+      number: parseInt(m[1], 10), num: m[1], slug: m[2], file: f,
+      title: titleM ? titleM[1].trim() : null,
+      status: adrField(text, "Status"), date: adrField(text, "Date"),
+    });
+  }
+  return out.sort((a, b) => a.number - b.number);
+}
+
+function adrNextNumber(dir) {
+  const max = listAdrs(dir).reduce((m, a) => Math.max(m, a.number), 0);
+  return String(max + 1).padStart(4, "0");
+}
+
+// Returns a list of problem strings (empty = valid). Lenient by design so the existing
+// hand-written ADRs pass: a field must be PRESENT and Status must START WITH a known word.
+function adrValidate(dir) {
+  const adrs = listAdrs(dir);
+  const problems = [];
+  for (const a of adrs) {
+    const text = fs.readFileSync(path.join(dir, a.file), "utf8");
+    const titleM = text.match(/^#\s*ADR\s+(\d+)\s*[—\-]\s*.+$/mi);
+    if (!titleM) problems.push(`${a.file}: missing '# ADR NNNN — Title' heading`);
+    else if (parseInt(titleM[1], 10) !== a.number) problems.push(`${a.file}: heading number ADR ${titleM[1]} != filename ${a.num}`);
+    if (!a.status) problems.push(`${a.file}: missing Status field`);
+    else if (!ADR_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(a.status))) problems.push(`${a.file}: Status "${a.status.slice(0, 30)}" must start with one of ${ADR_STATUSES.join("|")}`);
+    if (!a.date) problems.push(`${a.file}: missing Date field`);
+  }
+  const seen = new Set();
+  for (const a of adrs) {
+    if (seen.has(a.number)) problems.push(`duplicate ADR number ${a.num}`);
+    seen.add(a.number);
+  }
+  for (let i = 1; i <= adrs.length; i++) {
+    if (!seen.has(i)) problems.push(`numbering gap: ADR ${String(i).padStart(4, "0")} missing (expected contiguous 0001..${String(adrs.length).padStart(4, "0")})`);
+  }
+  return problems;
+}
+
+function adrTemplate({ num, title, date, issue, initiative, status }) {
+  const lines = [`# ADR ${num} — ${title}`, "", `- **Status:** ${status || "Proposed"}`, `- **Date:** ${date}`];
+  if (issue) lines.push(`- **Issue:** ${issue}`);
+  if (initiative) lines.push(`- **Initiative:** ${initiative}`);
+  lines.push("", "## Context", "", "_TODO: what forces this decision._", "",
+             "## Decision", "", "_TODO: the decision, stated forward._", "",
+             "## Consequences", "", "_TODO: what this constrains downstream._", "");
+  return lines.join("\n");
+}
+
+function adrFlag(args, name) { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : null; }
+
+function cmdAdr(args) {
+  if (args.includes("--selftest")) return adrSelftest();
+  const action = args[0];
+  const root = adrFlag(args, "--root") || findRoot();
+  const dir = adrDir(root);
+
+  if (action === "next-number") { process.stdout.write(adrNextNumber(dir) + "\n"); return 0; }
+
+  if (action === "list") {
+    const adrs = listAdrs(dir);
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(adrs.map(({ number, num, title, status, date, file }) =>
+        ({ number, id: num, title, status, date, file })), null, 2));
+    } else if (!adrs.length) {
+      console.log(`No ADRs in ${path.relative(root, dir) || dir}.`);
+    } else {
+      for (const a of adrs) console.log(`${a.num}  ${a.title || a.slug}  [${(a.status || "?").split(/[ (.]/)[0]}]  ${a.date || ""}`.trimEnd());
+    }
+    return 0;
+  }
+
+  if (action === "validate") {
+    const problems = adrValidate(dir);
+    if (!problems.length) { console.log(`OK — ${listAdrs(dir).length} ADR(s) in ${path.relative(root, dir) || dir} valid.`); return 0; }
+    for (const p of problems) console.log(`FAIL  ${p}`);
+    return 1;
+  }
+
+  if (action === "new") {
+    const title = adrFlag(args, "--title");
+    if (!title) { process.stderr.write("faff adr new: --title is required\n"); return 2; }
+    const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
+    const num = adrNextNumber(dir);
+    const file = `${num}-${adrSlug(title)}.md`;
+    const full = path.join(dir, file);
+    if (fs.existsSync(full)) { process.stderr.write(`faff adr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: adrFlag(args, "--issue"), initiative: adrFlag(args, "--initiative"), status: adrFlag(args, "--status") }));
+    process.stdout.write(full + "\n");
+    return 0;
+  }
+
+  process.stderr.write("faff adr: expected one of: next-number | new | list | validate (or --selftest)\n");
+  return 2;
+}
+
+function adrSelftest() {
+  const os = require("node:os");
+  const cases = [];
+  const t = (name, ok) => cases.push([name, !!ok]);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-adr-"));
+  const dir = path.join(tmp, "docs", "adr");
+  fs.mkdirSync(dir, { recursive: true });
+  const mk = (n, slug, body) => fs.writeFileSync(path.join(dir, `${n}-${slug}.md`),
+    body != null ? body : `# ADR ${n} — ${slug}\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+
+  t("next-number on empty → 0001", adrNextNumber(dir) === "0001");
+  mk("0001", "alpha"); mk("0002", "beta");
+  t("next-number after 0001,0002 → 0003", adrNextNumber(dir) === "0003");
+  t("validate clean tree → no problems", adrValidate(dir).length === 0);
+  t("list parses 2 ADRs", listAdrs(dir).length === 2);
+  t("next-number points at a free slot (append-only)", listAdrs(dir).every((a) => a.num !== adrNextNumber(dir)));
+  mk("0004", "delta");
+  t("validate detects numbering gap (missing 0003)", adrValidate(dir).some((p) => /0003/.test(p)));
+  mk("0003", "gamma", `# ADR 0003 — gamma\n\n- **Date:** 2026-06-21\n\n## Context\n`);
+  t("validate detects missing Status", adrValidate(dir).some((p) => /Status/i.test(p)));
+  mk("0005", "mismatch", `# ADR 0009 — mismatch\n\n- **Status:** Proposed\n- **Date:** 2026-06-21\n`);
+  t("validate detects heading/filename number mismatch", adrValidate(dir).some((p) => /!= filename/i.test(p)));
+  t("slug kebabs a title", adrSlug("Events not RPC!") === "events-not-rpc");
+  t("template carries Nygard sections + Status/Date", (() => {
+    const tpl = adrTemplate({ num: "0007", title: "T", date: "2026-06-21", issue: "FAFF-16" });
+    return /# ADR 0007 — T/.test(tpl) && /\*\*Status:\*\* Proposed/.test(tpl) && /## Context/.test(tpl) && /## Decision/.test(tpl) && /## Consequences/.test(tpl) && /\*\*Issue:\*\* FAFF-16/.test(tpl);
+  })());
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+  let failed = 0;
+  for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
+  console.log(`RESULT: ${failed ? "FAIL" : "PASS"} (${cases.length} cases, ${failed} failed)`);
+  return failed ? 1 : 0;
+}
+
+// ===========================================================================
 // dispatch
 // ===========================================================================
 const USAGE = `faff — the bundled CLI for the faff skill suite.
@@ -2017,6 +2184,7 @@ Subcommands:
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
+  adr <next-number|new|list|validate> [--root DIR]   FAFF-16: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; validate (gaps + required header fields); --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
 `;
@@ -2373,6 +2541,7 @@ function main(argv) {
   if (sub === "state") return cmdState(rest);
   if (sub === "park-history") return cmdParkHistory(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
+  if (sub === "adr") return cmdAdr(rest);
   if (sub === "contract") return cmdContract(rest);
   if (sub === "doctor") return cmdDoctor(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);

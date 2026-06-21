@@ -133,6 +133,8 @@ Commit message: `docs(<issue-id>): add spec for <issue title>`
 
 This commit happens once. If the user re-runs graft on the same issue (existing worktree), skip this step.
 
+**Step 4b: Materialise ADR promotions (FAFF-16).** If `faff config get adr.mode` ≠ `off` **and** the issue carries an `## ADR promotion intent` comment (written by faff-prep), materialise each listed decision as an ADR on this feature branch — graft owns the branch, so the ADR ships in the PR alongside the code (the spec's "travels with the code, PR-reviewable" property). For each listed decision: run `faff adr new --title "<decision>" --issue <ISSUE-XX> [--initiative <name>]` (resolve the binary per gateway → resolving the faff executable), fill the scaffold's `## Context` / `## Decision` / `## Consequences` from the spec's rationale for that decision, and commit it (`docs(adr): record <decision> (<ISSUE-XX>)`). The `faff adr` CLI owns numbering / scaffold / validate; graft owns only filling + committing. No intent comment, or `adr.mode: off` → skip. (Append-only: `faff adr new` refuses to overwrite, so a re-run never clobbers an existing ADR.)
+
 **Step 5: Claim the issue (In Progress) + status-monotonicity guard**
 
 The issue's **`In Progress` status is the claim** — the one coordination point every orchestrator shares (gateway → **Issue claim & status monotonicity**), so two independent runs don't build it at once. Re-read the issue's **live** status (not a Step-1 snapshot), then:

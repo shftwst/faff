@@ -138,6 +138,21 @@ test("supersede: errors on self / missing / already-superseded", () => {
   rmSync(root, { recursive: true, force: true });
 });
 
+test("supersede: one ADR can supersede multiple predecessors; validate stays clean", () => {
+  const root = tmpRepo({
+    "0001-a.md": validAdr("0001", "a"),
+    "0002-b.md": validAdr("0002", "b"),
+    "0003-c.md": validAdr("0003", "c"),
+  });
+  assert.equal(run(["supersede", "0001", "--by", "0003", "--root", root]).status, 0);
+  assert.equal(run(["supersede", "0002", "--by", "0003", "--root", root]).status, 0);
+  const c = readFileSync(join(root, "docs", "adr", "0003-c.md"), "utf8");
+  assert.match(c, /\*\*Supersedes:\*\* ADR-0001/);
+  assert.match(c, /\*\*Supersedes:\*\* ADR-0002/);
+  assert.equal(run(["validate", "--root", root]).status, 0, "multi-predecessor supersession validates clean");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("validate: fails on asymmetric and dangling canonical supersession refs", () => {
   const asym = tmpRepo({ "0001-a.md": validAdr("0001", "a", "Superseded by ADR-0002"), "0002-b.md": validAdr("0002", "b") });
   const ra = run(["validate", "--root", asym]);

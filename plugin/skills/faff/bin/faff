@@ -2070,10 +2070,16 @@ function adrSupersededBy(status) {
   const m = status && status.match(/^Superseded\s+by\s+ADR[-\s]?(\d{1,4})\b/i);
   return m ? m[1].padStart(4, "0") : null;
 }
-function adrSupersedes(text) {
-  const v = adrField(text, "Supersedes");           // a colon must follow "Supersedes" → canonical only
-  const m = v && v.match(/\bADR[-\s]?(\d{1,4})\b/i);
-  return m ? m[1].padStart(4, "0") : null;
+// ALL canonical `Supersedes: ADR-NNNN` refs (a colon must follow "Supersedes" → legacy
+// "Supersedes / unblocks: FAFF-77" is not matched). A Set, because one ADR may consolidate
+// several predecessors (multiple Supersedes lines) — returning only the first would false-fail validate.
+function adrSupersedesSet(text) {
+  const out = new Set();
+  for (const m of text.matchAll(/^[\s>*-]*Supersedes[\s*]*:[\s*]*([^\n]+)$/gim)) {
+    const r = m[1].match(/\bADR[-\s]?(\d{1,4})\b/i);
+    if (r) out.add(r[1].padStart(4, "0"));
+  }
+  return out;
 }
 
 // Returns a list of problem strings (empty = valid). Lenient by design so the existing
@@ -2106,10 +2112,9 @@ function adrValidate(dir) {
     const supBy = adrSupersededBy(a.status);   // a: "Superseded by ADR-<supBy>"
     if (supBy) {
       if (!byNum.has(supBy)) problems.push(`${a.file}: superseded by missing ADR-${supBy}`);
-      else if (adrSupersedes(texts.get(supBy)) !== a.num) problems.push(`${a.file}: asymmetric supersession — ADR-${supBy} does not record "Supersedes: ADR-${a.num}"`);
+      else if (!adrSupersedesSet(texts.get(supBy)).has(a.num)) problems.push(`${a.file}: asymmetric supersession — ADR-${supBy} does not record "Supersedes: ADR-${a.num}"`);
     }
-    const sup = adrSupersedes(texts.get(a.num)); // a: "Supersedes: ADR-<sup>"
-    if (sup) {
+    for (const sup of adrSupersedesSet(texts.get(a.num))) {   // a may supersede several predecessors
       if (!byNum.has(sup)) problems.push(`${a.file}: supersedes missing ADR-${sup}`);
       else if (adrSupersededBy(byNum.get(sup).status) !== a.num) problems.push(`${a.file}: asymmetric supersession — ADR-${sup} not marked "Superseded by ADR-${a.num}"`);
     }
@@ -2198,7 +2203,7 @@ function cmdAdr(args) {
     // NEW: add "- **Supersedes:** ADR-<old>" once (idempotent), after the Status line.
     const newPath = path.join(dir, newA.file);
     let newText = fs.readFileSync(newPath, "utf8");
-    if (adrSupersedes(newText) !== oldA.num) {
+    if (!adrSupersedesSet(newText).has(oldA.num)) {   // idempotent + supports multiple predecessors
       const supLine = `- **Supersedes:** ADR-${oldA.num}`;
       newText = /^[\s>*-]*\*{0,2}Status[\s*]*:/mi.test(newText)
         ? newText.replace(/^([\s>*-]*\*{0,2}Status[\s*]*:.*)$/mi, `$1\n${supLine}`)
@@ -2243,8 +2248,9 @@ function adrSelftest() {
 
   // FAFF-197 — supersession canonical-ref parsing + back-reference validation
   t("parse Superseded-by ref", adrSupersededBy("Superseded by ADR-0002") === "0002");
-  t("parse Supersedes field", adrSupersedes("- **Supersedes:** ADR-0001\n") === "0001");
-  t("legacy freeform 'Supersedes / unblocks:' is NOT a canonical Supersedes ref", adrSupersedes("- **Supersedes / unblocks:** FAFF-77\n") === null);
+  t("parse Supersedes field", adrSupersedesSet("- **Supersedes:** ADR-0001\n").has("0001"));
+  t("parse multiple Supersedes refs", (() => { const s = adrSupersedesSet("- **Supersedes:** ADR-0001\n- **Supersedes:** ADR-0003\n"); return s.has("0001") && s.has("0003") && s.size === 2; })());
+  t("legacy freeform 'Supersedes / unblocks:' is NOT a canonical Supersedes ref", adrSupersedesSet("- **Supersedes / unblocks:** FAFF-77\n").size === 0);
   const sdir = path.join(tmp, "sup", "docs", "adr");
   fs.mkdirSync(sdir, { recursive: true });
   const smk = (n, body) => fs.writeFileSync(path.join(sdir, `${n}-x.md`), body);
@@ -2259,6 +2265,14 @@ function adrSelftest() {
   fs.mkdirSync(ldir, { recursive: true });
   fs.writeFileSync(path.join(ldir, "0001-x.md"), `# ADR 0001 — x\n\n- **Status:** Accepted\n- **Supersedes / unblocks:** FAFF-77\n- **Date:** 2026-06-21\n\n## Context\n`);
   t("legacy freeform ADR passes (canonical check skipped where absent)", adrValidate(ldir).length === 0);
+  // one ADR superseding TWO predecessors validates clean (the multiple-Supersedes case)
+  const mdir = path.join(tmp, "multi", "docs", "adr");
+  fs.mkdirSync(mdir, { recursive: true });
+  const mmk = (n, body) => fs.writeFileSync(path.join(mdir, `${n}-x.md`), body);
+  mmk("0001", `# ADR 0001 — x\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\n`);
+  mmk("0002", `# ADR 0002 — x\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\n`);
+  mmk("0003", `# ADR 0003 — x\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Supersedes:** ADR-0002\n- **Date:** 2026-06-21\n\n## Context\n`);
+  t("one ADR superseding two predecessors validates clean", adrValidate(mdir).length === 0);
 
   fs.rmSync(tmp, { recursive: true, force: true });
   let failed = 0;

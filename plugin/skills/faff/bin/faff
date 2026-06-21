@@ -858,6 +858,11 @@ function isPresent(sub, settings) {
 
 // Pure planner — no I/O. present/served are subcommand-name lists; binInvocation(sub)
 // builds the command string to register. Mirrors gitignoreEnsure's pure-core shape.
+// FAFF-200: also normalizes a PRESENT faff Stop-hook whose stored command diverges
+// from the canonical binInvocation form (e.g. a hand-wired absolute-repo path) to that
+// canonical form — single source of truth, idempotent (canonical → no rewrite). Presence
+// detection (commandInvokesFaffHook) stays path-agnostic; this only rewrites the stored
+// string of an already-present hook, so a divergent-but-equivalent path is healed.
 function planStopHooks(settings, present, served, binInvocation) {
   const P = new Set(present), S = new Set(served);
   const added = FAFF_STOP_HOOKS.filter((s) => !P.has(s) && S.has(s));
@@ -871,7 +876,24 @@ function planStopHooks(settings, present, served, binInvocation) {
     if (!group) { group = { hooks: [] }; next.hooks.Stop.push(group); }
     for (const s of added) group.hooks.push({ type: "command", command: binInvocation(s) });
   }
-  return { added, already, skipped_stale, nextSettings: next };
+  // Normalization pass over the settings being written: rewrite any present faff
+  // Stop-hook command that differs from canonical. Just-added hooks are already
+  // canonical, so they no-op here; a second run finds everything canonical → [].
+  const normalized = [];
+  const stop = next.hooks && Array.isArray(next.hooks.Stop) ? next.hooks.Stop : [];
+  for (const group of stop) {
+    const hooks = group && Array.isArray(group.hooks) ? group.hooks : [];
+    for (const h of hooks) {
+      if (!h || typeof h.command !== "string") continue;
+      for (const s of FAFF_STOP_HOOKS) {
+        if (commandInvokesFaffHook(h.command, s) && h.command.trim() !== binInvocation(s)) {
+          h.command = binInvocation(s);
+          if (!normalized.includes(s)) normalized.push(s);
+        }
+      }
+    }
+  }
+  return { added, already, skipped_stale, normalized, nextSettings: next };
 }
 
 function readJsonOrEmpty(p) {
@@ -938,7 +960,7 @@ function cmdHooksEnsure(args) {
   const present = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
   const plan = planStopHooks(targetObj, present, served, (s) => `${bin} ${s} --hook`);
 
-  const willWrite = !dryRun && plan.added.length > 0;
+  const willWrite = !dryRun && (plan.added.length > 0 || plan.normalized.length > 0);
   if (willWrite) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, JSON.stringify(plan.nextSettings, null, 2) + "\n");
@@ -950,11 +972,14 @@ function cmdHooksEnsure(args) {
       `session-blocking hook. Fix the install, then re-run: bash scripts/link-skills.sh --global --replace\n`);
   }
 
-  const result = { path: target, created: willWrite && !existed, bin, added: plan.added, already: plan.already, skipped_stale: plan.skipped_stale };
+  const result = { path: target, created: willWrite && !existed, bin, added: plan.added, already: plan.already, normalized: plan.normalized, skipped_stale: plan.skipped_stale };
   if (asJson) {
     console.log(JSON.stringify(result, null, 2));
-  } else if (plan.added.length) {
-    console.log(`${dryRun ? "[dry-run] would add" : "added"} ${plan.added.join(", ")} → ${target}`);
+  } else if (plan.added.length || plan.normalized.length) {
+    const parts = [];
+    if (plan.added.length) parts.push(`${dryRun ? "would add" : "added"} ${plan.added.join(", ")}`);
+    if (plan.normalized.length) parts.push(`${dryRun ? "would normalize" : "normalized"} ${plan.normalized.join(", ")}`);
+    console.log(`${dryRun ? "[dry-run] " : ""}${parts.join("; ")} → ${target}`);
   } else {
     const note = plan.already.length ? `already present (${plan.already.join(", ")})` : "nothing to add";
     console.log(`${target} — faff Stop hooks ${note}; no change`);
@@ -963,29 +988,34 @@ function cmdHooksEnsure(args) {
 }
 
 // Selftest drives the pure planner over in-memory cases (no filesystem), as the
-// park-history / eligible / prepcheck selftests do. [label, settings, present, served, +added, =already, skip]
+// park-history / eligible / prepcheck selftests do.
+// [label, settings, present, served, +added, =already, skip, ~normalized] (canonical inv = "faff <sub> --hook")
 const HOOKS_ENSURE_SELFTEST_CASES = [
-  ["empty + both served", {}, [], ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], []],
-  ["runcheck present, prepcheck served",
+  ["empty + both served", {}, [], ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], [], []],
+  ["runcheck present (divergent path), prepcheck served",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/x/bin/faff runcheck --hook" }] }] } },
-    ["runcheck"], ["runcheck", "prepcheck"], ["prepcheck"], ["runcheck"], []],
-  ["both present → no-op",
+    ["runcheck"], ["runcheck", "prepcheck"], ["prepcheck"], ["runcheck"], [], ["runcheck"]],
+  ["both present, canonical → no-op",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }, { type: "command", command: "faff prepcheck --hook" }] }] } },
-    ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], ["runcheck", "prepcheck"], []],
-  ["stale bin serves neither", {}, [], [], [], [], ["runcheck", "prepcheck"]],
-  ["present-but-unserved counts present (not skipped)", {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], []],
+    ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], ["runcheck", "prepcheck"], [], []],
+  ["stale bin serves neither", {}, [], [], [], [], ["runcheck", "prepcheck"], []],
+  ["present-but-unserved counts present (not skipped)", {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], [], []],
+  ["present-but-divergent-path → normalized",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "/abs/repo/path/faff prepcheck --hook" }] }] } },
+    ["prepcheck"], ["runcheck", "prepcheck"], ["runcheck"], ["prepcheck"], [], ["prepcheck"]],
 ];
 
 function hooksEnsureSelftest() {
   let fail = 0;
   const inv = (s) => `faff ${s} --hook`;
-  for (const [label, settings, present, served, wAdded, wAlready, wSkip] of HOOKS_ENSURE_SELFTEST_CASES) {
+  for (const [label, settings, present, served, wAdded, wAlready, wSkip, wNorm] of HOOKS_ENSURE_SELFTEST_CASES) {
     const p = planStopHooks(settings, present, served, inv);
     const ok = JSON.stringify(p.added) === JSON.stringify(wAdded)
       && JSON.stringify(p.already) === JSON.stringify(wAlready)
-      && JSON.stringify(p.skipped_stale) === JSON.stringify(wSkip);
+      && JSON.stringify(p.skipped_stale) === JSON.stringify(wSkip)
+      && JSON.stringify(p.normalized) === JSON.stringify(wNorm ?? []);
     if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} skip${JSON.stringify(p.skipped_stale)}`);
+    console.log(`${ok ? "ok  " : "FAIL"} ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} ~${JSON.stringify(p.normalized)} skip${JSON.stringify(p.skipped_stale)}`);
   }
   // structural: adding into {} builds one Stop group carrying the two command hooks
   const built = planStopHooks({}, [], ["runcheck", "prepcheck"], inv).nextSettings;
@@ -2291,7 +2321,7 @@ Subcommands:
   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
   runcheck [--hook] [--json] [RUN_DIR]          audit a /faff-beep-boop run ledger
   prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
-  hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json — non-destructive, byte-stable no-op when present, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
+  hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
@@ -2303,6 +2333,7 @@ Subcommands:
   adr <next-number|new|list|validate|supersede> [--root DIR]   FAFF-16: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; validate (gaps + required header fields); --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
+  sync [--dry-run] [--json] [--script PATH]      FAFF-200: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; --dry-run mutates nothing; exit 2 if the script is missing/unreadable
 `;
 
 // ===========================================================================
@@ -2642,11 +2673,50 @@ function cmdDoctor(args) {
   return 0;
 }
 
+// FAFF-200: skill-owned repair for a stale copy-install. A thin wrapper over the
+// tested scripts/link-skills.sh --global --replace (re-links the skill dirs + the CLI
+// onto PATH). The repair logic is NOT reimplemented in Node — single source of truth.
+// Never auto-run in autonomous mode (it mutates ~/.claude outside any PR): the caller
+// (the gateway doctor-at-entry check) only invokes it on an interactive human accept.
+function cmdSync(args) {
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const dryRun = args.includes("--dry-run");
+  const asJson = args.includes("--json");
+  const scriptOverride = get("--script");
+
+  let scriptPath = scriptOverride;
+  if (!scriptPath) {
+    // bin/faff lives at <repo>/plugin/skills/faff/bin/faff → repo root is four dirs up from bin/.
+    let self;
+    try { self = fs.realpathSync(process.argv[1]); } catch { self = process.argv[1]; }
+    const repoRoot = path.resolve(path.dirname(self), "..", "..", "..", "..");
+    scriptPath = path.join(repoRoot, "scripts", "link-skills.sh");
+  }
+  try { fs.accessSync(scriptPath, fs.constants.R_OK); }
+  catch { process.stderr.write(`faff sync: cannot find link-skills.sh at ${scriptPath}\n`); return 2; }
+
+  const linkArgs = ["--global", "--replace", ...(dryRun ? ["--dry-run"] : [])];
+  const r = spawnSync("bash", [scriptPath, ...linkArgs], { stdio: asJson ? "pipe" : "inherit", encoding: "utf8" });
+  if (r.error) { process.stderr.write(`faff sync: failed to run ${scriptPath}: ${r.error.message}\n`); return 2; }
+
+  const result = { script: scriptPath, ran: !dryRun, dry_run: dryRun, exit: r.status, ok: r.status === 0 };
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    console.log(r.status === 0
+      ? `faff sync: re-linked faff skills to the repo${dryRun ? " (dry-run — nothing changed)" : ""}`
+      : `faff sync: link-skills reported exit ${r.status} — see output above`);
+  }
+  // Pass the script's fail-loud (2) through; map any other non-zero to 1.
+  return r.status === 0 ? 0 : (r.status === 2 ? 2 : 1);
+}
+
 function main(argv) {
   const [sub, ...rest] = argv;
   if (!sub) { process.stderr.write(USAGE); return 2; }
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
   if (sub === "config") return cmdConfig(rest);
+  if (sub === "sync") return cmdSync(rest);
   if (sub === "runcheck") return cmdRuncheck(rest);
   if (sub === "prepcheck") return cmdPrepcheck(rest);
   if (sub === "hooks-ensure") return cmdHooksEnsure(rest);

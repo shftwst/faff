@@ -68,6 +68,20 @@ When **any** faff entry resolves config and finds **no `.faffrc.yaml`** (`faff c
 
 The offer is a single gateway-level check (per the gateway-load preamble each sub-skill runs on entry), not a snippet copied into every sub-skill.
 
+## Install health (doctor-at-entry)
+
+The same single gateway-load preamble — **after** the `.faffrc` check above — runs **`faff doctor`** once on entry, so a **stale copy-install** (the faff skills installed as real-dir copies instead of repo symlinks, where shipped changes silently don't go live) is surfaced and offered a repair instead of running stale prose. Like First run, this is **one gateway-level check, not a snippet copied into every sub-skill**.
+
+Resolve the binary via **Resolving the `faff` executable** (never hardcode `~/.claude/skills/faff/bin/faff`), run `"$faff" doctor`, and branch on its exit code:
+
+- **exit 0** (every faff skill is a live symlink) → silent, continue.
+- **exit 2** (no faff skills under the target / unreadable) → silent, continue — not worth a prompt.
+- **exit 1** (one or more **COPY** installs — stale risk) → act by mode:
+  - **Interactive** — a one-time **soft-offer** (mirrors the First-run offer; never a gate): `faff skills look stale (copy-installs, not symlinks) — repo changes won't be live. Re-link now? (y/n)`. On **accept** → run **`"$faff" sync`** (the skill-owned repair — re-links the skill dirs + the CLI via `scripts/link-skills.sh --global --replace`), then continue the original command. On **decline** → continue on the stale install; do **not** nag again this turn.
+  - **Autonomous/beep-boop** — **never prompt, never run `faff sync`, never mutate `~/.claude`.** Re-linking deletes real dirs in the user's global skills dir — a **side-effect outside the PR flow** (gateway → **Autonomous Mode Contract**), which the autonomous lane never performs unattended. Log the stale-install finding to `.faff/logs/…` and surface it for `/faff-wtf`, then continue.
+
+`faff sync` is a **CLI subcommand** (a thin wrapper over the tested `link-skills.sh`), so it is invoked directly via the resolved binary — **not** through the Skill tool (unlike `faff-onboard`).
+
 ## Configuration (shared across all sub-skills)
 
 All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule):

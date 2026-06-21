@@ -49,7 +49,7 @@ test("idempotent: a second run adds nothing and does not rewrite the file (byte-
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("adds only the missing command and preserves other settings + other hooks verbatim", () => {
+test("adds the missing command, normalizes a present-but-divergent path, preserves other settings + hooks (FAFF-200)", () => {
   const root = mkroot();
   mkdirSync(join(root, ".claude"), { recursive: true });
   writeFileSync(settingsPath(root), JSON.stringify({
@@ -63,13 +63,58 @@ test("adds only the missing command and preserves other settings + other hooks v
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
     assert.deepEqual(r.added, ["prepcheck"]);
     assert.deepEqual(r.already, ["runcheck"]);
+    assert.deepEqual(r.normalized, ["runcheck"], "the divergent-path runcheck command is normalized to canonical");
     const s = readSettings(root);
     assert.deepEqual(s.permissions, { allow: ["Bash(git status:*)"] }, "unrelated settings preserved");
     assert.deepEqual(s.hooks.PreToolUse, [{ matcher: "Bash", hooks: [{ type: "command", command: "echo hi" }] }], "other hook types preserved");
     const cmds = stopCmds(s);
-    assert.ok(cmds.some((c) => c === "/some/path/faff runcheck --hook"), "existing runcheck command untouched (not clobbered/duplicated)");
+    assert.ok(!cmds.includes("/some/path/faff runcheck --hook"), "divergent runcheck path rewritten, not left in place");
     assert.equal(cmds.filter((c) => /faff runcheck --hook/.test(c)).length, 1, "no duplicate runcheck");
+    assert.ok(cmds.includes(`${r.bin} runcheck --hook`), "runcheck normalized to the resolved-bin canonical form");
     assert.ok(cmds.some((c) => /faff prepcheck --hook/.test(c)));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("normalizes drift then no-ops: corrupt a canonical command's path, re-run normalizes it, third run is byte-stable (FAFF-200)", () => {
+  const root = mkroot();
+  try {
+    const first = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
+    const bin = first.bin;
+    // Simulate path drift on the prepcheck command (e.g. a hand-wired absolute-repo path).
+    const s = readSettings(root);
+    for (const g of s.hooks.Stop) for (const h of g.hooks) if (/prepcheck/.test(h.command)) h.command = "/divergent/repo/path/faff prepcheck --hook";
+    writeFileSync(settingsPath(root), JSON.stringify(s, null, 2) + "\n");
+    // Re-run heals the drift, adds nothing.
+    const r2 = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
+    assert.deepEqual(r2.added, []);
+    assert.deepEqual(r2.normalized, ["prepcheck"]);
+    const cmds = stopCmds(readSettings(root));
+    assert.ok(cmds.includes(`${bin} prepcheck --hook`), "prepcheck restored to canonical");
+    assert.ok(!cmds.includes("/divergent/repo/path/faff prepcheck --hook"));
+    // Third run: present + canonical → byte-stable no-op.
+    const before = readFileSync(settingsPath(root));
+    const r3 = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
+    assert.deepEqual(r3.normalized, []);
+    assert.deepEqual(r3.added, []);
+    assert.deepEqual(readFileSync(settingsPath(root)), before, "third run byte-identical");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--dry-run reports a normalization but writes nothing (FAFF-200)", () => {
+  const root = mkroot();
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  writeFileSync(settingsPath(root), JSON.stringify({
+    hooks: { Stop: [{ hooks: [
+      { type: "command", command: "/x/faff runcheck --hook" },
+      { type: "command", command: "/x/faff prepcheck --hook" },
+    ] }] },
+  }, null, 2) + "\n");
+  const before = readFileSync(settingsPath(root));
+  try {
+    const r = JSON.parse(run(["hooks-ensure", "--root", root, "--dry-run", "--json"]).out);
+    assert.deepEqual(r.added, []);
+    assert.deepEqual(r.normalized, ["runcheck", "prepcheck"]);
+    assert.deepEqual(readFileSync(settingsPath(root)), before, "dry-run wrote nothing");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

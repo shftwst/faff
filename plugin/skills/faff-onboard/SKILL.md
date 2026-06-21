@@ -37,7 +37,7 @@ All human-facing output this skill emits — the detection summary, the confirm 
 ## The flow
 
 ```
-bail check → detect (discovery) → ask team_key → preview → confirm → write → gitignore-ensure → log
+bail check → detect (discovery) → ask team_key → preview → confirm → write → gitignore-ensure → hooks-ensure → log
 ```
 
 ### 1. Bail first — never clobber
@@ -91,9 +91,12 @@ Example shape (values illustrative):
   --set tracking.git_host=github
 ```
 
-### 5. Ensure gitignore
+### 5. Ensure gitignore + Stop hooks
 
-After the write succeeds, run `"$faff" gitignore-ensure` so `.faff/` and the rc file are ignored. It is idempotent and non-destructive — a no-op when they're already ignored.
+After the write succeeds, run two idempotent, non-destructive ensurers:
+
+- `"$faff" gitignore-ensure` — so `.faff/` and the rc file are ignored (a no-op when already ignored).
+- `"$faff" hooks-ensure` — registers faff's Stop-hook command set (`runcheck --hook` + `prepcheck --hook`) in `.claude/settings.json` so the run-ledger and same-turn-attach guards actually fire (FAFF-192). A byte-stable no-op when already wired; it **skips** a command the resolved `faff` can't serve (a stale/copy install) rather than wiring a session-blocking hook, and names the re-link remedy.
 
 ### 6. Re-run never clobbers
 

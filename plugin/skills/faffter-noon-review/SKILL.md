@@ -19,9 +19,9 @@ The verdict vocabulary (`pass` / `fail` / `needs-human`) and its semantics are *
 
 ## Why pre-PR
 
-In human-in-the-loop development, review happens either implicitly during pair programming (pre-PR) or as a PR review (post-PR). In an automated pipeline, raising a PR has real costs — CI minutes, potential failed test runs, idle time waiting for infrastructure. Faff runs review **before** the PR is raised: cheaper, faster, catches issues before burning CI time.
+In human-in-the-loop development, review happens either implicitly during pair programming (pre-PR) or as a PR review (post-PR). In an automated pipeline, raising a PR has real costs — CI minutes, potential failed test runs, idle time waiting for infrastructure. Faff runs review **before** the PR is raised: cheaper, faster, catches issues before burning CI time. faff-graft opens the PR (its Step 9b) **only after this review returns `pass`** — identically in interactive and autonomous modes — so review-fix iterations never reach CI (FAFF-185).
 
-Review findings that would have surfaced as PR comments are reported to the tracker instead — no loss of information, just earlier and cheaper feedback. faff-graft owns *how many* such comments: per its **collapse-and-log** policy (Step 9, FAFF-184) the per-pass findings accumulate in `.faff/logs` and only the final verdict lands as a **single** tracker comment — this producer returns findings, it does not itself post a comment per pass.
+Review findings that would have surfaced as PR comments are reported to the **tracker issue** instead (the single canonical findings surface — there is no PR at review time) — no loss of information, just earlier and cheaper feedback. faff-graft owns *how many* such comments: per its **collapse-and-log** policy (Step 9, FAFF-184) the per-pass findings accumulate in `.faff/logs` and only the final verdict lands as a **single** tracker comment — this producer returns findings, it does not itself post a comment per pass.
 
 ## When it runs
 

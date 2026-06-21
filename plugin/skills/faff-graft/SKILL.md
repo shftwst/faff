@@ -67,11 +67,12 @@ Minimum todo set:
 - Step 6: Present spec and choose path (interactive) / proceed to build (autonomous)
 - Step 7: Build
 - Step 8: AC verification
-- Step 9: Review phase
+- Step 9: Review phase (pre-PR — no PR exists yet)
+- Step 9b: Open the PR (only after review returns `pass`; identical interactive + autonomous)
 - Step 10: Merge-confidence gate
 - Step 11: Post-PR checks (interactive) / auto-merge on green (autonomous)
 
-Do not collapse these into one "implement the feature" todo. Every numbered step below, especially 8 / 9 / 10, must be a discrete todo that's visibly ticked off. Skipping a step without ticking its todo is a process failure.
+Do not collapse these into one "implement the feature" todo. Every numbered step below, especially 8 / 9 / 9b / 10, must be a discrete todo that's visibly ticked off. Skipping a step without ticking its todo is a process failure.
 
 **Step 1: Get Issue Details**
 
@@ -204,9 +205,9 @@ Tick each box as its verification passes, with a one-line note (test file refere
 
 This step runs in **both** interactive and autonomous modes.
 
-**Step 9: Review phase (mandatory — interactive and autonomous)**
+**Step 9: Review phase (mandatory — interactive and autonomous; runs PRE-PR)**
 
-Runs after AC verification, before the merge-confidence gate. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed and the PR is already open. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against. (Step 0 forces this into the todo list; Step 10's gate makes merge impossible without a `pass`, and Step 11 verifies it before any merge prompt — so a skipped review can't reach `main`.)
+Runs after AC verification, before the PR is opened (Step 9b) and before the merge-confidence gate. **Review runs pre-PR in both modes — no PR exists yet** (gateway → `faffter-noon-review` "Why pre-PR"): review iterates against the **branch/diff** (`git diff main...HEAD`), and the PR is opened only once review reaches `pass`, so review-fix iterations never burn CI. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against. (Step 0 forces this into the todo list; Step 9b only opens the PR on `pass`; Step 10's gate makes merge impossible without a `pass`, and Step 11 verifies it before any merge prompt — so a skipped review can't reach `main`.)
 
 Invoke the `review` slot via the Skill tool (resolve per gateway → **Sibling-skill invocation**; the default `faffter-noon-review` is a canonical name), passing the diff (`git diff main...HEAD`), the spec, the test results, and the Step 8 AC checklist. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-graft's. faff-graft owns only the sequencing around the result.
 
@@ -220,16 +221,28 @@ The review returns one of three signals. The verdict vocabulary, their semantics
 
 `needs-human` is reserved for things the merge-confidence gate can't catch. The revert test (if `git revert` on the merge commit fully undoes the change, it is not `needs-human` — it is `pass` or `fail`) is part of the fixed review-verdict contract in the gateway. See the gateway's Autonomous Mode Contract for the full rule on what escalates vs. what proceeds.
 
+**Where findings go — the TRACKER ISSUE, never the PR (FAFF-185).** Review runs pre-PR, so **no PR exists** to comment on. The single canonical findings surface — review verdict, adversarial findings, and dispositions, both modes — is the **tracker issue**. (`faffter-noon-review`'s "Why pre-PR / report to tracker" intent, honoured.) The adversarial reviewer's *log to tracker* step posts to this same issue surface, never the PR.
+
 **Record the review result — collapse-and-log, not append-per-pass (FAFF-184).** A `fail`→fix→re-review loop re-enters this step, so a naïve "comment per pass" would flood the tracker — exactly the per-micro-step marker the gateway forbids (→ **Tracker as the lights-out control plane** §2, the granularity rule). So:
 
 - **Every pass → `.faff/logs`.** Accumulate each pass's findings + dispositions in the per-issue log (`.faff/runs/<run-id>/ISSUE-XX/graft.md`, or `.faff/logs/…graft-ISSUE-XX.md` outside beep-boop) as the build iterates — a hard-floor write, the full blow-by-blow, never dropped.
-- **Terminal verdict → one tracker comment.** Only on the final verdict (`pass` / `needs-human`) post (or update in place) a **single** comment carrying that verdict, a one-line "resolved N findings across M passes" summary, and a pointer to the log. **Not** one comment per pass — and the adversarial reviewer's per-finding dispositions fold into this same comment's summary (Step 9 → adversarial review's *log to tracker*), never one comment per finding.
+- **Terminal verdict → one tracker-issue comment.** Only on the final verdict (`pass` / `needs-human`) post (or update in place) a **single** comment **on the tracker issue** carrying that verdict, a one-line "resolved N findings across M passes" summary, and a pointer to the log. **Not** one comment per pass — and the adversarial reviewer's per-finding dispositions fold into this same comment's summary (Step 9 → adversarial review's *log to tracker*), never one comment per finding.
 
 A clean single-pass build still uses this one-comment shape (verdict + "resolved 0 findings across 1 pass"); `needs-human` carries the blocking-finding summary, detail in the log.
+
+**Review-stage terminal states are pre-PR — no PR is opened for them:**
+
+- **`pass`** → proceed to **Step 9b** (open the PR), then the merge-confidence gate.
+- **`fail`** → iterate (fix flagged items → re-run tests → re-run review), still **pre-PR, no PR opened**. Loop until `pass` or `needs-human`.
+- **`needs-human`** → surface on the tracker issue as needs-human (the one-comment shape above) and park per the shared protocol **without opening a PR**. This is a **no-PR human handoff** — distinct from the `pr-open-for-human` return, which is reserved for the post-PR causes (CI-red / delivery `not-ready`/`failed`) that operate on an already-opened PR. See **Return values** in Autonomous Mode for the split.
 
 If the review names concrete, separable **out-of-scope** work — not a fixable defect in this diff — record it as discovered scope (see below) rather than looping on it. `fail` is for fixable items; out-of-this-PR follow-ups are discovered scope, not a review failure.
 
 This step runs in **both** interactive and autonomous modes.
+
+**Step 9b: Open the PR (after review `pass` — identical interactive + autonomous)**
+
+Reached **only** when Step 9 returned `pass`. This is the single PR-creation point, the same in both modes (no mode-specific divergence): push the branch and open the PR as a **regular (non-draft) PR**. Before this point **no PR exists** — review and its findings lived entirely on the branch + the tracker issue, saving CI on every review-fix iteration. The PR body carries the Step 8 AC checklist; CI fires here, for the first time, against a diff review has already passed. Proceed to Step 10.
 
 ### Discovered scope (record, never file)
 
@@ -274,13 +287,13 @@ In **interactive mode**, this gate fires when the user confirms "merge now" at p
 
 **Step 11: Post-PR checks (interactive)**
 
-**Prerequisite check:** before running this step, verify Steps 8 and 9 have both been ticked off in the todo list. If either is missing, run the missing step now — do **not** offer a merge gate on top of skipped verification or review. This is the last line of defence against the review-skipped failure mode: even if the build loop dropped Step 9, this check must catch it before any "merge now?" prompt fires.
+**Prerequisite check:** before running this step, verify Steps 8, 9, and 9b have all been ticked off in the todo list — AC verification, the (pre-PR) review reaching `pass`, and the PR opened at 9b. If any is missing, run the missing step now — do **not** offer a merge gate on top of skipped verification or review. This is the last line of defence against the review-skipped failure mode: even if the build loop dropped Step 9, this check must catch it before any "merge now?" prompt fires. (Reaching this step means the pre-PR review already returned `pass` at Step 9 — the only way 9b opened a PR — so that verdict is **not** re-evaluated here; a fresh post-PR concern is handled as a new build iteration, not a re-run of the pre-PR review gate.)
 
 After the PR is posted, wait for CI builds to complete **synchronously in the same turn**. Based on result and the gate in Step 10:
 
 - **Gate passes (auto-mergeable):** yes/no "All three gate conditions pass (ACs verified, CI green, review `pass`). Merge now? (y/n)". On confirm, hand off to the `ship` producer, pipe its `faff-contract:delivery-outcome` block to `faff contract delivery-outcome`, and route on the resulting outcome (per Step 10). On deny, leave PR open.
 - **Gate fails on CI:** "CI failed. Iterate on this PR? (y/n)". On confirm, keep going. On deny, yes/no "Pick next ticket via `/faff-wtf`? (y/n)".
-- **Gate fails on review (`fail` or `needs-human`) or unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human.
+- **Gate fails on unverified AC:** surface the failing condition(s). Yes/no "Address and iterate? (y/n)". On confirm, iterate. On deny, leave for human. (Review can't fail here — it ran and passed pre-PR at Step 9; a post-PR review concern is handled as a fresh build iteration, not a Step-11 gate.)
 
 All subsequent chain points are yes/no gates (never passive "run /faff-wtf").
 
@@ -335,11 +348,11 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 2. During Step 7, if a decision arises that the spec doesn't resolve, run resolve-attempt first (see Resolve-attempt before park section below). If resolve-attempt proceeds, log to `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` and write the audit-trail tracker comment, then continue. If resolve-attempt fails, invoke the `faff-prep` skill respec. If respec is still ambiguous, park.
    - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see the sibling `faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 3. After build, run Step 8 (AC verification) — mandatory.
-4. Push the branch and open the PR as a **regular (non-draft) PR**. Regular PRs are the default in autonomous mode; the review step decides whether to keep it that way or flip to draft.
-5. Run Step 9 (review phase). Act on the three-valued signal:
-   - `pass` → proceed to Step 10 merge-confidence gate.
-   - `fail` → iterate: fix flagged items, re-run tests, re-run review. Loop until `pass` or `needs-human` (cap at 3 iterations; if still `fail` after 3, treat as `needs-human`).
-   - `needs-human` → flip PR to draft, park per the shared protocol. Return `pr-open-for-human`.
+4. Run Step 9 (review phase) — **pre-PR, no PR open yet** (review iterates against the branch/diff; findings → the **tracker issue**, never a PR). Act on the three-valued signal:
+   - `pass` → proceed to Step 9b (open the PR).
+   - `fail` → iterate: fix flagged items, re-run tests, re-run review — **still pre-PR, no PR opened**. Loop until `pass` or `needs-human` (cap at 3 iterations; if still `fail` after 3, treat as `needs-human`).
+   - `needs-human` → surface on the tracker issue as needs-human and park per the shared protocol **without opening a PR**. Return `needs-human` (a **no-PR** handoff, distinct from `pr-open-for-human` — see Return values).
+5. **Step 9b — open the PR (only reached on review `pass`).** Push the branch and open the PR as a **regular (non-draft) PR**. This is the single PR-creation point, identical to the interactive path; before this point no PR existed, so review-fix iterations never burned CI. Regular PRs are the default; a later post-PR gate decides whether to flip to draft.
 6. Run Step 10 (merge-confidence gate) automatically:
    - **All three conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), classify the result per _Classifying the CI result_, then on `ci-green` hand off to the `ship` producer (configured occupant or the default `faffter-noon-ship`) and pipe its `faff-contract:delivery-outcome` block to `faff contract delivery-outcome`, then map the outcome to a caller-facing return: `shipped` → `shipped` (worktree eligible for cleanup, chained issues unblock); `not-ready:<reason>` → park retry-later, return `pr-open-for-human`; `failed:<reason>` (including an unmappable result coerced to `failed`) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
    - **CI failed (`ci-red`):** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.
@@ -376,7 +389,8 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 
 **Return values to caller (beep-boop / the `concurrency` slot):**
 - `shipped` — all three gate conditions held, PR merged (unblocks chained issues)
-- `pr-open-for-human` — review returned `needs-human`, CI failed unrecoverably, or the delivery outcome (from `faff contract delivery-outcome` on the producer's block) was `not-ready` (deploy-readiness deferred, retry-later) / `failed` (merge or deploy error, or an unmappable result coerced to `failed`) — PR awaiting human
+- `pr-open-for-human` — a **post-PR** human handoff with a PR open: CI failed unrecoverably, or the delivery outcome (from `faff contract delivery-outcome` on the producer's block) was `not-ready` (deploy-readiness deferred, retry-later) / `failed` (merge or deploy error, or an unmappable result coerced to `failed`) — PR awaiting human
+- `needs-human` — a **pre-PR, no-PR** human handoff: **review** returned `needs-human` before any PR was opened (Step 9, pre-9b). Surfaced on the tracker issue and parked per the shared protocol; **no PR exists**. Distinct from `pr-open-for-human` (which has a PR); maps to the `parked` ledger bucket (see below).
 - `parked` — mid-build ambiguity that respec couldn't resolve, or missing prerequisites
 - `errored` — unexpected failure (MCP outage, worktree dirty, etc.)
 
@@ -384,9 +398,9 @@ Alongside the terminal token, graft reports **discovered scope** — it never fi
 
 - `discovered_scope: { concrete: N, vague: N, path: .faff/runs/<run-id>/ISSUE-XX/discovered-scope.json }`
 
-The four terminal tokens and the ledger-bucket mapping are **unchanged**; `discovered_scope` is an additional field beep-boop reads in its file-discovered-scope step (gateway → **Agent Lanes**: the implementor records, the orchestrator files). When graft captured nothing, `concrete` and `vague` are `0` and the file is absent.
+`discovered_scope` is an additional field beep-boop reads in its file-discovered-scope step (gateway → **Agent Lanes**: the implementor records, the orchestrator files), independent of the terminal token. When graft captured nothing, `concrete` and `vague` are `0` and the file is absent.
 
-**Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-open-for-human`→`pr-open`**, `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
+**Ledger bucket mapping.** These caller-facing returns map onto the run-ledger terminal buckets the `concurrency` slot records: `shipped`→`shipped`, **`pr-open-for-human`→`pr-open`**, **`needs-human`→`parked`** (the no-PR review handoff parks — there is no open PR to track), `parked`→`parked`, `errored`→`errored`. The slot writes the ledger *bucket*, not the raw return token, or `runcheck` flags an invalid outcome.
 
 Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX.md`). The standalone narrative `HHMMSS-graft-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/graft.md` resume artifact is hard floor and written regardless.
 

@@ -40,6 +40,8 @@ Opening paragraph naming the artifact, the issue it addresses, and the intended 
 
 ### 1. WHY — Problem and Principles
 
+**Open with the load-bearing model.** The WHY's first paragraph states the one idea the reader needs to understand the rest — the mechanism the spec turns on, in plain terms — before problem detail. (Rendering hoists this if buried; the producer should write it deliberately, not leave it for normalise to find.)
+
 **Problem statement:** status quo → pain → what this change does about it. Three sentences max.
 
 **Design principles:** bold-lead paragraphs for any non-obvious constraints that should govern implementation decisions. Only include principles that would cause you to reject an otherwise-valid implementation. If there are none, omit the section.
@@ -109,6 +111,14 @@ PROCEDURE handle_expired_session(session):
 - Fallback chains with explicit precedence
 - Boundary conditions in pseudocode (not prose)
 - Error categories: which are retryable, which are terminal, what the caller sees
+
+**Failure modes — how the approach falls over, and how you'd notice.** Distinct from edge cases (inputs the code must handle): these are ways the chosen approach could be wrong, and the observable that reveals it. For each non-obvious risk in the design:
+
+- **The failure** — what could be wrong about the approach, not the code: a confound that invalidates a measurement, an assumption that silently doesn't hold, a benefit that may not exist.
+- **How you'd know** — the concrete signal: the metric that wouldn't move, the test that would fail, the number that comes back null.
+- **What it means** — proceed / narrow / abandon. A null or negative result is a valid outcome to name here, not a gap to hide.
+
+Emit only above the complexity bar (same judgement as Scenarios): a spike, a novel integration, or any design whose value rests on an unvalidated assumption. A mechanical CRUD change has none — forcing the section there is bloat.
 
 **Anti-patterns:** near the section they affect, document what NOT to do and why. Format: `**Anti-pattern:** X. Why: Y.`
 

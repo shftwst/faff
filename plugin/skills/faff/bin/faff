@@ -161,6 +161,7 @@ function dig(data, dotted) {
 const DEFAULTS = {
   "slots.intake": "faffter-noon-intake",
   "slots.spec": "faffter-noon-spec",
+  "slots.adr": "faffter-noon-adr",
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",
   "slots.concurrency": "faffter-noon-concurrency-sequential",
@@ -563,7 +564,7 @@ function cmdConfig(args) {
       if (rest.includes("--selftest")) {
         const expected = [
           "slots.intake", "slots.spec", "slots.review", "slots.ship", "slots.concurrency",
-          "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor",
+          "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
@@ -1022,6 +1023,7 @@ const REGISTRY = {
   "faffter-noon-spec": { type: "producer-spec" },
   "faffter-dark-nlspec": { type: "producer-spec" },
   "faffter-noon-intake": { type: "producer-intake" },
+  "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },
   "faffter-dark-adversarial-review": { type: "producer-review" },
   "faffter-noon-ship": { type: "producer-ship" },
@@ -1078,6 +1080,7 @@ const SLOT_TYPES = {
   methodology: { type: "methodology" },
   concurrency: { type: "mechanism" },
   intake: { type: "producer-intake" },
+  adr: { type: "producer-adr" },
   spec: { type: "producer-spec" },
   review: { type: "producer-review" },
   ship: { type: "producer-ship" },
@@ -1126,6 +1129,17 @@ function checksFor(meta, t) {
       break;
     case "producer-intake":
       out.push([t.toLowerCase().includes("discovery brief"), "emits a discovery brief"]);
+      break;
+    case "producer-adr":
+      // FAFF-196: the ADR-body producer is intake-shaped — a documented output (a Nygard ADR
+      // body) with NO gated faff-contract block (graft always records an already-Chosen decision),
+      // plus an ADVISORY confidence self-rating. Conformance is "emits the documented body +
+      // confidence"; it must NOT claim a faff-contract block.
+      out.push([/nygard/i.test(t) && t.includes("Consequences"),
+                "emits a Nygard ADR body (Context/Decision/Consequences)"]);
+      out.push([t.toLowerCase().includes("confidence"), "emits an advisory confidence self-rating"]);
+      out.push([!/faff-contract:/.test(t),
+                "carries NO faff-contract block (the ADR body is advisory, not gated pass/fail)"]);
       break;
     case "producer-review":
       out.push([has("faff-contract:review-verdict"), "emits its `faff-contract:review-verdict` artifact block"]);

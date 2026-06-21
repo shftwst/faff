@@ -1,0 +1,7 @@
+{ "id": "gloss-003", "kind": "gloss",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-CC", "title": "Record cache_read_input_tokens per request in the eval harness", "state": "Todo", "relations": { "blocks": [], "blockedBy": [], "relatedTo": [] } } ] },
+  "question": "Write the one-line synthesis gloss for ISS-CC.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["cache", "cached"], ["token", "usage", "read"] ],
+    "must_avoid": ["optimi", "improve performance", "leverage", "efficiency"] } } }

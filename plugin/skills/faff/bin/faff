@@ -924,11 +924,22 @@ function probeServes(bin, sub, probeRoot) {
   } catch { return false; }
 }
 
-// Prefer an on-PATH `faff` that serves the whole set (stable across worktrees);
-// else the running binary's own real path (serves the set by construction).
+// Canonical hook-bin preference, most-portable first (FAFF-200 — so a normalized or
+// freshly-registered hook survives a repo move instead of pinning an absolute repo path):
+//   1. an on-PATH `faff` that serves the whole set (stable across worktrees);
+//   2. the standard install location — `$CLAUDE_PLUGIN_ROOT/skills/faff/bin/faff` (plugin)
+//      or `~/.claude/skills/faff/bin/faff` (dev-linked symlink) — when it exists and serves
+//      the set (this path tracks the install, not the checkout, so it outlives a repo move);
+//   3. the running binary's own real path (last resort; serves the set by construction).
 function resolveHookBin(probeRoot) {
   const onPath = whichFaff();
   if (onPath && FAFF_STOP_HOOKS.every((s) => probeServes(onPath, s, probeRoot))) return onPath;
+  const installed = process.env.CLAUDE_PLUGIN_ROOT
+    ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "skills", "faff", "bin", "faff")
+    : path.join(process.env.HOME || "", ".claude", "skills", "faff", "bin", "faff");
+  try {
+    if (fs.existsSync(installed) && FAFF_STOP_HOOKS.every((s) => probeServes(installed, s, probeRoot))) return installed;
+  } catch { /* fall through to the running binary */ }
   try { return fs.realpathSync(process.argv[1]); } catch { return process.argv[1]; }
 }
 

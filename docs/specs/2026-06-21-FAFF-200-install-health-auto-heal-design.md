@@ -58,6 +58,7 @@ RECORD SyncResult:                 # mirrors gitignoreEnsure's result style
 - **Chosen:** `faff sync` shells out to `scripts/link-skills.sh --global --replace` via `spawnSync` — reuse the tested repair, no npm dependency, accept bash-for-this-subcommand.
 - **Chosen:** doctor-at-entry is a gateway `SKILL.md` addition dispatching the existing `faff doctor`; code deliverables are `faff sync` + the `hooks-ensure` normalization pass + tests.
 - **Chosen:** normalize a divergent present-hook command to the same `binInvocation` `hooks-ensure` computes for a fresh registration (single source of truth). Presence detection (`commandInvokesFaffHook`, path-agnostic) is unchanged; normalization is a separate pass.
+- **Chosen (review follow-up):** `binInvocation`/`resolveHookBin` prefers the **portable install location** — `$CLAUDE_PLUGIN_ROOT/skills/faff/bin/faff` (plugin) or `~/.claude/skills/faff/bin/faff` (dev-linked symlink) — over the checkout-absolute realpath when `faff` isn't on PATH, so a normalized **and** a freshly-added hook track the install (surviving a repo move) instead of pinning the checkout path. Order: on-PATH `faff` → install location → running-binary realpath.
 
 ## 4. HOW — Behavior
 

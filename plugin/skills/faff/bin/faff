@@ -2062,13 +2062,35 @@ function adrNextNumber(dir) {
   return String(max + 1).padStart(4, "0");
 }
 
+// FAFF-197: canonical supersession refs. OLD carries `Status: Superseded by ADR-NNNN`;
+// NEW carries `Supersedes: ADR-MMMM`. These extract the referenced number (zero-padded), and
+// match ONLY the canonical form — freeform legacy lines ("Supersedes / unblocks: FAFF-77",
+// a "Feeds:" line) are not matched, so the existing hand-written ADRs are never flagged.
+function adrSupersededBy(status) {
+  const m = status && status.match(/^Superseded\s+by\s+ADR[-\s]?(\d{1,4})\b/i);
+  return m ? m[1].padStart(4, "0") : null;
+}
+// ALL canonical `Supersedes: ADR-NNNN` refs (a colon must follow "Supersedes" → legacy
+// "Supersedes / unblocks: FAFF-77" is not matched). A Set, because one ADR may consolidate
+// several predecessors (multiple Supersedes lines) — returning only the first would false-fail validate.
+function adrSupersedesSet(text) {
+  const out = new Set();
+  for (const m of text.matchAll(/^[\s>*-]*Supersedes[\s*]*:[\s*]*([^\n]+)$/gim)) {
+    const r = m[1].match(/\bADR[-\s]?(\d{1,4})\b/i);
+    if (r) out.add(r[1].padStart(4, "0"));
+  }
+  return out;
+}
+
 // Returns a list of problem strings (empty = valid). Lenient by design so the existing
 // hand-written ADRs pass: a field must be PRESENT and Status must START WITH a known word.
 function adrValidate(dir) {
   const adrs = listAdrs(dir);
   const problems = [];
+  const texts = new Map();
   for (const a of adrs) {
     const text = fs.readFileSync(path.join(dir, a.file), "utf8");
+    texts.set(a.num, text);
     const titleM = text.match(/^#\s*ADR\s+(\d+)\s*[—\-]\s*.+$/mi);
     if (!titleM) problems.push(`${a.file}: missing '# ADR NNNN — Title' heading`);
     else if (parseInt(titleM[1], 10) !== a.number) problems.push(`${a.file}: heading number ADR ${titleM[1]} != filename ${a.num}`);
@@ -2083,6 +2105,19 @@ function adrValidate(dir) {
   }
   for (let i = 1; i <= adrs.length; i++) {
     if (!seen.has(i)) problems.push(`numbering gap: ADR ${String(i).padStart(4, "0")} missing (expected contiguous 0001..${String(adrs.length).padStart(4, "0")})`);
+  }
+  // FAFF-197: canonical supersession back-references must resolve + be symmetric, BOTH directions.
+  const byNum = new Map(adrs.map((a) => [a.num, a]));
+  for (const a of adrs) {
+    const supBy = adrSupersededBy(a.status);   // a: "Superseded by ADR-<supBy>"
+    if (supBy) {
+      if (!byNum.has(supBy)) problems.push(`${a.file}: superseded by missing ADR-${supBy}`);
+      else if (!adrSupersedesSet(texts.get(supBy)).has(a.num)) problems.push(`${a.file}: asymmetric supersession — ADR-${supBy} does not record "Supersedes: ADR-${a.num}"`);
+    }
+    for (const sup of adrSupersedesSet(texts.get(a.num))) {   // a may supersede several predecessors
+      if (!byNum.has(sup)) problems.push(`${a.file}: supersedes missing ADR-${sup}`);
+      else if (adrSupersededBy(byNum.get(sup).status) !== a.num) problems.push(`${a.file}: asymmetric supersession — ADR-${sup} not marked "Superseded by ADR-${a.num}"`);
+    }
   }
   return problems;
 }
@@ -2141,7 +2176,45 @@ function cmdAdr(args) {
     return 0;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | validate (or --selftest)\n");
+  if (action === "supersede") {
+    // faff adr supersede <old> --by <new> — link two existing ADRs with the canonical form.
+    // The ONE place the CLI edits an existing ADR — and only its Status value + one Supersedes line.
+    const oldTok = args[1];
+    const newTok = adrFlag(args, "--by");
+    if (!oldTok || !newTok) { process.stderr.write("usage: faff adr supersede <old> --by <new>\n"); return 2; }
+    const adrs = listAdrs(dir);
+    const resolve = (tok) => {
+      const d = String(tok).match(/^(\d{1,4})/);
+      return d ? adrs.find((a) => a.num === d[1].padStart(4, "0")) || null : null;
+    };
+    const oldA = resolve(oldTok), newA = resolve(newTok);
+    if (!oldA) { process.stderr.write(`faff adr supersede: no ADR matching "${oldTok}" in ${path.relative(root, dir) || dir}\n`); return 1; }
+    if (!newA) { process.stderr.write(`faff adr supersede: no ADR matching "${newTok}"\n`); return 1; }
+    if (oldA.num === newA.num) { process.stderr.write("faff adr supersede: an ADR cannot supersede itself\n"); return 1; }
+    const already = adrSupersededBy(oldA.status);
+    if (already) { process.stderr.write(`faff adr supersede: ADR-${oldA.num} is already superseded by ADR-${already}\n`); return 1; }
+
+    // OLD: replace the Status VALUE only (preserve the "- **Status:** " prefix); body untouched.
+    const oldPath = path.join(dir, oldA.file);
+    const oldText = fs.readFileSync(oldPath, "utf8")
+      .replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, `$1Superseded by ADR-${newA.num}`);
+    fs.writeFileSync(oldPath, oldText);
+
+    // NEW: add "- **Supersedes:** ADR-<old>" once (idempotent), after the Status line.
+    const newPath = path.join(dir, newA.file);
+    let newText = fs.readFileSync(newPath, "utf8");
+    if (!adrSupersedesSet(newText).has(oldA.num)) {   // idempotent + supports multiple predecessors
+      const supLine = `- **Supersedes:** ADR-${oldA.num}`;
+      newText = /^[\s>*-]*\*{0,2}Status[\s*]*:/mi.test(newText)
+        ? newText.replace(/^([\s>*-]*\*{0,2}Status[\s*]*:.*)$/mi, `$1\n${supLine}`)
+        : newText.replace(/^(#\s*ADR.*)$/mi, `$1\n\n${supLine}`);
+      fs.writeFileSync(newPath, newText);
+    }
+    process.stdout.write(`${oldPath}\n${newPath}\n`);
+    return 0;
+  }
+
+  process.stderr.write("faff adr: expected one of: next-number | new | list | validate | supersede (or --selftest)\n");
   return 2;
 }
 
@@ -2173,6 +2246,34 @@ function adrSelftest() {
     return /# ADR 0007 — T/.test(tpl) && /\*\*Status:\*\* Proposed/.test(tpl) && /## Context/.test(tpl) && /## Decision/.test(tpl) && /## Consequences/.test(tpl) && /\*\*Issue:\*\* FAFF-16/.test(tpl);
   })());
 
+  // FAFF-197 — supersession canonical-ref parsing + back-reference validation
+  t("parse Superseded-by ref", adrSupersededBy("Superseded by ADR-0002") === "0002");
+  t("parse Supersedes field", adrSupersedesSet("- **Supersedes:** ADR-0001\n").has("0001"));
+  t("parse multiple Supersedes refs", (() => { const s = adrSupersedesSet("- **Supersedes:** ADR-0001\n- **Supersedes:** ADR-0003\n"); return s.has("0001") && s.has("0003") && s.size === 2; })());
+  t("legacy freeform 'Supersedes / unblocks:' is NOT a canonical Supersedes ref", adrSupersedesSet("- **Supersedes / unblocks:** FAFF-77\n").size === 0);
+  const sdir = path.join(tmp, "sup", "docs", "adr");
+  fs.mkdirSync(sdir, { recursive: true });
+  const smk = (n, body) => fs.writeFileSync(path.join(sdir, `${n}-x.md`), body);
+  smk("0001", `# ADR 0001 — x\n\n- **Status:** Superseded by ADR-0002\n- **Date:** 2026-06-21\n\n## Context\n`);
+  smk("0002", `# ADR 0002 — x\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Date:** 2026-06-21\n\n## Context\n`);
+  t("symmetric supersession validates clean", adrValidate(sdir).length === 0);
+  smk("0002", `# ADR 0002 — x\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\n`);   // drop the mirror
+  t("validate detects asymmetric supersession", adrValidate(sdir).some((p) => /asymmetric/i.test(p)));
+  smk("0001", `# ADR 0001 — x\n\n- **Status:** Superseded by ADR-0099\n- **Date:** 2026-06-21\n\n## Context\n`);   // dangling
+  t("validate detects dangling supersession", adrValidate(sdir).some((p) => /missing ADR-0099/i.test(p)));
+  const ldir = path.join(tmp, "leg", "docs", "adr");
+  fs.mkdirSync(ldir, { recursive: true });
+  fs.writeFileSync(path.join(ldir, "0001-x.md"), `# ADR 0001 — x\n\n- **Status:** Accepted\n- **Supersedes / unblocks:** FAFF-77\n- **Date:** 2026-06-21\n\n## Context\n`);
+  t("legacy freeform ADR passes (canonical check skipped where absent)", adrValidate(ldir).length === 0);
+  // one ADR superseding TWO predecessors validates clean (the multiple-Supersedes case)
+  const mdir = path.join(tmp, "multi", "docs", "adr");
+  fs.mkdirSync(mdir, { recursive: true });
+  const mmk = (n, body) => fs.writeFileSync(path.join(mdir, `${n}-x.md`), body);
+  mmk("0001", `# ADR 0001 — x\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\n`);
+  mmk("0002", `# ADR 0002 — x\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\n`);
+  mmk("0003", `# ADR 0003 — x\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Supersedes:** ADR-0002\n- **Date:** 2026-06-21\n\n## Context\n`);
+  t("one ADR superseding two predecessors validates clean", adrValidate(mdir).length === 0);
+
   fs.rmSync(tmp, { recursive: true, force: true });
   let failed = 0;
   for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
@@ -2199,7 +2300,7 @@ Subcommands:
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
-  adr <next-number|new|list|validate> [--root DIR]   FAFF-16: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; validate (gaps + required header fields); --selftest runs the table
+  adr <next-number|new|list|validate|supersede> [--root DIR]   FAFF-16: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; validate (gaps + required header fields); --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
 `;

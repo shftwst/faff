@@ -72,7 +72,7 @@ The offer is a single gateway-level check (per the gateway-load preamble each su
 
 All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule):
 
-- **Single accepted filename.** A legacy **`.faffrc`** or **`.faffrc.yml`** at the root triggers a **loud error** naming the fix (rename it to `.faffrc.yaml`), **never a silent default** — silently dropping a present config by eyeballing the wrong filename is the exact failure this guards against.
+- **Single accepted filename.** A legacy **`.faffrc`** or **`.faffrc.yml`** at the root triggers a **loud error** naming the fix (rename it to `.faffrc.yaml`), **never a silent default** — so a present config is never dropped by eyeballing the wrong filename.
 - **Missing keys fall back** to faff's built-in default.
 - **No file at all → all defaults**, and, in interactive entry, offers first-run setup via `/faff-onboard` before proceeding (see **First run** above).
 - **Template files are exempt** — any name containing `.example` is never counted or loaded.
@@ -268,7 +268,7 @@ Every faff sub-skill excludes the following from every query, recommendation, co
 - **Jira** — issues resolved with a cancellation-category resolution (`Won't Do`, `Duplicate`, `Cannot Reproduce`, or team-defined equivalents in the same category).
 - **Other trackers** — fall back to a name-based match against `Cancelled`, `Duplicate`, `Won't Fix`, `Won't Do`, `Cannot Reproduce`. If the tracker exposes state categories, prefer the category-driven check.
 
-This widened definition fixes a real failure: a tidy run that suggests cancelling tickets already in Linear's Duplicate state is recommending a no-op at best, and a status-signage downgrade at worst (Duplicate → Cancelled preserves the `duplicate-of` relation but loses the self-documenting status text).
+This wider definition matters because a tidy run that suggests cancelling tickets already in Linear's Duplicate state recommends a no-op at best, and a status-signage downgrade at worst (Duplicate → Cancelled preserves the `duplicate-of` relation but loses the self-documenting status text).
 
 No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by graft, never counted in beep-boop queues.
 

@@ -299,7 +299,8 @@ test("all eval/cases load and validate", () => {
   // FAFF-157: +3 confidence high/medium boundary-fuzz (confidence-004/005/006, single-author medium oracle).
   // FAFF-161: +2 shaping + 2 decomposition (the generative advisory rubric-coverage surfaces).
   // FAFF-153: +2 chain-gap (one positive upstream gap + one conservative-skip empty-oracle case).
-  assert.equal(cases.length, 39);
+  // FAFF-193: +1 gloss (gloss-003, "surface the concrete" rubric).
+  assert.equal(cases.length, 40);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

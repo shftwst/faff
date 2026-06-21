@@ -152,6 +152,14 @@ Three carve-outs where prose stays:
 2. **Diagnosis lines** — "Recommendation: strip the CC→AA edge (defensive-only)." A visual can't carry "what to do".
 3. **TL;DR** — a skim-in-10-seconds summary stays prose. Visuals at the top invert that.
 
+## Lead with the load-bearing model
+
+When output explains a mechanism, decision, or diagnosis, its first line states the governing idea in plain terms before any mechanics — the one sentence a reader needs to make sense of everything after it ("caching is prefix-based, not content-based").
+
+- **Hoist, don't write.** This rule reorders — moves a load-bearing statement the source already contains to the front. It does NOT author a model the source lacks. If there is none to hoist, that is a producer gap: flag it (`where → no load-bearing model to lead with`), never fabricate one.
+- **Mechanism, then method, then so-what.** Past the lead, order runs concrete mechanism → how it's measured/used → what it means. Don't strand the model in a footnote slot.
+- **Carve-out unchanged.** TL;DR still leads with prose, not a visual; this governs which prose leads, not whether.
+
 ## Synthesis — the issue-gloss contract
 
 Every issue rendered in any faff output — wtf's "Do this", map's workstreams, tidy's findings, beep-boop's queues, routing's verdict display, anywhere — carries three elements:
@@ -218,6 +226,10 @@ The gloss is a delivery lead briefing a colleague, not a project manager filing 
 - Real tracker IDs (ISSUE-XX, #PR-N) — stable, clickable, identify a specific thing.
 - Short self-explanatory category names that *describe* a finding kind ("sub-ticket gap", "upstream gap", "repeat-park", "chain gap") — they tell the reader what was found, not which internal rule was matched.
 - Principle / ADR / criterion references **alongside** plain-English explanation as traceability — "the spec assumes a wave-1 run has happened (the gate from the audit pipeline ADR)" — never standing in for explanation.
+
+**Surface the concrete** (the positive twin of the ban above). Where the source provides a real, checkable noun — the actual field name (`cache_read_input_tokens`), the named file, the specific subsystem — render that, not a category label that abstracts it away. The ban says "don't hide behind principle 6"; this says "name the real thing the source already holds."
+
+- **Surface, don't invent.** Promote only concretes present in the source. If the only available form is the abstraction, keep it — never manufacture a precise-sounding field/file/number that isn't there.
 
 **Test:** if a reader who has never opened the project's CLAUDE.md, methodology spec, or ADR archive can't follow the finding, the rule is broken. Rewrite.
 
@@ -299,7 +311,7 @@ A wall of small visuals is the same problem as a wall of text. Each rendered sec
 
 Run as a final pass over draft output, or on demand against any block.
 
-**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows; response ceremony that breaches **Output token economy** (preamble/postamble, ticket/request restatement, narration of what the output already shows, hedge padding — rewrite to drop it); an issue ID that is never grounded by its gloss anywhere in the output (bare-ID-only — see **First-mention grounding**; rewrite by injecting the gloss at first mention when derivable, else flag).
+**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows; response ceremony that breaches **Output token economy** (preamble/postamble, ticket/request restatement, narration of what the output already shows, hedge padding — rewrite to drop it); an issue ID that is never grounded by its gloss anywhere in the output (bare-ID-only — see **First-mention grounding**; rewrite by injecting the gloss at first mention when derivable, else flag); an explanation whose load-bearing model is buried below the mechanics (see **Lead with the load-bearing model**; hoist the source's governing statement to the first line, or flag `no load-bearing model to lead with` — never fabricate one); a category label standing in where the source holds a concrete checkable noun (see **Surface the concrete**; surface the real field/file/subsystem, or keep the generality when no concrete is present — never invent one).
 
 **Output:** either a list of violations (`where → which rule → the fix`), or the normalised block with the fixes applied, depending on how the caller invokes it.
 

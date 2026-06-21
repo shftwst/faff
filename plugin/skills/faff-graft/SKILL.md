@@ -220,7 +220,12 @@ The review returns one of three signals. The verdict vocabulary, their semantics
 
 `needs-human` is reserved for things the merge-confidence gate can't catch. The revert test (if `git revert` on the merge commit fully undoes the change, it is not `needs-human` — it is `pass` or `fail`) is part of the fixed review-verdict contract in the gateway. See the gateway's Autonomous Mode Contract for the full rule on what escalates vs. what proceeds.
 
-Append the review result to the PR as a comment. Record the signal, flagged items, and (for `needs-human`) the specific reason.
+**Record the review result — collapse-and-log, not append-per-pass (FAFF-184).** A `fail`→fix→re-review loop re-enters this step, so a naïve "comment per pass" would flood the tracker — exactly the per-micro-step marker the gateway forbids (→ **Tracker as the lights-out control plane** §2, the granularity rule). So:
+
+- **Every pass → `.faff/logs`.** Accumulate each pass's findings + dispositions in the per-issue log (`.faff/runs/<run-id>/ISSUE-XX/graft.md`, or `.faff/logs/…graft-ISSUE-XX.md` outside beep-boop) as the build iterates — a hard-floor write, the full blow-by-blow, never dropped.
+- **Terminal verdict → one tracker comment.** Only on the final verdict (`pass` / `needs-human`) post (or update in place) a **single** comment carrying that verdict, a one-line "resolved N findings across M passes" summary, and a pointer to the log. **Not** one comment per pass — and the adversarial reviewer's per-finding dispositions fold into this same comment's summary (Step 9 → adversarial review's *log to tracker*), never one comment per finding.
+
+A clean single-pass build still uses this one-comment shape (verdict + "resolved 0 findings across 1 pass"); `needs-human` carries the blocking-finding summary, detail in the log.
 
 If the review names concrete, separable **out-of-scope** work — not a fixable defect in this diff — record it as discovered scope (see below) rather than looping on it. `fail` is for fixable items; out-of-this-PR follow-ups are discovered scope, not a review failure.
 

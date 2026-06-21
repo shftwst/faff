@@ -109,3 +109,45 @@ test("adr.mode defaults to offer (CLI-enforced, FAFF-182 registry)", () => {
   const r = spawnSync(process.execPath, [BIN, "config", "get", "adr.mode"], { cwd: REPO, encoding: "utf8" });
   assert.equal(r.stdout.trim(), "offer");
 });
+
+// FAFF-197 — supersession
+test("supersede: links two ADRs (Status + Supersedes), body untouched, validates symmetric", () => {
+  const root = tmpRepo({
+    "0001-old.md": validAdr("0001", "old") + "\nThe original decision body.\n",
+    "0002-new.md": validAdr("0002", "new") + "\nThe replacement body.\n",
+  });
+  const r = run(["supersede", "0001", "--by", "0002", "--root", root]);
+  assert.equal(r.status, 0);
+  const oldText = readFileSync(join(root, "docs", "adr", "0001-old.md"), "utf8");
+  const newText = readFileSync(join(root, "docs", "adr", "0002-new.md"), "utf8");
+  assert.match(oldText, /\*\*Status:\*\* Superseded by ADR-0002/);
+  assert.match(newText, /\*\*Supersedes:\*\* ADR-0001/);
+  assert.match(oldText, /The original decision body\./, "body must be untouched");
+  assert.equal(run(["validate", "--root", root]).status, 0, "symmetric supersession validates clean");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("supersede: errors on self / missing / already-superseded", () => {
+  const root = tmpRepo({ "0001-a.md": validAdr("0001", "a"), "0002-b.md": validAdr("0002", "b") });
+  assert.notEqual(run(["supersede", "0001", "--by", "0001", "--root", root]).status, 0); // self
+  assert.notEqual(run(["supersede", "0001", "--by", "0099", "--root", root]).status, 0); // missing new
+  run(["supersede", "0001", "--by", "0002", "--root", root]);
+  const again = run(["supersede", "0001", "--by", "0002", "--root", root]);
+  assert.notEqual(again.status, 0);
+  assert.match(again.stderr, /already superseded/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate: fails on asymmetric and dangling canonical supersession refs", () => {
+  const asym = tmpRepo({ "0001-a.md": validAdr("0001", "a", "Superseded by ADR-0002"), "0002-b.md": validAdr("0002", "b") });
+  const ra = run(["validate", "--root", asym]);
+  assert.equal(ra.status, 1);
+  assert.match(ra.stdout, /asymmetric/i);
+
+  const dang = tmpRepo({ "0001-a.md": validAdr("0001", "a", "Superseded by ADR-0099") });
+  const rd = run(["validate", "--root", dang]);
+  assert.equal(rd.status, 1);
+  assert.match(rd.stdout, /missing ADR-0099/);
+
+  for (const root of [asym, dang]) rmSync(root, { recursive: true, force: true });
+});

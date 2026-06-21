@@ -32,6 +32,7 @@ slots:
   # Producers / mechanisms (do the work)
   intake: # new-work discovery used by /faff-jot and /faff-plot (default: faffter-noon-intake; set superpowers:brainstorming or gstack:office-hours for heavier ideation)
   spec: # spec producer used by /faff-prep (default: faffter-noon-spec lite arc; set faffter-dark-nlspec for full nlspec)
+  adr: # ADR-body producer invoked by /faff-graft Step 4b to author the Nygard Context/Decision/Consequences (default: faffter-noon-adr)
   review: # pre-PR review producer inside /faff-graft (default: faffter-noon-review; set faffter-dark-adversarial-review for an adversarial second opinion)
   ship: # delivery producer inside /faff-graft Step 10 (default: faffter-noon-ship — gh pr merge; set a deploy-capable producer e.g. gstack:land-and-deploy)
   concurrency: # build-pass executor for /faff-beep-boop (default: faffter-noon-concurrency-sequential; set faffter-dark-concurrency-parallel for capped, worktree-isolated concurrency)

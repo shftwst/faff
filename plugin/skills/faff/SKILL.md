@@ -179,6 +179,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 |---|---|---|
 | `intake` | `faffter-noon-intake` | Runs new-work discovery for `/faff-jot` and emits a discovery brief. A producer doing-skill. |
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
+| `adr` | `faffter-noon-adr` | Authors the Nygard ADR body (Context/Decision/Consequences) at faff-graft Step 4b, from a settled `Chosen:` decision + the spec rationale + the existing `docs/adr` log. Intake-shaped producer — a documented body output with an **advisory** confidence self-rating and **no** gated contract (the ADR body is never pass/fail-gated). The single ADR-authoring producer (FAFF-27 reuses it). |
 | `concurrency` | `faffter-noon-concurrency-sequential` | Build-pass executor for faff-beep-boop — consumes the conflict-analysis partition and drives `/faff-graft` per issue. The default runs the queue **sequentially**; swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge. A mechanism slot (no paired adaptor). |
 | `review` | `faffter-noon-review` | Pre-PR review inside faff-graft. Emits its `faff-contract:review-verdict` artifact block, which faff-graft Step 9 parses and pipes to `faff contract review-verdict`. |
 | `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |

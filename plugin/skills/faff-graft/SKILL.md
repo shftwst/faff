@@ -133,7 +133,14 @@ Commit message: `docs(<issue-id>): add spec for <issue title>`
 
 This commit happens once. If the user re-runs graft on the same issue (existing worktree), skip this step.
 
-**Step 4b: Materialise ADR promotions (FAFF-16).** If `faff config get adr.mode` ≠ `off` **and** the issue carries an `## ADR promotion intent` comment (written by faff-prep), materialise each listed decision as an ADR on this feature branch — graft owns the branch, so the ADR ships in the PR alongside the code (the spec's "travels with the code, PR-reviewable" property). For each listed decision: run `faff adr new --title "<decision>" --issue <ISSUE-XX> [--initiative <name>]` (resolve the binary per gateway → resolving the faff executable), fill the scaffold's `## Context` / `## Decision` / `## Consequences` from the spec's rationale for that decision, and commit it (`docs(adr): record <decision> (<ISSUE-XX>)`). The `faff adr` CLI owns numbering / scaffold / validate; graft owns only filling + committing. No intent comment, or `adr.mode: off` → skip. (Append-only: `faff adr new` refuses to overwrite, so a re-run never clobbers an existing ADR.)
+**Step 4b: Materialise ADR promotions (FAFF-16; body authored by the `adr` slot — FAFF-196).** If `faff config get adr.mode` ≠ `off` **and** the issue carries an `## ADR promotion intent` comment (written by faff-prep), materialise each listed decision as an ADR on this feature branch — graft owns the branch, so the ADR ships in the PR alongside the code (the spec's "travels with the code, PR-reviewable" property). For each listed decision:
+
+1. **Scaffold** — `faff adr new --title "<decision>" --issue <ISSUE-XX> [--initiative <name>]` (resolve the binary per gateway → resolving the faff executable). The `faff adr` CLI owns numbering / scaffold / validate.
+2. **Author the body via the `adr` slot** (default `faffter-noon-adr`; resolve `faff config get slots.adr` and invoke per gateway → **Sibling-skill invocation**) — do **not** free-hand it. Pass the producer: the decision (`Chosen:` line + its spec rationale), the spec, the issue, and `faff adr list --json` (related/superseded ADRs). It returns the Nygard `## Context` / `## Decision` / `## Consequences` body + an **advisory** `confidence:`.
+3. **Confidence handling (advisory, never a hard gate — appetite-graded** per gateway → **Appetite for destruction**): on a **low**-confidence body — at `low`/`medium` appetite, **surface it for a human glance before committing** (interactive; the human may edit); at `high`/`full` appetite, **re-invoke the producer once** feeding its self-review back in (one bounded refinement pass), take the improved body, and log if still low. The build is never blocked; the body is always recorded.
+4. **Fill + commit** the scaffold's three sections with the authored body (`docs(adr): record <decision> (<ISSUE-XX>)`); log the advisory confidence.
+
+No intent comment, or `adr.mode: off` → skip. (Append-only: `faff adr new` never clobbers an existing ADR.)
 
 **Step 5: Claim the issue (In Progress) + status-monotonicity guard**
 

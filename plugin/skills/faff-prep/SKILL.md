@@ -174,6 +174,16 @@ Invoke the configured/default `spec` skill (default `faffter-noon-spec`) with th
 - If there are open questions, note them and leave the issue in backlog
 - If clean, **move the issue to Todo** — it's prepped and ready to be picked up
 
+**ADR promotion (FAFF-16).** After the spec is attached, run the ADR promotion step — a tail step that never blocks prep and writes **no** repo files (prep stays tracker-only; the ADR is materialised later by `/faff-graft`, which owns the feature branch, so it ships in the PR with the code):
+
+1. Resolve `mode := faff config get adr.mode` (default `offer`). If `off` → skip.
+2. **Candidates** = the spec's `**Chosen:**` decisions that are *architecturally significant* — cross-slice and durable (constrains future slices), not local. v1 does **not** auto-classify; surface only decisions the spec already frames as significant. If none → skip.
+3. **Interactive:** `surface` → list the candidates (one line each) and stop. `offer` → a human-gated y/n per candidate; keep the confirmed set.
+4. **Autonomous (appetite-gated** — gateway → **Appetite for destruction**, the same dial that gates discovered/chain-gap auto-create): `low`/`medium` → surface only (list in the prep log, promote nothing); `high`/`full` → record every significant candidate (the ADR ships in the PR, so it is reviewable + revertible — not a side-effect outside the PR flow).
+5. **Record** the confirmed promotions as a tracker comment headed `## ADR promotion intent`, listing each decision (its title + the spec section it came from). `/faff-graft` reads this and materialises the ADRs on the feature branch via `faff adr new`. Prep writes nothing under `docs/adr/`.
+
+This is the L3 "offer + write-on-confirm" rung (the write deferred to graft); L4 (require-before-admit) is FAFF-9's.
+
 **Step 3: Chain to build**
 
 **Crank-up gate (only when the ticket is not automation-eligible).** Before the build gate, present a **standalone** decision of its own — *"FAFF-XX isn't automation-eligible. Make it automatable now (add `faff-automate`), or leave it? (crank up / keep)"*. This is the natural moment to ask: the spec is freshly attached, so "should this now be automatable?" is answerable. On **crank up** → add the `faff-automate` label (ensure it exists first, gateway → **Control-label provisioning**; explicit human confirm), logging per the shared **Unpark protocol** shape, then continue to the build gate. **If the ticket is not-eligible because it carries `faff-automation-hold`** (a hard stop), say so — cranking up won't override it; removing the hold is the human's call. On **keep** → leave eligibility unchanged and continue. **Never fold this into the build gate** (gateway → **Chaining pattern**: a dedicated decision, not bundled into another choice), and **never auto-crank-up** — eligibility stays human-gated (gateway → **Automation eligibility → Release / crank-up**). If the ticket is already eligible, skip this gate. *(Crank-up-only: cranking down an eligible ticket is `/faff-jot` crank up/crank down and `/faff-tidy`'s job, not prep's.)*

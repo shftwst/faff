@@ -1,0 +1,195 @@
+{
+  "window": {
+    "from": "2026-06-16",
+    "to": "2026-06-21",
+    "days": 7
+  },
+  "sessions_scanned": 320,
+  "slug_dirs_scanned": 20,
+  "skipped_lines": 9,
+  "orphan_calls": 2,
+  "by_tool": [
+    {
+      "tool": "get_issue",
+      "calls": 694,
+      "result_chars": 2961242,
+      "result_est_tokens": 740311,
+      "arg_est_tokens": 5896,
+      "result_est_tokens_per_call": 1066.731,
+      "orphans": 1
+    },
+    {
+      "tool": "save_issue",
+      "calls": 665,
+      "result_chars": 2528146,
+      "result_est_tokens": 632037,
+      "arg_est_tokens": 123139,
+      "result_est_tokens_per_call": 950.432,
+      "orphans": 0
+    },
+    {
+      "tool": "list_comments",
+      "calls": 565,
+      "result_chars": 2328987,
+      "result_est_tokens": 582247,
+      "arg_est_tokens": 3750,
+      "result_est_tokens_per_call": 1030.526,
+      "orphans": 0
+    },
+    {
+      "tool": "save_comment",
+      "calls": 249,
+      "result_chars": 2269278,
+      "result_est_tokens": 567320,
+      "arg_est_tokens": 554847,
+      "result_est_tokens_per_call": 2278.394,
+      "orphans": 1
+    },
+    {
+      "tool": "list_issues",
+      "calls": 168,
+      "result_chars": 1425630,
+      "result_est_tokens": 356408,
+      "arg_est_tokens": 2668,
+      "result_est_tokens_per_call": 2121.476,
+      "orphans": 0
+    },
+    {
+      "tool": "list_projects",
+      "calls": 21,
+      "result_chars": 485857,
+      "result_est_tokens": 121465,
+      "arg_est_tokens": 151,
+      "result_est_tokens_per_call": 5784.048,
+      "orphans": 0
+    },
+    {
+      "tool": "list_initiatives",
+      "calls": 16,
+      "result_chars": 267953,
+      "result_est_tokens": 66989,
+      "arg_est_tokens": 139,
+      "result_est_tokens_per_call": 4186.813,
+      "orphans": 0
+    },
+    {
+      "tool": "save_project",
+      "calls": 24,
+      "result_chars": 36800,
+      "result_est_tokens": 9200,
+      "arg_est_tokens": 6156,
+      "result_est_tokens_per_call": 383.333,
+      "orphans": 0
+    },
+    {
+      "tool": "list_issue_labels",
+      "calls": 32,
+      "result_chars": 35677,
+      "result_est_tokens": 8920,
+      "arg_est_tokens": 289,
+      "result_est_tokens_per_call": 278.75,
+      "orphans": 0
+    },
+    {
+      "tool": "get_initiative",
+      "calls": 12,
+      "result_chars": 30276,
+      "result_est_tokens": 7569,
+      "arg_est_tokens": 185,
+      "result_est_tokens_per_call": 630.75,
+      "orphans": 0
+    },
+    {
+      "tool": "list_issue_statuses",
+      "calls": 16,
+      "result_chars": 10912,
+      "result_est_tokens": 2728,
+      "arg_est_tokens": 68,
+      "result_est_tokens_per_call": 170.5,
+      "orphans": 0
+    },
+    {
+      "tool": "save_initiative",
+      "calls": 4,
+      "result_chars": 4865,
+      "result_est_tokens": 1217,
+      "arg_est_tokens": 1481,
+      "result_est_tokens_per_call": 304.25,
+      "orphans": 0
+    },
+    {
+      "tool": "save_status_update",
+      "calls": 2,
+      "result_chars": 3342,
+      "result_est_tokens": 836,
+      "arg_est_tokens": 561,
+      "result_est_tokens_per_call": 418,
+      "orphans": 0
+    },
+    {
+      "tool": "get_project",
+      "calls": 1,
+      "result_chars": 3046,
+      "result_est_tokens": 762,
+      "arg_est_tokens": 12,
+      "result_est_tokens_per_call": 762,
+      "orphans": 0
+    },
+    {
+      "tool": "list_teams",
+      "calls": 6,
+      "result_chars": 1938,
+      "result_est_tokens": 485,
+      "arg_est_tokens": 17,
+      "result_est_tokens_per_call": 80.833,
+      "orphans": 0
+    },
+    {
+      "tool": "create_issue_label",
+      "calls": 3,
+      "result_chars": 832,
+      "result_est_tokens": 208,
+      "arg_est_tokens": 124,
+      "result_est_tokens_per_call": 69.333,
+      "orphans": 0
+    },
+    {
+      "tool": "list_milestones",
+      "calls": 5,
+      "result_chars": 230,
+      "result_est_tokens": 58,
+      "arg_est_tokens": 61,
+      "result_est_tokens_per_call": 11.6,
+      "orphans": 0
+    },
+    {
+      "tool": "create_issue",
+      "calls": 1,
+      "result_chars": 99,
+      "result_est_tokens": 25,
+      "arg_est_tokens": 1127,
+      "result_est_tokens_per_call": 25,
+      "orphans": 0
+    },
+    {
+      "tool": "delete_comment",
+      "calls": 1,
+      "result_chars": 45,
+      "result_est_tokens": 12,
+      "arg_est_tokens": 12,
+      "result_est_tokens_per_call": 12,
+      "orphans": 0
+    }
+  ],
+  "totals": {
+    "calls": 2485,
+    "result_est_tokens": 3098797,
+    "arg_est_tokens": 700683
+  },
+  "heaviest": [
+    "get_issue",
+    "save_issue",
+    "list_comments",
+    "save_comment"
+  ]
+}

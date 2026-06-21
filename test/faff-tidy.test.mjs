@@ -198,7 +198,7 @@ test("Scenario C — an ineligible issue is skipped by a real `skip-ineligible` 
     issues: [
       {
         id: "ISS-C",
-        title: "ready-looking but unblessed",
+        title: "ready-looking but not cranked up",
         state: "Backlog",
         stateCategory: "backlog",
         labels: [], // deliberately not faff-automate

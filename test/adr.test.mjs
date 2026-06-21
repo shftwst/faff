@@ -72,7 +72,13 @@ test("validate: passes a clean tree, fails on a gap and on a missing field", () 
   assert.equal(rs.status, 1);
   assert.match(rs.stdout, /Status/i);
 
-  for (const root of [clean, gap, noStatus]) rmSync(root, { recursive: true, force: true });
+  // a body line beginning with the bare field word must NOT be mis-read as the field (colon required)
+  const decoyStatus = tmpRepo({ "0001-a.md": "# ADR 0001 — a\n\n- **Date:** 2026-06-21\n\n## Context\nStatus quo before this decision was unclear.\n" });
+  const rd = run(["validate", "--root", decoyStatus]);
+  assert.equal(rd.status, 1, "a colon-less 'Status …' prose line must not satisfy the Status field");
+  assert.match(rd.stdout, /Status/i);
+
+  for (const root of [clean, gap, noStatus, decoyStatus]) rmSync(root, { recursive: true, force: true });
 });
 
 test("list --json: enumerates number/title/status/date", () => {

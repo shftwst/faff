@@ -2019,9 +2019,10 @@ function adrSlug(title) {
 // whole remainder; callers interpret only its leading token.
 function adrField(text, name) {
   // Tolerate every bold/colon arrangement: "- **Status:** v", "- **Status**: v", "- Status: v".
-  // Leading "[\s>*-]*" eats list/bold markers; "[\s:*]+" eats the colon + closing bold; the value
+  // Leading "[\s>*-]*" eats list/bold markers; a colon is MANDATORY (so a prose line merely
+  // starting with the field word — "Status quo …" — is not mis-read as the field); the value
   // begins at the first non-space/non-asterisk char and runs to end of line.
-  const m = text.match(new RegExp(`^[\\s>*-]*${name}[\\s:*]+([^\\s*].*)$`, "mi"));
+  const m = text.match(new RegExp(`^[\\s>*-]*${name}[\\s*]*:[\\s*]*([^\\s*].*)$`, "mi"));
   return m ? m[1].trim() : null;
 }
 

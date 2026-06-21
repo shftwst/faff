@@ -72,6 +72,20 @@ test("orphan call (no paired result) is counted with result 0 and surfaced", () 
   assert.equal(orphanCalls, 1);
 });
 
+test("extractCallRecords attributes a tool_result that appears BEFORE its tool_use (order-independent)", () => {
+  // The Claude Code transcript does not guarantee use-before-result ordering; ~0.04% of live Linear
+  // results arrive on an earlier line than their tool_use. The result must still be paired, not dropped.
+  const lines = [
+    toolResult("id1", "x".repeat(2828)), // result lands first
+    toolUse("id1", LINEAR("get_issue"), { id: "FAFF-1" }),
+  ];
+  const { records, orphanCalls } = extractCallRecords(lines);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].result_chars, 2828); // attributed despite the inverted order
+  assert.equal(records[0].orphan, false);
+  assert.equal(orphanCalls, 0);
+});
+
 test("unparseable JSONL lines are skipped and counted, not fatal", () => {
   const lines = [
     "{not json",
@@ -122,6 +136,22 @@ test("aggregate sums per-tool result chars → chars/4 est-tokens and sorts by r
   assert.equal(by_tool[1].result_est_tokens_per_call, 100);
   assert.equal(totals.calls, 3);
   assert.equal(totals.result_est_tokens, 1200);
+});
+
+test("result_est_tokens_per_call is a single clean integer round (no double-rounding in the markdown)", () => {
+  // 3 calls totalling 1000 result chars → 250 est-tokens / 3 = 83.33 → Math.round → 83.
+  const records = [
+    { tool: "t", arg_chars: 0, result_chars: 400, orphan: false },
+    { tool: "t", arg_chars: 0, result_chars: 300, orphan: false },
+    { tool: "t", arg_chars: 0, result_chars: 300, orphan: false },
+  ];
+  const { by_tool } = aggregate(records);
+  assert.equal(by_tool[0].result_est_tokens, 250); // ceil(1000/4)
+  assert.equal(by_tool[0].result_est_tokens_per_call, 83); // 250/3 rounded once, an integer
+  // and the markdown renders that integer verbatim (the value carried no fractional part to re-round).
+  const r = buildReport([{ records, skippedLines: 0, orphanCalls: 0 }], { from: "a", to: "b", days: 7, slugDirsScanned: 1 });
+  const md = renderMarkdown(r);
+  assert.match(md, /\| 83 \|/);
 });
 
 test("aggregate heaviest names the tools covering the top ~80% of result tokens", () => {

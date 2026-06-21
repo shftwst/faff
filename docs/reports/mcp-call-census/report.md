@@ -4,19 +4,19 @@
 
 > Window: 2026-06-16 → 2026-06-21 (7 days) · 320 sessions across 20 faff slug dirs
 
-**Total Linear MCP cost over the window:** 3,098,797 est result tokens across 2,485 calls (chars/4 proxy).
-Arguments cost 700,683 est tokens — the **result payload is the driver** (4.423× the arg cost).
+**Total Linear MCP cost over the window:** 3,099,504 est result tokens across 2,485 calls (chars/4 proxy).
+Arguments cost 700,683 est tokens — the **result payload is the driver** (4.424× the arg cost).
 
 **Heaviest tools (top ~80% of result tokens):** get_issue, save_issue, list_comments, save_comment
 
 _9 unparseable transcript line(s) skipped._
-_2 orphan call(s) (no paired result — truncated sessions); counted with result 0._
+_1 orphan call(s) (no paired result — truncated sessions); counted with result 0._
 
 ## Per-tool breakdown (sorted by result token cost)
 
 | Tool | Calls | Result est-tokens | Result/call | Arg est-tokens |
 |---|--:|--:|--:|--:|
-| `get_issue` | 694 | 740,311 | 1,067 | 5,896 |
+| `get_issue` | 694 | 741,018 | 1,068 | 5,896 |
 | `save_issue` | 665 | 632,037 | 950 | 123,139 |
 | `list_comments` | 565 | 582,247 | 1,031 | 3,750 |
 | `save_comment` | 249 | 567,320 | 2,278 | 554,847 |

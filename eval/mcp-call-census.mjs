@@ -67,13 +67,16 @@ export function normaliseArgs(input) {
   return JSON.stringify(input);
 }
 
-// PURE — extract the Linear call records from ONE transcript's lines. Two passes within the file:
-// collect Linear tool_use (id → {tool, arg_chars}), then pair tool_result by tool_use_id. A tool_use
-// with no matching result (truncated session) is an orphan: counted, result 0. Unparseable lines are
-// skipped + counted. Returns { records, skippedLines, parsedLines, orphanCalls }.
+// PURE — extract the Linear call records from ONE transcript's lines. Order-independent: collect every
+// tool_use (id → {tool, arg_chars}) AND every tool_result (id → result_chars) in one pass, then pair by
+// tool_use_id afterwards — a tool_result that lands on an earlier line than its tool_use (the Claude Code
+// transcript does not guarantee use-before-result ordering; ~0.04% of live results in practice) is still
+// attributed, not silently dropped. A tool_use with no matching result (truncated session) is an orphan:
+// counted, result 0. Unparseable lines are skipped + counted.
+// Returns { records, skippedLines, parsedLines, orphanCalls }.
 export function extractCallRecords(lines) {
   const calls = new Map(); // id -> { tool, arg_chars }
-  const results = new Map(); // tool_use_id -> result_chars (only for Linear ids)
+  const results = new Map(); // tool_use_id -> result_chars (keyed by ALL tool_result ids seen)
   let skippedLines = 0, parsedLines = 0;
   for (const raw of lines) {
     if (!raw) continue; // blank line (e.g. trailing newline) — not an error
@@ -85,8 +88,8 @@ export function extractCallRecords(lines) {
     for (const block of content) {
       if (block?.type === "tool_use" && LINEAR_RE.test(block.name || "")) {
         calls.set(block.id, { tool: stripTool(block.name), arg_chars: normaliseArgs(block.input).length });
-      } else if (block?.type === "tool_result" && calls.has(block.tool_use_id)) {
-        // Only measure results we can attribute to a known Linear call in THIS file.
+      } else if (block?.type === "tool_result" && block.tool_use_id != null) {
+        // Accumulate every result by id regardless of order; non-Linear ids are filtered out at pairing.
         const prev = results.get(block.tool_use_id) || 0;
         results.set(block.tool_use_id, prev + normaliseResultContent(block.content).length);
       }
@@ -123,7 +126,8 @@ export function aggregate(records) {
         result_chars: s.result_chars,
         result_est_tokens,
         arg_est_tokens: estTokensFromChars(s.arg_chars),
-        result_est_tokens_per_call: s.calls ? round(result_est_tokens / s.calls) : 0,
+        // single round, to whole est-tokens (the markdown renders this verbatim — no second rounding).
+        result_est_tokens_per_call: s.calls ? Math.round(result_est_tokens / s.calls) : 0,
         orphans: s.orphans,
       };
     })
@@ -194,7 +198,7 @@ export function renderMarkdown(report) {
   lines.push(`| Tool | Calls | Result est-tokens | Result/call | Arg est-tokens |`);
   lines.push(`|---|--:|--:|--:|--:|`);
   for (const t of report.by_tool) {
-    lines.push(`| \`${t.tool}\` | ${t.calls} | ${t.result_est_tokens.toLocaleString()} | ${Math.round(t.result_est_tokens_per_call).toLocaleString()} | ${t.arg_est_tokens.toLocaleString()} |`);
+    lines.push(`| \`${t.tool}\` | ${t.calls} | ${t.result_est_tokens.toLocaleString()} | ${t.result_est_tokens_per_call.toLocaleString()} | ${t.arg_est_tokens.toLocaleString()} |`);
   }
   lines.push("");
   lines.push(`_est-tokens = chars/4 (reused from \`eval/cli-driver.mjs\`). Schema-token overhead is out of scope (FAFF-176). Re-running over the same window yields identical numbers._`);

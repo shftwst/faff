@@ -112,6 +112,20 @@ verdict=$("$faff" eligible --label "$L1" --label "$L2" ... --default "$default")
 
 This is the mechanical form of the Autonomous-Mode backstop — the same boundary, enforced by the deterministic CLI at a fixed point rather than agent narration. Precedence (`faff-automation-hold` > `faff-automate` > `automation_default`) is the CLI's; a ticket with both `faff-automation-hold` and `faff-automate` yields `false` and is refused. Pass labels as repeated `--label` flags (not `--labels`, not comma-joined — the wrong form silently parses zero labels).
 
+**Intake-provenance precondition (FAFF-212 — both modes, pre-worktree).** A *different axis* from eligibility: this asks "did the work enter through the front door (`/faff-jot`) at all?", not "is it allowed to auto-build?" (the eligibility gate above is the other axis). After the prep + eligibility gates and **before Step 3 creates a worktree**, run the deterministic guard — it reads the CLI-written `.faff/provenance/<ISSUE>.json` marker, with the spoofable `faff-jot-intake` label as a *migration grandfather* only (the label alone is **not** provenance — FAFF-209). It makes **zero** tracker calls: pass the Step-1 labels via `--labels` (comma-joined; note this guard takes one `--labels csv`, unlike `eligible`'s repeated `--label`).
+
+```bash
+# both modes — graft NEVER auto-records provenance to self-satisfy (that would no-op the guard)
+mode=$("$faff" config get intake_gate)          # default-aware: unset → warn (FAFF-182)
+"$faff" intakecheck <ISSUE> --labels "<comma-joined Step-1 labels>"
+# exit 0 → proceed (surface any [warn] line) · exit 3 → blocked (block-mode only; warn never blocks)
+```
+
+- **exit 0** → proceed to Step 3. If the output carried a `[warn]` line (no-provenance under `warn`, or a grandfathered legacy label), **surface it** but continue — `warn` and `off` never block, and a grandfathered ticket is legitimately passing during migration.
+- **exit 3** (`intake_gate: block` *and* no genuine provenance) → **refuse, pre-worktree** (Step 3 never runs, no spec committed). **Interactive:** stop and point the human at the sanctioned paths (the `intakecheck` output names them): for a legacy backlog ticket that genuinely belongs, stamp it with `faff intake-record <ISSUE> --via backfill`; for a deliberate one-off bypass, `faff intake-record <ISSUE> --via fast-track --reason "<why>"`; a genuinely new idea belongs at `/faff-jot` (the front door, no issue id). Note `/faff-jot <ISSUE>` is the existing-ticket *interactor* (eligibility crank-up/down) — it does **not** write provenance, so it is not the remedy here. **Autonomous:** return the **`blocked`** disposition (a skip, like `ineligible` — not a build attempt, never `parked`); log the cause to `.faff/runs/<run-id>/ISSUE-XX/graft.md`. Either way graft **never** runs `intake-record` itself to pass its own check.
+
+(No Stop-hook: `intakecheck` deliberately does **not** join `FAFF_STOP_HOOKS` — a turn-end hook with no "which ticket" signal false-blocks unrelated sessions, reintroducing FAFF-205. The guard fires only here, where the issue ID is known.)
+
 **Step 3: Check for Existing Worktree**
 
 (Worktree layout and rules: gateway → **Worktree policy**. Worktrees live at `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`.)
@@ -415,6 +429,7 @@ Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original
 
 **Return values to caller (beep-boop / the `concurrency` slot):**
 - `ineligible` — the pre-worktree eligibility gate (Step 2) refused a not-eligible issue under autonomous mode: a skip, **not** a build attempt and **never** `parked`. Like `claimed-by-peer`, the issue **does not enter the run-ledger `admitted` array** (so `runcheck`'s `admitted − outcomes == ∅` invariant holds) and is surfaced in the run summary's On-hold bucket, not Parked (beep-boop → run summary). No terminal ledger bucket is written for it.
+- `blocked` — the pre-worktree **intake-provenance precondition** (Step 2, FAFF-212) refused an issue lacking genuine front-door provenance under `intake_gate: block`: a skip on the *provenance* axis (distinct from `ineligible`'s eligibility axis), **not** a build attempt and **never** `parked`. Like `ineligible`, the issue **does not enter the run-ledger `admitted` array** and is surfaced (with the sanctioned `/faff-jot` / fast-track remedy) in the run summary, not Parked. No terminal ledger bucket is written for it. (Only `intake_gate: block` produces this; `warn`/`off` always proceed.)
 - `shipped` — all three gate conditions held, PR merged (unblocks chained issues)
 - `pr-open-for-human` — a **post-PR** human handoff with a PR open: CI failed unrecoverably, or the delivery outcome (from `faff contract delivery-outcome` on the producer's block) was `not-ready` (deploy-readiness deferred, retry-later) / `failed` (merge or deploy error, or an unmappable result coerced to `failed`) — PR awaiting human
 - `needs-human` — a **pre-PR, no-PR** human handoff: **review** returned `needs-human` before any PR was opened (Step 9, pre-9b). Surfaced on the tracker issue and parked per the shared protocol; **no PR exists**. Distinct from `pr-open-for-human` (which has a PR); maps to the `parked` ledger bucket (see below).

@@ -19,3 +19,6 @@ eval/report/
 
 # Local worktree scratch dir (not part of the project tree)
 .worktrees/
+
+# Claude box env
+.env.claude-box

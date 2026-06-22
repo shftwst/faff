@@ -105,36 +105,39 @@ The skill supports any LLM backend. Provider and model are configured in `.faffr
 ```yaml
 faffter_dark:
   adversarial:
-    provider: ollama                 # ollama | vllm | openai | gemini | anthropic | openrouter
-    model: llama3.1:70b             # provider-specific model identifier
-    host: http://localhost:11434     # required for ollama/vllm, ignored for cloud providers
-    api_key_env: OPENROUTER_API_KEY # env var name for cloud provider API key (not the key itself)
+    provider: ollama                 # ollama | openai | vllm | openrouter | nvidia | deepseek
+    model: llama3.1:70b              # provider-specific model identifier
+    host: http://localhost:11434     # ollama/vllm: base host. openai-compatible: base URL incl. /v1
+    api_key_env: NVIDIA_API_KEY      # env var NAME holding the API key (not the key itself)
+    reasoning_off: false             # true → send chat_template_kwargs:{thinking:false} (reasoning models)
     timeout: 120                     # seconds
 ```
 
-**Provider details:**
+**Two transport families** — `review-call.mjs` dispatches on `provider`:
 
-| Provider | Host | Auth | Notes |
-|---|---|---|---|
-| `ollama` | `host` field (default `http://localhost:11434`) | None | Local, free, private |
-| `vllm` | `host` field (e.g. `http://localhost:8000`) | Optional `api_key_env` | OpenAI-compatible API, self-hosted, GPU-accelerated |
-| `openai` | OpenAI API | `api_key_env` | GPT-4o, o1, etc. |
-| `gemini` | Google AI API | `api_key_env` | Gemini 2.5 Pro/Flash — large context window, different architecture |
-| `anthropic` | Anthropic API | `api_key_env` | Claude models — use a different model from whatever wrote the code |
-| `openrouter` | OpenRouter API | `api_key_env` | Any model via single API — good for testing different biases |
+| Provider | Transport | Host | Auth | Notes |
+|---|---|---|---|---|
+| `ollama` | ollama (`/api/tags` + `/api/chat`) | `host` (default `http://localhost:11434`) | none | Local, free, private |
+| `openai` `vllm` `openrouter` `nvidia` `deepseek` | OpenAI-compatible (`/v1/models` + `/v1/chat/completions`, SSE) | `host` = base URL **including `/v1`** (e.g. `https://integrate.api.nvidia.com/v1`, `http://localhost:8000/v1`) | `Bearer` from `api_key_env` | One code path for every OpenAI-shaped API |
 
-The key principle is **independence from the primary model**. If Claude wrote the code and ran the primary review, don't configure Claude here. Use a structurally different model (different architecture, different training data, different fine-tuning) to maximise the chance of catching correlated blind spots.
+`gemini` / `anthropic` have **native** wire formats and are **not** handled by the helper — point them at an OpenAI-compatible base URL or add a dedicated adaptor; an unknown provider exits `2` (loud), never a silent pass.
 
-**Backend call — the bundled `review-call.mjs` helper (do not hand-roll the API call).** The robust call is a tool, not prose (FAFF-183): `plugin/skills/faffter-dark-adversarial-review/review-call.mjs` does model **preflight** (against `/api/tags`), `think:false` (so a reasoning model doesn't return empty `content`), **streaming** (so a long response doesn't drop the connection), and a **token budget** with one truncation retry. Resolve the host/model/timeout from `faffter_dark.adversarial` via `faff config get`, then invoke:
+**`reasoning_off`** — set `true` for a reasoning model that streams empty `content` unless its hidden think-block is disabled (e.g. NVIDIA `deepseek-*`). It adds `chat_template_kwargs:{thinking:false}` to the OpenAI-compatible payload (the analogue of ollama's always-on `think:false`). It is **opt-in** because vanilla OpenAI rejects the unknown field — leave it `false` for GPT-4o/o-series.
+
+The key principle is **independence from the primary model**. If Claude wrote the code and ran the primary review, don't configure Claude here. Use a structurally different model to maximise the chance of catching correlated blind spots.
+
+**Backend call — the bundled `review-call.mjs` helper (do not hand-roll the API call).** The robust call is a tool, not prose (FAFF-183): `plugin/skills/faffter-dark-adversarial-review/review-call.mjs` does model **preflight** (ollama `/api/tags` or OpenAI-compatible `/v1/models`), think-suppression (ollama `think:false`; OpenAI-compatible `--reasoning-off`), **streaming** (NDJSON or SSE — so a long response doesn't drop the connection), and a **token budget** with one truncation retry. Resolve `provider`/`host`/`model`/`timeout`/`api_key_env`/`reasoning_off` from `faffter_dark.adversarial` via `faff config get`, then invoke:
 
 ```bash
 node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
   --host-source "$host_source" \
+  --provider "$provider" --api-key-env "$api_key_env" ${reasoning_off:+--reasoning-off} \
   --system <review-lens-file> \
   --context plugin/skills/faff/SKILL.md --context <each file the diff touches> \
   --diff <git-diff-file>
 ```
 
+- **`--provider`** = the configured provider (omit → defaults to `ollama`). **`--api-key-env`** = the env var **name** (the helper reads the key from `process.env`; the key is never on the command line). **`--reasoning-off`** = pass only when `reasoning_off: true`.
 - **`--system`** = the review lens above (the five categories), written to a file.
 - **`--context`** = the **gateway** (`plugin/skills/faff/SKILL.md`) **plus every file the diff touches** — so the reviewer can verify existence/structure claims instead of hallucinating "this heading doesn't exist" from a diff-only view. (FAFF-183: a model given only the diff produced confident false criticals; a *more* capable model was *more* wrong for exactly this reason.)
 - **`--diff`** = `git diff main...HEAD` written to a file.
@@ -147,11 +150,13 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
 | exit | meaning | outcome |
 |---|---|---|
 | `0` | findings on stdout | parse `## Adversarial findings`, disposition each (below) |
+| `2` | usage error, or an unsupported provider (`gemini`/`anthropic`/unknown) | **`needs-human`** — a config fault, not a review result. |
 | `4` | configured model **not served** by the host (config fault — e.g. a name typo) | **`needs-human`**, naming the mismatch. **Never** silent `pass` — a misconfigured model must not invisibly disable the review. |
 | `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`) | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. |
 | `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset** | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). |
+| `7` | **auth failed** (cloud `401`/`403`, or the `api_key_env` var is unset) | **`needs-human`** — don't retry with broken credentials. |
 
-Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides). Auth failure (cloud providers) → `needs-human`; don't retry with broken credentials.
+Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides).
 
 ## Output to faff-graft
 

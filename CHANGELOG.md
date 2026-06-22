@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.5.0](https://github.com/shftwst/faff/compare/faff--v0.4.1...faff--v0.5.0) (2026-06-22)
+
+
+### Features
+
+* **FAFF-115:** lean the duplicated entry-preamble boilerplate (9 skills) ([#117](https://github.com/shftwst/faff/issues/117)) ([1205f8a](https://github.com/shftwst/faff/commit/1205f8af983754a33e95bd128d3f87fc8eff9480))
+* **FAFF-116:** terseness + cruft pass over the orchestration skills ([#118](https://github.com/shftwst/faff/issues/118)) ([2f6169a](https://github.com/shftwst/faff/commit/2f6169a56a680e822ada3a0b2c38095c14025f78))
+* **FAFF-117:** terseness + cruft pass over the slot skills ([#119](https://github.com/shftwst/faff/issues/119)) ([671187d](https://github.com/shftwst/faff/commit/671187dcc6547b97ca735b869231d076b9b86cd0))
+* **FAFF-120:** skill-authoring charter + CLAUDE.md auto-load + lint rules ([#130](https://github.com/shftwst/faff/issues/130)) ([53a04ac](https://github.com/shftwst/faff/commit/53a04acba831f4feeb74c1b2022a984dc507c9fd))
+* **FAFF-16:** faff adr CLI + ADR promotion (record-and-promote v1) ([#131](https://github.com/shftwst/faff/issues/131)) ([80c34fe](https://github.com/shftwst/faff/commit/80c34fec2530a486d57897ed5f6594f83c7dcf06))
+* **FAFF-171:** prompt-token budget gate in CI (advisory ratchet) ([#114](https://github.com/shftwst/faff/issues/114)) ([149185a](https://github.com/shftwst/faff/commit/149185a90953d5c062ab4785dfb3f18c2d8f5640))
+* **FAFF-172:** delegation-conformance lint in validate-adapters ([#116](https://github.com/shftwst/faff/issues/116)) ([538915f](https://github.com/shftwst/faff/commit/538915f3c79d6e0967a91c7883a6833bf2e28ef7))
+* **FAFF-175:** Linear MCP call census from session transcripts ([#138](https://github.com/shftwst/faff/issues/138)) ([e8b9bec](https://github.com/shftwst/faff/commit/e8b9bec504175356f1530c1a2540bfcf9ef90b2e))
+* **FAFF-178:** faff prepcheck — Stop-hook backstop for same-turn spec attach ([#128](https://github.com/shftwst/faff/issues/128)) ([8f6d9ae](https://github.com/shftwst/faff/commit/8f6d9aefdbc33c975110edc2c82038afa1b0cd13))
+* **FAFF-179:** terseness + cruft pass over the gateway body ([#120](https://github.com/shftwst/faff/issues/120)) ([050ed13](https://github.com/shftwst/faff/commit/050ed1398ebb4bae69b7ce7959acdc8a1056c356))
+* **FAFF-180:** proportionate judgement-eval gate with selectable drivers (smart/local/frontier) ([#127](https://github.com/shftwst/faff/issues/127)) ([a5d7578](https://github.com/shftwst/faff/commit/a5d7578678e3956140f52dc3483b70d69e0010fe))
+* **FAFF-181:** migrate sub-skills to canonical gateway pointers; cut Legacy contract aliases ([#121](https://github.com/shftwst/faff/issues/121)) ([a6435cd](https://github.com/shftwst/faff/commit/a6435cd92e43ae07912dcc66bc0e94fc109c3225))
+* **FAFF-182:** default-aware config get via a CLI DEFAULTS registry ([#124](https://github.com/shftwst/faff/issues/124)) ([c5c718c](https://github.com/shftwst/faff/commit/c5c718c180c8ba1b192a1b0e9f1d6eb9ac6cc5ea))
+* **FAFF-183:** robust adversarial-review backend call (review-call.mjs) ([#122](https://github.com/shftwst/faff/issues/122)) ([513ac1b](https://github.com/shftwst/faff/commit/513ac1b1935aca8bec4c356cc645a142c920188b))
+* **FAFF-184:** collapse-and-log review-comment policy for iterated reviews ([#135](https://github.com/shftwst/faff/issues/135)) ([a88fefd](https://github.com/shftwst/faff/commit/a88fefd4b8d3ac87be88e3f5fdb5110bb4d29ee7))
+* **FAFF-185:** reconcile review timing — pre-PR review, tracker findings surface, PR opens at Step 9b ([#136](https://github.com/shftwst/faff/issues/136)) ([e83f15c](https://github.com/shftwst/faff/commit/e83f15c0ee28968a4809d5a7332b7f3662786a2e))
+* **FAFF-187:** faff label add|remove — mechanical CLI op for control-label mutation ([#140](https://github.com/shftwst/faff/issues/140)) ([9874bc1](https://github.com/shftwst/faff/commit/9874bc16eb0bfb08f9f3740ef851d7e849dc1a45))
+* **FAFF-190:** faff doctor install-health check ([#125](https://github.com/shftwst/faff/issues/125)) ([fc3ad81](https://github.com/shftwst/faff/commit/fc3ad81a88e18bb2d7880e241f2ae135b4f02c10))
+* **FAFF-192:** faff hooks-ensure — deterministic, repeatable Stop-hook registration ([#129](https://github.com/shftwst/faff/issues/129)) ([3a2ee15](https://github.com/shftwst/faff/commit/3a2ee1528f73352e83a78e2a499ad0bf777f507b))
+* **FAFF-193:** rendering adaptor lead-with-the-model + surface-the-concrete rules + gloss eval ([#139](https://github.com/shftwst/faff/issues/139)) ([e2371ba](https://github.com/shftwst/faff/commit/e2371ba823a202e1e081462987eea441c8780008))
+* **FAFF-195:** nlspec Failure-modes section + load-bearing-model WHY principle ([#137](https://github.com/shftwst/faff/issues/137)) ([8fe338c](https://github.com/shftwst/faff/commit/8fe338cb4bc907a1341aec70663902cb0f2e4df0))
+* **FAFF-196:** adr producer slot + faffter-noon-adr ([#132](https://github.com/shftwst/faff/issues/132)) ([aa41e3d](https://github.com/shftwst/faff/commit/aa41e3d29df57b9c566e03a4bd32ec4f8b99de8e))
+* **FAFF-197:** faff adr supersede + supersession validation ([#133](https://github.com/shftwst/faff/issues/133)) ([b1565e7](https://github.com/shftwst/faff/commit/b1565e7644369594d18301bc75c2f27d539e454b))
+* **FAFF-198:** ADR L3 — offer supersession when a new ADR contradicts a live one ([#147](https://github.com/shftwst/faff/issues/147)) ([39b35f4](https://github.com/shftwst/faff/commit/39b35f42081fadaeb52cd7e97b742f3e7dbef696))
+* **FAFF-200:** install-health auto-heal — faff sync + doctor-at-entry + hooks-ensure normalization ([#134](https://github.com/shftwst/faff/issues/134)) ([b8d02e4](https://github.com/shftwst/faff/commit/b8d02e49b442f7bc4167cd5a3d772f7075f161fb))
+* **FAFF-202:** comment-identity contract for collapse-and-log update-in-place ([#143](https://github.com/shftwst/faff/issues/143)) ([63e9f8a](https://github.com/shftwst/faff/commit/63e9f8a519f9eecf126824ba19e461b6d93eab57))
+* **FAFF-203:** add explanatory-order eval kind (covers Edit A — lead-with-the-model) ([#145](https://github.com/shftwst/faff/issues/145)) ([91277bd](https://github.com/shftwst/faff/commit/91277bdcea27df4662437ed964042c602b2d458c))
+* **FAFF-209:** OpenAI-compatible transport for adversarial review (NVIDIA/vLLM/OpenRouter) ([#148](https://github.com/shftwst/faff/issues/148)) ([17094e0](https://github.com/shftwst/faff/commit/17094e0c7fee2921f8ea64f3ce54381d3aa6c62c))
+* **FAFF-213:** fail loud when adversarial-review host is the unconfigured localhost default ([#150](https://github.com/shftwst/faff/issues/150)) ([3ffb9d4](https://github.com/shftwst/faff/commit/3ffb9d49075b6594cb9c5775364392965a61fa5c))
+
+
+### Bug Fixes
+
+* **FAFF-126:** scoped faff worktree-prune — own-only, never repo-wide ([#142](https://github.com/shftwst/faff/issues/142)) ([89bb7f3](https://github.com/shftwst/faff/commit/89bb7f371609bf1fcab8325e8d6feb01177e5105))
+* **FAFF-186:** copy .faffrc.yaml into graft worktrees ([#123](https://github.com/shftwst/faff/issues/123)) ([7b59dcc](https://github.com/shftwst/faff/commit/7b59dcca1ee2dabf2577191b3031bcc5fb334b9d))
+* **FAFF-204:** faff sync resolves repo root for link-skills.sh via layered resolver ([#141](https://github.com/shftwst/faff/issues/141)) ([b7e46c7](https://github.com/shftwst/faff/commit/b7e46c7aa33fb255f5ce51718e673d5d42e1cb49))
+* **FAFF-207:** harden review-findings comment-identity match to structured-match ([#146](https://github.com/shftwst/faff/issues/146)) ([ed2e68c](https://github.com/shftwst/faff/commit/ed2e68c4bc96ff0132299c1cf966a9ec8cb014dd))
+* **FAFF-208:** config resolves via main worktree when a build worktree lacks .faffrc.yaml ([#149](https://github.com/shftwst/faff/issues/149)) ([ee68da5](https://github.com/shftwst/faff/commit/ee68da5ae739ee09ebef8928d3db00f935fb111e))
+
 ## [0.4.1](https://github.com/shftwst/faff/compare/faff--v0.4.0...faff--v0.4.1) (2026-06-18)
 
 

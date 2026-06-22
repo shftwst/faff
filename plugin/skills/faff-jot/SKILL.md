@@ -98,12 +98,12 @@ Framed narrowly it extends jot's intake identity (jot already owns the human↔p
    - ticket **held** (carries `faff-automation-hold`) → the hard stop dominates, so promoting is a silent no-op; offer **unhold**: "FAFF-XX is hard-held out of automation — lift the hold? (y/n)" (note: the hold overrides any `faff-automate`).
    - ticket **eligible** (carries `faff-automate`, not held) → offer **crank down**: "FAFF-XX is automation-eligible — crank it down (hands-off)? (y/n)", and offer **hold** as the hard stop: "…or hard-hold it out entirely? (y/n)".
    - ticket **not eligible, not held** (unlabelled under the opt-in default) → offer **crank up**: "FAFF-XX isn't automation-eligible — crank it up (make it automatable)? (y/n)", and offer **hold** as a pre-emptive hard stop.
-3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate). Each action runs `faff label add|remove <issue> <label>` and executes the descriptor's write (gateway → **Control-label provisioning**):
-   - **crank up** → `faff label add <issue> faff-automate`. The ticket becomes automation-eligible and rejoins normal eligibility on the next pass; **crank up does not move it to Todo**.
-   - **crank down** → `faff label remove <issue> faff-automate`. The ticket falls back to the `automation_default` (hands-off under opt-in).
-   - **hold** → `faff label add <issue> faff-automation-hold` (the hard stop — excludes even if `faff-automate` is present), optionally with a one-line reason comment.
-   - **unhold** → `faff label remove <issue> faff-automation-hold`. The ticket returns to whatever its `faff-automate`/default eligibility would otherwise be.
-   - **Edge cases (no-op + inform):** crank up of an already-eligible ticket → no-op, say so; crank down of a ticket with no `faff-automate` → no-op, say so; hold of an already-held ticket → no-op; unhold of a never-held ticket → no-op.
+3. **Point the human at the tracker toggle (advisory — FAFF-218).** The eligibility-throttle labels (`faff-automate`, `faff-automation-hold`) are **tracker-owned**: the faff CLI refuses to write them (it exits non-zero and directs here), so the interactive choice **names the exact label + direction to toggle in the tracker** and faff never executes the write. The human flips it in one click on the board:
+   - **crank up** → tell the human to **add `faff-automate`** to the ticket in the tracker. It becomes automation-eligible and rejoins normal eligibility on the next pass; **crank up does not move it to Todo**.
+   - **crank down** → tell the human to **remove `faff-automate`**. The ticket falls back to the `automation_default` (hands-off under opt-in).
+   - **hold** → tell the human to **add `faff-automation-hold`** (the hard stop — excludes even if `faff-automate` is present); optionally pair it with a one-line reason comment (which faff may still post).
+   - **unhold** → tell the human to **remove `faff-automation-hold`**. The ticket returns to whatever its `faff-automate`/default eligibility would otherwise be.
+   - **State, don't write (no CLI no-op):** because faff never writes these labels there is no idempotency no-op to compute — always point at the tracker toggle, optionally naming the current state to orient the human (e.g. "FAFF-XX already carries `faff-automate`").
 4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.
 
 ### Relationship to `/faff-tidy`

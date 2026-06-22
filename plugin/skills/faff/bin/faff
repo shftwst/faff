@@ -1948,11 +1948,16 @@ function cmdValidateAdapters(args) {
 // it cannot create tracker labels (no MCP). The agent ensures-before-tag via the
 // tracker MCP using this manifest (gateway -> Control-label provisioning).
 // ===========================================================================
+// `tracker_owned: true` marks the two eligibility-throttle labels the faff CLI
+// REFUSES to mutate (FAFF-218): they may only be toggled by a human in the tracker
+// UI, so `faff-automate` present ⟹ a human set it, by construction. The refusal
+// predicate in labelOp reads this flag — never a hardcoded name set. Machine-breadcrumb
+// labels omit it (⇒ false) and stay CLI-writable.
 const CONTROL_LABELS = [
-  { name: "faff-automate", color: "#6fcf97",
-    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). Under the default opt-in posture, absence = not automatable. Removing it cranks the ticket down to hands-off." },
-  { name: "faff-automation-hold", color: "#5e6ad2",
-    description: "Human-set hard exclude: NEVER automate this ticket, even if it also carries faff-automate. Highest precedence in the eligibility model. Visible to read skills." },
+  { name: "faff-automate", color: "#6fcf97", tracker_owned: true,
+    description: "Human-set eligibility: this ticket MAY be picked up by the autonomous faff pipeline (auto-spec/promote/build). Under the default opt-in posture, absence = not automatable. Removing it cranks the ticket down to hands-off. Tracker-owned (FAFF-218): toggle in the tracker UI only — the faff CLI refuses to add/remove it." },
+  { name: "faff-automation-hold", color: "#5e6ad2", tracker_owned: true,
+    description: "Human-set hard exclude: NEVER automate this ticket, even if it also carries faff-automate. Highest precedence in the eligibility model. Visible to read skills. Tracker-owned (FAFF-218): toggle in the tracker UI only — the faff CLI refuses to add/remove it." },
   { name: "faff-parked", color: "#e8a33d",
     description: "Issue parked by an autonomous faff run. Check the issue comments for the park reason. Surfaced by /faff-wtf." },
   { name: "faff-jot-intake", color: "#4ea7fc",
@@ -1983,6 +1988,10 @@ function cmdLabels(args) {
 function labelOp({ action, issue, label, present }) {
   const entry = CONTROL_LABELS.find((l) => l.name === label);
   if (!entry) return { rejected: true, label };
+  // FAFF-218: the eligibility-throttle labels are tracker-human-only. Refuse to
+  // add OR remove either, in any direction — no sanctioned faff path writes them,
+  // so their presence implies a human toggled it in the tracker, by construction.
+  if (entry.tracker_owned) return { refused: true, label, action, issue };
   const ensure_first = action === "add";
   const idempotent_noop =
     present == null
@@ -2005,14 +2014,26 @@ const LABEL_SELFTEST_CASES = [
   // add of a manifest label, no present set ⇒ ensure_first true, noop null, entry set
   [{ action: "add", issue: "FAFF-99", label: "faff-parked", present: null },
     { action: "add", ensure_first: true, idempotent_noop: null, hasEntry: true, rejected: false }],
-  // remove ⇒ ensure_first false, manifest_entry null
-  [{ action: "remove", issue: "FAFF-99", label: "faff-automate", present: null },
+  // remove of a machine-breadcrumb manifest label ⇒ ensure_first false, manifest_entry null
+  [{ action: "remove", issue: "FAFF-99", label: "faff-parked", present: null },
     { action: "remove", ensure_first: false, idempotent_noop: null, hasEntry: false, rejected: false }],
   // label not in manifest ⇒ rejected
   [{ action: "add", issue: "FAFF-99", label: "not-a-faff-label", present: null },
     { rejected: true }],
-  // add of a present label ⇒ idempotent_noop true
+  // FAFF-218: the two tracker-owned eligibility labels are REFUSED in all four directions
+  [{ action: "add", issue: "FAFF-99", label: "faff-automate", present: null },
+    { refused: true }],                                  // crank up
+  [{ action: "remove", issue: "FAFF-99", label: "faff-automate", present: null },
+    { refused: true }],                                  // crank down
+  [{ action: "add", issue: "FAFF-99", label: "faff-automation-hold", present: null },
+    { refused: true }],                                  // hold
+  [{ action: "remove", issue: "FAFF-99", label: "faff-automation-hold", present: null },
+    { refused: true }],                                  // unhold
+  // refusal precedes idempotency: present-flags are ignored on the refused path
   [{ action: "add", issue: "FAFF-99", label: "faff-automate", present: ["faff-automate"] },
+    { refused: true }],
+  // add of a present machine-breadcrumb label ⇒ idempotent_noop true (refusal does NOT apply)
+  [{ action: "add", issue: "FAFF-99", label: "faff-parked", present: ["faff-parked"] },
     { action: "add", ensure_first: true, idempotent_noop: true, hasEntry: true, rejected: false }],
   // add of an absent label (present set, label not in it) ⇒ idempotent_noop false
   [{ action: "add", issue: "FAFF-99", label: "faff-parked", present: ["faff-automate"] },
@@ -2030,7 +2051,9 @@ function labelSelftest() {
   for (const [inp, want] of LABEL_SELFTEST_CASES) {
     const got = labelOp(inp);
     let ok;
-    if (want.rejected) {
+    if (want.refused) {
+      ok = got.refused === true && got.label === inp.label && got.action === inp.action;
+    } else if (want.rejected) {
       ok = got.rejected === true;
     } else {
       ok =
@@ -2071,6 +2094,13 @@ function cmdLabel(args) {
   if (result.rejected) {
     process.stderr.write(`faff label: '${label}' is not a faff control label (see \`faff labels --names\`)\n`);
     return 1;
+  }
+  if (result.refused) {
+    process.stderr.write(
+      `faff label: '${label}' is a tracker-owned eligibility label — faff will not ${action} it. ` +
+      `Toggle it directly on ${issue} in the tracker (one click on the board). ` +
+      `This keeps automation eligibility a human-only decision (FAFF-218).\n`);
+    return 3;
   }
   console.log("```faff-contract:label-op");
   console.log(JSON.stringify(result, null, 2));

@@ -80,6 +80,15 @@ appetite: high
 # faff-automation-hold to hard-exclude. faff-automation-hold always wins regardless.
 automation_default: opt-in   # opt-in | opt-out
 
+# Intake-provenance guard (FAFF-212). faff-graft's pre-worktree precondition checks that a
+# ticket entered through the front door (/faff-jot writes a CLI-owned .faff/provenance/<ISSUE>.json
+# marker) rather than being retrofitted to satisfy the commit convention. A mechanism value (like
+# automation_default / adr.mode), NOT a prose preference. warn (default): print guidance, never
+# block (observe no-provenance counts before tightening) · block: refuse a ticket with no genuine
+# provenance (legacy faff-jot-intake-labelled tickets are grandfathered through with a warning) ·
+# off: disable the guard. Sanctioned override: faff intake-record <ISSUE> --via fast-track --reason "…".
+intake_gate: warn   # warn (default) | block | off
+
 # Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
 # whether it offers to promote that spec's architecturally-significant Chosen: decisions into
 # the repo's append-only docs/adr/ log. The `faff adr` CLI (next-number/new/list/validate) is

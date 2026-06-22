@@ -630,6 +630,10 @@ function cmdConfig(args) {
         "routing_adaptor", "rendering_adaptor"];
       console.log(`config:   ${p || "(none — all defaults)"}`);
       console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
+      // FAFF-212 review F3: surface a non-default intake_gate so a typo'd/overridden
+      // value is visible in the run banner, not silently coerced behind the user's back.
+      const gate = dig(data, "intake_gate");
+      if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
       let any = false;
       for (const s of SLOTS) {
         const v = slots[s];
@@ -1061,21 +1065,58 @@ function readProvenanceMarker(root, issue) {
 }
 
 // Resolve intake_gate via the config CLI's default-aware registry (FAFF-182):
-// unset → "warn". Any unrecognised value coerces to "warn" (fail-safe non-block).
+// unset → "warn". Any unrecognised value coerces to "warn" (fail-safe non-block) AND
+// warns to stderr (FAFF-212 review F3: a typo'd `intake_gate: blok` must not silently
+// downgrade a block to warn without a peep).
 function resolveIntakeGate(root) {
   const [data] = loadConfig(root);
   const v = dig(data, "intake_gate");
-  const mode = (v === null || v === undefined) ? DEFAULTS["intake_gate"] : String(v);
-  return INTAKE_GATE_MODES.has(mode) ? mode : DEFAULTS["intake_gate"];
+  if (v === null || v === undefined) return DEFAULTS["intake_gate"];
+  const mode = String(v);
+  if (INTAKE_GATE_MODES.has(mode)) return mode;
+  process.stderr.write(`faff: intake_gate='${mode}' is not warn|block|off — coercing to '${DEFAULTS["intake_gate"]}' (fail-safe).\n`);
+  return DEFAULTS["intake_gate"];
 }
 
 function intakeGuidance(issue, basis) {
+  // Front-door remedies (FAFF-212 review F4): /faff-jot ISSUE is the existing-ticket
+  // *interactor* (eligibility crank-up/down) — it does NOT write a provenance marker.
+  // The commands that actually create provenance are `intake-record` (--via backfill for
+  // a legacy ticket that genuinely belongs in the backlog; --via fast-track for a
+  // deliberate, reasoned override). A bare new idea starts at `/faff-jot` (no ISSUE).
   return (
     `faff intakecheck: ${issue} has no genuine intake provenance (${basis}). New work must ` +
-    `enter through the front door — run \`/faff-jot ${issue}\` to shape it, or record a ` +
-    `sanctioned override with \`faff intake-record ${issue} --via fast-track --reason "<why>"\`. ` +
-    `(Grandfathered legacy tickets carrying the faff-jot-intake label pass with a warning.)`
+    `enter through the front door. Remedies: capture a genuinely new idea via \`/faff-jot\` ` +
+    `(no issue id — the front door); stamp a legacy backlog ticket with ` +
+    `\`faff intake-record ${issue} --via backfill\`; or record a deliberate override with ` +
+    `\`faff intake-record ${issue} --via fast-track --reason "<why>"\`. ` +
+    `(Legacy tickets carrying the faff-jot-intake label are grandfathered through with a warning.)`
   );
+}
+
+// Robust positional-arg finder for the intake subcommands (FAFF-212 review F1/F5):
+// walk left-to-right, consuming each flag's value where the flag takes one, so the
+// FIRST bare token is the issue id — no `indexOf` ambiguity, and a `--labels` whose
+// value is itself another flag (a shell-quoting slip like `--labels --json`) is
+// detected rather than silently swallowing the next flag as a label value.
+const INTAKE_VALUE_FLAGS = new Set(["--labels", "--root", "--via", "--reason"]);
+function parseIntakeArgs(args) {
+  let issue = null;
+  const flags = {};
+  let danglingValueFlag = null; // a value-flag whose "value" is another flag or absent
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (INTAKE_VALUE_FLAGS.has(a)) {
+      const nxt = args[i + 1];
+      if (nxt === undefined || nxt.startsWith("--")) { danglingValueFlag = a; continue; }
+      flags[a] = nxt; i++;
+    } else if (a.startsWith("--")) {
+      flags[a] = true; // boolean flag (--json / --selftest)
+    } else if (issue === null) {
+      issue = a;
+    }
+  }
+  return { issue, flags, danglingValueFlag };
 }
 
 // `faff intakecheck <ISSUE> [--labels csv] [--json]` — PURE: marker (fs) + injected
@@ -1083,14 +1124,18 @@ function intakeGuidance(issue, basis) {
 // WARN NEVER BLOCKS: an unsatisfied verdict under mode=warn prints guidance and exits 0.
 function cmdIntakecheck(args) {
   if (args.includes("--selftest")) return intakecheckSelftest();
-  const asJson = args.includes("--json");
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const root = get("--root") || findRoot();
-  const issue = args.find((a) => !a.startsWith("--") &&
-    args[args.indexOf(a) - 1] !== "--labels" && args[args.indexOf(a) - 1] !== "--root");
+  const { issue, flags, danglingValueFlag } = parseIntakeArgs(args);
+  const asJson = flags["--json"] === true;
+  // A value-flag that swallowed nothing (or the next flag) is a likely quoting slip —
+  // fail loud rather than silently treating the ticket as unlabelled and blocking it.
+  if (danglingValueFlag === "--labels") {
+    process.stderr.write("faff intakecheck: --labels needs a value (use --labels \"\" for tracker-less / no labels); refusing to guess.\n");
+    return 2;
+  }
+  const root = flags["--root"] || findRoot();
   if (!issue) { process.stderr.write("faff intakecheck: usage: faff intakecheck <issue> [--labels csv] [--json]\n"); return 2; }
-  const labelsArg = get("--labels");
-  const labels = labelsArg ? labelsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const labelsArg = flags["--labels"];
+  const labels = typeof labelsArg === "string" ? labelsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const mode = resolveIntakeGate(root);
   const { marker, malformed } = readProvenanceMarker(root, issue);
   const v = intakeVerdict(marker, labels, mode);
@@ -1118,20 +1163,22 @@ function cmdIntakecheck(args) {
 // nothing (the CONSTRAINT in the marker schema). The CLI is the sole writer of the marker.
 function cmdIntakeRecord(args) {
   if (args.includes("--selftest")) return intakeRecordSelftest();
-  const asJson = args.includes("--json");
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const root = get("--root") || findRoot();
-  const issue = args.find((a) => !a.startsWith("--") &&
-    !["--via", "--reason", "--root"].includes(args[args.indexOf(a) - 1]));
+  const { issue, flags, danglingValueFlag } = parseIntakeArgs(args);
+  const asJson = flags["--json"] === true;
+  if (danglingValueFlag) {
+    process.stderr.write(`faff intake-record: ${danglingValueFlag} needs a value.\n`);
+    return 2;
+  }
+  const root = flags["--root"] || findRoot();
   if (!issue) { process.stderr.write("faff intake-record: usage: faff intake-record <issue> --via jot|backfill|fast-track [--reason \"<text>\"]\n"); return 2; }
   // accept fast-track (CLI flag spelling) and normalise to the schema's fast_track enum.
-  let via = get("--via");
+  let via = flags["--via"];
   if (via === "fast-track") via = "fast_track";
   if (!INTAKE_VIA.has(via)) {
     process.stderr.write("faff intake-record: --via must be one of jot|backfill|fast-track\n");
     return 2;
   }
-  const reason = get("--reason");
+  const reason = flags["--reason"];
   if (via === "fast_track" && (!reason || !reason.trim())) {
     process.stderr.write("faff intake-record: --via fast-track requires --reason \"<text>\" (recorded override); nothing written.\n");
     return 2;
@@ -1141,6 +1188,22 @@ function cmdIntakeRecord(args) {
   // load-or-init, preserving any reserved prep block (observability only, never gated in v1)
   let marker = { schema: PROVENANCE_SCHEMA, issue, intake: null };
   try { const ex = JSON.parse(fs.readFileSync(p, "utf8")); if (ex && typeof ex === "object") marker = { ...marker, ...ex, issue }; } catch { /* absent/malformed → fresh */ }
+
+  // No-downgrade guard (FAFF-212 review F2): `backfill` is the bulk-migration stamp — it
+  // must NEVER overwrite an existing GENUINE record (jot = real front-door, fast_track =
+  // deliberate reasoned override). Silently replacing `jot` with `backfill` would corrupt
+  // the audit trail ("entered through jot" → "backfilled"). A backfill over an existing
+  // backfill is a harmless no-op-ish refresh; jot/fast_track always record (a deliberate
+  // act re-asserting provenance is legitimate). The guard is a no-op + exit 0.
+  const existingVia = marker.intake && marker.intake.via;
+  if (via === "backfill" && (existingVia === "jot" || existingVia === "fast_track")) {
+    const msg = `faff intake-record: ${issue} already has genuine provenance (via ${existingVia}); ` +
+      `backfill will not downgrade it — leaving the existing marker untouched.`;
+    if (asJson) console.log(JSON.stringify({ issue, via: existingVia, noop: "no-downgrade", path: path.relative(root, p) }, null, 2));
+    else process.stderr.write(msg + "\n");
+    return 0;
+  }
+
   marker.schema = PROVENANCE_SCHEMA;
   marker.intake = { via, ts: new Date().toISOString(), ...(via === "fast_track" ? { reason: reason.trim() } : {}) };
 

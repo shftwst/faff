@@ -199,7 +199,10 @@ faff runcheck   # audits the latest .faff/runs/* ledger
 beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 11) and the Stop hook (below) rather than resting on prose alone:
 
 ```json
-{ "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" }, "discovered_scope_filed": 0 }
+{ "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
+  "discovered_scope_filed": 0,
+  "owner": { "status": "running", "pid": 12345, "session_id": "<run-id>",
+             "started_at": "2026-06-22T16:00:00Z", "last_heartbeat": "2026-06-22T16:07:00Z" } }
 ```
 
 - **`admitted`** — every issue the verdict gate admits to the build queue (`fire-and-forget` + `likely-fire`). Append at step 4 (build queue assembly) and at every wave re-entry re-assembly (step 8.4). Explicit-list mode appends each admitted issue the same way.
@@ -208,6 +211,25 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admitted issue with no recorded outcome is an undispatched queue, not a finished run.
 
 - **`discovered_scope_filed`** (informational) — the count of execution-discovered tickets filed at step 10. These are **new** tickets, not admitted build-queue issues, so they are **outside** the invariant above and never affect `runcheck`. The field exists so the count is auditable alongside the run summary.
+- **`owner`** (FAFF-205) — the liveness contract that lets the Stop hook tell an *in-flight* run apart from an *abandoned* one. Without it, a parallel session's hook can't distinguish "an orchestrator is actively draining this" from "this queue was deferred", and it false-blocks the unrelated session (see _Stop hook_ below). Stamp it **at run start**, refresh `last_heartbeat` **across the whole graft lifecycle**, and close it **at exit**:
+  - `status` — `"running"` while the orchestrator holds the run; set to `"done"` at orchestrator exit (clean drain, all-parked, **or** budget-hit — every exit path).
+  - `pid` — the orchestrator's process id (same-host best-effort liveness corroborator; may be omitted).
+  - `session_id` — the owning-session token (use the `<run-id>`); paired with the `FAFF_RUN_DIR` export below it lets a session recognise its **own** run.
+  - `started_at` / `last_heartbeat` — ISO-8601. `started_at` is written once at run start; `last_heartbeat` is **refreshed across the whole lifecycle** (see _Owner stamp & heartbeat_).
+
+### Owner stamp & heartbeat (FAFF-205)
+
+- **At run start** (run-id minted, before step 4): write `owner` with `status:"running"`, `pid`, `session_id:<run-id>`, `started_at:now`, `last_heartbeat:now`, **and export the per-session pointer** so this session's own Stop hook recognises its own run:
+
+  ```bash
+  export FAFF_RUN_DIR="$PWD/.faff/runs/<run-id>"
+  export FAFF_SESSION_ID="<run-id>"   # fallback ownership signal if the harness doesn't propagate FAFF_RUN_DIR
+  ```
+
+- **Refresh `last_heartbeat` across the WHOLE graft lifecycle, not just at issue boundaries.** Re-write `owner.last_heartbeat = now` at every wave/issue boundary **and inside the slow review/merge wait** — the build commits, pushes, then runs the multi-minute adversarial review writing nothing to the worktree, so a boundary-only refresh lets the heartbeat go stale mid-review and the hook false-blocks again. The default staleness threshold is 900s (`FAFF_RUN_HEARTBEAT_STALE_SECS`); a single review step can approach it, so the heartbeat **must** tick inside the review/merge wait. This is the load-bearing reason liveness is owner-emitted, never inferred from worktree mtimes (a quiet worktree mid-review is *normal in-flight*, not stalled).
+- **At orchestrator exit** (every path — clean drain, all-parked, budget-hit): set `owner.status:"done"`. A run that exits with `status:"done"` but admitted-without-outcome work still trips `runcheck` (that's a real bug) — `done` only tells the hook "no live owner is holding this", it does not exempt the completeness invariant.
+
+The hook reads this owner record but **never writes it** — only the orchestrator (the run owner) does. Liveness is on-disk owner-emitted state, never a tracker read, network call, or foreign-pid probe (the pure-function CLI invariant).
 
 ### Stop hook (harness-enforced backstop)
 
@@ -219,6 +241,8 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 ```
 
 `hooks-ensure` (FAFF-192) idempotently ensures **both** faff Stop-hook commands are in `.claude/settings.json` — `runcheck --hook` (this backstop) and `prepcheck --hook` (faff-prep's same-turn-attach guard, FAFF-178) — non-destructively (a byte-stable no-op when already present), and **skips** any command the resolved `faff` can't serve (a stale/copy install) rather than wiring a session-blocking hook. In `--hook` mode runcheck stays silent for any session without an open beep-boop ledger, so it never disrupts ordinary work — it only fires when a beep-boop run left admitted issues undispatched. Tell the user when the hook set is added and why.
+
+**Ownership + liveness gate (FAFF-205).** The Stop hook is registered globally and fires on **every** session's turn-end, so a parallel beep-boop drain's legitimately in-flight ledger (admitted, no terminal outcome *yet*) used to false-block an unrelated interactive session. `runcheck --hook` now gates before auditing: it audits-and-may-block only when the resolved run is one **this session owns** (the `FAFF_RUN_DIR` / `FAFF_SESSION_ID` match against the `owner` stamp above — the backstop is preserved for the owning session) **or** is **genuinely abandoned** (`owner` absent, `status≠"running"`, or `last_heartbeat` staler than `FAFF_RUN_HEARTBEAT_STALE_SECS`). A foreign run a live owner is still holding (running + fresh heartbeat) → the hook stays **silent**. This is why the owner stamp + lifecycle heartbeat above are load-bearing: they are the on-disk signal that lets the hook tell in-flight from abandoned. A legacy ledger with no `owner` is treated as unowned and audited exactly as before (zero regression).
 
 ## Explicit-list mode
 

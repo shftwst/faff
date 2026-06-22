@@ -251,6 +251,7 @@ Heuristics — issues are considered likely to collide when any of these hold:
 3. **Named shared module / util / symbol.** One spec names a module, utility, component, service, or symbol (in a `**Chosen:**` decision, the approach, or an `**Assumes:**`) that the other also edits or depends on — even when the file paths differ. A declared shared dependency collides: two issues that both modify `src/lib/auth.ts`'s exported `verifyToken`, or both extend the same base component, will conflict regardless of which files name it. Use what the specs *declare* (no import-graph build is required); a shared named surface is the collision signal.
 4. **Declared blocker.** One issue declares another in-queue issue as a blocker — serialise the dependent behind the blocker. Both still build in this run.
 5. **Shared scope tag / label** that indicates a shared subsystem (per project conventions in `CLAUDE.md`).
+6. **Inferred producer→consumer dependency.** One spec *consumes* a surface another spec *produces*, with no declared blocker and no file/symbol overlap already catching it — see _Inferred build-order dependencies_ below. Serialise producer-before-consumer **inside the group**. This is the asymmetric case rules 1–4 miss: B creates a module/endpoint/migration/symbol/config-key, A assumes it exists, and the specs share nothing the other rules can see, so both would otherwise read as independent and A could build before B.
 
 When in doubt, serialise. Parallelism is a speedup, not a correctness requirement — a false-positive collision costs a little time; a false-negative costs merge conflicts and broken builds. The full-path rule (2) trims the false positives that collapse the queue to near-sequential; the named-shared-surface rule (3) catches the false negatives that bare path-matching misses. The parallel executor's rebase-before-merge step (see the `concurrency` slot) is the backstop for any collision that slips through both.
 
@@ -264,11 +265,40 @@ Output of conflict analysis:
   "groups": [
     ["ISSUE-D", "ISSUE-E"],
     ["ISSUE-F", "ISSUE-G", "ISSUE-H"]
+  ],
+  "inferred": [
+    { "consumer": "ISSUE-E", "producer": "ISSUE-D", "match_kind": "paraphrase",
+      "confidence": "firm", "evidence": "E **Assumes:** a rate limiter exists; D produces module `rate_limiter`" }
   ]
 }
 ```
 
-Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`") to `.faff/runs/<run-id>/conflict-analysis.md`.
+`inferred` is a **run-local audit list** added by heuristic 6 — every firm and ambiguous producer→consumer inference, each with quoted evidence. It does not change the `{independents, groups}` shape the `concurrency` slot consumes (firm inferences are already folded into `groups`); it exists for the run summary and audit log. **No tracker write derives from it.**
+
+Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`"; inferred edges with their evidence) to `.faff/runs/<run-id>/conflict-analysis.md`.
+
+### Inferred build-order dependencies (heuristic 6)
+
+A **correctness** input — serialise a real producer→consumer dependency — not an ordering opinion (value/risk/priority stays with the `methodology` slot; gateway → **Ordering & judgement delegation**). It is methodology-agnostic by construction: it runs here in conflict analysis, so it holds under the zero-config structural default exactly as under an opinionated lens. **It never writes a tracker blocker link and has no config knob** — authoring a link between two existing human-owned tickets is human-only across the suite (jot/plot at creation; tidy surfaces, never auto-writes). Inference serialises the build *for this run* and surfaces each edge; that is its only effect.
+
+Run this as a **pre-pass over the build-ready specs, before the five contention/blocker heuristics**:
+
+1. **Extract signals per issue.**
+   - *Produces-signal* — the issue *creates* a nameable surface (module/file, exported symbol, endpoint, migration/table, config key, CLI command). Read from WHAT/HOW + `**Chosen:**`.
+   - *Consumes-signal* — the issue *depends on* a surface it doesn't create: `**Assumes:** X exists`, or "calls X", "builds on Y", "once Z exists".
+2. **Match each consumes-signal C in issue A** against the produces-signals of every other in-queue issue B, by **ticket-ID reference** or **clear paraphrase**. Then:
+   - **Skip** if A already declares B a blocker (heuristic 4 serialises it) or A and B already collide via file/dir/symbol (heuristics 1–3) — no duplicate edge.
+   - **Classify** the match: `firm` (id_reference, or a paraphrase naming a concrete surface) vs `ambiguous` (vague, no nameable target, or multiple candidate producers).
+3. **Fold into the partition.**
+   - `firm` → place **producer before consumer** in a collision group (merge transitively with existing groups). This adds only producer-precedes-consumer ordering *inside* an already-serialised group — a dependency-direction fact, never a value judgement, never touching independents.
+   - `ambiguous` → **do not serialise**; record under "surfaced, not serialised" (mirrors chain-gap's ambiguity downgrade — a false-positive serialisation drives the queue sequential, so don't guess).
+
+**Edge cases:**
+- **Cycle (A↔B consume each other):** collapse into one serialised group, deterministic intra-group order (ticket-id), and **flag the cycle** in the run summary as a likely spec error.
+- **Producer not in the build-ready set:** not an in-queue inferred dep — an external open issue is `faff next --blocked`'s job (excluded); no ticket is chain-gap's (out of scope). Inference acts only when both endpoints are in-queue.
+- **Inferred dep contradicts a human "not blocked" signal:** the human wins — surface-only, note the conflict.
+
+Record every firm and ambiguous inference (with quoted evidence) in `.faff/runs/<run-id>/conflict-analysis.md` and surface them in the run summary's **Inferred build-order deps** section.
 
 ## Build-pass execution (the `concurrency` slot)
 
@@ -354,6 +384,13 @@ repeat-parked ⚠ (N)
 
 ## Unreached (budget hit): N
 - ISSUE-VV: title — admitted to build queue, not dispatched (--until 06:00 fired before launch)
+
+## Inferred build-order deps: N (run-local — no tracker write)
+- ISSUE-E ← ISSUE-D (firm, paraphrase): serialised D-before-E — E **Assumes:** a rate limiter; D produces module `rate_limiter`
+- Surfaced, not serialised (ambiguous): N
+  - ISSUE-F: "integrate with the new infra somehow" — no nameable producer; left independent
+- Cycle flagged (likely spec error): ISSUE-G ↔ ISSUE-H — collapsed to one serialised group, ticket-id order
+(Appears only when heuristic 6 inferred ≥1 edge. Audit detail in `.faff/runs/<run-id>/conflict-analysis.md`.)
 
 ## Discovered scope (execution-reported): N filed
 - ISSUE-XX → filed SHF-NN (downstream): "title" — discovered during build, Backlog/`faff-chain-gap-fill` (next run preps it)

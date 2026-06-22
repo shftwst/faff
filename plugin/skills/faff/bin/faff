@@ -2285,6 +2285,56 @@ function adrTemplate({ num, title, date, issue, initiative, status }) {
 
 function adrFlag(args, name) { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : null; }
 
+// FAFF-198 (ADR L3): deterministic mechanics around the `detect_contradictions` LLM seam.
+// These are the plumbing the seam sits inside — input assembly + offer-routing — kept here so
+// they are unit-tested (`adr --selftest`) and the seam stays the only non-deterministic step.
+
+// The `## Decision` section body: everything from the "## Decision" heading to the next
+// "## " heading (or EOF). Trimmed. Returns "" when the heading is absent (the seam then sees
+// empty input for that ADR — never a crash). This is what the seam reads per-ADR.
+function adrDecisionBody(text) {
+  const m = text.match(/^##\s+Decision\s*$([\s\S]*?)(?=^##\s+)/mi)   // up to the next "## " heading
+    || text.match(/^##\s+Decision\s*$([\s\S]*)$/mi);                // …or to EOF when it is last
+  return m ? m[1].replace(/^\s+|\s+$/g, "") : "";
+}
+
+// Assemble `live_adr_decisions` — the candidate set the new ADR is checked against:
+// every LIVE (non-superseded) ADR except the new one, each with its `## Decision` body read.
+// Pure read; no write, no seam call. `excludeId` is the just-created ADR's id (zero-padded).
+function adrLiveDecisions(dir, excludeId) {
+  const exclude = excludeId ? String(excludeId).match(/^(\d{1,4})/)?.[1].padStart(4, "0") : null;
+  const out = [];
+  for (const a of listAdrs(dir)) {
+    if (adrSupersededBy(a.status)) continue;          // skip already-superseded (dead) ADRs
+    if (exclude && a.num === exclude) continue;       // exclude the new ADR from its own set
+    const text = fs.readFileSync(path.join(dir, a.file), "utf8");
+    out.push({ adr: a.num, title: a.title || a.slug || null, decision: adrDecisionBody(text) });
+  }
+  return out;
+}
+
+// The offer-routing decision table (HOW §4): given the runtime context and a per-ADR seam
+// Result, return the action graft takes. PURE — it decides, it does not write. The supersede
+// WRITE only ever follows an interactive "supersede" choice; autonomous never returns "supersede".
+//   inputs:  { interactive: bool, mode: "off"|"surface"|"offer", contradicts: bool, appetite?: str }
+//   returns: { route: "skip-detection"|"no-conflict"|"surface"|"offer"|"record",
+//              offer_supersede: bool, auto_supersede: false (always), record_for_wtf: bool,
+//              surface_prominently?: bool }
+function adrOfferRoute({ interactive, mode, contradicts, appetite }) {
+  const base = { offer_supersede: false, auto_supersede: false, record_for_wtf: false };
+  if (mode === "off") return { route: "skip-detection", ...base };
+  if (!contradicts) return { route: "no-conflict", ...base };
+  if (interactive) {
+    // surface mode: informational only, no supersede prompt; offer mode: full 3-way.
+    if (mode === "surface") return { route: "surface", ...base };
+    return { route: "offer", ...base, offer_supersede: true };
+  }
+  // Autonomous: NEVER auto-supersede at any appetite (hard floor). Record for /faff-wtf and proceed.
+  // Appetite grades only how prominently the candidate is surfaced, never whether-to-write.
+  const surface_prominently = appetite === "high" || appetite === "full";
+  return { route: "record", ...base, record_for_wtf: true, surface_prominently };
+}
+
 function cmdAdr(args) {
   if (args.includes("--selftest")) return adrSelftest();
   const action = args[0];
@@ -2303,6 +2353,14 @@ function cmdAdr(args) {
     } else {
       for (const a of adrs) console.log(`${a.num}  ${a.title || a.slug}  [${(a.status || "?").split(/[ (.]/)[0]}]  ${a.date || ""}`.trimEnd());
     }
+    return 0;
+  }
+
+  if (action === "live-decisions") {
+    // FAFF-198: emit `live_adr_decisions` — the seam-input candidate set (non-superseded, exclude-new,
+    // each `## Decision` body read). Deterministic plumbing AROUND the LLM seam; never runs the seam.
+    const live = adrLiveDecisions(dir, adrFlag(args, "--exclude"));
+    console.log(JSON.stringify(live, null, 2));
     return 0;
   }
 
@@ -2365,7 +2423,7 @@ function cmdAdr(args) {
     return 0;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | validate | supersede (or --selftest)\n");
+  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede (or --selftest)\n");
   return 2;
 }
 
@@ -2425,6 +2483,38 @@ function adrSelftest() {
   mmk("0003", `# ADR 0003 — x\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Supersedes:** ADR-0002\n- **Date:** 2026-06-21\n\n## Context\n`);
   t("one ADR superseding two predecessors validates clean", adrValidate(mdir).length === 0);
 
+  // FAFF-198 (ADR L3) — `## Decision` body extraction, live-decisions input assembly, offer-routing.
+  t("decision body extracted up to next heading", adrDecisionBody(
+    "# ADR 0001 — x\n\n## Context\nc\n\n## Decision\nuse events not RPC\n\n## Consequences\nq\n") === "use events not RPC");
+  t("decision body extracted when Decision is last section", adrDecisionBody(
+    "## Context\nc\n\n## Decision\nuse X\n") === "use X");
+  t("decision body empty string when heading absent", adrDecisionBody("# ADR 0001 — x\n\n## Context\nc\n") === "");
+  // live-decisions: non-superseded filter + exclude-new + decision body read
+  const l3dir = path.join(tmp, "l3", "docs", "adr");
+  fs.mkdirSync(l3dir, { recursive: true });
+  const l3mk = (n, status, dec) => fs.writeFileSync(path.join(l3dir, `${n}-x.md`),
+    `# ADR ${n} — x\n\n- **Status:** ${status}\n- **Date:** 2026-06-21\n\n## Context\nc\n\n## Decision\n${dec}\n\n## Consequences\nq\n`);
+  l3mk("0001", "Accepted", "use RPC everywhere");
+  l3mk("0002", "Superseded by ADR-0003", "old approach");
+  l3mk("0003", "Accepted", "use events");
+  l3mk("0004", "Proposed", "a proposed thing");
+  const live = adrLiveDecisions(l3dir, "0004");   // 0004 is "the new ADR" → excluded; 0002 superseded → excluded
+  t("live-decisions excludes superseded + the new ADR", live.length === 2 && live.every((d) => d.adr !== "0002" && d.adr !== "0004"));
+  t("live-decisions reads each ## Decision body", live.find((d) => d.adr === "0001").decision === "use RPC everywhere");
+  t("live-decisions keeps Proposed (non-superseded) when not the new one", adrLiveDecisions(l3dir, "0001").some((d) => d.adr === "0004"));
+  // offer-routing decision table — interactive × autonomous × adr.mode × contradicts
+  const route = (o) => adrOfferRoute(o);
+  t("route: adr.mode=off → skip-detection", route({ interactive: true, mode: "off", contradicts: true }).route === "skip-detection");
+  t("route: no contradiction → no-conflict, no write", (() => { const r = route({ interactive: true, mode: "offer", contradicts: false }); return r.route === "no-conflict" && !r.offer_supersede && !r.auto_supersede; })());
+  t("route: interactive offer → full offer (supersede prompt)", (() => { const r = route({ interactive: true, mode: "offer", contradicts: true }); return r.route === "offer" && r.offer_supersede && !r.auto_supersede; })());
+  t("route: interactive surface → surface only, no supersede prompt", (() => { const r = route({ interactive: true, mode: "surface", contradicts: true }); return r.route === "surface" && !r.offer_supersede; })());
+  t("route: autonomous → record for wtf, NEVER auto-supersede", (() => { const r = route({ interactive: false, mode: "offer", contradicts: true, appetite: "medium" }); return r.route === "record" && r.record_for_wtf && r.auto_supersede === false; })());
+  t("route: autonomous at FULL appetite still never auto-supersedes (hard floor)", route({ interactive: false, mode: "offer", contradicts: true, appetite: "full" }).auto_supersede === false);
+  t("route: appetite grades autonomous surfacing prominence only", (() => {
+    const lo = route({ interactive: false, mode: "offer", contradicts: true, appetite: "low" });
+    const hi = route({ interactive: false, mode: "offer", contradicts: true, appetite: "high" });
+    return lo.surface_prominently === false && hi.surface_prominently === true; })());
+
   fs.rmSync(tmp, { recursive: true, force: true });
   let failed = 0;
   for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
@@ -2452,7 +2542,7 @@ Subcommands:
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
-  adr <next-number|new|list|validate|supersede> [--root DIR]   FAFF-16: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; validate (gaps + required header fields); --selftest runs the table
+  adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable

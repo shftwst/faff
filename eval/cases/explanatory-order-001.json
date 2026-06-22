@@ -1,0 +1,9 @@
+{ "id": "explanatory-order-001", "kind": "explanatory-order",
+  "fixture": { "segments": [
+    { "id": "seg-mech", "text": "Concretely, the SDK hashes the longest matching prefix of the request and looks it up; only the suffix past the last cache breakpoint is recomputed." },
+    { "id": "seg-sowhat", "text": "So reordering a prompt so the stable system text leads and the volatile user turn trails is what actually lands cache hits — not shrinking the payload." },
+    { "id": "seg-model", "text": "Prompt caching is prefix-based, not content-based: a cache hit needs the leading tokens to match byte-for-byte, in order." },
+    { "id": "seg-method", "text": "You measure it from the response usage block: cache_read_input_tokens counts the prefix served from cache, cache_creation_input_tokens the part freshly written." }
+  ] },
+  "question": "Order these explanation segments lead-with-the-model first, then mechanism, then method, then so-what.",
+  "oracle": { "ordering": ["seg-model", "seg-mech", "seg-method", "seg-sowhat"] } }

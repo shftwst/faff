@@ -3380,13 +3380,16 @@ function cmdContract(args) {
 
 // ===========================================================================
 // gates — FAFF-11: the engineering-quality gate ladder.
-// `faff gates discover` deterministically inspects the repo's OWN declared checks (pre-commit /
-// package.json scripts / Makefile / CLAUDE.md / cheap CI jobs) and emits an ordered List<Rung>
-// cheapest-first + a discovery classification (confident/partial/none). `faff gates run` discovers
-// then executes the rungs cheapest-first in the worktree sandbox (execution_target = cwd; the single
-// FAFF-12 seam) and emits a GatesOutcome + a faff-contract:quality-gates block. Pure-deterministic:
-// NO LLM judgement decides what counts as a gate, and a command whose only source is an issue
-// description / third-party comment is NEVER discovered (TRUSTED-SOURCE-ONLY, like Step 8).
+// `faff gates discover` deterministically inspects the repo's OWN declared checks and emits an
+// ordered List<Rung> cheapest-first + a discovery classification (confident/none). Sources read
+// (v1): pre-commit hooks, package.json scripts, Makefile targets. (The spec also names CLAUDE.md
+// and cheap CI jobs as future sources — not yet parsed here; a repo declaring checks ONLY in those
+// resolves `discovery: none`, which the advisory-default surfaces rather than silently skipping.)
+// `faff gates run` discovers then executes the rungs cheapest-first in the worktree sandbox
+// (execution_target = cwd; the single FAFF-12 seam) and emits a GatesOutcome + a fenced
+// faff-contract:quality-gates block. Pure-deterministic: NO LLM judgement decides what counts as a
+// gate, and a command whose only source is an issue description / third-party comment is NEVER
+// discovered (TRUSTED-SOURCE-ONLY: only the repo's own config files, like Step 8).
 // ===========================================================================
 
 // Cost ranks — lower = cheaper / more-local, the sequencing key (cheapest-first).
@@ -3457,7 +3460,13 @@ function discoverPreCommit(root) {
     if (m) ids.push(m[1]);
   }
   for (const id of ids) {
-    const kind = gateKindForName(id) || "OTHER";
+    // Only sweep in a hook whose id maps to a recognised engineering-gate kind. A repo's
+    // pre-commit config can carry arbitrary heavy hooks (an integration suite, a deploy check);
+    // running an UNRECOGNISED hook as a REQUIRED gate is exactly the "slow target labelled cheap"
+    // failure the spec names. Drop the unknown ones (consistent with the pkg/Makefile paths, which
+    // also drop names gateKindForName can't classify) rather than gate on them.
+    const kind = gateKindForName(id);
+    if (!kind) continue;
     rungs.push({ kind, name: `${kind.toLowerCase()} (pre-commit: ${id})`, command: `pre-commit run ${id} --all-files`, source: "pre_commit", cost_rank: GATE_COST[kind] - 5, required: true });
   }
   return rungs;
@@ -3558,7 +3567,10 @@ function cmdGates(args) {
   if (action === "run") {
     const outcome = runLadder(root);
     const extraction = gatesContractExtraction(outcome);
-    const block = "<faff-contract:quality-gates>\n" + JSON.stringify(extraction) + "\n</faff-contract:quality-gates>";
+    // Emit the contract block in the SAME fenced-code-block form every faff producer uses
+    // (```faff-contract:<name> … ```), so Step 7.5's "locate that block" matches the identical
+    // pattern as review-verdict/spec-readiness/delivery-outcome — not a divergent XML envelope.
+    const block = "```faff-contract:quality-gates\n" + JSON.stringify(extraction) + "\n```";
     if (json) {
       console.log(JSON.stringify({ ...outcome, contract: extraction }, null, 2));
     } else {
@@ -3635,6 +3647,22 @@ function gatesSelftest() {
   const ext = gatesContractExtraction(out2);
   const c = contractQualityGates(ext);
   cases.push(["contract: pass outcome conforms", !c.failLoud && c.contractData.conformant === true]);
+
+  // 9. pre-commit: only recognised-kind hooks are swept in; an unknown heavy hook is dropped,
+  //    never run as a required gate (the "slow target labelled cheap" failure mode).
+  const dPc = mk("pc", { ".pre-commit-config.yaml": "repos:\n  - hooks:\n      - id: ruff\n      - id: my-heavy-integration-suite\n" });
+  const dis9 = discoverRungs(dPc);
+  cases.push(["pre-commit: recognised hook swept, unknown dropped", dis9.rungs.length === 1 && dis9.rungs[0].kind === "LINT" && dis9.rungs[0].source === "pre_commit"]);
+
+  // 10. discover exit code via the cmd path (--root, --json arg handling — the observation gap).
+  const exitDiscover = cmdGates(["discover", "--root", dPkg, "--json"]);
+  cases.push(["cmd discover --root --json exit 0", exitDiscover === 0]);
+  const exitBad = cmdGates(["bogus-action", "--root", dPkg]);
+  cases.push(["cmd unknown-action exit 2 (usage)", exitBad === 2]);
+  const exitRunPass = cmdGates(["run", "--root", dPkg, "--json"]);
+  cases.push(["cmd run all-pass exit 0", exitRunPass === 0]);
+  const exitRunFail = cmdGates(["run", "--root", dFail, "--json"]);
+  cases.push(["cmd run with fail exit 1", exitRunFail === 1]);
 
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
 

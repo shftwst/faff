@@ -129,6 +129,7 @@ The key principle is **independence from the primary model**. If Claude wrote th
 
 ```bash
 node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
+  --host-source "$host_source" \
   --system <review-lens-file> \
   --context plugin/skills/faff/SKILL.md --context <each file the diff touches> \
   --diff <git-diff-file>
@@ -137,6 +138,9 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
 - **`--system`** = the review lens above (the five categories), written to a file.
 - **`--context`** = the **gateway** (`plugin/skills/faff/SKILL.md`) **plus every file the diff touches** — so the reviewer can verify existence/structure claims instead of hallucinating "this heading doesn't exist" from a diff-only view. (FAFF-183: a model given only the diff produced confident false criticals; a *more* capable model was *more* wrong for exactly this reason.)
 - **`--diff`** = `git diff main...HEAD` written to a file.
+- **`--host-source`** (FAFF-213) = the **provenance** of `$host`: never silently substitute the localhost default. Resolve it off the `faff config get` exit status — `faff config get faffter_dark.adversarial.host` **exits non-zero (3) when the key is unset**:
+  - **Key resolves** (exit 0) → `$host_source=config`; pass `$host` as-is.
+  - **Key unset** (non-zero exit) → `$host_source=default`; pass the documented `http://localhost:11434` so the probe can run and produce the distinct exit 6. Do **not** treat the resulting outage as `pass+skip` — an absent provider block must not invisibly disable the review (the same principle as the model-not-served exit-4 case). Keying off "non-zero exit ⇒ unconfigured" (not a specific code) keeps this robust if the CLI's unset-key code changes.
 
 **Exit code → Phase-2 outcome (mechanical — the helper decides, not prose):**
 
@@ -144,7 +148,8 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
 |---|---|---|
 | `0` | findings on stdout | parse `## Adversarial findings`, disposition each (below) |
 | `4` | configured model **not served** by the host (config fault — e.g. a name typo) | **`needs-human`**, naming the mismatch. **Never** silent `pass` — a misconfigured model must not invisibly disable the review. |
-| `5` / timeout | provider **unreachable** (genuine infra outage) | `pass` + a finding noting the skip — don't block the pipeline on infra. |
+| `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`) | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. |
+| `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset** | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). |
 
 Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides). Auth failure (cloud providers) → `needs-human`; don't retry with broken credentials.
 

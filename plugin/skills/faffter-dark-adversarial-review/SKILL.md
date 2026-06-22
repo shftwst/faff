@@ -60,7 +60,7 @@ The adversarial findings are raised back to the **implementor** (the build agent
 
 1. **Consider each finding** — read it, understand the concern
 2. **Prove or disprove with conviction** — check the code, the spec, the tests. Either demonstrate why the finding is a false positive (cite the specific line, test, or spec clause that addresses it) or acknowledge it as valid.
-3. **Log each disposition** — record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy (FAFF-184), these dispositions **fold into the single terminal review comment's summary** — never one tracker comment per finding (the granularity rule).
+3. **Log each disposition** — record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy (FAFF-184), these dispositions **fold into the single terminal review comment's summary** — never one tracker comment per finding (the granularity rule). That one comment is located/updated by its marker pair per the comment-identity contract (**gateway → Review-findings comment identity**, FAFF-202).
 4. **Fix if necessary** — if any finding is valid and actionable, fix the code
 5. **Re-run primary review** — if fixes were made, re-run Phase 1 to confirm nothing regressed
 

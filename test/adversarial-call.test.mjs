@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
-  preflight, runReview, parseArgs, EXIT, DEFAULT_NUM_PREDICT,
+  preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -122,4 +122,31 @@ test("EXIT codes: not-served and unreachable are distinct + non-zero", () => {
   assert.equal(EXIT.NOT_SERVED, 4);
   assert.equal(EXIT.UNREACHABLE, 5);
   assert.notEqual(EXIT.NOT_SERVED, EXIT.UNREACHABLE);
+});
+
+// --- FAFF-213: fail loud when the host is the unconfigured localhost default ---
+
+test("EXIT.DEFAULT_HOST_UNREACHABLE === 6, distinct from NOT_SERVED (4) and UNREACHABLE (5)", () => {
+  assert.equal(EXIT.DEFAULT_HOST_UNREACHABLE, 6); // AC 1
+  assert.notEqual(EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.NOT_SERVED);
+  assert.notEqual(EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.UNREACHABLE);
+});
+
+test("parseArgs: --host-source default is collected; omitting it defaults to config (back-compat)", () => {
+  assert.equal(parseArgs(["--host-source", "default"]).hostSource, "default"); // AC 2
+  assert.equal(parseArgs(["--host-source", "config"]).hostSource, "config");
+  // existing callers never pass the flag → unchanged exit-5 behaviour
+  assert.equal(parseArgs(["--host", "http://h", "--model", "m"]).hostSource, "config");
+});
+
+test("unreachableExit: default-host down → exit 6 (needs-human); configured host down → exit 5 (pass+skip)", () => {
+  // AC 3 — pure, no I/O, no live call: an explicitly-configured host that's down stays exit 5;
+  // a default localhost fallback that's down → exit 6.
+  assert.equal(unreachableExit({ hostSource: "default" }), EXIT.DEFAULT_HOST_UNREACHABLE);
+  assert.equal(unreachableExit({ hostSource: "config" }), EXIT.UNREACHABLE);
+  // an explicitly-configured localhost is still "config" → stays exit 5 (the host string is irrelevant)
+  assert.equal(unreachableExit({ hostSource: "config" }), 5);
+  // missing/omitted provenance is treated as config (back-compat with existing callers)
+  assert.equal(unreachableExit({}), EXIT.UNREACHABLE);
+  assert.equal(unreachableExit(), EXIT.UNREACHABLE);
 });

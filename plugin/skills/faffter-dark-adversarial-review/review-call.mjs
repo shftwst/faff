@@ -16,9 +16,20 @@ import https from "node:https";
 import { readFileSync } from "node:fs";
 
 // Exit codes the skill maps to a verdict: 0 ok · 4 model-not-served (→ needs-human) ·
-// 5 provider-unreachable (→ pass+skip) · 2 usage · 1 other.
-export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5 };
+// 5 provider-unreachable, explicitly-configured host (→ pass+skip) ·
+// 6 provider-unreachable, unconfigured localhost default (→ needs-human, FAFF-213) · 2 usage · 1 other.
+export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6 };
 export const DEFAULT_NUM_PREDICT = 2000;
+
+// PURE (FAFF-213): map an unreachable result to its exit code by host provenance. An explicitly-
+// configured host that's down → EXIT.UNREACHABLE (5 → pass+skip, the human's call). A host that's
+// only the documented localhost default because nothing was configured → EXIT.DEFAULT_HOST_UNREACHABLE
+// (6 → needs-human) — an absent provider block must not invisibly disable the review (cf. exit 4).
+// review-call can't infer provenance from the host string (localhost is a legit configured host), so
+// the caller signals it via --host-source; this is the one place the policy decision lives.
+export function unreachableExit({ hostSource } = {}) {
+  return hostSource === "default" ? EXIT.DEFAULT_HOST_UNREACHABLE : EXIT.UNREACHABLE;
+}
 
 // PURE: the /api/chat payload. think:false disables a reasoning model's hidden think-block (else
 // message.content comes back empty); stream:true keeps a long response's connection alive.
@@ -145,7 +156,9 @@ export async function runReview({
 // --- CLI ---
 
 export function parseArgs(argv) {
-  const a = { context: [] };
+  // hostSource defaults to "config" so existing callers (which never pass --host-source) keep the
+  // exit-5 pass+skip behaviour unchanged. "default" signals the host is only the localhost fallback.
+  const a = { context: [], hostSource: "config" };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--host") a.host = argv[++i];
@@ -155,6 +168,7 @@ export function parseArgs(argv) {
     else if (k === "--context") a.context.push(argv[++i]);
     else if (k === "--num-predict") a.numPredict = Number(argv[++i]);
     else if (k === "--timeout") a.timeoutMs = Number(argv[++i]) * 1000;
+    else if (k === "--host-source") a.hostSource = argv[++i];
   }
   return a;
 }
@@ -176,8 +190,12 @@ async function main(argv) {
     return EXIT.NOT_SERVED;
   }
   if (r.status === "unreachable") {
-    process.stderr.write(`provider unreachable (${a.host}): ${r.note}\n`);
-    return EXIT.UNREACHABLE;
+    const exit = unreachableExit({ hostSource: a.hostSource });
+    const provenance = exit === EXIT.DEFAULT_HOST_UNREACHABLE
+      ? "default localhost — provider unconfigured (needs-human)"
+      : "configured host unreachable (pass+skip)";
+    process.stderr.write(`provider unreachable (${a.host}): ${r.note} — ${provenance}\n`);
+    return exit;
   }
   if (r.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
   process.stdout.write(r.content.trim() + "\n");

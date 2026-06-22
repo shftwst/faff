@@ -76,7 +76,22 @@
 //                    DETERMINISTIC graph-traversal half (does a matching ticket exist) is carved to a
 //                    scripted test (mirroring FAFF-152), NOT this eval. The measured frontier baseline
 //                    is the human-supervised carved follow-up.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap"];
+// FAFF-203 — the EXPLANATORY-ORDER surface adds one kind:
+//   explanatory-order — SHIPPED. Grades Edit A ("lead with the load-bearing model",
+//                       faffidavit-rendering) — whether a model orders a SCRAMBLED set of explanatory
+//                       segments lead-with-the-model-first, then mechanism → method → so-what. It is a
+//                       DISTINCT registry entry (own fixture-of-segments, own render branch, own
+//                       MODE_INSTRUCTION, own criteria loader — the Edit A prose, not unlock-value) that
+//                       ROUTES its grade through the EXISTING `ordering` arm and `oracle.ordering` field
+//                       via `rankCorrelation` — zero new grade math. The envelope carries `ordering`
+//                       (the SAME field the `ordering` kind uses), so the grader read-end joins the
+//                       ordering guard rather than adding a per-kind branch. NOT in CLOSED_SET_KINDS
+//                       (rank-graded, not set-graded). Empty/garbage `ordering` → `rankCorrelation`'s
+//                       n<2 → 1.0 contract is unchanged; the vacuous-pass risk is mitigated at the CASE
+//                       level (≥2 oracle segments) + a dry-smoke guard, NOT by editing the grader. The
+//                       measured frontier baseline (real claude -p reps) is the human-supervised carved
+//                       follow-up (ADR-0004).
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -98,6 +113,9 @@ const FIXTURE_SHAPE = {
   // FAFF-149 — the routing fixture is an assembled fixture-of-findings; the driver renders `issue` +
   // `spec` (plus the optional diagnostics / conflict / park_history inputs that drive the verdict).
   routing: ["issue", "spec"],
+  // FAFF-203 — explanatory-order carries a fixture-of-segments: the driver renders the SCRAMBLED
+  // `segments` (a [{id, text}] list) the model must order. validateCase asserts the field is present.
+  "explanatory-order": ["segments"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -116,7 +134,9 @@ export function validateCase(c) {
   // FAFF-161 — shaping + decomposition carry their oracle in the EXISTING `gloss_rubric` field
   // ({ must_include, must_avoid }, synonym-set entries — the gradeGloss shape, FAFF-150 §9), so the
   // populate-exactly-one exclusivity check is reused with zero new oracle-field machinery.
-  const want = c.kind === "ordering" ? "ordering"
+  // FAFF-203 — explanatory-order reuses the `ordering` oracle field (a segment-id list), so it joins
+  // the `ordering` arm of the exclusivity check — zero new oracle-field machinery.
+  const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
     : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition") ? "gloss_rubric"
     : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
@@ -474,7 +494,12 @@ export function grade(c, env) {
     const ok = setEqual(predicted, c.oracle.closed_set);
     return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, tokens, signature: JSON.stringify([...predicted].sort()) };
   }
-  if (c.kind === "ordering") {
+  // FAFF-203 — explanatory-order routes through the EXACT `ordering` code path: same `env.ordering`
+  // read, same `rankCorrelation` against `oracle.ordering`, same PASS-on-1/else-PARTIAL + signature. No
+  // new grade math — only the kind guard widens. A missing/garbage `env.ordering` → [] → n<2 → 1.0 by
+  // rankCorrelation's existing contract; the vacuous-pass guard is a CASE-level invariant (≥2 oracle
+  // segments) + a dry-smoke assertion, never a grader change.
+  if (c.kind === "ordering" || c.kind === "explanatory-order") {
     const predicted = env.ordering || [];
     const score = rankCorrelation(predicted, c.oracle.ordering);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(predicted) };

@@ -300,13 +300,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-161: +2 shaping + 2 decomposition (the generative advisory rubric-coverage surfaces).
   // FAFF-153: +2 chain-gap (one positive upstream gap + one conservative-skip empty-oracle case).
   // FAFF-193: +1 gloss (gloss-003, "surface the concrete" rubric).
-  assert.equal(cases.length, 40);
+  // FAFF-203: +2 explanatory-order (Edit A lead-with-the-model ordering, two domains).
+  assert.equal(cases.length, 42);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

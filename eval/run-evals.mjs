@@ -136,7 +136,9 @@ export const DEFAULT_POLICY = { warn_kinds: ["confidence"], tolerances: { closed
 // rank-correlation kind; everything else (gloss/shaping/decomposition/splittable) is free_text.
 export function toleranceFor(kind, tolerances = DEFAULT_POLICY.tolerances) {
   if (CLOSED_SET_KINDS.has(kind)) return tolerances.closed_set ?? 0;
-  if (kind === "ordering") return tolerances.ordering ?? 0;
+  // FAFF-203 — explanatory-order grades via rankCorrelation (the ordering grader-class), so it carries
+  // the ordering tolerance (0.0) — any inversion is a real regression, same as `ordering`.
+  if (kind === "ordering" || kind === "explanatory-order") return tolerances.ordering ?? 0;
   return tolerances.free_text ?? 0;
 }
 

@@ -341,6 +341,19 @@ export function loadDecompositionProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   return extractSection(skillPath, DECOMP_START, DECOMP_END, "loadDecompositionProse");
 }
 
+// FAFF-203 — the Edit A rendering rule, verbatim from the shipped faffidavit-rendering SKILL.md
+// "## Lead with the load-bearing model" THROUGH "## Synthesis — the issue-gloss contract" (lead with
+// the governing model first, then mechanism → method → so-what — the ordering an explanatory-order
+// case is graded against). This is the criteria the `explanatory-order` eval measures. Anchored on
+// stable headers; fail-loud if either moves (the loadModeDetectProse contract — a rendering-adaptor
+// refactor must consciously re-point this eval, never silently de-couple it).
+const LEAD_WITH_MODEL_START = "## Lead with the load-bearing model";
+const LEAD_WITH_MODEL_END = "## Synthesis — the issue-gloss contract";
+export function loadLeadWithModelProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const skillPath = join(pluginDir, "skills", "faffidavit-rendering", "SKILL.md");
+  return extractSection(skillPath, LEAD_WITH_MODEL_START, LEAD_WITH_MODEL_END, "loadLeadWithModelProse");
+}
+
 // Exported (FAFF-135) so the live driver shares the single source of the envelope contract.
 // FAFF-137 — output-ONLY hardening: reasoning models (e.g. qwen3.6) otherwise emit a long reasoning
 // preamble in the content before the block, which dominates wall time and risks a num_predict cap
@@ -460,6 +473,19 @@ export const CHAIN_GAP_INSTRUCTION =
   "in-scope-for-this-PR, unitary-spec-no-reference). Output NOTHING except that single block: no " +
   "reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-203 — the envelope instruction for the `explanatory-order` surface. The model orders the
+// SCRAMBLED explanatory segments lead-with-the-model first, then mechanism → method → so-what, emitting
+// the ordered segment-id list in the SAME `ordering` field the `ordering` kind uses (so the grader
+// reads it through the shared ordering arm). Same OUTPUT-ONLY hardening as EVAL_MODE_INSTRUCTION.
+export const EXPLANATORY_ORDER_INSTRUCTION =
+  "Apply the \"lead with the load-bearing model\" rule above to the scrambled explanation segments: " +
+  "order them so the segment stating the governing load-bearing model comes FIRST, then concrete " +
+  "mechanism → how it's measured/used → what it means (so-what). Then OUTPUT ONLY one fenced code " +
+  "block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "ordering": ["<segment-id>", ...] } — the segment ids in your chosen order, ' +
+  "using the ids from the fixture. Output NOTHING except that single block: no reasoning, no preamble, " +
+  "no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
 // prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
 // to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
@@ -471,6 +497,7 @@ function modeInstructionFor(kind) {
   if (kind === "shaping") return SHAPING_MODE_INSTRUCTION;
   if (kind === "decomposition") return DECOMPOSITION_MODE_INSTRUCTION;
   if (kind === "chain-gap") return CHAIN_GAP_INSTRUCTION;
+  if (kind === "explanatory-order") return EXPLANATORY_ORDER_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -530,6 +557,17 @@ function renderFixturePrompt(c, judgementProse = null) {
       `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
     );
   }
+  // FAFF-203 — explanatory-order renders the SCRAMBLED segments as a labelled `id: text` list the
+  // model must order. The rubric (Edit A prose, via criteriaFor) leads; the segments + question follow.
+  if (c.kind === "explanatory-order") {
+    const segments = (c.fixture.segments || [])
+      .map((s) => `${s.id}: ${s.text}`)
+      .join("\n");
+    return (
+      `${rubric}Order the following scrambled explanation segments per the rule above and answer: ${c.question}\n\n` +
+      `Segments (scrambled):\n${segments}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
@@ -551,6 +589,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "shaping") return loadShapingProse(pluginDir);
   if (kind === "decomposition") return loadDecompositionProse(pluginDir);
   if (kind === "chain-gap") return loadTidyChainGapProse(pluginDir);
+  if (kind === "explanatory-order") return loadLeadWithModelProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

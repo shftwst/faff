@@ -1,0 +1,9 @@
+{ "id": "explanatory-order-002", "kind": "explanatory-order",
+  "fixture": { "segments": [
+    { "id": "seg-method", "text": "Operationally, the worker reads its lease's expires_at on each poll and renews when under a third of the TTL remains, so a long task never runs on a lease it has already lost." },
+    { "id": "seg-model", "text": "The lock is a lease, not a mutex: holding it is a time-bounded claim that expires unless actively renewed, never a permanent grant." },
+    { "id": "seg-sowhat", "text": "That means a crashed worker's work is safely reclaimable after the TTL without any manual unlock step — liveness comes from expiry, not from cleanup." },
+    { "id": "seg-mech", "text": "Each claim writes a row with an owner id and an expires_at timestamp; a competing worker may take over only once that timestamp is in the past." }
+  ] },
+  "question": "Order these explanation segments lead-with-the-model first, then mechanism, then method, then so-what.",
+  "oracle": { "ordering": ["seg-model", "seg-mech", "seg-method", "seg-sowhat"] } }

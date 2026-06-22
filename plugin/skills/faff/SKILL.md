@@ -134,9 +134,11 @@ slots:             # optional delegation slots; each has a faff default when uns
   spec: gstack:autoplan                              # spec producer used by faff-prep (default faffter-noon-spec)
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-graft
+  gates: my-org:gate-runner                          # engineering-quality gate ladder at faff-graft Step 7.5 (default: built-in graft-step → faff gates run)
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
 
 # mode: delivery-lead is DEPRECATED — use slots.methodology instead
+# gates.fallback: advisory | fail-closed — what Step 7.5 does when NO declared gates are found (default advisory: surface + pass; fail-closed: needs-human)
 
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
@@ -179,13 +181,14 @@ slots:
   spec: gstack:autoplan                              # spec producer used by faff-prep, optional (default faffter-noon-spec)
   concurrency: faffter-dark-concurrency-parallel     # build-pass executor for faff-beep-boop, optional (default faffter-noon-concurrency-sequential)
   review: gstack:review                              # pre-PR review inside faff-graft, optional
+  gates: my-org:gate-runner                          # engineering-quality gate ladder at faff-graft Step 7.5, optional (default: built-in graft-step → faff gates run)
   methodology: faffter-dark-methodology-agile-delivery             # diagnostic lens over backlog state, optional
   routing_adaptor: faffidavit-routing        # adaptor: verdict assignment + display; the six-verdict vocabulary + admission rule are fixed in the gateway
   rendering_adaptor: faffidavit-rendering        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft, optional (default faffter-noon-ship)
 ```
 
-The `spec`, `review`, and `ship` producers each **emit their contract data as a `faff-contract:<name>` artifact block** (`spec-readiness` / `review-verdict` / `delivery-outcome`); the consumer (`faff-prep`, `faff-graft` Step 9 / Step 10) locates that block, `JSON.parse`s it, and pipes it to `faff contract <name>` directly. There is **no** `spec_adaptor` / `review_adaptor` / `ship_adaptor` slot — that prose-extraction layer was retired. A bespoke third-party producer conforms by emitting the same block (or via the fused wrapper); only `routing_adaptor` (a computed verdict) and `rendering_adaptor` (no fixed contract) remain adaptor slots.
+The `spec`, `review`, `gates`, and `ship` producers each **emit their contract data as a `faff-contract:<name>` artifact block** (`spec-readiness` / `review-verdict` / `quality-gates` / `delivery-outcome`); the consumer (`faff-prep`, `faff-graft` Step 7.5 / Step 9 / Step 10) locates that block, `JSON.parse`s it, and pipes it to `faff contract <name>` directly. There is **no** `spec_adaptor` / `review_adaptor` / `ship_adaptor` slot — that prose-extraction layer was retired. A bespoke third-party producer conforms by emitting the same block (or via the fused wrapper); only `routing_adaptor` (a computed verdict) and `rendering_adaptor` (no fixed contract) remain adaptor slots.
 
 Each slot has a built-in default when unset. The default skill owns its own behaviour contract — see that skill's `SKILL.md`. A missing slot is **never** a park reason.
 
@@ -196,6 +199,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 | `adr` | `faffter-noon-adr` | Authors the Nygard ADR body (Context/Decision/Consequences) at faff-graft Step 4b, from a settled `Chosen:` decision + the spec rationale + the existing `docs/adr` log. Intake-shaped producer — a documented body output with an **advisory** confidence self-rating and **no** gated contract (the ADR body is never pass/fail-gated). The single ADR-authoring producer (FAFF-27 reuses it). |
 | `concurrency` | `faffter-noon-concurrency-sequential` | Build-pass executor for faff-beep-boop — consumes the conflict-analysis partition and drives `/faff-graft` per issue. The default runs the queue **sequentially**; swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge. A mechanism slot (no paired adaptor). |
 | `review` | `faffter-noon-review` | Pre-PR review inside faff-graft. Emits its `faff-contract:review-verdict` artifact block, which faff-graft Step 9 parses and pipes to `faff contract review-verdict`. |
+| `gates` | _(none — built-in graft-step)_ | Engineering-quality gate ladder at faff-graft **Step 7.5** (FAFF-11): runs the repo's *own declared* cheap checks (format/lint/type/static/unit) cheapest-first, fail-fast, **before** review/PR/CI. Default is the faff-owned graft-step calling `faff gates run` — **no slot required** (zero-config repos run what they already declare); set `slots.gates` only to bring a custom runner. Emits a `faff-contract:quality-gates` block which Step 7.5 pipes to `faff contract quality-gates` (malformed signal → `needs-human`, never `pass`). |
 | `methodology` | `faffter-noon-methodology-structural` | A diagnostic lens over backlog/build state. Sub-skills request named outputs from it. |
 | `routing_adaptor` | `faffidavit-routing` | Adaptor over the fixed automation-routing contract (six verdicts + admission rule + root-cause taxonomy — all in the gateway): verdict assignment + computation locus + display format; assigns and validates verdicts. |
 | `rendering_adaptor` | `faffidavit-rendering` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, output token economy, issue-gloss humanisation; normalises output on demand. |

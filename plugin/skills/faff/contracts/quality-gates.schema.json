@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/quality-gates",
+  "title": "quality-gates contract data",
+  "description": "Reference schema (FAFF-11). The SHAPE of the engineering-quality-gate-ladder contract data the graft Step-7.5 branches on. Shape is normative here; the gate SEMANTICS (autonomy gradient, fail-fast, discovery-fallback) live in the gateway / faff-graft prose. Coercion target for a malformed signal is `needs-human` (never `pass`), matching review-verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["signal", "rungs", "conformant", "violations"],
+  "properties": {
+    "signal": { "type": "string", "enum": ["pass", "fail", "needs-human"] },
+    "rungs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "status"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["FORMAT", "LINT", "TYPECHECK", "STATIC_ANALYSIS", "UNIT", "OTHER"] },
+          "status": { "type": "string", "enum": ["pass", "fail", "skipped", "errored"] }
+        }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -17,6 +17,7 @@
 //   park-history --now <ISO> [--issue ID] [--root DIR]   deterministic repeat-park counts over .faff/runs summaries (>=3 same root-cause class in 21d); --selftest
 //   gitignore-ensure [--root DIR] [--json]        idempotently add faff's local artifacts to .gitignore
 //   worktree-prune [--own P ...] [--branch B] [--issue ID] [--dry-run] [--json]   FAFF-126: scoped fail-safe prune — own dangling worktrees only, never repo-wide; --selftest
+//   gates <discover|run> [--json]                FAFF-11: cost-ordered engineering-quality gate ladder — discover/run the repo's own declared cheap checks (pre-commit/pkg/Makefile) cheapest-first, fail-fast, emit a faff-contract:quality-gates block; --selftest
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
 // (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
@@ -204,6 +205,7 @@ const DEFAULTS = {
   "appetite": "high",
   "adr.mode": "offer",
   "intake_gate": "warn",
+  "gates.fallback": "advisory",
 };
 
 function fmt(value) {
@@ -597,6 +599,7 @@ function cmdConfig(args) {
           "slots.intake", "slots.spec", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
+          "gates.fallback",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -3015,6 +3018,7 @@ Subcommands:
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
+  gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
@@ -3227,6 +3231,52 @@ function contractAutomationRouting(extraction) {
   return { contractData };
 }
 
+// --- quality-gates (FAFF-11) ---
+// The engineering-quality-gate-ladder verdict faff-graft Step 7.5 branches on. Mirrors
+// review-verdict EXACTLY: safe coerce target = `needs-human` (never `pass`) — the ladder gates the
+// build, so a malformed verdict must never read as a green light. Fail-loud only on an unparseable
+// extraction. The `faff gates run` command emits the GatesOutcome that the agent reads into this
+// extraction shape; this contract is the consumer-side conformance check (like review-verdict).
+const GATE_RUNG_KINDS = ["FORMAT", "LINT", "TYPECHECK", "STATIC_ANALYSIS", "UNIT", "OTHER"];
+const GATE_RUNG_STATUSES = ["pass", "fail", "skipped", "errored"];
+function computeQualityGates(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const SIGNALS = ["pass", "fail", "needs-human"];
+  const violations = [];
+  let signal = extraction.signal;
+  if (!SIGNALS.includes(signal)) {
+    violations.push(`signal ${JSON.stringify(signal)} not in {pass,fail,needs-human} — coerced to needs-human`);
+    signal = "needs-human";
+  }
+  const raw = Array.isArray(extraction.rungs) ? extraction.rungs : [];
+  const rungs = raw.map((r, i) => {
+    let kind = r && r.kind;
+    let status = r && r.status;
+    if (!GATE_RUNG_KINDS.includes(kind)) { violations.push(`rung[${i}] kind ${JSON.stringify(kind)} not in {${GATE_RUNG_KINDS.join(",")}} — normalised to OTHER`); kind = "OTHER"; }
+    if (!GATE_RUNG_STATUSES.includes(status)) { violations.push(`rung[${i}] status ${JSON.stringify(status)} not in {${GATE_RUNG_STATUSES.join(",")}} — normalised to errored`); status = "errored"; }
+    return { kind, status };
+  });
+  // A fail/needs-human verdict with no rung is suspect (mirrors review-verdict's no-findings rule).
+  if ((signal === "fail" || signal === "needs-human") && rungs.length === 0) {
+    violations.push(`${signal} carries no rungs`);
+  }
+  // A `fail` signal must be backed by a failing rung; a `pass` must carry no failing rung.
+  const anyFail = rungs.some((r) => r.status === "fail");
+  if (signal === "fail" && !anyFail) violations.push("fail signal but no rung has status fail");
+  if (signal === "pass" && anyFail) violations.push("pass signal but a rung has status fail");
+  return { contractData: { signal, rungs, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractQualityGates(extraction) {
+  const { contractData, failLoud } = computeQualityGates(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "quality-gates");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
   "spec-readiness": {
@@ -3266,6 +3316,20 @@ const CONTRACTS = {
       { name: "conformant-with-root-cause", in: { verdict: "repeat-parked", root_cause: "punt-not-closed" }, wantExit: 0 },
       { name: "bad-root-cause-normalised", in: { verdict: "gap-blocked", root_cause: "mystery" }, wantExit: 1 },
       { name: "fail-loud-bad-verdict", in: { verdict: "bogus", root_cause: null }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "quality-gates": {
+    run: contractQualityGates,
+    fixtures: [
+      { name: "conformant-pass", in: { signal: "pass", rungs: [{ kind: "LINT", status: "pass" }, { kind: "UNIT", status: "pass" }] }, wantExit: 0 },
+      { name: "conformant-fail", in: { signal: "fail", rungs: [{ kind: "LINT", status: "fail" }] }, wantExit: 0 },
+      { name: "pass-no-rungs", in: { signal: "pass", rungs: [] }, wantExit: 0 },
+      { name: "fail-without-failing-rung", in: { signal: "fail", rungs: [{ kind: "LINT", status: "pass" }] }, wantExit: 1 },
+      { name: "pass-with-failing-rung", in: { signal: "pass", rungs: [{ kind: "UNIT", status: "fail" }] }, wantExit: 1 },
+      { name: "needs-human-no-rungs", in: { signal: "needs-human", rungs: [] }, wantExit: 1 },
+      { name: "coerce-malformed-signal", in: { signal: "maybe", rungs: [{ kind: "LINT", status: "fail" }] }, wantExit: 1 },
+      { name: "errored-rung-needs-human", in: { signal: "needs-human", rungs: [{ kind: "UNIT", status: "errored" }] }, wantExit: 0 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -3312,6 +3376,272 @@ function cmdContract(args) {
   if (result.failLoud) { process.stderr.write(`faff contract ${name}: fail-loud: ${result.failLoud}\n`); return 2; }
   process.stdout.write(JSON.stringify(result.contractData) + "\n");
   return (result.contractData.violations || []).length === 0 ? 0 : 1;
+}
+
+// ===========================================================================
+// gates — FAFF-11: the engineering-quality gate ladder.
+// `faff gates discover` deterministically inspects the repo's OWN declared checks (pre-commit /
+// package.json scripts / Makefile / CLAUDE.md / cheap CI jobs) and emits an ordered List<Rung>
+// cheapest-first + a discovery classification (confident/partial/none). `faff gates run` discovers
+// then executes the rungs cheapest-first in the worktree sandbox (execution_target = cwd; the single
+// FAFF-12 seam) and emits a GatesOutcome + a faff-contract:quality-gates block. Pure-deterministic:
+// NO LLM judgement decides what counts as a gate, and a command whose only source is an issue
+// description / third-party comment is NEVER discovered (TRUSTED-SOURCE-ONLY, like Step 8).
+// ===========================================================================
+
+// Cost ranks — lower = cheaper / more-local, the sequencing key (cheapest-first).
+const GATE_COST = { FORMAT: 10, LINT: 20, TYPECHECK: 30, STATIC_ANALYSIS: 40, UNIT: 50, OTHER: 60 };
+
+// Map a script/target NAME to a RungKind by its conventional intent. Returns null for names that
+// are not recognisably an engineering gate (so we never fabricate a gate from an arbitrary script).
+function gateKindForName(name) {
+  const n = String(name).toLowerCase();
+  if (/(^|[^a-z])(fmt|format|prettier|gofmt|rustfmt|black|isort)([^a-z]|$)/.test(n)) return "FORMAT";
+  if (/(^|[^a-z])(lint|eslint|flake8|ruff|clippy|vet|rubocop|standard)([^a-z]|$)/.test(n)) return "LINT";
+  if (/(^|[^a-z])(typecheck|type-check|tsc|mypy|pyright|types)([^a-z]|$)/.test(n)) return "TYPECHECK";
+  if (/(^|[^a-z])(static|analyz|analyse|sast|bandit|semgrep)([^a-z]|$)/.test(n)) return "STATIC_ANALYSIS";
+  if (/(^|[^a-z])(test|tests|unit|spec|pytest|jest|vitest|check)([^a-z]|$)/.test(n)) return "UNIT";
+  return null;
+}
+
+// Discover the package.json scripts that look like engineering gates → rungs.
+function discoverPkgScripts(root) {
+  const rungs = [];
+  const pkgPath = path.join(root, "package.json");
+  if (!fs.existsSync(pkgPath)) return rungs;
+  let pkg;
+  try { pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")); } catch { return rungs; }
+  const scripts = (pkg && pkg.scripts) || {};
+  for (const [name, body] of Object.entries(scripts)) {
+    if (typeof body !== "string" || !body.trim()) continue;
+    const kind = gateKindForName(name);
+    if (!kind) continue;
+    rungs.push({ kind, name: `${kind.toLowerCase()} (package.json: npm run ${name})`, command: `npm run ${name}`, source: "pkg_script", cost_rank: GATE_COST[kind], required: true });
+  }
+  return rungs;
+}
+
+// Discover Makefile targets that look like engineering gates → rungs. Trusted source: the repo's
+// own Makefile. We read target NAMES only (the line `target:` at col 0), never recipe bodies.
+function discoverMakefile(root) {
+  const rungs = [];
+  const mkPath = path.join(root, "Makefile");
+  if (!fs.existsSync(mkPath)) return rungs;
+  let text;
+  try { text = fs.readFileSync(mkPath, "utf8"); } catch { return rungs; }
+  const targets = new Set();
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^([A-Za-z0-9][A-Za-z0-9._-]*)\s*:(?!=)/.exec(line);
+    if (m) targets.add(m[1]);
+  }
+  for (const t of targets) {
+    const kind = gateKindForName(t);
+    if (!kind) continue;
+    rungs.push({ kind, name: `${kind.toLowerCase()} (Makefile: make ${t})`, command: `make ${t}`, source: "makefile", cost_rank: GATE_COST[kind], required: true });
+  }
+  return rungs;
+}
+
+// Discover pre-commit hook ids → rungs (declared hooks the repo opted into). Trusted: the repo's
+// .pre-commit-config.yaml. We read hook IDs only and run them via `pre-commit run <id> --all-files`.
+function discoverPreCommit(root) {
+  const rungs = [];
+  const cfg = ["", ".yaml", ".yml"].map((e) => path.join(root, ".pre-commit-config" + e)).find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+  if (!cfg) return rungs;
+  let text;
+  try { text = fs.readFileSync(cfg, "utf8"); } catch { return rungs; }
+  // Minimal: collect `- id: <hook>` lines (our YAML subset parser does lists shallowly; read ids directly).
+  const ids = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^\s*-?\s*id:\s*["']?([A-Za-z0-9][A-Za-z0-9._-]*)["']?\s*$/.exec(line);
+    if (m) ids.push(m[1]);
+  }
+  for (const id of ids) {
+    const kind = gateKindForName(id) || "OTHER";
+    rungs.push({ kind, name: `${kind.toLowerCase()} (pre-commit: ${id})`, command: `pre-commit run ${id} --all-files`, source: "pre_commit", cost_rank: GATE_COST[kind] - 5, required: true });
+  }
+  return rungs;
+}
+
+// The deterministic discovery. Reuses the resolution ORDER faff-graft Step 8 documents
+// (CLAUDE.md/test+lint via the repo's own declarations) — ONE resolver, no second divergent one.
+function discoverRungs(root) {
+  let rungs = [
+    ...discoverPreCommit(root),
+    ...discoverPkgScripts(root),
+    ...discoverMakefile(root),
+  ];
+  // Deduplicate by kind, preferring the cheapest source (lowest cost_rank) for each kind.
+  const byKind = new Map();
+  for (const r of rungs.sort((a, b) => a.cost_rank - b.cost_rank)) {
+    if (!byKind.has(r.kind)) byKind.set(r.kind, r);
+  }
+  rungs = [...byKind.values()].sort((a, b) => a.cost_rank - b.cost_rank);
+  // discovery classification: confident if any rung resolved; none if nothing; partial reserved for
+  // the future ambiguous-config case (we resolve conservatively, so we never emit a fabricated rung).
+  const discovery = rungs.length ? "confident" : "none";
+  return { rungs, discovery };
+}
+
+// Execution target = the worktree sandbox (cwd) — the single FAFF-12 seam (Q1 interim default).
+// Runs the rung's command and classifies pass/fail/errored. A 127 (command-not-found) is `errored`
+// (tool missing) not `fail` — we can't conclude the code is bad.
+function runRung(rung, root) {
+  const started = Date.now();
+  let res;
+  try {
+    res = spawnSync(rung.command, { cwd: root, shell: true, encoding: "utf8", timeout: 10 * 60 * 1000 });
+  } catch (e) {
+    return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", duration_ms: Date.now() - started, detail: String(e && e.message || e).slice(-500) };
+  }
+  const duration_ms = Date.now() - started;
+  const tail = ((res.stderr || "") + (res.stdout || "")).slice(-500);
+  let status;
+  if (res.error || res.status === 127) status = "errored";       // tool missing / spawn error
+  else if (res.status === 0) status = "pass";
+  else status = "fail";
+  return { kind: rung.kind, name: rung.name, command: rung.command, status, duration_ms, detail: tail };
+}
+
+// Resolve the fallback policy for `discovery: none` from config: advisory (default) | fail-closed.
+function gatesFallbackPolicy(root) {
+  try {
+    const [data] = loadConfig(root);
+    const v = dig(data, "gates.fallback");
+    if (v === "fail-closed") return "fail-closed";
+  } catch { /* default */ }
+  return "advisory";
+}
+
+// Run the ladder: cheapest-first, fail-fast on the first failing REQUIRED rung. An errored rung at
+// L3 → needs-human (can't conclude the code is bad). discovery:none → the fallback policy decides.
+function runLadder(root) {
+  const { rungs, discovery } = discoverRungs(root);
+  const results = [];
+  let signal = "pass";
+  let needsHuman = false;
+  for (const rung of rungs) {
+    const r = runRung(rung, root);
+    results.push(r);
+    if (r.status === "errored") { needsHuman = true; continue; }   // surface, don't gate as fail
+    if (rung.required && r.status === "fail") {
+      return { signal: "fail", discovery, rungs: results };         // fail-fast: stop here
+    }
+  }
+  if (discovery === "none") {
+    signal = gatesFallbackPolicy(root) === "fail-closed" ? "needs-human" : "pass";
+  } else if (needsHuman) {
+    signal = "needs-human";
+  }
+  return { signal, discovery, rungs: results };
+}
+
+// Map a GatesOutcome → the quality-gates contract EXTRACTION shape (rungs reduced to {kind,status}).
+function gatesContractExtraction(outcome) {
+  return { signal: outcome.signal, rungs: outcome.rungs.map((r) => ({ kind: r.kind, status: r.status })) };
+}
+
+function cmdGates(args) {
+  if (args.includes("--selftest")) return gatesSelftest();
+  const action = args[0];
+  const json = args.includes("--json");
+  const root = (() => { const i = args.indexOf("--root"); return i !== -1 ? args[i + 1] : findRoot(); })();
+
+  if (action === "discover") {
+    const { rungs, discovery } = discoverRungs(root);
+    if (json) { console.log(JSON.stringify({ discovery, rungs }, null, 2)); return 0; }
+    console.log(`gate ladder discovery: ${discovery} (${rungs.length} rung${rungs.length === 1 ? "" : "s"})`);
+    for (const r of rungs) console.log(`  ${String(r.cost_rank).padStart(3)}  ${r.kind.padEnd(16)} ${r.command}   [${r.source}]`);
+    return 0;
+  }
+
+  if (action === "run") {
+    const outcome = runLadder(root);
+    const extraction = gatesContractExtraction(outcome);
+    const block = "<faff-contract:quality-gates>\n" + JSON.stringify(extraction) + "\n</faff-contract:quality-gates>";
+    if (json) {
+      console.log(JSON.stringify({ ...outcome, contract: extraction }, null, 2));
+    } else {
+      console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);
+      for (const r of outcome.rungs) console.log(`  ${r.status.padEnd(8)} ${r.kind.padEnd(16)} ${r.command}  (${r.duration_ms}ms)`);
+      if (outcome.discovery === "none") console.log("  no declared engineering gates found; ran none");
+      console.log(block);
+    }
+    // exit 0 all-pass / 1 >=1 fail / 2 usage (mirrors the spec). needs-human exits 1 (non-green).
+    return outcome.signal === "pass" ? 0 : 1;
+  }
+
+  process.stderr.write("faff gates: expected one of: discover | run (or --selftest)\n");
+  return 2;
+}
+
+function gatesSelftest() {
+  const cases = [];
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-gates-"));
+  const mk = (name, files) => {
+    const d = path.join(tmp, name);
+    fs.mkdirSync(d, { recursive: true });
+    for (const [f, body] of Object.entries(files)) {
+      fs.mkdirSync(path.dirname(path.join(d, f)), { recursive: true });
+      fs.writeFileSync(path.join(d, f), body);
+    }
+    return d;
+  };
+
+  // 1. package.json with lint + test → both discovered, LINT before UNIT by cost_rank.
+  const dPkg = mk("pkg", { "package.json": JSON.stringify({ scripts: { lint: "true", test: "true", build: "true" } }) });
+  const dis1 = discoverRungs(dPkg);
+  cases.push(["pkg: discovers lint+test, not build", dis1.rungs.length === 2 && dis1.rungs[0].kind === "LINT" && dis1.rungs[1].kind === "UNIT"]);
+  cases.push(["pkg: discovery confident", dis1.discovery === "confident"]);
+  cases.push(["pkg: cost_rank ascending (LINT<UNIT)", dis1.rungs[0].cost_rank < dis1.rungs[1].cost_rank]);
+
+  // 2. run ladder all-pass → signal pass, rungs both pass, ordered LINT before UNIT.
+  const out2 = runLadder(dPkg);
+  cases.push(["pkg run: signal pass", out2.signal === "pass"]);
+  cases.push(["pkg run: LINT then UNIT", out2.rungs[0].kind === "LINT" && out2.rungs[1].kind === "UNIT"]);
+  cases.push(["pkg run: both pass", out2.rungs.every((r) => r.status === "pass")]);
+
+  // 3. lint fails (exit 1) → fail-fast: signal fail, stops BEFORE the test rung (only 1 result).
+  const dFail = mk("fail", { "package.json": JSON.stringify({ scripts: { lint: "false", test: "true" } }) });
+  const out3 = runLadder(dFail);
+  cases.push(["fail-fast: signal fail", out3.signal === "fail"]);
+  cases.push(["fail-fast: stopped before UNIT (1 result)", out3.rungs.length === 1 && out3.rungs[0].kind === "LINT" && out3.rungs[0].status === "fail"]);
+
+  // 4. no declared checks → discovery none; advisory default → pass; fail-closed config → needs-human.
+  const dNone = mk("none", { "README.md": "hi" });
+  const out4 = runLadder(dNone);
+  cases.push(["none: discovery none", out4.discovery === "none"]);
+  cases.push(["none: advisory default → pass", out4.signal === "pass"]);
+  const dClosed = mk("closed", { "README.md": "hi", ".faffrc.yaml": "gates:\n  fallback: fail-closed\n" });
+  const out5 = runLadder(dClosed);
+  cases.push(["none: fail-closed config → needs-human", out5.signal === "needs-human"]);
+
+  // 5. errored rung (command not found) → needs-human, not fail.
+  const dErr = mk("err", { "package.json": JSON.stringify({ scripts: { lint: "this-command-does-not-exist-xyz" } }) });
+  const out6 = runLadder(dErr);
+  cases.push(["errored rung → needs-human not fail", out6.signal === "needs-human" && out6.rungs[0].status === "errored"]);
+
+  // 6. Makefile target discovery.
+  const dMk = mk("mk", { "Makefile": "lint:\n\ttrue\nbuild:\n\ttrue\n" });
+  const dis6 = discoverRungs(dMk);
+  cases.push(["makefile: discovers lint target only", dis6.rungs.length === 1 && dis6.rungs[0].kind === "LINT" && dis6.rungs[0].source === "makefile"]);
+
+  // 7. dedup: package.json lint preferred over makefile lint (cheaper source already; one LINT rung).
+  const dDup = mk("dup", { "package.json": JSON.stringify({ scripts: { lint: "true" } }), "Makefile": "lint:\n\ttrue\n" });
+  const dis7 = discoverRungs(dDup);
+  cases.push(["dedup: one LINT rung when both pkg+makefile declare it", dis7.rungs.filter((r) => r.kind === "LINT").length === 1]);
+
+  // 8. contract extraction shape pipes cleanly through the quality-gates contract.
+  const ext = gatesContractExtraction(out2);
+  const c = contractQualityGates(ext);
+  cases.push(["contract: pass outcome conforms", !c.failLoud && c.contractData.conformant === true]);
+
+  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
+
+  let failed = 0;
+  for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
+  console.log(`RESULT: ${failed ? "FAIL" : "PASS"} (${cases.length} cases, ${failed} failed)`);
+  return failed ? 1 : 0;
 }
 
 // FAFF-190: install-health check. The faff skills can be installed as real-dir COPIES (e.g. a
@@ -3669,6 +3999,7 @@ function main(argv) {
   if (sub === "park-history") return cmdParkHistory(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
   if (sub === "adr") return cmdAdr(rest);
+  if (sub === "gates") return cmdGates(rest);
   if (sub === "contract") return cmdContract(rest);
   if (sub === "doctor") return cmdDoctor(rest);
   if (sub === "worktree-prune") return cmdWorktreePrune(rest);

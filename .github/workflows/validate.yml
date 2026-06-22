@@ -57,6 +57,12 @@ jobs:
       - name: Validate automation-routing contract script
         run: node plugin/skills/faff/bin/faff contract automation-routing --selftest
 
+      - name: Validate quality-gates contract script
+        run: node plugin/skills/faff/bin/faff contract quality-gates --selftest
+
+      - name: Validate engineering-quality gate ladder
+        run: node plugin/skills/faff/bin/faff gates --selftest
+
       - name: Validate park-history repeat-park counting table
         run: node plugin/skills/faff/bin/faff park-history --selftest
 

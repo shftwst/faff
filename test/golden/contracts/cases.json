@@ -96,5 +96,43 @@
     "input": "{\"confidence\":\"high\",\"spec_present\":true}",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "quality-gates",
+    "name": "valid-pass",
+    "input": "{\"signal\":\"pass\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"pass\"},{\"kind\":\"UNIT\",\"status\":\"pass\"}]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "signal": "pass",
+      "rungs": [
+        { "kind": "LINT", "status": "pass" },
+        { "kind": "UNIT", "status": "pass" }
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "quality-gates",
+    "name": "coerce-malformed-signal-to-needs-human",
+    "input": "{\"signal\":\"maybe\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"fail\"}]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "signal": "needs-human",
+      "rungs": [
+        { "kind": "LINT", "status": "fail" }
+      ],
+      "conformant": false,
+      "violations": [
+        "signal \"maybe\" not in {pass,fail,needs-human} — coerced to needs-human"
+      ]
+    }
+  },
+  {
+    "contract": "quality-gates",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

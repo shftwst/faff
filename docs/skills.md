@@ -45,17 +45,19 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 | `faffter-dark-concurrency-parallel` | `concurrency` | Concurrent build-pass executor — runs independents in parallel, each in its own worktree, capped at `concurrency_max`, with rebase-before-merge so a moving `main` can't merge stale-green. Replaces the sequential default for speed. |
 | `faffter-dark-authoring-adaptors` | — (tooling) | Author/validate skill for slot occupants. Scaffolds a new adaptor/producer/methodology with the correct refer-back prose + contract mapping, and validates that an existing slot skill conforms. A development-time tool, not a pipeline slot. |
 
-Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc.yaml`:
+Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc.yaml`. Two transport families are supported: `ollama` and any OpenAI-compatible `/v1` endpoint (`openai`, `vllm`, `openrouter`, `nvidia`, `deepseek`):
 
 ```yaml
 faffter_dark:
   adversarial:
-    provider: gemini
-    model: gemini-2.5-pro
-    api_key_env: GEMINI_API_KEY
+    provider: nvidia
+    model: deepseek-ai/deepseek-v4-pro
+    host: https://integrate.api.nvidia.com/v1   # base URL incl. /v1
+    api_key_env: NVIDIA_API_KEY                 # env var NAME, not the key
+    reasoning_off: true                         # reasoning models: disable the hidden think-block
 ```
 
-The core principle is **independence** — use a different model from whatever wrote the code. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
+`gemini`/`anthropic` native formats aren't wired — point them at an OpenAI-compatible base URL. The core principle is **independence** — use a different model from whatever wrote the code. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
 
 ## The naming convention
 

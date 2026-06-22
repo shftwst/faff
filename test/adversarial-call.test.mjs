@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 import {
   buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
   preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
+  buildOpenAiPayload, modelServedOpenAi, accumulateSse, isAuthError,
+  providerFamily, joinUrl, preflightOpenAi,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -117,11 +119,174 @@ test("parseArgs collects repeated --context and the scalar flags", () => {
   assert.equal(a.numPredict, 1500);
 });
 
-test("EXIT codes: not-served and unreachable are distinct + non-zero", () => {
+test("EXIT codes: not-served, unreachable, default-host-unreachable, auth are distinct + non-zero", () => {
   assert.equal(EXIT.OK, 0);
   assert.equal(EXIT.NOT_SERVED, 4);
   assert.equal(EXIT.UNREACHABLE, 5);
-  assert.notEqual(EXIT.NOT_SERVED, EXIT.UNREACHABLE);
+  assert.equal(EXIT.DEFAULT_HOST_UNREACHABLE, 6);
+  assert.equal(EXIT.AUTH, 7); // renumbered from 6 → 7 after FAFF-213 took exit 6
+  assert.equal(new Set([EXIT.NOT_SERVED, EXIT.UNREACHABLE, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH]).size, 4);
+});
+
+// --- OpenAI-compatible (/v1) path: NVIDIA NIM, OpenAI, vLLM, OpenRouter, DeepSeek ---
+
+test("providerFamily maps the OpenAI-compatible set to openai, ollama to ollama, else passthrough", () => {
+  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible"]) {
+    assert.equal(providerFamily(p), "openai", p);
+  }
+  assert.equal(providerFamily("ollama"), "ollama");
+  assert.equal(providerFamily(undefined), "ollama", "default is ollama (preserves original behaviour)");
+  assert.equal(providerFamily("gemini"), "gemini", "native-format providers pass through → unsupported");
+});
+
+test("joinUrl appends the endpoint without dropping the base /v1 (the new URL trap)", () => {
+  assert.equal(joinUrl("https://integrate.api.nvidia.com/v1", "/models"), "https://integrate.api.nvidia.com/v1/models");
+  assert.equal(joinUrl("https://integrate.api.nvidia.com/v1/", "/chat/completions"), "https://integrate.api.nvidia.com/v1/chat/completions");
+});
+
+test("buildOpenAiPayload: stream + max_tokens, reasoning-off OPT-IN (vanilla OpenAI rejects the field)", () => {
+  const off = buildOpenAiPayload({ model: "deepseek-ai/deepseek-v4-pro", system: "S", user: "U", reasoningOff: true });
+  assert.equal(off.stream, true);
+  assert.equal(off.max_tokens, DEFAULT_NUM_PREDICT);
+  assert.deepEqual(off.chat_template_kwargs, { thinking: false }, "thinking disabled for reasoning models");
+  assert.deepEqual(off.messages.map((m) => m.role), ["system", "user"]);
+
+  const on = buildOpenAiPayload({ model: "gpt-4o", system: "S", user: "U" });
+  assert.equal("chat_template_kwargs" in on, false, "not sent unless reasoningOff — keeps vanilla OpenAI happy");
+  assert.equal(buildOpenAiPayload({ model: "m", system: "", user: "", maxTokens: 9000 }).max_tokens, 9000);
+});
+
+test("modelServedOpenAi reads the {data:[{id}]} shape and matches exactly", () => {
+  const models = { data: [{ id: "deepseek-ai/deepseek-v4-pro" }, { id: "meta/llama-3.1-70b" }] };
+  assert.equal(modelServedOpenAi(models, "deepseek-ai/deepseek-v4-pro").served, true);
+  const miss = modelServedOpenAi(models, "deepseek-ai/deepseek-v4");
+  assert.equal(miss.served, false);
+  assert.deepEqual(miss.names, ["deepseek-ai/deepseek-v4-pro", "meta/llama-3.1-70b"]);
+});
+
+test("accumulateSse folds delta.content, flags length-truncation, honours [DONE], tolerates a bad frame", () => {
+  const sse = [
+    `data: ${JSON.stringify({ choices: [{ delta: { content: "Hello " } }] })}`,
+    "data: not json",
+    `data: ${JSON.stringify({ choices: [{ delta: { content: "world" }, finish_reason: "length" }] })}`,
+    "data: [DONE]",
+  ].join("\n");
+  const r = accumulateSse(sse);
+  assert.equal(r.content, "Hello world");
+  assert.equal(r.truncated, true);
+  assert.equal(r.done, true);
+});
+
+test("accumulateSse: clean stop is not truncated", () => {
+  const r = accumulateSse(`data: ${JSON.stringify({ choices: [{ delta: { content: "x" }, finish_reason: "stop" }] })}\ndata: [DONE]`);
+  assert.equal(r.content, "x");
+  assert.equal(r.truncated, false);
+});
+
+test("accumulateSse: non-streamed fallback (provider ignored stream:true → one completion object)", () => {
+  const whole = JSON.stringify({ choices: [{ message: { content: "single-shot" }, finish_reason: "stop" }] });
+  const r = accumulateSse(whole);
+  assert.equal(r.content, "single-shot");
+  assert.equal(r.done, true);
+});
+
+test("isAuthError: 401/403 are auth (no retry); 404/timeout are not", () => {
+  assert.equal(isAuthError(new Error("HTTP 401")), true);
+  assert.equal(isAuthError(new Error("HTTP 403")), true);
+  assert.equal(isAuthError(new Error("HTTP 404")), false);
+  assert.equal(isAuthError(new Error("stream timed out")), false);
+});
+
+test("preflightOpenAi: served / not-served / unreachable / auth-failed are all distinguished + Bearer sent", async () => {
+  let seenHeaders;
+  const getOk = async (_url, _t, headers) => { seenHeaders = headers; return JSON.stringify({ data: [{ id: "m" }] }); };
+  const served = await preflightOpenAi({ host: "https://h/v1", model: "m", apiKey: "K", getFn: getOk });
+  assert.equal(served.served, true);
+  assert.equal(seenHeaders.authorization, "Bearer K", "Bearer auth attached on preflight");
+
+  const notServed = await preflightOpenAi({ host: "https://h/v1", model: "typo", apiKey: "K", getFn: getOk });
+  assert.equal(notServed.served, false);
+
+  const auth = await preflightOpenAi({ host: "https://h/v1", model: "m", apiKey: "bad", getFn: async () => { throw new Error("HTTP 401"); } });
+  assert.equal(auth.authFailed, true);
+
+  const down = await preflightOpenAi({ host: "https://h/v1", model: "m", apiKey: "K", getFn: async () => { throw new Error("ECONNREFUSED"); } });
+  assert.equal(down.unreachable, true);
+});
+
+test("runReview dispatch → openai: happy path streams SSE findings + sends Bearer on the POST", async () => {
+  let streamHeaders;
+  const r = await runReview({
+    provider: "nvidia", host: "https://integrate.api.nvidia.com/v1", model: "deepseek-ai/deepseek-v4-pro",
+    system: "S", user: "U", apiKey: "nv-KEY", reasoningOff: true,
+    getFn: async () => JSON.stringify({ data: [{ id: "deepseek-ai/deepseek-v4-pro" }] }),
+    streamFn: async (_url, body, _t, headers) => {
+      streamHeaders = headers;
+      assert.deepEqual(JSON.parse(body).chat_template_kwargs, { thinking: false }, "reasoning-off carried into the body");
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "### finding");
+  assert.equal(streamHeaders.authorization, "Bearer nv-KEY");
+});
+
+test("runReview dispatch → openai: SSE truncation triggers exactly one retry at 2× max_tokens", async () => {
+  const budgets = [];
+  const r = await runReview({
+    provider: "openai", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "K", numPredict: 1000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async (_url, body) => {
+      budgets.push(JSON.parse(body).max_tokens);
+      const first = budgets.length === 1;
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: first ? "partial" : "full" }, finish_reason: first ? "length" : "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.deepEqual(budgets, [1000, 2000], "one retry at double budget");
+  assert.equal(r.content, "full");
+});
+
+test("runReview dispatch → openai: auth failure surfaces status auth-failed (skill → needs-human, no retry)", async () => {
+  const r = await runReview({
+    provider: "openai", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "bad",
+    getFn: async () => { throw new Error("HTTP 401 Unauthorized"); },
+    streamFn: async () => { throw new Error("should not stream on auth failure"); },
+  });
+  assert.equal(r.status, "auth-failed");
+});
+
+test("runReview dispatch → openai: model-not-served maps the same as ollama (→ needs-human)", async () => {
+  const r = await runReview({
+    provider: "vllm", host: "https://h/v1", model: "absent", system: "S", user: "U", apiKey: "K",
+    getFn: async () => JSON.stringify({ data: [{ id: "present" }] }),
+    streamFn: async () => { throw new Error("should not stream when not served"); },
+  });
+  assert.equal(r.status, "model-not-served");
+  assert.deepEqual(r.names, ["present"]);
+});
+
+test("runReview dispatch → unknown provider returns unsupported-provider (loud, not silent-pass)", async () => {
+  const r = await runReview({ provider: "anthropic", host: "https://h", model: "claude", system: "S", user: "U" });
+  assert.equal(r.status, "unsupported-provider");
+  assert.match(r.note, /OpenAI-compatible/);
+});
+
+test("runReview with no provider still routes to ollama (back-compat — original signature unchanged)", async () => {
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U",
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async () => JSON.stringify({ message: { content: "ollama-finding" }, done: true, done_reason: "stop" }),
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "ollama-finding");
+});
+
+test("parseArgs collects the new --provider / --api-key-env / --reasoning-off flags", () => {
+  const a = parseArgs(["--host", "https://h/v1", "--model", "m", "--system", "s", "--diff", "d",
+    "--provider", "nvidia", "--api-key-env", "NVIDIA_API_KEY", "--reasoning-off"]);
+  assert.equal(a.provider, "nvidia");
+  assert.equal(a.apiKeyEnv, "NVIDIA_API_KEY");
+  assert.equal(a.reasoningOff, true);
 });
 
 // --- FAFF-213: fail loud when the host is the unconfigured localhost default ---

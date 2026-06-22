@@ -89,13 +89,23 @@ adr:
 
 # faffter-dark: LLM provider config for adversarial review.
 # Used by the faffter-dark-adversarial-review skill (when set as the review slot).
+# Two transport families: ollama (/api/chat) and OpenAI-compatible (/v1/chat/completions —
+# covers openai, vllm, openrouter, nvidia, deepseek). gemini/anthropic native formats are NOT
+# wired — point them at an OpenAI-compatible base URL instead.
 faffter_dark:
   adversarial:
-    provider: ollama # ollama | vllm | openai | gemini | anthropic | openrouter
+    provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek
     model: llama3.1:70b # provider-specific model identifier
-    host: http://localhost:11434 # required for ollama/vllm, ignored for cloud providers
-    api_key_env: # env var name holding the API key (not the key itself)
+    host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
+    api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
+    reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
     timeout: 120 # seconds
+    # NVIDIA free testbed example:
+    #   provider: nvidia
+    #   model: deepseek-ai/deepseek-v4-pro
+    #   host: https://integrate.api.nvidia.com/v1
+    #   api_key_env: NVIDIA_API_KEY   # export NVIDIA_API_KEY=nvapi-...
+    #   reasoning_off: true
 
 # (Calibration runs automatically — faff logs autonomous-call outcomes under
 # .faff/calibration/ and surfaces advisory signals when a pattern crosses a

@@ -16,3 +16,6 @@ design/
 
 # Generated eval reports (real-model run output — FAFF-130 onward)
 eval/report/
+
+# Local worktree scratch dir (not part of the project tree)
+.worktrees/

@@ -37,6 +37,9 @@ jobs:
       - name: Validate automation-eligibility table
         run: node plugin/skills/faff/bin/faff eligible --selftest
 
+      - name: Validate label-op descriptor table
+        run: node plugin/skills/faff/bin/faff label --selftest
+
       - name: Validate ADR command + the repo's own docs/adr tree
         run: |
           node plugin/skills/faff/bin/faff adr --selftest

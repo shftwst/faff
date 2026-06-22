@@ -51,16 +51,44 @@ function findRoot(start = process.cwd()) {
 const CANONICAL_CONFIG = ".faffrc.yaml";
 const LEGACY_CONFIG = [".faffrc.yml", ".faffrc"];
 
-function findConfig(root) {
+function findConfigIn(base) {
   const isFile = (n) => !n.includes(".example") &&
-    fs.existsSync(path.join(root, n)) && fs.statSync(path.join(root, n)).isFile();
+    fs.existsSync(path.join(base, n)) && fs.statSync(path.join(base, n)).isFile();
   const legacy = LEGACY_CONFIG.filter(isFile);
   if (legacy.length) {
     const err = new Error("legacy-config-name");
     err.legacy = legacy;
     throw err;
   }
-  return isFile(CANONICAL_CONFIG) ? path.join(root, CANONICAL_CONFIG) : null;
+  return isFile(CANONICAL_CONFIG) ? path.join(base, CANONICAL_CONFIG) : null;
+}
+
+// FAFF-208: the MAIN worktree's root for a linked git worktree, resolved via git's
+// shared common-dir. Returns null outside a repo, on a bare/odd layout, or when `root`
+// already IS the main checkout — so the fallback below only ever fires for a linked
+// worktree and never changes main-checkout behaviour. Read-only git.
+function mainWorktreeRoot(root) {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
+  if (r.status !== 0) return null;
+  let commonDir = (r.stdout || "").trim();
+  if (!commonDir) return null;
+  if (!path.isAbsolute(commonDir)) commonDir = path.resolve(root, commonDir);
+  // `<main>/.git` for a normal repo; the main checkout is its parent. Bail on bare repos.
+  return path.basename(commonDir) === ".git" ? path.dirname(commonDir) : null;
+}
+
+function findConfig(root) {
+  const here = findConfigIn(root);
+  if (here) return here;
+  // FAFF-208: a linked git worktree shares its repo with the main checkout, but the
+  // gitignored .faffrc.yaml is per-checkout and may not have been copied into the
+  // worktree (e.g. a build worktree created outside the WorktreeCreate hook). Fall back
+  // to the main checkout's config so consumers (adversarial-review host, appetite,
+  // slots) never silently resolve to defaults just because the worktree lacks the copy
+  // — the silent gate-degradation behind FAFF-198's localhost adversarial-review misfire.
+  const mainRoot = mainWorktreeRoot(root);
+  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findConfigIn(mainRoot);
+  return null;
 }
 
 function stripInlineComment(s) {

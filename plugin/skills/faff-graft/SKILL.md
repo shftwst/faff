@@ -81,6 +81,7 @@ Query the issue tracker for the issue. If cancelled or archived per the shared r
 - Title
 - Current status
 - Suggested branch name (if the tracker provides one)
+- **Labels** — the issue's label set, captured from this same `get_issue` response (no extra round-trip). The autonomous eligibility gate at the tail of Step 2 needs them.
 
 If the issue doesn't exist, tell the user and stop.
 
@@ -93,7 +94,23 @@ Check the issue for an attached spec. Follow the shared **Spec discovery** rule 
 
 The gate ensures no one starts building without a validated spec. Per the shared **Spec discovery** rule, **a description is never a spec**: if the only thing resembling a spec is the ticket description, treat it as "no spec" and route to `/faff-prep`. Never build straight from a description, and never skip prep because it "reads clear".
 
-**Automation eligibility (interactive).** If the issue is **not automation-eligible** (gateway → **Automation eligibility**) — lacks `faff-automate` under the opt-in default, or carries `faff-automation-hold` — warn — "this ticket isn't automation-eligible; proceeding interactively, eligibility is unchanged until you set it" — then continue. Interactive graft is never blocked by eligibility, and graft never changes the eligibility labels. (Autonomous graft instead refuses a not-eligible issue — see Autonomous Mode.)
+**Automation eligibility (interactive).** If the issue is **not automation-eligible** (gateway → **Automation eligibility**) — lacks `faff-automate` under the opt-in default, or carries `faff-automation-hold` — warn — "this ticket isn't automation-eligible; proceeding interactively, eligibility is unchanged until you set it" — then continue. Interactive graft is never blocked by eligibility, and graft never changes the eligibility labels.
+
+**Automation-eligibility gate (autonomous — pre-worktree, mechanical).** Under the autonomous-mode signal *only*, at the **tail of Step 2 before Step 3 creates a worktree**, deterministically resolve eligibility by shelling `faff eligible` and hard-stop on a `false` verdict. Interactive graft skips this gate entirely — the WARN above is its whole eligibility behaviour. The verdict is the CLI's, never agent re-derivation of label precedence:
+
+```bash
+# autonomous path only — skip wholesale when interactive (the WARN above already covered it)
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+[ -x "$faff" ] || faff=$(find ~/.claude -path '*/skills/faff/bin/faff' -type f | head -1)
+default=$("$faff" config get automation_default -d opt-in)          # CLI only — never hand-read .faffrc
+verdict=$("$faff" eligible --label "$L1" --label "$L2" ... --default "$default")   # one --label per Step-1 label
+# read STDOUT ("true"/"false") — NOT $? (faff eligible always exits 0)
+```
+
+- **`true`** → proceed to Step 3 unchanged.
+- **`false`, OR any resolution failure** (faff binary unresolvable, Step-1 labels unresolved, shell/parse error) → **refuse, fail-safe to not-eligible**: do **not** create a worktree (Step 3 never runs), do **not** commit the spec (Step 4 never runs), log the reason to `.faff/runs/<run-id>/ISSUE-XX/graft.md`, and return the **`ineligible`** skip disposition (recorded as ineligible / not built — never `parked`, never a build attempt). Never add `faff-automate` or remove `faff-automation-hold`; the stop is non-destructive.
+
+This is the mechanical form of the Autonomous-Mode backstop — the same boundary, enforced by the deterministic CLI at a fixed point rather than agent narration. Precedence (`faff-automation-hold` > `faff-automate` > `automation_default`) is the CLI's; a ticket with both `faff-automation-hold` and `faff-automate` yields `false` and is refused. Pass labels as repeated `--label` flags (not `--labels`, not comma-joined — the wrong form silently parses zero labels).
 
 **Step 3: Check for Existing Worktree**
 
@@ -350,7 +367,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 
 **Entry:** assumes issue exists, is not cancelled/archived, **is automation-eligible** (gateway → **Automation eligibility**), has a valid spec, and a dedicated worktree is already prepared (per-issue worktree isolation per the gateway → **Worktree policy**; the `concurrency` slot relies on it for parallel runs).
 
-**Automation-eligibility backstop (first).** A not-eligible issue should never reach autonomous graft — prep/tidy won't promote it, so it never enters the build queue. As the build chokepoint, graft nonetheless re-checks: if the issue is **not automation-eligible** (compute `faff eligible` from its labels + `automation_default`), **refuse to build** — skip without starting, do not commit the spec or open a worktree, and return a skip (the orchestrator records it as ineligible, not built; never `parked`, never a build attempt). Never add `faff-automate` or remove `faff-automation-hold`.
+**Automation-eligibility backstop (first).** A not-eligible issue should never reach autonomous graft — prep/tidy won't promote it, so it never enters the build queue. As the build chokepoint, graft nonetheless re-checks **mechanically** at the **Automation-eligibility gate (autonomous — pre-worktree)** in Step 2: it shells `faff eligible` (verdict from stdout, never agent re-derivation) and on `false` or any resolution failure refuses to build — skips without starting, commits no spec, opens no worktree, and returns the `ineligible` skip (the orchestrator records it as ineligible, not built; never `parked`, never a build attempt). Never adds `faff-automate` or removes `faff-automation-hold`. See that gate for the exact shell sequence and fail-safe rules.
 
 **Flow:**
 1. **Delivery pre-flight (before building).** Run the read-only delivery-precondition probe (the same one the `ship` producer runs at ship time — push / merge-method always; token-scope / actions-policy when the spec declares the touched surface, e.g. `.github/workflows/*`). On a **diff-independent** block (`push` or `merge-method` — these don't need the built diff), do **not** build: park **retry-later** with cause `not-ready:precondition:<kind> — <detail>; remedy: <remedy>` (commit nothing built; apply the `faff-parked` label via `faff label add <issue> faff-parked` and its descriptor's write; post the cause + remedy) and return `parked` — a guaranteed-fail delivery must never waste a build. An *indeterminate* probe (network/`gh` outage) is not a confirmed block — proceed to build; the ship-time backstop is the real gate. Diff-triggered checks the pre-flight couldn't see are caught at ship time. Then skip Step 6's build/review/reprep choice and proceed directly to build (Step 7).

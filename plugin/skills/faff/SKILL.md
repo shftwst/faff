@@ -415,6 +415,29 @@ Three assertions:
 
 **Lane & composition.** This principle **composes** with **Agent Lanes**, **Always pull fresh**, **Appetite for destruction**, **Tracker as the lights-out control plane**, and the **Live-thread reconciliation** verdict-gate property — it restates none of them, it names the obey-half they collectively already enforce.
 
+### Review-findings comment identity (the idempotency key — FAFF-202)
+
+The single terminal review-findings comment (FAFF-184's collapse-and-log: one comment per build on the tracker issue, FAFF-185's surface) is posted **or updated in place**. Its identity — the **idempotency key** that makes update-in-place deterministic — is a hidden HTML-comment **marker pair** in the comment body, keyed by issue id:
+
+```
+<!-- faff-review-findings:<ISSUE-ID> -->
+…faff-authored verdict + "resolved N findings across M passes" summary + log pointer…
+<!-- /faff-review-findings:<ISSUE-ID> -->
+```
+
+Identity lives in the **body**, not tracker metadata: the tracker exposes no native idempotency-key param and faff keeps no comment-ID map (`.faffrc` is stable-config-only). The marker is invisible in rendered markdown (skimmability), greppable in `list_comments` output, and the *pair* bounds the **faff-owned region** (text between the markers) so update rewrites only faff's text. This adds **no** new comment, per-pass marker, or write density — it only makes *the one* comment findable.
+
+**Locate → create-or-update** (run at the terminal verdict; `marker_open(id)` = `<!-- faff-review-findings:<id> -->`):
+
+1. List the issue's comments (live read); `matches` = those whose body contains `marker_open(id)`.
+2. **0 matches** → create: body = `marker_open` + newline + faff_body + newline + `marker_close`.
+3. **1 match** → update-in-place: splice (below) the faff_body into that comment, `save_comment(id=…)`.
+4. **>1 match** (rare concurrent-create race) → reconcile: splice into the **oldest by `created_at`** (oldest-wins, stable), leave the other duplicate(s) in place untouched, do not error. **Never delete** them — autonomous delete is forbidden (appetite hard floor); a left duplicate is a visible, human-clearable anomaly, not corruption.
+
+**Splice (human-edit safety — gateway → *Human curation is authoritative*, FAFF-19 assertion 3):** replace only the text **between** the markers with faff_body; preserve everything before `marker_open` and after `marker_close` **verbatim**. If `marker_open` is present but `marker_close` is missing (legacy/truncated), treat marker_open→end as the faff region and re-wrap it with a fresh pair, preserving text before it. **Never discard text outside the faff-owned region** — a human's steering edits live outside the markers and are safe.
+
+**Edges:** a human's *unmarked* findings-like comment is never adopted (the key is the marker, not content). The concurrent-create hazard is already bounded to "a wasted duplicate, never corruption" by **Issue claim & status monotonicity** (FAFF-82) — this reconcile leans on that posture rather than adding a lock/CAS.
+
 ### Spec discovery (where to look for an existing spec)
 
 **This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-graft, faff-wtf, faff-map, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the checks below (locations 1–3 with a tracker; location 4 the git-only fallback). Any divergence in a sub-skill is a bug, not a local override.

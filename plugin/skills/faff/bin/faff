@@ -2454,7 +2454,7 @@ Subcommands:
   adr <next-number|new|list|validate|supersede> [--root DIR]   FAFF-16: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; validate (gaps + required header fields); --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
-  sync [--dry-run] [--json] [--script PATH]      FAFF-200: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; --dry-run mutates nothing; exit 2 if the script is missing/unreadable
+  sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
 `;
 
 // ===========================================================================
@@ -2794,6 +2794,38 @@ function cmdDoctor(args) {
   return 0;
 }
 
+// FAFF-204: locate scripts/link-skills.sh by a layered resolver that survives the
+// stale copy-install state sync exists to repair. An explicit --script wins outright
+// (and, if unreadable, fails loud against exactly that path — never silently replaced
+// by a default). Otherwise: (1) the cwd/repo anchor via findRoot — the only anchor that
+// holds when the CLI is a real-file copy rather than a symlink into the repo; then
+// (2) walk-up-from-self — the legacy anchor, which only resolves when the CLI is a
+// symlink into the repo (linked-dev run from outside the tree). Returns the first
+// readable candidate plus the ordered list of every candidate tried (de-duplicated),
+// for the fail-loud message.
+function resolveSyncScript(scriptOverride) {
+  if (scriptOverride) {
+    const readable = (() => { try { fs.accessSync(scriptOverride, fs.constants.R_OK); return true; } catch { return false; } })();
+    return { path: readable ? scriptOverride : null, tried: [scriptOverride] };
+  }
+  const candidates = [];
+  // Strategy 1 — cwd/repo anchor (survives copy-install): the reliable primary.
+  candidates.push(path.join(findRoot(process.cwd()), "scripts", "link-skills.sh"));
+  // Strategy 2 — walk up from the CLI's own resolved location. bin/faff lives at
+  // <repo>/plugin/skills/faff/bin/faff → repo root is four dirs up from bin/. Only
+  // resolves the repo when the CLI is a symlink into it (i.e. a linked-dev install).
+  let self;
+  try { self = fs.realpathSync(process.argv[1]); } catch { self = process.argv[1]; }
+  const selfCandidate = path.join(path.resolve(path.dirname(self), "..", "..", "..", ".."), "scripts", "link-skills.sh");
+  if (!candidates.includes(selfCandidate)) candidates.push(selfCandidate);
+
+  for (const c of candidates) {
+    try { fs.accessSync(c, fs.constants.R_OK); return { path: c, tried: candidates.slice(0, candidates.indexOf(c) + 1) }; }
+    catch { /* not readable — try the next candidate */ }
+  }
+  return { path: null, tried: candidates };
+}
+
 // FAFF-200: skill-owned repair for a stale copy-install. A thin wrapper over the
 // tested scripts/link-skills.sh --global --replace (re-links the skill dirs + the CLI
 // onto PATH). The repair logic is NOT reimplemented in Node — single source of truth.
@@ -2805,16 +2837,11 @@ function cmdSync(args) {
   const asJson = args.includes("--json");
   const scriptOverride = get("--script");
 
-  let scriptPath = scriptOverride;
+  const { path: scriptPath, tried } = resolveSyncScript(scriptOverride);
   if (!scriptPath) {
-    // bin/faff lives at <repo>/plugin/skills/faff/bin/faff → repo root is four dirs up from bin/.
-    let self;
-    try { self = fs.realpathSync(process.argv[1]); } catch { self = process.argv[1]; }
-    const repoRoot = path.resolve(path.dirname(self), "..", "..", "..", "..");
-    scriptPath = path.join(repoRoot, "scripts", "link-skills.sh");
+    process.stderr.write(`faff sync: cannot find link-skills.sh (tried: ${tried.join(", ")})\n`);
+    return 2;
   }
-  try { fs.accessSync(scriptPath, fs.constants.R_OK); }
-  catch { process.stderr.write(`faff sync: cannot find link-skills.sh at ${scriptPath}\n`); return 2; }
 
   const linkArgs = ["--global", "--replace", ...(dryRun ? ["--dry-run"] : [])];
   const r = spawnSync("bash", [scriptPath, ...linkArgs], { stdio: asJson ? "pipe" : "inherit", encoding: "utf8" });

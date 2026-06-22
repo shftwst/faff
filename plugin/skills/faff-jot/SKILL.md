@@ -72,7 +72,7 @@ Show the proposed structure (containers + tickets + relationships) and gate befo
 
 - **Interactive (default):** present the shaped tickets as a short tree and ask "Create these N tickets [under new project '<name>']? (yes / edit / no)". On `edit`, take the human's adjustments and re-shape or tweak directly. On `yes`, create them in the tracker via the configured MCP. On `no`, stop — the brief is logged so nothing is lost.
 - **Fill each ticket's description from its type template** (gateway → **Ticket templates**) before writing it: determine the type (honouring any per-ticket `type` the methodology's `ticket-shaping` supplied, else inferring from the title + description), resolve the template, and fill its fields from the brief — placeholdering unknown fields with `_To be determined during prep._`, never fabricating content. This runs after shaping (Step 3) and before the `rendering_adaptor` pass, so issues are **born structured**. Seed-not-constrain: a thin brief still creates a thin-but-structured ticket — creation is **never** blocked for an under-filled template.
-- Create containers first (initiative/project), then tickets, then the blocker/blocked-by links the methodology proposed. Apply the `faff-jot-intake` tag (ensuring the label exists first, gateway → **Control-label provisioning**) so the next `/faff-prep` pass recognises freshly-shaped work. (Each ticket's open questions land in its template's `Open questions` field.)
+- Create containers first (initiative/project), then tickets, then the blocker/blocked-by links the methodology proposed. Tag each `faff-jot-intake` via `faff label add <issue> faff-jot-intake` and its descriptor's write (gateway → **Control-label provisioning**) so the next `/faff-prep` pass recognises freshly-shaped work. (Each ticket's open questions land in its template's `Open questions` field.)
 
 ### 5. Chain to prep
 
@@ -97,11 +97,11 @@ Framed narrowly it extends jot's intake identity (jot already owns the human↔p
    - ticket **held** (carries `faff-automation-hold`) → the hard stop dominates, so promoting is a silent no-op; offer **unhold**: "FAFF-XX is hard-held out of automation — lift the hold? (y/n)" (note: the hold overrides any `faff-automate`).
    - ticket **eligible** (carries `faff-automate`, not held) → offer **crank down**: "FAFF-XX is automation-eligible — crank it down (hands-off)? (y/n)", and offer **hold** as the hard stop: "…or hard-hold it out entirely? (y/n)".
    - ticket **not eligible, not held** (unlabelled under the opt-in default) → offer **crank up**: "FAFF-XX isn't automation-eligible — crank it up (make it automatable)? (y/n)", and offer **hold** as a pre-emptive hard stop.
-3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate). Ensure the target label exists first (gateway → **Control-label provisioning**):
-   - **crank up** → add the `faff-automate` label. The ticket becomes automation-eligible and rejoins normal eligibility on the next pass; **crank up does not move it to Todo**.
-   - **crank down** → remove the `faff-automate` label. The ticket falls back to the `automation_default` (hands-off under opt-in).
-   - **hold** → add the `faff-automation-hold` label (the hard stop — excludes even if `faff-automate` is present), optionally with a one-line reason comment.
-   - **unhold** → remove the `faff-automation-hold` label. The ticket returns to whatever its `faff-automate`/default eligibility would otherwise be.
+3. **Act on the choice** — the interactive choice **is** the confirm (immediate, no second gate). Each action runs `faff label add|remove <issue> <label>` and executes the descriptor's write (gateway → **Control-label provisioning**):
+   - **crank up** → `faff label add <issue> faff-automate`. The ticket becomes automation-eligible and rejoins normal eligibility on the next pass; **crank up does not move it to Todo**.
+   - **crank down** → `faff label remove <issue> faff-automate`. The ticket falls back to the `automation_default` (hands-off under opt-in).
+   - **hold** → `faff label add <issue> faff-automation-hold` (the hard stop — excludes even if `faff-automate` is present), optionally with a one-line reason comment.
+   - **unhold** → `faff label remove <issue> faff-automation-hold`. The ticket returns to whatever its `faff-automate`/default eligibility would otherwise be.
    - **Edge cases (no-op + inform):** crank up of an already-eligible ticket → no-op, say so; crank down of a ticket with no `faff-automate` → no-op, say so; hold of an already-held ticket → no-op; unhold of a never-held ticket → no-op.
 4. **Log** the action per the gateway `.faff/logging` rule. No spec, no build, no re-discovery.
 

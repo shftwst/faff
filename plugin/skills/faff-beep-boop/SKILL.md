@@ -177,7 +177,7 @@ After the wave loop converges (and only when builds ran — the wave-1 short-cir
    - `vague` items → never filed. Aggregate for the run summary + the next `/faff-wtf` morning brief only.
    - `concrete` items → **appetite-gated** (gateway → **Appetite for destruction**, _Execution-discovered auto-create_ row): `low` surfaces only; `medium` files only with an opinionated methodology; `high` (default) files every concrete item; `full` always files.
 3. **Dedup before creating.** Match each item's title/surface + relationship target against existing open tickets, **including `faff-chain-gap-fill` tickets tidy created this run** — a build often "discovers" a downstream the spec already named and tidy already filled. Skip duplicates; count them.
-4. **File** each surviving item per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_ — do not restate it): status `Backlog`, tag `faff-chain-gap-fill`, the recorded relationship link to the originating issue, and a "discovered during build of SHF-XX" provenance line in the description. The next run's tidy + prep pass picks them up — depth grows one layer per run.
+4. **File** each surviving item per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_ — do not restate it): status `Backlog`, tag `faff-chain-gap-fill` via `faff label add <issue> faff-chain-gap-fill` and its descriptor's write (gateway → **Control-label provisioning**), the recorded relationship link to the originating issue, and a "discovered during build of SHF-XX" provenance line in the description. The next run's tidy + prep pass picks them up — depth grows one layer per run.
 5. **Record** the filed count to the ledger's informational `discovered_scope_filed` field (see Run ledger) and log per-item (id, source issue, relationship, gate decision) under `.faff/runs/<run-id>/discovered-scope-filed.md`.
 
 Filed tickets are **new work, not admitted issues** — they sit outside runcheck's `admitted − outcomes` invariant and never affect run completeness. (Within-run convergence — prepping and building these in the *same* run until both bottom-up tributaries run dry — is a documented future extension, not done here; see `design/planning-loop.md`.)
@@ -281,7 +281,7 @@ Every executor honours the same slot contract: build every issue in the partitio
 Beep-boop itself rarely parks — its sub-skills do. But when a sub-skill returns `parked` for an issue, beep-boop ensures:
 
 1. The tracker comment written by the sub-skill is present on the issue.
-2. The issue carries the `faff-parked` tag (or tracker-equivalent label). If the sub-skill didn't apply it, beep-boop does.
+2. The issue carries the `faff-parked` tag (or tracker-equivalent label). If the sub-skill didn't apply it, beep-boop does — via `faff label add <issue> faff-parked` and its descriptor's write (gateway → **Control-label provisioning**).
 3. The per-issue log directory (`.faff/runs/<run-id>/ISSUE-XX/`) has the `parked` reason written to a top-level `park.md`.
 
 This is what `/faff-wtf` looks for to surface parked issues in the morning.

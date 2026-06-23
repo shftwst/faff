@@ -81,6 +81,9 @@ jobs:
       - name: Validate contain subtree-of-mandate containment table
         run: node plugin/skills/faff/bin/faff contain --selftest
 
+      - name: Validate budget envelope/state table (FAFF-36)
+        run: node plugin/skills/faff/bin/faff budget --selftest
+
       - name: Prompt-size budget gate (advisory)
         run: |
           node eval/size-census.mjs --gate --against eval/baselines/prompt-size.json | tee -a "$GITHUB_STEP_SUMMARY"

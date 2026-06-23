@@ -35,21 +35,53 @@ All forms also accept two optional **cost-budget flags** that can be combined; t
 
 ## Budget flags
 
-Two composable flags cap the cost of a run. Pass either, both, or neither. Both work with both invocation forms (default full pipeline, explicit-list).
+A run's budget is a **BudgetEnvelope** (FAFF-36): a set of **ceilings** across four **dimensions** — wall-clock (`until`), build-attempts (`max_attempts`), `tokens`, `cost` — and one **at-ceiling outcome** (`stop` | `narrow` | `escalate`, default `stop`). Any subset of ceilings; an unset dimension is unbounded. The envelope is resolved **once at run start** from the `.faffrc` `budget:` block, with the `--until`/`--max` flags overriding it. The contract FAFF-38/FAFF-225 consume is *ceiling + outcome*; how spend is **accounted** is a swappable producer behind it (the default is `faff budget check`'s transcript-sum).
 
-| Flag | Caps | Semantic |
-|---|---|---|
-| `--until HH:MM` | Wall-clock time | Stop dispatching new units once local time reaches HH:MM. 24-hour format. Past times interpret as next-day same time (so `--until 06:00` started at 23:00 means 06:00 tomorrow). |
-| `--max N` | Build attempts | Stop dispatching new build issues once N attempts have been launched. Counts every build-queue dispatch regardless of outcome (Shipped / PR-open / Parked / Errored). Does **not** count issues routed out at the verdict gate (they never got a `/faff-graft` invocation). Does **not** count prep dispatches. |
+| Dimension | CLI flag | Config key | Caps | Semantic |
+|---|---|---|---|---|
+| `until` | `--until HH:MM` | `budget.until` | Wall-clock time | Stop dispatching once local time reaches HH:MM. 24-hour; a past time is next-day (so `06:00` started at 23:00 means 06:00 tomorrow). |
+| `max_attempts` | `--max N` | `budget.max_attempts` | Build attempts | Stop once N attempts launched. Counts every build-queue dispatch regardless of outcome (Shipped / PR-open / Parked / Errored). **Not** routed-out (no `/faff-graft` invocation), **not** prep dispatches. |
+| `tokens` | — | `budget.tokens` | Token spend | Stop once this run's measured token spend reaches N. Measured from the session transcript; **estimate fallback** labelled `(estimate)` when the transcript is unavailable. |
+| `cost` | — | `budget.cost` | Dollar cost | `cost = tokens × budget.price_per_mtok`. Disabled unless `price_per_mtok > 0`. (Real CI/compute metering is out of scope — `cost` is tokens×price until a CI-introspection producer lands.) |
+
+```yaml
+# .faffrc — all optional; read only via `faff config get` (so validate-adapters passes)
+budget:
+  until:          # HH:MM wall-clock        (== --until, now config-settable)
+  max_attempts:   # build-attempt count      (== --max)
+  tokens:         # token ceiling (transcript-measured; estimate fallback)
+  cost:           # cost ceiling = tokens × price
+  at_ceiling: stop          # stop | narrow | escalate
+  price_per_mtok: 0         # cost-dimension price input; 0 disables the cost dimension
+```
+
+The `--until`/`--max` flags remain and **override** config. With neither flag nor a `budget:` block, behaviour is unchanged from the no-budget run.
+
+### The check — `faff budget check` (FAFF-36)
+
+At each between-units checkpoint (below), call **`faff budget check`** — a **pure** CLI (no tracker/network call, parity with `faff next`) that reads the run-ledger + config + the run's local transcripts and emits a `BudgetState` JSON:
+
+```
+{ "spent": { "elapsed_ms", "attempts", "tokens", "cost" },
+  "tokens_source": "transcript" | "estimate",
+  "breached": [<dimension>, …],          # breached ≠ [] is the terminating signal
+  "outcome": "stop" | "narrow" | "escalate" | "none" }
+```
+
+- **Token accounting.** Tokens are this-run's spend: the orchestrator transcript (keyed off `$CLAUDE_CODE_SESSION_ID` — **never** the mtime-newest file, which can be a different session) **plus** every child `agent-*.jsonl` modified ≥ run start (subagent grafts dominate run spend and live in separate files), summed and **baselined** at run start (`tokens_at_start`). A missed late child file undercounts but never overcounts (guard-rail semantics). When no transcript is readable (`CLAUDE_CODE_SKIP_PROMPT_HISTORY` / missing), it falls to `estimate = attempts × est_tokens_per_attempt` and sets `tokens_source = estimate` — surface that label so a user knows the token figure was estimated, not metered.
+- **At-ceiling outcomes** (act on `outcome` when `breached ≠ []`):
+  - **`stop`** (default) — today's behaviour: stop dispatching; in-flight units finish; admitted-undispatched land under `## Unreached (budget hit)`; `Stop reason = budget-hit(<dims>)`.
+  - **`narrow`** — don't stop yet: ask the methodology's `pick-ordering` for the cheapest remaining admissible subset, dispatch only those, re-check after each, and fall through to `stop` when nothing fits.
+  - **`escalate`** — stop dispatching **and** emit a structured needs-human escalation (morning report / Sentry); `Stop reason = budget-escalated(<dims>)`. The L4 path wants this, not a silent drain.
 
 ### Phase scope
 
-- **`--until`** gates **both phases**. Between prep candidates AND between build issues, the orchestrator checks the wall clock. If HH:MM passes mid-prep-drain, no new prep dispatches; in-flight prep finishes; the build phase is skipped entirely (entering it would trip the same gate). If HH:MM passes mid-wave, no new build issues launched; in-flight builds drain; wave re-entry is skipped.
-- **`--max N`** gates **build only**. Prep dispatches don't consume the count. The gate is checked before every build-issue launch and at every wave boundary.
+- **`until`** gates **both phases**. Between prep candidates AND between build issues, the budget check runs. If `until` is breached mid-prep-drain, no new prep dispatches; in-flight prep finishes; the build phase is skipped (entering it would trip the same gate). Mid-wave, no new build issues launched; in-flight builds drain; wave re-entry is skipped.
+- **`max_attempts` / `tokens` / `cost`** gate **build only** (prep dispatches don't consume the attempt count, and prep token spend is part of the same transcript-measured total). The check runs before every build-issue launch and at every wave boundary.
 
 ### When the check fires
 
-Between units, never mid-unit. Specifically:
+Between units, never mid-unit (a turn's `usage` only lands in the transcript once the turn closes — so token accounting is exact only at these boundaries). Specifically:
 
 - After every prep return, before launching the next prep candidate.
 - After every build return (or before every launch in parallel mode), before dispatching the next build issue in the same wave.
@@ -59,7 +91,7 @@ In-flight units finish naturally. There is **no mid-issue cancellation** — a `
 
 ### Launch-counted, not terminal-state-counted
 
-`--max N` fires when the count of **launched** build attempts reaches N, not the count of returned terminal states. In sequential mode the two are identical. Under the parallel executor, counting launches prevents the `concurrency_max - 1` overshoot you'd get from waiting for the Nth terminal state — every launch eventually terminates, so terminal-state count converges to exactly N anyway (or to whatever was launched when `--until` fired first, if both budgets are set).
+`max_attempts` fires when the count of **launched** build attempts reaches N, not the count of returned terminal states. In sequential mode the two are identical. Under the parallel executor, counting launches prevents the `concurrency_max - 1` overshoot you'd get from waiting for the Nth terminal state — every launch eventually terminates, so terminal-state count converges to exactly N anyway (or to whatever was launched when another dimension fired first).
 
 ### Unreached issues
 
@@ -67,9 +99,9 @@ Issues that reached build-ready (spec present, verdict-admitted, partitioned by 
 
 Un-prepped Backlog candidates whose prep dispatch never fired because `--until` cut prep short do **not** appear in `Unreached`. They remain in Backlog (their pre-run state, unchanged); the prep-queue summary just has smaller counts than possible. The next run picks them up.
 
-### Default behaviour (no flags)
+### Default behaviour (no budget)
 
-If neither flag is passed, behaviour is unchanged from the no-budget run. The run ends by queue emptiness or all-remaining-parked, exactly as before.
+With no flag and no `budget:` block, behaviour is unchanged from the no-budget run: the envelope has no ceilings, every `faff budget check` returns `breached: []`, and the run ends by queue emptiness or all-remaining-parked, exactly as before.
 
 ## Full pipeline (default)
 
@@ -144,7 +176,7 @@ Keep building until the wave's build queue is drained or everything remaining is
 
 After the wave drains, re-check the tracker for work newly unlocked by issues that just shipped. Faff's promotion rule is that **only specced items live in Todo**, but Todo can hold specced-and-blocked items too — so a chain unlock can land in either bucket. Wave re-entry scans both, **consults `faff next` per newly-unblocked item** (gateway → **Next-step transition**) to decide its step — `prep` routes through narrow prep, `graft` rejoins build-queue assembly, `skip-ineligible`/`needs-human` route out — rather than prose-deciding. Every newly-unblocked item that returns `prep` routes through narrow prep. Prep is the single mechanism that handles spec generation, in-place refresh, and the Backlog→Todo move; the orchestrator does no tracker state moves of its own.
 
-1. **Budget check.** If `--until HH:MM` is set and the wall clock has passed HH:MM, OR `--max N` is set and N build attempts have been launched, exit to reporting with `Stop reason: budget-hit (--until …)` or `budget-hit (--max N)` accordingly. The wave re-entry step is the last point at which the budget gate fires for the run; if it fires here, the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary.
+1. **Budget check.** Run `faff budget check` (see _Budget flags_). If `breached ≠ []`, act on `outcome`: `stop`/`escalate` → exit to reporting with `Stop reason: budget-hit(<dims>)` (or `budget-escalated(<dims>)`), `escalate` additionally emitting the structured needs-human signal; `narrow` → continue this wave with only the methodology's cheapest remaining subset, re-checking after each, falling through to `stop` when nothing fits. The wave re-entry step is the last point at which the budget gate fires for the run; on a `stop`/`escalate` exit the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary.
 2. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
 3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start) **and which is automation-eligible** (skip anything not automation-eligible — gateway → **Automation eligibility**), invoke **narrow prep** — the `faff-prep` skill via the Skill tool, autonomous on just that issue. (Prep itself also returns `ineligible` for a not-eligible issue, so this filter is the early-exit, not the guarantee.) Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
    - **Backlog, unspecced** (was blocked from being specced): prep generates a fresh spec and, on high confidence, promotes to Todo (`promoted`).
@@ -224,6 +256,8 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 ```json
 { "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
   "discovered_scope_filed": 0,
+  "budget": { "envelope": { "ceilings": { "max_attempts": 8 }, "at_ceiling": "stop", "price_per_mtok": 0 },
+              "tokens_at_start": 12000 },
   "owner": { "status": "running", "pid": 12345, "session_id": "<run-id>",
              "started_at": "2026-06-22T16:00:00Z", "last_heartbeat": "2026-06-22T16:07:00Z" } }
 ```
@@ -234,6 +268,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admitted issue with no recorded outcome is an undispatched queue, not a finished run.
 
 - **`discovered_scope_filed`** (informational) — the count of execution-discovered tickets filed at step 10. These are **new** tickets, not admitted build-queue issues, so they are **outside** the invariant above and never affect `runcheck`. The field exists so the count is auditable alongside the run summary.
+- **`budget`** (FAFF-36) — the resolved `BudgetEnvelope` plus the `tokens_at_start` baseline, written **once at run start** (alongside the owner stamp): `{ envelope: {ceilings, at_ceiling, price_per_mtok}, tokens_at_start }`. `faff budget check` reads it each between-units checkpoint; `tokens_at_start` is the run-start transcript-sum so the token dimension counts *this run's* spend, not whole-session history. Absent ⇒ no budget set (every check returns `breached: []`). Informational to `runcheck` — outside the completeness invariant.
 - **`owner`** (FAFF-205) — the liveness contract that lets the Stop hook tell an *in-flight* run apart from an *abandoned* one. Without it, a parallel session's hook can't distinguish "an orchestrator is actively draining this" from "this queue was deferred", and it false-blocks the unrelated session (see _Stop hook_ below). Stamp it **at run start**, refresh `last_heartbeat` **across the whole graft lifecycle**, and close it **at exit**:
   - `status` — `"running"` while the orchestrator holds the run; set to `"done"` at orchestrator exit (clean drain, all-parked, **or** budget-hit — every exit path).
   - `pid` — the orchestrator's process id (same-host best-effort liveness corroborator; may be omitted).
@@ -249,6 +284,7 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
   export FAFF_SESSION_ID="<run-id>"   # fallback ownership signal if the harness doesn't propagate FAFF_RUN_DIR
   ```
 
+  **Resolve the budget envelope and baseline tokens here too** (FAFF-36): resolve the `BudgetEnvelope` from the `budget:` config block + `--until`/`--max` flags, and capture the run-start transcript-sum as `tokens_at_start`, writing both into the ledger `budget` block before step 4. The cleanest way is one `faff budget check` call at run start (its `spent.tokens` against an empty baseline is the start-of-run sum); record `envelope` + `tokens_at_start` so every later check measures *this run's* delta.
 - **Refresh `last_heartbeat` across the WHOLE graft lifecycle, not just at issue boundaries.** Re-write `owner.last_heartbeat = now` at every wave/issue boundary **and inside the slow review/merge wait** — the build commits, pushes, then runs the multi-minute adversarial review writing nothing to the worktree, so a boundary-only refresh lets the heartbeat go stale mid-review and the hook false-blocks again. The default staleness threshold is 900s (`FAFF_RUN_HEARTBEAT_STALE_SECS`); a single review step can approach it, so the heartbeat **must** tick inside the review/merge wait. This is the load-bearing reason liveness is owner-emitted, never inferred from worktree mtimes (a quiet worktree mid-review is *normal in-flight*, not stalled).
 - **At orchestrator exit** (every path — clean drain, all-parked, budget-hit): set `owner.status:"done"`. A run that exits with `status:"done"` but admitted-without-outcome work still trips `runcheck` (that's a real bug) — `done` only tells the hook "no live owner is holding this", it does not exempt the completeness invariant.
 
@@ -384,7 +420,7 @@ When a `methodology` skill is configured, the first line of the summary file is 
 Mode: [full | explicit-list]
 Duration: Xh Ym
 Waves: N
-Stop reason: queue-drained | all-remaining-parked | budget-hit (--until HH:MM) | budget-hit (--max N)
+Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>)
 
 ## Methodology findings (rendered only when a methodology skill is configured)
 
@@ -472,7 +508,7 @@ The **Human follow-ups** section captures post-merge housekeeping that was skipp
 - **Parked**
 - **Errored**
 - **Routed out (not built)** — spec-gated successfully but the verdict was not `fire-and-forget` / `likely-fire`, so it never entered the build pass.
-- **Unreached (budget hit)** — appears **only** when `--until` / `--max` was passed and fired with a non-empty build queue remaining; reached build-ready but wasn't dispatched before the budget fire (see `## Budget flags`).
+- **Unreached (budget hit)** — appears **only** when a budget dimension (`until` / `max_attempts` / `tokens` / `cost`) was set and breached with a non-empty build queue remaining; reached build-ready but wasn't dispatched before the budget fire (see `## Budget flags`). On a `tokens`/`cost` breach surface the `tokens_source` (`transcript` / `estimate`) so a reader knows whether the figure was metered or estimated.
 - **Claimed by peer** (FAFF-82) — a peer orchestrator holds it (built by another live run); **not** a deferral and **not** a park, and it never entered this run's `admitted` array, so it does not affect `runcheck`.
 
 The ban below is on inventing an additional **outcome bucket** — a euphemism that disguises a parked-on-capacity issue as something other than parked. It does **not** forbid the non-bucket informational sections this template already carries (Discovered scope, Resolve-attempts, Inferred build-order deps, Human follow-ups); those report *about* the run, they don't re-home an issue's outcome. These outcome-bucket names are all **banned** — euphemisms for "Parked on capacity grounds", which is forbidden:
@@ -483,7 +519,7 @@ The ban below is on inventing an additional **outcome bucket** — a euphemism t
 - "Not dispatched this conversation"
 - "Build queue ready for next pass"
 
-If the report contains one of those headings AND no budget flag was set, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a user-set budget firing.
+If the report contains one of those headings AND no budget ceiling was set or breached, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a budget dimension firing.
 
 ### 2. Tracker status update
 
@@ -499,14 +535,14 @@ The run ends when **any** of:
 
 - The build queue is empty AND (in full mode) the prep queue is empty (`Stop reason: queue-drained` — the normal exit).
 - Everything remaining is in a parked / errored state, with no further dispatches possible (`Stop reason: all-remaining-parked`).
-- A user-set budget fires: `--until HH:MM` reaches its time, or `--max N` reaches its launch count (`Stop reason: budget-hit (--until …)` or `budget-hit (--max N)`).
+- A budget dimension breaches at a between-units check (`faff budget check` returns `breached ≠ []`): `Stop reason = budget-hit(<dims>)` on a `stop` outcome, or `budget-escalated(<dims>)` on an `escalate` outcome (which also emits the structured needs-human signal). `<dims>` names the breached dimension(s) — e.g. `budget-hit(max_attempts)`, `budget-hit(tokens)`. A `narrow` outcome does **not** stop the run — it continues on the methodology's cheapest subset until a `stop` falls through.
 
-On budget-hit, in-flight units complete naturally — see `## Budget flags` for the full mechanics. Issues admitted to the build queue but not yet dispatched are reported under `## Unreached (budget hit)` in the run summary; they retain Todo + spec state and will be picked up by the next run. This is the **only** legitimate way for the run to end with a non-empty build queue; the "Never defers a queue to the next run" guarantee is otherwise binding (see `## Guarantees`).
+On a budget-hit/escalate, in-flight units complete naturally — see `## Budget flags` for the full mechanics. Issues admitted to the build queue but not yet dispatched are reported under `## Unreached (budget hit)` in the run summary; they retain Todo + spec state and will be picked up by the next run. This is the **only** legitimate way for the run to end with a non-empty build queue; the "Never defers a queue to the next run" guarantee is otherwise binding (see `## Guarantees`).
 
 `Stop reason` is determined by which condition fires first:
 
-- If a budget was set AND fired during the run, `Stop reason = budget-hit (...)` regardless of whether the run "would have" exited as `queue-drained` on the next check. Surface the budget — the user wants to know whether their budget was binding or moot.
-- If both budgets fire on the same check, name the one that fired first; if simultaneous, name both.
+- If a budget was set AND breached during the run, `Stop reason = budget-hit(<dims>)` / `budget-escalated(<dims>)` regardless of whether the run "would have" exited as `queue-drained` on the next check. Surface the budget — the user wants to know whether their budget was binding or moot.
+- If several dimensions breach on the same check, name all of them in `<dims>`.
 - Otherwise, `Stop reason = queue-drained` or `all-remaining-parked` per the conditions above.
 
 ## Autonomous-mode signal to sub-skills

@@ -625,8 +625,11 @@ Each skill that accepts appetite **documents its own per-level response** in its
 | `circular-blocked` verdict | Park | Resolve-attempt (unambiguous break-edge only) | Accept most plausible break-edge | Break the cycle at any plausible edge, document, proceed |
 | Chain-gap auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if remainder is identifiable | Always — every identifiable gap gets a ticket |
 | Execution-discovered auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if the item is concrete | Always — every concrete discovered item gets a ticket |
+| Outward / new-root auto-create (FAFF-221) | **Never** | **Never** | **Never** | **Never (hard floor)** |
 
 The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-graft recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing `faff-chain-gap-fill` tickets before filing.
+
+The **Outward / new-root** row (FAFF-217 / FAFF-221) is the scope-containment floor: an item whose `faff contain` verdict is `outward-new-root` — its intended parent falls outside the subtree of the mandate the autonomous run holds — is **never** auto-filed at any level, including `full` (it is recorded `containment: outward-new-root` and surfaced for a human to create interactively). Both autonomous create chokepoints (`/faff-beep-boop` §10, `/faff-tidy` chain-gap auto-fill) run the check before the appetite gate; see `/faff-beep-boop` → _Containment at the filing chokepoint_.
 
 The methodology slot's per-level response lives in the configured methodology skill. The review slot's per-level response lives in the configured review skill — note that review quality never loosens at any level (see the hard floor below).
 
@@ -635,6 +638,7 @@ The methodology slot's per-level response lives in the configured methodology sk
 - **Destructive / irreversible operations still park.** Anything that can't be undone with `git revert` and a redeploy still escalates — production data, secrets, external messaging, irreversible cloud-resource changes.
 - **User-explicit "ask first" rules** in the `slots` config, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
 - **Cancellation / deletion** of issues or workstreams. No appetite level autonomously cancels or deletes. `full` adds scope (splits, merges, new tickets) but never removes it.
+- **Outward / new-root autonomous create (FAFF-221).** An autonomous-discovered item whose intended parent is outside the subtree of the run's mandate (`faff contain` → `outward-new-root`) is **never** auto-filed, at any level including `full`. The two create chokepoints surface it for a human to create interactively; no `--via fast-track` self-call converts it.
 - **Review runs and gates.** `full` does not skip or weaken the review. If it fails, the pipeline iterates or parks — never overrides.
 - **Spec quality.** Front-loaded prep still aims for `confidence: high`. `full` resolves more aggressively past the spec gate but doesn't lower the bar for what constitutes a good spec.
 

@@ -124,11 +124,58 @@ test("intake-record --via jot writes the marker and emits the faff-contract:inta
     const p = join(root, ".faff", "provenance", "FAFF-1.json");
     assert.ok(existsSync(p), "marker written");
     const m = JSON.parse(readFileSync(p, "utf8"));
-    assert.equal(m.schema, 1);
+    assert.equal(m.schema, 2); // FAFF-220: PROVENANCE_SCHEMA bumped 1→2
     assert.equal(m.intake.via, "jot");
     assert.ok(m.intake.ts, "timestamp recorded");
+    assert.ok(!("initiated" in m), "no --initiated → key omitted, never written as null"); // FAFF-220
     // and now the guard is satisfied
     assert.equal(run("intakecheck", "FAFF-1", "--root", root).code, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// FAFF-220: the optional --initiated audit field.
+test("intake-record --initiated interactive|autonomous stamps the audit field", () => {
+  const root = rootWith({});
+  try {
+    assert.equal(run("intake-record", "FAFF-1", "--via", "jot", "--initiated", "interactive", "--root", root).code, 0);
+    let m = JSON.parse(readFileSync(join(root, ".faff", "provenance", "FAFF-1.json"), "utf8"));
+    assert.equal(m.schema, 2);
+    assert.equal(m.initiated, "interactive");
+    assert.equal(run("intake-record", "FAFF-2", "--via", "jot", "--initiated", "autonomous", "--root", root).code, 0);
+    m = JSON.parse(readFileSync(join(root, ".faff", "provenance", "FAFF-2.json"), "utf8"));
+    assert.equal(m.initiated, "autonomous");
+    // intakecheck behaviour is unchanged — initiated never enters the verdict
+    assert.equal(run("intakecheck", "FAFF-1", "--root", root).code, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("intake-record --initiated <invalid> exits 2 and writes nothing (parity with --via)", () => {
+  const root = rootWith({});
+  try {
+    const r = run("intake-record", "FAFF-1", "--via", "jot", "--initiated", "bogus", "--root", root);
+    assert.equal(r.code, 2);
+    assert.ok(!existsSync(join(root, ".faff", "provenance", "FAFF-1.json")), "no marker on a rejected --initiated");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("intake-record merge-preserves an existing initiated when --initiated is absent", () => {
+  const root = rootWith({});
+  try {
+    // record a mutable (backfill) marker WITH initiated, then re-record without the flag
+    assert.equal(run("intake-record", "FAFF-1", "--via", "backfill", "--initiated", "autonomous", "--root", root).code, 0);
+    assert.equal(run("intake-record", "FAFF-1", "--via", "backfill", "--root", root).code, 0);
+    const m = JSON.parse(readFileSync(join(root, ".faff", "provenance", "FAFF-1.json"), "utf8"));
+    assert.equal(m.initiated, "autonomous", "existing initiated survives a re-record with no --initiated");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("legacy schema:1 marker reads back without error and gates exactly as before (initiated grandfathered to null)", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const p = join(root, ".faff", "provenance", "FAFF-V1.json");
+    writeFileSync(p, JSON.stringify({ schema: 1, issue: "FAFF-V1", intake: { via: "jot", ts: "2026-01-01T00:00:00Z" } }) + "\n");
+    // v1 marker (no initiated key) still satisfies the guard — no error, no schema assertion in the reader
+    assert.equal(run("intakecheck", "FAFF-V1", "--labels", "", "--root", root).code, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

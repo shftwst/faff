@@ -1043,16 +1043,38 @@ const INTAKE_GATE_MODES = new Set(["warn", "block", "off"]);
 
 // Pure verdict over (marker, labels, mode). marker is the parsed marker or null
 // (absent OR malformed — both gate as absent). Returns {satisfied, basis, warn?}.
-//   off            → always satisfied (gate disabled)
-//   marker present → satisfied, basis = the recorded `via`
-//   label only     → satisfied, basis grandfathered-label, warn:true (migration bridge)
-//   neither        → unsatisfied, basis no-provenance
+//   off                → always satisfied (gate disabled)
+//   marker present     → satisfied, basis = the recorded `via`
+//   faff-jot-intake    → satisfied, basis grandfathered-label, warn:true (spoofable migration bridge)
+//   faff-automate      → satisfied, basis eligibility-gesture, NO warn (FAFF-223; see below)
+//   neither            → unsatisfied, basis no-provenance
+//
+// FAFF-223 — the `eligibility-gesture` basis. After FAFF-218 the faff CLI write-abstains
+// on `faff-automate` (it is tracker_owned: true; the CLI refuses to add/remove it), so a
+// present `faff-automate` PROVES a human toggled it in the tracker — by construction. That
+// makes it admissible intake provenance: a human who creates a ticket in the tracker and
+// cranks it up has, by that single gesture, both made it eligible AND vouched for its intake.
+// This is the human-side counterpart to FAFF-212 (agent intake) — no human CLI, ever.
+//
+// It is a NEW, DISTINCTLY-NAMED basis, not a merge of the eligibility and intake verdicts:
+// the two axes stay separate (eligibility = "may auto-build?", intake = "front door?"), and
+// the distinct `eligibility-gesture` string keeps the audit trail legible (a reviewer can
+// tell label-derived intake from a real jot marker). Precedence is strongest-evidence-first:
+// a recorded marker wins, then grandfathered-label (which keeps its migration warn), then
+// eligibility-gesture. Unlike the spoofable grandfathered-label, eligibility-gesture carries
+// NO warn — FAFF-218 makes it trustworthy by construction. TRUST DEPENDENCY: this basis is
+// sound ONLY while FAFF-218's write-abstention holds; if `faff-automate` ever became CLI-
+// writable again, it would be agent-spoofable (the FAFF-209 failure the marker was built for).
 function intakeVerdict(marker, labels, mode) {
   if (mode === "off") return { satisfied: true, basis: "gate-off" };
   const via = marker && marker.intake && marker.intake.via;
   if (INTAKE_VIA.has(via)) return { satisfied: true, basis: via };
-  if (new Set(labels).has("faff-jot-intake")) {
+  const labelSet = new Set(labels);
+  if (labelSet.has("faff-jot-intake")) {
     return { satisfied: true, basis: "grandfathered-label", warn: true };
+  }
+  if (labelSet.has("faff-automate")) {
+    return { satisfied: true, basis: "eligibility-gesture" };
   }
   return { satisfied: false, basis: "no-provenance" };
 }
@@ -1099,18 +1121,35 @@ function resolveIntakeGate(root) {
 }
 
 function intakeGuidance(issue, basis) {
-  // Front-door remedies (FAFF-212 review F4): /faff-jot ISSUE is the existing-ticket
-  // *interactor* (eligibility crank-up/down) — it does NOT write a provenance marker.
-  // The commands that actually create provenance are `intake-record` (--via backfill for
-  // a legacy ticket that genuinely belongs in the backlog; --via fast-track for a
-  // deliberate, reasoned override). A bare new idea starts at `/faff-jot` (no ISSUE).
+  // FAFF-223 — the human remedy is now a ZERO-CLI tracker gesture, not `intake-record`.
+  // After FAFF-218 a human-set `faff-automate` is itself admissible intake provenance
+  // (basis eligibility-gesture), so the documented human steady-state remedy is simply
+  // "set faff-automate in the tracker" — no command to type. `intake-record --via backfill`
+  // is REFRAMED here as a MIGRATION / agent-orchestrator tool (bulk legacy backfill), no
+  // longer the human steady-state ceremony it used to be billed as. Note /faff-jot ISSUE is
+  // the existing-ticket interactor (eligibility crank-up/down) — it does NOT write a marker;
+  // a bare new idea starts at `/faff-jot` (no ISSUE). The guidance is intentionally NOT
+  // eligibility-aware: the intake gate only ever fires on the eligible path (a not-eligible
+  // ticket has no autonomous consumer), so "set faff-automate" is always the right answer.
   return (
     `faff intakecheck: ${issue} has no genuine intake provenance (${basis}). New work must ` +
-    `enter through the front door. Remedies: capture a genuinely new idea via \`/faff-jot\` ` +
-    `(no issue id — the front door); stamp a legacy backlog ticket with ` +
-    `\`faff intake-record ${issue} --via backfill\`; or record a deliberate override with ` +
-    `\`faff intake-record ${issue} --via fast-track --reason "<why>"\`. ` +
-    `(Legacy tickets carrying the faff-jot-intake label are grandfathered through with a warning.)`
+    `enter through the front door. Human remedy (zero-CLI): set the faff-automate label on ` +
+    `${issue} in the tracker — a write-abstained human gesture that faff reads as intake ` +
+    `provenance; or capture a genuinely new idea via \`/faff-jot\` (no issue id — the front ` +
+    `door). (Migration / agent-orchestrator only: \`faff intake-record ${issue} --via backfill\` ` +
+    `for bulk legacy backfill, or \`--via fast-track --reason "<why>"\` for a recorded override. ` +
+    `Legacy tickets carrying the faff-jot-intake label are grandfathered through with a warning.)`
+  );
+}
+
+// FAFF-223 — the interactive bypass notice. When `intakecheck --interactive` meets an
+// unsatisfied verdict under block-mode, the human at the keyboard IS the sanction (parity
+// with interactive jot), so the build proceeds. This notice MUST NOT instruct the human to
+// run any CLI command — that would reintroduce the zero-CLI-human-surface violation.
+function interactiveBypassNotice(issue, basis) {
+  return (
+    `${issue}: no intake provenance (${basis}), but interactive build — ` +
+    `the human at the keyboard is the sanction; proceeding.`
   );
 }
 
@@ -1139,13 +1178,18 @@ function parseIntakeArgs(args) {
   return { issue, flags, danglingValueFlag };
 }
 
-// `faff intakecheck <ISSUE> [--labels csv] [--json]` — PURE: marker (fs) + injected
-// labels + resolved mode. exit 0 satisfied · 3 unsatisfied(block-only) · 2 usage/malformed-args.
+// `faff intakecheck <ISSUE> [--labels csv] [--interactive] [--json]` — PURE: marker (fs) +
+// injected labels + resolved mode. exit 0 satisfied · 3 unsatisfied(block-only) · 2 usage/malformed-args.
 // WARN NEVER BLOCKS: an unsatisfied verdict under mode=warn prints guidance and exits 0.
+// FAFF-223 — `--interactive`: under block-mode, an unsatisfied verdict that would exit 3
+// instead prints a [warn] bypass notice and exits 0 — the human at the keyboard is the
+// sanction. Autonomous callers OMIT the flag, so the block stays in force for them. The
+// bypass is the deterministic seam (selftest-covered), not graft prose.
 function cmdIntakecheck(args) {
   if (args.includes("--selftest")) return intakecheckSelftest();
   const { issue, flags, danglingValueFlag } = parseIntakeArgs(args);
   const asJson = flags["--json"] === true;
+  const interactive = flags["--interactive"] === true;
   // A value-flag that swallowed nothing (or the next flag) is a likely quoting slip —
   // fail loud rather than silently treating the ticket as unlabelled and blocking it.
   if (danglingValueFlag === "--labels") {
@@ -1153,13 +1197,18 @@ function cmdIntakecheck(args) {
     return 2;
   }
   const root = flags["--root"] || findRoot();
-  if (!issue) { process.stderr.write("faff intakecheck: usage: faff intakecheck <issue> [--labels csv] [--json]\n"); return 2; }
+  if (!issue) { process.stderr.write("faff intakecheck: usage: faff intakecheck <issue> [--labels csv] [--interactive] [--json]\n"); return 2; }
   const labelsArg = flags["--labels"];
   const labels = typeof labelsArg === "string" ? labelsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const mode = resolveIntakeGate(root);
   const { marker, malformed } = readProvenanceMarker(root, issue);
   const v = intakeVerdict(marker, labels, mode);
-  const out = { issue, mode, ...v };
+  // The interactive bypass only ever changes the block-mode unsatisfied case — model it as a
+  // single exit decision so the [warn] notice and exit code can never disagree (intakeExit
+  // is the shared truth, also driven by the paired selftest).
+  const exit = intakeExit(v, mode, interactive);
+  const bypassed = !v.satisfied && mode === "block" && interactive; // exit 0 by the human-sanction rule
+  const out = { issue, mode, ...v, ...(interactive ? { interactive: true } : {}), ...(bypassed ? { bypassed: true } : {}) };
   if (malformed) out.warn = true; // a malformed marker surfaces a warning even when the label saves it
 
   if (asJson) {
@@ -1167,14 +1216,15 @@ function cmdIntakecheck(args) {
   } else if (v.satisfied) {
     if (out.warn) console.log(`[warn] ${issue}: intake provenance via ${v.basis}${malformed ? " (marker malformed — treated as absent)" : ""}.`);
     else console.log(`ok: ${issue} intake provenance basis=${v.basis}.`);
+  } else if (bypassed) {
+    console.log(`[warn] ${interactiveBypassNotice(issue, v.basis)}`);
   } else if (mode === "warn") {
     console.log(`[warn] ${intakeGuidance(issue, v.basis)}`);
-  } else { // block
+  } else { // block, non-interactive
     console.log(intakeGuidance(issue, v.basis));
   }
 
-  if (v.satisfied) return 0;
-  return mode === "block" ? 3 : 0; // warn NEVER blocks; off is satisfied above
+  return exit;
 }
 
 // `faff intake-record <ISSUE> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json]`
@@ -1260,8 +1310,9 @@ function cmdIntakeRecord(args) {
   return 0;
 }
 
-// Selftest — drives the pure verdict over all four bases + warn-never-blocks +
-// malformed-as-absent, no filesystem. [marker, labels, mode] → {satisfied, basis, warn?, exit}
+// Selftest — drives the pure verdict over all bases + warn-never-blocks + malformed-as-absent
+// + (FAFF-223) the eligibility-gesture basis and the --interactive bypass, no filesystem.
+// Tuple: [marker, labels, mode, want, interactive?] — interactive defaults to false when omitted.
 const INTAKECHECK_SELFTEST_CASES = [
   // basis: recorded via wins, no warn, exit 0
   [{ intake: { via: "jot" } }, [], "block", { satisfied: true, basis: "jot", exit: 0 }],
@@ -1269,8 +1320,22 @@ const INTAKECHECK_SELFTEST_CASES = [
   [{ intake: { via: "fast_track", reason: "prod outage" } }, [], "block", { satisfied: true, basis: "fast_track", exit: 0 }],
   // grandfathered label only → satisfied + warn, exit 0
   [null, ["faff-jot-intake"], "block", { satisfied: true, basis: "grandfathered-label", warn: true, exit: 0 }],
+  // FAFF-223: faff-automate (write-abstained, human-set) → eligibility-gesture, NO warn, exit 0
+  [null, ["faff-automate"], "block", { satisfied: true, basis: "eligibility-gesture", exit: 0 }],
+  // FAFF-223: precedence — a recorded marker still wins over the eligibility-gesture label
+  [{ intake: { via: "jot" } }, ["faff-automate"], "block", { satisfied: true, basis: "jot", exit: 0 }],
+  // FAFF-223: precedence — grandfathered-label wins over eligibility-gesture when both labels present
+  [null, ["faff-jot-intake", "faff-automate"], "block", { satisfied: true, basis: "grandfathered-label", warn: true, exit: 0 }],
   // neither, block → unsatisfied exit 3
   [null, [], "block", { satisfied: false, basis: "no-provenance", exit: 3 }],
+  // FAFF-223: PAIRED bypass — same no-provenance block case, but --interactive → exit 0
+  // (the human at the keyboard is the sanction). Pinned against the non-interactive exit-3
+  // case directly above: the only difference is the interactive dimension.
+  [null, [], "block", { satisfied: false, basis: "no-provenance", exit: 0 }, true],
+  // FAFF-223: --interactive is a no-op when the verdict is already satisfied (no spurious bypass flag)
+  [{ intake: { via: "jot" } }, [], "block", { satisfied: true, basis: "jot", exit: 0 }, true],
+  // FAFF-223: --interactive is a no-op under warn (warn never blocked anyway; still exit 0)
+  [null, [], "warn", { satisfied: false, basis: "no-provenance", exit: 0 }, true],
   // neither, WARN → unsatisfied but exit 0 (warn never blocks)
   [null, [], "warn", { satisfied: false, basis: "no-provenance", exit: 0 }],
   // off → always satisfied, exit 0, even with no marker / no label
@@ -1279,20 +1344,24 @@ const INTAKECHECK_SELFTEST_CASES = [
   [null, ["faff-jot-intake"], "warn", { satisfied: true, basis: "grandfathered-label", warn: true, exit: 0 }],
 ];
 
-function intakeExit(v, mode) {
+// Exit decision over (verdict, mode, interactive). The interactive bypass (FAFF-223) only
+// ever relaxes the block-mode unsatisfied case to exit 0 — the human is the sanction. warn/off
+// never blocked, and a satisfied verdict is always exit 0, so interactive is a no-op there.
+function intakeExit(v, mode, interactive = false) {
   if (v.satisfied) return 0;
+  if (mode === "block" && interactive) return 0; // FAFF-223 human-sanction bypass
   return mode === "block" ? 3 : 0;
 }
 
 function intakecheckSelftest() {
   let fail = 0;
-  for (const [marker, labels, mode, want] of INTAKECHECK_SELFTEST_CASES) {
+  for (const [marker, labels, mode, want, interactive = false] of INTAKECHECK_SELFTEST_CASES) {
     const v = intakeVerdict(marker, labels, mode);
-    const exit = intakeExit(v, mode);
+    const exit = intakeExit(v, mode, interactive);
     const got = { satisfied: v.satisfied, basis: v.basis, ...(v.warn ? { warn: true } : {}), exit };
     const ok = JSON.stringify(got) === JSON.stringify(want);
     if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} via=${marker && marker.intake && marker.intake.via} labels=[${labels.join(",")}] mode=${mode} → ${JSON.stringify(got)}${ok ? "" : ` (want ${JSON.stringify(want)})`}`);
+    console.log(`${ok ? "ok  " : "FAIL"} via=${marker && marker.intake && marker.intake.via} labels=[${labels.join(",")}] mode=${mode}${interactive ? " --interactive" : ""} → ${JSON.stringify(got)}${ok ? "" : ` (want ${JSON.stringify(want)})`}`);
   }
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${INTAKECHECK_SELFTEST_CASES.length} cases, ${fail} failed)`);
   return fail ? 1 : 0;
@@ -3277,8 +3346,8 @@ Subcommands:
   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
   runcheck [--hook] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the FAFF-205 ownership+liveness gate (silent for a foreign held run); --selftest runs the gate table
   prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
-  intakecheck <issue> [--labels csv] [--json] [--root DIR]   FAFF-212: intake-provenance guard — verify a ticket entered through /faff-jot (CLI-written .faff/provenance/<ISSUE>.json marker, with the spoofable faff-jot-intake label as a grandfather bridge); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; malformed marker → absent + warn, never crash; --selftest runs the four-bases table. NOT a Stop-hook (would reintroduce FAFF-205)
-  intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot); --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
+  intakecheck <issue> [--labels csv] [--interactive] [--json] [--root DIR]   FAFF-212/223: intake-provenance guard — verify a ticket entered through a sanctioned front door (CLI-written .faff/provenance/<ISSUE>.json marker; the spoofable faff-jot-intake label is a grandfather bridge; a human-set faff-automate is admitted as the eligibility-gesture basis — write-abstained ⇒ human-set by construction, FAFF-218); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; --interactive makes a block-mode miss exit 0 with a [warn] (human-at-keyboard is the sanction — autonomous OMITS it); malformed marker → absent + warn, never crash; --selftest runs the bases + bypass table. NOT a Stop-hook (would reintroduce FAFF-205)
+  intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance

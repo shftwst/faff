@@ -69,6 +69,12 @@ jobs:
       - name: Validate prepcheck attach-state audit table
         run: node plugin/skills/faff/bin/faff prepcheck --selftest
 
+      - name: Validate intake-provenance verdict + interactive-bypass table
+        run: node plugin/skills/faff/bin/faff intakecheck --selftest
+
+      - name: Validate intake-record via/initiated table
+        run: node plugin/skills/faff/bin/faff intake-record --selftest
+
       - name: Validate hooks-ensure Stop-hook registration table
         run: node plugin/skills/faff/bin/faff hooks-ensure --selftest
 

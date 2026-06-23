@@ -173,14 +173,37 @@ If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and p
 After the wave loop converges (and only when builds ran — the wave-1 short-circuit at step 9 skips this), collect the **discovered scope** `/faff-graft` recorded during the run and file the concrete items as Backlog tickets. This is bottom-up source (b) — execution-discovered work (gateway → **Agent Lanes**; `design/planning-loop.md`). It is the one step where beep-boop writes tickets **directly** rather than via tidy — legitimately, as the orchestrator lane (full tracker write).
 
 1. **Collect.** Glob `.faff/runs/<run-id>/*/discovered-scope.json` (each built issue's file; absent when it found nothing). Every built issue contributes regardless of its terminal outcome — a `shipped`, `pr-open`, or `parked` issue can all carry discovered scope.
-2. **Gate per item:**
+2. **Containment check (FAFF-221 — runs before the appetite gate; this is chokepoint #1).** This step is an autonomous-by-construction create path, so each `concrete` item passes `autonomous_file_check` (see _Containment at the filing chokepoint_ below) **before** the gate. The **mandate is the `<ISSUE>` dir the item came from** — the built issue beep-boop was dispatched from the human-admitted queue. Fetch the intended parent's ancestry **fresh** and call `faff contain`. `outward` (or an item graft already tagged `containment: outward-new-root`) → skip steps 3–4, jump to step 6 (surface-only). `contained` → fall through to the appetite gate. `vague` items skip the check (they are never filed regardless).
+3. **Gate per item:**
    - `vague` items → never filed. Aggregate for the run summary + the next `/faff-wtf` morning brief only.
-   - `concrete` items → **appetite-gated** (gateway → **Appetite for destruction**, _Execution-discovered auto-create_ row): `low` surfaces only; `medium` files only with an opinionated methodology; `high` (default) files every concrete item; `full` always files.
-3. **Dedup before creating.** Match each item's title/surface + relationship target against existing open tickets, **including `faff-chain-gap-fill` tickets tidy created this run** — a build often "discovers" a downstream the spec already named and tidy already filled. Skip duplicates; count them.
-4. **File** each surviving item per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_ — do not restate it): status `Backlog`, tag `faff-chain-gap-fill` via `faff label add <issue> faff-chain-gap-fill` and its descriptor's write (gateway → **Control-label provisioning**), the recorded relationship link to the originating issue, and a "discovered during build of SHF-XX" provenance line in the description. The next run's tidy + prep pass picks them up — depth grows one layer per run.
-5. **Record** the filed count to the ledger's informational `discovered_scope_filed` field (see Run ledger) and log per-item (id, source issue, relationship, gate decision) under `.faff/runs/<run-id>/discovered-scope-filed.md`.
+   - `concrete` + `contained` items → **appetite-gated** (gateway → **Appetite for destruction**, _Execution-discovered auto-create_ row): `low` surfaces only; `medium` files only with an opinionated methodology; `high` (default) files every concrete item; `full` always files. An `outward-new-root` item is **never** filed at any level including `full` (the hard floor) — it was already routed to step 6.
+4. **Dedup before creating.** Match each item's title/surface + relationship target against existing open tickets, **including `faff-chain-gap-fill` tickets tidy created this run** — a build often "discovers" a downstream the spec already named and tidy already filled. Skip duplicates; count them.
+5. **File** each surviving item per the `faff-chain-gap-fill` recipe (see `/faff-tidy` → _Chain gaps_ — do not restate it): status `Backlog`, tag `faff-chain-gap-fill` via `faff label add <issue> faff-chain-gap-fill` and its descriptor's write (gateway → **Control-label provisioning**), the recorded relationship link to the originating issue, and a "discovered during build of SHF-XX" provenance line in the description. **Stamp `initiated: autonomous`** on the create — `faff intake-record <new-issue> --via jot --initiated autonomous` (FAFF-220; the marker is the autonomous-filing audit trail). The next run's tidy + prep pass picks them up — depth grows one layer per run.
+6. **Outward-new-root (surface-only, never filed).** For each `outward` item: keep/record its `DiscoveredScopeEntry { containment: "outward-new-root" }`, **create nothing**, surface it in the run summary's discovered-scope section so `/faff-wtf` §4 shows it, **and post a comment on the mandate issue** (the `<ISSUE>` it came from — an already-sanctioned surface, so the comment is in-lane, not scope expansion). Do **not** park the build. The human creating the root later via `/faff-jot` (→ `initiated: interactive`) is the approval.
+7. **Record** the filed count to the ledger's informational `discovered_scope_filed` field (see Run ledger) and log per-item (id, source issue, relationship, containment verdict, gate decision) under `.faff/runs/<run-id>/discovered-scope-filed.md`.
 
 Filed tickets are **new work, not admitted issues** — they sit outside runcheck's `admitted − outcomes` invariant and never affect run completeness. (Within-run convergence — prepping and building these in the *same* run until both bottom-up tributaries run dry — is a documented future extension, not done here; see `design/planning-loop.md`.)
+
+#### Containment at the filing chokepoint (FAFF-221)
+
+This is one of the **two** autonomous-by-construction tracker-create paths (the other is tidy chain-gap auto-fill); both call the same `autonomous_file_check` before any create, so an agent-discovered item can only become a ticket **inside the subtree of the mandate** it was discovered under. `faff-graft` only *records* discovered scope (gateway → **Agent Lanes**) — it is **not** a create path. The mode signal is structural, not a flag (gateway → scope-containment is by-construction, FAFF-217); interactive jot/plot create freely and stamp `initiated: interactive`.
+
+```
+PROCEDURE autonomous_file_check(mandate, candidate):
+  1. parent   := candidate.intended_parent            # sanctioned ancestor, or none → --root
+  2. ancestry := <fresh agent-side tracker read of parent's parentId chain, at filing time>
+  3. verdict  := faff contain <mandate> (--parent <parent> | --root) --ancestry <json>   # exit 0/3/2
+  4. contained (0): proceed to the existing appetite gate; on create stamp initiated: autonomous
+       (faff intake-record <new> --via jot --initiated autonomous)
+  5. outward (3):   create NOTHING; record containment: "outward-new-root"; surface (run digest →
+       /faff-wtf) AND comment on the mandate issue; do NOT park
+  6. usage (2):     malformed ancestry → log + surface, no create, no crash
+  # NEVER self-call `faff intake-record --via fast-track` to convert an outward verdict — fast-track is human-only.
+```
+
+- **Ancestry is fetched fresh** at filing time (never a cached chain from an earlier pass — a stale chain could make an outward parent read as contained).
+- **`--root`, a cycle, or an unknown/absent parentId** all return outward (fail-closed, delegated to `faff contain`); **mandate == parent** is the contained base case.
+- **Containment is a precondition, not a replacement for appetite** — a `contained` verdict still goes through the existing appetite gate, which decides whether to file at this level. **outward-new-root is never filed at any appetite including `full`** (the hard floor — gateway → **Appetite for destruction**).
 
 ### 11. Run completeness check (mechanical)
 

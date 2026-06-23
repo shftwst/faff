@@ -167,6 +167,51 @@ export function isAuthError(err) {
   return /HTTP 40[13]/.test(String(err && err.message));
 }
 
+// PURE (FAFF-227): is this a *transient* transport fault that should be retried? Mirrors isAuthError.
+// TRUE for a retryable streaming-phase condition — HTTP 5xx, a dropped socket (ECONNRESET/ETIMEDOUT/EPIPE
+// or "socket hang up"), or a stream/preflight timeout. FALSE for everything else (4xx incl. auth, usage,
+// model-not-served, and anything unrecognised): default-terminal, so the predicate never over-retries a
+// real fault. realGet/realStream reject 5xx as `HTTP 5dd: …` and surface socket faults with err.code, so
+// both the message and (when present) the code are inspected.
+export function isTransientTransport(err) {
+  if (!err) return false;
+  const msg = String(err.message || "");
+  const code = String(err.code || "");
+  return /HTTP 5\d\d/.test(msg)                       // 5xx server fault from a reject
+    || ["ECONNRESET", "ETIMEDOUT", "EPIPE"].includes(code)
+    || /socket hang up/.test(msg)
+    || /timed out/.test(msg);                          // realStream / preflight timeout text
+}
+
+// Bounded transport-retry policy (FAFF-227): named constants, not magic numbers. attempts counts the
+// first try too (3 ⇒ 2 retries). Backoff before retry k (1-indexed) is base_ms * 2^(k-1), each delay
+// capped by the time remaining against the caller's --timeout deadline so retries never overrun budget.
+export const TRANSPORT_RETRY = { attempts: 3, baseMs: 1500 };
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Wrap a stream call (streamOnce + its truncation retry) in a bounded retry that fires solely on
+// isTransientTransport. Terminal faults (auth/4xx/usage) throw straight out — unchanged. On exhaustion,
+// or when no budget remains for the next backoff, returns a sentinel so the caller surfaces
+// status "transport-failed" (→ main() maps it through unreachableExit, never the unmapped EXIT.OTHER).
+async function streamWithTransportRetry(streamCall, { policy = TRANSPORT_RETRY, deadlineMs } = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= policy.attempts; attempt++) {
+    try {
+      return { ok: true, out: await streamCall() };
+    } catch (e) {
+      if (!isTransientTransport(e)) throw e;            // terminal → out immediately (auth handled by caller's catch)
+      lastErr = e;
+      if (attempt === policy.attempts) break;           // exhausted
+      let delay = policy.baseMs * 2 ** (attempt - 1);
+      if (typeof deadlineMs === "number") delay = Math.min(delay, deadlineMs - Date.now());
+      if (delay <= 0) break;                            // no budget left to retry
+      await sleep(delay);
+    }
+  }
+  return { ok: false, error: lastErr };
+}
+
 // --- transport (real impls; injectable in runReview for tests) ---
 
 function realGet(url, timeoutMs = 5000, headers = {}) {
@@ -225,6 +270,9 @@ async function streamOnce({ host, model, system, user, numPredict, streamFn, tim
 }
 
 // ollama orchestration: preflight → stream → one truncation retry at 2× budget. getFn/streamFn injectable.
+// The stream (+ its truncation retry) is wrapped in a bounded transport retry (FAFF-227): a transient
+// mid-stream fault retries; an exhausted one surfaces status "transport-failed" → main() maps it to a
+// documented exit, never the unmapped EXIT.OTHER.
 async function runReviewOllama({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT,
   getFn = realGet, streamFn = realStream, timeoutMs,
@@ -233,11 +281,17 @@ async function runReviewOllama({
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
   if (!pf.served) return { status: "model-not-served", names: pf.names };
 
-  let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs });
-  if (out.truncated) {
-    out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs });
-  }
-  return { status: "ok", content: out.content, truncated: out.truncated };
+  const streamCall = async () => {
+    let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs });
+    if (out.truncated) {
+      out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs });
+    }
+    return out;
+  };
+  const deadlineMs = typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined;
+  const r = await streamWithTransportRetry(streamCall, { deadlineMs });
+  if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
+  return { status: "ok", content: r.out.content, truncated: r.out.truncated };
 }
 
 // OpenAI-compatible preflight: GET /v1/models with Bearer auth. unreachable (infra) and auth-failed
@@ -262,7 +316,10 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
 }
 
 // OpenAI-compatible orchestration: mirrors the ollama path (preflight → stream → one 2× retry),
-// adding Bearer auth and an auth-failed branch.
+// adding Bearer auth and an auth-failed branch. The stream (+ truncation retry) is wrapped in the same
+// bounded transport retry as ollama (FAFF-227): a transient mid-stream fault retries; an auth fault is
+// terminal (isTransientTransport is FALSE for 401/403, so the wrapper rethrows it into the auth catch);
+// an exhausted transport fault surfaces status "transport-failed" → a documented exit, never EXIT.OTHER.
 async function runReviewOpenAi({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, apiKey,
   getFn = realGet, streamFn = realStream, timeoutMs,
@@ -273,11 +330,17 @@ async function runReviewOpenAi({
   if (!pf.served) return { status: "model-not-served", names: pf.names };
 
   try {
-    let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, apiKey, streamFn, timeoutMs });
-    if (out.truncated) {
-      out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, apiKey, streamFn, timeoutMs });
-    }
-    return { status: "ok", content: out.content, truncated: out.truncated };
+    const streamCall = async () => {
+      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, apiKey, streamFn, timeoutMs });
+      if (out.truncated) {
+        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, apiKey, streamFn, timeoutMs });
+      }
+      return out;
+    };
+    const deadlineMs = typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined;
+    const r = await streamWithTransportRetry(streamCall, { deadlineMs });
+    if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
+    return { status: "ok", content: r.out.content, truncated: r.out.truncated };
   } catch (e) {
     if (isAuthError(e)) return { status: "auth-failed", note: e.message };
     throw e;
@@ -316,7 +379,9 @@ export function parseArgs(argv) {
   return a;
 }
 
-async function main(argv) {
+// `runReviewFn` is injectable so the CLI exit-mapping (notably the FAFF-227 transport-failed → 5/6 path)
+// is unit-testable with a stubbed orchestration result; it defaults to the real runReview for the CLI.
+export async function main(argv, { runReviewFn = runReview } = {}) {
   const a = parseArgs(argv);
   if (!a.host || !a.model || !a.system || !a.diff) {
     process.stderr.write("usage: review-call.mjs --host H --model M --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
@@ -336,7 +401,7 @@ async function main(argv) {
   const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
   const user = assembleUserMessage({ contextFiles, diff });
 
-  const r = await runReview({
+  const r = await runReviewFn({
     host: a.host, model: a.model, system, user, numPredict: a.numPredict, timeoutMs: a.timeoutMs,
     provider: a.provider, apiKey, reasoningOff: a.reasoningOff,
   });
@@ -358,6 +423,17 @@ async function main(argv) {
       ? "default localhost — provider unconfigured (needs-human)"
       : "configured host unreachable (pass+skip)";
     process.stderr.write(`provider unreachable (${a.host}): ${r.note} — ${provenance}\n`);
+    return exit;
+  }
+  if (r.status === "transport-failed") {
+    // FAFF-227: a persistent mid-stream transport fault routes through the SAME unreachableExit path as a
+    // preflight-unreachable host (5 pass+skip / 6 needs-human, per host-source) — never the unmapped exit 1.
+    // A distinct stderr note keeps it debuggable apart from a preflight unreachable.
+    const exit = unreachableExit({ hostSource: a.hostSource });
+    const provenance = exit === EXIT.DEFAULT_HOST_UNREACHABLE
+      ? "default localhost — provider unconfigured (needs-human)"
+      : "configured host unreachable (pass+skip)";
+    process.stderr.write(`mid-stream transport failure after ${TRANSPORT_RETRY.attempts} attempts (${a.host}): ${r.note} — ${provenance}\n`);
     return exit;
   }
   if (r.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");

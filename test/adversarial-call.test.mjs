@@ -2,11 +2,15 @@
 // Zero live model calls — getFn/streamFn are mocked.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { writeFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
   preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
   buildOpenAiPayload, modelServedOpenAi, accumulateSse, isAuthError,
   providerFamily, joinUrl, preflightOpenAi,
+  isTransientTransport, TRANSPORT_RETRY, main,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -314,4 +318,155 @@ test("unreachableExit: default-host down → exit 6 (needs-human); configured ho
   // missing/omitted provenance is treated as config (back-compat with existing callers)
   assert.equal(unreachableExit({}), EXIT.UNREACHABLE);
   assert.equal(unreachableExit(), EXIT.UNREACHABLE);
+});
+
+// --- FAFF-227: bounded transient-transport retry; persistent fault → documented exit, never unmapped 1 ---
+
+test("isTransientTransport: 5xx / dropped-socket / timeout are transient; 4xx, auth, usage, unknown are not", () => {
+  // transient (retry)
+  for (const m of ["HTTP 504", "HTTP 502: bad gateway", "HTTP 500", "stream timed out after 580000ms", "preflight timed out after 5000ms", "socket hang up"]) {
+    assert.equal(isTransientTransport(new Error(m)), true, m);
+  }
+  for (const code of ["ECONNRESET", "ETIMEDOUT", "EPIPE"]) {
+    const e = new Error("write failed"); e.code = code;
+    assert.equal(isTransientTransport(e), true, code);
+  }
+  // terminal (no retry) — 4xx incl. auth, usage, model-not-served text, and anything unrecognised
+  for (const m of ["HTTP 401", "HTTP 403", "HTTP 404", "HTTP 400 Bad Request", "HTTP 429", "usage error", "model 'x' not served", "some other error"]) {
+    assert.equal(isTransientTransport(new Error(m)), false, m);
+  }
+  assert.equal(isTransientTransport(null), false);
+  assert.equal(isTransientTransport(undefined), false);
+  // a 5xx still wins even with no err.code set; ECONNREFUSED (connection refused, a preflight-class infra
+  // signal) is intentionally NOT transient here — the streaming-phase retry targets mid-stream drops/5xx.
+  const refused = new Error("ECONNREFUSED"); refused.code = "ECONNREFUSED";
+  assert.equal(isTransientTransport(refused), false, "ECONNREFUSED is not a mid-stream transient");
+});
+
+test("TRANSPORT_RETRY policy defaults: 3 attempts (2 retries), exponential backoff base — named, not magic", () => {
+  assert.equal(TRANSPORT_RETRY.attempts, 3);
+  assert.ok(TRANSPORT_RETRY.baseMs > 0);
+});
+
+test("runReview ollama: a transient mid-stream fault retries once then succeeds → status ok", async () => {
+  let calls = 0;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("HTTP 504: gateway timeout"); // transient
+      return JSON.stringify({ message: { content: "### finding" }, done: true, done_reason: "stop" });
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "### finding");
+  assert.equal(calls, 2, "retried exactly once after the transient fault");
+});
+
+test("runReview ollama: a persistent transient fault exhausts retries → status transport-failed", async () => {
+  let calls = 0;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline already passed → no sleeps
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async () => { calls += 1; throw new Error("HTTP 504"); },
+  });
+  assert.equal(r.status, "transport-failed");
+  assert.match(r.note, /HTTP 504/);
+  assert.ok(calls >= 1, "attempted at least once");
+});
+
+test("runReview openai: transient mid-stream fault retries once then succeeds → status ok", async () => {
+  let calls = 0;
+  const r = await runReview({
+    provider: "nvidia", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "K", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => {
+      calls += 1;
+      if (calls === 1) { const e = new Error("socket hang up"); throw e; } // transient
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "### finding");
+  assert.equal(calls, 2);
+});
+
+test("runReview openai: a persistent transient fault → status transport-failed", async () => {
+  const r = await runReview({
+    provider: "openai", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "K", timeoutMs: 0,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => { const e = new Error("read ECONNRESET"); e.code = "ECONNRESET"; throw e; },
+  });
+  assert.equal(r.status, "transport-failed");
+});
+
+test("runReview openai: an auth fault mid-stream is NOT retried → auth-failed (terminal, no retry)", async () => {
+  let calls = 0;
+  const r = await runReview({
+    provider: "openai", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "bad", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => { calls += 1; throw new Error("HTTP 401 Unauthorized"); },
+  });
+  assert.equal(r.status, "auth-failed");
+  assert.equal(calls, 1, "auth is terminal — streamed exactly once, never retried");
+});
+
+test("runReview openai: a non-auth 4xx mid-stream is NOT retried (terminal) → bubbles up, not transport-failed", async () => {
+  let calls = 0;
+  await assert.rejects(
+    runReview({
+      provider: "openai", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "K", timeoutMs: 600000,
+      getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+      streamFn: async () => { calls += 1; throw new Error("HTTP 400 Bad Request"); },
+    }),
+    /HTTP 400/,
+  );
+  assert.equal(calls, 1, "a 4xx is terminal — never retried");
+});
+
+test("runReview ollama: truncation retry still composes with the transport retry (regression)", async () => {
+  // First stream truncates → one truncation retry at 2× budget; no transport fault → no transport retry.
+  const budgets = [];
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", numPredict: 1000, timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async (_url, body) => {
+      budgets.push(JSON.parse(body).options.num_predict);
+      const first = budgets.length === 1;
+      return JSON.stringify({ message: { content: first ? "partial" : "full" }, done: true, done_reason: first ? "length" : "stop" });
+    },
+  });
+  assert.deepEqual(budgets, [1000, 2000], "truncation retry unchanged");
+  assert.equal(r.content, "full");
+  assert.equal(r.truncated, false);
+});
+
+// main() exit-mapping: a persistent transport failure must map to a DOCUMENTED exit (5 / 6), never the
+// unmapped EXIT.OTHER (1). Uses injected runReviewFn + temp --system/--diff files (main reads them).
+function writeMainFixtures() {
+  const dir = mkdtempSync(join(tmpdir(), "faff227-"));
+  const sys = join(dir, "system.txt"); const diff = join(dir, "diff.txt");
+  writeFileSync(sys, "REVIEW LENS"); writeFileSync(diff, "DIFF");
+  return { sys, diff };
+}
+
+test("main(): persistent transport-failed with --host-source config → EXIT.UNREACHABLE (5), never OTHER (1)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "config"],
+    { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 504" }) },
+  );
+  assert.equal(code, EXIT.UNREACHABLE);
+  assert.notEqual(code, EXIT.OTHER);
+});
+
+test("main(): persistent transport-failed with --host-source default → EXIT.DEFAULT_HOST_UNREACHABLE (6), never OTHER (1)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
+    { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 504" }) },
+  );
+  assert.equal(code, EXIT.DEFAULT_HOST_UNREACHABLE);
+  assert.notEqual(code, EXIT.OTHER);
 });

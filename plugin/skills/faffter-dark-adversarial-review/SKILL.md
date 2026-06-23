@@ -152,9 +152,11 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
 | `0` | findings on stdout | parse `## Adversarial findings`, disposition each (below) |
 | `2` | usage error, or an unsupported provider (`gemini`/`anthropic`/unknown) | **`needs-human`** — a config fault, not a review result. |
 | `4` | configured model **not served** by the host (config fault — e.g. a name typo) | **`needs-human`**, naming the mismatch. **Never** silent `pass` — a misconfigured model must not invisibly disable the review. |
-| `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`) | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. |
-| `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset** | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). |
+| `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`), **or** a persistent mid-stream **transport failure** after the bounded retry (FAFF-227) on a configured host | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. |
+| `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset**, **or** a persistent mid-stream **transport failure** (FAFF-227) on the default host | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). |
 | `7` | **auth failed** (cloud `401`/`403`, or the `api_key_env` var is unset) | **`needs-human`** — don't retry with broken credentials. |
+
+A **transient transport fault during streaming** (HTTP 5xx, a dropped socket — `ECONNRESET`/`ETIMEDOUT`/`EPIPE`/"socket hang up", or a stream timeout) is **retried** a bounded number of times with exponential backoff (capped by `--timeout`) before it counts as a failure; only a **persistent** one lands on exit `5`/`6` above (FAFF-227). **`OTHER` (exit `1`) is reserved for genuine programmer error — no transport/infra condition exits `1`**, so every exit the helper returns is covered by this table.
 
 Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides).
 

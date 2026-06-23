@@ -233,7 +233,7 @@ The most active lane. Where development happens:
 - Code, tests, and documentation changes
 - Fix→review iteration loops
 
-Faff-graft's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next.
+Faff-graft's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next. Under autonomous orchestration the `concurrency` slot dispatches it as an **isolated subagent** whose context is the throwaway: it returns **only** a terminal token `{ issue, outcome, pr }` to the orchestrator, never its working set — so the orchestrator re-absorbs the token + on-disk artifacts, and the build context is discarded on return. This is what makes the lane's structural isolation mechanically true, not just intent.
 
 ### Evaluator (external lane)
 

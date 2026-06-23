@@ -207,6 +207,8 @@ const DEFAULTS = {
   "adr.mode": "offer",
   "intake_gate": "warn",
   "gates.fallback": "advisory",
+  "budget.at_ceiling": "stop",
+  "budget.price_per_mtok": "0",
 };
 
 function fmt(value) {
@@ -600,7 +602,7 @@ function cmdConfig(args) {
           "slots.intake", "slots.spec", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
-          "gates.fallback",
+          "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -1704,6 +1706,326 @@ function containSelftest() {
     console.log(`${ok ? "ok  " : "FAIL"} mandate=${mandate} parent=${p} ancestry=${JSON.stringify(ancestry)} → ${got}${ok ? "" : ` (want ${want})`}`);
   }
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CONTAIN_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
+// budget — FAFF-36: run cost / compute budgeting.
+//
+// `faff budget check` is a PURE CLI (parity with `faff next` / `faff eligible`):
+// reads the run-ledger + config + the run's local transcripts and emits a
+// BudgetState JSON. NO tracker call, NO network. It generalises beep-boop's
+// `--until` / `--max` flags into one BudgetEnvelope across four dimensions
+// (until · max_attempts · tokens · cost) with three at-ceiling outcomes
+// (stop | narrow | escalate, default stop).
+//
+// The contract FAFF-38/FAFF-225 consume is the ceiling + outcome; HOW spend is
+// accounted is a swappable producer behind it (the issue's slot framing). The
+// default accounting producer is the transcript-sum implemented here.
+//
+// Layering, deliberately split so the judgement-free core is unit-testable
+// without disk:
+//   - envelopeFrom(config, flags)      → resolve BudgetEnvelope (flags override config)
+//   - computeBudgetState(env, spent, tokens_source) → pure BudgetState (no I/O)
+//   - measureTokens(...)               → transcript-sum accounting (the only I/O)
+//   - cmdBudget(args)                  → wires ledger + config + transcripts → JSON
+// ===========================================================================
+
+const BUDGET_DIMENSIONS = ["until", "max_attempts", "tokens", "cost"];
+const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate"]);
+const BUDGET_TOKEN_USAGE_KEYS = [
+  "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
+];
+
+// `--until HH:MM` → an absolute epoch-ms relative to `nowMs`, next-day if already past
+// (mirrors beep-boop's `--until` semantic: `--until 06:00` at 23:00 means 06:00 tomorrow).
+// Returns null on a malformed value (treated as no ceiling — never throws).
+function untilToEpoch(hhmm, nowMs) {
+  if (hhmm == null) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm).trim());
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  const now = new Date(nowMs);
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, min, 0, 0);
+  let t = target.getTime();
+  if (t <= nowMs) t += 24 * 60 * 60 * 1000; // past → next-day same time
+  return t;
+}
+
+// Resolve the BudgetEnvelope from config (the `budget:` block) + CLI flag overrides.
+// Flags (--until / --max) override config (parity with beep-boop's existing flags).
+// An unset dimension is `null` (unbounded). `price_per_mtok` 0 disables the cost dim.
+// Returns { ceilings: {until,max_attempts,tokens,cost}, at_ceiling, price_per_mtok }.
+function envelopeFrom(cfg, flags) {
+  const b = (cfg && typeof cfg === "object" && cfg.budget && typeof cfg.budget === "object") ? cfg.budget : {};
+  const num = (v) => { if (v == null || v === "") return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+  const until = (flags && flags.until != null) ? flags.until : (b.until != null ? String(b.until) : null);
+  const maxAttempts = (flags && flags.max_attempts != null) ? num(flags.max_attempts) : num(b.max_attempts);
+  const tokens = num(b.tokens);
+  const price = num(b.price_per_mtok) || 0;
+  // cost ceiling only meaningful when a price is configured; price 0 disables the cost dimension.
+  const cost = price > 0 ? num(b.cost) : null;
+  let atCeiling = b.at_ceiling != null ? String(b.at_ceiling).trim().toLowerCase() : "stop";
+  if (!AT_CEILING_OUTCOMES.has(atCeiling)) atCeiling = "stop"; // unknown coerces to the safe default
+  return {
+    ceilings: { until: until ?? null, max_attempts: maxAttempts, tokens, cost },
+    at_ceiling: atCeiling,
+    price_per_mtok: price,
+  };
+}
+
+// PURE BudgetState core — no I/O. Given the resolved envelope, the measured spend
+// across dimensions, and the token source label, compute which ceilings are
+// breached and the resulting outcome. `breached ≠ ∅` is the terminating signal.
+// `spent` = { elapsed_ms, until_epoch, attempts, tokens, cost }. A dimension with
+// a null ceiling is unbounded and can never breach.
+function computeBudgetState(env, spent, tokensSource) {
+  const c = env.ceilings;
+  const breached = [];
+  // until: breach when the wall clock has reached/passed the resolved until-epoch.
+  if (c.until != null && spent.until_epoch != null && spent.now_epoch != null && spent.now_epoch >= spent.until_epoch) {
+    breached.push("until");
+  }
+  if (c.max_attempts != null && spent.attempts >= c.max_attempts) breached.push("max_attempts");
+  if (c.tokens != null && spent.tokens >= c.tokens) breached.push("tokens");
+  if (c.cost != null && spent.cost != null && spent.cost >= c.cost) breached.push("cost");
+  const outcome = breached.length ? env.at_ceiling : "none";
+  return {
+    spent: {
+      elapsed_ms: spent.elapsed_ms ?? null,
+      attempts: spent.attempts ?? 0,
+      tokens: spent.tokens ?? 0,
+      cost: spent.cost ?? null,
+    },
+    tokens_source: tokensSource,
+    breached,
+    outcome,
+  };
+}
+
+// Encode a cwd to its ~/.claude/projects/<encoded> directory name: '/' → '-'.
+// (Claude Code's transcript project-dir convention.) Honours $CLAUDE_CONFIG_DIR.
+function transcriptBaseDir(cwd, env) {
+  const home = env.HOME || env.USERPROFILE || "";
+  const configDir = env.CLAUDE_CONFIG_DIR || path.join(home, ".claude");
+  const encoded = String(cwd).replace(/\//g, "-");
+  return path.join(configDir, "projects", encoded);
+}
+
+// Sum usage tokens across a single transcript .jsonl file. Each line is a JSON
+// record; assistant messages carry message.usage. Malformed lines are skipped
+// (a partial/in-flight transcript must never crash the budget check).
+function sumTranscriptFile(file) {
+  let total = 0;
+  let text;
+  try { text = fs.readFileSync(file, "utf8"); } catch { return 0; }
+  for (const line of text.split("\n")) {
+    const s = line.trim();
+    if (!s) continue;
+    let rec;
+    try { rec = JSON.parse(s); } catch { continue; }
+    const usage = rec && rec.message && rec.message.usage ? rec.message.usage
+      : (rec && rec.usage ? rec.usage : null);
+    if (!usage || typeof usage !== "object") continue;
+    for (const k of BUDGET_TOKEN_USAGE_KEYS) {
+      const v = usage[k];
+      if (typeof v === "number" && Number.isFinite(v)) total += v;
+    }
+  }
+  return total;
+}
+
+// Measure this-run token spend: the orchestrator transcript (keyed off
+// $CLAUDE_CODE_SESSION_ID — NEVER mtime-newest, which can be a different session)
+// + every child agent-*.jsonl modified >= run start (subagent grafts dominate
+// run spend and live in separate files, not sidechain entries). Returns
+// { total, source }: source 'transcript' when the session file was read,
+// 'estimate' when no transcript is available (caller supplies the estimate).
+function measureTokens(opts) {
+  const { cwd, env, runStartMs } = opts;
+  const sid = env.CLAUDE_CODE_SESSION_ID;
+  const base = transcriptBaseDir(cwd, env);
+  const sessionFile = sid ? path.join(base, `${sid}.jsonl`) : null;
+  // Transcript unavailable (no session id, dir missing, or session file absent —
+  // e.g. CLAUDE_CODE_SKIP_PROMPT_HISTORY) → estimate fallback (caller computes).
+  if (!sid || !fs.existsSync(base) || !sessionFile || !fs.existsSync(sessionFile)) {
+    return { total: null, source: "estimate" };
+  }
+  let total = sumTranscriptFile(sessionFile);
+  // Aggregate child subagent transcripts modified at/after run start (undercount,
+  // never overcount: a missed late file lowers the figure — guard-rail semantics).
+  // With NO run-start anchor we cannot tell this run's children from a prior run's,
+  // so we skip child aggregation entirely rather than risk OVER-counting a stale
+  // run's agents — undercount-not-overcount (the orchestrator always stamps
+  // owner.started_at at run start, so this null path is the degenerate case only).
+  if (runStartMs != null) {
+    let entries = [];
+    try { entries = fs.readdirSync(base); } catch { entries = []; }
+    for (const name of entries) {
+      if (!/^agent-.*\.jsonl$/.test(name)) continue;
+      const f = path.join(base, name);
+      let st;
+      try { st = fs.statSync(f); } catch { continue; }
+      if (st.mtimeMs < runStartMs) continue; // outside the run window
+      total += sumTranscriptFile(f);
+    }
+  }
+  return { total, source: "transcript" };
+}
+
+// Count build attempts from the ledger: every issue with a recorded terminal
+// outcome that represents a dispatched build (launch-counted, parity with
+// beep-boop's --max which "counts every build-queue dispatch regardless of
+// outcome"). routed-out / unreached-budget never got a graft invocation, so they
+// don't count. Falls back to the admitted count when outcomes are absent.
+const BUDGET_NON_ATTEMPT_OUTCOMES = new Set(["routed-out", "unreached-budget"]);
+function attemptsFromLedger(ledger) {
+  const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
+  const keys = Object.keys(outcomes);
+  if (keys.length) return keys.filter((k) => !BUDGET_NON_ATTEMPT_OUTCOMES.has(outcomes[k])).length;
+  return Array.isArray(ledger && ledger.admitted) ? ledger.admitted.length : 0;
+}
+
+function cmdBudget(args) {
+  if (args.includes("--selftest")) return budgetSelftest();
+  const sub = args.find((a) => !a.startsWith("-"));
+  if (sub !== "check") { process.stderr.write("usage: faff budget check [--run-dir DIR] [--until HH:MM] [--max N] [--json]\n"); return 2; }
+
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const flags = { until: get("--until"), max_attempts: get("--max") };
+  const root = get("--root") || findRoot();
+
+  // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest).
+  let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
+  if (!runDir) runDir = latestRunDir(root);
+
+  let ledger = {};
+  if (runDir) { try { ledger = readLedger(runDir); } catch { ledger = {}; } }
+
+  const [cfg] = loadConfig(root);
+  // A ledger may carry a pre-resolved envelope (recorded at run start by the
+  // orchestrator); CLI flags still override. Else resolve fresh from config+flags.
+  const ledgerEnv = (ledger.budget && typeof ledger.budget === "object" && ledger.budget.envelope) || null;
+  const env = ledgerEnv ? envelopeFromLedger(ledgerEnv, flags, cfg) : envelopeFrom(cfg, flags);
+
+  const nowMs = Date.now();
+  const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
+  const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
+  const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+
+  // Token accounting (the only I/O). Estimate fallback when the transcript is gone.
+  const measured = measureTokens({ cwd: root, env: process.env, runStartMs });
+  let tokens, tokensSource;
+  if (measured.source === "transcript") {
+    tokens = Math.max(0, measured.total - tokensAtStart); // this-run delta, baselined at run start
+    tokensSource = "transcript";
+  } else {
+    const attemptsForEst = attemptsFromLedger(ledger);
+    const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
+    tokens = attemptsForEst * estPer;
+    tokensSource = "estimate";
+  }
+
+  const attempts = attemptsFromLedger(ledger);
+  const cost = env.price_per_mtok > 0 ? (tokens / 1_000_000) * env.price_per_mtok : null;
+  const untilEpoch = untilToEpoch(env.ceilings.until, nowMs);
+
+  const state = computeBudgetState(env, {
+    now_epoch: nowMs,
+    until_epoch: untilEpoch,
+    elapsed_ms: runStartMs != null ? nowMs - runStartMs : null,
+    attempts,
+    tokens,
+    cost,
+  }, tokensSource);
+
+  console.log(JSON.stringify(state));
+  return 0;
+}
+
+// When the ledger carries a pre-resolved envelope, honour it but let live CLI
+// flags override the until/max dimensions (config supplies price/at_ceiling
+// fallbacks the recorded envelope may predate).
+function envelopeFromLedger(rec, flags, cfg) {
+  const fresh = envelopeFrom(cfg, flags);
+  const num = (v) => { if (v == null || v === "") return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+  const recCeil = (rec.ceilings && typeof rec.ceilings === "object") ? rec.ceilings : {};
+  let atCeiling = rec.at_ceiling != null ? String(rec.at_ceiling).trim().toLowerCase() : fresh.at_ceiling;
+  if (!AT_CEILING_OUTCOMES.has(atCeiling)) atCeiling = "stop";
+  return {
+    ceilings: {
+      until: flags && flags.until != null ? flags.until : (recCeil.until ?? null),
+      max_attempts: flags && flags.max_attempts != null ? num(flags.max_attempts) : (num(recCeil.max_attempts)),
+      tokens: num(recCeil.tokens),
+      cost: num(recCeil.cost),
+    },
+    at_ceiling: atCeiling,
+    price_per_mtok: num(rec.price_per_mtok) || fresh.price_per_mtok || 0,
+  };
+}
+
+// Selftest — drives the pure cores (envelopeFrom · untilToEpoch · computeBudgetState
+// · attemptsFromLedger) over in-memory cases; no filesystem, no tracker. Mirrors the
+// contain/next selftest shape: per-case ok/FAIL + a RESULT line, non-zero on any fail.
+function budgetSelftest() {
+  let fail = 0;
+  const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
+  const NOW = Date.parse("2026-06-23T12:00:00Z");
+
+  // --- envelopeFrom: config + flag override ---
+  const e1 = envelopeFrom({ budget: { max_attempts: 3, at_ceiling: "escalate" } }, {});
+  ok("envelope reads config max_attempts", e1.ceilings.max_attempts === 3 && e1.at_ceiling === "escalate");
+  const e2 = envelopeFrom({ budget: { max_attempts: 3 } }, { max_attempts: "9" });
+  ok("flag --max overrides config", e2.ceilings.max_attempts === 9);
+  const e3 = envelopeFrom({}, {});
+  ok("unset dims are null + default stop", e3.ceilings.max_attempts === null && e3.ceilings.tokens === null && e3.at_ceiling === "stop");
+  const e4 = envelopeFrom({ budget: { at_ceiling: "bogus" } }, {});
+  ok("unknown at_ceiling coerces to stop", e4.at_ceiling === "stop");
+  const e5 = envelopeFrom({ budget: { cost: 5, price_per_mtok: 0 } }, {});
+  ok("price 0 disables cost dimension", e5.ceilings.cost === null);
+  const e6 = envelopeFrom({ budget: { cost: 5, price_per_mtok: 3 } }, {});
+  ok("price>0 enables cost dimension", e6.ceilings.cost === 5 && e6.price_per_mtok === 3);
+
+  // --- untilToEpoch: next-day-if-past ---
+  const future = untilToEpoch("13:00", NOW);
+  ok("until future same-day", future > NOW && future - NOW < 2 * 3600 * 1000);
+  const past = untilToEpoch("11:00", NOW);
+  ok("until past rolls to next day", past > NOW && past - NOW > 22 * 3600 * 1000);
+  ok("until malformed → null", untilToEpoch("nope", NOW) === null && untilToEpoch("25:00", NOW) === null);
+
+  // --- computeBudgetState: per-dimension breach + outcome ---
+  const env3 = envelopeFrom({ budget: { max_attempts: 3, at_ceiling: "stop" } }, {});
+  const s1 = computeBudgetState(env3, { now_epoch: NOW, attempts: 3, tokens: 0 }, "transcript");
+  ok("max_attempts breached at ceiling → stop", s1.breached.length === 1 && s1.breached[0] === "max_attempts" && s1.outcome === "stop");
+  const s2 = computeBudgetState(env3, { now_epoch: NOW, attempts: 2, tokens: 0 }, "transcript");
+  ok("below ceiling → not breached, outcome none", s2.breached.length === 0 && s2.outcome === "none");
+  const envTok = envelopeFrom({ budget: { tokens: 100000, at_ceiling: "escalate" } }, {});
+  const s3 = computeBudgetState(envTok, { now_epoch: NOW, attempts: 0, tokens: 150000 }, "transcript");
+  ok("tokens breached → escalate, source transcript", s3.breached[0] === "tokens" && s3.outcome === "escalate" && s3.tokens_source === "transcript");
+  const s3e = computeBudgetState(envTok, { now_epoch: NOW, attempts: 0, tokens: 150000 }, "estimate");
+  ok("estimate source preserved", s3e.tokens_source === "estimate");
+  const envUntil = envelopeFrom({ budget: { until: "11:00" } }, {});
+  const s4 = computeBudgetState(envUntil, { now_epoch: NOW, until_epoch: NOW - 1000, attempts: 0, tokens: 0 }, "transcript");
+  ok("until breached when now >= until-epoch", s4.breached[0] === "until" && s4.outcome === "stop");
+  const s4b = computeBudgetState(envUntil, { now_epoch: NOW, until_epoch: NOW + 1000, attempts: 0, tokens: 0 }, "transcript");
+  ok("until not breached when now < until-epoch", s4b.breached.length === 0);
+  const envCost = envelopeFrom({ budget: { cost: 4, price_per_mtok: 2 } }, {});
+  const s5 = computeBudgetState(envCost, { now_epoch: NOW, attempts: 0, tokens: 0, cost: 5 }, "transcript");
+  ok("cost breached → stop", s5.breached[0] === "cost");
+  const envMulti = envelopeFrom({ budget: { max_attempts: 1, tokens: 10, at_ceiling: "stop" } }, {});
+  const s6 = computeBudgetState(envMulti, { now_epoch: NOW, attempts: 5, tokens: 99 }, "transcript");
+  ok("multiple dims breach together", s6.breached.includes("max_attempts") && s6.breached.includes("tokens"));
+
+  // --- attemptsFromLedger: dispatched outcomes count, routed-out/unreached don't ---
+  ok("attempts excludes routed-out/unreached", attemptsFromLedger({
+    admitted: ["A", "B", "C", "D"],
+    outcomes: { A: "shipped", B: "parked", C: "routed-out", D: "unreached-budget" },
+  }) === 2);
+  ok("attempts falls back to admitted when no outcomes", attemptsFromLedger({ admitted: ["A", "B"], outcomes: {} }) === 2);
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${22} checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -3451,6 +3773,7 @@ Subcommands:
   intakecheck <issue> [--labels csv] [--interactive] [--json] [--root DIR]   FAFF-212/223: intake-provenance guard — verify a ticket entered through a sanctioned front door (CLI-written .faff/provenance/<ISSUE>.json marker; the spoofable faff-jot-intake label is a grandfather bridge; a human-set faff-automate is admitted as the eligibility-gesture basis — write-abstained ⇒ human-set by construction, FAFF-218); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; --interactive makes a block-mode miss exit 0 with a [warn] (human-at-keyboard is the sanction — autonomous OMITS it); malformed marker → absent + warn, never crash; --selftest runs the bases + bypass table. NOT a Stop-hook (would reintroduce FAFF-205)
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
+  budget check [--run-dir DIR] [--until HH:MM] [--max N] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl modified >= run start (NEVER mtime-newest), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. breached != {} is the terminating signal. --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
@@ -4462,6 +4785,7 @@ function main(argv) {
   if (sub === "intakecheck") return cmdIntakecheck(rest);
   if (sub === "intake-record") return cmdIntakeRecord(rest);
   if (sub === "contain") return cmdContain(rest);
+  if (sub === "budget") return cmdBudget(rest);
   if (sub === "hooks-ensure") return cmdHooksEnsure(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
   if (sub === "labels") return cmdLabels(rest);

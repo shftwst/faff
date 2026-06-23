@@ -296,3 +296,98 @@ test("intakecheck guidance points at intake-record, not /faff-jot ISSUE (F4)", (
     assert.doesNotMatch(r.out, /\/faff-jot FAFF-1\b/, "does NOT tell the user to run the eligibility interactor on the ticket");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// --- FAFF-223: human-side provenance — eligibility-gesture basis + --interactive bypass ---
+
+test("AC: a human-set faff-automate (no marker) passes under block — basis eligibility-gesture, no warn, no CLI", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "faff-automate", "--root", root);
+    assert.equal(r.code, 0, "a human-set write-abstained faff-automate is admissible intake provenance");
+    assert.match(r.out, /eligibility-gesture/, "the new, distinctly-named basis (not jot/backfill)");
+    assert.doesNotMatch(r.out, /\[warn\]/, "trustworthy by construction (FAFF-218) → clean pass, no warn");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: eligibility-gesture is a DISTINCT basis in --json (axes not collapsed)", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "faff-automate", "--root", root, "--json");
+    assert.equal(r.code, 0);
+    const j = JSON.parse(r.out);
+    assert.equal(j.satisfied, true);
+    assert.equal(j.basis, "eligibility-gesture", "legible audit trail — distinct from a real jot marker");
+    assert.ok(!("warn" in j), "no warn field");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: precedence — a recorded marker still wins over the eligibility-gesture label", () => {
+  const root = rootWith({ markers: { "FAFF-1": { schema: 2, issue: "FAFF-1", intake: { via: "jot", ts: "x" } } }, gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "faff-automate", "--root", root);
+    assert.equal(r.code, 0);
+    assert.match(r.out, /basis=jot/, "marker > eligibility-gesture");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: precedence — grandfathered-label (and its warn) wins over eligibility-gesture", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "faff-jot-intake,faff-automate", "--root", root);
+    assert.equal(r.code, 0);
+    assert.match(r.out, /grandfathered-label/, "grandfathered-label > eligibility-gesture — migration warn preserved");
+    assert.match(r.out, /\[warn\]/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: --interactive bypasses a block-mode miss (exit 0, [warn] notice) — human is the sanction", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "", "--root", root, "--interactive");
+    assert.equal(r.code, 0, "interactive build is never sent to a terminal");
+    assert.match(r.out, /\[warn\]/);
+    assert.match(r.out, /human at the keyboard is the sanction/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: the interactive bypass notice contains NO instruction to run a faff CLI command (zero-CLI)", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "", "--root", root, "--interactive");
+    assert.equal(r.code, 0);
+    assert.doesNotMatch(r.out, /intake-record/, "no CLI ceremony in the interactive notice");
+    assert.doesNotMatch(r.out, /faff intakecheck/, "the [warn] is the bypass notice, not the guidance text");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: autonomous (no --interactive) STILL exits 3 under block with no provenance — paired against the bypass", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const blocked = run("intakecheck", "FAFF-1", "--labels", "", "--root", root);
+    assert.equal(blocked.code, 3, "the block stays in force for autonomous callers");
+    const bypassed = run("intakecheck", "FAFF-1", "--labels", "", "--root", root, "--interactive");
+    assert.equal(bypassed.code, 0, "...and only --interactive relaxes it (paired assertion)");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: --interactive is a no-op when provenance is already satisfied (no spurious bypass)", () => {
+  const root = rootWith({ markers: { "FAFF-1": { schema: 2, issue: "FAFF-1", intake: { via: "jot", ts: "x" } } }, gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "", "--root", root, "--interactive", "--json");
+    assert.equal(r.code, 0);
+    const j = JSON.parse(r.out);
+    assert.equal(j.basis, "jot");
+    assert.ok(!("bypassed" in j), "no bypass flag when the verdict is genuinely satisfied");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("AC: intakeGuidance reframes --via backfill as migration/agent-only and names the zero-CLI human remedy", () => {
+  const root = rootWith({ gate: "block" });
+  try {
+    const r = run("intakecheck", "FAFF-1", "--labels", "", "--root", root);
+    assert.equal(r.code, 3);
+    assert.match(r.out, /set the faff-automate label/i, "the documented human remedy is the tracker gesture");
+    assert.match(r.out, /Migration \/ agent-orchestrator only/, "backfill reframed as migration/agent tooling");
+    assert.match(r.out, /zero-CLI/i, "the human path is explicitly zero-CLI");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

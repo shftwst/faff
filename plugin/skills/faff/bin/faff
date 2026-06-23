@@ -6,6 +6,7 @@
 //   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml; --selftest
 //   runcheck [--hook] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the FAFF-205 ownership+liveness gate (silent for a foreign held run); --selftest runs the gate table
 //   prepcheck [--hook] [--json] [--root DIR]      audit faff-prep attach-state markers; --selftest (FAFF-178)
+//   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219: subtree-of-mandate containment primitive — walk the agent-supplied parentId chain from <parent> up to <mandate>; contained (exit 0) / outward (exit 3, fail-closed on --root/unknown/cycle/out-of-subtree) / usage (exit 2); PURE (no tracker call); v1 issue-level mandates only; --selftest
 //   hooks-ensure [--root DIR] [--json] [--dry-run]   idempotently register faff's Stop-hook set in .claude/settings.json; --selftest (FAFF-192)
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
@@ -1291,6 +1292,178 @@ function intakeRecordSelftest() {
     console.log(`${ok ? "ok  " : "FAIL"} via=${via} reason=${JSON.stringify(reason)} → ${JSON.stringify(pick)}${ok ? "" : ` (want ${JSON.stringify(want)})`}`);
   }
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${INTAKE_RECORD_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
+// contain — FAFF-219 (Split A of FAFF-217): the subtree-of-mandate containment
+// primitive. The net-new deterministic core the whole scope-containment family
+// rests on. An autonomous run holds a MANDATE (the issue the orchestrator
+// dispatched it to build, from the human-admitted eligible queue); it may create
+// tickets only INSIDE the subtree of that mandate (`parent ∈ subtree(mandate)`).
+// This command answers that one question — contained (deepen) vs outward (widen)
+// — and nothing else. v1 is ISSUE-LEVEL mandates only: a sub-issue `parentId`
+// chain. Container/initiative mandates (the mixed-graph L4 walk) are deferred
+// (FAFF-222).
+//
+// PURE — no MCP / tracker / network call, same invariant as `eligible`/`next`/
+// `intakecheck`. The agent fetches the ancestry from the tracker and passes it in
+// via --ancestry; the CLI only walks it. Schema bump (FAFF-220), the `initiated`
+// field, and wiring the autonomous filing chokepoints (FAFF-221) are SEPARATE
+// tickets — this command is the primitive they build on, not the enforcement.
+//
+// CONTAINMENT IS FAIL-CLOSED. A walk that exhausts to a root ≠ mandate, hits an
+// unknown/absent parentId, or hits a cycle returns `outward` — the cost of a
+// false outward is a surfaced new-root request a human clears; a false contained
+// would silently expand scope. `--root` (an intended new root) is outward by
+// definition. The base case mandate == parent is contained (the first child of
+// the mandate).
+// ===========================================================================
+
+// Pure subtree-membership walk. `parent` is the intended parent issue id, or the
+// ROOT sentinel (null) for an intended new root. `parentOf` maps id → parentId
+// (null/undefined when unknown/absent — the agent's fetched ancestry). Walks from
+// `parent` upward following parentId; reaching `mandate` → "contained"; exhausting
+// to a root ≠ mandate, an unknown link, or a cycle → "outward" (fail-closed).
+// Returns "contained" | "outward". No I/O, no throw.
+const CONTAIN_ROOT = null; // the --root sentinel: an intended new root
+function subtreeContains(mandate, parent, parentOf) {
+  if (parent === CONTAIN_ROOT) return "outward";  // intended new root — never contained
+  const lookup = parentOf instanceof Map ? (id) => parentOf.get(id) : (id) => parentOf[id];
+  let cursor = parent;
+  const visited = new Set();
+  while (cursor !== null && cursor !== undefined && !visited.has(cursor)) {
+    if (cursor === mandate) return "contained";    // base case + transitive ancestor reached
+    visited.add(cursor);
+    cursor = lookup(cursor);                        // null/undefined if unknown/absent
+  }
+  return "outward"; // walked to a root ≠ mandate, hit an unknown link, or a cycle
+}
+
+// Build the id→parentId lookup from the agent-supplied ancestry array. Each entry
+// is {id, parentId}; a missing/null parentId means "unknown/root" (→ fail-closed
+// outward when the walk reaches it). Throws on a non-array / malformed shape so the
+// caller can map it to a usage exit (2) rather than a silent wrong verdict.
+function parseAncestry(json) {
+  const arr = JSON.parse(json); // may throw → caught by caller
+  if (!Array.isArray(arr)) throw new Error("--ancestry must be a JSON array of {id, parentId}");
+  const m = new Map();
+  for (const e of arr) {
+    if (!e || typeof e !== "object" || typeof e.id !== "string") {
+      throw new Error("--ancestry entries must be objects with a string id");
+    }
+    m.set(e.id, typeof e.parentId === "string" ? e.parentId : null);
+  }
+  return m;
+}
+
+// `faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]`
+// PURE: walks the supplied ancestry, no tracker call. exit 0 contained · 3 outward
+// (fail-closed: --root / unknown / cycle / out-of-subtree) · 2 usage/malformed-args.
+const CONTAIN_VALUE_FLAGS = new Set(["--parent", "--ancestry", "--root"]);
+function cmdContain(args) {
+  if (args.includes("--selftest")) return containSelftest();
+  // Parse: first bare token is the mandate; --parent takes a value, --root is a
+  // boolean (mutually exclusive with --parent), --ancestry takes a value.
+  let mandate = null;
+  const flags = {};
+  let danglingValueFlag = null;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--root") { flags["--root"] = true; continue; } // boolean despite naming overlap
+    if (CONTAIN_VALUE_FLAGS.has(a)) {
+      const nxt = args[i + 1];
+      if (nxt === undefined || nxt.startsWith("--")) { danglingValueFlag = a; continue; }
+      flags[a] = nxt; i++;
+    } else if (a.startsWith("--")) {
+      flags[a] = true;
+    } else if (mandate === null) {
+      mandate = a;
+    }
+  }
+  const asJson = flags["--json"] === true;
+  const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]";
+
+  if (danglingValueFlag) { process.stderr.write(`faff contain: ${danglingValueFlag} needs a value.\n`); return 2; }
+  if (!mandate) { process.stderr.write(`${usage}\n`); return 2; }
+
+  const wantRoot = flags["--root"] === true;
+  const parentArg = flags["--parent"];
+  if (wantRoot && parentArg !== undefined) {
+    process.stderr.write("faff contain: --parent and --root are mutually exclusive.\n"); return 2;
+  }
+  if (!wantRoot && parentArg === undefined) {
+    process.stderr.write("faff contain: supply exactly one of --parent <id> or --root.\n"); return 2;
+  }
+
+  // --ancestry is required EXCEPT for --root (which is unconditionally outward) and
+  // the mandate==parent base case (the walk reaches the mandate before any lookup);
+  // we still require it for any other --parent so an omitted chain can't masquerade
+  // as a verdict. Parse fail-loud (malformed JSON / shape → usage, no verdict).
+  let parentOf = new Map();
+  const ancestryArg = flags["--ancestry"];
+  if (typeof ancestryArg === "string") {
+    try { parentOf = parseAncestry(ancestryArg); }
+    catch { process.stderr.write("faff contain: --ancestry must be a JSON array of {id, parentId} objects.\n"); return 2; }
+  } else if (!wantRoot && parentArg !== mandate) {
+    // No ancestry given and the parent isn't the mandate itself → can't compute → usage.
+    process.stderr.write("faff contain: --ancestry <json> is required unless --root or --parent equals the mandate.\n"); return 2;
+  }
+
+  const parent = wantRoot ? CONTAIN_ROOT : parentArg;
+  const verdict = subtreeContains(mandate, parent, parentOf);
+  const exit = verdict === "contained" ? 0 : 3;
+  const out = { mandate, parent: wantRoot ? null : parentArg, root: wantRoot, verdict };
+
+  if (asJson) {
+    console.log(JSON.stringify(out, null, 2));
+  } else if (verdict === "contained") {
+    console.log(`contained: ${parentArg} ∈ subtree(${mandate}).`);
+  } else {
+    console.log(`outward: ${wantRoot ? "intended new root" : `${parentArg} not in subtree(${mandate})`} — needs human sanction (fail-closed).`);
+  }
+  return exit;
+}
+
+// Selftest — drives the pure subtree walk over the contained / outward / fail-closed
+// matrix, no filesystem. [mandate, parent, ancestryPairs, want] where ancestryPairs is
+// [[id, parentId], ...] and parent === CONTAIN_ROOT (null) models --root.
+const CONTAIN_SELFTEST_CASES = [
+  // base case: mandate == parent (first child of the mandate) → contained
+  ["M", "M", [], "contained"],
+  // direct child: parent C, C.parentId = M → contained
+  ["M", "C", [["C", "M"]], "contained"],
+  // transitive descendant: G -> C -> M → contained
+  ["M", "G", [["G", "C"], ["C", "M"]], "contained"],
+  // out-of-subtree: parent under a different root → outward
+  ["M", "U", [["U", "OTHER"]], "outward"],
+  // ancestor of the mandate (expanding upward, sibling under same root) → outward
+  ["M", "P", [["M", "P"]], "outward"],
+  // intended new root (--root) → outward
+  ["M", CONTAIN_ROOT, [], "outward"],
+  // unknown/absent parentId (walk hits a link not in the chain) → outward (fail-closed)
+  ["M", "X", [], "outward"],
+  // parentId present but null (explicit root that isn't the mandate) → outward
+  ["M", "R", [["R", null]], "outward"],
+  // cycle in the supplied ancestry (A -> B -> A) → outward (visited guard, fail-closed)
+  ["M", "A", [["A", "B"], ["B", "A"]], "outward"],
+  // long contained chain terminating at the mandate → contained
+  ["M", "L3", [["L3", "L2"], ["L2", "L1"], ["L1", "M"]], "contained"],
+  // long chain that just misses (terminates at a non-mandate root) → outward
+  ["M", "L3", [["L3", "L2"], ["L2", "L1"], ["L1", "ROOT"]], "outward"],
+];
+
+function containSelftest() {
+  let fail = 0;
+  for (const [mandate, parent, pairs, want] of CONTAIN_SELFTEST_CASES) {
+    const parentOf = new Map(pairs);
+    const got = subtreeContains(mandate, parent, parentOf);
+    const ok = got === want;
+    if (!ok) fail++;
+    const p = parent === CONTAIN_ROOT ? "--root" : parent;
+    console.log(`${ok ? "ok  " : "FAIL"} mandate=${mandate} parent=${p} ancestry=${JSON.stringify(pairs)} → ${got}${ok ? "" : ` (want ${want})`}`);
+  }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CONTAIN_SELFTEST_CASES.length} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -3037,6 +3210,7 @@ Subcommands:
   prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
   intakecheck <issue> [--labels csv] [--json] [--root DIR]   FAFF-212: intake-provenance guard — verify a ticket entered through /faff-jot (CLI-written .faff/provenance/<ISSUE>.json marker, with the spoofable faff-jot-intake label as a grandfather bridge); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; malformed marker → absent + warn, never crash; --selftest runs the four-bases table. NOT a Stop-hook (would reintroduce FAFF-205)
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--json] [--root DIR]   FAFF-212: write/update the provenance marker and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot); --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --selftest runs the table
+  contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
@@ -4047,6 +4221,7 @@ function main(argv) {
   if (sub === "prepcheck") return cmdPrepcheck(rest);
   if (sub === "intakecheck") return cmdIntakecheck(rest);
   if (sub === "intake-record") return cmdIntakeRecord(rest);
+  if (sub === "contain") return cmdContain(rest);
   if (sub === "hooks-ensure") return cmdHooksEnsure(rest);
   if (sub === "validate-adapters") return cmdValidateAdapters(rest);
   if (sub === "labels") return cmdLabels(rest);

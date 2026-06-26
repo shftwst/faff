@@ -4,7 +4,7 @@ A small command-line tool ships **inside the faff plugin** — `faff`, a single 
 
 The skills and hooks invoke it for themselves — each resolves it as `command -v faff` if it's on `PATH`, otherwise from its own install location (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff` when running as a plugin, or the sibling `faff/bin/faff` when dev-linked) — so **normal use needs no setup**.
 
-Most subcommands also accept `--selftest` (runs an in-memory test table) and `--json` (structured output). The pure functions (`eligible`, `next`, `state`, `contain`, `intakecheck`) make **no** tracker or network calls — the agent maps live state into the flags.
+Most subcommands also accept `--selftest` (runs an in-memory test table) and `--json` (structured output). The pure functions (`eligible`, `next`, `state`, `contain`, `intakecheck`, `container-check`) make **no** tracker or network calls — the agent maps live state into the flags.
 
 ## Config & install health
 
@@ -27,6 +27,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 | `next --status S --spec none\|low\|medium\|high […]` | Legal next step for an issue (JSON `{next, reason}`). |
 | `state <issue> [--json] [--root DIR]` | Local read-model: resolve an issue's spec/parked/branch/worktree/ledger state as JSON; no MCP. |
 | `contain <mandate> (--parent ID \| --root) --ancestry JSON` | Subtree-of-mandate containment — is `parent ∈ subtree(mandate)`? Fail-closed. |
+| `container-check [--json]` | Is this run inside a host-isolated container (the blast-radius boundary)? Reads only standard runtime signals (`KUBERNETES_SERVICE_HOST`, `/.dockerenv`, `/run/.containerenv`, systemd `container=` on PID 1, truthy env `container`) — invents no marker, never parses `/proc/1/cgroup`. Prints `{result, basis}`; exit 0 `contained` / 1 `not_confirmed`. The autonomous-entry preflight warns (never blocks) on `not_confirmed` by default. |
 
 ## Run orchestration & safety (beep-boop)
 

@@ -554,6 +554,12 @@ Logs are plain markdown — agent-readable and human-readable. A log must contai
 - **Dirty worktree → park.** An unexpectedly dirty worktree is an autonomous park reason (see the Autonomous Mode Contract); a parked unit commits its WIP to its branch first (see the Park protocol).
 - **Cleanup is post-merge housekeeping.** Removing a merged worktree (and its branch) is housekeeping that **never halts the queue** — if it fails (shell still inside it, permission error), skip + log + continue, and surface it under the run's _Human follow-ups_ (see the Autonomous Mode Contract → post-merge housekeeping).
 
+### Blast-radius boundary — the container, not faff (ADR 0010)
+
+The boundary that bounds what an **unattended** run may touch is an **OS-level host-isolated container**, *not* faff. faff implements **no** sandbox, permission-prompt policy, or command allowlist of its own — that is the container's job (ADR 0010). The container is a **substitutable mechanism**: any runtime that host-isolates the run satisfies it (`shftwst/claude-box` is one implementation — recommended, not required).
+
+faff's only role here is **assertion, not enforcement**: it detects whether that container is present and says so, but never refuses to run on its own authority. The deterministic check is `faff container-check` (reads standard runtime signals — Docker/Podman marker files, the k8s service-host var, the systemd `container=` convention — and invents no marker); the autonomous-entry preflight below consumes it.
+
 ### Autonomous Mode Contract
 
 Faff sub-skills can be invoked in **autonomous mode** (primarily by `/faff-beep-boop`). The mode is signalled in-conversation at the top of the invocation: _"running in autonomous mode, skip all prompts, park on ambiguity, log everything"_.
@@ -586,6 +592,8 @@ Universal rules in autonomous mode:
 - **Rule of thumb:** ask "if I merge this PR and it turns out wrong, can I fix it with `git revert` and a redeploy?" If yes → proceed, let the PR gate catch it. If no (because damage happened before or independent of the merge) → park.
 - **Invalid autonomous parks (just proceed):** anything outside the three valid categories above. Stylistic second-guessing, "did the author really mean X?", topic-keyword matches on sections that the spec has already closed, conflating "this touches sensitive files" with "this needs pre-approval". If the spec has an answer and the PR gate will catch mistakes, that is the answer.
 - **Post-merge housekeeping failures never halt the queue.** Deleting a merged local branch, removing a worktree, returning to the main working directory, tracker-side status bumps, label cleanup — these are **post-ship housekeeping**, not load-bearing steps. The work that mattered (spec → build → review → CI → merge) is already done and persisted. If any of these housekeeping steps fails (permission error because the shell is still inside the worktree, branch currently checked out, tracker transition rejected, label already removed, etc.) — **skip the failing step, log it, move on to the next issue in the queue**. Never prompt. Never park the merged issue. Never ask the human to resolve it mid-run. Accumulate the skipped items in a per-run "human follow-ups" list that is surfaced in the final run summary (see `skills/faff-beep-boop/SKILL.md` Reporting). The golden rule: anything that happens *after* the PR is merged and cannot be undone by a human in a minute from the run summary is not worth halting the pipeline for.
+
+- **Containerisation preflight (entry, advisory — autonomous-only).** Once at autonomous entry, run `faff container-check` (gateway → **Blast-radius boundary**). On `contained` → continue silently. On `not_confirmed`, resolve `faff config get autonomous.require_container -d warn`: under `warn` (the default) emit **one** warning naming the missing ADR-0010 boundary (include the `basis`) to the run log and the `/faff-wtf`-visible surface, then **continue unchanged** — faff enforces nothing; under the opt-in `block` knob, **abort** the run with a needs-human outcome naming the absent container. Never blocks by default, and **never fires in interactive mode** — a watched host session is not warned.
 
 Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` section. Summary:
 

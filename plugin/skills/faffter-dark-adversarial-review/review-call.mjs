@@ -167,12 +167,15 @@ export function isAuthError(err) {
   return /HTTP 40[13]/.test(String(err && err.message));
 }
 
-// PURE (FAFF-227): is this a *transient* transport fault that should be retried? Mirrors isAuthError.
-// TRUE for a retryable streaming-phase condition — HTTP 5xx, a dropped socket (ECONNRESET/ETIMEDOUT/EPIPE
-// or "socket hang up"), or a stream/preflight timeout. FALSE for everything else (4xx incl. auth, usage,
-// model-not-served, and anything unrecognised): default-terminal, so the predicate never over-retries a
-// real fault. realGet/realStream reject 5xx as `HTTP 5dd: …` and surface socket faults with err.code, so
-// both the message and (when present) the code are inspected.
+// PURE (FAFF-227; 429 added FAFF-228): is this a *transient* transport fault that should be retried?
+// Mirrors isAuthError. TRUE for a retryable condition — HTTP 5xx, a dropped socket (ECONNRESET/ETIMEDOUT/
+// EPIPE or "socket hang up"), a stream/preflight timeout, or an HTTP 429 rate-limit (the provider is up but
+// throttling — transient infra, not a request fault, so the same request may succeed after a backoff).
+// FALSE for everything else (4xx *other than 429* incl. auth, usage, model-not-served, anything unknown):
+// default-terminal, so the predicate never over-retries a real fault. Only 429 among the 4xx flips
+// transient — do NOT broaden to /HTTP 4\d\d/ (401/403/404/400 are genuine auth/request faults that must
+// stay terminal). realGet/realStream reject 5xx/429 as `HTTP <status>: …` and surface socket faults with
+// err.code, so both the message and (when present) the code are inspected.
 export function isTransientTransport(err) {
   if (!err) return false;
   const msg = String(err.message || "");
@@ -180,12 +183,18 @@ export function isTransientTransport(err) {
   return /HTTP 5\d\d/.test(msg)                       // 5xx server fault from a reject
     || ["ECONNRESET", "ETIMEDOUT", "EPIPE"].includes(code)
     || /socket hang up/.test(msg)
-    || /timed out/.test(msg);                          // realStream / preflight timeout text
+    || /timed out/.test(msg)                           // realStream / preflight timeout text
+    || /HTTP 429/.test(msg);                            // FAFF-228: rate-limit is transient infra, retry it
 }
 
 // Bounded transport-retry policy (FAFF-227): named constants, not magic numbers. attempts counts the
-// first try too (3 ⇒ 2 retries). Backoff before retry k (1-indexed) is base_ms * 2^(k-1), each delay
-// capped by the time remaining against the caller's --timeout deadline so retries never overrun budget.
+// first try too (3 ⇒ 2 retries). Backoff before retry k (1-indexed) is base_ms * 2^(k-1), each *sleep*
+// capped by the time remaining against the caller's --timeout deadline so a backoff never overruns budget.
+// TIMEOUT BOUND (FAFF-228 — correction): --timeout bounds each individual stream attempt and the
+// inter-retry sleeps, NOT the total wall-clock. Each streamOnce gets the full timeoutMs; the truncation
+// retry adds a second streamOnce; this loop runs up to `attempts` (3) times — so worst-case total
+// wall-clock is ~6× timeoutMs (3 attempts × 2 streamOnce) under stream + truncation + transport-retry
+// composition. There is no overall deadline across attempts (a true cap is a deferred behavioural change).
 export const TRANSPORT_RETRY = { attempts: 3, baseMs: 1500 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

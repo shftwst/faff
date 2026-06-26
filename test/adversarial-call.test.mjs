@@ -322,17 +322,18 @@ test("unreachableExit: default-host down → exit 6 (needs-human); configured ho
 
 // --- FAFF-227: bounded transient-transport retry; persistent fault → documented exit, never unmapped 1 ---
 
-test("isTransientTransport: 5xx / dropped-socket / timeout are transient; 4xx, auth, usage, unknown are not", () => {
-  // transient (retry)
-  for (const m of ["HTTP 504", "HTTP 502: bad gateway", "HTTP 500", "stream timed out after 580000ms", "preflight timed out after 5000ms", "socket hang up"]) {
+test("isTransientTransport: 5xx / dropped-socket / timeout / 429 are transient; other 4xx, auth, usage, unknown are not", () => {
+  // transient (retry) — incl. HTTP 429 rate-limit (FAFF-228): a throttle is transient infra, not a request fault
+  for (const m of ["HTTP 504", "HTTP 502: bad gateway", "HTTP 500", "stream timed out after 580000ms", "preflight timed out after 5000ms", "socket hang up", "HTTP 429", "HTTP 429: rate limited"]) {
     assert.equal(isTransientTransport(new Error(m)), true, m);
   }
   for (const code of ["ECONNRESET", "ETIMEDOUT", "EPIPE"]) {
     const e = new Error("write failed"); e.code = code;
     assert.equal(isTransientTransport(e), true, code);
   }
-  // terminal (no retry) — 4xx incl. auth, usage, model-not-served text, and anything unrecognised
-  for (const m of ["HTTP 401", "HTTP 403", "HTTP 404", "HTTP 400 Bad Request", "HTTP 429", "usage error", "model 'x' not served", "some other error"]) {
+  // terminal (no retry) — 4xx *other than 429* incl. auth, usage, model-not-served text, anything unrecognised.
+  // 429 is deliberately NOT here (FAFF-228); only 429 among the 4xx flips transient — 401/403/404/400 stay terminal.
+  for (const m of ["HTTP 401", "HTTP 403", "HTTP 404", "HTTP 400 Bad Request", "usage error", "model 'x' not served", "some other error"]) {
     assert.equal(isTransientTransport(new Error(m)), false, m);
   }
   assert.equal(isTransientTransport(null), false);
@@ -362,6 +363,51 @@ test("runReview ollama: a transient mid-stream fault retries once then succeeds 
   assert.equal(r.status, "ok");
   assert.equal(r.content, "### finding");
   assert.equal(calls, 2, "retried exactly once after the transient fault");
+});
+
+// FAFF-228: an HTTP 429 rate-limit is transient — it rides the same retry path as a 5xx (both providers).
+test("runReview ollama: an HTTP 429 rate-limit retries once then succeeds → status ok (FAFF-228)", async () => {
+  let calls = 0;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("HTTP 429: rate limited"); // transient throttle
+      return JSON.stringify({ message: { content: "### finding" }, done: true, done_reason: "stop" });
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "### finding");
+  assert.equal(calls, 2, "retried exactly once after the 429");
+});
+
+test("runReview openai: an HTTP 429 rate-limit retries once then succeeds → status ok (FAFF-228)", async () => {
+  let calls = 0;
+  const r = await runReview({
+    provider: "nvidia", host: "https://h/v1", model: "m", system: "S", user: "U", apiKey: "K", timeoutMs: 600000,
+    getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
+    streamFn: async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("HTTP 429: Too Many Requests"); // transient throttle
+      return `data: ${JSON.stringify({ choices: [{ delta: { content: "### finding" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+    },
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "### finding");
+  assert.equal(calls, 2, "retried exactly once after the 429");
+});
+
+test("runReview ollama: a persistent HTTP 429 exhausts retries → status transport-failed (FAFF-228)", async () => {
+  let calls = 0;
+  const r = await runReview({
+    host: "http://h:1", model: "m", system: "S", user: "U", timeoutMs: 0, // deadline passed → no sleeps
+    getFn: async () => JSON.stringify({ models: [{ name: "m" }] }),
+    streamFn: async () => { calls += 1; throw new Error("HTTP 429: rate limited"); },
+  });
+  assert.equal(r.status, "transport-failed");
+  assert.match(r.note, /HTTP 429/);
+  assert.ok(calls >= 1, "attempted at least once");
 });
 
 test("runReview ollama: a persistent transient fault exhausts retries → status transport-failed", async () => {
@@ -466,6 +512,28 @@ test("main(): persistent transport-failed with --host-source default → EXIT.DE
   const code = await main(
     ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
     { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 504" }) },
+  );
+  assert.equal(code, EXIT.DEFAULT_HOST_UNREACHABLE);
+  assert.notEqual(code, EXIT.OTHER);
+});
+
+// FAFF-228: a persistent HTTP 429 surfaces as transport-failed and so inherits the SAME documented exit
+// mapping (5 config / 6 default) — never the unmapped EXIT.OTHER (1) it used to return as a terminal 4xx.
+test("main(): persistent HTTP 429 with --host-source config → EXIT.UNREACHABLE (5), never OTHER (1) (FAFF-228)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "https://h/v1", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "config"],
+    { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 429: rate limited" }) },
+  );
+  assert.equal(code, EXIT.UNREACHABLE);
+  assert.notEqual(code, EXIT.OTHER);
+});
+
+test("main(): persistent HTTP 429 with --host-source default → EXIT.DEFAULT_HOST_UNREACHABLE (6), never OTHER (1) (FAFF-228)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
+    { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 429: rate limited" }) },
   );
   assert.equal(code, EXIT.DEFAULT_HOST_UNREACHABLE);
   assert.notEqual(code, EXIT.OTHER);

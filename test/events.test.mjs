@@ -130,6 +130,17 @@ test("append: missing run dir → exit 3, no dir/file created", () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("append: run path exists as a file (not a dir) → exit 3, no crash", () => {
+  const dir = tmp();
+  mkdirSync(join(dir, ".faff", "runs"), { recursive: true });
+  writeFileSync(join(dir, ".faff", "runs", "run-F"), "i am a file, not a dir");
+  try {
+    const r = run(dir, ["events", "append", "--run", "run-F"], JSON.stringify({ phase: "run", type: "run-start" }));
+    assert.equal(r.code, 3);
+    assert.match(r.err, /run dir missing/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("append: --run is required → exit 2", () => {
   const dir = tmp();
   try { assert.equal(run(dir, ["events", "append"], JSON.stringify({ phase: "run", type: "run-start" })).code, 2); }

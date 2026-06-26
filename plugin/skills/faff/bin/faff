@@ -5568,7 +5568,9 @@ function cmdEvents(args) {
   if (cmd === "append") {
     if (!run) { process.stderr.write("faff events append: --run <run-id> is required\n"); return 2; }
     const dir = path.join(root, ".faff", "runs", run);
-    if (!fs.existsSync(dir)) {
+    // A missing path OR a non-directory at that path is "no valid run dir" → exit 3 (fail-loud),
+    // never an uncaught ENOTDIR crash when appendFileSync hits a file-where-a-dir-was-expected.
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
       process.stderr.write(`faff events append: run dir missing (${path.join(".faff", "runs", run)}) — initialise the run first\n`);
       return 3;
     }

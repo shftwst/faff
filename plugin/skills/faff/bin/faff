@@ -5131,6 +5131,11 @@ function prdSlug(name) {
   return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "prd";
 }
 
+// The metadata header region — everything before the first "## " section. The **PRD:** link line
+// lives here; scoping link-detection to the header avoids a false match on a body line that
+// happens to start "PRD:" (the `adrField`/hasLink regexes are otherwise document-wide).
+function prdHeader(text) { return text.split(/^##\s+/m)[0]; }
+
 function listPrds(dir) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
@@ -5146,7 +5151,7 @@ function listPrds(dir) {
       status: adrField(text, "Status"),
       date: adrField(text, "Date"),
       mode: adrField(text, "Mode"),
-      url: adrField(text, "PRD") || null,   // linked-mode files carry the **PRD:** line as the url
+      url: adrField(prdHeader(text), "PRD") || null,   // linked-mode files carry the **PRD:** header line as the url
     });
   }
   return out.sort((a, b) => a.slug.localeCompare(b.slug));
@@ -5182,7 +5187,7 @@ function prdValidate(dir) {
     else if (!PRD_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(p.status))) problems.push(`${p.file}: Status "${p.status.slice(0, 30)}" must start with one of ${PRD_STATUSES.join("|")}`);
     if (!p.date) problems.push(`${p.file}: missing Date field`);
     const sections = (text.match(/^##\s+\S/gmi) || []).length;
-    const hasLink = /^[\s>*-]*\*{0,2}PRD[\s*]*:/mi.test(text);
+    const hasLink = /^[\s>*-]*\*{0,2}PRD[\s*]*:/mi.test(prdHeader(text));
     if (!hasLink && sections === 0) problems.push(`${p.file}: no body — needs >=1 "## " section or a **PRD:** link line`);
     if (hasLink && sections > 0) problems.push(`${p.file}: both a **PRD:** link line and "## " body sections — linked and authored are mutually exclusive`);
   }
@@ -5230,9 +5235,9 @@ function cmdPrd(args) {
     if (fs.existsSync(full)) { process.stderr.write(`faff prd new: ${file} already exists — never overwrite (edit in place)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(full, prdTemplate({ container, date, status: adrFlag(args, "--status") }));
-    process.stdout.write(full + "\n");
-    // The container-link line for the caller to apply to the container description (degrade-not-fail).
-    process.stdout.write(`**PRD:** ${path.relative(root, full)}\n`);
+    process.stdout.write(full + "\n");   // stdout = the path only (parity with `adr new` — safe to `p=$(faff prd new …)`)
+    // Hint the container-link line on STDERR so a caller parsing stdout gets a clean path (degrade-not-fail).
+    process.stderr.write(`**PRD:** ${path.relative(root, full)}\n`);
     return 0;
   }
 

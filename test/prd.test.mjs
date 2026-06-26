@@ -45,10 +45,10 @@ test("new: scaffolds the lean template, prints path + link line, refuses overwri
   const root = tmpRepo();
   const r = run(["new", "Immutable Ends — the human PRD", "--date", "2026-06-26", "--root", root]);
   assert.equal(r.status, 0, r.stderr);
-  const lines = r.stdout.trim().split("\n");
-  const p = lines[0];
+  const p = r.stdout.trim();                       // stdout = the path ONLY (clean for `p=$(faff prd new …)`)
   assert.match(p, /docs\/prd\/immutable-ends-the-human-prd\.md$/);
-  assert.match(lines[1], /^\*\*PRD:\*\* docs\/prd\/immutable-ends-the-human-prd\.md$/);
+  assert.doesNotMatch(r.stdout, /\*\*PRD:\*\*/);   // the link hint is NOT on stdout
+  assert.match(r.stderr, /^\*\*PRD:\*\* docs\/prd\/immutable-ends-the-human-prd\.md$/m);  // …it's on stderr
   const body = readFileSync(p, "utf8");
   assert.match(body, /# PRD — Immutable Ends/);
   assert.match(body, /\*\*Status:\*\* Draft/);
@@ -119,6 +119,15 @@ test("validate: linked-and-authored collision flagged", () => {
   const r = run(["validate", "--root", root]);
   assert.equal(r.status, 1);
   assert.match(r.stdout, /delta\.md: both a \*\*PRD:\*\* link line and/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate: a body line starting 'PRD:' does NOT false-trigger the collision (F1 regression)", () => {
+  const root = tmpRepo({ "zeta.md": "# PRD — Zeta\n\n- **Container:** Zeta\n- **Status:** Draft\n- **Date:** 2026-06-26\n\n## Requirements\nPRD: this prose line is under a section, not a header link line\n" });
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 0, r.stdout);
+  // and it is NOT mistaken for a linked URL in `list`
+  assert.equal(JSON.parse(run(["list", "--json", "--root", root]).stdout)[0].url, null);
   rmSync(root, { recursive: true, force: true });
 });
 

@@ -241,6 +241,19 @@ function resolveSpecDocsPath(root, data, create) {
   return rel;
 }
 
+// FAFF-252: the PRD-docs-path resolver — the product-axis mirror of resolveSpecDocsPath.
+// Default docs/prd (or doc/prd when only doc/ exists). Reads tracking.prd_docs_path.
+function resolvePrdDocsPath(root, data, create) {
+  let rel;
+  const val = dig(data, "tracking.prd_docs_path");
+  if (val) rel = String(val).trim().replace(/\/+$/, "");
+  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/prd";
+  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/prd";
+  else rel = "docs/prd";
+  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
+  return rel;
+}
+
 // ---------------------------------------------------------------------------
 // config init — FAFF-5: the deterministic WRITE half of the config surface.
 // Writes/merges a `tracking` block into `.faffrc.yaml`. Pure-functional except
@@ -257,6 +270,7 @@ const TRACKING_KEYS = [
   "tracking.repo",
   "tracking.git_host",
   "tracking.spec_docs_path",
+  "tracking.prd_docs_path",
 ];
 const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
 
@@ -629,6 +643,11 @@ function cmdConfig(args) {
     if (cmd === "spec-docs-path") {
       const [data] = loadConfig(root);
       console.log(resolveSpecDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
+    if (cmd === "prd-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolvePrdDocsPath(root, data, rest.includes("--create")));
       return 0;
     }
     if (cmd === "dump") {
@@ -5094,6 +5113,193 @@ function lintRefsSelftest() {
   return 0;
 }
 
+// ===========================================================================
+// prd — product requirements documents (FAFF-252; ADR 0014). The PRODUCT-axis
+// counterpart to `adr`: a durable docs/prd/<container-slug>.md per container,
+// structurally mirroring the adr CLI. ONE PRD per container, slug-keyed (no
+// global number — supersession is the PRDR's job, FAFF-245). Lean / format-
+// flexible: validate checks PRESENCE, never section shape. The CLI writes the
+// file + emits the container-link line; the CALLER commits + applies the link
+// (orchestrator-agnostic, exactly like `adr new`). Reuses adrField/adrFlag.
+// ===========================================================================
+const PRD_STATUSES = ["Draft", "Active", "Frozen", "Stale"];
+const PRD_FILE_RE = /^(.+)\.md$/;
+
+function prdDir(root) { return path.join(root, resolvePrdDocsPath(root, loadConfig(root)[0], false)); }
+
+function prdSlug(name) {
+  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "prd";
+}
+
+function listPrds(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const f of fs.readdirSync(dir).sort()) {
+    const m = f.match(PRD_FILE_RE);
+    if (!m) continue;
+    const text = fs.readFileSync(path.join(dir, f), "utf8");
+    const titleM = text.match(/^#\s*PRD\s*[—\-]\s*(.+)$/mi);
+    out.push({
+      slug: m[1], file: f,
+      title: titleM ? titleM[1].trim() : null,
+      container: adrField(text, "Container"),
+      status: adrField(text, "Status"),
+      date: adrField(text, "Date"),
+      mode: adrField(text, "Mode"),
+      url: adrField(text, "PRD") || null,   // linked-mode files carry the **PRD:** line as the url
+    });
+  }
+  return out.sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+function prdTemplate({ container, date, status }) {
+  const lines = [`# PRD — ${container}`, "",
+    `- **Container:** ${container}`,
+    `- **Status:** ${status || "Draft"}`,
+    `- **Date:** ${date}`,
+    `- **Mode:** authored`, "",
+    "## Problem / objective", "", "_TODO: the user-facing problem + the outcome this delivers (what & why, never how)._", "",
+    "## Goals & success metrics", "", "_TODO._", "",
+    "## Non-goals", "", "_TODO._", "",
+    "## Users", "", "_TODO._", "",
+    "## Requirements", "", "_TODO: MoSCoW or P0/P1/P2; lean._", "",
+    "## Acceptance criteria", "", "_TODO: release/done conditions (born-verifiable enforcement is FAFF-254)._", "",
+    "## Open questions", "", "_TODO._", ""];
+  return lines.join("\n");
+}
+
+// Lenient validate (mirrors adrValidate's philosophy): metadata PRESENT + Status in enum +
+// a non-empty body — either >=1 "## " section (authored) OR a "**PRD:**" link line (linked).
+// NEVER checks WHICH sections (format-flexible). Flags a url+body collision (both a link line
+// and "## " sections — linked and authored are mutually exclusive).
+function prdValidate(dir) {
+  const prds = listPrds(dir);
+  const problems = [];
+  for (const p of prds) {
+    const text = fs.readFileSync(path.join(dir, p.file), "utf8");
+    if (!p.container) problems.push(`${p.file}: missing Container field`);
+    if (!p.status) problems.push(`${p.file}: missing Status field`);
+    else if (!PRD_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(p.status))) problems.push(`${p.file}: Status "${p.status.slice(0, 30)}" must start with one of ${PRD_STATUSES.join("|")}`);
+    if (!p.date) problems.push(`${p.file}: missing Date field`);
+    const sections = (text.match(/^##\s+\S/gmi) || []).length;
+    const hasLink = /^[\s>*-]*\*{0,2}PRD[\s*]*:/mi.test(text);
+    if (!hasLink && sections === 0) problems.push(`${p.file}: no body — needs >=1 "## " section or a **PRD:** link line`);
+    if (hasLink && sections > 0) problems.push(`${p.file}: both a **PRD:** link line and "## " body sections — linked and authored are mutually exclusive`);
+  }
+  return problems;
+}
+
+function cmdPrd(args) {
+  if (args.includes("--selftest")) return prdSelftest();
+  const action = args[0];
+  const root = adrFlag(args, "--root") || findRoot();
+  const dir = prdDir(root);
+  const container = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
+
+  if (action === "path") {
+    if (!container) { process.stderr.write("faff prd path: <container> is required\n"); return 2; }
+    process.stdout.write(path.join(dir, prdSlug(container) + ".md") + "\n");
+    return 0;
+  }
+
+  if (action === "list") {
+    const prds = listPrds(dir);
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(prds.map(({ slug, container, status, date, mode, url, file }) =>
+        ({ slug, container, status, date, mode, url, file })), null, 2));
+    } else if (!prds.length) {
+      console.log(`No PRDs in ${path.relative(root, dir) || dir}.`);
+    } else {
+      for (const p of prds) console.log(`${p.slug}  ${p.title || ""}  [${(p.status || "?").split(/[ (.]/)[0]}]  ${p.mode || "?"}  ${p.url || p.date || ""}`.trimEnd());
+    }
+    return 0;
+  }
+
+  if (action === "validate") {
+    const problems = prdValidate(dir);
+    if (!problems.length) { console.log(`OK — ${listPrds(dir).length} PRD(s) in ${path.relative(root, dir) || dir} valid.`); return 0; }
+    for (const p of problems) console.log(`FAIL  ${p}`);
+    return 1;
+  }
+
+  if (action === "new") {
+    if (!container) { process.stderr.write("faff prd new: <container> is required\n"); return 2; }
+    const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
+    const file = `${prdSlug(container)}.md`;
+    const full = path.join(dir, file);
+    if (fs.existsSync(full)) { process.stderr.write(`faff prd new: ${file} already exists — never overwrite (edit in place)\n`); return 1; }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(full, prdTemplate({ container, date, status: adrFlag(args, "--status") }));
+    process.stdout.write(full + "\n");
+    // The container-link line for the caller to apply to the container description (degrade-not-fail).
+    process.stdout.write(`**PRD:** ${path.relative(root, full)}\n`);
+    return 0;
+  }
+
+  if (action === "link") {
+    if (!container) { process.stderr.write("faff prd link: <container> is required\n"); return 2; }
+    const url = adrFlag(args, "--url");
+    if (!url) { process.stderr.write("faff prd link: --url is required\n"); return 2; }
+    // The CLI makes NO tracker call — it emits the line; the orchestrator applies it (degrade-not-fail).
+    process.stdout.write(`**PRD:** ${url}\n`);
+    return 0;
+  }
+
+  process.stderr.write("faff prd: expected one of: path | new | link | list | validate (or --selftest)\n");
+  return 2;
+}
+
+function prdSelftest() {
+  const os = require("node:os");
+  const cases = [];
+  const t = (name, ok) => cases.push([name, !!ok]);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prd-"));
+  const dir = path.join(tmp, "docs", "prd");
+  fs.mkdirSync(dir, { recursive: true });
+
+  t("slug kebabs + trims", prdSlug("My Project — Foo!") === "my-project-foo");
+  t("slug fallback", prdSlug("***") === "prd");
+  t("resolver default docs/prd", resolvePrdDocsPath(tmp, {}, false) === "docs/prd");
+  t("resolver honours config", resolvePrdDocsPath(tmp, { tracking: { prd_docs_path: "x/y/" } }, false) === "x/y");
+
+  // new: a valid template, listed + parsed
+  fs.writeFileSync(path.join(dir, prdSlug("Alpha Project") + ".md"),
+    prdTemplate({ container: "Alpha Project", date: "2026-06-26", status: "Draft" }));
+  const list1 = listPrds(dir);
+  t("new file listed", list1.length === 1 && list1[0].slug === "alpha-project");
+  t("template metadata parsed", list1[0].container === "Alpha Project" && list1[0].status === "Draft" && list1[0].mode === "authored");
+  t("validate clean", prdValidate(dir).length === 0);
+
+  // missing Status flagged
+  fs.writeFileSync(path.join(dir, "beta.md"), "# PRD — Beta\n\n- **Container:** Beta\n- **Date:** 2026-06-26\n\n## Problem\nx\n");
+  t("missing Status flagged", prdValidate(dir).some((p) => /^beta\.md: missing Status/.test(p)));
+  fs.unlinkSync(path.join(dir, "beta.md"));
+
+  // no-body flagged
+  fs.writeFileSync(path.join(dir, "gamma.md"), "# PRD — Gamma\n\n- **Container:** Gamma\n- **Status:** Draft\n- **Date:** 2026-06-26\n");
+  t("no-body flagged", prdValidate(dir).some((p) => /^gamma\.md: no body/.test(p)));
+  fs.unlinkSync(path.join(dir, "gamma.md"));
+
+  // url+body collision flagged
+  fs.writeFileSync(path.join(dir, "delta.md"), "# PRD — Delta\n\n- **Container:** Delta\n- **Status:** Draft\n- **Date:** 2026-06-26\n- **PRD:** https://x/y\n\n## Problem\nx\n");
+  t("collision flagged", prdValidate(dir).some((p) => /^delta\.md: both/.test(p)));
+  fs.unlinkSync(path.join(dir, "delta.md"));
+
+  // linked-as-file (PRD line, no sections) is valid; url parsed
+  fs.writeFileSync(path.join(dir, "epsilon.md"), "# PRD — Epsilon\n\n- **Container:** Epsilon\n- **Status:** Active\n- **Date:** 2026-06-26\n- **Mode:** linked\n- **PRD:** https://x/y\n");
+  t("linked file valid", !prdValidate(dir).some((p) => /^epsilon/.test(p)));
+  t("linked url parsed", listPrds(dir).find((p) => p.slug === "epsilon").url === "https://x/y");
+  fs.unlinkSync(path.join(dir, "epsilon.md"));
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+
+  let failed = 0;
+  for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prd --selftest FAIL: ${name}\n`); failed++; } }
+  if (failed) { process.stderr.write(`prd --selftest: ${failed}/${cases.length} failed\n`); return 1; }
+  console.log(`prd --selftest: ok (${cases.length} cases)`);
+  return 0;
+}
+
 function main(argv) {
   const [sub, ...rest] = argv;
   if (!sub) { process.stderr.write(USAGE); return 2; }
@@ -5116,6 +5322,7 @@ function main(argv) {
   if (sub === "park-history") return cmdParkHistory(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
   if (sub === "adr") return cmdAdr(rest);
+  if (sub === "prd") return cmdPrd(rest);
   if (sub === "profile") return cmdProfile(rest);
   if (sub === "gates") return cmdGates(rest);
   if (sub === "contract") return cmdContract(rest);

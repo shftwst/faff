@@ -15,7 +15,7 @@ It is faff's **contributor guidance**, not faff config. The faff CLI reads confi
 - **Lean.** Say it once, at the altitude it belongs. Cut anything the runtime reader doesn't need to act correctly.
 - **Deduplicated.** Shared prose has **one canonical home** (the gateway, `faff/SKILL.md`); every other skill *references* it, never copies. Single-source per FAFF-115.
 - **Skimmable.** Bullets and tables over walls of prose. A reader should grasp the shape by scanning, not by close reading.
-- **Runtime prompt, not changelog.** State the *rule*, forward. War-stories — "this fixes a real failure", "bit us twice", run-ids, transcript breadcrumbs — belong in git history, ADRs, or `design/`, not the prompt. A reference is *load-bearing* only when the reader must follow it to act (a contract anchor, a section pointer); decorative issue-tags are cruft.
+- **Runtime prompt, not changelog — and self-contained.** State the *rule*, forward. War-stories — "this fixes a real failure", "bit us twice", run-ids, transcript breadcrumbs — belong in git history, ADRs, or `design/`, not the prompt. Prose the reader *executes* (`SKILL.md`) or *publicly consumes* (`docs/guide/`) carries **no** `FAFF-NN`/`ADR` reference: a ticket or ADR is the reasoning that *produced* a rule, never something the reader follows, so a ref there is either decorative (delete it) or smuggling meaning the prose should state outright (inline the rule, then delete the ref) — there is **no** "load-bearing external ref" in this prose. The only cross-references that stay are **within-prose anchors** (`gateway → Section`, sibling skill names like `faff/SKILL.md`) — the dedup mechanism, pointing at prose in the same corpus. `docs/` outside `docs/guide/` (ADRs, specs, this charter, design notes) is the reasoning corpus and *is* ref-permitted: enforced prose inlines *from* it, it never points *into* it.
 
 ## Lint rules (mechanical — enforced by `faff validate-adapters`)
 
@@ -25,10 +25,12 @@ Run over every `SKILL.md`. A violation prints `FAIL <name> (<category>) ✗ <lab
 |---|---|---|
 | `line cap` | per-file `SKILL.md` line count | 600 lines; gateway (`faff`) hub override 1000 |
 | `paragraph` | longest single prose line (≈ one paragraph) | 200 words — nudge bullets over prose |
-| `stray marker` | transcript run-ids + retrospective war-story idioms | zero tolerance (load-bearing `FAFF-NN`/section anchors are **not** matched) |
+| `stray marker` | transcript run-ids + retrospective war-story idioms | zero tolerance (section anchors are not matched; `FAFF-NN`/`ADR` refs are banned **separately** — see below) |
 | `duplicated block` | identical run of significant lines across 2+ skills | 6 significant lines — single-source it instead |
 
-**Honest limits.** These catch the realistic drift (a skill ballooning, a wall-of-text paragraph, copied prose, a stray breadcrumb). They do **not** measure taste, skimmability, or whether a kept reference is genuinely load-bearing — that stays human/agent review judgement. The stray-marker rule is deliberately narrow (precise idioms, not a blanket issue-tag ban) to avoid false-positiving the load-bearing `FAFF-NN` anchors the tree legitimately carries.
+**External-artifact refs — banned, enforced by `faff lint-refs`.** Separate from the `validate-adapters` table above (which lints only the slot-skills): `faff lint-refs` scans prose the reader *executes* or *publicly consumes* — `plugin/skills/**/SKILL.md` and `docs/guide/**` — and fails CI on any `FAFF-NN` ticket tag, `ADR NNNN` citation, or numbered `docs/adr/` pointer, naming `file:line ✗ match`. It does **not** touch `docs/` outside `docs/guide/` (the reasoning corpus — ADRs, specs, this charter — is ref-permitted, and `docs/adr/**` *must* keep its supersession back-refs for `faff adr validate`), and it never flags within-prose anchors. (Currently enforced on `docs/guide/`; the `SKILL.md` surface is being swept ref-free, then enabled.)
+
+**Honest limits.** The `validate-adapters` rules catch the realistic drift (a skill ballooning, a wall-of-text paragraph, copied prose, a stray war-story idiom). They do **not** measure taste or skimmability — that stays human/agent review judgement. The `stray marker` rule is deliberately narrow (precise idioms, not a blanket ban); ticket/ADR refs are not its job — `faff lint-refs` owns that ban.
 
 ## For new slot skills
 

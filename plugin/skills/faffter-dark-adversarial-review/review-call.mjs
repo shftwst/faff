@@ -490,7 +490,10 @@ export async function main(argv, { runReviewFn = runReview } = {}) {
     }
     chain = raw.map((b) => ({
       provider: b.provider, model: b.model, host: b.host,
-      hostSource: b.host_source || b.hostSource || "config",   // every listed backend is explicitly configured
+      hostSource: "config",   // host_source is DERIVED, not authored: every listed backend is explicitly
+                              // configured, so it is always "config" (→ unreachable maps to 5/pass+skip,
+                              // never 6). The unconfigured-localhost-default (6) only arises in the legacy
+                              // single-backend path below, never inside an explicit chain.
       apiKeyEnv: b.api_key_env || b.apiKeyEnv,
       reasoningOff: b.reasoning_off ?? b.reasoningOff ?? false,
       timeoutMs: (b.timeout != null) ? Number(b.timeout) * 1000 : a.timeoutMs,

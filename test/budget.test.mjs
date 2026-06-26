@@ -37,12 +37,24 @@ function fixture({ rc, ledger }) {
 }
 
 // Write a transcript project dir under a fake $CLAUDE_CONFIG_DIR for the given cwd.
+// Each file's value is either an array of usage objects (records stamped with the
+// run `sid` as their top-level sessionId — the common case), or an object
+// { sessionId, usage } to stamp a different owning session (or sessionId:null to
+// emit no sessionId field at all — the unattributable/legacy case). FAFF-229: the
+// sessionId stamp is what budget attribution now keys off, so the helper must set it.
 function withTranscripts(root, cwd, sid, files) {
   const enc = String(cwd).replace(/\//g, "-");
   const projdir = join(root, "cfg", "projects", enc);
   mkdirSync(projdir, { recursive: true });
-  for (const [name, lines] of Object.entries(files)) {
-    writeFileSync(join(projdir, name), lines.map((u) => JSON.stringify({ type: "assistant", message: { usage: u } })).join("\n"));
+  for (const [name, spec] of Object.entries(files)) {
+    const usages = Array.isArray(spec) ? spec : spec.usage;
+    const owner = Array.isArray(spec) ? sid : spec.sessionId; // null ⇒ omit sessionId
+    const lines = usages.map((u) => {
+      const rec = { type: "assistant", message: { usage: u } };
+      if (owner != null) rec.sessionId = owner;
+      return JSON.stringify(rec);
+    });
+    writeFileSync(join(projdir, name), lines.join("\n"));
   }
   return join(root, "cfg");
 }
@@ -140,6 +152,69 @@ test("child agent files OUTSIDE the run window are not counted (mtime < run star
     const s = JSON.parse(r.out);
     // only the orchestrator session file (15 tokens) counts; the child is windowed out.
     assert.equal(s.spent.tokens, 15);
+  } finally { f.cleanup(); }
+});
+
+// FAFF-229: child attribution is by owning sessionId, not bare mtime.
+
+test("FAFF-229: same-session child (this run's sessionId) IS included", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-mine";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 0 }],          // sessionId=sid (orchestrator)
+      "agent-mine.jsonl": [{ input_tokens: 5000, output_tokens: 0 }],       // sessionId=sid → counted
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 5100); // orchestrator 100 + same-session child 5000
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-229: foreign-session child with in-window mtime is EXCLUDED (over-count bug fixed)", () => {
+  // The foreign child is written now (mtime AFTER the 2026-06-23 run start), so the
+  // mtime pre-filter alone would sweep it in — the attribution gate must keep it out.
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-mine";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 0 }],               // this run
+      "agent-mine.jsonl": [{ input_tokens: 5000, output_tokens: 0 }],            // sessionId=sid → counted
+      "agent-foreign.jsonl": { sessionId: "sess-other", usage: [{ input_tokens: 7777777, output_tokens: 0 }] }, // foreign → excluded
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 5100); // foreign child's 7,777,777 is NOT swept in
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-229: in-window child with NO sessionId is EXCLUDED and does not crash (undercount)", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-mine";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 0 }],
+      "agent-nosession.jsonl": { sessionId: null, usage: [{ input_tokens: 4242, output_tokens: 0 }] }, // unattributable → excluded
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err); // no crash
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 100); // only the orchestrator file; unattributable child excluded
   } finally { f.cleanup(); }
 });
 

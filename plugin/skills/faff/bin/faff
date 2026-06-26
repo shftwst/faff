@@ -1836,12 +1836,33 @@ function sumTranscriptFile(file) {
   return total;
 }
 
+// The owning session of a child agent-*.jsonl transcript: the top-level
+// `sessionId` on its first parseable record, which Claude Code stamps equal to
+// the parent orchestrator's session id (the `<sessionId>.jsonl` filename stem).
+// That field — not the file's mtime — is the reliable "which run owns this
+// child" signal (FAFF-229). Returns the id, or null when no record carries a
+// non-empty string sessionId (malformed/partial/legacy → unattributable, which
+// the caller excludes — undercount-not-overcount). Reads only up to the first
+// parseable record that carries a sessionId; pure (local read, no network).
+function childOwningSession(file) {
+  let text;
+  try { text = fs.readFileSync(file, "utf8"); } catch { return null; }
+  for (const line of text.split("\n")) {
+    const s = line.trim();
+    if (!s) continue;
+    let rec;
+    try { rec = JSON.parse(s); } catch { continue; }
+    if (rec && typeof rec.sessionId === "string" && rec.sessionId) return rec.sessionId;
+  }
+  return null;
+}
+
 // Measure this-run token spend: the orchestrator transcript (keyed off
 // $CLAUDE_CODE_SESSION_ID — NEVER mtime-newest, which can be a different session)
-// + every child agent-*.jsonl modified >= run start (subagent grafts dominate
-// run spend and live in separate files, not sidechain entries). Returns
-// { total, source }: source 'transcript' when the session file was read,
-// 'estimate' when no transcript is available (caller supplies the estimate).
+// + every child agent-*.jsonl whose own records carry that same session id
+// (subagent grafts dominate run spend and live in separate files, not sidechain
+// entries). Returns { total, source }: source 'transcript' when the session file
+// was read, 'estimate' when no transcript is available (caller supplies the estimate).
 function measureTokens(opts) {
   const { cwd, env, runStartMs } = opts;
   const sid = env.CLAUDE_CODE_SESSION_ID;
@@ -1853,23 +1874,29 @@ function measureTokens(opts) {
     return { total: null, source: "estimate" };
   }
   let total = sumTranscriptFile(sessionFile);
-  // Aggregate child subagent transcripts modified at/after run start (undercount,
-  // never overcount: a missed late file lowers the figure — guard-rail semantics).
-  // With NO run-start anchor we cannot tell this run's children from a prior run's,
-  // so we skip child aggregation entirely rather than risk OVER-counting a stale
-  // run's agents — undercount-not-overcount (the orchestrator always stamps
-  // owner.started_at at run start, so this null path is the degenerate case only).
-  if (runStartMs != null) {
-    let entries = [];
-    try { entries = fs.readdirSync(base); } catch { entries = []; }
-    for (const name of entries) {
-      if (!/^agent-.*\.jsonl$/.test(name)) continue;
-      const f = path.join(base, name);
+  // Aggregate this run's child subagent transcripts — attributed by their OWNING
+  // SESSION (childOwningSession === sid), NOT by mtime. mtime is a wall-clock touch
+  // time, not an ownership signal: a prior/parallel run's child touched after this
+  // run's start would otherwise be swept in and OVER-count (FAFF-229). The
+  // `mtime >= runStartMs` comparison is kept only as a cheap PRE-FILTER (skip
+  // obviously-old files without opening them) — a same-session child necessarily
+  // post-dates run start, so the pre-filter can only skip files the session match
+  // would also reject; removing it changes speed, never the total. A child whose
+  // session is unattributable/foreign is excluded — lowering, never raising, the
+  // figure (undercount-not-overcount). The null-runStartMs degenerate path can't
+  // pre-filter; the session match alone decides (still correct).
+  let entries = [];
+  try { entries = fs.readdirSync(base); } catch { entries = []; }
+  for (const name of entries) {
+    if (!/^agent-.*\.jsonl$/.test(name)) continue;
+    const f = path.join(base, name);
+    if (runStartMs != null) {
       let st;
       try { st = fs.statSync(f); } catch { continue; }
-      if (st.mtimeMs < runStartMs) continue; // outside the run window
-      total += sumTranscriptFile(f);
+      if (st.mtimeMs < runStartMs) continue; // cheap pre-filter (NOT the attribution gate)
     }
+    if (childOwningSession(f) !== sid) continue; // attribution gate: owned by THIS run only
+    total += sumTranscriptFile(f);
   }
   return { total, source: "transcript" };
 }
@@ -2025,7 +2052,20 @@ function budgetSelftest() {
   }) === 2);
   ok("attempts falls back to admitted when no outcomes", attemptsFromLedger({ admitted: ["A", "B"], outcomes: {} }) === 2);
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${22} checks, ${fail} failed)`);
+  // --- childOwningSession: attribution helper (FAFF-229) — pure, tmpdir only ---
+  const cd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-self-"));
+  const wj = (name, lines) => { const p = path.join(cd, name); fs.writeFileSync(p, lines.join("\n")); return p; };
+  try {
+    const owned = wj("agent-mine.jsonl", [JSON.stringify({ sessionId: "sid-1", message: { usage: { input_tokens: 1 } } })]);
+    ok("childOwningSession reads first-record sessionId", childOwningSession(owned) === "sid-1");
+    const skip = wj("agent-skip.jsonl", ["", "not json", JSON.stringify({ noSession: true }), JSON.stringify({ sessionId: "sid-2" })]);
+    ok("childOwningSession skips blank/unparseable/no-sessionId lines", childOwningSession(skip) === "sid-2");
+    const none = wj("agent-none.jsonl", [JSON.stringify({ message: { usage: { input_tokens: 9 } } }), JSON.stringify({ sessionId: "" })]);
+    ok("childOwningSession → null when no record carries a non-empty sessionId", childOwningSession(none) === null);
+    ok("childOwningSession → null on unreadable file (no crash)", childOwningSession(path.join(cd, "does-not-exist.jsonl")) === null);
+  } finally { fs.rmSync(cd, { recursive: true, force: true }); }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${26} checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -3773,7 +3813,7 @@ Subcommands:
   intakecheck <issue> [--labels csv] [--interactive] [--json] [--root DIR]   FAFF-212/223: intake-provenance guard — verify a ticket entered through a sanctioned front door (CLI-written .faff/provenance/<ISSUE>.json marker; the spoofable faff-jot-intake label is a grandfather bridge; a human-set faff-automate is admitted as the eligibility-gesture basis — write-abstained ⇒ human-set by construction, FAFF-218); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; --interactive makes a block-mode miss exit 0 with a [warn] (human-at-keyboard is the sanction — autonomous OMITS it); malformed marker → absent + warn, never crash; --selftest runs the bases + bypass table. NOT a Stop-hook (would reintroduce FAFF-205)
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
-  budget check [--run-dir DIR] [--until HH:MM] [--max N] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl modified >= run start (NEVER mtime-newest), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. breached != {} is the terminating signal. --selftest runs the table
+  budget check [--run-dir DIR] [--until HH:MM] [--max N] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. breached != {} is the terminating signal. --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants

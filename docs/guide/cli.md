@@ -33,6 +33,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 | Subcommand | What it does |
 |---|---|
 | `runcheck [--hook] [--recover] [--json] [RUN_DIR]` | Audit a `/faff-beep-boop` run ledger; `--hook` gates session-end on dangling admitted work (owning session / `--recover` hard-blocks; foreign runs warn at most). |
+| `heartbeat [RUN_DIR] [--json]` | The single sanctioned write path for the run ledger's `owner.last_heartbeat` — refresh it to now (resolves `RUN_DIR` → `$FAFF_RUN_DIR` → latest run) so a live-but-quiet build's long sub-steps keep the run *held*. Field-merge (writes only that field, atomically); soft no-op on a done/unowned/absent run; exit 2 on a malformed ledger. |
 | `prepcheck [--hook] [--json]` | Audit faff-prep attach-state markers (`.faff/prep/*.json`); `--hook` blocks at Stop on any produced-but-not-attached spec. |
 | `budget check [--until HH:MM] [--max N] [--json]` | Emit a run cost/compute `BudgetState` (spent, breached, outcome) from the ledger + config `budget:` + local transcripts. |
 | `park-history --now ISO [--issue ID]` | Deterministic repeat-park counts over `.faff/runs` summaries (≥3 same root-cause class in 21d). |
@@ -54,7 +55,11 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 | `contract <name> [--in FILE]` | Per-slot contract script: extraction JSON in → canonical contract data out (`spec-readiness`, `review-verdict`, `quality-gates`, `delivery-outcome`); exit 0 conformant / 1 non-conformant / 2 fail-loud. |
 | `gates <discover\|run> [--json]` | Cost-ordered engineering-quality gate ladder — discover/run the repo's *own* declared cheap checks (pre-commit / package.json / Makefile) cheapest-first, fail-fast, emit a `faff-contract:quality-gates` block. |
 | `adr <next-number\|new\|list\|live-decisions\|validate\|supersede>` | Deterministic mechanics over the `docs/adr/` Nygard log. |
+| `prd <path\|new\|link\|list\|validate>` | Deterministic mechanics over the `docs/prd/` PRD log — the product-axis counterpart to `adr`: scaffold/list/validate a per-container PRD (slug-keyed) and emit the container-link line; the caller commits + applies it. |
 | `profile <validate\|show> [--file F]` | Infra-profile schema + CLI — validate a profile JSON, or `show` the effective profile (`.faff/infra-profile.json` ⊕ `.faffrc.yaml infra:`, override wins per field). |
+| `fixtures <validate\|show\|realise> [--file F] [--out DIR]` | Fixtures dataset-manifest schema + CLI — `validate` a manifest JSON, `show` the effective manifest (`.faff/fixtures/manifest.json` ⊕ `.faffrc.yaml fixtures:`, override wins per field), or `realise` a deterministic dataset from `(manifest, seed)` into `dataset_path`/`--out`. The generation strategy is a deferred slot; this ships the contract plus a trivial reference generator. |
+| `lint-refs [--root DIR]` | Ban external-artifact refs (ticket tags, ADR citations, numbered `docs/adr/` pointers) in enforced prose — scans `docs/guide/**`; names each `file:line ✗ match` and exits 1 on a hit, else 0. |
+| `lint-cli-doc [--root DIR] [--json]` | Assert `docs/guide/cli.md` documents every subcommand the CLI dispatches (the `COMMANDS` registry), bidirectionally — names each `✗ missing`/`✗ orphaned` and exits 1 on drift, else 0. |
 
 Most are invoked by the skills and hooks for themselves. A few are handy by hand — e.g. `faff config get <dotted.key>` to read a value from your config, or `faff validate-adapters --configured` to pre-flight your swapped-in slots before an unattended run.
 

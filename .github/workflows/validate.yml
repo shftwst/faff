@@ -27,6 +27,11 @@ jobs:
           node plugin/skills/faff/bin/faff lint-refs --selftest
           node plugin/skills/faff/bin/faff lint-refs
 
+      - name: Validate CLI reference doc covers every subcommand (docs/guide/cli.md)
+        run: |
+          node plugin/skills/faff/bin/faff lint-cli-doc --selftest
+          node plugin/skills/faff/bin/faff lint-cli-doc
+
       - name: Validate config template parses
         run: |
           tmp="$(mktemp -d)"

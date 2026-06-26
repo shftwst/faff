@@ -1,4 +1,4 @@
-# ADR 0014 — PRD layer: product-axis artifact, docs/prd storage, container-slug keying
+# ADR 0016 — PRD layer: product-axis artifact, docs/prd storage, container-slug keying
 
 - **Status:** Accepted
 - **Date:** 2026-06-26

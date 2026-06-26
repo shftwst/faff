@@ -965,6 +965,129 @@ function runcheckSelftest() {
 }
 
 // ===========================================================================
+// heartbeat — FAFF-234: the single sanctioned write path for owner.last_heartbeat.
+//
+// Liveness (runIsHeld, above) is heartbeat-only: a run reads `held` while its
+// owner.last_heartbeat is fresher than STALE_SECS. But builds now run as isolated
+// subagents (FAFF-201), and a build subagent in a multi-minute adversarial review
+// or gate ladder has no tool to tick the heartbeat mid-step — so a live-but-quiet
+// build ages past 900s and a foreign session's Stop hook treats it as abandoned.
+// This primitive is the deterministic write counterpart to readLedger: faff-graft's
+// long sub-steps, both concurrency executors, and beep-boop all refresh through it,
+// instead of hand-rolling a read-modify-write of the ledger JSON (governing
+// principle: deterministic tools over prose for a signal that gates a safety hook).
+//
+// Field-merge discipline (FAFF-234): re-read the ledger immediately before mutating
+// ONLY owner.last_heartbeat and write back atomically (tmp + rename) — never serialize
+// a stale whole-ledger copy, so a tick can't clobber an outcome write under the
+// sequential single-active-writer model. No env-ownership proof is required: the only
+// callers are the run's own orchestrator + build subagents (the Stop hook calls
+// runcheck, never heartbeat), so the guard is simply owner.status === "running".
+// ===========================================================================
+
+// Pure field-merge over a parsed ledger: set owner.last_heartbeat = nowIso when the
+// owner is running; soft no-op otherwise. Returns { written, last_heartbeat }. Mutates
+// ONLY owner.last_heartbeat on the passed object — every other field is left untouched
+// (the byte-identical-other-fields guarantee). A missing last_heartbeat on a running
+// owner self-heals (written:true). Injectable nowIso so the selftest drives it pure.
+function applyHeartbeat(ledger, nowIso) {
+  const owner = ledger && ledger.owner;
+  if (!owner || owner.status !== "running") {
+    return { written: false, last_heartbeat: owner ? owner.last_heartbeat ?? null : null };
+  }
+  owner.last_heartbeat = nowIso; // the ONLY field this primitive writes
+  return { written: true, last_heartbeat: nowIso };
+}
+
+// Atomic ledger write: serialize to a sibling .tmp then rename over the target, so a
+// concurrent reader (runcheck) never observes a torn/partial file. 2-space + trailing
+// newline matches the other JSON writers in this CLI.
+function atomicWriteLedger(runDir, ledger) {
+  const target = path.join(runDir, "run-ledger.json");
+  const tmp = target + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(ledger, null, 2) + "\n");
+  fs.renameSync(tmp, target);
+}
+
+// Resolution order (spec §3): explicit arg → $FAFF_RUN_DIR → latest run under .faff/runs.
+// A subagent should always pass RUN_DIR explicitly — "latest" can resolve the wrong
+// ledger under concurrent/overlapping runs (the anti-pattern the spec calls out).
+function resolveHeartbeatRunDir(arg, env) {
+  const e = env || process.env;
+  const cand = arg || e.FAFF_RUN_DIR || latestRunDir(findRoot());
+  return cand || null;
+}
+
+function cmdHeartbeat(args) {
+  if (args.includes("--selftest")) return heartbeatSelftest();
+  const asJson = args.includes("--json");
+  const positional = args.filter((a) => !a.startsWith("-"));
+  const runDir = resolveHeartbeatRunDir(positional[0], process.env);
+  const emit = (rd, lastHb, written) => {
+    if (asJson) console.log(JSON.stringify({ run_dir: rd || null, last_heartbeat: lastHb ?? null, written }));
+    return 0;
+  };
+
+  // No run dir / no ledger → soft no-op (an interactive non-run context calling it
+  // by mistake must never error). exit 0, written:false.
+  if (!runDir || !fs.existsSync(path.join(runDir, "run-ledger.json"))) return emit(runDir, null, false);
+
+  let ledger;
+  try {
+    ledger = readLedger(runDir); // re-read immediately before mutate (field-merge)
+  } catch (e) {
+    // Malformed ledger JSON is a real fault — loud on stderr, exit 2, never swallowed.
+    process.stderr.write(`heartbeat: malformed ledger in ${runDir}: ${e.message}\n`);
+    return 2;
+  }
+
+  const { written, last_heartbeat } = applyHeartbeat(ledger, new Date().toISOString());
+  if (written) atomicWriteLedger(runDir, ledger); // a done/unowned run is never resurrected
+  return emit(runDir, last_heartbeat, written);
+}
+
+// In-memory selftest of the pure field-merge + its liveness interaction (mirrors
+// runcheck/lint-cli-doc --selftest). No filesystem I/O — drives applyHeartbeat and
+// the runIsHeld read path the tick feeds.
+function heartbeatSelftest() {
+  let failed = 0;
+  const check = (label, cond) => { if (!cond) { process.stderr.write(`heartbeat --selftest FAIL: ${label}\n`); failed++; } };
+  const now = Date.parse("2026-06-22T16:00:00Z");
+  const nowIso = new Date(now).toISOString();
+  const ago = (s) => new Date(now - s * 1000).toISOString();
+
+  // running owner → written, last_heartbeat advances, other fields untouched.
+  const running = { admitted: ["X"], outcomes: {}, owner: { status: "running", pid: 42, session_id: "S", started_at: ago(2000), last_heartbeat: ago(800) } };
+  const r1 = applyHeartbeat(running, nowIso);
+  check("running owner → written:true", r1.written === true);
+  check("last_heartbeat advanced to now", running.owner.last_heartbeat === nowIso);
+  check("pid untouched", running.owner.pid === 42);
+  check("session_id untouched", running.owner.session_id === "S");
+  check("started_at untouched", running.owner.started_at === ago(2000));
+  check("admitted untouched", JSON.stringify(running.admitted) === JSON.stringify(["X"]));
+  // and a tick at now keeps it held at now+800 where the pre-tick T+800 would have been stale.
+  check("tick keeps it held past the old staleness point", runIsHeld(running, now + 800 * 1000, {}) === true);
+  check("pre-tick heartbeat would have been stale", runIsHeld({ owner: { status: "running", last_heartbeat: ago(800) } }, now + 800 * 1000, {}) === false);
+
+  // done owner → soft no-op, last_heartbeat unchanged (a finished run is never resurrected).
+  const done = { owner: { status: "done", last_heartbeat: ago(1000) } };
+  const r2 = applyHeartbeat(done, nowIso);
+  check("done owner → written:false", r2.written === false);
+  check("done owner last_heartbeat unchanged", done.owner.last_heartbeat === ago(1000));
+
+  // missing owner → soft no-op.
+  check("missing owner → written:false", applyHeartbeat({ admitted: [] }, nowIso).written === false);
+
+  // missing last_heartbeat on a running owner → self-heals (written:true).
+  const healed = { owner: { status: "running" } };
+  check("running owner missing last_heartbeat self-heals", applyHeartbeat(healed, nowIso).written === true && healed.owner.last_heartbeat === nowIso);
+
+  if (failed) return 1;
+  console.log("heartbeat --selftest: ok");
+  return 0;
+}
+
+// ===========================================================================
 // prepcheck — verify faff-prep attached every spec it produced (same-turn).
 // The Stop-hook sibling of runcheck (FAFF-178): "attach the produced spec" is a
 // mechanical guarantee, not prose. prep writes an externalised attach-state marker
@@ -3867,6 +3990,7 @@ Subcommands:
   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
   runcheck [--hook] [--recover] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the ownership+liveness gate — silent for a foreign HELD run (FAFF-205, heartbeat-only liveness FAFF-233), and a foreign not-held run only WARNs, never hard-blocks (FAFF-235); only an OWNING session or --recover (deliberate human recovery) hard-blocks; --selftest runs the gate table
+  heartbeat [RUN_DIR] [--json]                  FAFF-234: the single sanctioned write path for owner.last_heartbeat — refresh it to now on the resolved run (arg → $FAFF_RUN_DIR → latest under .faff/runs), so a live-but-quiet build's long sub-steps (faff-graft gate ladder / review / holdout) keep the run HELD instead of ageing out the staleness window (FAFF-205 liveness, heartbeat-only FAFF-233). Field-merge: re-reads the ledger and writes ONLY owner.last_heartbeat atomically (tmp + rename). Soft no-op (exit 0, written:false) when there is no ledger / no owner / owner.status != "running" (a done run is never resurrected); exit 2 on a malformed ledger (loud); --json prints { run_dir, last_heartbeat, written }; --selftest runs the field-merge + held-interaction table
   prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
   intakecheck <issue> [--labels csv] [--interactive] [--json] [--root DIR]   FAFF-212/223: intake-provenance guard — verify a ticket entered through a sanctioned front door (CLI-written .faff/provenance/<ISSUE>.json marker; the spoofable faff-jot-intake label is a grandfather bridge; a human-set faff-automate is admitted as the eligibility-gesture basis — write-abstained ⇒ human-set by construction, FAFF-218); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; --interactive makes a block-mode miss exit 0 with a [warn] (human-at-keyboard is the sanction — autonomous OMITS it); malformed marker → absent + warn, never crash; --selftest runs the bases + bypass table. NOT a Stop-hook (would reintroduce FAFF-205)
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
@@ -3886,10 +4010,12 @@ Subcommands:
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show> [--file F] [--root DIR]  FAFF-26: infra-profile schema + CLI (slice 1; acquirer=FAFF-231). validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json ⊕ .faffrc.yaml infra:, override wins per field); exit 3 when none. --selftest runs the validator table
+  fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
   lint-refs [--root DIR]                        FAFF-238: ban external-artifact refs (FAFF-NN / ADR NNNN / numbered docs/adr pointers) in prose the reader executes or publicly consumes — slice 1 scans docs/guide/**; "FAIL file:line ✗ match" per hit + exit 1, else exit 0; --selftest runs the matcher table. docs/ outside docs/guide/ (incl. docs/adr/**) is allow-by-default; within-prose anchors (gateway→Section, faff/SKILL.md) never match
+  lint-cli-doc [--root DIR] [--json]            FAFF-237: assert docs/guide/cli.md documents every subcommand the CLI dispatches (the COMMANDS registry), bidirectionally — "FAIL docs/guide/cli.md ✗ missing/orphaned: <name>" per drift + exit 1, else "PASS  lint-cli-doc: <N> subcommands documented" + exit 0; exit 2 if the doc is unreadable; --selftest runs the parse/diff table
 `;
 
 // ===========================================================================
@@ -5012,6 +5138,255 @@ function profileSelftest() {
 }
 
 // ===========================================================================
+// fixtures — FAFF-31: dataset-manifest schema + `faff fixtures` CLI (slice 1 of 2)
+//   fixtures validate [--file PATH]   validate a manifest JSON (stdin or --file): 0 valid / 1 invalid / 2 malformed
+//   fixtures show                     print the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:); exit 3 when none
+//   fixtures realise [--file PATH] [--out DIR]   trivial reference generator — deterministically realise a dataset from (manifest, seed)
+// The MANIFEST is the load-bearing contract FAFF-34 consumes; the generation STRATEGY is a
+// separate `fixtures` slot (deferred slice). Mirrors `faff profile` (FAFF-26): schema + merge
+// live here, not in skill prose. Storage-split + conflict-authority per docs/adr/0013.
+// ===========================================================================
+const FIELD_TYPES = new Set(["string", "int", "bool", "timestamp", "uuid"]);
+
+// Pure validator over a parsed manifest object. The manifest is the fixed, reproducible
+// description of a synthetic dataset: a target schema, a determinism seed, per-entity volumes.
+// A sparse-but-complete manifest (required fields, no volumes) is valid.
+function validateFixtures(obj) {
+  if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
+    return ["manifest must be a JSON object"];
+  }
+  const v = [];
+  if (obj.schema !== 1) v.push("schema must be 1");
+  for (const k of ["schema", "authored_at", "authored_by", "seed", "target_schema"]) {
+    if (obj[k] === undefined || obj[k] === null || obj[k] === "") v.push(`missing required field: ${k}`);
+  }
+  const entityNames = new Set();
+  const ts = obj.target_schema;
+  if (ts !== undefined && ts !== null) {
+    if (typeof ts !== "object" || Array.isArray(ts)) {
+      v.push("target_schema must be an object");
+    } else if (!Array.isArray(ts.entities) || ts.entities.length === 0) {
+      v.push("target_schema.entities must be a non-empty list");
+    } else {
+      const seenEntity = new Set();
+      ts.entities.forEach((e, i) => {
+        if (e === null || typeof e !== "object" || Array.isArray(e)) {
+          v.push(`target_schema.entities[${i}] must be an object`); return;
+        }
+        const en = e.name;
+        if (!en || String(en).trim() === "") {
+          v.push(`target_schema.entities[${i}] missing required key 'name'`);
+        } else {
+          if (seenEntity.has(en)) v.push(`duplicate entity name: ${en}`);
+          seenEntity.add(en); entityNames.add(en);
+        }
+        const label = en || `[${i}]`;
+        if (!Array.isArray(e.fields) || e.fields.length === 0) {
+          v.push(`entity '${label}' fields must be a non-empty list`);
+        } else {
+          const seenField = new Set();
+          e.fields.forEach((f, j) => {
+            if (f === null || typeof f !== "object" || Array.isArray(f)) {
+              v.push(`entity '${label}' field[${j}] must be an object`); return;
+            }
+            const fn = f.name;
+            if (!fn || String(fn).trim() === "") {
+              v.push(`entity '${label}' field[${j}] missing required key 'name'`);
+            } else {
+              if (seenField.has(fn)) v.push(`entity '${label}' duplicate field name: ${fn}`);
+              seenField.add(fn);
+            }
+            if (!FIELD_TYPES.has(f.type)) {
+              v.push(`entity '${label}' field '${fn || `[${j}]`}' type '${f.type}' ∉ FIELD_TYPES {${[...FIELD_TYPES].join(", ")}}`);
+            }
+          });
+        }
+      });
+    }
+  }
+  const vol = obj.volumes;
+  if (vol !== undefined && vol !== null) {
+    if (typeof vol !== "object" || Array.isArray(vol)) {
+      v.push("volumes must be a map of entity-name → count");
+    } else {
+      for (const [k, val] of Object.entries(vol)) {
+        if (!entityNames.has(k)) v.push(`volumes key '${k}' is a dangling entity (not a target_schema entity)`);
+        if (!Number.isInteger(val) || val < 0) v.push(`volumes['${k}'] must be an integer >= 0`);
+      }
+    }
+  }
+  return v;
+}
+
+// Self-contained seeded PRNG (FNV-1a string-hash → mulberry32). Dependency-free, deterministic:
+// same seed string → same stream, every run, on every machine. NEVER touches Date.now /
+// Math.random / crypto / the network — the seed-repo.mjs determinism discipline applied to data.
+function seededPrng(seedStr) {
+  let h = 0x811c9dc5;
+  const s = String(seedStr);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  let a = h >>> 0;
+  const nextFloat = () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const nextHex = (len) => {
+    let out = "";
+    while (out.length < len) out += Math.floor(nextFloat() * 16).toString(16);
+    return out.slice(0, len);
+  };
+  return {
+    nextFloat,
+    nextInt: () => Math.floor(nextFloat() * 1e9),
+    nextBool: () => nextFloat() < 0.5,
+    nextHex,
+  };
+}
+
+// Fixed epoch (2020-01-01T00:00:00Z) so generated timestamps are seed-derived, never wall-clock.
+const FIXTURES_EPOCH_MS = Date.UTC(2020, 0, 1);
+
+function deterministicValue(type, rng) {
+  switch (type) {
+    case "string": return "tok-" + rng.nextHex(8);
+    case "int": return rng.nextInt();
+    case "bool": return rng.nextBool();
+    case "timestamp": return new Date(FIXTURES_EPOCH_MS + rng.nextInt() * 1000).toISOString();
+    case "uuid": return `${rng.nextHex(8)}-${rng.nextHex(4)}-4${rng.nextHex(3)}-a${rng.nextHex(3)}-${rng.nextHex(12)}`;
+    default: return null;
+  }
+}
+
+function cmdFixtures(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  root = root || findRoot();
+  const cmd = rest[0];
+
+  if (cmd === "--selftest" || rest.includes("--selftest")) return fixturesSelftest();
+
+  // shared manifest read (stdin or --file) → { obj } | { err: exitCode }
+  const readManifest = (label) => {
+    let raw;
+    const fi = rest.indexOf("--file");
+    try { raw = fs.readFileSync(fi !== -1 ? rest[fi + 1] : 0, "utf8"); }
+    catch { process.stderr.write(`faff fixtures ${label}: cannot read input (no --file PATH and no stdin)\n`); return { err: 2 }; }
+    try { return { obj: JSON.parse(raw) }; }
+    catch { process.stderr.write(`faff fixtures ${label}: malformed manifest input (invalid JSON)\n`); return { err: 2 }; }
+  };
+
+  if (cmd === "validate") {
+    const r = readManifest("validate");
+    if (r.err) return r.err;
+    const violations = validateFixtures(r.obj);
+    if (violations.length) { for (const x of violations) process.stderr.write(`- ${x}\n`); return 1; }
+    console.log("OK — fixtures manifest valid (schema 1).");
+    return 0;
+  }
+
+  if (cmd === "show") {
+    const manPath = path.join(root, ".faff", "fixtures", "manifest.json");
+    const hasStored = fs.existsSync(manPath);
+    let stored = {};
+    if (hasStored) {
+      try { stored = JSON.parse(fs.readFileSync(manPath, "utf8")); }
+      catch {
+        process.stderr.write(`faff fixtures show: malformed ${path.join(".faff", "fixtures", "manifest.json")} (invalid JSON)\n`);
+        return 2;
+      }
+    }
+    let override = null;
+    try { override = dig(loadConfig(root)[0], "fixtures"); }
+    catch (e) {
+      if (e.message === "legacy-config-name" || e.message === "multiple-config") {
+        process.stderr.write(`faff fixtures show: ${e.message}\n`); return 2;
+      }
+      throw e;
+    }
+    const hasOverride = override !== null && override !== undefined
+      && typeof override === "object" && !Array.isArray(override) && Object.keys(override).length > 0;
+    if (!hasStored && !hasOverride) {
+      process.stderr.write("faff fixtures show: no fixtures manifest\n");
+      return 3;
+    }
+    const effective = Object.assign({}, (stored && typeof stored === "object" && !Array.isArray(stored)) ? stored : {});
+    if (hasOverride) {
+      const applied = [];
+      for (const k of Object.keys(override)) { effective[k] = override[k]; applied.push(k); }
+      effective.notes = Array.isArray(effective.notes) ? effective.notes.slice() : [];
+      effective.notes.push(`override applied: ${applied.join(", ")}`);
+    }
+    console.log(JSON.stringify(effective, null, 2));
+    return 0;
+  }
+
+  if (cmd === "realise") {
+    const r = readManifest("realise");
+    if (r.err) return r.err;
+    const obj = r.obj;
+    const violations = validateFixtures(obj);
+    if (violations.length) { for (const x of violations) process.stderr.write(`- ${x}\n`); return 1; }
+    const oi = rest.indexOf("--out");
+    let out = oi !== -1 ? rest[oi + 1]
+      : (typeof obj.dataset_path === "string" && obj.dataset_path) ? obj.dataset_path
+      : path.join(".faff", "fixtures", "dataset");
+    if (!path.isAbsolute(out)) out = path.join(root, out);
+    fs.mkdirSync(out, { recursive: true });
+    for (const entity of obj.target_schema.entities) {
+      const n = (obj.volumes && Number.isInteger(obj.volumes[entity.name])) ? obj.volumes[entity.name] : 0;
+      // per-entity stream keyed off the manifest seed: stable, reproducible, independent per entity.
+      const rng = seededPrng(`${obj.seed}::${entity.name}`);
+      const rows = [];
+      for (let i = 0; i < n; i++) {
+        const row = {};
+        for (const field of entity.fields) row[field.name] = deterministicValue(field.type, rng);
+        rows.push(row);
+      }
+      fs.writeFileSync(path.join(out, `${entity.name}.json`), JSON.stringify(rows, null, 2) + "\n");
+    }
+    console.log(`OK — realised ${obj.target_schema.entities.length} entit${obj.target_schema.entities.length === 1 ? "y" : "ies"} to ${out}`);
+    return 0;
+  }
+
+  process.stderr.write("faff fixtures: expected one of validate | show | realise (or --selftest)\n");
+  return 2;
+}
+
+// In-memory self-test of the pure validator core (mirrors the `faff profile` selftest style).
+function fixturesSelftest() {
+  const ent = { name: "user", fields: [{ name: "id", type: "uuid" }, { name: "name", type: "string" }] };
+  const valid = { schema: 1, authored_at: "2026-06-26T00:00:00Z", authored_by: "x", seed: "s",
+    target_schema: { entities: [ent] }, volumes: { user: 3 } };
+  const cases = [
+    [valid, 0, "valid manifest"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [ent] } }, 0, "sparse but complete (no volumes)"],
+    [{ schema: 2, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [ent] } }, 1, "wrong schema version"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", target_schema: { entities: [ent] } }, 1, "missing seed"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s" }, 1, "missing target_schema"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [] } }, 1, "empty entities"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [{ name: "u", fields: [{ name: "f", type: "blob" }] }] } }, 1, "field type ∉ FIELD_TYPES"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [{ name: "u", fields: [] }] } }, 1, "entity empty fields"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [ent] }, volumes: { order: 2 } }, 1, "dangling volumes entity"],
+    [{ schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [ent] }, volumes: { user: -1 } }, 1, "negative volume"],
+    [[], 1, "not an object"],
+  ];
+  let failed = 0;
+  for (const [obj, wantViol, label] of cases) {
+    const got = validateFixtures(obj).length > 0 ? 1 : 0;
+    if (got !== wantViol) { process.stderr.write(`fixtures --selftest FAIL: ${label} (want ${wantViol}, got ${got})\n`); failed++; }
+  }
+  if (failed) return 1;
+  console.log("fixtures --selftest: ok");
+  return 0;
+}
+
+// ===========================================================================
 // lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations /
 // numbered docs/adr pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
 // Slice 1 enforces docs/guide/** (the public user-guide surface); the SKILL.md
@@ -5114,7 +5489,7 @@ function lintRefsSelftest() {
 }
 
 // ===========================================================================
-// prd — product requirements documents (FAFF-252; ADR 0014). The PRODUCT-axis
+// prd — product requirements documents (FAFF-252; ADR 0016). The PRODUCT-axis
 // counterpart to `adr`: a durable docs/prd/<container-slug>.md per container,
 // structurally mirroring the adr CLI. ONE PRD per container, slug-keyed (no
 // global number — supersession is the PRDR's job, FAFF-245). Lean / format-
@@ -5305,35 +5680,160 @@ function prdSelftest() {
   return 0;
 }
 
+// lint-cli-doc — FAFF-237: assert docs/guide/cli.md documents every subcommand
+// the CLI dispatches. The canonical set is the COMMANDS registry (single source
+// of truth — see main()); the documented set is parsed from the doc's table rows.
+// Bidirectional: a command in the CLI but not the doc is `missing`; a command in
+// the doc but not the CLI is `orphaned`. Sibling of lint-refs.
+// ===========================================================================
+const CLI_DOC_PATH = "docs/guide/cli.md";
+
+// Documented base-command set: the first command-shaped token of the LEADING
+// inline-backtick span of each markdown table row. Anchored to the row's first
+// column (^\|\s*`) so `--flags`, `.faffrc.yaml`, `docs/adr/` spans never match;
+// deduped so alternate-form rows (`config` / `config init`) collapse to one base.
+function parseDocumentedCommands(text) {
+  const documented = new Set();
+  for (const line of text.split("\n")) {
+    const m = line.match(/^\|\s*`([a-z][a-z-]*)\b/);
+    if (m) documented.add(m[1]);
+  }
+  return documented;
+}
+
+// Pure set diff: missing = in CLI, not in doc; orphaned = in doc, not in CLI.
+function diffCliDoc(canonical, documented) {
+  const missing = [...canonical].filter((c) => !documented.has(c)).sort();
+  const orphaned = [...documented].filter((d) => !canonical.has(d)).sort();
+  return { missing, orphaned };
+}
+
+function cmdLintCliDoc(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  if (rest.includes("--selftest")) return lintCliDocSelftest();
+  const json = rest.includes("--json");
+  root = root || findRoot();
+
+  const canonical = new Set(Object.keys(COMMANDS));
+  const docPath = path.join(root, CLI_DOC_PATH);
+  let text;
+  try {
+    text = fs.readFileSync(docPath, "utf8");
+  } catch {
+    if (json) console.log(JSON.stringify({ ok: false, error: `cannot read ${CLI_DOC_PATH}` }));
+    else process.stderr.write(`lint-cli-doc: cannot read ${docPath}\n`);
+    return 2;
+  }
+  const documented = parseDocumentedCommands(text);
+  const { missing, orphaned } = diffCliDoc(canonical, documented);
+  const ok = missing.length === 0 && orphaned.length === 0;
+
+  if (json) {
+    console.log(JSON.stringify({ ok, documented: canonical.size, missing, orphaned }));
+    return ok ? 0 : 1;
+  }
+  if (ok) {
+    console.log(`PASS  lint-cli-doc: ${canonical.size} subcommands documented`);
+    return 0;
+  }
+  for (const m of missing) console.log(`FAIL  ${CLI_DOC_PATH} ✗ missing: ${m}`);
+  for (const o of orphaned) console.log(`FAIL  ${CLI_DOC_PATH} ✗ orphaned: ${o}`);
+  process.stderr.write(`faff lint-cli-doc: ${missing.length} missing, ${orphaned.length} orphaned — sync ${CLI_DOC_PATH} with the CLI\n`);
+  return 1;
+}
+
+// In-memory self-test of the pure parse + diff helpers (mirrors lint-refs --selftest).
+function lintCliDocSelftest() {
+  let failed = 0;
+  const check = (label, got, want) => {
+    if (got !== want) {
+      process.stderr.write(`lint-cli-doc --selftest FAIL: ${label} (want ${want}, got ${got})\n`);
+      failed++;
+    }
+  };
+
+  // parseDocumentedCommands: leading span only; flags/paths not matched; dedupe to base.
+  const doc = [
+    "| Subcommand | What it does |",
+    "|---|---|",
+    "| `config <path\\|get…> …` | reads `.faffrc.yaml`, the `--json` form |",
+    "| `config init --set k=v` | merge a `tracking:` block |",
+    "| `validate-adapters --configured` | pre-flight `.faff/` occupants |",
+    "| `worktree-prune [--own PATH]` | scoped prune; never touch `docs/adr/` |",
+    "some prose with a `--flag` and `.faffrc.yaml` span, not a table row",
+  ].join("\n");
+  const parsed = parseDocumentedCommands(doc);
+  check("parses 3 base commands", parsed.size, 3);
+  check("config deduped to one", parsed.has("config") ? 1 : 0, 1);
+  check("validate-adapters base", parsed.has("validate-adapters") ? 1 : 0, 1);
+  check("worktree-prune base", parsed.has("worktree-prune") ? 1 : 0, 1);
+  check("no false hit on --flag span", parsed.has("flag") ? 1 : 0, 0);
+  check("no false hit on .faffrc span", parsed.has("faffrc") ? 1 : 0, 0);
+
+  // diffCliDoc: missing + orphaned both detected and named.
+  const drift = diffCliDoc(new Set(["config", "next", "lint-cli-doc"]), new Set(["config", "next", "ghost"]));
+  check("one missing", drift.missing.length, 1);
+  check("missing names lint-cli-doc", drift.missing[0] === "lint-cli-doc" ? 1 : 0, 1);
+  check("one orphaned", drift.orphaned.length, 1);
+  check("orphaned names ghost", drift.orphaned[0] === "ghost" ? 1 : 0, 1);
+
+  // in-sync sets → empty diff.
+  const sync = diffCliDoc(new Set(["a", "b"]), new Set(["a", "b"]));
+  check("in-sync no missing", sync.missing.length, 0);
+  check("in-sync no orphaned", sync.orphaned.length, 0);
+
+  if (failed) return 1;
+  console.log("lint-cli-doc --selftest: ok");
+  return 0;
+}
+
+// Subcommand registry (ADR 0014) — the single source of truth for the CLI command
+// set. main() dispatches through this map, and `Object.keys(COMMANDS)` is exactly
+// the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a
+// subcommand = one entry here (and a docs/guide/cli.md row, or lint-cli-doc fails CI).
+// The -h/--help/help aliases are handled in main() and are deliberately NOT entries.
+const COMMANDS = {
+  "config": cmdConfig,
+  "sync": cmdSync,
+  "runcheck": cmdRuncheck,
+  "heartbeat": cmdHeartbeat,
+  "prepcheck": cmdPrepcheck,
+  "intakecheck": cmdIntakecheck,
+  "intake-record": cmdIntakeRecord,
+  "contain": cmdContain,
+  "budget": cmdBudget,
+  "hooks-ensure": cmdHooksEnsure,
+  "validate-adapters": cmdValidateAdapters,
+  "labels": cmdLabels,
+  "label": cmdLabel,
+  "eligible": cmdEligible,
+  "next": cmdNext,
+  "state": cmdState,
+  "park-history": cmdParkHistory,
+  "gitignore-ensure": cmdGitignoreEnsure,
+  "adr": cmdAdr,
+  "prd": cmdPrd,
+  "profile": cmdProfile,
+  "fixtures": cmdFixtures,
+  "gates": cmdGates,
+  "contract": cmdContract,
+  "doctor": cmdDoctor,
+  "worktree-prune": cmdWorktreePrune,
+  "lint-refs": cmdLintRefs,
+  "lint-cli-doc": cmdLintCliDoc,
+};
+
 function main(argv) {
   const [sub, ...rest] = argv;
   if (!sub) { process.stderr.write(USAGE); return 2; }
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
-  if (sub === "config") return cmdConfig(rest);
-  if (sub === "sync") return cmdSync(rest);
-  if (sub === "runcheck") return cmdRuncheck(rest);
-  if (sub === "prepcheck") return cmdPrepcheck(rest);
-  if (sub === "intakecheck") return cmdIntakecheck(rest);
-  if (sub === "intake-record") return cmdIntakeRecord(rest);
-  if (sub === "contain") return cmdContain(rest);
-  if (sub === "budget") return cmdBudget(rest);
-  if (sub === "hooks-ensure") return cmdHooksEnsure(rest);
-  if (sub === "validate-adapters") return cmdValidateAdapters(rest);
-  if (sub === "labels") return cmdLabels(rest);
-  if (sub === "label") return cmdLabel(rest);
-  if (sub === "eligible") return cmdEligible(rest);
-  if (sub === "next") return cmdNext(rest);
-  if (sub === "state") return cmdState(rest);
-  if (sub === "park-history") return cmdParkHistory(rest);
-  if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
-  if (sub === "adr") return cmdAdr(rest);
-  if (sub === "prd") return cmdPrd(rest);
-  if (sub === "profile") return cmdProfile(rest);
-  if (sub === "gates") return cmdGates(rest);
-  if (sub === "contract") return cmdContract(rest);
-  if (sub === "doctor") return cmdDoctor(rest);
-  if (sub === "worktree-prune") return cmdWorktreePrune(rest);
-  if (sub === "lint-refs") return cmdLintRefs(rest);
+  const handler = COMMANDS[sub];
+  if (handler) return handler(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

@@ -117,6 +117,14 @@ faffter_dark:
     api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
     reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
     timeout: 120 # seconds
+    # FAFF-232 — OPTIONAL ordered fallback chain. The block above is the PRIMARY backend; `fallbacks`
+    # adds further backends, each tried in order when the one before fails to produce findings
+    # (rate-limit / unreachable / persistent transport failure / auth / not-served). First findings win;
+    # the gate keeps firing through one provider's outage instead of silently pass+skipping. It is a
+    # JSON-STRING (a quoted JSON array — the config parser stores arrays as scalars; the skill JSON.parses
+    # it). Each entry needs its own provider/model/host; omitted api_key_env/reasoning_off/timeout inherit
+    # the primary's. Omit `fallbacks` entirely for single-backend behaviour (unchanged).
+    # fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"},{"provider":"openai","model":"gpt-4o","host":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY"}]'
     # NVIDIA free testbed example:
     #   provider: nvidia
     #   model: deepseek-ai/deepseek-v4-pro

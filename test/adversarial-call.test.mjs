@@ -11,6 +11,7 @@ import {
   buildOpenAiPayload, modelServedOpenAi, accumulateSse, isAuthError,
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
+  runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -537,4 +538,199 @@ test("main(): persistent HTTP 429 with --host-source default → EXIT.DEFAULT_HO
   );
   assert.equal(code, EXIT.DEFAULT_HOST_UNREACHABLE);
   assert.notEqual(code, EXIT.OTHER);
+});
+
+// ===========================================================================
+// FAFF-232 — ordered fallback chain of backends
+// ===========================================================================
+
+test("FAFF-232 chainTerminalExit: availability-only chain → UNREACHABLE (5, pass+skip)", () => {
+  assert.equal(chainTerminalExit([EXIT.UNREACHABLE, EXIT.UNREACHABLE]), EXIT.UNREACHABLE);
+});
+
+test("FAFF-232 chainTerminalExit: any config-fault class dominates pass+skip → needs-human", () => {
+  // 5s present, but an AUTH(7) anywhere wins (no silent weakening — the fault surfaces).
+  assert.equal(chainTerminalExit([EXIT.UNREACHABLE, EXIT.AUTH]), EXIT.AUTH);
+  assert.equal(chainTerminalExit([EXIT.UNREACHABLE, EXIT.NOT_SERVED]), EXIT.NOT_SERVED);
+  assert.equal(chainTerminalExit([EXIT.UNREACHABLE, EXIT.DEFAULT_HOST_UNREACHABLE]), EXIT.DEFAULT_HOST_UNREACHABLE);
+  assert.equal(chainTerminalExit([EXIT.USAGE, EXIT.UNREACHABLE]), EXIT.USAGE);
+});
+
+test("FAFF-232 chainTerminalExit: returns the FIRST needs-human class in chain order; empty → 5", () => {
+  assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.NOT_SERVED]), EXIT.AUTH);
+  assert.equal(chainTerminalExit([EXIT.NOT_SERVED, EXIT.AUTH]), EXIT.NOT_SERVED);
+  assert.equal(chainTerminalExit([]), EXIT.UNREACHABLE);
+  assert.deepEqual([...CHAIN_NEEDS_HUMAN].sort((a, b) => a - b), [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH].sort((a, b) => a - b));
+});
+
+test("FAFF-232 mapResultExit: per-backend result → exit class (host-source aware)", () => {
+  assert.equal(mapResultExit({ status: "ok", content: "x" }), EXIT.OK);
+  assert.equal(mapResultExit({ status: "model-not-served", names: [] }), EXIT.NOT_SERVED);
+  assert.equal(mapResultExit({ status: "auth-failed" }), EXIT.AUTH);
+  assert.equal(mapResultExit({ status: "unsupported-provider" }), EXIT.USAGE);
+  assert.equal(mapResultExit({ status: "unreachable" }, "config"), EXIT.UNREACHABLE);
+  assert.equal(mapResultExit({ status: "transport-failed" }, "default"), EXIT.DEFAULT_HOST_UNREACHABLE);
+});
+
+// A stub runReviewFn that returns a scripted result keyed by host — gives each backend a distinct outcome
+// without any transport.
+function scriptedRunReview(byHost) {
+  return async (opts) => byHost[opts.host] ?? { status: "unreachable", note: "no script" };
+}
+
+test("FAFF-232 runReviewChain: advances past a failed primary to a healthy fallback → OK + winner", async () => {
+  const chain = [
+    { provider: "nvidia", model: "nemotron", host: "https://nv/v1", hostSource: "config" },
+    { provider: "ollama", model: "qwen", host: "http://ollama:11434", hostSource: "config" },
+  ];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: scriptedRunReview({
+      "https://nv/v1": { status: "transport-failed", note: "HTTP 429: rate limited" },
+      "http://ollama:11434": { status: "ok", content: "## Adversarial findings — ollama/qwen\n..." },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winner.provider, "ollama");
+  assert.match(res.content, /ollama\/qwen/);
+  assert.ok(trace.some((l) => /advancing: nvidia\/nemotron failed/.test(l)), "primary failure logged as advancing");
+});
+
+test("FAFF-232 runReviewChain: advance-on-unreachable then success", async () => {
+  const chain = [
+    { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "openai", model: "m2", host: "https://b/v1", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U",
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "unreachable", note: "ECONNREFUSED" },
+      "https://b/v1": { status: "ok", content: "findings" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winner.host, "https://b/v1");
+});
+
+test("FAFF-232 runReviewChain: all-exhausted availability-only → 5 (pass+skip)", async () => {
+  const chain = [
+    { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U",
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "transport-failed", note: "HTTP 504" },
+      "http://b:11434": { status: "unreachable", note: "down" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.UNREACHABLE);
+});
+
+test("FAFF-232 runReviewChain: a config fault anywhere in a fully-failed chain → needs-human (AUTH 7)", async () => {
+  const chain = [
+    { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "openai", model: "m2", host: "https://b/v1", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U",
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "auth-failed", note: "HTTP 401" },
+      "https://b/v1": { status: "unreachable", note: "down" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.AUTH, "the auth fault surfaces rather than being masked by 'B was just down'");
+});
+
+test("FAFF-232 runReviewChain: a backend with an unset api-key env advances (class 7), then a fallback wins", async () => {
+  const chain = [
+    { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config", apiKeyEnv: "MISSING_KEY", apiKeyMissing: true },
+    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+  ];
+  const calls = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U",
+    runReviewFn: async (opts) => { calls.push(opts.host); return { status: "ok", content: "ok" }; },
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.deepEqual(calls, ["http://b:11434"], "the unset-key backend was NOT called; the chain advanced");
+});
+
+test("FAFF-232 runReviewChain: a malformed backend (missing host) advances, not a whole-chain abort", async () => {
+  const chain = [
+    { provider: "openai", model: "m1" },
+    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U",
+    runReviewFn: scriptedRunReview({ "http://b:11434": { status: "ok", content: "ok" } }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+});
+
+test("FAFF-232 main(): --backends-json advances past a 429 primary to a healthy fallback → exit 0", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const dir = mkdtempSync(join(tmpdir(), "faff232-"));
+  const bf = join(dir, "backends.json");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "nvidia", model: "nemotron", host: "https://nv/v1", host_source: "config" },
+    { provider: "ollama", model: "qwen", host: "http://ollama:11434", host_source: "config" },
+  ]));
+  const code = await main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff],
+    { runReviewFn: scriptedRunReview({
+      "https://nv/v1": { status: "transport-failed", note: "HTTP 429" },
+      "http://ollama:11434": { status: "ok", content: "findings" },
+    }) },
+  );
+  assert.equal(code, EXIT.OK);
+});
+
+test("FAFF-232 main(): --backends-json all-exhausted availability → exit 5 (pass+skip)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const dir = mkdtempSync(join(tmpdir(), "faff232-"));
+  const bf = join(dir, "backends.json");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "nvidia", model: "m1", host: "https://a/v1", host_source: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:11434", host_source: "config" },
+  ]));
+  const code = await main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff],
+    { runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "unreachable", note: "down" },
+      "http://b:11434": { status: "transport-failed", note: "HTTP 504" },
+    }) },
+  );
+  assert.equal(code, EXIT.UNREACHABLE);
+});
+
+test("FAFF-232 main(): --backends-json with a config fault in a fully-failed chain → needs-human (7)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const dir = mkdtempSync(join(tmpdir(), "faff232-"));
+  const bf = join(dir, "backends.json");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "openai", model: "m1", host: "https://a/v1", host_source: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:11434", host_source: "config" },
+  ]));
+  const code = await main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff],
+    { runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "auth-failed", note: "HTTP 403" },
+      "http://b:11434": { status: "unreachable", note: "down" },
+    }) },
+  );
+  assert.equal(code, EXIT.AUTH);
+});
+
+test("FAFF-232 main(): empty --backends-json → USAGE (2)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const dir = mkdtempSync(join(tmpdir(), "faff232-"));
+  const bf = join(dir, "empty.json"); writeFileSync(bf, "[]");
+  const code = await main(["--backends-json", bf, "--system", sys, "--diff", diff], { runReviewFn: async () => ({ status: "ok", content: "x" }) });
+  assert.equal(code, EXIT.USAGE);
+});
+
+test("FAFF-232 parseArgs: --backends-json is collected", () => {
+  assert.equal(parseArgs(["--backends-json", "/tmp/b.json"]).backendsJson, "/tmp/b.json");
 });

@@ -384,70 +384,159 @@ export function parseArgs(argv) {
     else if (k === "--provider") a.provider = argv[++i];
     else if (k === "--api-key-env") a.apiKeyEnv = argv[++i];
     else if (k === "--reasoning-off") a.reasoningOff = true;
+    else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
   }
   return a;
+}
+
+// PURE (FAFF-232): map a runReview() result + host provenance to the documented exit class for ONE backend.
+// Extracted from main()'s old inline if-ladder so the single-backend path and runReviewChain map identically.
+export function mapResultExit(result, hostSource) {
+  switch (result && result.status) {
+    case "ok": return EXIT.OK;
+    case "unsupported-provider": return EXIT.USAGE;
+    case "model-not-served": return EXIT.NOT_SERVED;
+    case "auth-failed": return EXIT.AUTH;
+    case "unreachable":
+    case "transport-failed": return unreachableExit({ hostSource });
+    default: return EXIT.OTHER;
+  }
+}
+
+// PURE (FAFF-232): the terminal exit of an EXHAUSTED chain (no backend produced findings). A config-fault
+// class — USAGE(2)/NOT_SERVED(4)/DEFAULT_HOST_UNREACHABLE(6)/AUTH(7), all of which the skill maps to
+// needs-human — DOMINATES the availability class UNREACHABLE(5 → pass+skip). So a chain of purely
+// configured-host availability failures still pass+skips exactly as a lone configured backend does today,
+// but a config fault ANYWHERE in a fully-failed chain surfaces needs-human (never masked by "all down" —
+// the FAFF-213/228 no-silent-weakening invariant). Returns the FIRST needs-human class in chain order;
+// else UNREACHABLE(5). Empty list → 5 (no faults to surface).
+export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH]);
+export function chainTerminalExit(failureClasses = []) {
+  for (const c of failureClasses) if (CHAIN_NEEDS_HUMAN.has(c)) return c;
+  return EXIT.UNREACHABLE;
+}
+
+// FAFF-232: run an ORDERED chain of backends, returning the first that produces findings. A backend that
+// does not (any non-OK class) is recorded and the chain ADVANCES — the value is a real second opinion from
+// SOMEONE, so a per-backend fault never sinks the chain if a healthy fallback exists. Only when every
+// backend has failed is one terminal exit computed (chainTerminalExit). A 1-element chain reproduces the
+// single-backend path exactly (one runReviewFn call, same exit), so back-compat is structural, not bolted on.
+//
+// chain element: { provider, model, host, hostSource, apiKey?, apiKeyEnv?, apiKeyMissing?, reasoningOff?, timeoutMs? }
+// shared:        { system, user, numPredict, runReviewFn?, getFn?, streamFn?, log? }
+// returns:       { exit, content?, truncated?, winner?, failureClasses }
+export async function runReviewChain(chain = [], shared = {}) {
+  const runReviewFn = shared.runReviewFn || runReview;
+  const log = shared.log || ((m) => process.stderr.write(m + "\n"));
+  const n = chain.length;
+  const failureClasses = [];
+  for (let i = 0; i < n; i++) {
+    const b = chain[i] || {};
+    const tag = `${b.provider || "ollama"}/${b.model || "?"}`;
+    const verb = i === n - 1 ? "exhausted" : "advancing";
+    // A backend missing model or host is a per-element config fault (USAGE) — advance, never abort the chain.
+    // provider is optional (omitted ⇒ ollama, via runReview/providerFamily), preserving the legacy single-
+    // backend path where callers never passed --provider.
+    if (!b.model || !b.host) {
+      failureClasses.push(EXIT.USAGE);
+      log(`${verb}: backend ${i + 1}/${n} invalid (missing model/host) (exit ${EXIT.USAGE})`);
+      continue;
+    }
+    // A declared-but-unset api key env is that backend's auth fault — no point calling, advance.
+    if (b.apiKeyMissing) {
+      failureClasses.push(EXIT.AUTH);
+      log(`${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
+      continue;
+    }
+    const result = await runReviewFn({
+      host: b.host, model: b.model, provider: b.provider,
+      system: shared.system, user: shared.user, numPredict: shared.numPredict,
+      reasoningOff: b.reasoningOff, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
+      getFn: shared.getFn, streamFn: shared.streamFn,
+    });
+    const exit = mapResultExit(result, b.hostSource);
+    if (exit === EXIT.OK) {
+      if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);
+      return { exit: EXIT.OK, content: result.content || "", truncated: !!result.truncated, winner: b, failureClasses };
+    }
+    failureClasses.push(exit);
+    const detail = (result && result.note) || (result && result.names ? `available: ${result.names.join(", ")}` : "");
+    log(`${verb}: ${tag} failed (${result && result.status}${detail ? ": " + detail : ""}) (exit ${exit})`);
+  }
+  return { exit: chainTerminalExit(failureClasses), failureClasses };
 }
 
 // `runReviewFn` is injectable so the CLI exit-mapping (notably the FAFF-227 transport-failed → 5/6 path)
 // is unit-testable with a stubbed orchestration result; it defaults to the real runReview for the CLI.
 export async function main(argv, { runReviewFn = runReview } = {}) {
   const a = parseArgs(argv);
-  if (!a.host || !a.model || !a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs --host H --model M --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
+  if (!a.system || !a.diff) {
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
     return EXIT.USAGE;
   }
-  // Resolve the API key from the NAMED env var (never the key itself on the command line / in config).
-  let apiKey;
-  if (a.apiKeyEnv) {
-    apiKey = process.env[a.apiKeyEnv];
-    if (!apiKey) {
-      process.stderr.write(`api key env var '${a.apiKeyEnv}' is unset/empty\n`);
-      return EXIT.AUTH;
+
+  // Build the ordered chain (FAFF-232). --backends-json is the COMPLETE chain (a JSON array of backend
+  // objects, the skill assembles it from primary scalars + the fallbacks JSON-string); when absent the
+  // legacy single-backend flags form a 1-element chain that reproduces the old path byte-for-byte.
+  // --backends-json wins when both are present.
+  let chain;
+  if (a.backendsJson) {
+    let raw;
+    try { raw = JSON.parse(readFileSync(a.backendsJson, "utf8")); }
+    catch (e) { process.stderr.write(`--backends-json: cannot read/parse ${a.backendsJson}: ${e.message}\n`); return EXIT.USAGE; }
+    if (!Array.isArray(raw) || raw.length === 0) {
+      process.stderr.write("--backends-json must be a non-empty JSON array of backends\n");
+      return EXIT.USAGE;
+    }
+    chain = raw.map((b) => ({
+      provider: b.provider, model: b.model, host: b.host,
+      hostSource: "config",   // host_source is DERIVED, not authored: every listed backend is explicitly
+                              // configured, so it is always "config" (→ unreachable maps to 5/pass+skip,
+                              // never 6). The unconfigured-localhost-default (6) only arises in the legacy
+                              // single-backend path below, never inside an explicit chain.
+      apiKeyEnv: b.api_key_env || b.apiKeyEnv,
+      reasoningOff: b.reasoning_off ?? b.reasoningOff ?? false,
+      timeoutMs: (b.timeout != null) ? Number(b.timeout) * 1000 : a.timeoutMs,
+    }));
+  } else {
+    if (!a.host || !a.model) {
+      process.stderr.write("usage: review-call.mjs --host H --model M ... (or --backends-json FILE)\n");
+      return EXIT.USAGE;
+    }
+    chain = [{
+      provider: a.provider, model: a.model, host: a.host, hostSource: a.hostSource,
+      apiKeyEnv: a.apiKeyEnv, reasoningOff: a.reasoningOff, timeoutMs: a.timeoutMs,
+    }];
+  }
+
+  // Resolve each backend's API key from its NAMED env var (never the key on the command line / in config).
+  // An unset env for a declared key is flagged per-backend (a class-7 fault that ADVANCES) rather than a
+  // whole-run abort — so a misconfigured primary key falls through to a healthy fallback.
+  for (const b of chain) {
+    if (b.apiKeyEnv) {
+      b.apiKey = process.env[b.apiKeyEnv];
+      if (!b.apiKey) b.apiKeyMissing = true;
     }
   }
+
   const system = readFileSync(a.system, "utf8");
   const diff = readFileSync(a.diff, "utf8");
   const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
   const user = assembleUserMessage({ contextFiles, diff });
 
-  const r = await runReviewFn({
-    host: a.host, model: a.model, system, user, numPredict: a.numPredict, timeoutMs: a.timeoutMs,
-    provider: a.provider, apiKey, reasoningOff: a.reasoningOff,
-  });
-  if (r.status === "unsupported-provider") {
-    process.stderr.write(`${r.note}\n`);
-    return EXIT.USAGE;
+  const res = await runReviewChain(chain, { system, user, numPredict: a.numPredict, runReviewFn });
+
+  if (res.exit === EXIT.OK) {
+    if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
+    process.stdout.write((res.content || "").trim() + "\n");
+    return EXIT.OK;
   }
-  if (r.status === "model-not-served") {
-    process.stderr.write(`model '${a.model}' not served by ${a.host}; available: ${r.names.join(", ")}\n`);
-    return EXIT.NOT_SERVED;
+  if (chain.length > 1) {
+    const provenance = res.exit === EXIT.UNREACHABLE ? "pass+skip"
+      : res.exit === EXIT.DEFAULT_HOST_UNREACHABLE ? "needs-human (default host)" : "needs-human";
+    process.stderr.write(`adversarial chain exhausted (${chain.length} backends, none produced findings); terminal exit ${res.exit} → ${provenance}\n`);
   }
-  if (r.status === "auth-failed") {
-    process.stderr.write(`auth failed for ${a.host}: ${r.note}\n`);
-    return EXIT.AUTH;
-  }
-  if (r.status === "unreachable") {
-    const exit = unreachableExit({ hostSource: a.hostSource });
-    const provenance = exit === EXIT.DEFAULT_HOST_UNREACHABLE
-      ? "default localhost — provider unconfigured (needs-human)"
-      : "configured host unreachable (pass+skip)";
-    process.stderr.write(`provider unreachable (${a.host}): ${r.note} — ${provenance}\n`);
-    return exit;
-  }
-  if (r.status === "transport-failed") {
-    // FAFF-227: a persistent mid-stream transport fault routes through the SAME unreachableExit path as a
-    // preflight-unreachable host (5 pass+skip / 6 needs-human, per host-source) — never the unmapped exit 1.
-    // A distinct stderr note keeps it debuggable apart from a preflight unreachable.
-    const exit = unreachableExit({ hostSource: a.hostSource });
-    const provenance = exit === EXIT.DEFAULT_HOST_UNREACHABLE
-      ? "default localhost — provider unconfigured (needs-human)"
-      : "configured host unreachable (pass+skip)";
-    process.stderr.write(`mid-stream transport failure after ${TRANSPORT_RETRY.attempts} attempts (${a.host}): ${r.note} — ${provenance}\n`);
-    return exit;
-  }
-  if (r.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
-  process.stdout.write(r.content.trim() + "\n");
-  return EXIT.OK;
+  return res.exit;
 }
 
 if (process.argv[1] && process.argv[1].endsWith("review-call.mjs")) {

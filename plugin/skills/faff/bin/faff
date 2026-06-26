@@ -731,13 +731,16 @@ function auditRun(runDir) {
 // The Stop hook fires on EVERY session's turn-end and audits the newest run
 // ledger globally. A parallel beep-boop drain's legitimately in-flight ledger
 // (admitted, no terminal outcome yet) looks identical to an abandoned queue, so
-// the hook false-blocks an unrelated session. The fix: only fire when the run is
-// one this session OWNS, or is genuinely ABANDONED — never when a different live
-// owner is actively draining it.
+// the hook false-blocks an unrelated session. The gate: HARD-BLOCK only for the
+// session that OWNS the run (env/session match) or an explicit --recover; a foreign
+// run that a live owner is draining → silent; a foreign run that looks abandoned →
+// a non-blocking WARN, never a hard block (FAFF-235 — a non-owner is never trapped).
 //
-// Pure-function CLI invariant: liveness is on-disk owner-emitted state
-// (owner.status + owner.last_heartbeat on the ledger), never a tracker/network
-// probe. A same-host dead-pid is an optional best-effort corroborator only.
+// Pure-function CLI invariant: liveness is on-disk owner-emitted state — owner.status
+// + owner.last_heartbeat on the ledger — never a tracker/network probe. Liveness is
+// HEARTBEAT-ONLY (FAFF-233): the recorded owner.pid is NOT consulted, because the
+// beep-boop worker pid rolls and a dead recorded pid is no evidence of death while
+// heartbeats still arrive.
 // ---------------------------------------------------------------------------
 
 const RUN_HEARTBEAT_STALE_SECS_DEFAULT = 900;
@@ -759,22 +762,6 @@ function runIsOwned(ledger, runDir, env) {
   const owner = ledger && ledger.owner;
   if (owner && owner.session_id && e.FAFF_SESSION_ID && owner.session_id === e.FAFF_SESSION_ID) return true;
   return false;
-}
-
-// Same-host best-effort: is this pid both plausibly local and dead? Never the
-// contract — only ever SHORTENS the abandoned-detection window. We never kill -0
-// a pid that may belong to an unrelated process on a foreign host, so the caller
-// only consults this when it has no reason to believe the pid is cross-host. Any
-// probe error → return false (treat as "can't prove dead" → leave to the timeout).
-function ownerPidIsLocalAndDead(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0); // signal 0: existence check, sends nothing
-    return false;         // it exists → not dead
-  } catch (e) {
-    // ESRCH = no such process (dead); EPERM = exists but not ours (alive).
-    return e && e.code === "ESRCH";
-  }
 }
 
 // Is the run still HELD by a live owner? Contract = owner.status "running" + a

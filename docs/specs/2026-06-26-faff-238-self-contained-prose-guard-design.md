@@ -39,7 +39,7 @@
 
 ```
 TICKET   := /\bFAFF-\d+\b/                      # FAFF-238, FAFF-11
-ADR_CITE := /\bADR[-\s]?\d{3,4}\b/              # "ADR 0013", "ADR-9"
+ADR_CITE := /\bADR[-\s]?\d{3,4}\b/              # canonical 3-4 digit form: "ADR 0013" / "ADR 013" (ADRs are zero-padded; a 1-2 digit ref is not a project ADR id)
 ADR_PTR  := /\bdocs\/adr\/\d{3,4}[-\w]*/        # docs/adr/0013-...  (numbered pointer only)
 ```
 

@@ -47,16 +47,21 @@ test("flags a FAFF-NN ticket tag, naming file:line", () => {
   assert.match(r.stdout, /FAIL\s+docs\/guide\/cli\.md:2 ✗ FAFF-26/);
 });
 
-test("flags an ADR citation (padded and unpadded) and a numbered docs/adr pointer", () => {
+test("flags a canonical (3-4 digit) ADR citation and a numbered docs/adr pointer", () => {
   const r = runOnTree({
     "docs/guide/a.md": "per ADR 0013 the split\n",
-    "docs/guide/b.md": "per ADR-9 the call\n",
+    "docs/guide/b.md": "per ADR 013 the split\n",
     "docs/guide/c.md": "see docs/adr/0010-foo.md\n",
   });
   assert.equal(r.status, 1);
   assert.match(r.stdout, /a\.md:1 ✗ ADR 0013/);
-  assert.match(r.stdout, /b\.md:1 ✗ ADR-9/);
+  assert.match(r.stdout, /b\.md:1 ✗ ADR 013/);
   assert.match(r.stdout, /c\.md:1 ✗ docs\/adr\/0010-foo/);
+});
+
+test("does NOT flag a 1-2 digit ADR ref (below the canonical zero-padded form)", () => {
+  const r = runOnTree({ "docs/guide/d.md": "the adrenergic ADR 9 receptor note\n" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
 test("does NOT flag within-prose anchors or a bare docs/adr dir mention", () => {

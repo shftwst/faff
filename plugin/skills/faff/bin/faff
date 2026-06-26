@@ -5004,7 +5004,7 @@ function profileSelftest() {
 // ===========================================================================
 const REF_PATTERNS = [
   ["ticket", /\bFAFF-\d+\b/g],            // ticket tag, e.g. FAFF-238 (case-sensitive — a lowercase branch name is not a cite)
-  ["adr-cite", /\bADR[-\s]?\d{1,4}\b/gi], // "ADR 0013", "ADR-9"
+  ["adr-cite", /\bADR[-\s]?\d{3,4}\b/gi], // "ADR 0013" / "ADR 013" — canonical 3-4 digit form (ADRs are zero-padded to 4); a 1-2 digit "ADR 9" is not a project ADR id and is not flagged
   ["adr-ptr", /\bdocs\/adr\/\d{1,4}[-\w]*/g], // numbered pointer only — a bare docs/adr/ dir mention does not match
 ];
 
@@ -5028,8 +5028,9 @@ function markdownFilesUnder(dir) {
   if (!fs.existsSync(dir)) return out;
   for (const name of fs.readdirSync(dir).sort()) {
     const full = path.join(dir, name);
-    if (fs.statSync(full).isDirectory()) out.push(...markdownFilesUnder(full));
-    else if (name.endsWith(".md")) out.push(full);
+    const st = fs.lstatSync(full); // lstat, not stat — do NOT follow a symlinked dir out of the enforced surface
+    if (st.isDirectory()) out.push(...markdownFilesUnder(full));
+    else if (st.isFile() && name.endsWith(".md")) out.push(full);
   }
   return out;
 }
@@ -5071,8 +5072,9 @@ function lintRefsSelftest() {
   const cases = [
     ["see FAFF-26 for rationale", 1, "ticket tag"],
     ["resolves FAFF-1 and FAFF-238 both", 2, "two ticket tags"],
-    ["per ADR 0013 the split", 1, "adr citation (padded)"],
-    ["per ADR-9 the call", 1, "adr citation (unpadded)"],
+    ["per ADR 0013 the split", 1, "adr citation (4-digit)"],
+    ["per ADR 013 the split", 1, "adr citation (3-digit)"],
+    ["per ADR-9 the call", 0, "1-2 digit ADR ref is below the canonical form — not flagged"],
     ["see docs/adr/0013-storage-split.md", 1, "numbered adr pointer"],
     ["citing ADR 0010 and docs/adr/0010-foo.md", 2, "adr cite + numbered pointer"],
     ["the gateway → Automation eligibility section", 0, "within-prose section anchor"],

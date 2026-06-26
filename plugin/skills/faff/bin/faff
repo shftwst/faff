@@ -117,6 +117,12 @@ function scalar(v) {
   v = v.trim();
   if (!v) return null;
   if ((v[0] === '"' && v.at(-1) === '"') || (v[0] === "'" && v.at(-1) === "'")) return v.slice(1, -1);
+  // FAFF-26: inline JSON flow values ([...] / {...}) parse to structured data, so config
+  // blocks can carry lists/objects (e.g. the `infra:` override). Backward-compatible — a
+  // value that isn't valid JSON falls through to the string return below.
+  if ((v[0] === "[" && v.at(-1) === "]") || (v[0] === "{" && v.at(-1) === "}")) {
+    try { return JSON.parse(v); } catch { /* not JSON — treat as a plain string */ }
+  }
   const low = v.toLowerCase();
   if (low === "true" || low === "false") return low === "true";
   if (low === "null" || low === "~") return null;
@@ -577,22 +583,30 @@ function cmdConfig(args) {
       return 0;
     }
     if (cmd === "get") {
-      const key = rest[1];
-      let def = null;
-      const di = rest.findIndex((a, i) => i > 1 && (a === "-d" || a === "--default"));
-      if (di !== -1) def = rest[di + 1] ?? null;
+      // FAFF-26: --json prints the value as JSON (structured: lists/objects survive instead of
+      // being stringified to "[object Object]"). Key is the first positional that isn't a flag
+      // or a flag's value, so `config get --json infra` and `config get infra` both resolve `infra`.
+      const wantJson = rest.includes("--json");
+      let def = null, key = null;
+      for (let i = 1; i < rest.length; i++) {
+        const a = rest[i];
+        if (a === "-d" || a === "--default") { def = rest[++i] ?? null; continue; }
+        if (a === "--json") continue;
+        if (key === null) key = a;
+      }
       const [data] = loadConfig(root);
       const value = dig(data, key);
       if (value === null || value === undefined) {
         // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
         if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) {
-          console.log(DEFAULTS[key]);
+          console.log(wantJson ? JSON.stringify(DEFAULTS[key]) : DEFAULTS[key]);
           return 0;
         }
-        if (def !== null) console.log(def);
+        if (def !== null) console.log(wantJson ? JSON.stringify(def) : def);
+        else if (wantJson) console.log("null");
         return 3;
       }
-      console.log(fmt(value));
+      console.log(wantJson ? JSON.stringify(value) : fmt(value));
       return 0;
     }
     if (cmd === "defaults") {
@@ -3787,6 +3801,7 @@ Subcommands:
   adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
+  profile <validate|show> [--file F] [--root DIR]  FAFF-26: infra-profile schema + CLI (slice 1; acquirer=FAFF-231). validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json ⊕ .faffrc.yaml infra:, override wins per field); exit 3 when none. --selftest runs the validator table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
@@ -4774,6 +4789,143 @@ function worktreePruneSelftest() {
   return fail ? 1 : 0;
 }
 
+// ===========================================================================
+// profile — FAFF-26: infra-profile schema + CLI (slice 1 of 2; acquirer = FAFF-231)
+//   profile validate [--file PATH]   validate a profile JSON (stdin or --file): 0 valid / 1 invalid / 2 malformed
+//   profile show                     print the effective profile (.faff/infra-profile.json ⊕ .faffrc.yaml infra:); exit 3 when none
+// The schema is the load-bearing contract downstream (FAFF-27/30) consumes; acquisition is a
+// separate `profile` slot (FAFF-231). Deterministic-tools-over-prose: schema + merge live here,
+// not in skill prose. See docs/adr/0013 for the storage-split + conflict-authority decision.
+// ===========================================================================
+const PROFILE_LIST_FIELDS = [
+  ["runtimes", "name"], ["ci", "name"], ["deploy_targets", "kind"], ["datastores", "kind"],
+];
+
+// Pure validator over a parsed profile object. `validate` operates on acquirer output, so every
+// list entry is acquirer-sourced ⇒ must carry non-empty evidence (the trust signal). Human
+// overrides are never validated here — they flow through `show`'s merge, evidence-exempt.
+function validateProfile(obj) {
+  if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
+    return ["profile must be a JSON object"];
+  }
+  const v = [];
+  if (obj.schema !== 1) v.push("schema must be 1");
+  for (const k of ["schema", "acquired_at", "acquired_by"]) {
+    if (obj[k] === undefined || obj[k] === null || obj[k] === "") v.push(`missing required field: ${k}`);
+  }
+  for (const [field, reqKey] of PROFILE_LIST_FIELDS) {
+    const arr = obj[field];
+    if (arr === undefined) continue;
+    if (!Array.isArray(arr)) { v.push(`${field} must be a list`); continue; }
+    arr.forEach((el, i) => {
+      if (el === null || typeof el !== "object" || Array.isArray(el)) {
+        v.push(`${field}[${i}] must be an object`); return;
+      }
+      if (!el[reqKey] || String(el[reqKey]).trim() === "") v.push(`${field}[${i}] missing required key '${reqKey}'`);
+      if (!el.evidence || String(el.evidence).trim() === "") {
+        v.push(`${field}[${i}] missing evidence (acquirer-sourced facts must cite the artifact they came from)`);
+      }
+    });
+  }
+  return v;
+}
+
+function cmdProfile(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  root = root || findRoot();
+  const cmd = rest[0];
+
+  if (cmd === "--selftest" || rest.includes("--selftest")) return profileSelftest();
+
+  if (cmd === "validate") {
+    let raw;
+    const fi = rest.indexOf("--file");
+    try {
+      raw = fs.readFileSync(fi !== -1 ? rest[fi + 1] : 0, "utf8");
+    } catch {
+      process.stderr.write("faff profile validate: cannot read input (no --file PATH and no stdin)\n");
+      return 2;
+    }
+    let obj;
+    try { obj = JSON.parse(raw); }
+    catch { process.stderr.write("faff profile validate: malformed profile input (invalid JSON)\n"); return 2; }
+    const violations = validateProfile(obj);
+    if (violations.length) {
+      for (const x of violations) process.stderr.write(`- ${x}\n`);
+      return 1;
+    }
+    console.log("OK — infra profile valid (schema 1).");
+    return 0;
+  }
+
+  if (cmd === "show") {
+    const profPath = path.join(root, ".faff", "infra-profile.json");
+    const hasStored = fs.existsSync(profPath);
+    let stored = {};
+    if (hasStored) {
+      try { stored = JSON.parse(fs.readFileSync(profPath, "utf8")); }
+      catch {
+        process.stderr.write(`faff profile show: malformed ${path.join(".faff", "infra-profile.json")} (invalid JSON)\n`);
+        return 2;
+      }
+    }
+    let override = null;
+    try { [override] = [dig(loadConfig(root)[0], "infra")]; }
+    catch (e) {
+      if (e.message === "legacy-config-name" || e.message === "multiple-config") {
+        process.stderr.write(`faff profile show: ${e.message}\n`); return 2;
+      }
+      throw e;
+    }
+    const hasOverride = override !== null && override !== undefined
+      && typeof override === "object" && !Array.isArray(override) && Object.keys(override).length > 0;
+    if (!hasStored && !hasOverride) {
+      process.stderr.write("faff profile show: no infra profile; run acquisition\n");
+      return 3;
+    }
+    const effective = Object.assign({}, (stored && typeof stored === "object" && !Array.isArray(stored)) ? stored : {});
+    if (hasOverride) {
+      const applied = [];
+      for (const k of Object.keys(override)) { effective[k] = override[k]; applied.push(k); }
+      effective.notes = Array.isArray(effective.notes) ? effective.notes.slice() : [];
+      effective.notes.push(`override applied: ${applied.join(", ")}`);
+    }
+    console.log(JSON.stringify(effective, null, 2));
+    return 0;
+  }
+
+  process.stderr.write("faff profile: expected one of validate | show (or --selftest)\n");
+  return 2;
+}
+
+// In-memory self-test of the pure validator core (mirrors the `faff contract` selftest style).
+function profileSelftest() {
+  const valid = { schema: 1, acquired_at: "2026-06-26T00:00:00Z", acquired_by: "x",
+    runtimes: [{ name: "node", version: "20", evidence: ".github/workflows/ci.yml" }] };
+  const cases = [
+    [valid, 0, "valid profile"],
+    [{ schema: 1, acquired_at: "t", acquired_by: "x" }, 0, "sparse but complete"],
+    [{ schema: 2, acquired_at: "t", acquired_by: "x" }, 1, "wrong schema version"],
+    [{ schema: 1, acquired_at: "t" }, 1, "missing acquired_by"],
+    [{ schema: 1, acquired_at: "t", acquired_by: "x", datastores: [{ kind: "mongo" }] }, 1, "datastore missing evidence"],
+    [{ schema: 1, acquired_at: "t", acquired_by: "x", runtimes: [{ version: "20", evidence: "f" }] }, 1, "runtime missing name"],
+    [[], 1, "not an object"],
+  ];
+  let failed = 0;
+  for (const [obj, wantViol, label] of cases) {
+    const got = validateProfile(obj).length > 0 ? 1 : 0;
+    if (got !== wantViol) { process.stderr.write(`profile --selftest FAIL: ${label} (want ${wantViol}, got ${got})\n`); failed++; }
+  }
+  if (failed) return 1;
+  console.log("profile --selftest: ok");
+  return 0;
+}
+
 function main(argv) {
   const [sub, ...rest] = argv;
   if (!sub) { process.stderr.write(USAGE); return 2; }
@@ -4796,6 +4948,7 @@ function main(argv) {
   if (sub === "park-history") return cmdParkHistory(rest);
   if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
   if (sub === "adr") return cmdAdr(rest);
+  if (sub === "profile") return cmdProfile(rest);
   if (sub === "gates") return cmdGates(rest);
   if (sub === "contract") return cmdContract(rest);
   if (sub === "doctor") return cmdDoctor(rest);

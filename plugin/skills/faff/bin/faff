@@ -4109,6 +4109,7 @@ Subcommands:
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show> [--file F] [--root DIR]  FAFF-26: infra-profile schema + CLI (slice 1; acquirer=FAFF-231). validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json ⊕ .faffrc.yaml infra:, override wins per field); exit 3 when none. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
+  events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
@@ -5485,6 +5486,200 @@ function fixturesSelftest() {
 }
 
 // ===========================================================================
+// events — FAFF-35 (slice 1): structured run-event log — the timeline substrate
+// for run observability. An append-only JSONL log at .faff/runs/<run-id>/events.jsonl,
+// one RunEvent per line. The CLI owns the envelope (schema/run_id/seq/ts); the caller
+// supplies only the payload {phase,type,issue?,data?}. `seq` (current line count) is the
+// authoritative monotonic order — `ts` is best-effort annotation (sandbox clocks are
+// unreliable). Single-writer in slice 1: only the orchestrator appends, so seq is
+// race-free by construction. Pure (no tracker/network), --selftest-able — mirrors
+// `faff profile`/`fixtures`/`contract`. The in-flight view + morning report are later
+// producers that READ this log; slice 1 only produces it.
+// ===========================================================================
+const EVENT_PHASES = new Set(["run", "tidy", "prep", "build"]);
+const EVENT_TYPES = new Set([
+  "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
+  "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",
+]);
+// Types that are about one specific issue → `issue` is required.
+const EVENT_ISSUE_SCOPED = new Set([
+  "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
+]);
+// The run-ledger outcome vocabulary an issue-outcome event's data.outcome must use.
+const EVENT_LEDGER_OUTCOMES = new Set([
+  "shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer",
+]);
+
+// Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
+// payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
+// full record read back off disk (validate: the envelope must be present + well-formed).
+// Returns an array of human-readable violation strings (empty ⇒ valid).
+function eventViolations(obj, requireEnvelope) {
+  if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
+    return ["event must be a JSON object"];
+  }
+  const v = [];
+  if (requireEnvelope) {
+    if (obj.schema !== 1) v.push("schema must be 1");
+    if (obj.run_id === undefined || obj.run_id === null || obj.run_id === "") v.push("missing run_id");
+    if (!Number.isInteger(obj.seq)) v.push("seq must be an integer");
+    if (obj.ts === undefined || obj.ts === null || obj.ts === "") v.push("missing ts");
+  }
+  if (!EVENT_PHASES.has(obj.phase)) {
+    v.push(`phase '${obj.phase}' not in Phase {${[...EVENT_PHASES].join(", ")}}`);
+  }
+  if (!EVENT_TYPES.has(obj.type)) {
+    v.push(`type '${obj.type}' not in EventType {${[...EVENT_TYPES].join(", ")}}`);
+  }
+  if (EVENT_ISSUE_SCOPED.has(obj.type) && (obj.issue === undefined || obj.issue === null || obj.issue === "")) {
+    v.push(`type '${obj.type}' is issue-scoped but missing required field 'issue'`);
+  }
+  if (obj.type === "issue-outcome") {
+    const outcome = obj.data && typeof obj.data === "object" ? obj.data.outcome : undefined;
+    if (!EVENT_LEDGER_OUTCOMES.has(outcome)) {
+      v.push(`issue-outcome.data.outcome '${outcome}' not in ledger outcome vocabulary {${[...EVENT_LEDGER_OUTCOMES].join(", ")}}`);
+    }
+  }
+  return v;
+}
+
+// Count non-empty lines in a JSONL file (absent ⇒ 0). The next seq = current count.
+function eventLineCount(filePath) {
+  if (!fs.existsSync(filePath)) return 0;
+  const raw = fs.readFileSync(filePath, "utf8");
+  if (raw === "") return 0;
+  return raw.split("\n").filter((l) => l.trim() !== "").length;
+}
+
+function cmdEvents(args) {
+  let root = null, run = null, ts = null, file = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else if (args[i] === "--run") run = args[++i];
+    else if (args[i] === "--ts") ts = args[++i];
+    else if (args[i] === "--file") file = args[++i];
+    else rest.push(args[i]);
+  }
+  if (rest.includes("--selftest")) return eventsSelftest();
+  root = root || findRoot();
+  const cmd = rest[0];
+
+  if (cmd === "append") {
+    if (!run) { process.stderr.write("faff events append: --run <run-id> is required\n"); return 2; }
+    const dir = path.join(root, ".faff", "runs", run);
+    if (!fs.existsSync(dir)) {
+      process.stderr.write(`faff events append: run dir missing (${path.join(".faff", "runs", run)}) — initialise the run first\n`);
+      return 3;
+    }
+    let raw;
+    try { raw = fs.readFileSync(0, "utf8"); }
+    catch { process.stderr.write("faff events append: cannot read payload from stdin\n"); return 2; }
+    let payload;
+    try { payload = JSON.parse(raw); }
+    catch { process.stderr.write("faff events append: malformed payload (invalid JSON)\n"); return 2; }
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      process.stderr.write("faff events append: payload must be a JSON object\n"); return 1;
+    }
+    const violations = eventViolations(payload, false);
+    if (violations.length) {
+      for (const x of violations) process.stderr.write(`- ${x}\n`);
+      return 1;
+    }
+    const eventsPath = path.join(dir, "events.jsonl");
+    const seq = eventLineCount(eventsPath);
+    const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
+    if (payload.issue !== undefined) record.issue = payload.issue;
+    if (payload.data !== undefined) record.data = payload.data;
+    fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
+    console.log(JSON.stringify(record));
+    return 0;
+  }
+
+  if (cmd === "validate") {
+    let raw;
+    try { raw = fs.readFileSync(file !== null ? file : 0, "utf8"); }
+    catch { process.stderr.write("faff events validate: cannot read input (no --file PATH and no stdin)\n"); return 2; }
+    const lines = raw.split("\n");
+    const violations = [];
+    let prevSeq = -1;
+    lines.forEach((line, idx) => {
+      if (line.trim() === "") return;
+      const n = idx + 1;
+      let obj;
+      try { obj = JSON.parse(line); }
+      catch { violations.push(`line ${n}: malformed (invalid JSON)`); return; }
+      for (const x of eventViolations(obj, true)) violations.push(`line ${n}: ${x}`);
+      // Advisory: seq should be contiguous and gap-free.
+      if (Number.isInteger(obj.seq)) {
+        if (obj.seq !== prevSeq + 1) violations.push(`line ${n}: non-contiguous seq (expected ${prevSeq + 1}, got ${obj.seq}) [advisory]`);
+        prevSeq = obj.seq;
+      }
+    });
+    if (violations.length) {
+      for (const x of violations) process.stderr.write(`${x}\n`);
+      return 1;
+    }
+    console.log("OK — run-event log valid (schema 1).");
+    return 0;
+  }
+
+  if (cmd === "read") {
+    if (!run) { process.stderr.write("faff events read: --run <run-id> is required\n"); return 2; }
+    const eventsPath = path.join(root, ".faff", "runs", run, "events.jsonl");
+    if (!fs.existsSync(eventsPath)) { process.stderr.write("faff events read: no events for this run\n"); return 3; }
+    const raw = fs.readFileSync(eventsPath, "utf8");
+    const records = raw.split("\n").filter((l) => l.trim() !== "").map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    if (records.length === 0) { process.stderr.write("faff events read: no events for this run\n"); return 3; }
+    // --type / --issue are optional value-taking filters, read from the raw args.
+    let tFilter = null, iFilter = null;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--type") tFilter = args[i + 1];
+      else if (args[i] === "--issue") iFilter = args[i + 1];
+    }
+    const filtered = records.filter((r) => (tFilter === null || r.type === tFilter) && (iFilter === null || r.issue === iFilter));
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(filtered));
+    } else {
+      for (const r of filtered) console.log(`${String(r.seq).padStart(4)}  ${r.phase}/${r.type}${r.issue ? "  " + r.issue : ""}`);
+    }
+    return 0;
+  }
+
+  process.stderr.write("faff events: expected one of append | validate | read (or --selftest)\n");
+  return 2;
+}
+
+// In-memory self-test of the pure validator core (mirrors the `faff profile`/`fixtures` style).
+function eventsSelftest() {
+  const cases = [
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "run-start" }, 0, "valid run-start (envelope)"],
+    [{ schema: 1, run_id: "r", seq: 1, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-35", data: { outcome: "shipped" } }, 0, "valid issue-outcome"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", phase: "run", type: "run-start" }, 1, "wrong schema version"],
+    [{ schema: 1, seq: 0, ts: "t", phase: "run", type: "run-start" }, 1, "missing run_id"],
+    [{ schema: 1, run_id: "r", ts: "t", phase: "run", type: "run-start" }, 1, "missing seq"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "no-such-type" }, 1, "unknown type"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "nope", type: "run-start" }, 1, "unknown phase"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start" }, 1, "issue-scoped type missing issue"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "bogus" } }, 1, "outcome not in ledger vocab"],
+    [[], 1, "not an object"],
+  ];
+  let failed = 0;
+  for (const [obj, wantViol, label] of cases) {
+    const got = eventViolations(obj, true).length > 0 ? 1 : 0;
+    if (got !== wantViol) { process.stderr.write(`events --selftest FAIL: ${label} (want ${wantViol}, got ${got})\n`); failed++; }
+  }
+  // payload-mode (no envelope required): the same payload checks still apply.
+  const payloadOk = eventViolations({ phase: "run", type: "run-start" }, false).length === 0 ? 0 : 1;
+  if (payloadOk !== 0) { process.stderr.write("events --selftest FAIL: valid payload (no envelope) (want 0, got 1)\n"); failed++; }
+  const payloadBad = eventViolations({ phase: "build", type: "build-start" }, false).length > 0 ? 1 : 0;
+  if (payloadBad !== 1) { process.stderr.write("events --selftest FAIL: payload missing issue (want 1, got 0)\n"); failed++; }
+  if (failed) return 1;
+  console.log("events --selftest: ok");
+  return 0;
+}
+
+// ===========================================================================
 // lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations /
 // numbered docs/adr pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
 // Slice 1 enforces docs/guide/** (the public user-guide surface); the SKILL.md
@@ -5919,6 +6114,7 @@ const COMMANDS = {
   "prd": cmdPrd,
   "profile": cmdProfile,
   "fixtures": cmdFixtures,
+  "events": cmdEvents,
   "gates": cmdGates,
   "contract": cmdContract,
   "doctor": cmdDoctor,

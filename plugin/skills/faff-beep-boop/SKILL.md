@@ -303,6 +303,23 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 
 **Ownership + liveness gate (FAFF-205).** The Stop hook is registered globally and fires on **every** session's turn-end, so a parallel beep-boop drain's legitimately in-flight ledger (admitted, no terminal outcome *yet*) used to false-block an unrelated interactive session. `runcheck --hook` now gates before auditing: it audits-and-may-block only when the resolved run is one **this session owns** (the `FAFF_RUN_DIR` / `FAFF_SESSION_ID` match against the `owner` stamp above — the backstop is preserved for the owning session) **or** is **genuinely abandoned** (`owner` absent, `status≠"running"`, or `last_heartbeat` staler than `FAFF_RUN_HEARTBEAT_STALE_SECS`). A foreign run a live owner is still holding (running + fresh heartbeat) → the hook stays **silent**. This is why the owner stamp + lifecycle heartbeat above are load-bearing: they are the on-disk signal that lets the hook tell in-flight from abandoned. A legacy ledger with no `owner` is treated as unowned and audited exactly as before (zero regression).
 
+## Run-event log (observability substrate, FAFF-35)
+
+Alongside the terminal run-ledger, the orchestrator appends an **ordered timeline** of meaningful pipeline transitions to `.faff/runs/<run-id>/events.jsonl` — the structured surface `/faff-wtf`, the morning report, and the L4 runner will *consume* (this slice only **produces** it; nothing human-facing is rendered). The ledger is the end state; the event log is *how the run unfolded*. Emit each via `echo '<payload>' | faff events append --run <run-id>` — the CLI owns the envelope (`schema`/`run_id`/`seq`/`ts`); you supply only `{phase, type, issue?, data?}`. `seq` (the line count) is the **authoritative** order — `ts` is annotation, never order by it. Append-only, **single-writer** (only the orchestrator emits; build subagents return their token and the orchestrator emits `issue-outcome` from it), a logging **hard-floor** (written even under `logging: essential`). Emit at these existing boundaries — meaningful transitions only, never per-file/test/CI-poll micro-actions (`faff events validate` line-checks a log; `faff events read --run <run-id> [--type T] [--issue I]` is the thin reader for consumers):
+
+| Transition | `phase` / `type` |
+|---|---|
+| Run start (after run dir + ledger init) | `run` / `run-start` |
+| Tidy pass returns (step 1) | `tidy` / `tidy-done` |
+| Issue admitted to the build queue (step 4) | `run` / `issue-admitted` (issue) |
+| Prep of an issue start/finish (step 3) | `prep` / `prep-start` · `prep-done` (issue) |
+| Graft subagent dispatched (step 6) | `build` / `build-start` (issue) |
+| Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`) |
+| Discovered-scope ticket filed (step 10) | `run` / `discovered-scope-filed` |
+| Budget checkpoint | `run` / `budget-checkpoint` (`data` = `BudgetState`) |
+| An issue is parked | `prep`\|`build` / `park` (issue) |
+| Orchestrator exit (any path) | `run` / `run-end` |
+
 ## Explicit-list mode
 
 `/faff-beep-boop ISSUE-XX ISSUE-YY …`

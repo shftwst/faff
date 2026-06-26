@@ -22,6 +22,11 @@ jobs:
       - name: Validate slot-skill contracts
         run: node plugin/skills/faff/bin/faff validate-adapters
 
+      - name: Validate self-contained prose (no external-artifact refs in docs/guide)
+        run: |
+          node plugin/skills/faff/bin/faff lint-refs --selftest
+          node plugin/skills/faff/bin/faff lint-refs
+
       - name: Validate config template parses
         run: |
           tmp="$(mktemp -d)"

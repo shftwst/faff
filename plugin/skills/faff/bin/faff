@@ -4,7 +4,7 @@
 // Subcommands:
 //   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
 //   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml; --selftest
-//   runcheck [--hook] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the FAFF-205 ownership+liveness gate (silent for a foreign held run); --selftest runs the gate table
+//   runcheck [--hook] [--recover] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the ownership+liveness gate — silent for a foreign HELD run (FAFF-205, heartbeat-only liveness FAFF-233), and a foreign not-held run only WARNs, never hard-blocks (FAFF-235); only an OWNING session or --recover (deliberate human recovery) hard-blocks; --selftest runs the gate table
 //   prepcheck [--hook] [--json] [--root DIR]      audit faff-prep attach-state markers; --selftest (FAFF-178)
 //   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219: subtree-of-mandate containment primitive — walk the agent-supplied parentId chain from <parent> up to <mandate>; contained (exit 0) / outward (exit 3, fail-closed on --root/unknown/cycle/out-of-subtree) / usage (exit 2); PURE (no tracker call); v1 issue-level mandates only; --selftest
 //   hooks-ensure [--root DIR] [--json] [--dry-run]   idempotently register faff's Stop-hook set in .claude/settings.json; --selftest (FAFF-192)
@@ -781,6 +781,14 @@ function ownerPidIsLocalAndDead(pid) {
 // heartbeat fresher than STALE_SECS. Absent owner / non-running / stale / missing
 // / unparseable heartbeat ⇒ NOT held (fail-safe toward firing). nowMs/env are
 // injectable so the selftest drives this as a pure function.
+//
+// FAFF-233: liveness is HEARTBEAT-ONLY. The recorded owner.pid is NOT consulted —
+// the beep-boop worker pid rolls between issues (observed 35795→36342), so a dead
+// `kill -0` on the *recorded* pid is no evidence the run is gone while heartbeats
+// are still arriving. A fresh heartbeat means something live is writing it; that
+// wins. (The old dead-pid corroborator could only ever fire on an already-fresh
+// heartbeat — the stale-check returns first — so it never shortened the window, it
+// only wrongly flipped live runs to not-held. Removed.)
 function runIsHeld(ledger, nowMs, env) {
   const owner = ledger && ledger.owner;
   if (!owner) return false;                         // legacy/unowned ledger
@@ -789,8 +797,7 @@ function runIsHeld(ledger, nowMs, env) {
   if (!Number.isFinite(t)) return false;            // missing/unparseable → not held
   const ageSecs = (nowMs - t) / 1000;
   if (ageSecs > heartbeatStaleSecs(env)) return false; // stale → presumed gone
-  if (owner.pid != null && ownerPidIsLocalAndDead(owner.pid)) return false; // corroborator
-  return true;                                       // running + fresh → held
+  return true;                                       // running + fresh heartbeat → held (pid not consulted)
 }
 
 function resolveRunDir(arg) {
@@ -810,20 +817,31 @@ function runcheckReason(result) {
 }
 
 // Pure decision for the Stop hook (FAFF-205): given a parsed ledger, the resolved
-// run dir, the wall clock, and the env, decide whether to emit a block payload.
-// Returns { block: boolean, reason?, owned, held }. Drives both the live hook and
-// the selftest without touching the filesystem.
-function runcheckHookDecision(ledger, runDir, nowMs, env) {
+// run dir, the wall clock, the env, and opts, decide what the hook emits.
+// Returns { block, warn, reason?, owned, held }. Drives both the live hook and the
+// selftest without touching the filesystem.
+//
+// FAFF-235: a NON-OWNING session is never HARD-BLOCKED by another run's
+// incompleteness — the Stop hook fires in every session/worktree, so a foreign
+// run's undispatched work must not make an unrelated session un-exitable. Such a
+// session gets at most a non-blocking WARN. Only the OWNING session (env/session
+// match) — or an explicit human `--recover` — hard-blocks on undispatched work.
+// This holds even if the liveness check ever misfires (defence in depth over RC1).
+function runcheckHookDecision(ledger, runDir, nowMs, env, opts) {
+  const recover = !!(opts && opts.recover);
   let result;
   try { result = auditLedger(ledger, ledger.run_id ?? path.basename(runDir || "")); }
-  catch { return { block: false, owned: false, held: false }; } // malformed → silent (unchanged)
+  catch { return { block: false, warn: false, owned: false, held: false }; } // malformed → silent (unchanged)
   const owned = runIsOwned(ledger, runDir, env);
   const held = owned ? false : runIsHeld(ledger, nowMs, env);
-  // Not my run AND a live owner is draining it → stay silent (the fix).
-  if (held) return { block: false, owned, held: true };
-  // Owned (backstop) OR abandoned (preserve the catch) → audit and maybe block.
-  if (result.undispatched.length) return { block: true, reason: runcheckReason(result), owned, held: false };
-  return { block: false, owned, held: false };
+  // Foreign AND a live owner is draining it → stay silent (FAFF-205).
+  if (held) return { block: false, warn: false, owned, held: true };
+  // No undispatched work → nothing to say.
+  if (!result.undispatched.length) return { block: false, warn: false, owned, held: false };
+  // Undispatched work + not held: the owning session (backstop) or a deliberate
+  // --recover hard-blocks; any other (foreign) session only warns, never blocks.
+  if (owned || recover) return { block: true, warn: false, reason: runcheckReason(result), owned, held: false };
+  return { block: false, warn: true, reason: runcheckReason(result), owned, held: false };
 }
 
 function cmdRuncheck(args) {
@@ -837,8 +855,13 @@ function cmdRuncheck(args) {
     if (!runDir) return 0;
     let ledger;
     try { ledger = readLedger(runDir); } catch { return 0; } // parse error → silent (unchanged)
-    const decision = runcheckHookDecision(ledger, runDir, Date.now(), process.env);
+    const recover = args.includes("--recover");
+    const decision = runcheckHookDecision(ledger, runDir, Date.now(), process.env, { recover });
     if (decision.block) console.log(JSON.stringify({ decision: "block", reason: decision.reason }));
+    // FAFF-235: foreign + not-held → a one-line, NON-BLOCKING notice on stderr (never the
+    // block payload), so a genuinely-abandoned foreign run is still surfaced without making
+    // an unrelated session un-exitable.
+    else if (decision.warn) process.stderr.write(`[warn] ${decision.reason}\n`);
     return 0;
   }
 
@@ -877,44 +900,59 @@ const RUNCHECK_NOW = Date.parse("2026-06-22T16:00:00Z");
 const RUNCHECK_RUN_DIR = "/runs/RUN-LIVE";
 function hbAgo(secs) { return new Date(RUNCHECK_NOW - secs * 1000).toISOString(); }
 
-// [name, ledger, env, wantBlock]
+// [name, ledger, env, wantBlock, wantWarn, opts?]
+// FAFF-235 contract change: foreign (not-owned) + not-held + undispatched is now a
+// non-blocking WARN, not a block. Only OWNED or --recover hard-blocks. FAFF-233:
+// liveness is heartbeat-only, so a fresh heartbeat is held even with a dead recorded pid.
 const RUNCHECK_SELFTEST_CASES = [
   ["owned + undispatched → block (backstop preserved)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
-    { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, true],
-  ["not-owned + held (running, fresh heartbeat) → silent (the fix)",
+    { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, true, false],
+  ["owned + clean queue → silent",
+    { run_id: "R", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, false, false],
+  ["not-owned + held (running, fresh heartbeat) → silent (FAFF-205)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
-    {}, false],
-  ["not-owned + stale heartbeat + undispatched → block (abandoned still caught)",
+    {}, false, false],
+  ["FAFF-233: not-owned + fresh heartbeat + DEAD recorded pid → held/silent (pid not consulted)",
+    { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", pid: 2147483646, last_heartbeat: hbAgo(10) } },
+    {}, false, false],
+  ["FAFF-235: not-owned + stale heartbeat + undispatched → WARN, not block (abandoned still surfaced)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(1000) } },
-    {}, true],
-  ["not-owned + status:done + undispatched → block (cleanly-exited-but-incomplete caught)",
+    {}, false, true],
+  ["FAFF-235: not-owned + status:done + undispatched → WARN, not block",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "done", last_heartbeat: hbAgo(10) } },
-    {}, true],
-  ["legacy ledger (no owner) + undispatched → block (zero regression)",
+    {}, false, true],
+  ["FAFF-235: legacy ledger (no owner) + undispatched → WARN, not block (no foreign hard-block)",
     { run_id: "R", admitted: ["X"], outcomes: {} },
-    {}, true],
+    {}, false, true],
   ["not-owned + held + clean queue → silent",
     { run_id: "R", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "running", last_heartbeat: hbAgo(10) } },
-    {}, false],
-  ["not-owned + unparseable heartbeat + undispatched → block (fail-safe fires)",
+    {}, false, false],
+  ["FAFF-235: not-owned + unparseable heartbeat + undispatched → WARN, not block",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: "not-a-date" } },
-    {}, true],
+    {}, false, true],
   ["owned via session_id fallback + undispatched → block (backstop, env-pointer absent)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", session_id: "S1", last_heartbeat: hbAgo(10) } },
-    { FAFF_SESSION_ID: "S1" }, true],
-  ["custom STALE_SECS shrinks the held window → block",
+    { FAFF_SESSION_ID: "S1" }, true, false],
+  ["FAFF-235: custom STALE_SECS shrinks the window (foreign) → WARN, not block",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(120) } },
-    { FAFF_RUN_HEARTBEAT_STALE_SECS: "60" }, true],
+    { FAFF_RUN_HEARTBEAT_STALE_SECS: "60" }, false, true],
+  ["FAFF-235: --recover on a foreign not-held undispatched run → block (deliberate human recovery)",
+    { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(1000) } },
+    {}, true, false, { recover: true }],
+  ["FAFF-235: --recover + clean queue → silent (nothing to recover)",
+    { run_id: "R", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "done", last_heartbeat: hbAgo(1000) } },
+    {}, false, false, { recover: true }],
 ];
 
 function runcheckSelftest() {
   let fail = 0;
-  for (const [name, ledger, env, wantBlock] of RUNCHECK_SELFTEST_CASES) {
-    const got = runcheckHookDecision(ledger, RUNCHECK_RUN_DIR, RUNCHECK_NOW, env).block;
-    const ok = got === wantBlock;
+  for (const [name, ledger, env, wantBlock, wantWarn, opts] of RUNCHECK_SELFTEST_CASES) {
+    const d = runcheckHookDecision(ledger, RUNCHECK_RUN_DIR, RUNCHECK_NOW, env, opts);
+    const ok = d.block === wantBlock && (d.warn || false) === (wantWarn || false);
     if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} ${name} → block=${got} (want ${wantBlock})`);
+    console.log(`${ok ? "ok  " : "FAIL"} ${name} → block=${d.block} warn=${d.warn || false} (want block=${wantBlock} warn=${wantWarn || false})`);
   }
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${RUNCHECK_SELFTEST_CASES.length} cases, ${fail} failed)`);
   return fail ? 1 : 0;
@@ -3822,7 +3860,7 @@ const USAGE = `faff — the bundled CLI for the faff skill suite.
 Subcommands:
   config <path|get|spec-docs-path|dump|resolved> ...  resolve / read .faffrc (resolved = echo non-default slots)
   config init --set k=v [--set ...] [--force] [--dry-run]   write/merge a tracking block into .faffrc.yaml (--selftest runs the table)
-  runcheck [--hook] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the FAFF-205 ownership+liveness gate (silent for a foreign held run); --selftest runs the gate table
+  runcheck [--hook] [--recover] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the ownership+liveness gate — silent for a foreign HELD run (FAFF-205, heartbeat-only liveness FAFF-233), and a foreign not-held run only WARNs, never hard-blocks (FAFF-235); only an OWNING session or --recover (deliberate human recovery) hard-blocks; --selftest runs the gate table
   prepcheck [--hook] [--json] [--root DIR]      FAFF-178: audit faff-prep attach-state markers (.faff/prep/*.json) — block on any produced-but-not-attached spec; --hook blocks at Stop (decision payload, exit 0), plain prints a report + exit 3 if open; --selftest runs the table
   intakecheck <issue> [--labels csv] [--interactive] [--json] [--root DIR]   FAFF-212/223: intake-provenance guard — verify a ticket entered through a sanctioned front door (CLI-written .faff/provenance/<ISSUE>.json marker; the spoofable faff-jot-intake label is a grandfather bridge; a human-set faff-automate is admitted as the eligibility-gesture basis — write-abstained ⇒ human-set by construction, FAFF-218); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; --interactive makes a block-mode miss exit 0 with a [warn] (human-at-keyboard is the sanction — autonomous OMITS it); malformed marker → absent + warn, never crash; --selftest runs the bases + bypass table. NOT a Stop-hook (would reintroduce FAFF-205)
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables

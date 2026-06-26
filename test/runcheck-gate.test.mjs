@@ -6,7 +6,7 @@
 // run a live owner still holds. Drives the real entrypoint against fixture roots.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -14,10 +14,11 @@ import { fileURLToPath } from "node:url";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
+// spawnSync so we capture BOTH streams: the hook BLOCKS via a stdout decision payload,
+// and (FAFF-235) WARNS via a non-blocking stderr line — the test distinguishes them.
 function run(args, env) {
-  try {
-    return { code: 0, out: execFileSync("node", [CLI, ...args], { encoding: "utf8", env: { ...process.env, ...env } }) };
-  } catch (e) { return { code: e.status ?? 1, out: (e.stdout ?? "").toString() }; }
+  const r = spawnSync("node", [CLI, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+  return { code: r.status ?? 1, out: (r.stdout ?? "").toString(), err: (r.stderr ?? "").toString() };
 }
 
 const isoAgo = (secs) => new Date(Date.now() - secs * 1000).toISOString();
@@ -50,16 +51,29 @@ test("--hook stays SILENT for a foreign run a live owner is holding (the fix)", 
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("--hook BLOCKS a genuinely abandoned run (stale heartbeat) — abandoned still caught", () => {
+test("FAFF-235: --hook WARNS (never blocks) an unrelated session about a foreign abandoned run", () => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: ["X"], outcomes: {},
     owner: { status: "running", last_heartbeat: isoAgo(1000) },
   });
   try {
     const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
-    assert.equal(r.code, 0, "blocks via the decision payload, not the exit code");
+    assert.equal(r.code, 0);
+    assert.equal(r.out.trim(), "", "a non-owning session must NOT be hard-blocked (no stdout decision payload)");
+    assert.match(r.err, /\[warn\]/, "the abandoned foreign run is still surfaced — as a non-blocking warning");
+    assert.match(r.err, /\bX\b/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-235: --hook --recover hard-blocks the foreign abandoned run (deliberate human recovery)", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {},
+    owner: { status: "running", last_heartbeat: isoAgo(1000) },
+  });
+  try {
+    const r = run(["runcheck", "--hook", "--recover", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
     const payload = JSON.parse(r.out.trim());
-    assert.equal(payload.decision, "block");
+    assert.equal(payload.decision, "block", "--recover is the sanctioned hard-assert on a chosen run");
     assert.match(payload.reason, /\bX\b/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -89,12 +103,21 @@ test("--hook BLOCKS the owning session via the session_id fallback (env-pointer 
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("--hook BLOCKS a legacy ledger (no owner) — zero regression for pre-existing runs", () => {
+test("FAFF-235: --hook WARNS (never blocks) a legacy ledger (no owner) in a foreign session", () => {
   const { root, runDir } = rootWith({ run_id: "RUN-LIVE", admitted: ["X"], outcomes: {} });
   try {
     const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.out.trim(), "", "a legacy ledger is unowned → a foreign session warns, never hard-blocks");
+    assert.match(r.err, /\[warn\]/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--hook BLOCKS a legacy ledger under --recover (owner-less run is still recoverable)", () => {
+  const { root, runDir } = rootWith({ run_id: "RUN-LIVE", admitted: ["X"], outcomes: {} });
+  try {
+    const r = run(["runcheck", "--hook", "--recover", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
     const payload = JSON.parse(r.out.trim());
-    assert.equal(payload.decision, "block", "a legacy ledger is unowned → audited exactly as today");
+    assert.equal(payload.decision, "block");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -109,7 +132,7 @@ test("--hook is SILENT for a held foreign run with a clean (fully-dispatched) qu
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("FAFF_RUN_HEARTBEAT_STALE_SECS shrinks the held window → a once-held run blocks", () => {
+test("FAFF_RUN_HEARTBEAT_STALE_SECS shrinks the held window → a once-held foreign run WARNS (FAFF-235)", () => {
   const { root, runDir } = rootWith({
     run_id: "RUN-LIVE", admitted: ["X"], outcomes: {},
     owner: { status: "running", last_heartbeat: isoAgo(120) },
@@ -117,8 +140,21 @@ test("FAFF_RUN_HEARTBEAT_STALE_SECS shrinks the held window → a once-held run 
   try {
     const r = run(["runcheck", "--hook", runDir],
       { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "", FAFF_RUN_HEARTBEAT_STALE_SECS: "60" });
-    const payload = JSON.parse(r.out.trim());
-    assert.equal(payload.decision, "block", "a 120s-old heartbeat is stale under a 60s threshold");
+    // 120s-old heartbeat is stale under a 60s threshold → not-held; but foreign → warn, not block.
+    assert.equal(r.out.trim(), "", "shrunk window makes it not-held, but a foreign session still only warns");
+    assert.match(r.err, /\[warn\]/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-233: --hook stays SILENT for a foreign run with a fresh heartbeat but a DEAD recorded pid (pid not consulted)", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {},
+    owner: { status: "running", pid: 2147483646, last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.out.trim(), "", "a fresh heartbeat is authoritative — a dead/rolled recorded pid must not flip it to abandoned");
+    assert.equal(r.err.trim(), "", "held → fully silent");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

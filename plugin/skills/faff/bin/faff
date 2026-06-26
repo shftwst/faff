@@ -3871,6 +3871,7 @@ Subcommands:
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
   lint-refs [--root DIR]                        FAFF-238: ban external-artifact refs (FAFF-NN / ADR NNNN / numbered docs/adr pointers) in prose the reader executes or publicly consumes — slice 1 scans docs/guide/**; "FAIL file:line ✗ match" per hit + exit 1, else exit 0; --selftest runs the matcher table. docs/ outside docs/guide/ (incl. docs/adr/**) is allow-by-default; within-prose anchors (gateway→Section, faff/SKILL.md) never match
+  lint-cli-doc [--root DIR] [--json]            FAFF-237: assert docs/guide/cli.md documents every subcommand the CLI dispatches (the COMMANDS registry), bidirectionally — "FAIL docs/guide/cli.md ✗ missing/orphaned: <name>" per drift + exit 1, else "PASS  lint-cli-doc: <N> subcommands documented" + exit 0; exit 2 if the doc is unreadable; --selftest runs the parse/diff table
 `;
 
 // ===========================================================================
@@ -5094,34 +5095,158 @@ function lintRefsSelftest() {
   return 0;
 }
 
+// ===========================================================================
+// lint-cli-doc — FAFF-237: assert docs/guide/cli.md documents every subcommand
+// the CLI dispatches. The canonical set is the COMMANDS registry (single source
+// of truth — see main()); the documented set is parsed from the doc's table rows.
+// Bidirectional: a command in the CLI but not the doc is `missing`; a command in
+// the doc but not the CLI is `orphaned`. Sibling of lint-refs.
+// ===========================================================================
+const CLI_DOC_PATH = "docs/guide/cli.md";
+
+// Documented base-command set: the first command-shaped token of the LEADING
+// inline-backtick span of each markdown table row. Anchored to the row's first
+// column (^\|\s*`) so `--flags`, `.faffrc.yaml`, `docs/adr/` spans never match;
+// deduped so alternate-form rows (`config` / `config init`) collapse to one base.
+function parseDocumentedCommands(text) {
+  const documented = new Set();
+  for (const line of text.split("\n")) {
+    const m = line.match(/^\|\s*`([a-z][a-z-]*)\b/);
+    if (m) documented.add(m[1]);
+  }
+  return documented;
+}
+
+// Pure set diff: missing = in CLI, not in doc; orphaned = in doc, not in CLI.
+function diffCliDoc(canonical, documented) {
+  const missing = [...canonical].filter((c) => !documented.has(c)).sort();
+  const orphaned = [...documented].filter((d) => !canonical.has(d)).sort();
+  return { missing, orphaned };
+}
+
+function cmdLintCliDoc(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  if (rest.includes("--selftest")) return lintCliDocSelftest();
+  const json = rest.includes("--json");
+  root = root || findRoot();
+
+  const canonical = new Set(Object.keys(COMMANDS));
+  const docPath = path.join(root, CLI_DOC_PATH);
+  let text;
+  try {
+    text = fs.readFileSync(docPath, "utf8");
+  } catch {
+    if (json) console.log(JSON.stringify({ ok: false, error: `cannot read ${CLI_DOC_PATH}` }));
+    else process.stderr.write(`lint-cli-doc: cannot read ${docPath}\n`);
+    return 2;
+  }
+  const documented = parseDocumentedCommands(text);
+  const { missing, orphaned } = diffCliDoc(canonical, documented);
+  const ok = missing.length === 0 && orphaned.length === 0;
+
+  if (json) {
+    console.log(JSON.stringify({ ok, documented: canonical.size, missing, orphaned }));
+    return ok ? 0 : 1;
+  }
+  if (ok) {
+    console.log(`PASS  lint-cli-doc: ${canonical.size} subcommands documented`);
+    return 0;
+  }
+  for (const m of missing) console.log(`FAIL  ${CLI_DOC_PATH} ✗ missing: ${m}`);
+  for (const o of orphaned) console.log(`FAIL  ${CLI_DOC_PATH} ✗ orphaned: ${o}`);
+  process.stderr.write(`faff lint-cli-doc: ${missing.length} missing, ${orphaned.length} orphaned — sync ${CLI_DOC_PATH} with the CLI\n`);
+  return 1;
+}
+
+// In-memory self-test of the pure parse + diff helpers (mirrors lint-refs --selftest).
+function lintCliDocSelftest() {
+  let failed = 0;
+  const check = (label, got, want) => {
+    if (got !== want) {
+      process.stderr.write(`lint-cli-doc --selftest FAIL: ${label} (want ${want}, got ${got})\n`);
+      failed++;
+    }
+  };
+
+  // parseDocumentedCommands: leading span only; flags/paths not matched; dedupe to base.
+  const doc = [
+    "| Subcommand | What it does |",
+    "|---|---|",
+    "| `config <path\\|get…> …` | reads `.faffrc.yaml`, the `--json` form |",
+    "| `config init --set k=v` | merge a `tracking:` block |",
+    "| `validate-adapters --configured` | pre-flight `.faff/` occupants |",
+    "| `worktree-prune [--own PATH]` | scoped prune; never touch `docs/adr/` |",
+    "some prose with a `--flag` and `.faffrc.yaml` span, not a table row",
+  ].join("\n");
+  const parsed = parseDocumentedCommands(doc);
+  check("parses 3 base commands", parsed.size, 3);
+  check("config deduped to one", parsed.has("config") ? 1 : 0, 1);
+  check("validate-adapters base", parsed.has("validate-adapters") ? 1 : 0, 1);
+  check("worktree-prune base", parsed.has("worktree-prune") ? 1 : 0, 1);
+  check("no false hit on --flag span", parsed.has("flag") ? 1 : 0, 0);
+  check("no false hit on .faffrc span", parsed.has("faffrc") ? 1 : 0, 0);
+
+  // diffCliDoc: missing + orphaned both detected and named.
+  const drift = diffCliDoc(new Set(["config", "next", "lint-cli-doc"]), new Set(["config", "next", "ghost"]));
+  check("one missing", drift.missing.length, 1);
+  check("missing names lint-cli-doc", drift.missing[0] === "lint-cli-doc" ? 1 : 0, 1);
+  check("one orphaned", drift.orphaned.length, 1);
+  check("orphaned names ghost", drift.orphaned[0] === "ghost" ? 1 : 0, 1);
+
+  // in-sync sets → empty diff.
+  const sync = diffCliDoc(new Set(["a", "b"]), new Set(["a", "b"]));
+  check("in-sync no missing", sync.missing.length, 0);
+  check("in-sync no orphaned", sync.orphaned.length, 0);
+
+  if (failed) return 1;
+  console.log("lint-cli-doc --selftest: ok");
+  return 0;
+}
+
+// Subcommand registry (ADR 0014) — the single source of truth for the CLI command
+// set. main() dispatches through this map, and `Object.keys(COMMANDS)` is exactly
+// the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a
+// subcommand = one entry here (and a docs/guide/cli.md row, or lint-cli-doc fails CI).
+// The -h/--help/help aliases are handled in main() and are deliberately NOT entries.
+const COMMANDS = {
+  "config": cmdConfig,
+  "sync": cmdSync,
+  "runcheck": cmdRuncheck,
+  "prepcheck": cmdPrepcheck,
+  "intakecheck": cmdIntakecheck,
+  "intake-record": cmdIntakeRecord,
+  "contain": cmdContain,
+  "budget": cmdBudget,
+  "hooks-ensure": cmdHooksEnsure,
+  "validate-adapters": cmdValidateAdapters,
+  "labels": cmdLabels,
+  "label": cmdLabel,
+  "eligible": cmdEligible,
+  "next": cmdNext,
+  "state": cmdState,
+  "park-history": cmdParkHistory,
+  "gitignore-ensure": cmdGitignoreEnsure,
+  "adr": cmdAdr,
+  "profile": cmdProfile,
+  "gates": cmdGates,
+  "contract": cmdContract,
+  "doctor": cmdDoctor,
+  "worktree-prune": cmdWorktreePrune,
+  "lint-refs": cmdLintRefs,
+  "lint-cli-doc": cmdLintCliDoc,
+};
+
 function main(argv) {
   const [sub, ...rest] = argv;
   if (!sub) { process.stderr.write(USAGE); return 2; }
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
-  if (sub === "config") return cmdConfig(rest);
-  if (sub === "sync") return cmdSync(rest);
-  if (sub === "runcheck") return cmdRuncheck(rest);
-  if (sub === "prepcheck") return cmdPrepcheck(rest);
-  if (sub === "intakecheck") return cmdIntakecheck(rest);
-  if (sub === "intake-record") return cmdIntakeRecord(rest);
-  if (sub === "contain") return cmdContain(rest);
-  if (sub === "budget") return cmdBudget(rest);
-  if (sub === "hooks-ensure") return cmdHooksEnsure(rest);
-  if (sub === "validate-adapters") return cmdValidateAdapters(rest);
-  if (sub === "labels") return cmdLabels(rest);
-  if (sub === "label") return cmdLabel(rest);
-  if (sub === "eligible") return cmdEligible(rest);
-  if (sub === "next") return cmdNext(rest);
-  if (sub === "state") return cmdState(rest);
-  if (sub === "park-history") return cmdParkHistory(rest);
-  if (sub === "gitignore-ensure") return cmdGitignoreEnsure(rest);
-  if (sub === "adr") return cmdAdr(rest);
-  if (sub === "profile") return cmdProfile(rest);
-  if (sub === "gates") return cmdGates(rest);
-  if (sub === "contract") return cmdContract(rest);
-  if (sub === "doctor") return cmdDoctor(rest);
-  if (sub === "worktree-prune") return cmdWorktreePrune(rest);
-  if (sub === "lint-refs") return cmdLintRefs(rest);
+  const handler = COMMANDS[sub];
+  if (handler) return handler(rest);
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

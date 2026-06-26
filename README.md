@@ -72,7 +72,7 @@ Everything past the pitch lives in `docs/`:
 - [Unattended runs](docs/unattended.md) — the L3 deep-dive: the loop, fire-and-forget, park protocol, run-ledger, tracker-as-control-plane, and running over SSH.
 - [Configuration](docs/configuration.md) — the `.faffrc.yaml` reference, plus the two knobs (appetite, slots).
 - [Skills & slots](docs/skills.md) — the skill catalogue, the slot model, and swapping in third-party or your own doing-skills.
-- [The `faff` CLI](docs/cli.md) — the bundled command-line tool and its subcommands.
+- [The `faff` CLI](docs/cli.md) — the bundled command-line tool and its subcommands, grouped by purpose.
 - [Architecture](docs/architecture.md) — the segregated orchestrator / implementor / evaluator agent lanes.
 
 ## Credits

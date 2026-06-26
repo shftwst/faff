@@ -33,6 +33,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 | Subcommand | What it does |
 |---|---|
 | `runcheck [--hook] [--recover] [--json] [RUN_DIR]` | Audit a `/faff-beep-boop` run ledger; `--hook` gates session-end on dangling admitted work (owning session / `--recover` hard-blocks; foreign runs warn at most). |
+| `heartbeat [RUN_DIR] [--json]` | The single sanctioned write path for the run ledger's `owner.last_heartbeat` — refresh it to now (resolves `RUN_DIR` → `$FAFF_RUN_DIR` → latest run) so a live-but-quiet build's long sub-steps keep the run *held*. Field-merge (writes only that field, atomically); soft no-op on a done/unowned/absent run; exit 2 on a malformed ledger. |
 | `prepcheck [--hook] [--json]` | Audit faff-prep attach-state markers (`.faff/prep/*.json`); `--hook` blocks at Stop on any produced-but-not-attached spec. |
 | `budget check [--until HH:MM] [--max N] [--json]` | Emit a run cost/compute `BudgetState` (spent, breached, outcome) from the ledger + config `budget:` + local transcripts. |
 | `park-history --now ISO [--issue ID]` | Deterministic repeat-park counts over `.faff/runs` summaries (≥3 same root-cause class in 21d). |

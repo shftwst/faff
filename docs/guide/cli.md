@@ -56,6 +56,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 | `gates <discover\|run> [--json]` | Cost-ordered engineering-quality gate ladder — discover/run the repo's *own* declared cheap checks (pre-commit / package.json / Makefile) cheapest-first, fail-fast, emit a `faff-contract:quality-gates` block. |
 | `adr <next-number\|new\|list\|live-decisions\|validate\|supersede>` | Deterministic mechanics over the `docs/adr/` Nygard log. |
 | `profile <validate\|show> [--file F]` | Infra-profile schema + CLI — validate a profile JSON, or `show` the effective profile (`.faff/infra-profile.json` ⊕ `.faffrc.yaml infra:`, override wins per field). |
+| `fixtures <validate\|show\|realise> [--file F] [--out DIR]` | Fixtures dataset-manifest schema + CLI — `validate` a manifest JSON, `show` the effective manifest (`.faff/fixtures/manifest.json` ⊕ `.faffrc.yaml fixtures:`, override wins per field), or `realise` a deterministic dataset from `(manifest, seed)` into `dataset_path`/`--out`. The generation strategy is a deferred slot; this ships the contract plus a trivial reference generator. |
 | `lint-refs [--root DIR]` | Ban external-artifact refs (ticket tags, ADR citations, numbered `docs/adr/` pointers) in enforced prose — scans `docs/guide/**`; names each `file:line ✗ match` and exits 1 on a hit, else 0. |
 | `lint-cli-doc [--root DIR] [--json]` | Assert `docs/guide/cli.md` documents every subcommand the CLI dispatches (the `COMMANDS` registry), bidirectionally — names each `✗ missing`/`✗ orphaned` and exits 1 on drift, else 0. |
 

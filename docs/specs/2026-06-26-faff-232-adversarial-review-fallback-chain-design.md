@@ -2,6 +2,8 @@
 
 > Spec: faffter-dark-nlspec · 2026-06-26 · interactive · confidence: medium. Full spec on Linear FAFF-232.
 
+> **Build note (reconciled to shipped code).** Two config-shape sub-decisions changed during build after the spec's `**Assumes:**` (the YAML parser turns sequences into arrays) was **validated and found false** — `parseYamlSubset` stores both block sequences and inline flow as raw scalars. Per the spec's own documented fallback (§6 option b), the config shape shipped as a **`fallbacks` JSON-string scalar** (a quoted JSON array the skill `JSON.parse`s), **not** a native YAML list — so **no `config dump` extension and no parser change were needed** (read via the existing `config get`). The chain loop + terminal precedence still live deterministically in `review-call.mjs` (`runReviewChain` / `chainTerminalExit`), and the advance-all-with-needs-human-dominant-terminal policy is unchanged. Read §3/§6/§7/§8 below in light of this note: wherever they say "`config dump` KEY extension" or "native YAML `fallbacks:` list", the shipped form is the JSON-string scalar read via `config get` (no CLI/parser change).
+
 This is the build contract for FAFF-232, for the build agent and human reviewers. It turns the single-backend adversarial reviewer into an **ordered chain** that advances to the next backend when one is unavailable, so a single provider's outage or throttle no longer silently disables the L4 second-opinion gate.
 
 ## 1. WHY — Problem and Principles

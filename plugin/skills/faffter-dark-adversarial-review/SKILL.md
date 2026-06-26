@@ -111,7 +111,14 @@ faffter_dark:
     api_key_env: NVIDIA_API_KEY      # env var NAME holding the API key (not the key itself)
     reasoning_off: false             # true → send chat_template_kwargs:{thinking:false} (reasoning models)
     timeout: 120                     # seconds
+    fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]'   # FAFF-232, optional
 ```
+
+**Fallback chain (FAFF-232).** The scalar block above is the **primary** backend. An optional `fallbacks` key adds an **ordered list of further backends**, each tried — in order — only when the one before it fails to produce findings (rate-limit, unreachable, persistent transport failure, auth, not-served). The first backend that returns findings wins; the chain reaches a terminal outcome only when **every** backend has failed. This keeps the L4 second-opinion gate firing through a single provider's outage instead of silently `pass+skip`ping.
+
+- **Value is a JSON-string** — a quoted JSON array of backend objects `{provider, model, host, api_key_env?, reasoning_off?, timeout?}`. It is a string (not a native YAML list) because the faff config parser stores arrays as scalars; the skill `JSON.parse`s it. Omit it for the single-backend behaviour (a one-element chain — unchanged).
+- **Each fallback is self-contained** (its own `provider`/`model`/`host` required); omitted optional keys (`api_key_env`, `reasoning_off`, `timeout`) inherit the primary's.
+- **No silent weakening** — an all-failed chain is never more pass-like than today's single backend: a config fault (auth / not-served / unsupported / unconfigured-default-host) anywhere in a fully-failed chain surfaces `needs-human`; only a chain of purely configured-host availability failures `pass+skip`s. The chain loop + terminal precedence live deterministically in `review-call.mjs` (`runReviewChain` / `chainTerminalExit`), not in this prose.
 
 **Two transport families** — `review-call.mjs` dispatches on `provider`:
 
@@ -136,6 +143,8 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
   --context plugin/skills/faff/SKILL.md --context <each file the diff touches> \
   --diff <git-diff-file>
 ```
+
+**When `faffter_dark.adversarial.fallbacks` is set (FAFF-232)** — build the ordered chain and pass it as one `--backends-json` file instead of the single-backend flags above. Resolve the block as JSON (`faff config get --json faffter_dark.adversarial`), `JSON.parse` the `fallbacks` string, assemble `[primary, ...fallbacks]` (each `{provider, model, host, host_source:"config", api_key_env?, reasoning_off?, timeout?}`, omitted optional keys inheriting the primary's), write it to a temp file, and invoke `node "$REVIEW_CALL" --backends-json <file> --system … --context … --diff …`. The helper iterates the chain; the **exit-code → outcome table below is unchanged** — the chain only changes *which* exit the helper returns. With no `fallbacks` key, use the single-backend invocation above verbatim (a one-element chain).
 
 - **`--provider`** = the configured provider (omit → defaults to `ollama`). **`--api-key-env`** = the env var **name** (the helper reads the key from `process.env`; the key is never on the command line). **`--reasoning-off`** = pass only when `reasoning_off: true`.
 - **`--system`** = the review lens above (the five categories), written to a file.

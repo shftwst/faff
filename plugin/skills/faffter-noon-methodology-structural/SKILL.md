@@ -190,6 +190,24 @@ Independents run in parallel; collision groups serialise within themselves.
 
 **Wave structure:** After each wave drains, re-check for newly unlocked work, narrow-prep unblocked candidates, re-assemble the queue. Continue until drained or budget hit.
 
+### `run-termination-policy`
+
+**Optional** (gateway → **The `methodology` slot**). The structural answer to "in what order do the **policy-weighted** terminating rungs win" — the weighting behind the run-end decision `faff run-done` composes. The structural lens orders from **graph/process facts, never value/risk opinion**, so its ladder is exactly the CLI's built-in structural default (this output *is* that default, made explicit):
+
+```
+1. non-convergence  → escalate      # no-progress waves need a human, not more spend
+2. budget-narrow    → continue       # a narrow ceiling triggers the narrow-loop, not a stop
+3. budget-stop      → run-complete    # a stop ceiling ends cleanly (a ceiling, not a failure)
+4. value-inflection → run-complete    # an explicit MVP/value inflection stops early
+5. work-remaining   → continue        # admissible work remains → keep going
+6. clean-complete   → run-complete    # queue drained / all parked → drained | all-parked
+```
+
+- **Floor is not ours.** The fixed safety floor (`budget-escalate`, `undispatched-ledger` at drain, `product-incomplete`) is the CLI's, applied **before** this ladder and **never** overridable — this output only orders the rungs **above** it. Reordering or softening a non-floor rung is the lens's prerogative; weakening the floor is impossible by construction.
+- **Unanswered ⇒ no change.** When this output is not requested/answered, `faff run-done` applies the same ladder as its built-in default — so zero-config runs behave identically.
+
+**Output:** an ordered ladder of `{test, verdict}` rungs over the closed test vocabulary above, passed by the orchestrator to `faff run-done --policy`. Read-only — the methodology authors the ladder; it never decides the run-end (that is `faff run-done`, purely) and never writes the tracker.
+
 ### `crank-up-set`
 
 **Optional** (gateway → **The `methodology` slot**). Given the **not-automation-eligible** issue set + the dependency graph + each member's `faff next --if-eligible` hypothetical transition + appetite, return ranked **crank-up-sets** — coherent batches a human can approve in one go. Unanswered ⇒ wtf/tidy fall back to the flat On-hold list. Read-only: never mutates eligibility.

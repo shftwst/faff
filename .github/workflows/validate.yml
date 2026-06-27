@@ -121,6 +121,12 @@ jobs:
       - name: Validate budget envelope/state table (FAFF-36)
         run: node plugin/skills/faff/bin/faff budget --selftest
 
+      - name: Validate run-done terminating-condition predicate table (FAFF-38)
+        run: node plugin/skills/faff/bin/faff run-done --selftest
+
+      - name: Validate run-termination contract script (FAFF-38)
+        run: node plugin/skills/faff/bin/faff contract run-termination --selftest
+
       - name: Prompt-size budget gate (advisory)
         run: |
           node eval/size-census.mjs --gate --against eval/baselines/prompt-size.json | tee -a "$GITHUB_STEP_SUMMARY"

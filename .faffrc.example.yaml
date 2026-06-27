@@ -104,6 +104,14 @@ gates:
 adr:
   mode: offer   # offer (default): surface candidates + human-gated y/n write · surface: list only · off: nothing
 
+# PRDR two-gate bound (FAFF-255). The thrash-ratchet bounds `faff prdr admit` uses to escalate a
+# churning PRDR lineage: thrash_max supersessions accrued within thrash_window (days) on a single
+# lineage breaches the ratchet (the admit verdict rejects/escalates, even when each move passed
+# individually). Conservative defaults; raise thrash_max to tolerate more re-derivation.
+prdr:
+  thrash_max: 3       # max supersessions per lineage in the window before the ratchet breaches
+  thrash_window: 21   # rolling window in days (the agent filters the lineage count to this)
+
 # faffter-dark: LLM provider config for adversarial review.
 # Used by the faffter-dark-adversarial-review skill (when set as the review slot).
 # Two transport families: ollama (/api/chat) and OpenAI-compatible (/v1/chat/completions —

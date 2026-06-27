@@ -361,5 +361,92 @@
     "input": "{\"admit\":false,\"reason\":\"r\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"maybe\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "prd-coverage",
+    "name": "conformant-satisfied",
+    "input": "{\"covered\":true,\"uncovered_goals\":[],\"satisfied\":true,\"reason\":\"\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
+    "expectExit": 0,
+    "expectStdout": {
+      "covered": true,
+      "uncovered_goals": [],
+      "satisfied": true,
+      "reason": "",
+      "completion": {
+        "all_met": true,
+        "unmet_or_unverified": []
+      },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prd-coverage",
+    "name": "conformant-uncovered-lower-violation",
+    "input": "{\"covered\":false,\"uncovered_goals\":[\"reduce no-shows\"],\"satisfied\":false,\"reason\":\"uncovered goals (no live PRDR covers): reduce no-shows\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
+    "expectExit": 0,
+    "expectStdout": {
+      "covered": false,
+      "uncovered_goals": [
+        "reduce no-shows"
+      ],
+      "satisfied": false,
+      "reason": "uncovered goals (no live PRDR covers): reduce no-shows",
+      "completion": {
+        "all_met": true,
+        "unmet_or_unverified": []
+      },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prd-coverage",
+    "name": "conformant-conservative-unverified-dod",
+    "input": "{\"covered\":true,\"uncovered_goals\":[],\"satisfied\":false,\"reason\":\"DoD unmet/unverified (FAFF-34 verdict ≠ met): 0002\",\"completion\":{\"all_met\":false,\"unmet_or_unverified\":[\"0002\"]}}",
+    "expectExit": 0,
+    "expectStdout": {
+      "covered": true,
+      "uncovered_goals": [],
+      "satisfied": false,
+      "reason": "DoD unmet/unverified (FAFF-34 verdict ≠ met): 0002",
+      "completion": {
+        "all_met": false,
+        "unmet_or_unverified": [
+          "0002"
+        ]
+      },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prd-coverage",
+    "name": "nonconformant-satisfied-while-uncovered",
+    "input": "{\"covered\":false,\"uncovered_goals\":[\"g\"],\"satisfied\":true,\"reason\":\"\",\"completion\":{\"all_met\":true,\"unmet_or_unverified\":[]}}",
+    "expectExit": 1,
+    "expectStdout": {
+      "covered": false,
+      "uncovered_goals": [
+        "g"
+      ],
+      "satisfied": true,
+      "reason": "",
+      "completion": {
+        "all_met": true,
+        "unmet_or_unverified": []
+      },
+      "conformant": false,
+      "violations": [
+        "satisfied:true while PRD goals are uncovered — a goal lost its last live PRDR (silent abandonment)"
+      ]
+    }
+  },
+  {
+    "contract": "prd-coverage",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

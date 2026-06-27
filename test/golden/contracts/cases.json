@@ -448,5 +448,79 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "conformant-approve",
+    "input": "{\"verdict\":\"approve\",\"objections\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "approve",
+      "objections": [],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "conformant-reject-approach",
+    "input": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\"}]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "reject-approach",
+      "objections": [{ "lens": "architectural", "severity": "blocker" }],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "non-approve-no-objections",
+    "input": "{\"verdict\":\"reject-approach\",\"objections\":[]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "reject-approach",
+      "objections": [],
+      "conformant": false,
+      "violations": ["reject-approach carries no objections"]
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "approve-with-objections",
+    "input": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"infosec\",\"severity\":\"major\"}]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "approve",
+      "objections": [{ "lens": "infosec", "severity": "major" }],
+      "conformant": false,
+      "violations": ["approve carries objections — approve must carry none"]
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "bad-lens",
+    "input": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"vibes\",\"severity\":\"major\"}]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "revise",
+      "objections": [{ "lens": "vibes", "severity": "major" }],
+      "conformant": false,
+      "violations": ["objection[0] lens \"vibes\" not in {architectural,infosec,methodology,QA}"]
+    }
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "fail-loud-bad-verdict",
+    "input": "{\"verdict\":\"meh\",\"objections\":[]}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "spec-review-verdict",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

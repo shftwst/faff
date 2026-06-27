@@ -91,6 +91,9 @@ jobs:
       - name: Validate prdr command + the upper-gate arbitration table
         run: node plugin/skills/faff/bin/faff prdr --selftest
 
+      - name: Validate spec-review-verdict contract script
+        run: node plugin/skills/faff/bin/faff contract spec-review-verdict --selftest
+
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 

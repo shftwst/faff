@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/prd-readiness",
+  "title": "prd-readiness contract data",
+  "description": "Reference schema (FAFF-253). The SHAPE of the prd-readiness contract data the L4 run-start gate branches on — the product-axis analog of spec-readiness. Shape is normative here; the verdict SEMANTICS (refuse on not-ready / fail-loud) live in the gateway + the call-site contract (ADR 0001). There is NO safe coerce target for a malformed verdict — faff's own producer emits it, so an out-of-enum verdict/creative_licence is a fail-loud (like spec-readiness/automation-routing), never coerced toward admissible.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "reason", "stop_conditions_verifiable", "creative_licence", "conformant", "violations"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["admissible", "not-ready"] },
+    "reason": { "type": "string" },
+    "stop_conditions_verifiable": { "type": "boolean" },
+    "creative_licence": { "type": "string", "enum": ["broad", "tight"] },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

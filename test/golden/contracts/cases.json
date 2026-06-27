@@ -134,5 +134,72 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "prd-readiness",
+    "name": "valid-admissible",
+    "input": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "admissible",
+      "reason": "",
+      "stop_conditions_verifiable": true,
+      "creative_licence": "broad",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prd-readiness",
+    "name": "valid-not-ready",
+    "input": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "not-ready",
+      "reason": "no-stop-conditions",
+      "stop_conditions_verifiable": false,
+      "creative_licence": "tight",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prd-readiness",
+    "name": "out-of-set-reason-normalised-to-other",
+    "input": "{\"verdict\":\"not-ready\",\"reason\":\"weird\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "not-ready",
+      "reason": "other",
+      "stop_conditions_verifiable": false,
+      "creative_licence": "broad",
+      "conformant": false,
+      "violations": [
+        "reason \"weird\" not in {no-stop-conditions,ambiguous-stop-conditions,other} — normalised to other"
+      ]
+    }
+  },
+  {
+    "contract": "prd-readiness",
+    "name": "admissible-but-unverifiable",
+    "input": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "admissible",
+      "reason": "",
+      "stop_conditions_verifiable": false,
+      "creative_licence": "tight",
+      "conformant": false,
+      "violations": [
+        "admissible but stop_conditions_verifiable is false"
+      ]
+    }
+  },
+  {
+    "contract": "prd-readiness",
+    "name": "fail-loud-bad-verdict",
+    "input": "{\"verdict\":\"maybe\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

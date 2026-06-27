@@ -53,7 +53,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 
 | Subcommand | What it does |
 |---|---|
-| `contract <name> [--in FILE]` | Per-slot contract script: extraction JSON in → canonical contract data out (`spec-readiness`, `review-verdict`, `quality-gates`, `delivery-outcome`); exit 0 conformant / 1 non-conformant / 2 fail-loud. |
+| `contract <name> [--in FILE]` | Per-slot contract script: extraction JSON in → canonical contract data out (`spec-readiness`, `review-verdict`, `quality-gates`, `delivery-outcome`, `prd-readiness`); exit 0 conformant / 1 non-conformant / 2 fail-loud. |
 | `gates <discover\|run> [--json]` | Cost-ordered engineering-quality gate ladder — discover/run the repo's *own* declared cheap checks (pre-commit / package.json / Makefile) cheapest-first, fail-fast, emit a `faff-contract:quality-gates` block. |
 | `adr <next-number\|new\|list\|live-decisions\|validate\|supersede>` | Deterministic mechanics over the `docs/adr/` Nygard log. |
 | `prd <path\|new\|link\|list\|validate>` | Deterministic mechanics over the `docs/prd/` PRD log — the product-axis counterpart to `adr`: scaffold/list/validate a per-container PRD (slug-keyed) and emit the container-link line; the caller commits + applies it. |

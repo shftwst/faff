@@ -100,6 +100,7 @@ The confidence gate above asks *is the spec internally well-formed?*. This gate 
 
 **The consumer-fold.** prep is the consumer of that block (the same producer-emits / consumer-parses shape as `spec-readiness`): (1) locate the single fenced `faff-contract:spec-review-verdict` block, (2) `JSON.parse` its body (`{ verdict, objections }`), (3) pipe it to `faff contract spec-review-verdict` — the **sole source of contract data**. The script's exit maps to the action:
 
+- **No block located, or its body does not `JSON.parse`** → treat as `needs-human` (producer breakage — a reviewer that can't emit a founded verdict), **park**. Never admit. (There is **no** silent-admit fallback here — unlike `spec-readiness`, where an absent block falls back to reading the spec's own markers, a *review verdict* has no prose to recover it from, so an absent/garbled block fails safe to `needs-human`, mirroring the contract's "malformed → never `approve`" coercion.)
 - **exit 2** (fail-loud — malformed extraction) → treat as `needs-human` (producer breakage), **park**. Never admit.
 - **exit 1** (violations — contract not satisfied) → treat as `needs-human`, **park**. Never admit.
 - **exit 0** (conformant) → route on the verdict below.

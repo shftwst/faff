@@ -297,42 +297,23 @@ function loadConfig(root) {
   return [(data && typeof data === "object" && !Array.isArray(data)) ? data : {}, p];
 }
 
-function resolveSpecDocsPath(root, data, create) {
+// One docs-path resolver for the spec / PRD / PRDR axes (FAFF-252, FAFF-245).
+// `configKey` is the tracking.* override; `subdir` is the leaf under docs/ (or
+// doc/ when only doc/ exists). An explicit override wins; otherwise prefer an
+// existing docs/, then doc/, defaulting to docs/<subdir>.
+function resolveDocsPath(root, data, create, configKey, subdir) {
   let rel;
-  const val = dig(data, "tracking.spec_docs_path");
+  const val = dig(data, configKey);
   if (val) rel = String(val).trim().replace(/\/+$/, "");
-  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/specs";
-  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/specs";
-  else rel = "docs/specs";
+  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/" + subdir;
+  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/" + subdir;
+  else rel = "docs/" + subdir;
   if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
   return rel;
 }
-
-// FAFF-252: the PRD-docs-path resolver — the product-axis mirror of resolveSpecDocsPath.
-// Default docs/prd (or doc/prd when only doc/ exists). Reads tracking.prd_docs_path.
-function resolvePrdDocsPath(root, data, create) {
-  let rel;
-  const val = dig(data, "tracking.prd_docs_path");
-  if (val) rel = String(val).trim().replace(/\/+$/, "");
-  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/prd";
-  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/prd";
-  else rel = "docs/prd";
-  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
-  return rel;
-}
-
-// FAFF-245: the PRDR-docs-path resolver — the product-decision-record mirror of the above.
-// Default docs/prdr (or doc/prdr when only doc/ exists). Reads tracking.prdr_docs_path.
-function resolvePrdrDocsPath(root, data, create) {
-  let rel;
-  const val = dig(data, "tracking.prdr_docs_path");
-  if (val) rel = String(val).trim().replace(/\/+$/, "");
-  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/prdr";
-  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/prdr";
-  else rel = "docs/prdr";
-  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
-  return rel;
-}
+const resolveSpecDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.spec_docs_path", "specs");
+const resolvePrdDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prd_docs_path", "prd");
+const resolvePrdrDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prdr_docs_path", "prdr");
 
 // ---------------------------------------------------------------------------
 // config init — FAFF-5: the deterministic WRITE half of the config surface.

@@ -154,6 +154,80 @@ function parseYamlSubset(text) {
     return lines.length ? lines.join("\n") + "\n" : "";
   }
 
+  // a block-sequence item line: a bare "-" or a "- " prefix at the line's own indent.
+  const isSeqLine = (s) => s === "-" || s.startsWith("- ");
+
+  // FAFF-262: resolve a key's value given its inline text and the key's own indent.
+  // Shared by parseMap and parseSeq map-items so block-scalar / nested-map / nested-seq /
+  // scalar handling stays in one place. An empty inline value whose deeper child line opens
+  // with "-" parses as a block sequence (array); otherwise a nested map; else null.
+  function valueFor(val, ownIndent) {
+    if (["|", "|-", "|+", ">", ">-", ">+"].includes(val)) return collectBlockScalar(ownIndent);
+    if (val === "") {
+      let j = cur.i;
+      while (j < n && isSkip(raw[j])) j++;
+      if (j < n && indentOf(raw[j]) > ownIndent) {
+        const childIndent = indentOf(raw[j]);
+        return isSeqLine(stripInlineComment(raw[j].trim())) ? parseSeq(childIndent) : parseMap(childIndent);
+      }
+      return null;
+    }
+    return scalar(val);
+  }
+
+  // FAFF-262: parse a YAML block sequence (the `- item` list form) into a JS array. Items are
+  // scalars (`- foo`), or maps whose first key is inline on the dash line (`- key: val`) with
+  // continuation keys aligned to the item content column. Composes with parseMap/valueFor for
+  // nested values. scalar() is untouched, so strict-JSON inline flow + JSON-string scalars are
+  // unaffected (they never reach here — they are non-empty inline values handled by scalar()).
+  function parseSeq(seqIndent) {
+    const items = [];
+    while (cur.i < n) {
+      if (isSkip(raw[cur.i])) { cur.i++; continue; }
+      const line = raw[cur.i];
+      if (indentOf(line) !== seqIndent) break;
+      const content = stripInlineComment(line.trim());
+      if (!isSeqLine(content)) break;
+      // item content column = first non-space char after the dash (continuation-key alignment).
+      let contentCol = seqIndent + 1;
+      while (contentCol < line.length && line[contentCol] === " ") contentCol++;
+      const remainder = content === "-" ? "" : content.slice(1).trim();
+      cur.i++;
+      if (remainder === "") {
+        // item body (map or nested sequence) on the following deeper lines.
+        let j = cur.i;
+        while (j < n && isSkip(raw[j])) j++;
+        if (j < n && indentOf(raw[j]) > seqIndent) {
+          const childIndent = indentOf(raw[j]);
+          items.push(isSeqLine(stripInlineComment(raw[j].trim())) ? parseSeq(childIndent) : parseMap(childIndent));
+        } else {
+          items.push(null);
+        }
+      } else if (remainder.indexOf(":") === -1) {
+        items.push(scalar(remainder)); // array-of-scalars item
+      } else {
+        // map item: first key inline on the dash line, continuation keys at contentCol.
+        const map = {};
+        const ci = remainder.indexOf(":");
+        map[remainder.slice(0, ci).trim()] = valueFor(remainder.slice(ci + 1).trim(), contentCol);
+        while (cur.i < n) {
+          if (isSkip(raw[cur.i])) { cur.i++; continue; }
+          const cl = raw[cur.i];
+          if (indentOf(cl) !== contentCol) break;
+          const ct = stripInlineComment(cl.trim());
+          if (isSeqLine(ct)) break; // a dash at contentCol is a nested sequence, not a key
+          const cci = ct.indexOf(":");
+          const ckey = (cci === -1 ? ct : ct.slice(0, cci)).trim();
+          const cval = (cci === -1 ? "" : ct.slice(cci + 1)).trim();
+          cur.i++;
+          map[ckey] = valueFor(cval, contentCol);
+        }
+        items.push(map);
+      }
+    }
+    return items;
+  }
+
   function parseMap(minIndent) {
     const result = {};
     while (cur.i < n) {
@@ -163,19 +237,12 @@ function parseYamlSubset(text) {
       if (ind !== minIndent) break;
       const content = stripInlineComment(line.trim());
       if (content === "") { cur.i++; continue; }
+      if (isSeqLine(content)) break; // a sequence item is not a map entry
       const ci = content.indexOf(":");
       const key = (ci === -1 ? content : content.slice(0, ci)).trim();
       const val = (ci === -1 ? "" : content.slice(ci + 1)).trim();
       cur.i++;
-      if (["|", "|-", "|+", ">", ">-", ">+"].includes(val)) {
-        result[key] = collectBlockScalar(minIndent);
-      } else if (val === "") {
-        let j = cur.i;
-        while (j < n && isSkip(raw[j])) j++;
-        result[key] = (j < n && indentOf(raw[j]) > minIndent) ? parseMap(indentOf(raw[j])) : null;
-      } else {
-        result[key] = scalar(val);
-      }
+      result[key] = valueFor(val, minIndent);
     }
     return result;
   }
@@ -588,6 +655,38 @@ function configInitSelftest() {
     const { text, changed } = mergeTrackingBlock(orig, { repo: "a/b" }, false);
     check("empty-block: inserts child", changed === true && reads(text, "repo") === "a/b");
     check("empty-block: slots untouched", text.includes("slots:\n  spec: x"));
+  }
+
+  // FAFF-262: block-sequence parsing (arrays of maps + arrays of scalars).
+  {
+    const text = "faffter_dark:\n  adversarial:\n    backends:\n      - provider: nvidia\n        model: nemotron\n      - provider: ollama\n        model: qwen3\n";
+    const arr = dig(parseYamlSubset(text), "faffter_dark.adversarial.backends");
+    check("seq: array of maps is an Array of length 2", Array.isArray(arr) && arr.length === 2);
+    check("seq: map item 1 multi-key intact", arr && arr[0] && arr[0].provider === "nvidia" && arr[0].model === "nemotron");
+    check("seq: map item 2 multi-key intact", arr && arr[1] && arr[1].provider === "ollama" && arr[1].model === "qwen3");
+  }
+  {
+    const arr = dig(parseYamlSubset("hosts:\n  - alpha\n  - beta\n"), "hosts");
+    check("seq: array of scalars", Array.isArray(arr) && arr.length === 2 && arr[0] === "alpha" && arr[1] === "beta");
+  }
+  {
+    // scalar coercion of sequence items (numbers/booleans via scalar()).
+    const arr = dig(parseYamlSubset("nums:\n  - 1\n  - 2\n  - true\n"), "nums");
+    check("seq: scalar coercion of items", Array.isArray(arr) && arr[0] === 1 && arr[1] === 2 && arr[2] === true);
+  }
+  {
+    // nested map inside a sequence item.
+    const arr = dig(parseYamlSubset("items:\n  - name: a\n    opts:\n      x: 1\n"), "items");
+    check("seq: nested map inside item", Array.isArray(arr) && arr[0].name === "a" && arr[0].opts && arr[0].opts.x === 1);
+  }
+  {
+    // regression guard: scalars + nested maps + block scalar + JSON-string scalar parse unchanged.
+    const text = "tracking:\n  team_key: SHF\n  spec_docs_path: docs/specs/\nnote: |\n  line one\n  line two\nfallbacks: '[{\"provider\":\"x\"}]'\n";
+    const d = parseYamlSubset(text);
+    check("seq regression: scalar unchanged", dig(d, "tracking.team_key") === "SHF");
+    check("seq regression: nested map unchanged", dig(d, "tracking.spec_docs_path") === "docs/specs/");
+    check("seq regression: block scalar unchanged", dig(d, "note") === "line one\nline two\n");
+    check("seq regression: JSON-string scalar stays a string", dig(d, "fallbacks") === '[{"provider":"x"}]');
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);

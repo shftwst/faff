@@ -71,3 +71,39 @@ test("config defaults prints the registry as JSON", () => {
     assert.equal(reg["logging"], "full");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// FAFF-262 — native YAML block sequences parse to real arrays; `config get --json` returns them.
+test("config get --json returns a real array for a block sequence of maps", () => {
+  const dir = withConfig(
+    "faffter_dark:\n  adversarial:\n    backends:\n      - provider: nvidia\n        model: nemotron\n      - provider: ollama\n        model: qwen3\n",
+  );
+  try {
+    const r = run(dir, "config", "get", "--json", "faffter_dark.adversarial.backends");
+    assert.equal(r.code, 0);
+    assert.deepEqual(JSON.parse(r.out), [
+      { provider: "nvidia", model: "nemotron" },
+      { provider: "ollama", model: "qwen3" },
+    ]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config get --json returns a real array for a block sequence of scalars", () => {
+  const dir = withConfig("hosts:\n  - alpha\n  - beta\n");
+  try {
+    const r = run(dir, "config", "get", "--json", "hosts");
+    assert.equal(r.code, 0);
+    assert.deepEqual(JSON.parse(r.out), ["alpha", "beta"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("block sequences don't regress scalars, nested maps, or JSON-string scalars", () => {
+  const dir = withConfig(
+    "tracking:\n  team_key: SHF\nlist:\n  - one\nfallbacks: '[{\"provider\":\"x\"}]'\n",
+  );
+  try {
+    assert.deepEqual(run(dir, "config", "get", "tracking.team_key"), { code: 0, out: "SHF" });
+    assert.deepEqual(JSON.parse(run(dir, "config", "get", "--json", "list").out), ["one"]);
+    // a JSON-string scalar stays a string (back-compat consumer JSON.parses it itself)
+    assert.equal(run(dir, "config", "get", "fallbacks").out, '[{"provider":"x"}]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

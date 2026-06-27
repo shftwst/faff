@@ -2971,10 +2971,10 @@ function checksFor(meta, t) {
       out.push([has("faff-contract:review-verdict"), "emits its `faff-contract:review-verdict` artifact block"]);
       break;
     case "producer-spec-review":
-      // FAFF-265: the spec-stage reviewer (FAFF-9 family) self-declares its verdict in a
-      // faff-contract:spec-review-verdict block the consumer (faff-prep, FAFF-266) parses and
-      // pipes to `faff contract spec-review-verdict`. The default occupant is a passthrough until
-      // FAFF-266 fills in the real lenses.
+      // FAFF-265/266: the spec-stage reviewer (FAFF-9 family) self-declares its verdict in a
+      // faff-contract:spec-review-verdict block the consumer (faff-prep) parses and pipes to
+      // `faff contract spec-review-verdict`. The default occupant is the L1–L3 single-pass
+      // four-lens reviewer (FAFF-266); L4 per-lens refuters (FAFF-267) swap in via the same slot.
       out.push([has("faff-contract:spec-review-verdict"), "emits its `faff-contract:spec-review-verdict` artifact block"]);
       break;
     case "producer-ship":

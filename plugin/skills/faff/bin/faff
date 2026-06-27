@@ -4961,12 +4961,13 @@ function computePrdCoverageVerdict(input) {
   const goals = Array.isArray(input.prdGoals) ? input.prdGoals.filter((g) => typeof g === "string") : [];
   const live = Array.isArray(input.livePrdrs) ? input.livePrdrs.filter((p) => p && typeof p === "object" && !Array.isArray(p)) : [];
   const citedGoals = new Set(live.map((p) => (typeof p.prd_goal === "string" ? p.prd_goal : "")));
-  // COVERAGE (static): a PRD goal with no live PRDR citing it is uncovered.
-  const uncovered_goals = goals.filter((g) => !citedGoals.has(g));
+  // COVERAGE (static): a PRD goal with no live PRDR citing it is uncovered. Dedup — `uncovered_goals` is
+  // consumed downstream (`prdr admit --lower`), so a duplicate-bearing caller goal list yields a clean set.
+  const uncovered_goals = [...new Set(goals.filter((g) => !citedGoals.has(g)))];
   const covered = uncovered_goals.length === 0;
   // COMPLETION (dynamic): a live PRDR whose FAFF-34 DoD verdict is not exactly "met" is unmet/unverified.
   const prdrLabel = (p) => (typeof p.id === "string" && p.id) || (typeof p.prd_goal === "string" ? `(goal: ${p.prd_goal})` : "<unidentified PRDR>");
-  const unmet_or_unverified = live.filter((p) => p.dod_verdict !== "met").map(prdrLabel);
+  const unmet_or_unverified = [...new Set(live.filter((p) => p.dod_verdict !== "met").map(prdrLabel))];
   const all_met = unmet_or_unverified.length === 0;
   const completion = { all_met, unmet_or_unverified };
   // ROLL-UP: prd-satisfied ⟺ coverage ∧ completion (the no-gap predicate). Conservative throughout.
@@ -7480,6 +7481,10 @@ function prdrSelftest() {
     cov({ livePrdrs: [{ id: "0001", prd_goal: "ship booking", dod_verdict: "met" }, { id: "0002", prd_goal: "reduce no-shows", dod_verdict: "met" }] }),
     computePrdCoverageVerdict({ prdGoals: [], livePrdrs: [] }),
   ].every((v) => computePrdCoverage(v).contractData.conformant === true && computePrdCoverage(v).failLoud == null));
+  t("consumed arrays are deduped on duplicate caller input (uncovered_goals fed to admit --lower)", (() => {
+    const v = computePrdCoverageVerdict({ prdGoals: ["g1", "g1", "g2"], livePrdrs: [{ id: "0001", prd_goal: "g2", dod_verdict: "met" }] });
+    return v.uncovered_goals.length === 1 && v.uncovered_goals[0] === "g1" && computePrdCoverage(v).contractData.conformant === true;
+  })());
 
   let failed = 0;
   for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prdr --selftest FAIL: ${name}\n`); failed++; } }

@@ -4,7 +4,7 @@ A small command-line tool ships **inside the faff plugin** — `faff`, a single 
 
 The skills and hooks invoke it for themselves — each resolves it as `command -v faff` if it's on `PATH`, otherwise from its own install location (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff` when running as a plugin, or the sibling `faff/bin/faff` when dev-linked) — so **normal use needs no setup**.
 
-Most subcommands also accept `--selftest` (runs an in-memory test table) and `--json` (structured output). The pure functions (`eligible`, `next`, `state`, `contain`, `intakecheck`, `container-check`) make **no** tracker or network calls — the agent maps live state into the flags.
+Most subcommands also accept `--selftest` (runs an in-memory test table) and `--json` (structured output). The pure functions (`eligible`, `admissible`, `next`, `state`, `contain`, `intakecheck`, `container-check`) make **no** tracker or network calls — the agent maps live state into the flags.
 
 ## Config & install health
 
@@ -24,6 +24,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 | Subcommand | What it does |
 |---|---|
 | `eligible --label L [--label L …] [--default opt-in\|opt-out]` | Is a ticket automation-eligible? (`true`/`false`; `hold > automate > default`). |
+| `admissible --spec <path\|-> [--lights-out] [--json]` | Lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (`## Scenarios` + `### N. DONE`). Gating R1 (≥1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command → `warnings`, never gates). **No LLM, never re-invokes the producer.** Fail-safe: ambiguous/unparseable/absent DoD → inadmissible; `--lights-out` absent → admissible no-op (L1–L3 unchanged). Emits `AdmissibilityVerdict {admissible, reasons, checks, warnings}`; exit 0 admissible / 1 inadmissible / 2 usage. |
 | `next --status S --spec none\|low\|medium\|high […]` | Legal next step for an issue (JSON `{next, reason}`). |
 | `state <issue> [--json] [--root DIR]` | Local read-model: resolve an issue's spec/parked/branch/worktree/ledger state as JSON; no MCP. |
 | `contain <mandate> (--parent ID \| --root) --ancestry JSON` | Subtree-of-mandate containment — is `parent ∈ subtree(mandate)`? Fail-closed. |

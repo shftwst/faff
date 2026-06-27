@@ -4138,7 +4138,8 @@ Subcommands:
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
   label add|remove <issue-id> <label> [--present-label L ...]   FAFF-187: emit a faff-contract:label-op descriptor (issue·label·action·ensure-first·idempotent-noop) for a control-label mutation the agent performs via MCP — PURE, no tracker I/O; rejects a label not in the manifest; --present-label (repeatable) pre-computes the idempotent no-op; --selftest runs the table
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
-  container-check [--json]                      FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
+  admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
+  container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
@@ -6586,6 +6587,195 @@ function lintCliDocSelftest() {
   return 0;
 }
 
+// --- Lights-out admissibility gate (FAFF-224) ------------------------------
+// A pure, deterministic structural check over a spec's machine-verifiable DoD —
+// the L4 quality-IN floor. It refuses a spec into the unattended build queue
+// unless its `## Scenarios` + `### N. DONE` structure is machine-checkable.
+//
+// DETERMINISTIC, NEVER LLM: the verdict is a pure function over the spec's text
+// structure (section presence, checkbox lines, scenario keywords, a banned-vague
+// filter). It calls no model and never re-invokes the spec producer — an LLM
+// judging whether the DoD is verifiable IS the agent grading itself, the exact
+// failure L4 removes. The semantic judgement layer sits ABOVE this gate (FAFF-9).
+//
+// FAIL-SAFE: an ambiguous / unparseable / structurally-absent DoD is
+// inadmissible (parks for a human), never silently admitted — mirroring the
+// eligibility gate's "any resolution failure → not-eligible".
+//
+// SCOPE: active only under the lights-out signal. Absent → no-op admissible, so
+// L1–L3 behaviour is unchanged (the signal fail-safe defaults OFF at the caller).
+
+// Banned-vague DONE phrasings — a named constant, not scattered literals. Seeded
+// from the spec producers' own documented anti-pattern ("Works correctly is not a
+// DONE item"). Case-insensitive substring match; a tunable denylist (a floor, by
+// design — tune from real misses, never escalate to an LLM).
+const BANNED_VAGUE = [
+  "works correctly", "works as expected", "handled properly",
+  "behaves correctly", "as appropriate", "etc.", "and so on", "properly handled",
+];
+
+function matchesBannedVague(text) {
+  const t = String(text == null ? "" : text).toLowerCase();
+  return BANNED_VAGUE.some((p) => t.includes(p));
+}
+
+// Heading level of a markdown ATX heading line (count of leading #), else 0.
+function headingLevel(line) {
+  const m = String(line).match(/^\s*(#{1,6})\s+\S/);
+  return m ? m[1].length : 0;
+}
+
+// Count born-verifiable scenarios under a `## Scenarios` heading: each
+// Given/When/Then group (a `Given` line is enough to count one) PLUS each
+// standalone assertion/constraint bullet (non-functional objectives are valid
+// born-verifiable items per both producers). Pure — no I/O.
+function parseScenarios(specText) {
+  const lines = String(specText == null ? "" : specText).split(/\r?\n/);
+  const isFence = (l) => /^\s*(?:```|~~~)/.test(l);
+  let start = -1, level = 0, fence = false;
+  for (let k = 0; k < lines.length; k++) {
+    if (isFence(lines[k])) { fence = !fence; continue; }
+    if (!fence && /^\s*#{1,6}\s+scenarios\b/i.test(lines[k])) { start = k; level = headingLevel(lines[k]); break; }
+  }
+  if (start === -1) return 0;
+  let count = 0;
+  fence = false;
+  for (let k = start + 1; k < lines.length; k++) {
+    const line = lines[k];
+    if (isFence(line)) { fence = !fence; continue; }
+    const lvl = fence ? 0 : headingLevel(line);               // a `#` inside a code fence is not a heading
+    if (lvl > 0 && lvl <= level) break;                       // next equal/higher heading ends the section
+    if (/^\s*Given\b/i.test(line)) { count++; continue; }     // a Given line counts one GWT group (in-fence GWT included)
+    if (fence) continue;                                      // other in-fence lines are scenario prose, not bullets
+    // a standalone assertion/constraint bullet (e.g. "- **Assertion:** …")
+    if (/^\s*(?:[-*+]|\d+[.)])\s+\S/.test(line)) {
+      const body = line.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "");
+      if (/\bassert(?:ion)?\b|\bconstraint\b|\bmust\b/i.test(body)) count++;
+    }
+  }
+  return count;
+}
+
+// Collect `- [ ]` / `- [x]` checklist item texts under the DoD heading — matched
+// by NAME (a heading whose text contains "DONE"), not by number, so it works for
+// both `## 8. DONE` and `### 4. DONE`. Collect until the next heading of
+// equal-or-higher level (sub-headings under DONE are included). Pure — no I/O.
+function parseDoneChecklist(specText) {
+  const lines = String(specText == null ? "" : specText).split(/\r?\n/);
+  const isFence = (l) => /^\s*(?:```|~~~)/.test(l);
+  let start = -1, level = 0, fence = false;
+  for (let k = 0; k < lines.length; k++) {
+    if (isFence(lines[k])) { fence = !fence; continue; }
+    const lvl = fence ? 0 : headingLevel(lines[k]);           // a `#` inside a code fence is not a heading
+    if (lvl > 0 && /\bdone\b/i.test(lines[k])) { start = k; level = lvl; break; }
+  }
+  if (start === -1) return [];
+  const items = [];
+  fence = false;
+  for (let k = start + 1; k < lines.length; k++) {
+    if (isFence(lines[k])) { fence = !fence; continue; }
+    const lvl = fence ? 0 : headingLevel(lines[k]);
+    if (lvl > 0 && lvl <= level) break;                       // next equal/higher heading ends the section
+    if (fence) continue;                                      // checklist items live outside fences
+    const m = lines[k].match(/^\s*[-*+]\s+\[[ xX]\]\s+(.*)$/);
+    if (m) items.push(m[1].trim());
+  }
+  return items;
+}
+
+// R3 (advisory): does the spec carry a runnable check command? A fenced ```verify
+// block, an "Integration smoke test" block, or a fenced shell/console command.
+// Its absence only warns — never fails admissibility. Pure — no I/O.
+function detectRunnableCheck(specText) {
+  const t = String(specText == null ? "" : specText);
+  if (/```\s*verify\b/i.test(t)) return true;
+  if (/integration smoke test/i.test(t)) return true;
+  if (/```\s*(?:bash|sh|shell|console)\b/i.test(t)) return true;
+  return false;
+}
+
+// The pure verdict. Any parse exception coerces to inadmissible (fail-safe).
+function admissibleVerdict(specText, lightsOut) {
+  if (!lightsOut) {
+    return { admissible: true, reasons: [], checks: [{ id: "scope", pass: true, detail: "not lights-out — gate inactive" }], warnings: [] };
+  }
+  let scenarios, doneItems;
+  try {
+    scenarios = parseScenarios(specText);
+    doneItems = parseDoneChecklist(specText);
+  } catch (e) {
+    return { admissible: false, reasons: ["spec unparseable — fail-safe inadmissible"], checks: [], warnings: [] };
+  }
+  const checks = [];
+  checks.push({ id: "R1.scenarios", pass: scenarios >= 1, detail: `${scenarios} born-verifiable scenario(s) (need >=1)` });
+  checks.push({ id: "R2a.done-present", pass: doneItems.length >= 1, detail: `${doneItems.length} DONE checklist item(s) (need >=1)` });
+  const vague = doneItems.filter((it) => matchesBannedVague(it));
+  checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
+  const warnings = detectRunnableCheck(specText) ? [] : ["R3 advisory: no runnable check command found (recommended for lights-out, not required)"];
+  const admissible = checks.every((c) => c.pass);
+  const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
+  return { admissible, reasons, checks, warnings };
+}
+
+// Verdict-table selftest — one case per spec'd branch.
+const ADMISSIBLE_GOOD = [
+  "## Scenarios", "",
+  "```", "Given a lights-out run and a concrete spec", "When the gate evaluates it", "Then the verdict is admissible", "```", "",
+  "## 8. DONE", "", "- [ ] `faff admissible` emits the verdict JSON", "- [ ] exit code is 0 admissible / 1 inadmissible", "",
+  "**Integration smoke test.**", "```", "faff admissible --selftest", "```", "",
+].join("\n");
+
+function admissibleSelftest() {
+  const noScenarios = ADMISSIBLE_GOOD.replace(/## Scenarios[\s\S]*?\n\n(?=## 8\. DONE)/, "");
+  const cases = [
+    { name: "admissible (R1+R2 pass, R3 ok)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantWarn: false },
+    { name: "R1-fail (no Scenarios)", text: noScenarios, lights: true, wantAdmissible: false, wantReason: /R1|scenario/i },
+    { name: "R2a-fail (empty DONE)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n(no items)\n", lights: true, wantAdmissible: false, wantReason: /DONE checklist/i },
+    { name: "R2b-fail (vague DONE item)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the feature works correctly\n", lights: true, wantAdmissible: false, wantReason: /vague DONE/i },
+    { name: "R3-advisory-warn (no runnable check)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarn: true },
+    { name: "unparseable-failsafe (empty body)", text: "", lights: true, wantAdmissible: false },
+    { name: "scope-inactive (no --lights-out)", text: "", lights: false, wantAdmissible: true, wantScope: true },
+  ];
+  let failed = 0;
+  for (const c of cases) {
+    const v = admissibleVerdict(c.text, c.lights);
+    let ok = v.admissible === c.wantAdmissible;
+    if (ok && c.wantReason) ok = v.reasons.some((r) => c.wantReason.test(r));
+    if (ok && c.wantWarn === true) ok = v.warnings.length >= 1;
+    if (ok && c.wantWarn === false) ok = v.warnings.length === 0;
+    if (ok && c.wantScope) ok = v.checks.length === 1 && v.checks[0].id === "scope" && v.warnings.length === 0;
+    // invariant: reasons non-empty IFF inadmissible; warnings never flip admissible
+    if (ok) ok = (v.reasons.length > 0) === (v.admissible === false);
+    if (!ok) failed++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${c.name} → admissible=${v.admissible}`);
+  }
+  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${cases.length} cases, ${failed} failed)`);
+  return failed ? 1 : 0;
+}
+
+function cmdAdmissible(args) {
+  if (args.includes("--selftest")) return admissibleSelftest();
+  const lightsOut = args.includes("--lights-out");
+  const json = args.includes("--json");
+  const specIdx = args.indexOf("--spec");
+  const specArg = specIdx !== -1 ? args[specIdx + 1] : null;
+  let specText;
+  try {
+    if (specArg && specArg !== "-") specText = fs.readFileSync(specArg, "utf8");
+    else specText = fs.readFileSync(0, "utf8");   // --spec - or no --spec → stdin
+  } catch (e) {
+    process.stderr.write(`faff admissible: cannot read spec: ${e.message}\n`);
+    return 2;
+  }
+  const v = admissibleVerdict(specText, lightsOut);
+  if (json) {
+    process.stdout.write(JSON.stringify(v) + "\n");
+  } else {
+    process.stdout.write(JSON.stringify(v, null, 2) + "\n");
+  }
+  return v.admissible ? 0 : 1;
+}
+
 // Subcommand registry (ADR 0014) — the single source of truth for the CLI command
 // set. main() dispatches through this map, and `Object.keys(COMMANDS)` is exactly
 // the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a
@@ -6606,6 +6796,7 @@ const COMMANDS = {
   "labels": cmdLabels,
   "label": cmdLabel,
   "eligible": cmdEligible,
+  "admissible": cmdAdmissible,
   "container-check": cmdContainerCheck,
   "next": cmdNext,
   "state": cmdState,

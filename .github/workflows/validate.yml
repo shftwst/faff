@@ -47,6 +47,9 @@ jobs:
       - name: Validate automation-eligibility table
         run: node plugin/skills/faff/bin/faff eligible --selftest
 
+      - name: Validate lights-out admissibility verdict table
+        run: node plugin/skills/faff/bin/faff admissible --selftest
+
       - name: Validate label-op descriptor table
         run: node plugin/skills/faff/bin/faff label --selftest
 

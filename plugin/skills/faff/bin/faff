@@ -254,6 +254,19 @@ function resolvePrdDocsPath(root, data, create) {
   return rel;
 }
 
+// FAFF-245: the PRDR-docs-path resolver — the product-decision-record mirror of the above.
+// Default docs/prdr (or doc/prdr when only doc/ exists). Reads tracking.prdr_docs_path.
+function resolvePrdrDocsPath(root, data, create) {
+  let rel;
+  const val = dig(data, "tracking.prdr_docs_path");
+  if (val) rel = String(val).trim().replace(/\/+$/, "");
+  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/prdr";
+  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/prdr";
+  else rel = "docs/prdr";
+  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
+  return rel;
+}
+
 // ---------------------------------------------------------------------------
 // config init — FAFF-5: the deterministic WRITE half of the config surface.
 // Writes/merges a `tracking` block into `.faffrc.yaml`. Pure-functional except
@@ -271,6 +284,7 @@ const TRACKING_KEYS = [
   "tracking.git_host",
   "tracking.spec_docs_path",
   "tracking.prd_docs_path",
+  "tracking.prdr_docs_path",
 ];
 const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
 
@@ -3773,20 +3787,83 @@ function adrNextNumber(dir) {
 // NEW carries `Supersedes: ADR-MMMM`. These extract the referenced number (zero-padded), and
 // match ONLY the canonical form — freeform legacy lines ("Supersedes / unblocks: FAFF-77",
 // a "Feeds:" line) are not matched, so the existing hand-written ADRs are never flagged.
-function adrSupersededBy(status) {
-  const m = status && status.match(/^Superseded\s+by\s+ADR[-\s]?(\d{1,4})\b/i);
+//
+// FAFF-245: parameterised by record `prefix` ("ADR" | "PRDR") so the PRDR record mechanic
+// reuses the exact supersession ref-parsers verbatim (no fork). The `adr*` names below are
+// thin, behaviour-preserving wrappers; `prdr` calls the core with prefix "PRDR".
+function recordSupersededBy(status, prefix) {
+  const m = status && status.match(new RegExp(`^Superseded\\s+by\\s+${prefix}[-\\s]?(\\d{1,4})\\b`, "i"));
   return m ? m[1].padStart(4, "0") : null;
 }
-// ALL canonical `Supersedes: ADR-NNNN` refs (a colon must follow "Supersedes" → legacy
-// "Supersedes / unblocks: FAFF-77" is not matched). A Set, because one ADR may consolidate
+// ALL canonical `Supersedes: <prefix>-NNNN` refs (a colon must follow "Supersedes" → legacy
+// "Supersedes / unblocks: FAFF-77" is not matched). A Set, because one record may consolidate
 // several predecessors (multiple Supersedes lines) — returning only the first would false-fail validate.
-function adrSupersedesSet(text) {
+function recordSupersedesSet(text, prefix) {
   const out = new Set();
   for (const m of text.matchAll(/^[\s>*-]*Supersedes[\s*]*:[\s*]*([^\n]+)$/gim)) {
-    const r = m[1].match(/\bADR[-\s]?(\d{1,4})\b/i);
+    const r = m[1].match(new RegExp(`\\b${prefix}[-\\s]?(\\d{1,4})\\b`, "i"));
     if (r) out.add(r[1].padStart(4, "0"));
   }
   return out;
+}
+function adrSupersededBy(status) { return recordSupersededBy(status, "ADR"); }
+function adrSupersedesSet(text) { return recordSupersedesSet(text, "ADR"); }
+
+// FAFF-245: the symmetric supersession back-reference check, parameterised by `prefix`. Both
+// `adrValidate` and `prdrValidate` call this — the "reuse the symmetric validator" mandate.
+// `records` = listAdrs/listPrdrs output; `texts` = Map(num → file text). Returns problem strings.
+function recordSupersessionProblems(records, texts, prefix) {
+  const problems = [];
+  const byNum = new Map(records.map((a) => [a.num, a]));
+  for (const a of records) {
+    const supBy = recordSupersededBy(a.status, prefix);   // a: "Superseded by <prefix>-<supBy>"
+    if (supBy) {
+      if (!byNum.has(supBy)) problems.push(`${a.file}: superseded by missing ${prefix}-${supBy}`);
+      else if (!recordSupersedesSet(texts.get(supBy), prefix).has(a.num)) problems.push(`${a.file}: asymmetric supersession — ${prefix}-${supBy} does not record "Supersedes: ${prefix}-${a.num}"`);
+    }
+    for (const sup of recordSupersedesSet(texts.get(a.num), prefix)) {   // a may supersede several predecessors
+      if (!byNum.has(sup)) problems.push(`${a.file}: supersedes missing ${prefix}-${sup}`);
+      else if (recordSupersededBy(byNum.get(sup).status, prefix) !== a.num) problems.push(`${a.file}: asymmetric supersession — ${prefix}-${sup} not marked "Superseded by ${prefix}-${a.num}"`);
+    }
+  }
+  return problems;
+}
+
+// FAFF-245: the supersede WRITE — the one place the CLI edits an existing record (Status value +
+// one idempotent Supersedes line). Parameterised by `prefix` so `adr` and `prdr` share it exactly
+// (mirror `adr supersede` verbatim — a pure mechanical linker, NO actor/authority concept). Pure
+// except the two fs.writeFileSync; returns { code, out, err } for the caller to surface.
+function recordSupersede(dir, root, records, oldTok, newTok, prefix) {
+  if (!oldTok || !newTok) return { code: 2, out: "", err: `usage: faff ${prefix.toLowerCase()} supersede <old> --by <new>\n` };
+  const rel = path.relative(root, dir) || dir;
+  const resolve = (tok) => {
+    const d = String(tok).match(/^(\d{1,4})/);
+    return d ? records.find((a) => a.num === d[1].padStart(4, "0")) || null : null;
+  };
+  const oldA = resolve(oldTok), newA = resolve(newTok);
+  if (!oldA) return { code: 1, out: "", err: `faff ${prefix.toLowerCase()} supersede: no ${prefix} matching "${oldTok}" in ${rel}\n` };
+  if (!newA) return { code: 1, out: "", err: `faff ${prefix.toLowerCase()} supersede: no ${prefix} matching "${newTok}"\n` };
+  if (oldA.num === newA.num) return { code: 1, out: "", err: `faff ${prefix.toLowerCase()} supersede: a ${prefix} cannot supersede itself\n` };
+  const already = recordSupersededBy(oldA.status, prefix);
+  if (already) return { code: 1, out: "", err: `faff ${prefix.toLowerCase()} supersede: ${prefix}-${oldA.num} is already superseded by ${prefix}-${already}\n` };
+
+  // OLD: replace the Status VALUE only (preserve the "- **Status:** " prefix); body untouched.
+  const oldPath = path.join(dir, oldA.file);
+  const oldText = fs.readFileSync(oldPath, "utf8")
+    .replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, `$1Superseded by ${prefix}-${newA.num}`);
+  fs.writeFileSync(oldPath, oldText);
+
+  // NEW: add "- **Supersedes:** <prefix>-<old>" once (idempotent), after the Status line.
+  const newPath = path.join(dir, newA.file);
+  let newText = fs.readFileSync(newPath, "utf8");
+  if (!recordSupersedesSet(newText, prefix).has(oldA.num)) {   // idempotent + supports multiple predecessors
+    const supLine = `- **Supersedes:** ${prefix}-${oldA.num}`;
+    newText = /^[\s>*-]*\*{0,2}Status[\s*]*:/mi.test(newText)
+      ? newText.replace(/^([\s>*-]*\*{0,2}Status[\s*]*:.*)$/mi, `$1\n${supLine}`)
+      : newText.replace(new RegExp(`^(#\\s*${prefix}.*)$`, "mi"), `$1\n\n${supLine}`);
+    fs.writeFileSync(newPath, newText);
+  }
+  return { code: 0, out: `${oldPath}\n${newPath}\n`, err: "" };
 }
 
 // Returns a list of problem strings (empty = valid). Lenient by design so the existing
@@ -3814,18 +3891,8 @@ function adrValidate(dir) {
     if (!seen.has(i)) problems.push(`numbering gap: ADR ${String(i).padStart(4, "0")} missing (expected contiguous 0001..${String(adrs.length).padStart(4, "0")})`);
   }
   // FAFF-197: canonical supersession back-references must resolve + be symmetric, BOTH directions.
-  const byNum = new Map(adrs.map((a) => [a.num, a]));
-  for (const a of adrs) {
-    const supBy = adrSupersededBy(a.status);   // a: "Superseded by ADR-<supBy>"
-    if (supBy) {
-      if (!byNum.has(supBy)) problems.push(`${a.file}: superseded by missing ADR-${supBy}`);
-      else if (!adrSupersedesSet(texts.get(supBy)).has(a.num)) problems.push(`${a.file}: asymmetric supersession — ADR-${supBy} does not record "Supersedes: ADR-${a.num}"`);
-    }
-    for (const sup of adrSupersedesSet(texts.get(a.num))) {   // a may supersede several predecessors
-      if (!byNum.has(sup)) problems.push(`${a.file}: supersedes missing ADR-${sup}`);
-      else if (adrSupersededBy(byNum.get(sup).status) !== a.num) problems.push(`${a.file}: asymmetric supersession — ADR-${sup} not marked "Superseded by ADR-${a.num}"`);
-    }
-  }
+  // FAFF-245: shared, prefix-parameterised — `prdrValidate` calls the same helper.
+  problems.push(...recordSupersessionProblems(adrs, texts, "ADR"));
   return problems;
 }
 
@@ -3944,39 +4011,11 @@ function cmdAdr(args) {
   if (action === "supersede") {
     // faff adr supersede <old> --by <new> — link two existing ADRs with the canonical form.
     // The ONE place the CLI edits an existing ADR — and only its Status value + one Supersedes line.
-    const oldTok = args[1];
-    const newTok = adrFlag(args, "--by");
-    if (!oldTok || !newTok) { process.stderr.write("usage: faff adr supersede <old> --by <new>\n"); return 2; }
-    const adrs = listAdrs(dir);
-    const resolve = (tok) => {
-      const d = String(tok).match(/^(\d{1,4})/);
-      return d ? adrs.find((a) => a.num === d[1].padStart(4, "0")) || null : null;
-    };
-    const oldA = resolve(oldTok), newA = resolve(newTok);
-    if (!oldA) { process.stderr.write(`faff adr supersede: no ADR matching "${oldTok}" in ${path.relative(root, dir) || dir}\n`); return 1; }
-    if (!newA) { process.stderr.write(`faff adr supersede: no ADR matching "${newTok}"\n`); return 1; }
-    if (oldA.num === newA.num) { process.stderr.write("faff adr supersede: an ADR cannot supersede itself\n"); return 1; }
-    const already = adrSupersededBy(oldA.status);
-    if (already) { process.stderr.write(`faff adr supersede: ADR-${oldA.num} is already superseded by ADR-${already}\n`); return 1; }
-
-    // OLD: replace the Status VALUE only (preserve the "- **Status:** " prefix); body untouched.
-    const oldPath = path.join(dir, oldA.file);
-    const oldText = fs.readFileSync(oldPath, "utf8")
-      .replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, `$1Superseded by ADR-${newA.num}`);
-    fs.writeFileSync(oldPath, oldText);
-
-    // NEW: add "- **Supersedes:** ADR-<old>" once (idempotent), after the Status line.
-    const newPath = path.join(dir, newA.file);
-    let newText = fs.readFileSync(newPath, "utf8");
-    if (!adrSupersedesSet(newText).has(oldA.num)) {   // idempotent + supports multiple predecessors
-      const supLine = `- **Supersedes:** ADR-${oldA.num}`;
-      newText = /^[\s>*-]*\*{0,2}Status[\s*]*:/mi.test(newText)
-        ? newText.replace(/^([\s>*-]*\*{0,2}Status[\s*]*:.*)$/mi, `$1\n${supLine}`)
-        : newText.replace(/^(#\s*ADR.*)$/mi, `$1\n\n${supLine}`);
-      fs.writeFileSync(newPath, newText);
-    }
-    process.stdout.write(`${oldPath}\n${newPath}\n`);
-    return 0;
+    // FAFF-245: the write is the shared, prefix-parameterised `recordSupersede` (no fork).
+    const r = recordSupersede(dir, root, listAdrs(dir), args[1], adrFlag(args, "--by"), "ADR");
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
   }
 
   process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede (or --selftest)\n");
@@ -4105,6 +4144,7 @@ Subcommands:
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
+  prdr <path|new|list|supersede|validate> [--root DIR]   FAFF-245: deterministic mechanics over the docs/prdr/ product-requirements DECISION-record log — the supersedable product-axis record between the immutable PRD and the per-slice spec (PRD content, ADR mechanics). path [<number>]; new <title> --container <slug> --prd-goal <g> [--provenance human|loop] [--status|--date]; list [--json] [--container <slug>] [--live]; supersede <old> --by <new> (pure mechanical linker — authority is FAFF-255); validate (presence-only: metadata + enums + contiguous numbering + the four body sections + symmetric supersession; never section content); --selftest runs the table. Reads tracking.prdr_docs_path (default docs/prdr/)
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show> [--file F] [--root DIR]  FAFF-26: infra-profile schema + CLI (slice 1; acquirer=FAFF-231). validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json ⊕ .faffrc.yaml infra:, override wins per field); exit 3 when none. --selftest runs the validator table
@@ -5975,6 +6015,241 @@ function prdSelftest() {
   return 0;
 }
 
+// ===========================================================================
+// prdr — product requirements DECISION records (FAFF-245; design/prdrs.md). The
+// supersedable product-axis decision record sitting BETWEEN the immutable PRD
+// (`faff prd`, FAFF-252) and the per-slice spec. PRD *content* given ADR
+// *mechanics*: immutable + globally-numbered + supersedable, so current product
+// truth = the non-superseded set. A `cmdPrdr` fused from `cmdAdr` (numbering +
+// supersession) and `cmdPrd` (container + lenient presence validate). Reuses
+// adrSlug/adrField/the supersession ref-parsers/the symmetric validator/the
+// supersede writer VERBATIM (no fork). RECORD-DON'T-JUDGE: `validate` checks the
+// four body sections are PRESENT, never what the DoD says (born-verifiable shape
+// is FAFF-254/257). `supersede` is a pure mechanical linker — NO actor/authority
+// concept; provenance-authority enforcement lives one rung up in FAFF-255.
+// ===========================================================================
+const PRDR_STATUSES = ["Proposed", "Accepted", "Rejected", "Superseded"];
+const PRDR_PROVENANCES = ["human", "loop"];
+const PRDR_SECTIONS = ["Context", "Decision", "Scope", "Definition of done"];
+const PRDR_FILE_RE = /^(\d{4})-(.+)\.md$/;
+
+function prdrDir(root) { return path.join(root, resolvePrdrDocsPath(root, loadConfig(root)[0], false)); }
+
+function listPrdrs(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const out = [];
+  for (const f of fs.readdirSync(dir).sort()) {
+    const m = f.match(PRDR_FILE_RE);
+    if (!m) continue;
+    const text = fs.readFileSync(path.join(dir, f), "utf8");
+    const titleM = text.match(/^#\s*PRDR\s+\d+\s*[—\-]\s*(.+)$/mi);
+    out.push({
+      number: parseInt(m[1], 10), num: m[1], slug: m[2], file: f,
+      title: titleM ? titleM[1].trim() : null,
+      container: adrField(text, "Container"),
+      prd_goal: adrField(text, "PRD-goal"),
+      status: adrField(text, "Status"),
+      provenance: adrField(text, "Provenance"),
+      date: adrField(text, "Date"),
+    });
+  }
+  return out.sort((a, b) => a.number - b.number);
+}
+
+function prdrNextNumber(dir) {
+  const max = listPrdrs(dir).reduce((m, a) => Math.max(m, a.number), 0);
+  return String(max + 1).padStart(4, "0");
+}
+
+function prdrTemplate({ num, title, date, container, prdGoal, provenance, status }) {
+  const lines = [`# PRDR ${num} — ${title}`, "",
+    `- **Status:** ${status || "Proposed"}`,
+    `- **Provenance:** ${provenance || "human"}`,
+    `- **Date:** ${date}`,
+    `- **Container:** ${container}`,
+    `- **PRD-goal:** ${prdGoal}`, "",
+    "## Context", "", "_TODO: the product need this decision answers + the PRD goal it serves._", "",
+    "## Decision", "", "_TODO: the product decision, stated forward._", "",
+    "## Scope", "", "_TODO: what this decision covers (and explicitly excludes)._", "",
+    "## Definition of done", "", "_TODO: the completion bar for this decision (born-verifiable enforcement is FAFF-254/257)._", ""];
+  return lines.join("\n");
+}
+
+// Lenient validate (mirrors adrValidate + prdValidate philosophy): metadata PRESENT, enums
+// match, numbering contiguous, the four body sections PRESENT, supersession symmetric. NEVER
+// checks WHAT a section says (record-don't-judge; a _TODO_ DoD passes presence — P2).
+function prdrValidate(dir) {
+  const prdrs = listPrdrs(dir);
+  const problems = [];
+  const texts = new Map();
+  for (const a of prdrs) {
+    const text = fs.readFileSync(path.join(dir, a.file), "utf8");
+    texts.set(a.num, text);
+    const titleM = text.match(/^#\s*PRDR\s+(\d+)\s*[—\-]\s*.+$/mi);
+    if (!titleM) problems.push(`${a.file}: missing '# PRDR NNNN — Title' heading`);
+    else if (parseInt(titleM[1], 10) !== a.number) problems.push(`${a.file}: heading number PRDR ${titleM[1]} != filename ${a.num}`);
+    if (!a.status) problems.push(`${a.file}: missing Status field`);
+    else if (!PRDR_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(a.status))) problems.push(`${a.file}: Status "${a.status.slice(0, 30)}" must start with one of ${PRDR_STATUSES.join("|")}`);
+    if (!a.provenance) problems.push(`${a.file}: missing Provenance field`);
+    else if (!PRDR_PROVENANCES.some((p) => new RegExp(`^${p}$`, "i").test(a.provenance.trim()))) problems.push(`${a.file}: Provenance "${a.provenance.slice(0, 30)}" must be one of ${PRDR_PROVENANCES.join("|")}`);
+    if (!a.date) problems.push(`${a.file}: missing Date field`);
+    if (!a.container) problems.push(`${a.file}: missing Container field`);
+    if (!a.prd_goal) problems.push(`${a.file}: missing PRD-goal field`);
+    // Presence-only body check (P2): each of the four sections must exist as a "## " heading.
+    for (const s of PRDR_SECTIONS) {
+      if (!new RegExp(`^##\\s+${s}\\s*$`, "mi").test(text)) problems.push(`${a.file}: missing "## ${s}" section`);
+    }
+  }
+  // Contiguous global numbering (mirror adrValidate).
+  const seen = new Set();
+  for (const a of prdrs) {
+    if (seen.has(a.number)) problems.push(`duplicate PRDR number ${a.num}`);
+    seen.add(a.number);
+  }
+  for (let i = 1; i <= prdrs.length; i++) {
+    if (!seen.has(i)) problems.push(`numbering gap: PRDR ${String(i).padStart(4, "0")} missing (expected contiguous 0001..${String(prdrs.length).padStart(4, "0")})`);
+  }
+  // Symmetric supersession back-refs — the SHARED validator, prefix "PRDR".
+  problems.push(...recordSupersessionProblems(prdrs, texts, "PRDR"));
+  return problems;
+}
+
+function cmdPrdr(args) {
+  if (args.includes("--selftest")) return prdrSelftest();
+  const action = args[0];
+  const root = adrFlag(args, "--root") || findRoot();
+  const dir = prdrDir(root);
+
+  if (action === "path") {
+    // No arg → the resolved docs/prdr directory; <number> → that record's file path.
+    const tok = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
+    if (!tok) { process.stdout.write(dir + "\n"); return 0; }
+    const d = String(tok).match(/^(\d{1,4})/);
+    const rec = d ? listPrdrs(dir).find((a) => a.num === d[1].padStart(4, "0")) : null;
+    if (!rec) { process.stderr.write(`faff prdr path: no PRDR matching "${tok}" in ${path.relative(root, dir) || dir}\n`); return 1; }
+    process.stdout.write(path.join(dir, rec.file) + "\n");
+    return 0;
+  }
+
+  if (action === "list") {
+    let prdrs = listPrdrs(dir);
+    const container = adrFlag(args, "--container");
+    if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
+    if (args.includes("--live")) prdrs = prdrs.filter((p) => !recordSupersededBy(p.status, "PRDR"));
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(prdrs.map(({ number, num, title, container, prd_goal, status, provenance, date, file }) =>
+        ({ number, id: num, title, container, prd_goal, status, provenance, date, file })), null, 2));
+    } else if (!prdrs.length) {
+      console.log(`No PRDRs in ${path.relative(root, dir) || dir}.`);
+    } else {
+      for (const p of prdrs) console.log(`${p.num}  ${p.title || p.slug}  [${(p.status || "?").split(/[ (.]/)[0]}]  ${p.provenance || "?"}  ${p.container || ""}`.trimEnd());
+    }
+    return 0;
+  }
+
+  if (action === "validate") {
+    const problems = prdrValidate(dir);
+    if (!problems.length) { console.log(`OK — ${listPrdrs(dir).length} PRDR(s) in ${path.relative(root, dir) || dir} valid.`); return 0; }
+    for (const p of problems) console.log(`FAIL  ${p}`);
+    return 1;
+  }
+
+  if (action === "new") {
+    const title = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
+    const container = adrFlag(args, "--container");
+    const prdGoal = adrFlag(args, "--prd-goal");
+    if (!title) { process.stderr.write("faff prdr new: <title> is required\n"); return 2; }
+    if (!container) { process.stderr.write("faff prdr new: --container is required\n"); return 2; }
+    if (!prdGoal) { process.stderr.write("faff prdr new: --prd-goal is required\n"); return 2; }
+    const provenance = adrFlag(args, "--provenance");
+    if (provenance && !PRDR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff prdr new: --provenance must be one of ${PRDR_PROVENANCES.join("|")}\n`); return 2; }
+    const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
+    const num = prdrNextNumber(dir);
+    const file = `${num}-${adrSlug(title)}.md`;
+    const full = path.join(dir, file);
+    if (fs.existsSync(full)) { process.stderr.write(`faff prdr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
+    fs.mkdirSync(dir, { recursive: true });
+    // provenance default = human (fail-safe: the harder-to-supersede tier; the loop passes --provenance loop).
+    fs.writeFileSync(full, prdrTemplate({ num, title, date, container, prdGoal, provenance: provenance || "human", status: adrFlag(args, "--status") }));
+    process.stdout.write(full + "\n");   // stdout = path ONLY (parity with `adr new`/`prd new`)
+    return 0;
+  }
+
+  if (action === "supersede") {
+    // Pure mechanical linker — the SHARED writer, prefix "PRDR" (mirror `adr supersede` exactly;
+    // NO actor/authority concept — that is FAFF-255's gate, P1).
+    const r = recordSupersede(dir, root, listPrdrs(dir), args[1], adrFlag(args, "--by"), "PRDR");
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
+  }
+
+  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate (or --selftest)\n");
+  return 2;
+}
+
+function prdrSelftest() {
+  const os = require("node:os");
+  const cases = [];
+  const t = (name, ok) => cases.push([name, !!ok]);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-"));
+  const dir = path.join(tmp, "docs", "prdr");
+  fs.mkdirSync(dir, { recursive: true });
+  const mk = (num, slug, opts = {}) => fs.writeFileSync(path.join(dir, `${num}-${slug}.md`),
+    prdrTemplate({ num, title: opts.title || slug, date: "2026-06-27", container: opts.container || "portal", prdGoal: opts.prdGoal || "ship the booking flow", provenance: opts.provenance || "human", status: opts.status }));
+
+  // resolver
+  t("resolver default docs/prdr", resolvePrdrDocsPath(tmp, {}, false) === "docs/prdr");
+  t("resolver honours config", resolvePrdrDocsPath(tmp, { tracking: { prdr_docs_path: "x/y/" } }, false) === "x/y");
+  t("empty next-number → 0001", prdrNextNumber(dir) === "0001");
+
+  // new template: full metadata + four sections, listed + parsed
+  mk("0001", "booking-flow");
+  const l1 = listPrdrs(dir);
+  t("new file listed + parsed", l1.length === 1 && l1[0].container === "portal" && l1[0].provenance === "human" && l1[0].prd_goal === "ship the booking flow");
+  t("template carries the four sections", (() => {
+    const tpl = prdrTemplate({ num: "0009", title: "T", date: "2026-06-27", container: "c", prdGoal: "g", provenance: "loop" });
+    return PRDR_SECTIONS.every((s) => new RegExp(`^##\\s+${s}\\s*$`, "mi").test(tpl)) && /\*\*Provenance:\*\* loop/.test(tpl);
+  })());
+  t("next-number after 0001 → 0002", prdrNextNumber(dir) === "0002");
+  t("validate clean", prdrValidate(dir).length === 0);
+
+  // presence-only: a _TODO_ DoD (template default) passes (P2)
+  t("a vacuous _TODO_ DoD still validates (presence-only)", prdrValidate(dir).length === 0);
+
+  // missing-section flagged
+  fs.writeFileSync(path.join(dir, "0002-nodod.md"), "# PRDR 0002 — nodod\n\n- **Status:** Proposed\n- **Provenance:** loop\n- **Date:** 2026-06-27\n- **Container:** portal\n- **PRD-goal:** g\n\n## Context\nx\n## Decision\ny\n## Scope\nz\n");
+  t("missing '## Definition of done' flagged", prdrValidate(dir).some((p) => /missing "## Definition of done"/.test(p)));
+  fs.unlinkSync(path.join(dir, "0002-nodod.md"));
+
+  // bad provenance flagged
+  fs.writeFileSync(path.join(dir, "0002-badprov.md"), "# PRDR 0002 — badprov\n\n- **Status:** Proposed\n- **Provenance:** robot\n- **Date:** 2026-06-27\n- **Container:** portal\n- **PRD-goal:** g\n\n## Context\nx\n\n## Decision\ny\n\n## Scope\nz\n\n## Definition of done\nw\n");
+  t("bad Provenance flagged", prdrValidate(dir).some((p) => /Provenance .* must be one of/.test(p)));
+  fs.unlinkSync(path.join(dir, "0002-badprov.md"));
+
+  // supersession via the shared writer
+  mk("0002", "booking-flow-v2", { title: "booking flow v2" });
+  const sup = recordSupersede(dir, tmp, listPrdrs(dir), "0001", "0002", "PRDR");
+  t("supersede returns code 0", sup.code === 0);
+  t("OLD marked Superseded by PRDR-0002", /\*\*Status:\*\* Superseded by PRDR-0002/.test(fs.readFileSync(path.join(dir, "0001-booking-flow.md"), "utf8")));
+  t("NEW marked Supersedes PRDR-0001", /\*\*Supersedes:\*\* PRDR-0001/.test(fs.readFileSync(path.join(dir, "0002-booking-flow-v2.md"), "utf8")));
+  t("symmetric supersession validates clean", prdrValidate(dir).length === 0);
+  t("double-supersede refused", recordSupersede(dir, tmp, listPrdrs(dir), "0001", "0002", "PRDR").code !== 0);
+  t("self-supersede refused", recordSupersede(dir, tmp, listPrdrs(dir), "0002", "0002", "PRDR").code !== 0);
+
+  // --live excludes the superseded record
+  const live = listPrdrs(dir).filter((p) => !recordSupersededBy(p.status, "PRDR"));
+  t("--live excludes superseded", live.length === 1 && live[0].num === "0002");
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+
+  let failed = 0;
+  for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prdr --selftest FAIL: ${name}\n`); failed++; } }
+  if (failed) { process.stderr.write(`prdr --selftest: ${failed}/${cases.length} failed\n`); return 1; }
+  console.log(`prdr --selftest: ok (${cases.length} cases)`);
+  return 0;
+}
+
 // lint-cli-doc — FAFF-237: assert docs/guide/cli.md documents every subcommand
 // the CLI dispatches. The canonical set is the COMMANDS registry (single source
 // of truth — see main()); the documented set is parsed from the doc's table rows.
@@ -6114,6 +6389,7 @@ const COMMANDS = {
   "gitignore-ensure": cmdGitignoreEnsure,
   "adr": cmdAdr,
   "prd": cmdPrd,
+  "prdr": cmdPrdr,
   "profile": cmdProfile,
   "fixtures": cmdFixtures,
   "events": cmdEvents,

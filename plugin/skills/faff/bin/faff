@@ -2350,6 +2350,255 @@ function budgetSelftest() {
 }
 
 // ===========================================================================
+// run-done — FAFF-38: the terminating-condition predicate.
+// `faff run-done` is a PURE CLI (parity with `faff next` / `faff budget check` /
+// `faff prdr coverage`): no tracker, no network, no disk beyond its args, and it
+// NEVER calls the methodology — the orchestrator resolves the policy and hands it
+// in via --policy. It COMPOSES faff's already-shipped run signals (queue state,
+// `faff runcheck`'s .clean, `faff budget check`'s {breached,outcome}, `faff prdr
+// coverage`'s prd-satisfied) into the one decision that ends a /faff-beep-boop
+// run: run-complete | continue | escalate. Two layers — a FIXED safety floor no
+// policy may weaken, and policy-weighted rungs whose precedence is the
+// methodology's run-termination-policy named output (absent ⇒ the built-in
+// structural-default ladder). Reimplements NO signal; each named CLI stays the
+// sole producer of its own signal.
+// ===========================================================================
+
+const RUN_DONE_VERDICTS = ["run-complete", "continue", "escalate"];
+const BUDGET_OUTCOMES = new Set(["stop", "narrow", "escalate", "none"]);
+
+// The POLICY-WEIGHTED rung tests (the floor conjuncts are NOT here — they are
+// fixed, applied before the ladder, and immune to any policy). A Rung names one
+// of these tests; the policy supplies the ORDER (and may soften a non-floor
+// rung's verdict). The reason each test yields is CANONICAL (the closed
+// stop-reason vocabulary), derived from the test name — never free-form from the
+// policy — so `reason` stays a closed set regardless of the supplied ladder.
+const RUN_DONE_RUNG_TESTS = {
+  "non-convergence": (s) => s.non_convergence === true,
+  "budget-narrow": (s) => s.budget.breached.length > 0 && s.budget.outcome === "narrow",
+  "budget-stop": (s) => s.budget.breached.length > 0 && s.budget.outcome === "stop",
+  "value-inflection": (s) => s.inflection === "reached",
+  "work-remaining": (s) => !(s.queue_empty || s.all_parked),
+  "clean-complete": () => true, // terminal catch-all — the ladder always terminates here
+};
+const RUN_DONE_RUNG_CANON = {
+  "non-convergence": { verdict: "escalate", reason: () => "non-convergence" },
+  "budget-narrow": { verdict: "continue", reason: (s, dims) => `budget-narrow(${dims})` },
+  "budget-stop": { verdict: "run-complete", reason: (s, dims) => `budget-hit(${dims})` },
+  "value-inflection": { verdict: "run-complete", reason: () => "value-inflection" },
+  "work-remaining": { verdict: "continue", reason: () => "work-remaining" },
+  "clean-complete": { verdict: "run-complete", reason: (s) => (s.queue_empty ? "drained" : "all-parked") },
+};
+const RUN_DONE_STRUCTURAL_LADDER = [
+  "non-convergence", "budget-narrow", "budget-stop", "value-inflection", "work-remaining", "clean-complete",
+].map((test) => ({ test, verdict: RUN_DONE_RUNG_CANON[test].verdict }));
+
+// Coerce a raw signal bundle onto the closed RunSignals vocabulary. Booleans are
+// strict; budget defaults to the unbreached/none envelope; an unknown budget
+// outcome coerces to "none" (the unbounded default, parity with budget check's
+// at_ceiling coercion); prd_satisfied is the only tri-state (true|false|null,
+// null ⇒ no PRD in scope); inflection defaults "none". Never throws.
+function normalizeRunSignals(raw) {
+  const r = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  const b = (r.budget && typeof r.budget === "object" && !Array.isArray(r.budget)) ? r.budget : {};
+  let outcome = typeof b.outcome === "string" ? b.outcome : "none";
+  if (!BUDGET_OUTCOMES.has(outcome)) outcome = "none";
+  const breached = Array.isArray(b.breached) ? b.breached.filter((d) => typeof d === "string") : [];
+  let prd = null;
+  if (r.prd_satisfied === true) prd = true;
+  else if (r.prd_satisfied === false) prd = false;
+  return {
+    queue_empty: r.queue_empty === true,
+    all_parked: r.all_parked === true,
+    ledger_clean: r.ledger_clean === true,
+    budget: { breached, outcome },
+    prd_satisfied: prd,
+    inflection: r.inflection === "reached" ? "reached" : "none",
+    non_convergence: r.non_convergence === true,
+  };
+}
+
+// PURE terminating-condition core — no I/O. Folds the RunSignals bundle (and an
+// optional methodology TerminationPolicy) into the fixed RunDoneVerdict. The
+// safety floor runs FIRST and is fixed: NO policy can reach past it (the
+// adversarial-policy selftests pin this). The ladder (policy-supplied, else the
+// structural default) decides only the non-floor verdict.
+function computeRunDoneVerdict(rawSignals, policy) {
+  const s = normalizeRunSignals(rawSignals);
+  const violations = [];
+  const breached = s.budget.breached.length > 0;
+  const dims = s.budget.breached.join(",");
+  const mk = (verdict, reason, policy_source, decided_by, floor) => ({
+    verdict,
+    reason,
+    signals: {
+      queue_empty: s.queue_empty, all_parked: s.all_parked, ledger_clean: s.ledger_clean,
+      budget: { breached: s.budget.breached, outcome: s.budget.outcome },
+      prd_satisfied: s.prd_satisfied, inflection: s.inflection, non_convergence: s.non_convergence,
+      decided_by, floor,
+    },
+    policy_source,
+    conformant: violations.length === 0,
+    violations,
+  });
+
+  // --- SAFETY FLOOR (fixed; NO policy may weaken these) ---
+  if (breached && s.budget.outcome === "escalate") return mk("escalate", `budget-escalated(${dims})`, "structural-default", "budget-escalated", true);
+  if (!s.ledger_clean && (s.queue_empty || s.all_parked)) return mk("continue", "undispatched-ledger", "structural-default", "undispatched-ledger", true);
+  if (s.prd_satisfied === false) return mk("escalate", "product-incomplete", "structural-default", "product-incomplete", true);
+
+  // --- POLICY-WEIGHTED rungs ---
+  let ladder, policy_source;
+  if (policy && typeof policy === "object" && Array.isArray(policy.ladder) && policy.ladder.length) {
+    ladder = policy.ladder; policy_source = "methodology";
+  } else {
+    ladder = RUN_DONE_STRUCTURAL_LADDER; policy_source = "structural-default";
+  }
+  for (const rung of ladder) {
+    const test = rung && rung.test;
+    const pred = RUN_DONE_RUNG_TESTS[test];
+    if (!pred) { violations.push(`unknown rung test ${JSON.stringify(test)} — skipped`); continue; }
+    if (!pred(s)) continue;
+    const canon = RUN_DONE_RUNG_CANON[test];
+    let verdict = canon.verdict;
+    if (rung.verdict !== undefined) {
+      if (RUN_DONE_VERDICTS.includes(rung.verdict)) verdict = rung.verdict; // the soften knob (non-floor only)
+      else violations.push(`rung ${test} verdict ${JSON.stringify(rung.verdict)} not in enum — using canonical ${canon.verdict}`);
+    }
+    return mk(verdict, canon.reason(s, dims), policy_source, test, false);
+  }
+  // Ladder exhausted with no hit (a methodology ladder omitting the terminal rung):
+  // fall to the canonical clean-complete so the predicate ALWAYS terminates.
+  return mk("run-complete", s.queue_empty ? "drained" : "all-parked", policy_source, "clean-complete", false);
+}
+
+function cmdRunDone(args) {
+  if (args.includes("--selftest")) return runDoneSelftest();
+  const getFlag = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const boolSig = (name) => {
+    if (args.includes(`--no-${name}`)) return false;
+    if (args.includes(`--${name}`)) return true;
+    return false;
+  };
+  // --budget / --prd-coverage / --policy carry JSON; a malformed value is a usage error (exit 2).
+  const parseJson = (raw, label) => {
+    try { return { ok: true, value: JSON.parse(raw) }; }
+    catch (e) { process.stderr.write(`faff run-done: ${label} is not valid JSON: ${e.message}\n`); return { ok: false }; }
+  };
+
+  let budget = { breached: [], outcome: "none" };
+  const budgetRaw = getFlag("--budget");
+  if (budgetRaw != null) {
+    const p = parseJson(budgetRaw, "--budget"); if (!p.ok) return 2; budget = p.value;
+  }
+
+  // prd_satisfied: --prd-coverage JSON (read .satisfied) | --no-prd (null) | absent (null, no PRD in scope).
+  let prd_satisfied = null;
+  const covRaw = getFlag("--prd-coverage");
+  if (covRaw != null && !args.includes("--no-prd")) {
+    const p = parseJson(covRaw, "--prd-coverage"); if (!p.ok) return 2;
+    const cov = p.value;
+    if (cov === null || typeof cov !== "object" || Array.isArray(cov) || typeof cov.satisfied !== "boolean") {
+      process.stderr.write("faff run-done: --prd-coverage must be a prd-coverage object with a boolean .satisfied\n"); return 2;
+    }
+    prd_satisfied = cov.satisfied;
+  }
+
+  let policy = null;
+  const policyRaw = getFlag("--policy");
+  if (policyRaw != null) {
+    const p = parseJson(policyRaw, "--policy"); if (!p.ok) return 2; policy = p.value;
+  }
+
+  let inflection = "none";
+  const inflRaw = getFlag("--inflection");
+  if (inflRaw != null) {
+    if (inflRaw !== "reached" && inflRaw !== "none") { process.stderr.write("faff run-done: --inflection must be reached|none\n"); return 2; }
+    inflection = inflRaw;
+  }
+
+  const signals = {
+    queue_empty: boolSig("queue-empty"),
+    all_parked: boolSig("all-parked"),
+    ledger_clean: boolSig("ledger-clean"),
+    budget,
+    prd_satisfied,
+    inflection,
+    non_convergence: args.includes("--non-convergence"),
+  };
+
+  const verdict = computeRunDoneVerdict(signals, policy);
+  // Belt-and-braces: the produced verdict must itself conform to the run-termination schema.
+  const schemaErr = schemaCheck(verdict, "run-termination");
+  if (schemaErr) { process.stderr.write(`faff run-done: ${schemaErr}\n`); return 2; }
+  process.stdout.write(JSON.stringify(verdict) + "\n");
+  return 0; // report-only (parity with budget check / prdr coverage): the verdict is in the payload, not the exit code
+}
+
+// Selftest — drives the pure core over in-memory cases; no filesystem, no tracker.
+// Covers each FLOOR rung (incl. an adversarial policy pinned to fail to override
+// it), each policy-weighted rung under the structural default, a methodology
+// reorder/soften, and the A2 degradable no-PRD/no-policy default. Mirrors the
+// budget/next selftest shape: per-case ok/FAIL + a RESULT line, non-zero on fail.
+function runDoneSelftest() {
+  let fail = 0;
+  const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
+  const v = (sig, pol) => computeRunDoneVerdict(sig, pol);
+  // An adversarial policy that tries to make EVERYTHING complete immediately.
+  const ADVERSARIAL = { ladder: [{ test: "work-remaining", verdict: "run-complete" }, { test: "clean-complete", verdict: "run-complete" }] };
+
+  // --- SAFETY FLOOR rungs (fixed; pinned against the adversarial policy) ---
+  const esc = { budget: { breached: ["tokens"], outcome: "escalate" }, queue_empty: true, ledger_clean: true };
+  ok("floor: budget-escalate → escalate", v(esc).verdict === "escalate" && v(esc).reason === "budget-escalated(tokens)");
+  ok("floor: budget-escalate immune to adversarial policy", v(esc, ADVERSARIAL).verdict === "escalate" && v(esc, ADVERSARIAL).reason === "budget-escalated(tokens)");
+
+  const undi = { queue_empty: true, ledger_clean: false };
+  ok("floor: unclean ledger at drain → continue/undispatched-ledger", v(undi).verdict === "continue" && v(undi).reason === "undispatched-ledger");
+  ok("floor: undispatched-ledger immune to adversarial policy", v(undi, ADVERSARIAL).verdict === "continue" && v(undi, ADVERSARIAL).reason === "undispatched-ledger");
+  // all_parked is the other drain face
+  ok("floor: unclean ledger at all-parked → continue", v({ all_parked: true, ledger_clean: false }).reason === "undispatched-ledger");
+
+  const prodInc = { queue_empty: true, ledger_clean: true, prd_satisfied: false };
+  ok("floor: prd_satisfied==false (PRD in scope) → escalate/product-incomplete", v(prodInc).verdict === "escalate" && v(prodInc).reason === "product-incomplete");
+  ok("floor: product-incomplete immune to adversarial policy", v(prodInc, ADVERSARIAL).verdict === "escalate" && v(prodInc, ADVERSARIAL).reason === "product-incomplete");
+  // no PRD in scope (null) skips the product floor entirely
+  ok("no PRD (null) skips the product floor → drained", v({ queue_empty: true, ledger_clean: true, prd_satisfied: null }).reason === "drained");
+
+  // floor precedence: budget-escalate beats a non-convergence ladder rung
+  ok("floor beats policy rung (escalate before non-convergence)", v({ budget: { breached: ["cost"], outcome: "escalate" }, non_convergence: true, queue_empty: true, ledger_clean: true }).reason === "budget-escalated(cost)");
+
+  // --- POLICY-WEIGHTED rungs (structural default ladder) ---
+  ok("rung: non-convergence → escalate", (() => { const r = v({ non_convergence: true, queue_empty: false, ledger_clean: true }); return r.verdict === "escalate" && r.reason === "non-convergence"; })());
+  ok("rung: budget-narrow → continue (not terminal)", (() => { const r = v({ budget: { breached: ["tokens"], outcome: "narrow" }, ledger_clean: true, queue_empty: true }); return r.verdict === "continue" && r.reason === "budget-narrow(tokens)"; })());
+  ok("rung: budget-stop → run-complete (clean ceiling)", (() => { const r = v({ budget: { breached: ["tokens"], outcome: "stop" }, ledger_clean: true, queue_empty: true }); return r.verdict === "run-complete" && r.reason === "budget-hit(tokens)"; })());
+  ok("rung: value-inflection → run-complete (early stop)", (() => { const r = v({ inflection: "reached", ledger_clean: true, queue_empty: false }); return r.verdict === "run-complete" && r.reason === "value-inflection"; })());
+  ok("rung: work-remaining → continue", (() => { const r = v({ queue_empty: false, all_parked: false, ledger_clean: true }); return r.verdict === "continue" && r.reason === "work-remaining"; })());
+  ok("rung: queue drained + clean → run-complete/drained", (() => { const r = v({ queue_empty: true, ledger_clean: true }); return r.verdict === "run-complete" && r.reason === "drained"; })());
+  ok("rung: all parked + clean → run-complete/all-parked", (() => { const r = v({ queue_empty: false, all_parked: true, ledger_clean: true }); return r.verdict === "run-complete" && r.reason === "all-parked"; })());
+
+  // narrow precedes stop precedes inflection (precedence within the ladder)
+  ok("ladder precedence: narrow wins over a would-be drained", v({ budget: { breached: ["tokens"], outcome: "narrow" }, queue_empty: true, ledger_clean: true }).reason === "budget-narrow(tokens)");
+
+  // --- policy_source provenance ---
+  ok("no --policy → policy_source structural-default", v({ queue_empty: true, ledger_clean: true }).policy_source === "structural-default");
+  // methodology reorder/soften: value-inflection softened to continue
+  const soft = v({ inflection: "reached", queue_empty: false, ledger_clean: true }, { ladder: [{ test: "value-inflection", verdict: "continue" }, { test: "clean-complete" }] });
+  ok("methodology softens value-inflection → continue, policy_source methodology", soft.verdict === "continue" && soft.reason === "value-inflection" && soft.policy_source === "methodology" && soft.conformant);
+  // an unknown rung test is a violation, not a crash; the ladder still terminates
+  const bad = v({ queue_empty: true, ledger_clean: true }, { ladder: [{ test: "bogus" }] });
+  ok("unknown rung test → violation + still terminates", bad.conformant === false && bad.verdict === "run-complete" && bad.reason === "drained");
+
+  // --- A2 degradable default: no PRD, no inflection, no policy reproduces drain semantics ---
+  ok("A2: bare drained run reproduces today's behaviour", (() => { const r = v({ queue_empty: true, ledger_clean: true }); return r.verdict === "run-complete" && r.reason === "drained" && r.policy_source === "structural-default" && r.conformant; })());
+
+  // --- shape: every verdict carries a non-empty reason in the enum ---
+  ok("verdict ∈ enum AND reason != '' (work-remaining default case)", (() => { const r = v({}); return RUN_DONE_VERDICTS.includes(r.verdict) && r.reason !== "" && r.reason === "work-remaining"; })());
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
 // hooks-ensure — idempotently register faff's Stop-hook command set into
 // .claude/settings.json (FAFF-192). The deterministic, repeatable replacement
 // for the per-install manual settings edit. Sibling of gitignore-ensure:
@@ -4379,6 +4628,7 @@ Subcommands:
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   budget check [--run-dir DIR] [--until HH:MM] [--max N] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. breached != {} is the terminating signal. --selftest runs the table
+  run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
@@ -4999,6 +5249,61 @@ function contractPrdCoverage(extraction) {
   return { contractData };
 }
 
+// --- run-termination (FAFF-38) ---
+// `faff run-done` is the PRODUCER (computeRunDoneVerdict — the pure composer); THIS is the
+// consumer-side SHAPE validator (mirrors prd-coverage). NO safe coerce target — faff's own producer
+// emits it, so an out-of-enum verdict / policy_source or a non-object extraction is a fail-loud
+// (never coerced toward a terminal `run-complete`). Load-bearing invariant enforced here as a
+// conformance violation (the safety floor the whole leash exists to hold): the three fixed
+// safety-floor reasons PIN their verdict — `budget-escalated(…)` ⇒ escalate, `undispatched-ledger` ⇒
+// continue, `product-incomplete` ⇒ escalate — so a verdict claiming a floor reason with the wrong
+// disposition (e.g. a policy that tried to "complete" through the floor) is non-conformant. The
+// non-floor rung reasons carry NO such pin (a methodology may legitimately soften their verdict).
+const RUN_TERMINATION_POLICY_SOURCES = ["structural-default", "methodology"];
+const RUN_TERMINATION_FLOOR_VERDICT = { "undispatched-ledger": "continue", "product-incomplete": "escalate" };
+const RUN_TERMINATION_KNOWN_PLAIN = new Set([
+  "non-convergence", "value-inflection", "work-remaining", "undispatched-ledger", "product-incomplete", "drained", "all-parked",
+]);
+function isKnownStopReason(r) {
+  if (RUN_TERMINATION_KNOWN_PLAIN.has(r)) return true;
+  return /^budget-(escalated|narrow|hit)\(.*\)$/.test(r); // parameterised by the breached dimensions
+}
+function computeRunTermination(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!RUN_DONE_VERDICTS.includes(extraction.verdict)) {
+    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {run-complete,continue,escalate} — no safe coerce target` };
+  }
+  if (!RUN_TERMINATION_POLICY_SOURCES.includes(extraction.policy_source)) {
+    return { contractData: null, failLoud: `policy_source ${JSON.stringify(extraction.policy_source)} not in {structural-default,methodology} — no safe coerce target` };
+  }
+  const verdict = extraction.verdict;
+  const policy_source = extraction.policy_source;
+  const violations = [];
+  const reason = typeof extraction.reason === "string" ? extraction.reason : "";
+  const signals = (extraction.signals && typeof extraction.signals === "object" && !Array.isArray(extraction.signals)) ? extraction.signals : {};
+  if (extraction.signals !== undefined && (extraction.signals === null || typeof extraction.signals !== "object" || Array.isArray(extraction.signals))) {
+    violations.push("signals is not an object — treated as empty");
+  }
+  if (reason === "") violations.push("verdict carries no reason");
+  else if (!isKnownStopReason(reason)) violations.push(`reason ${JSON.stringify(reason)} not in the closed stop-reason vocabulary`);
+  // SAFETY-FLOOR pin: a floor reason fixes its verdict regardless of any policy.
+  if (/^budget-escalated\(.*\)$/.test(reason) && verdict !== "escalate") violations.push("budget-escalated is a safety floor ⇒ verdict must be escalate (no policy may complete through it)");
+  for (const [floorReason, mustBe] of Object.entries(RUN_TERMINATION_FLOOR_VERDICT)) {
+    if (reason === floorReason && verdict !== mustBe) violations.push(`${floorReason} is a safety floor ⇒ verdict must be ${mustBe} (no policy may override it)`);
+  }
+  return { contractData: { verdict, reason, signals, policy_source, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractRunTermination(extraction) {
+  const { contractData, failLoud } = computeRunTermination(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "run-termination");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // The PRODUCER (`faff prdr coverage`): the pure roll-up. No tracker/network call (parity with `faff prdr
 // yagni` / `admit` / `faff next`); the agent maps the PRD's declared goals + the live-PRDR set (and the
 // FAFF-34 per-PRDR DoD verdicts, when the evaluator exists) onto these closed-vocabulary inputs. Emits a
@@ -5204,6 +5509,22 @@ const CONTRACTS = {
       { name: "bad-lens", in: { verdict: "revise", objections: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
       { name: "bad-severity", in: { verdict: "needs-human", objections: [{ lens: "methodology", severity: "huge" }] }, wantExit: 1 },
       { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "run-termination": {
+    run: contractRunTermination,
+    fixtures: [
+      { name: "conformant-drained", in: { verdict: "run-complete", reason: "drained", signals: {}, policy_source: "structural-default" }, wantExit: 0 },
+      { name: "conformant-escalate-floor", in: { verdict: "escalate", reason: "budget-escalated(tokens)", signals: {}, policy_source: "structural-default" }, wantExit: 0 },
+      { name: "conformant-methodology-soften", in: { verdict: "continue", reason: "value-inflection", signals: {}, policy_source: "methodology" }, wantExit: 0 },
+      { name: "floor-pinned-budget-escalated", in: { verdict: "run-complete", reason: "budget-escalated(tokens)", signals: {}, policy_source: "methodology" }, wantExit: 1 },
+      { name: "floor-pinned-undispatched-ledger", in: { verdict: "run-complete", reason: "undispatched-ledger", signals: {}, policy_source: "methodology" }, wantExit: 1 },
+      { name: "floor-pinned-product-incomplete", in: { verdict: "continue", reason: "product-incomplete", signals: {}, policy_source: "structural-default" }, wantExit: 1 },
+      { name: "empty-reason", in: { verdict: "continue", reason: "", signals: {}, policy_source: "structural-default" }, wantExit: 1 },
+      { name: "unknown-reason", in: { verdict: "continue", reason: "vibes-are-off", signals: {}, policy_source: "structural-default" }, wantExit: 1 },
+      { name: "fail-loud-bad-verdict", in: { verdict: "maybe", reason: "drained", signals: {}, policy_source: "structural-default" }, wantExit: 2 },
+      { name: "fail-loud-bad-policy-source", in: { verdict: "run-complete", reason: "drained", signals: {}, policy_source: "vibes" }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -7876,6 +8197,7 @@ const COMMANDS = {
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,
   "budget": cmdBudget,
+  "run-done": cmdRunDone,
   "hooks-ensure": cmdHooksEnsure,
   "validate-adapters": cmdValidateAdapters,
   "labels": cmdLabels,

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/run-termination",
+  "title": "run-termination contract data",
+  "description": "Reference schema (FAFF-38). The SHAPE of the terminating-condition verdict that `faff run-done` PRODUCES and `faff contract run-termination` VALIDATES (consumer-side conformance, mirroring prd-coverage). `run-done` is the pure composer of faff's already-shipped run signals — queue state, ledger completeness (`faff runcheck` → `.clean`), budget (`faff budget check`), product-done (`faff prdr coverage` → `prd-satisfied`) — into the one decision that ends a `/faff-beep-boop` run. Two layers: a FIXED safety floor (budget-escalate, undispatched-ledger at drain, product-incomplete when a PRD is in scope) that NO policy may weaken, and policy-weighted rungs whose precedence is the `methodology` slot's `run-termination-policy` named output (absent ⇒ the CLI's built-in structural-default ladder). `verdict` is the fixed three-valued contract; `reason` carries the closed stop-reason vocabulary; `policy_source` records which weighting decided it. NO safe coerce target — faff's own producer emits it, so a malformed extraction or out-of-enum verdict/policy_source is a fail-loud. Load-bearing invariant enforced in code as a conformance violation: the three safety-floor reasons pin their verdict (budget-escalated ⇒ escalate · undispatched-ledger ⇒ continue · product-incomplete ⇒ escalate), and a not-empty reason is required.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "reason", "signals", "policy_source", "conformant", "violations"],
+  "properties": {
+    "verdict": { "enum": ["run-complete", "continue", "escalate"] },
+    "reason": { "type": "string" },
+    "signals": { "type": "object" },
+    "policy_source": { "enum": ["structural-default", "methodology"] },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

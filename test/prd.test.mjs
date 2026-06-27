@@ -135,3 +135,61 @@ test("the real repo tree validates clean (or has no docs/prd yet)", () => {
   const r = run(["validate"]);
   assert.equal(r.status, 0, r.stdout);
 });
+
+// --- FAFF-254: born-verifiable strict form-check ---------------------------
+const bornVerifiable = (container, status = "Draft") =>
+  `# PRD — ${container}\n\n- **Container:** ${container}\n- **Status:** ${status}\n- **Date:** 2026-06-26\n- **Mode:** authored\n\n` +
+  "## Acceptance criteria\n\n- Given a run, When the PRD is admissible, Then the run starts\n- The p99 latency MUST be < 200ms\n\n" +
+  "## Requirements\n\n- anything goes here, totally loose open prose\n";
+const prosePrd = (container, status = "Draft") =>
+  `# PRD — ${container}\n\n- **Container:** ${container}\n- **Status:** ${status}\n- **Date:** 2026-06-26\n- **Mode:** authored\n\n` +
+  "## Acceptance criteria\n\n- the dashboard should look nice\n";
+
+test("validate --strict: a placeholder-only fresh template FAILs (exit 1)", () => {
+  const root = tmpRepo();
+  run(["new", "Smoke", "--date", "2026-06-26", "--root", root]);
+  assert.equal(run(["validate", "--root", root]).status, 0, "fresh template passes lenient");
+  const r = run(["validate", "--strict", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /placeholder-only — no born-verifiable criterion/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate --strict: a GWT scenario + MUST assertion passes (Requirements stay loose)", () => {
+  const root = tmpRepo({ "bv.md": bornVerifiable("BV") });
+  const r = run(["validate", "--strict", "--root", root]);
+  assert.equal(r.status, 0, r.stdout);
+  assert.match(r.stdout, /strict: born-verifiable/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate --strict: a loose-prose criterion FAILs naming it", () => {
+  const root = tmpRepo({ "p.md": prosePrd("P") });
+  assert.equal(run(["validate", "--root", root]).status, 0, "loose prose passes lenient for Draft");
+  const r = run(["validate", "--strict", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /not born-verifiable \(loose prose.*the dashboard should look nice/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("Frozen freeze precondition: lenient validate FAILs a Frozen prose PRD (no --strict)", () => {
+  const root = tmpRepo({ "f.md": prosePrd("F", "Frozen") });
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /not born-verifiable/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("Frozen freeze precondition: a born-verifiable Frozen PRD passes lenient validate", () => {
+  const root = tmpRepo({ "f.md": bornVerifiable("F", "Frozen") });
+  assert.equal(run(["validate", "--root", root]).status, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate --strict: missing '## Acceptance criteria' section FAILs", () => {
+  const root = tmpRepo({ "n.md": "# PRD — N\n\n- **Container:** N\n- **Status:** Draft\n- **Date:** 2026-06-26\n\n## Problem\nx\n" });
+  const r = run(["validate", "--strict", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /no '## Acceptance criteria' section/);
+  rmSync(root, { recursive: true, force: true });
+});

@@ -26,7 +26,7 @@ How the principles map onto the outputs:
 | Output | Principles applied |
 |---|---|
 | `ticket-shaping` | 1 (outcome-named workstreams, not the brief's literal capability names), 4 (right-sized — split a capability that's too big, merge always-together items), 6 (surface deps as explicit blocker links), 2 + 7 (sequence the proposed tickets by value × risk) |
-| `pick-ordering` / `build-queue` | 2 (value × risk), 7 (risk-aware) — override structural priority+unlock when materially different |
+| `pick-ordering` / `build-queue` | 2 (value × risk, sharpened to incremental end-user value), 7 (risk-aware) — override structural priority+unlock when materially different; **re-home a value stream's gating chain into that stream's order** (see **Re-homing gating chains into the stream they gate**) |
 | `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
 | `backlog-diagnostics` | Composes the structural default for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6 |
 | `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
@@ -44,6 +44,31 @@ The WIP cap (principle 3) applies to `standup-digest` only — never to `build-q
 
 `/faff-plot` owns the stop rule (first-slice epics, never the leaves below); this skill shapes the level it's asked for. Absent a `shape-level`, the single-level brief→tickets behaviour is unchanged (what `/faff-jot` uses).
 
+## Re-homing gating chains into the stream they gate
+
+A **value stream** is a container (project / initiative) carrying a machine-readable **Definition of Done** — a deliverable, not just a bucket. Re-homing targets these deliverables. Two cases, kept distinct: when the grouping **surfaces** DoD presence, a bare container with *no* Definition of Done is not a value stream and is skipped; until the input envelope surfaces that marker, the lens can't tell deliverable from bucket, so it falls back to the project/initiative grouping as the stream unit and **names the container in every finding** so a human can discount a non-deliverable boundary (step 1).
+
+The agile lens sequences a *set* of tickets, but a value stream is only **done** when work *outside* the set that blocks it also ships. `pick-ordering` and `build-queue` therefore **re-home** a stream's gating chain into the stream's own order, so a stream that looks sequenced but is silently stuck on a cross-container blocker surfaces that blocker as its next actionable pickup instead of leaving it stranded in its home container.
+
+- **Gating blocker** — a ticket *outside* the stream that the stream's tickets are `blockedBy`, directly or transitively, and which must ship for the stream to complete.
+- **Gating chain** — the transitive `blockedBy` chain outside the stream, from the stream's direct blocker down to the deepest unstarted prerequisite.
+- **Re-home (verb)** — sequence that chain *within* the gated stream's order, deepest-first, rather than leaving it ordered only inside its home container.
+- **Increment** — the thinnest set of work that lights up one observable unit of end-user value, possibly spanning multiple structural slices.
+
+**How the lens re-homes when answering `pick-ordering` / `build-queue` for a stream:**
+
+1. Identify stream membership from the workstream grouping it is handed. When the grouping surfaces DoD presence, a stream is a Definition-of-Done-bearing deliverable and a bare container is skipped; until it does, fall back to the project/initiative unit as the stream and name the container in the finding (so a non-cohesive, activity-named boundary is visible, not silently trusted).
+2. Walk `blockedBy` transitively *outward* from the stream's tickets toward the deepest unstarted prerequisite, stopping at the **deepest actionable** one. Defer cycles to the composed structural baseline's cycle detection — never order through a cycle (it surfaces as the existing `circular-blocked` diagnostic). A link that is externally blocked or otherwise not actionable stops the walk and is named as a dead-end (the deepest actionable prerequisite is the last reachable one before it).
+3. Fold each chain member not already sequenced ahead for another stream into this stream's order, deepest-first — the deepest actionable prerequisite before the work it gates.
+4. Emit a **principle-6** finding naming the chain, the gated stream, the deepest actionable prerequisite, and any dead-end.
+5. Order the combined set by **incremental end-user value** (principle 2), risk-aware (principle 7) — sequence to light up each increment, crossing structural slices as needed.
+
+**Why transitive, not direct-only.** Pulling only the *direct* blocker leaves its own blocker stranded — the direct blocker can't be picked up, so the stream still can't complete while *looking* sequenced. Walking to the deepest unstarted prerequisite surfaces the real next pickup.
+
+**A blocker that gates two streams** is sequenced **once**, at the earliest position any gated stream needs it — never duplicated into both orders (duplicating misreports WIP and double-counts).
+
+**Re-homing is a sequencing view, not a mutation.** It changes only the order the lens *presents*; it never reparents a ticket, rewrites its container, or edits blocker links. faff-beep-boop's conflict-analysis consumes the presented order downstream and still owns concurrent-safety serialisation — it only adds serialisation constraints, never reorders — so the two compose without contradiction and re-homing adds no ordering logic to any orchestration skill. Appetite floor: at low/medium, re-homing is surfaced as a finding and a reordered *view* only; only high/full reorders the actual build queue, and even then never reparents.
+
 ## The seven principles
 
 Each principle has: the rule, why it matters, what the violation looks like in tracker shape, and a diagnosis template sub-skills use when surfacing it. Bracketed `[placeholder]` values are filled by the rendering sub-skill.
@@ -60,7 +85,7 @@ Each principle has: the rule, why it matters, what the violation looks like in t
 
 ### Principle 2: Sequence by value x risk, not by ticket order
 
-**Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone.
+**Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone. Sharpen this to **incremental end-user value**: sequence to light up each observable increment of user-facing value as early as possible, crossing structural slices *within* an increment rather than finishing one slice at a time. When a value stream's completion is gated by work outside it, that gating chain is part of the increment — re-home it into the stream's order (see **Re-homing gating chains into the stream they gate**).
 
 **Why.** Tracker priority is noisy and stakeholder-influenced. Optimising for value-per-week shipped is the actual goal of a delivery practice. Risk-aware sequencing means de-risking earlier so unknown work doesn't surface at the worst moment.
 
@@ -110,6 +135,8 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 
 **Diagnosis template.** _"ISSUE-X's spec references ISSUE-Y's output but there's no blocker link. If the dep is real, link it (so automation can sequence honestly); if not, the reference in the spec should go away."_
 
+**Gating-chain finding (re-homing).** When a value stream is `blockedBy` work outside it, name the chain as part of re-homing it into the stream's order: _"ISSUE-X gates stream '[name]' via [chain]; sequenced as part of the stream so it can complete (deepest actionable: ISSUE-Z[; dead-ends at ISSUE-W: [reason]])."_ See **Re-homing gating chains into the stream they gate**.
+
 ### Principle 7: Risk-aware sequencing
 
 **Rule.** Higher-risk work — novel integrations, unproven approaches, dependencies on external teams — is sequenced early or de-risked separately. The unknown does not all land at the end.
@@ -119,6 +146,8 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 **Violation shape.** The work most likely to surprise (large new integration, unfamiliar territory, external dep) is sequenced near the end of an initiative. Or no risk de-risking work exists — everything assumes the plan holds.
 
 **Diagnosis template.** _"Initiative '[name]' sequences ISSUE-Z (a new [integration / approach / external dep]) last. If ISSUE-Z surprises, the surprise lands at the worst time. Consider pulling it forward, or splitting a small de-risking spike before committing to the full ISSUE-Z scope."_
+
+When a stream's gating chain is re-homed (see **Re-homing gating chains into the stream they gate**), keep this risk-aware ordering across the combined set — a novel prerequisite pulled in deepest-first is exactly the early de-risking this principle wants.
 
 ## Tone discipline
 
@@ -147,7 +176,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 
 **high (default) — surface + act.**
 - **Auto-split** oversized tickets (principle 4) — creates the sub-tickets, links them, logs the action. Never deletes the parent.
-- **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides structural ordering when materially different.
+- **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides structural ordering when materially different, including **re-homing** a value stream's gating chain into its order (see **Re-homing gating chains into the stream they gate**). Re-homing reorders the presented queue only; it never reparents.
 - **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-methodology-fill`.
 - **Flag stalled work for demotion** — issues stuck In Progress with no commits for N days get surfaced with a demotion recommendation. At high appetite, the demotion executes (In Progress → Backlog) with a tracker comment explaining why.
 - Every action is documented: tracker comment on the affected issue, log entry in `.faff/logs/`.

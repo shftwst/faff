@@ -225,6 +225,18 @@ Independents run in parallel; collision groups serialise within themselves.
 
 **Appetite** tunes only ambition framing, never whether to admit (admission is the caller's level): lower appetite favours the thinner end of the target band, higher the fuller — it never self-Accepts (that is the L4 runner's gated act, or the human's L3 ratification).
 
+### `yagni-judge`
+
+**Optional** (gateway → **The `methodology` slot**; this is **Phase 1** of the upper-gate two-phase arbitration — gateway → **Upper-gate (YAGNI) two-phase arbitration**). Given an `AuthoredPrdr` + the PRD (+ optional grounding), propose whether the PRDR is **warranted** — serves a real PRD goal **without exceeding it**. The structural lens judges from **graph + PRD facts**, never value/risk opinion:
+
+- `serves_goal` — does the PRDR's `prd_goal` name a real PRD goal *and* does its `decision`/`definition_of_done` materially advance that goal (not merely cite it)? Graph/text trace, not taste.
+- `within_scope` — is the DoD bounded by the PRD goal's stated criteria, or does it add capability the PRD never asked for (structural over-reach)? Grounding, when present, sharpens this (domain norms) but is never required.
+- `verdict` — `admit` when both hold; `reject` otherwise, with a one-line `reason`.
+
+**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` — the Phase-1 proposal the caller passes to `faff prdr yagni --proposal …`. It **proposes, never admits** (admission is FAFF-255's `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered ⇒ the upper gate has no proposal (the caller falls back to 255's fail-safe upper default).
+
+**Appetite** tunes only the strictness of `within_scope` (lower = permissive, higher = tighter), never whether to admit — the conservative-reject-on-doubt arbitration is the CLI's.
+
 ## Appetite integration
 
 The structural methodology respects appetite but has limited agency by design:

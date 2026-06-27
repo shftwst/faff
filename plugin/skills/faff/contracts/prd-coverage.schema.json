@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/prd-coverage",
+  "title": "prd-coverage contract data",
+  "description": "Reference schema (FAFF-257). The SHAPE of the PRD product-done verdict that `faff prdr coverage` PRODUCES and `faff contract prd-coverage` VALIDATES (consumer-side conformance, mirroring prdr-yagni / prdr-admission). It carries two faces of one goal↔PRDR↔DoD relation: the LOWER (coverage) gate FAFF-255 delegates to — `covered` / `uncovered_goals`, the static 'every PRD goal stays covered by a live PRDR' check, fed to `prdr admit --lower` — AND the `prd-satisfied` roll-up: `satisfied` is true only when coverage holds AND every live PRDR's DoD is `met` per the FAFF-34 evaluator (the dynamic completion half). The completion verdict reads FAFF-34's per-PRDR verdicts with a CONSERVATIVE default — a PRDR with no `met` verdict (evaluator absent/unbuilt) is unverified, so `satisfied` is false (never falsely done). NO safe coerce target — faff's own producer emits it, so a malformed extraction is a fail-loud. Load-bearing invariants (covered ⟺ no uncovered goals; satisfied ⟹ covered ∧ all DoDs met; not-satisfied carries a reason) are enforced in code as conformance violations. `prd-satisfied` is product-done; FAFF-38 composes it with ledger-clean into run-done, FAFF-259's release-gate Done consumes it per-project.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["covered", "uncovered_goals", "satisfied", "reason", "completion", "conformant", "violations"],
+  "properties": {
+    "covered": { "type": "boolean" },
+    "uncovered_goals": { "type": "array", "items": { "type": "string" } },
+    "satisfied": { "type": "boolean" },
+    "reason": { "type": "string" },
+    "completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all_met", "unmet_or_unverified"],
+      "properties": {
+        "all_met": { "type": "boolean" },
+        "unmet_or_unverified": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

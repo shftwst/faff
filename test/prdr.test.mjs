@@ -302,3 +302,73 @@ test("yagni: bad --proposal / --challenge / malformed --prd-goals are usage erro
   assert.equal(yagni(["--prd-goal", "x", "--prd-goals", '["x"]', "--challenge", "sideways"]).status, 2);
   assert.equal(yagni(["--prd-goal", "x", "--prd-goals", "notjson"]).status, 2);
 });
+
+// --- FAFF-257: the lower (coverage) gate + prd-satisfied roll-up ---
+const coverage = (args) => run(["coverage", ...args]);
+const coverageJson = (args) => JSON.parse(coverage(args).stdout);
+
+test("coverage: every goal covered → covered (255's lower verdict), but conservative until DoDs verified", () => {
+  const v = coverageJson(["--prd-goals", '["ship booking","reduce no-shows"]',
+    "--live-prdrs", '[{"id":"0001","prd_goal":"ship booking"},{"id":"0002","prd_goal":"reduce no-shows"}]']);
+  assert.equal(v.covered, true);
+  assert.deepEqual(v.uncovered_goals, []);
+  // no FAFF-34 verdicts supplied → unverified ⇒ not satisfied (the conservative default)
+  assert.equal(v.satisfied, false);
+  assert.match(v.reason, /unmet\/unverified/);
+});
+
+test("coverage: a goal with no live PRDR → uncovered (the lower violation, no silent abandonment)", () => {
+  const v = coverageJson(["--prd-goals", '["ship booking","reduce no-shows"]',
+    "--live-prdrs", '[{"id":"0001","prd_goal":"ship booking"}]']);
+  assert.equal(v.covered, false);
+  assert.ok(v.uncovered_goals.includes("reduce no-shows"));
+});
+
+test("coverage: a supersession dropping a goal's last live PRDR feeds `prdr admit --lower` → reject", () => {
+  // prospective live set excludes the superseded PRDR; the goal loses its last cover.
+  const v = coverageJson(["--prd-goals", '["ship booking","reduce no-shows"]',
+    "--live-prdrs", '[{"id":"0001","prd_goal":"ship booking"}]']);
+  const adm = spawnSync(process.execPath, [BIN, "prdr", "admit", "X", "--actor", "loop", "--supersedes-provenance", "loop",
+    "--lower", JSON.stringify({ covered: v.covered, uncovered_goals: v.uncovered_goals })], { encoding: "utf8" });
+  const out = JSON.parse(adm.stdout);
+  assert.equal(out.lower.covered, false);
+  assert.equal(out.disposition, "reject");
+});
+
+test("coverage: covered + every live PRDR DoD met → prd-satisfied:true (the no-gap roll-up)", () => {
+  const v = coverageJson(["--prd-goals", '["g1","g2"]',
+    "--live-prdrs", '[{"id":"0001","prd_goal":"g1"},{"id":"0002","prd_goal":"g2"}]',
+    "--dod-verdicts", '{"0001":"met","0002":"met"}']);
+  assert.equal(v.covered, true);
+  assert.equal(v.completion.all_met, true);
+  assert.equal(v.satisfied, true);
+  assert.equal(v.reason, "");
+});
+
+test("coverage: conservative default — a single unverified DoD (FAFF-34 absent) blocks prd-satisfied", () => {
+  const v = coverageJson(["--prd-goals", '["g1","g2"]',
+    "--live-prdrs", '[{"id":"0001","prd_goal":"g1"},{"id":"0002","prd_goal":"g2"}]',
+    "--dod-verdicts", '{"0001":"met"}']); // 0002 has no verdict ⇒ unverified ⇒ not met
+  assert.equal(v.covered, true);
+  assert.equal(v.satisfied, false);
+  assert.ok(v.completion.unmet_or_unverified.includes("0002"));
+});
+
+test("coverage: produced verdict is contract-conformant (pipes to `faff contract prd-coverage`)", () => {
+  const out = coverage(["--prd-goals", '["g1"]', "--live-prdrs", '[{"id":"0001","prd_goal":"g1","dod_verdict":"met"}]']).stdout;
+  const c = spawnSync(process.execPath, [BIN, "contract", "prd-coverage"], { input: out, encoding: "utf8" });
+  assert.equal(c.status, 0, `produced verdict must be conformant: ${out}\n${c.stderr}`);
+});
+
+test("coverage: additive/pure — an empty PRD (no goals) is vacuously covered + satisfied", () => {
+  const v = coverageJson(["--prd-goals", "[]"]);
+  assert.equal(v.covered, true);
+  assert.equal(v.satisfied, true);
+  assert.deepEqual(v.uncovered_goals, []);
+});
+
+test("coverage: malformed --prd-goals / --live-prdrs / --dod-verdicts are usage errors (exit 2)", () => {
+  assert.equal(coverage(["--prd-goals", "notjson"]).status, 2);
+  assert.equal(coverage(["--prd-goals", '["g"]', "--live-prdrs", "notjson"]).status, 2);
+  assert.equal(coverage(["--prd-goals", '["g"]', "--dod-verdicts", "[1,2]"]).status, 2);
+});

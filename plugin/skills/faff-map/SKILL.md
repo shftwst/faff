@@ -196,10 +196,10 @@ After presenting the output:
 - **Critical-path issue picked:** "Picking up ISSUE-XX. Prep now via `/faff-prep`? (y/n)" — on confirm, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**). If already prepped, the gate becomes "Start building now via `/faff-graft`? (y/n)".
 - **Structural gap to act on (e.g. ghost project), or the chain doesn't join up:** "Plan the missing structure via `/faff-plot`? (y/n)" — on confirm, draft a one-paragraph brief of the gap and its downstream effect (which initiative has no path, which project is missing) and hand it to the `faff-plot` skill via the Skill tool to plan the missing initiatives/projects/first-slice epics. This is the **planning session** this skill points at when the roadmap doesn't hang together. map stays read-only — it *routes* to plot, which does the writing; map then re-audits plot's output. (If the human prefers to handle it themselves, the same summary is theirs to take away.)
 - **Independence concern in a Now project:** "Run `/faff-tidy` to verify independence before queuing overnight runs? (y/n)" — on confirm, invoke the `faff-tidy` skill via the Skill tool, scoped to the project in question.
-- **Stalled Now project (no recent commits):** "Stalled or stale? Open the project for review (open) / leave (skip)?" On `open`, surface the project's issues for the human; do not change tracker status autonomously.
+- **Stalled Now project (no recent commits):** "Stalled or stale? Open the project for review (open) / leave (skip)?" On `open`, surface the project's issues for the human. **map never writes tracker status** — but this is map's read-only-lane stance, **not** a blanket "project status is untouchable" rule: the mechanical, forward-only, child-derived state-coherence rollup (a project whose first child started → In Progress, etc.) lives in map's **write counterpart, `/faff-tidy`** (bucket 8, the `faff project-next` predicate). A *judgement* write — "is this stalled project actually worth force-stalling?" — stays read-only + human-gated here.
 - **Drop down to today's focus:** "Want to shift to today's focus via `/faff-wtf`? (y/n)".
 
-Keep the tracker as the source of truth. This skill **never** writes to the tracker — it reads, synthesises, and offers gates.
+Keep the tracker as the source of truth. This skill **never** writes to the tracker — it reads, synthesises, and offers gates (the mechanical state-coherence rollup it might surface is applied by `/faff-tidy`, not here).
 
 ## Autonomous Mode
 
@@ -215,7 +215,7 @@ Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-map.md`. The log must include
 
 ## Notes
 
-- This skill is **read-only**. It synthesises and recommends; it never mutates tracker state.
+- This skill is **read-only** *because it is a reporting lane* — it synthesises and recommends; it never mutates tracker state. The read-only stance is map's, not a global ban on autonomous status writes: the mechanical, reversible, child-derived state-coherence rollup is owned by the write counterpart `/faff-tidy` (bucket 8).
 - Horizon labels vary across trackers. Don't assume the consuming project uses Now/Next/Later — adopt whatever status/cycle vocabulary the tracker already uses (Phase 1), falling back to Now/Next/Later only as this skill's default labels.
 - "Initiative" is the term used here; some trackers call them objectives, programs, or themes. Adapt to the tracker's vocabulary in the output, not this skill's defaults.
 - The roadmap is a **synthesis**, not a plan. A plan tells you what to do; this tells you whether the plan you already have hangs together. If the chain doesn't join up, the answer is a planning session, not more execution.

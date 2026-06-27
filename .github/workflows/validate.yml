@@ -41,6 +41,9 @@ jobs:
       - name: Validate orchestration transition table
         run: node plugin/skills/faff/bin/faff next --selftest
 
+      - name: Validate container state-coherence transition table (FAFF-248)
+        run: node plugin/skills/faff/bin/faff project-next --selftest
+
       - name: Validate config init writer
         run: node plugin/skills/faff/bin/faff config init --selftest
 

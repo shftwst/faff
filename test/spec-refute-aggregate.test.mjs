@@ -107,6 +107,22 @@ test("aggregate.mjs --selftest passes", () => {
   assert.match(res.stdout, /aggregate --selftest: ok/);
 });
 
+test("aggregate.mjs CLI fail-safe: empty/inconsistent input exits non-zero (never a silent approve)", () => {
+  // empty refutation set → refuse to vote (would otherwise approve)
+  let res = spawnSync(process.execPath, [AGG], { input: JSON.stringify({ refutations: [], enabled_lenses: ["architectural"] }), encoding: "utf8" });
+  assert.notEqual(res.status, 0, "empty set must not exit 0");
+  assert.doesNotMatch(res.stdout, /spec-review-verdict/, "no verdict block emitted for an empty set");
+  // a bare empty array likewise
+  res = spawnSync(process.execPath, [AGG], { input: "[]", encoding: "utf8" });
+  assert.notEqual(res.status, 0);
+  // refutation count disagreeing with --n → refuse
+  res = spawnSync(process.execPath, [AGG, "--n", "4"], { input: JSON.stringify([r("architectural", "major")]), encoding: "utf8" });
+  assert.notEqual(res.status, 0, "count != n must not exit 0");
+  // unparseable JSON → non-zero (no fabricated verdict)
+  res = spawnSync(process.execPath, [AGG], { input: "{ not json", encoding: "utf8" });
+  assert.notEqual(res.status, 0);
+});
+
 test("aggregate.mjs CLI: stdin refutations → a contract block that validates against faff contract", () => {
   const input = JSON.stringify({
     enabled_lenses: ["architectural", "infosec", "methodology", "QA"],

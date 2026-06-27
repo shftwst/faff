@@ -190,6 +190,19 @@ function main(argv) {
   }
   const ni = args.indexOf("--n");
   const nEnabled = ni !== -1 ? parseInt(args[ni + 1], 10) : input.nEnabled;
+  // Fail-SAFE input-adequacy guard (the L4 "a down refuter never silently approves" discipline,
+  // applied to the aggregation boundary). The pure aggregate() computes the gate over a CONSISTENT
+  // set (one entry per enabled lens); the CLI refuses to vote on an absent or inconsistent set rather
+  // than fabricate an `approve` from it. A non-zero exit here is treated upstream as `needs-human`,
+  // exactly as a non-zero review-call.mjs exit is — never a silent pass.
+  if (input.refutations.length === 0) {
+    process.stderr.write("aggregate: no refutations supplied — refusing to vote (an empty set would silently approve; treat as needs-human)\n");
+    return 3;
+  }
+  if (Number.isInteger(nEnabled) && nEnabled > 0 && input.refutations.length !== nEnabled) {
+    process.stderr.write(`aggregate: refutation count (${input.refutations.length}) != enabled-lens count (${nEnabled}) — refusing to vote on an inconsistent set (treat as needs-human)\n`);
+    return 3;
+  }
   const result = aggregate(input.refutations, nEnabled);
   process.stdout.write(renderBlock(result));
   return 0;

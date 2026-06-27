@@ -90,7 +90,9 @@ Collect the per-lens refutations into one JSON array and pipe it to the bundled 
 printf '%s' "$REFUTATIONS_JSON" | node plugin/skills/faffter-dark-spec-review/aggregate.mjs --n <count of enabled lenses>
 ```
 
-The rule it applies, in order:
+Supply exactly one refutation entry per enabled lens. `aggregate.mjs` **refuses to vote on an absent or inconsistent set** — an empty input, unparseable JSON, or a refutation count that disagrees with `--n` exits non-zero with no block. Treat any **non-zero `aggregate.mjs` exit as `needs-human`**, never as `approve` — the same fail-safe discipline as a non-zero `review-call.mjs` exit; an empty set must never silently approve.
+
+The rule it applies to a consistent set, in order:
 
 1. **Transport floor** — any `config-fault` unavailable lens → `needs-human` (a human must fix the config); an `infra-configured` unavailable lens whose missing vote could swing the verdict → `needs-human`.
 2. **Severity veto** — any `critical` objection → `reject-approach`.

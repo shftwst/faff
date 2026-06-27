@@ -92,6 +92,45 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 "$faff" hooks-ensure
 ```
 
+## Spec-review gate (approach-critique consumer-fold)
+
+The confidence gate above asks *is the spec internally well-formed?*. This gate asks the orthogonal question *is the approach itself any good?* — sound architecture, safe, right-sized, verifiable. It is the judgement layer of the spec stage: catch a wrong approach while it is still just a spec, before any code exists. It runs **after** the spec is produced and confidence-rated and **before** the issue promotes to Todo, and it **composes** with the confidence gate — both must pass to admit (an `approve` verdict does **not** override a weak `confidence` rating, and a `confidence: high` does not override a non-`approve` verdict).
+
+**The producer.** The reviewer is the `spec_review` slot (default `faffter-noon-spec-review`). Resolve it via `faff config get slots.spec_review` and invoke per gateway → **Sibling-skill invocation**; a non-default occupant is validated before first use per gateway → **Slot conformance validation**. Pass it: the spec body, the attached `## Methodology critique` block (when present), and repo architecture context. It runs the four lenses (architectural / infosec / methodology / QA) as one single-pass checklist and emits exactly one `faff-contract:spec-review-verdict` block — its reasoning is its own (see `faffter-noon-spec-review/SKILL.md`); prep owns only the sequencing around the result.
+
+**The consumer-fold.** prep is the consumer of that block (the same producer-emits / consumer-parses shape as `spec-readiness`): (1) locate the single fenced `faff-contract:spec-review-verdict` block, (2) `JSON.parse` its body (`{ verdict, objections }`), (3) pipe it to `faff contract spec-review-verdict` — the **sole source of contract data**. The script's exit maps to the action:
+
+- **exit 2** (fail-loud — malformed extraction) → treat as `needs-human` (producer breakage), **park**. Never admit.
+- **exit 1** (violations — contract not satisfied) → treat as `needs-human`, **park**. Never admit.
+- **exit 0** (conformant) → route on the verdict below.
+
+**Routing on a conformant verdict:**
+
+| Verdict | Action |
+|---|---|
+| `approve` | Continue to the confidence gate + promote (both gates must still pass). |
+| `revise` | Apply the lensed fixes to the spec **in place**, re-rate, and re-review (bounded loop below). |
+| `reject-approach` | Route **by the objecting lens** (table below). |
+| `needs-human` | **Park** and surface the lensed objections for `/faff-wtf`. |
+
+**`reject-approach` routes by the objecting lens** — a deterministic function of the verdict's `objections: [{lens, severity}]`, no second inference layer:
+
+| Objecting lens | Routes to | Action |
+|---|---|---|
+| `architectural` / `infosec` / `QA` | **prep** | the design is flawed within the right scope → re-explore + re-spec in place (bounded loop below). |
+| `methodology` | **plot** | the scope / increment is wrong → **park** and surface the slice for human-interactive `/faff-plot` to re-slice (no autonomous plot re-entry seam exists). |
+| **multiple lenses object** | the **higher altitude — `plot` wins** | park and surface for `/faff-plot`; no point re-speccing a slice about to be re-sliced. |
+
+**Loop cap.** The prep↔review loop (a `revise` re-spec, or a design-lens `reject-approach` re-plan) is capped at **2 iterations**. On a third unresolved `revise`/`reject-approach`, downgrade to `needs-human` and **park** — the human is the tie-breaker against an irreconcilable producer↔reviewer disagreement.
+
+**Retain the verdict on the spec.** On `approve`, write a retained `spec-review: approve` line alongside the `confidence:` line (durable provenance, exactly as the confidence rating is retained). Build-admission consumes this **retained** verdict rather than re-reviewing; staleness is caught by the existing **Live-thread reconciliation** (gateway) every verdict consumer already applies — wire the retained verdict *through* that reconciliation, not around it.
+
+**Modes.** Verdict computation is identical interactive vs autonomous; only who acts on the routing differs. Autonomous prep applies `revise` fixes / design-lens re-plans within appetite and parks on `needs-human` or a methodology-lens reject; interactive prep surfaces the verdict + objections to the human at the same point. A methodology-lens `reject-approach` is human-interactive in **both** modes (it surfaces for `/faff-plot`, never auto-re-slices).
+
+**Degraded methodology signal.** When no `## Methodology critique` block is attached (no methodology slot configured), the reviewer's methodology lens degrades to no-signal and emits no methodology objection — it never recomputes value/scope. prep passes whatever critique block it wrote (or none); it does not synthesise one for the reviewer.
+
+**Park causes** (folded into the standard `parked` return + park protocol): `spec-review needs-human — <lensed objections>`, `spec-review reject-approach (methodology/scope) — needs /faff-plot re-slice`, `spec-review loop cap reached — <verdict>`, `spec-review contract not satisfied (exit <n>)`.
+
 ## Spec quality bar (owned by the producer)
 
 The clean-context review of a freshly drafted spec — dispatching a fresh-context subagent to verify every claim against the codebase before the spec is trusted — is the **producer's** responsibility, not prep's. The gateway makes a delegated `spec` skill responsible for its own quality bar; the default producer discharges it via its own _Self-review before returning_ step (see `faffter-noon-spec/SKILL.md`), which runs for every fresh spec regardless of size, applies the same `blocker`/`major`/`minor` severities, and enforces the self-rating downgrade rule (≥1 blocker or ≥3 major → can't self-rate `high`). prep does not re-run that review — it trusts the producer's self-rating and the markers, then applies its own gates below.
@@ -170,9 +209,11 @@ Invoke the configured/default `spec` skill (default `faffter-noon-spec`) with th
 **Write the attach-state marker the instant the producer returns** (`attached:false`, before rendering — see _Attach-state marker (write at produce time)_ above), then **write the provenance stamp under the H1** (see _Provenance stamp (populate at attach)_ above; `mode := interactive` here), then run the marker validation from the _spec contract_ before attaching. In interactive mode, fix missing markers inline. In autonomous mode, a validation failure means **park** (record `disposition:"parked"` on the attach-state marker). Log the producer's returned review findings + resolutions to the prep log.
 
 **→ Immediately attach spec to the issue as a comment** — then flip the attach-state marker to `attached:true`.
+
+**→ Run the Spec-review gate** (the approach-critique consumer-fold above) on the attached spec, **after** confidence rating and **before** promotion. Surface the verdict + any lensed objections to the user; `approve` proceeds to the steps below, `revise`/design-lens `reject-approach` loop in place (cap 2), a methodology-lens `reject-approach` surfaces the slice for `/faff-plot`, and `needs-human` (or a contract failure) parks. Only an `approve` — composed with the confidence gate — promotes:
 - If the spec surfaced that the issue should be split, recommend the split
 - If there are open questions, note them and leave the issue in backlog
-- If clean, **move the issue to Todo** — it's prepped and ready to be picked up
+- If clean (spec-review `approve` + confidence gate), **move the issue to Todo** — it's prepped and ready to be picked up
 
 **ADR promotion (FAFF-16).** After the spec is attached, run the ADR promotion step — a tail step that never blocks prep and writes **no** repo files (prep stays tracker-only; the ADR is materialised later by `/faff-graft`, which owns the feature branch, so it ships in the PR with the code):
 
@@ -303,7 +344,7 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), reattach to the issue, keep the issue where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), **re-run the Spec-review gate** on the refreshed spec (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching), then reattach to the issue and keep it where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 
@@ -323,9 +364,11 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 - `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.
 - `low` — multiple `**Punt:**` markers, intent the explore couldn't pin down, or a self-review `blocker` that needed architectural reframing.
 
+**Run the Spec-review gate** (the approach-critique consumer-fold above) on the attached spec, **after** the confidence rating and **before** promotion — invoke `slots.spec_review`, parse its `faff-contract:spec-review-verdict` block, pipe it to `faff contract spec-review-verdict`, and route on the verdict: `revise` / design-lens `reject-approach` loop in place (cap 2 iterations), a methodology-lens (or multi-lens) `reject-approach` parks for `/faff-plot`, and `needs-human` or a contract failure (exit 1/2) parks. Only an `approve` verdict (retained as `spec-review: approve` on the spec) clears this gate; it then composes with the confidence gate below — **both** must pass to promote.
+
 Apply the gate to the producer's output:
 
-- `confidence: high` **and** marker validation passes → attach to issue (rating retained on the spec), move to Todo, return `promoted`
+- `confidence: high`, marker validation passes, **and** spec-review `approve` → attach to issue (rating + verdict retained on the spec), move to Todo, return `promoted`
 - `confidence: high` **but** marker validation fails → **park** with cause "spec contract violated — missing Chosen/Decision/Punt markers"
 - `confidence: medium` → attach to issue **with the `confidence: medium` line retained**, move to Todo, return `promoted-needs-review`. Do **not** strip the rating — it is the re-spec signal: the routing verdict for a retained `medium` is `needs-decision-first` (gateway), so an autonomous run gives it a resolve-attempt and otherwise surfaces it in `/faff-wtf` rather than auto-building. The spec is visible on the tracker for a human to read, resolve the open punts, and bump to `high`.
 - `confidence: low` → **park** with cause "low confidence — explore could not resolve core questions"

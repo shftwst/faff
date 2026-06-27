@@ -206,6 +206,25 @@ Independents run in parallel; collision groups serialise within themselves.
 
 **Appetite** tunes depth (low = solo safe roots; medium/high = multi-member slices; full = deepest runway) — it never cranks up (that is `/faff-tidy`'s human-gated batch crank-up).
 
+### `prdr-author`
+
+**Optional** (gateway → **The `methodology` slot**). Given a container (initiative/project) + its `{outcome, child_specs, target}`, author one **`AuthoredPrdr`** — a loop-authored FAFF-245 PRDR record (provenance `loop`, status `Proposed`). The structural lens authors from **graph + container facts**, never value/risk opinion: the DoD is the **structural completion bar** (every child epic delivered + the container outcome's stated criteria met), scaled by target.
+
+**Derivation (graph + container facts only):**
+
+1. **Resolve the target** — `explicit > inherited > methodology-default` (FAFF-40 order); the methodology-default is **finished** when unset. The target sets the DoD's ambition band.
+2. **Re-read first (manual-authoritative).** Read the container's current DoD and any human edits **before** authoring; **never clobber** a human-set DoD — fill/default only the unset parts (gateway → **Manual changes are authoritative (`prdr-author`)**).
+3. **Author the fields** from `{outcome, child_specs}`, scaled to the target:
+   - `definition_of_done` — **thin-MVP** target ⇒ the first-slice children + the outcome's minimal criterion; **finished** target ⇒ all children delivered + the outcome's full stated criteria. Structural, child-derived — no value judgement about *which* children matter.
+   - `decision` + `scope` — the delegated end this container commits to, named from the outcome prose; scope = the container's child set.
+   - `prd_goal` — the cited parent PRD goal the container serves (from the container's PRD link / ancestor).
+4. **Confidence + fail-safe.** Thin outcome prose / no child specs ⇒ low confidence ⇒ emit a **thin DoD flagged needs-human**, never a vacuous one (the L4 caller must never self-define a vacuous DoD).
+5. **Emit** the `AuthoredPrdr` and write it via `faff prdr new --provenance loop --status Proposed --container <c> --prd-goal <g>`. The methodology **authors but never admits** — it does **not** call `faff prdr admit`, and **never writes the tracker**; the caller routes per its level (gateway → **Authored-PRDR level-scaling**).
+
+**Output:** `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` + a confidence note. Unanswered-equivalent (no container, or `--no-prdr`) ⇒ the caller proposes no PRDR and the human authors the DoD directly.
+
+**Appetite** tunes only ambition framing, never whether to admit (admission is the caller's level): lower appetite favours the thinner end of the target band, higher the fuller — it never self-Accepts (that is the L4 runner's gated act, or the human's L3 ratification).
+
 ## Appetite integration
 
 The structural methodology respects appetite but has limited agency by design:

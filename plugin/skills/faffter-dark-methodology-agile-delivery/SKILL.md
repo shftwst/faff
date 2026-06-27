@@ -17,7 +17,7 @@ slots:
 
 ## Outputs
 
-This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. It also answers the optional `issue-critique` (per-issue lens for `/faff-prep`) and `crank-up-set` (ranked not-eligible unlock batches for `/faff-wtf` + `/faff-tidy`) outputs. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
+This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. It also answers the optional `issue-critique` (per-issue lens for `/faff-prep`), `crank-up-set` (ranked not-eligible unlock batches for `/faff-wtf` + `/faff-tidy`), and `prdr-author` (a target-scaled project DoD for `/faff-plot` + `/faff-jot` + the lights-out runner) outputs. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
 Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: faffter-dark-methodology-agile-delivery` for the caller to display (the gateway envelope's `Methodology: <name>` line carries this skill's own name, not a nickname).
 
@@ -33,6 +33,7 @@ How the principles map onto the outputs:
 | `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 | `issue-critique` | per-issue: 4 (right-sized / split / merge), 1 + 5 (workstream fit), 6 (surfaced deps), 7 (risk profile → de-risking spike) |
 | `crank-up-set` | **Composes** `faffter-noon-methodology-structural`'s `crank-up-set` slice algorithm for the graph walk + frontiers, then **re-ranks** the returned sets by 2 (value × risk) and 7 (risk-aware), trimming to the thinnest coherent slice (MVP, principle 4). Does not re-implement the walk. Appetite per-level: low = solo safe roots; full = deepest runway. |
+| `prdr-author` | **Composes** the structural baseline's `prdr-author` field derivation, then **scales the DoD by the agile lens**: 4 (right-sized — the thinnest coherent done-bar for the target, MVP cut over exhaustive coverage), 2 + 7 (value × risk — the DoD's done-criteria are the highest-value increment the target funds, de-risked first). Does not re-author from scratch — composes the structural fields and re-frames the `definition_of_done` ambition. |
 
 The WIP cap (principle 3) applies to `standup-digest` only — never to `build-queue` (autonomous work is unbounded).
 
@@ -43,6 +44,8 @@ The WIP cap (principle 3) applies to `standup-digest` only — never to `build-q
 - `epic` — right-sized first-slice epics (principle 4) for one project, hidden dependencies surfaced as explicit blocker links (6).
 
 `/faff-plot` owns the stop rule (first-slice epics, never the leaves below); this skill shapes the level it's asked for. Absent a `shape-level`, the single-level brief→tickets behaviour is unchanged (what `/faff-jot` uses).
+
+**Target-scaled `prdr-author`.** Composes the structural baseline's field derivation (gateway → **The `methodology` slot**; `faffter-noon-methodology-structural` → `prdr-author`), then scales the `definition_of_done` through the lens — the agile cut is the **thinnest coherent done-bar the target funds**, highest-value increment first, de-risked early (principles 4 + 2 + 7), not the structural "all children delivered" sum. A **thin-MVP** target ⇒ the minimal shippable outcome slice; a **finished** target ⇒ the full value the container promises. It **authors but never admits** (admission is the caller's level — gateway → **Authored-PRDR level-scaling**) and re-reads any human-set DoD first, never clobbering it (gateway → **Manual changes are authoritative (`prdr-author`)**). Low confidence ⇒ a thin DoD flagged needs-human, never a vacuous L4 self-define.
 
 ## Re-homing gating chains into the stream they gate
 

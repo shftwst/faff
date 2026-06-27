@@ -266,6 +266,7 @@ function dig(data, dotted) {
 const DEFAULTS = {
   "slots.intake": "faffter-noon-intake",
   "slots.spec": "faffter-noon-spec",
+  "slots.spec_review": "faffter-noon-spec-review",
   "slots.adr": "faffter-noon-adr",
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",
@@ -725,7 +726,7 @@ function cmdConfig(args) {
       // FAFF-182: print the registry; --selftest asserts it covers the expected slots + scalars.
       if (rest.includes("--selftest")) {
         const expected = [
-          "slots.intake", "slots.spec", "slots.review", "slots.ship", "slots.concurrency",
+          "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
@@ -763,7 +764,7 @@ function cmdConfig(args) {
       // slot is visible, not silent.
       const [data, p] = loadConfig(root);
       const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
-      const SLOTS = ["intake", "spec", "review", "ship", "concurrency", "methodology",
+      const SLOTS = ["intake", "spec", "spec_review", "review", "ship", "concurrency", "methodology",
         "routing_adaptor", "rendering_adaptor"];
       console.log(`config:   ${p || "(none — all defaults)"}`);
       console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
@@ -2592,6 +2593,7 @@ const REGISTRY = {
   "faffter-dark-concurrency-parallel": { type: "mechanism" },
   "faffter-noon-spec": { type: "producer-spec" },
   "faffter-dark-nlspec": { type: "producer-spec" },
+  "faffter-noon-spec-review": { type: "producer-spec-review" },
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },
@@ -2652,6 +2654,7 @@ const SLOT_TYPES = {
   intake: { type: "producer-intake" },
   adr: { type: "producer-adr" },
   spec: { type: "producer-spec" },
+  spec_review: { type: "producer-spec-review", slot: "spec_review" },
   review: { type: "producer-review" },
   ship: { type: "producer-ship" },
   // FAFF-231: the infra-profile acquirer slot. The shipped default occupant is the built-in
@@ -2717,6 +2720,13 @@ function checksFor(meta, t) {
       break;
     case "producer-review":
       out.push([has("faff-contract:review-verdict"), "emits its `faff-contract:review-verdict` artifact block"]);
+      break;
+    case "producer-spec-review":
+      // FAFF-265: the spec-stage reviewer (FAFF-9 family) self-declares its verdict in a
+      // faff-contract:spec-review-verdict block the consumer (faff-prep, FAFF-266) parses and
+      // pipes to `faff contract spec-review-verdict`. The default occupant is a passthrough until
+      // FAFF-266 fills in the real lenses.
+      out.push([has("faff-contract:spec-review-verdict"), "emits its `faff-contract:spec-review-verdict` artifact block"]);
       break;
     case "producer-ship":
       out.push([has("faff-contract:delivery-outcome"), "emits its `faff-contract:delivery-outcome` artifact block"]);
@@ -4701,6 +4711,49 @@ function contractPrdReadiness(extraction) {
   return { contractData };
 }
 
+// --- spec-review-verdict (FAFF-265) ---
+// The spine of FAFF-9's spec-stage review: the fixed verdict the L1–L3 reviewer (FAFF-266),
+// L4 refuters (FAFF-267), and lens-selection (FAFF-268) all map onto. Validates SHAPE, never
+// the review's reasoning. Fail-loud on a bad verdict = the prd-readiness precedent (faff's own
+// producer emits it, so an out-of-enum verdict is producer breakage, not a review outcome).
+// Soft objection fields (lens/severity) enforce their enum via violations = the prd-readiness.reason
+// precedent — so an echoed bad value never trips schemaCheck into a spurious fail-loud.
+const SPEC_REVIEW_VERDICTS = ["approve", "revise", "reject-approach", "needs-human"];
+const SPEC_REVIEW_LENSES = ["architectural", "infosec", "methodology", "QA"];
+const SPEC_REVIEW_SEVERITIES = ["blocker", "major", "minor"];
+function computeSpecReviewVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!SPEC_REVIEW_VERDICTS.includes(extraction.verdict)) {
+    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {approve,revise,reject-approach,needs-human} — no safe coerce target` };
+  }
+  const verdict = extraction.verdict;
+  const violations = [];
+  const raw = Array.isArray(extraction.objections) ? extraction.objections : [];
+  if (extraction.objections !== undefined && !Array.isArray(extraction.objections)) {
+    violations.push("objections is not an array — treated as empty");
+  }
+  const objections = raw.map((o, i) => {
+    const lens = o && typeof o === "object" ? o.lens : undefined;
+    const severity = o && typeof o === "object" ? o.severity : undefined;
+    if (!SPEC_REVIEW_LENSES.includes(lens)) violations.push(`objection[${i}] lens ${JSON.stringify(lens)} not in {architectural,infosec,methodology,QA}`);
+    if (!SPEC_REVIEW_SEVERITIES.includes(severity)) violations.push(`objection[${i}] severity ${JSON.stringify(severity)} not in {blocker,major,minor}`);
+    return { lens: typeof lens === "string" ? lens : "", severity: typeof severity === "string" ? severity : "" };
+  });
+  if (verdict === "approve" && objections.length > 0) violations.push("approve carries objections — approve must carry none");
+  if (verdict !== "approve" && objections.length === 0) violations.push(`${verdict} carries no objections`);
+  return { contractData: { verdict, objections, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractSpecReviewVerdict(extraction) {
+  const { contractData, failLoud } = computeSpecReviewVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "spec-review-verdict");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- prdr-admission (FAFF-255) ---
 // The two-gate-bound admission verdict the PRDR layer's keystone produces. `faff prdr admit` is the
 // PRODUCER (computePrdrAdmissionVerdict — the deterministic gate computing authority/by-level/ratchet
@@ -5137,6 +5190,20 @@ const CONTRACTS = {
       { name: "satisfied-while-dod-unverified", in: { covered: true, uncovered_goals: [], satisfied: true, reason: "", completion: { all_met: false, unmet_or_unverified: ["0003"] } }, wantExit: 1 },
       { name: "not-satisfied-no-reason", in: { covered: true, uncovered_goals: [], satisfied: false, reason: "", completion: { all_met: true, unmet_or_unverified: [] } }, wantExit: 1 },
       { name: "fail-loud-missing-completion", in: { covered: true, uncovered_goals: [], satisfied: true, reason: "" }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "spec-review-verdict": {
+    run: contractSpecReviewVerdict,
+    fixtures: [
+      { name: "conformant-approve", in: { verdict: "approve", objections: [] }, wantExit: 0 },
+      { name: "conformant-reject-approach", in: { verdict: "reject-approach", objections: [{ lens: "architectural", severity: "blocker" }] }, wantExit: 0 },
+      { name: "conformant-revise", in: { verdict: "revise", objections: [{ lens: "QA", severity: "minor" }] }, wantExit: 0 },
+      { name: "approve-with-objections", in: { verdict: "approve", objections: [{ lens: "infosec", severity: "major" }] }, wantExit: 1 },
+      { name: "non-approve-no-objections", in: { verdict: "reject-approach", objections: [] }, wantExit: 1 },
+      { name: "bad-lens", in: { verdict: "revise", objections: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
+      { name: "bad-severity", in: { verdict: "needs-human", objections: [{ lens: "methodology", severity: "huge" }] }, wantExit: 1 },
+      { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/spec-review-verdict",
+  "title": "spec-review-verdict contract data",
+  "description": "Reference schema (FAFF-265). The SHAPE of the spec-stage review verdict that FAFF-9's reviewer (FAFF-266), L4 refuters (FAFF-267), and lens-selection (FAFF-268) all map onto. Shape is normative here; the verdict SEMANTICS (which severity implies which verdict) live in the reviewer, not the contract. Fail-loud on a verdict outside the enum (no safe coerce target — faff's own producer emits it). lens/severity are plain strings: their enum is enforced in the compute fn via violations (the prd-readiness.reason precedent), so an echoed bad value never trips a spurious fail-loud.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "objections", "conformant", "violations"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["approve", "revise", "reject-approach", "needs-human"] },
+    "objections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lens", "severity"],
+        "properties": {
+          "lens": { "type": "string" },
+          "severity": { "type": "string" }
+        }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

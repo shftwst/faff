@@ -4409,6 +4409,59 @@ function contractQualityGates(extraction) {
   return { contractData };
 }
 
+// --- prd-readiness (FAFF-253) ---
+// The product-axis analog of spec-readiness: the LLM PRD-admissibility validator (FAFF-260, deferred)
+// reads a container's PRD and emits a verdict; THIS deterministic half validates the verdict's SHAPE.
+// NO safe coerce target — faff's own producer emits it, so an out-of-enum verdict or creative_licence
+// is an assignment bug → fail-loud (like spec-readiness/automation-routing, unlike review/ship). The
+// gate is fail-safe toward REFUSAL: a malformed verdict never coerces toward `admissible`.
+//
+// Run-start call-site contract (the L4 run-start orchestrator — FAFF-260, not built yet):
+//   1. resolve the PRD via `faff prd path`; a missing PRD → REFUSE the run (escalate), never crash.
+//   2. invoke the LLM validator on the PRD; it emits one `faff-contract:prd-readiness` block last.
+//   3. locate that block, JSON.parse it, pipe it to `faff contract prd-readiness` (the sole contract-
+//      data source; an absent block → fail-loud → REFUSE).
+//   4. branch on the script result: `admissible` (exit 0) → ADMIT the run; `not-ready` (exit 0) →
+//      REFUSE + escalate before starting; any violation (exit 1) or fail-loud (exit 2) → REFUSE
+//      (fail-safe — never admit on a non-conformant or unparseable verdict).
+// `creative_licence` (`broad`/`tight`) is forward-carried to calibrate the downstream YAGNI/PRDR
+// reviewer's strictness; it is shape-checked here but not gate-decisive.
+const PRD_READINESS_VERDICTS = ["admissible", "not-ready"];
+const PRD_READINESS_REASONS = ["no-stop-conditions", "ambiguous-stop-conditions", "other"];
+const PRD_READINESS_LICENCES = ["broad", "tight"];
+function computePrdReadiness(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!PRD_READINESS_VERDICTS.includes(extraction.verdict)) {
+    return { contractData: null, failLoud: `verdict ${JSON.stringify(extraction.verdict)} not in {admissible,not-ready} — no safe coerce target` };
+  }
+  if (!PRD_READINESS_LICENCES.includes(extraction.creative_licence)) {
+    return { contractData: null, failLoud: `creative_licence ${JSON.stringify(extraction.creative_licence)} not in {broad,tight} — no safe coerce target` };
+  }
+  const verdict = extraction.verdict;
+  const creative_licence = extraction.creative_licence;
+  const stop_conditions_verifiable = !!extraction.stop_conditions_verifiable;
+  const violations = [];
+  let reason = typeof extraction.reason === "string" ? extraction.reason : "";
+  if (reason !== "" && !PRD_READINESS_REASONS.includes(reason)) {
+    violations.push(`reason ${JSON.stringify(reason)} not in {${PRD_READINESS_REASONS.join(",")}} — normalised to other`);
+    reason = "other";
+  }
+  if (verdict === "not-ready" && reason === "") violations.push("not-ready carries no reason");
+  if (verdict === "admissible" && reason !== "") violations.push("admissible carries a reason — reason must be empty when admissible");
+  if (verdict === "admissible" && !stop_conditions_verifiable) violations.push("admissible but stop_conditions_verifiable is false");
+  return { contractData: { verdict, reason, stop_conditions_verifiable, creative_licence, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractPrdReadiness(extraction) {
+  const { contractData, failLoud } = computePrdReadiness(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "prd-readiness");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
   "spec-readiness": {
@@ -4462,6 +4515,20 @@ const CONTRACTS = {
       { name: "needs-human-no-rungs", in: { signal: "needs-human", rungs: [] }, wantExit: 1 },
       { name: "coerce-malformed-signal", in: { signal: "maybe", rungs: [{ kind: "LINT", status: "fail" }] }, wantExit: 1 },
       { name: "errored-rung-needs-human", in: { signal: "needs-human", rungs: [{ kind: "UNIT", status: "errored" }] }, wantExit: 0 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "prd-readiness": {
+    run: contractPrdReadiness,
+    fixtures: [
+      { name: "conformant-admissible", in: { verdict: "admissible", reason: "", stop_conditions_verifiable: true, creative_licence: "broad" }, wantExit: 0 },
+      { name: "conformant-not-ready", in: { verdict: "not-ready", reason: "no-stop-conditions", stop_conditions_verifiable: false, creative_licence: "tight" }, wantExit: 0 },
+      { name: "not-ready-no-reason", in: { verdict: "not-ready", reason: "", stop_conditions_verifiable: false, creative_licence: "tight" }, wantExit: 1 },
+      { name: "out-of-set-reason-normalised", in: { verdict: "not-ready", reason: "vibes-are-off", stop_conditions_verifiable: false, creative_licence: "broad" }, wantExit: 1 },
+      { name: "admissible-with-reason", in: { verdict: "admissible", reason: "no-stop-conditions", stop_conditions_verifiable: true, creative_licence: "broad" }, wantExit: 1 },
+      { name: "admissible-but-unverifiable", in: { verdict: "admissible", reason: "", stop_conditions_verifiable: false, creative_licence: "tight" }, wantExit: 1 },
+      { name: "fail-loud-bad-verdict", in: { verdict: "maybe", reason: "", stop_conditions_verifiable: true, creative_licence: "broad" }, wantExit: 2 },
+      { name: "fail-loud-bad-licence", in: { verdict: "admissible", reason: "", stop_conditions_verifiable: true, creative_licence: "loose" }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },

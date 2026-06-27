@@ -249,3 +249,56 @@ test("the real repo tree validates clean (or has no docs/prdr yet)", () => {
   const r = run(["validate"]);
   assert.equal(r.status, 0, r.stdout);
 });
+
+// --- FAFF-256: the upper (YAGNI) gate producer (`faff prdr yagni`) ---
+const yagni = (args) => run(["yagni", ...args]);
+const yagniJson = (args) => JSON.parse(yagni(args).stdout);
+
+test("yagni: trace + methodology-admit + adversarial-survived → admit, emits 255's upper shape", () => {
+  const v = yagniJson(["--prd-goal", "ship booking", "--prd-goals", '["ship booking","reduce no-shows"]',
+    "--proposal", "admit", "--proposal-reason", "thin MVP", "--serves-goal", "--within-scope", "--challenge", "survived"]);
+  assert.equal(v.admit, true);
+  assert.equal(typeof v.reason, "string");
+  assert.equal(v.trace_to_goal, true);
+});
+
+test("yagni: produced verdict is contract-conformant and feeds `prdr admit --upper` to an admit disposition", () => {
+  const out = yagni(["--prd-goal", "ship booking", "--prd-goals", '["ship booking"]', "--proposal", "admit", "--challenge", "survived"]).stdout;
+  const c = spawnSync(process.execPath, [BIN, "contract", "prdr-yagni"], { input: out, encoding: "utf8" });
+  assert.equal(c.status, 0, `produced verdict must be conformant: ${out}\n${c.stderr}`);
+  const upper = JSON.parse(out);
+  const adm = spawnSync(process.execPath, [BIN, "prdr", "admit", "X", "--actor", "loop", "--supersedes-provenance", "loop",
+    "--upper", JSON.stringify({ admit: upper.admit, reason: upper.reason })], { encoding: "utf8" });
+  assert.equal(JSON.parse(adm.stdout).disposition, "admit");
+});
+
+test("yagni: no PRD-goal trace → reject at the door, no slot call needed", () => {
+  const v = yagniJson(["--prd-goal", "gold-plate the dashboard", "--prd-goals", '["ship booking"]', "--proposal", "admit", "--challenge", "survived"]);
+  assert.equal(v.admit, false);
+  assert.equal(v.trace_to_goal, false);
+  assert.match(v.reason, /no PRD-goal trace/);
+});
+
+test("yagni: disagreement → conservative reject (adversarial overturns the methodology proposal)", () => {
+  const v = yagniJson(["--prd-goal", "ship booking", "--prd-goals", '["ship booking"]', "--proposal", "admit", "--challenge", "overturned", "--challenge-reason", "exceeds scope"]);
+  assert.equal(v.admit, false);
+  assert.match(v.reason, /conservative reject/);
+});
+
+test("yagni: Phase-2 inconclusive (no --challenge) → conservative reject, never a silent admit", () => {
+  const v = yagniJson(["--prd-goal", "ship booking", "--prd-goals", '["ship booking"]', "--proposal", "admit"]);
+  assert.equal(v.admit, false);
+  assert.equal(v.challenge.ran, false);
+});
+
+test("yagni: grounding is advisory — its absence never blocks an otherwise-admittable PRDR", () => {
+  const v = yagniJson(["--prd-goal", "ship booking", "--prd-goals", '["ship booking"]', "--proposal", "admit", "--challenge", "survived"]);
+  assert.equal(v.grounding_present, false);
+  assert.equal(v.admit, true);
+});
+
+test("yagni: bad --proposal / --challenge / malformed --prd-goals are usage errors (exit 2)", () => {
+  assert.equal(yagni(["--prd-goal", "x", "--prd-goals", '["x"]', "--proposal", "maybe"]).status, 2);
+  assert.equal(yagni(["--prd-goal", "x", "--prd-goals", '["x"]', "--challenge", "sideways"]).status, 2);
+  assert.equal(yagni(["--prd-goal", "x", "--prd-goals", "notjson"]).status, 2);
+});

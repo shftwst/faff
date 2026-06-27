@@ -4383,7 +4383,7 @@ Subcommands:
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
-  prdr <path|new|list|supersede|validate|admit> [--root DIR]   FAFF-245/255: deterministic mechanics over the docs/prdr/ product-requirements DECISION-record log — the supersedable product-axis record between the immutable PRD and the per-slice spec (PRD content, ADR mechanics). path [<number>]; new <title> --container <slug> --prd-goal <g> [--provenance human|loop] [--status|--date]; list [--json] [--container <slug>] [--live]; supersede <old> --by <new> (pure mechanical linker); validate (presence-only: metadata + enums + contiguous numbering + the four body sections + symmetric supersession; never section content); admit <prdr> --actor loop|human --supersedes-provenance human|loop|none [--self] [--new-capability] [--drops-last-goal] [--lineage-supersessions N] [--thrash-max N] [--upper JSON] [--lower JSON] (FAFF-255 two-gate bound: pure verdict — computes authority/by-level/ratchet, folds in the 256/257 verdicts or fail-safe defaults, prints a prdr-admission verdict; no tracker/network call); --selftest runs the table. Reads tracking.prdr_docs_path (default docs/prdr/), prdr.thrash_max, prdr.thrash_window
+  prdr <path|new|list|supersede|validate|admit|yagni> [--root DIR]   FAFF-245/255/256: deterministic mechanics over the docs/prdr/ product-requirements DECISION-record log — the supersedable product-axis record between the immutable PRD and the per-slice spec (PRD content, ADR mechanics). path [<number>]; new <title> --container <slug> --prd-goal <g> [--provenance human|loop] [--status|--date]; list [--json] [--container <slug>] [--live]; supersede <old> --by <new> (pure mechanical linker); validate (presence-only: metadata + enums + contiguous numbering + the four body sections + symmetric supersession; never section content); admit <prdr> --actor loop|human --supersedes-provenance human|loop|none [--self] [--new-capability] [--drops-last-goal] [--lineage-supersessions N] [--thrash-max N] [--upper JSON] [--lower JSON] (FAFF-255 two-gate bound: pure verdict — computes authority/by-level/ratchet, folds in the 256/257 verdicts or fail-safe defaults, prints a prdr-admission verdict; no tracker/network call); yagni [<prdr>] --prd-goal <g> --prd-goals JSON [--proposal admit|reject] [--proposal-reason S] [--serves-goal] [--within-scope] [--challenge survived|overturned] [--challenge-reason S] [--grounding-present] (FAFF-256 UPPER/YAGNI gate: pure two-phase arbitration — deterministic trace-to-goal precondition + methodology proposal (Phase 1) + adversarial challenge (Phase 2) → conservative-reject-on-doubt; prints 255's upper {admit,reason} verdict as a prdr-yagni block; no tracker/network call); --selftest runs the table. Reads tracking.prdr_docs_path (default docs/prdr/), prdr.thrash_max, prdr.thrash_window
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
@@ -4824,6 +4824,115 @@ function computePrdrAdmissionVerdict(input) {
   return { disposition, upper, lower, authority, ratchet, reasons, conformant: true, violations: [] };
 }
 
+// --- prdr-yagni (FAFF-256) ---
+// The UPPER (YAGNI / value) gate FAFF-255 delegates to: given an AuthoredPrdr (FAFF-251), produce
+// 255's `upper: {admit, reason}` verdict — "is this PRDR warranted (serves the PRD without exceeding
+// it)?". `faff prdr yagni` is the PRODUCER (computePrdrYagniVerdict — the deterministic arbitration);
+// THIS is the consumer-side SHAPE validator (mirrors prd-readiness / prdr-admission). NO safe coerce
+// target — faff's own producer emits it, so an out-of-enum proposal verdict is an assignment bug →
+// fail-loud; the gate is fail-safe toward REFUSAL (a malformed verdict never coerces toward `admit`).
+//
+// The load-bearing invariant guarded here: an `admit` MUST have earned it through every filter —
+// trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns. That is the
+// "no gold-plating on doubt" conservative-reject rule, in code.
+//
+// Two-phase call-site contract (the agent orchestrates; the CLI arbitrates — PURE, no network):
+//   1. trace-to-goal precondition (deterministic, NO slot call): `AuthoredPrdr.prd_goal ∈ PRD.goals`,
+//      else reject at the door — kills vague / goal-less PRDRs. (Pass `--prd-goal` + `--prd-goals`.)
+//   2. Phase 1 — the `methodology` slot's `yagni-judge` named output PROPOSES the value judgment
+//      → { serves_goal, within_scope, verdict: admit|reject, reason }. (Pass `--proposal …`.)
+//   3. Phase 2 — the `review` (adversarial-review) slot CHALLENGES the proposal with a different model
+//      (gold-plating / unwarranted / off-mission) → survived | overturned. (Pass `--challenge …`.)
+//      An inconclusive Phase 2 (adversarial provider unreachable after its fallback chain) is NOT
+//      a "survived": OMIT `--challenge`, and the producer conservatively rejects on the missing skeptic.
+//   4. arbitrate (this producer) → emit one `faff-contract:prdr-yagni` block; locate it, JSON.parse it,
+//      pipe it to `faff contract prdr-yagni`, then feed `{admit, reason}` to `faff prdr admit --upper`.
+// Grounding (PRD-domain KB via the grounding slot, FAFF-127/128) is ADVISORY — `grounding_present` is
+// shape-checked but never gate-decisive; its absence never blocks (judgment proceeds on PRD + methodology).
+const PRDR_YAGNI_PROPOSAL_VERDICTS = ["admit", "reject"];
+function computePrdrYagni(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const p = extraction.proposal;
+  if (p === null || typeof p !== "object" || Array.isArray(p)) {
+    return { contractData: null, failLoud: "proposal must be an object" };
+  }
+  if (!PRDR_YAGNI_PROPOSAL_VERDICTS.includes(p.verdict)) {
+    return { contractData: null, failLoud: `proposal.verdict ${JSON.stringify(p.verdict)} not in {admit,reject} — no safe coerce target` };
+  }
+  const c = extraction.challenge;
+  if (c === null || typeof c !== "object" || Array.isArray(c)) {
+    return { contractData: null, failLoud: "challenge must be an object" };
+  }
+  const admit = !!extraction.admit;
+  const trace_to_goal = !!extraction.trace_to_goal;
+  const grounding_present = !!extraction.grounding_present;
+  const proposal = {
+    serves_goal: !!p.serves_goal, within_scope: !!p.within_scope,
+    verdict: p.verdict, reason: typeof p.reason === "string" ? p.reason : "",
+  };
+  const challenge = {
+    ran: !!c.ran, overturns: !!c.overturns,
+    reason: typeof c.reason === "string" ? c.reason : "",
+  };
+  const reason = typeof extraction.reason === "string" ? extraction.reason : "";
+  const violations = [];
+  const earned = trace_to_goal && proposal.verdict === "admit" && challenge.ran && !challenge.overturns;
+  if (admit && !earned) {
+    violations.push("admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns)");
+  }
+  if (!admit && reason === "") violations.push("reject carries no reason");
+  return { contractData: { admit, reason, trace_to_goal, proposal, challenge, grounding_present, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractPrdrYagni(extraction) {
+  const { contractData, failLoud } = computePrdrYagni(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "prdr-yagni");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
+// The PRODUCER (`faff prdr yagni`): the deterministic two-phase arbitration. Pure — no tracker/network
+// call (parity with `faff prdr admit` / `faff next`); the agent maps the trace + the two slot results
+// onto these closed-vocabulary inputs. Emits a verdict conformant by construction (validated
+// belt-and-braces by the caller via schemaCheck). The conservative-reject rule (no gold-plating on
+// doubt) is the sole place `admit` can be earned: trace ∧ proposal admits ∧ skeptic ran ∧ ¬overturned.
+function computePrdrYagniVerdict(input) {
+  const goals = Array.isArray(input.prdGoals) ? input.prdGoals.filter((g) => typeof g === "string") : [];
+  const prdGoal = typeof input.prdGoal === "string" ? input.prdGoal : "";
+  const trace_to_goal = prdGoal !== "" && goals.includes(prdGoal);
+  const proposalVerdict = PRDR_YAGNI_PROPOSAL_VERDICTS.includes(input.proposalVerdict) ? input.proposalVerdict : "reject";
+  const proposal = {
+    serves_goal: !!input.servesGoal, within_scope: !!input.withinScope,
+    verdict: proposalVerdict, reason: typeof input.proposalReason === "string" ? input.proposalReason : "",
+  };
+  // challenge: "survived" | "overturned" | null (null ⇒ Phase 2 did not conclude — conservative).
+  const challengeRan = input.challenge === "survived" || input.challenge === "overturned";
+  const overturns = input.challenge === "overturned";
+  const challenge = { ran: challengeRan, overturns, reason: typeof input.challengeReason === "string" ? input.challengeReason : "" };
+
+  let admit, reason;
+  if (!trace_to_goal) {
+    admit = false;
+    reason = `no PRD-goal trace: PRDR cites ${JSON.stringify(prdGoal || "<none>")} which is not a declared PRD goal`;
+  } else if (proposalVerdict === "reject") {
+    admit = false;
+    reason = `conservative reject (no gold-plating on doubt) — methodology proposed reject: ${proposal.reason || "unwarranted or exceeds PRD scope"}`;
+  } else if (!challengeRan) {
+    admit = false;
+    reason = "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade";
+  } else if (overturns) {
+    admit = false;
+    reason = `conservative reject (no gold-plating on doubt) — adversarial challenge overturned the proposal: ${challenge.reason || "gold-plating / serves the goal but exceeds PRD scope"}`;
+  } else {
+    admit = true;
+    reason = proposal.reason || "methodology admits (serves the goal, within scope) and the adversarial challenge did not overturn it";
+  }
+  return { admit, reason, trace_to_goal, proposal, challenge, grounding_present: !!input.groundingPresent, conformant: true, violations: [] };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
   "spec-readiness": {
@@ -4906,6 +5015,21 @@ const CONTRACTS = {
       { name: "bad-lineage-normalised", in: { disposition: "reject", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, ratchet: { lineage_supersessions: "3", breached: false }, reasons: [] }, wantExit: 1 },
       { name: "fail-loud-bad-disposition", in: { disposition: "maybe", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
       { name: "fail-loud-bad-actor", in: { disposition: "reject", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "robot", supersedes_provenance: "loop", by_level: "ok" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "prdr-yagni": {
+    run: contractPrdrYagni,
+    fixtures: [
+      { name: "conformant-admit", in: { admit: true, reason: "serves the booking goal, within scope", trace_to_goal: true, proposal: { serves_goal: true, within_scope: true, verdict: "admit", reason: "serves the booking goal, within scope" }, challenge: { ran: true, overturns: false, reason: "" }, grounding_present: false }, wantExit: 0 },
+      { name: "conformant-reject-no-trace", in: { admit: false, reason: "no PRD-goal trace", trace_to_goal: false, proposal: { serves_goal: false, within_scope: false, verdict: "reject", reason: "" }, challenge: { ran: false, overturns: false, reason: "" }, grounding_present: false }, wantExit: 0 },
+      { name: "conformant-reject-overturned", in: { admit: false, reason: "conservative reject — overturned", trace_to_goal: true, proposal: { serves_goal: true, within_scope: true, verdict: "admit", reason: "looks fine" }, challenge: { ran: true, overturns: true, reason: "gold-plating" }, grounding_present: true }, wantExit: 0 },
+      { name: "admit-without-trace", in: { admit: true, reason: "x", trace_to_goal: false, proposal: { serves_goal: true, within_scope: true, verdict: "admit", reason: "x" }, challenge: { ran: true, overturns: false, reason: "" }, grounding_present: false }, wantExit: 1 },
+      { name: "admit-while-overturned", in: { admit: true, reason: "x", trace_to_goal: true, proposal: { serves_goal: true, within_scope: true, verdict: "admit", reason: "x" }, challenge: { ran: true, overturns: true, reason: "exceeds scope" }, grounding_present: false }, wantExit: 1 },
+      { name: "admit-without-challenge-run", in: { admit: true, reason: "x", trace_to_goal: true, proposal: { serves_goal: true, within_scope: true, verdict: "admit", reason: "x" }, challenge: { ran: false, overturns: false, reason: "" }, grounding_present: false }, wantExit: 1 },
+      { name: "reject-no-reason", in: { admit: false, reason: "", trace_to_goal: true, proposal: { serves_goal: false, within_scope: false, verdict: "reject", reason: "" }, challenge: { ran: false, overturns: false, reason: "" }, grounding_present: false }, wantExit: 1 },
+      { name: "fail-loud-bad-proposal-verdict", in: { admit: false, reason: "r", trace_to_goal: true, proposal: { serves_goal: true, within_scope: true, verdict: "maybe", reason: "" }, challenge: { ran: true, overturns: false, reason: "" }, grounding_present: false }, wantExit: 2 },
+      { name: "fail-loud-missing-proposal", in: { admit: false, reason: "r", trace_to_goal: true, challenge: { ran: true, overturns: false, reason: "" }, grounding_present: false }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -7010,7 +7134,41 @@ function cmdPrdr(args) {
     return 0;   // report-only (parity with `faff next`): the disposition is in the payload, never the exit code
   }
 
-  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit (or --selftest)\n");
+  if (action === "yagni") {
+    // The UPPER (YAGNI) gate producer (FAFF-256). Pure — no tracker/network call (parity with `admit`):
+    // the agent maps the trace + the two slot results onto these closed-vocabulary flags. <prdr> is
+    // accepted for the human-readable echo; the verdict is a pure function of the flags. Emits 255's
+    // `upper` shape (admit, reason) plus the audit trail; feed it to `faff prdr admit --upper`.
+    const prdGoal = adrFlag(args, "--prd-goal");
+    let prdGoals = [];
+    const goalsRaw = adrFlag(args, "--prd-goals");
+    if (goalsRaw != null) {
+      try { prdGoals = JSON.parse(goalsRaw); } catch (e) { process.stderr.write(`faff prdr yagni: --prd-goals is not valid JSON: ${e.message}\n`); return 2; }
+      if (!Array.isArray(prdGoals)) { process.stderr.write("faff prdr yagni: --prd-goals must be a JSON array of strings\n"); return 2; }
+    }
+    const proposalVerdict = adrFlag(args, "--proposal");
+    if (proposalVerdict != null && !PRDR_YAGNI_PROPOSAL_VERDICTS.includes(proposalVerdict)) {
+      process.stderr.write("faff prdr yagni: --proposal must be admit|reject\n"); return 2;
+    }
+    const challenge = adrFlag(args, "--challenge");
+    if (challenge != null && challenge !== "survived" && challenge !== "overturned") {
+      process.stderr.write("faff prdr yagni: --challenge must be survived|overturned (omit when Phase 2 did not conclude)\n"); return 2;
+    }
+    const verdict = computePrdrYagniVerdict({
+      prdGoal, prdGoals,
+      proposalVerdict, proposalReason: adrFlag(args, "--proposal-reason"),
+      servesGoal: args.includes("--serves-goal"), withinScope: args.includes("--within-scope"),
+      challenge, challengeReason: adrFlag(args, "--challenge-reason"),
+      groundingPresent: args.includes("--grounding-present"),
+    });
+    // Belt-and-braces: the produced verdict must itself conform to the prdr-yagni contract schema.
+    const schemaErr = schemaCheck(verdict, "prdr-yagni");
+    if (schemaErr) { process.stderr.write(`faff prdr yagni: ${schemaErr}\n`); return 2; }
+    process.stdout.write(JSON.stringify(verdict) + "\n");
+    return 0;   // report-only (parity with `admit`): the verdict is in the payload, never the exit code
+  }
+
+  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit | yagni (or --selftest)\n");
   return 2;
 }
 
@@ -7087,6 +7245,36 @@ function prdrSelftest() {
     const v = adm({ actor: "loop", supersedesProvenance: d === "propose-only" ? "human" : "loop", self: d === "reject" });
     return computePrdrAdmission(v).contractData.conformant === true && v.disposition === d;
   }));
+
+  // --- FAFF-256: the upper (YAGNI) gate producer ---
+  const yag = (opts) => computePrdrYagniVerdict({ prdGoal: "ship booking", prdGoals: ["ship booking", "reduce no-shows"], proposalVerdict: "admit", challenge: "survived", ...opts });
+  t("trace + propose-admit + survived → admit", yag({}).admit === true);
+  t("no trace → reject, no slot needed", (() => { const v = yag({ prdGoal: "gold-plate the dashboard" }); return v.admit === false && v.trace_to_goal === false && /no PRD-goal trace/.test(v.reason); })());
+  t("empty prd_goal → reject (trace)", yag({ prdGoal: "" }).admit === false);
+  t("methodology proposes reject → conservative reject", (() => { const v = yag({ proposalVerdict: "reject", proposalReason: "unwarranted" }); return v.admit === false && /conservative reject/.test(v.reason); })());
+  t("adversarial overturns → conservative reject", (() => { const v = yag({ challenge: "overturned", challengeReason: "gold-plating" }); return v.admit === false && /overturned/.test(v.reason); })());
+  t("Phase-2 did not conclude (challenge omitted) → conservative reject", (() => { const v = yag({ challenge: undefined }); return v.admit === false && v.challenge.ran === false && /did not conclude/.test(v.reason); })());
+  t("grounding advisory — absent never blocks admit", yag({ groundingPresent: false }).admit === true);
+  t("grounding present is shape-carried", yag({ groundingPresent: true }).grounding_present === true);
+  t("verdict emits 255's upper shape {admit,reason}", (() => { const v = yag({}); return typeof v.admit === "boolean" && typeof v.reason === "string"; })());
+  t("unknown proposal verdict coerces to reject (producer side)", yag({ proposalVerdict: "maybe" }).admit === false);
+  t("every produced yagni verdict is contract-conformant", [
+    yag({}),
+    yag({ prdGoal: "nope" }),
+    yag({ proposalVerdict: "reject", proposalReason: "x" }),
+    yag({ challenge: "overturned", challengeReason: "x" }),
+    yag({ challenge: undefined }),
+  ].every((v) => computePrdrYagni(v).contractData.conformant === true && computePrdrYagni(v).failLoud == null));
+  t("admit verdict round-trips through admit --upper to admit disposition", (() => {
+    const up = yag({});
+    const v = computePrdrAdmissionVerdict({ actor: "loop", supersedesProvenance: "loop", thrashMax: 3, upper: { admit: up.admit, reason: up.reason } });
+    return v.upper.admit === true && v.disposition === "admit";
+  })());
+  t("reject verdict round-trips through admit --upper to reject disposition", (() => {
+    const up = yag({ challenge: "overturned" });
+    const v = computePrdrAdmissionVerdict({ actor: "loop", supersedesProvenance: "loop", thrashMax: 3, upper: { admit: up.admit, reason: up.reason } });
+    return v.upper.admit === false && v.disposition === "reject";
+  })());
 
   let failed = 0;
   for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prdr --selftest FAIL: ${name}\n`); failed++; } }

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/prdr-yagni",
+  "title": "prdr-yagni contract data",
+  "description": "Reference schema (FAFF-256). The SHAPE of the PRDR UPPER (YAGNI / value) gate verdict that `faff prdr yagni` PRODUCES and `faff contract prdr-yagni` VALIDATES (consumer-side conformance, mirroring prd-readiness / prdr-admission). It is 255's `upper: {admit, reason}` verdict, plus the two-phase audit trail (the deterministic trace-to-goal precondition, the methodology proposal, the adversarial challenge). NO safe coerce target — faff's own producer emits it, so an out-of-enum proposal.verdict is a fail-loud, never coerced toward `admit`; the gate is fail-safe toward REFUSAL. The load-bearing invariant (an `admit` implies trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns — 'no gold-plating on doubt') is enforced in code as a conformance violation; it is not expressible in this shape schema. Grounding is advisory: `grounding_present` is shape-checked but never gate-decisive.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["admit", "reason", "trace_to_goal", "proposal", "challenge", "grounding_present", "conformant", "violations"],
+  "properties": {
+    "admit": { "type": "boolean" },
+    "reason": { "type": "string" },
+    "trace_to_goal": { "type": "boolean" },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["serves_goal", "within_scope", "verdict", "reason"],
+      "properties": {
+        "serves_goal": { "type": "boolean" },
+        "within_scope": { "type": "boolean" },
+        "verdict": { "type": "string", "enum": ["admit", "reject"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ran", "overturns", "reason"],
+      "properties": {
+        "ran": { "type": "boolean" },
+        "overturns": { "type": "boolean" },
+        "reason": { "type": "string" }
+      }
+    },
+    "grounding_present": { "type": "boolean" },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

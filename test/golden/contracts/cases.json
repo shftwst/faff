@@ -105,8 +105,14 @@
     "expectStdout": {
       "signal": "pass",
       "rungs": [
-        { "kind": "LINT", "status": "pass" },
-        { "kind": "UNIT", "status": "pass" }
+        {
+          "kind": "LINT",
+          "status": "pass"
+        },
+        {
+          "kind": "UNIT",
+          "status": "pass"
+        }
       ],
       "conformant": true,
       "violations": []
@@ -120,7 +126,10 @@
     "expectStdout": {
       "signal": "needs-human",
       "rungs": [
-        { "kind": "LINT", "status": "fail" }
+        {
+          "kind": "LINT",
+          "status": "fail"
+        }
       ],
       "conformant": false,
       "violations": [
@@ -209,10 +218,23 @@
     "expectExit": 0,
     "expectStdout": {
       "disposition": "admit",
-      "upper": { "admit": true, "reason": "" },
-      "lower": { "covered": true, "uncovered_goals": [] },
-      "authority": { "actor": "loop", "supersedes_provenance": "loop", "by_level": "ok" },
-      "ratchet": { "lineage_supersessions": 1, "breached": false },
+      "upper": {
+        "admit": true,
+        "reason": ""
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 1,
+        "breached": false
+      },
       "reasons": [],
       "conformant": true,
       "violations": []
@@ -225,10 +247,23 @@
     "expectExit": 1,
     "expectStdout": {
       "disposition": "admit",
-      "upper": { "admit": true, "reason": "" },
-      "lower": { "covered": true, "uncovered_goals": [] },
-      "authority": { "actor": "loop", "supersedes_provenance": "loop", "by_level": "violation" },
-      "ratchet": { "lineage_supersessions": 0, "breached": false },
+      "upper": {
+        "admit": true,
+        "reason": ""
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "violation"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
       "reasons": [],
       "conformant": false,
       "violations": [
@@ -240,6 +275,90 @@
     "contract": "prdr-admission",
     "name": "fail-loud-bad-disposition",
     "input": "{\"disposition\":\"maybe\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "prdr-yagni",
+    "name": "conformant-admit",
+    "input": "{\"admit\":true,\"reason\":\"serves the goal, within scope\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"serves the goal, within scope\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
+    "expectExit": 0,
+    "expectStdout": {
+      "admit": true,
+      "reason": "serves the goal, within scope",
+      "trace_to_goal": true,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "serves the goal, within scope"
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": false,
+        "reason": ""
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prdr-yagni",
+    "name": "conformant-reject-no-trace",
+    "input": "{\"admit\":false,\"reason\":\"no PRD-goal trace\",\"trace_to_goal\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"reject\",\"reason\":\"\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
+    "expectExit": 0,
+    "expectStdout": {
+      "admit": false,
+      "reason": "no PRD-goal trace",
+      "trace_to_goal": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "reject",
+        "reason": ""
+      },
+      "challenge": {
+        "ran": false,
+        "overturns": false,
+        "reason": ""
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prdr-yagni",
+    "name": "admit-violates-conservative-constraint",
+    "input": "{\"admit\":true,\"reason\":\"x\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"x\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"gold-plating\"},\"grounding_present\":false}",
+    "expectExit": 1,
+    "expectStdout": {
+      "admit": true,
+      "reason": "x",
+      "trace_to_goal": true,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "x"
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "gold-plating"
+      },
+      "grounding_present": false,
+      "conformant": false,
+      "violations": [
+        "admit verdict violates the conservative arbitration constraint (requires trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns)"
+      ]
+    }
+  },
+  {
+    "contract": "prdr-yagni",
+    "name": "fail-loud-bad-proposal-verdict",
+    "input": "{\"admit\":false,\"reason\":\"r\",\"trace_to_goal\":true,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"maybe\",\"reason\":\"\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"\"},\"grounding_present\":false}",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
   }

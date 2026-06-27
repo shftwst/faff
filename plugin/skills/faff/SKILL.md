@@ -136,6 +136,7 @@ slots:             # optional delegation slots; each has a faff default when uns
   review: gstack:review                              # pre-PR review inside faff-graft
   gates: my-org:gate-runner                          # engineering-quality gate ladder at faff-graft Step 7.5 (default: built-in graft-step → faff gates run)
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
+  profile: my-org:infra-acquirer                     # infra-profile acquirer (default: built-in repo-miner → faff profile mine)
 
 # mode: delivery-lead is DEPRECATED — use slots.methodology instead
 # gates.fallback: advisory | fail-closed — what Step 7.5 does when NO declared gates are found (default advisory: surface + pass; fail-closed: needs-human)
@@ -186,6 +187,7 @@ slots:
   routing_adaptor: faffidavit-routing        # adaptor: verdict assignment + display; the six-verdict vocabulary + admission rule are fixed in the gateway
   rendering_adaptor: faffidavit-rendering        # pure adaptor (no internal contract): rendering + synthesis + output normaliser
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft, optional (default faffter-noon-ship)
+  profile: my-org:infra-acquirer                     # infra-profile acquirer, optional (default: built-in repo-miner → faff profile mine)
 ```
 
 The `spec`, `review`, `gates`, and `ship` producers each **emit their contract data as a `faff-contract:<name>` artifact block** (`spec-readiness` / `review-verdict` / `quality-gates` / `delivery-outcome`); the consumer (`faff-prep`, `faff-graft` Step 7.5 / Step 9 / Step 10) locates that block, `JSON.parse`s it, and pipes it to `faff contract <name>` directly. There is **no** `spec_adaptor` / `review_adaptor` / `ship_adaptor` slot — that prose-extraction layer was retired. A bespoke third-party producer conforms by emitting the same block (or via the fused wrapper); only `routing_adaptor` (a computed verdict) and `rendering_adaptor` (no fixed contract) remain adaptor slots.
@@ -204,6 +206,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 | `routing_adaptor` | `faffidavit-routing` | Adaptor over the fixed automation-routing contract (six verdicts + admission rule + root-cause taxonomy — all in the gateway): verdict assignment + computation locus + display format; assigns and validates verdicts. |
 | `rendering_adaptor` | `faffidavit-rendering` | Pure adaptor (no internal contract — rendering is human-facing only): visual vs prose, canonical visual forms, table-vs-list rule, density caps, output token economy, issue-gloss humanisation; normalises output on demand. |
 | `ship` | `faffter-noon-ship` | Delivery **producer** inside faff-graft Step 10 — runs deploy-readiness, merges/deploys, cleans up what it created, emitting a native delivery result. The default discharges it with a no-op readiness check + vanilla `gh pr merge`; swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) for real release mechanics. It emits its `faff-contract:delivery-outcome` artifact block, which faff-graft Step 10 parses and pipes to `faff contract delivery-outcome`. |
+| `profile` | _(none — built-in repo-miner: `faff profile mine`)_ | Infra-profile **acquirer** (FAFF-231): scans the repo for committed infra artifacts (CI workflows, Dockerfile/compose, Terraform, netlify/vercel/Procfile, language manifests) and emits one `faff-contract:infra-profile` block (FAFF-26 schema) — evidence-bearing, read-only, no network/install/subprocess; the orchestrator validates it (`faff profile validate`) then writes `.faff/infra-profile.json` (ADR 0013). Default is the faff-owned deterministic miner (`faff profile mine`) — **no slot required**; set `slots.profile` only to bring a different acquisition mode (e.g. intake-Q&A), which must emit the same block. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-graft, with optional delegation via these slots.
 

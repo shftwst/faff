@@ -2843,6 +2843,7 @@ const REGISTRY = {
   "faffter-noon-spec": { type: "producer-spec" },
   "faffter-dark-nlspec": { type: "producer-spec" },
   "faffter-noon-spec-review": { type: "producer-spec-review" },
+  "faffter-dark-spec-review": { type: "producer-spec-review" },
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },

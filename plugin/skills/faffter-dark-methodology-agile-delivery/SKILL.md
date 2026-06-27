@@ -46,7 +46,7 @@ The WIP cap (principle 3) applies to `standup-digest` only — never to `build-q
 
 ## Re-homing gating chains into the stream they gate
 
-A **value stream** is a container (project / initiative) carrying a machine-readable **Definition of Done** — a deliverable, not just a bucket. A bare structural container with no Definition of Done is not a value stream and is never re-homed into.
+A **value stream** is a container (project / initiative) carrying a machine-readable **Definition of Done** — a deliverable, not just a bucket. Re-homing targets these deliverables. Two cases, kept distinct: when the grouping **surfaces** DoD presence, a bare container with *no* Definition of Done is not a value stream and is skipped; until the input envelope surfaces that marker, the lens can't tell deliverable from bucket, so it falls back to the project/initiative grouping as the stream unit and **names the container in every finding** so a human can discount a non-deliverable boundary (step 1).
 
 The agile lens sequences a *set* of tickets, but a value stream is only **done** when work *outside* the set that blocks it also ships. `pick-ordering` and `build-queue` therefore **re-home** a stream's gating chain into the stream's own order, so a stream that looks sequenced but is silently stuck on a cross-container blocker surfaces that blocker as its next actionable pickup instead of leaving it stranded in its home container.
 
@@ -57,9 +57,9 @@ The agile lens sequences a *set* of tickets, but a value stream is only **done**
 
 **How the lens re-homes when answering `pick-ordering` / `build-queue` for a stream:**
 
-1. Identify stream membership from the workstream grouping it is handed (a Definition-of-Done-bearing deliverable; fall back to the project/initiative unit where DoD presence isn't surfaced, naming the container in the finding).
-2. Walk `blockedBy` transitively *outward* from the stream's tickets to the deepest unstarted prerequisite. Defer cycles to the composed structural baseline's cycle detection — never order through a cycle (it surfaces as the existing `circular-blocked` diagnostic). Stop following a link that is externally blocked or otherwise not actionable, and name that dead-end.
-3. Fold each chain member not already sequenced ahead for another stream into this stream's order, deepest-first — the next actionable prerequisite before the work it gates.
+1. Identify stream membership from the workstream grouping it is handed. When the grouping surfaces DoD presence, a stream is a Definition-of-Done-bearing deliverable and a bare container is skipped; until it does, fall back to the project/initiative unit as the stream and name the container in the finding (so a non-cohesive, activity-named boundary is visible, not silently trusted).
+2. Walk `blockedBy` transitively *outward* from the stream's tickets toward the deepest unstarted prerequisite, stopping at the **deepest actionable** one. Defer cycles to the composed structural baseline's cycle detection — never order through a cycle (it surfaces as the existing `circular-blocked` diagnostic). A link that is externally blocked or otherwise not actionable stops the walk and is named as a dead-end (the deepest actionable prerequisite is the last reachable one before it).
+3. Fold each chain member not already sequenced ahead for another stream into this stream's order, deepest-first — the deepest actionable prerequisite before the work it gates.
 4. Emit a **principle-6** finding naming the chain, the gated stream, the deepest actionable prerequisite, and any dead-end.
 5. Order the combined set by **incremental end-user value** (principle 2), risk-aware (principle 7) — sequence to light up each increment, crossing structural slices as needed.
 

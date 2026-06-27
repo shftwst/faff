@@ -79,6 +79,9 @@ jobs:
       - name: Validate prd-readiness contract script
         run: node plugin/skills/faff/bin/faff contract prd-readiness --selftest
 
+      - name: Validate prdr-admission contract script
+        run: node plugin/skills/faff/bin/faff contract prdr-admission --selftest
+
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 

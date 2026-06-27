@@ -215,6 +215,10 @@ const DEFAULTS = {
   "gates.fallback": "advisory",
   "budget.at_ceiling": "stop",
   "budget.price_per_mtok": "0",
+  // FAFF-255: PRDR thrash-ratchet bounds. thrash_max = supersessions a single lineage may accrue
+  // within thrash_window (days) before `prdr admit` escalates (ratchet.breached). Conservative defaults.
+  "prdr.thrash_max": "3",
+  "prdr.thrash_window": "21",
 };
 
 function fmt(value) {
@@ -4299,7 +4303,7 @@ Subcommands:
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
   adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
-  prdr <path|new|list|supersede|validate> [--root DIR]   FAFF-245: deterministic mechanics over the docs/prdr/ product-requirements DECISION-record log — the supersedable product-axis record between the immutable PRD and the per-slice spec (PRD content, ADR mechanics). path [<number>]; new <title> --container <slug> --prd-goal <g> [--provenance human|loop] [--status|--date]; list [--json] [--container <slug>] [--live]; supersede <old> --by <new> (pure mechanical linker — authority is FAFF-255); validate (presence-only: metadata + enums + contiguous numbering + the four body sections + symmetric supersession; never section content); --selftest runs the table. Reads tracking.prdr_docs_path (default docs/prdr/)
+  prdr <path|new|list|supersede|validate|admit> [--root DIR]   FAFF-245/255: deterministic mechanics over the docs/prdr/ product-requirements DECISION-record log — the supersedable product-axis record between the immutable PRD and the per-slice spec (PRD content, ADR mechanics). path [<number>]; new <title> --container <slug> --prd-goal <g> [--provenance human|loop] [--status|--date]; list [--json] [--container <slug>] [--live]; supersede <old> --by <new> (pure mechanical linker); validate (presence-only: metadata + enums + contiguous numbering + the four body sections + symmetric supersession; never section content); admit <prdr> --actor loop|human --supersedes-provenance human|loop|none [--self] [--new-capability] [--drops-last-goal] [--lineage-supersessions N] [--thrash-max N] [--upper JSON] [--lower JSON] (FAFF-255 two-gate bound: pure verdict — computes authority/by-level/ratchet, folds in the 256/257 verdicts or fail-safe defaults, prints a prdr-admission verdict; no tracker/network call); --selftest runs the table. Reads tracking.prdr_docs_path (default docs/prdr/), prdr.thrash_max, prdr.thrash_window
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
@@ -4617,6 +4621,129 @@ function contractPrdReadiness(extraction) {
   return { contractData };
 }
 
+// --- prdr-admission (FAFF-255) ---
+// The two-gate-bound admission verdict the PRDR layer's keystone produces. `faff prdr admit` is the
+// PRODUCER (computePrdrAdmissionVerdict — the deterministic gate computing authority/by-level/ratchet
+// and folding in the 256/257 verdicts); THIS is the consumer-side SHAPE validator (mirrors
+// prd-readiness). NO safe coerce target — faff's own producer emits it, so an out-of-enum disposition
+// or authority enum is an assignment bug → fail-loud (never coerced toward `admit`). The load-bearing
+// invariant guarded here: an `admit` disposition MUST satisfy the two-gate constraint
+// (upper.admit ∧ by_level==ok ∧ ¬ratchet.breached ∧ lower.covered ∧ ¬(loop supersedes human)).
+const PRDR_DISPOSITIONS = ["admit", "propose-only", "reject"];
+const PRDR_ACTORS = ["loop", "human"];
+const PRDR_SUPERSEDES = ["human", "loop", "none"];
+const PRDR_BY_LEVEL = ["ok", "violation"];
+
+// Does the verdict's gate state permit `admit`? Shared by producer + validator so the constraint has
+// one definition. (loopSupersedesHuman blocks admit but routes to propose-only, not reject.)
+function prdrGatesPass(upper, by_level, ratchet, lower) {
+  return !!upper.admit && by_level === "ok" && !ratchet.breached && !!lower.covered;
+}
+
+function computePrdrAdmission(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!PRDR_DISPOSITIONS.includes(extraction.disposition)) {
+    return { contractData: null, failLoud: `disposition ${JSON.stringify(extraction.disposition)} not in {admit,propose-only,reject} — no safe coerce target` };
+  }
+  const a = extraction.authority;
+  if (a === null || typeof a !== "object" || Array.isArray(a)) {
+    return { contractData: null, failLoud: "authority must be an object" };
+  }
+  if (!PRDR_ACTORS.includes(a.actor)) return { contractData: null, failLoud: `authority.actor ${JSON.stringify(a.actor)} not in {loop,human}` };
+  if (!PRDR_SUPERSEDES.includes(a.supersedes_provenance)) return { contractData: null, failLoud: `authority.supersedes_provenance ${JSON.stringify(a.supersedes_provenance)} not in {human,loop,none}` };
+  if (!PRDR_BY_LEVEL.includes(a.by_level)) return { contractData: null, failLoud: `authority.by_level ${JSON.stringify(a.by_level)} not in {ok,violation}` };
+
+  const violations = [];
+  const up = (extraction.upper && typeof extraction.upper === "object" && !Array.isArray(extraction.upper)) ? extraction.upper : {};
+  const upper = { admit: !!up.admit, reason: typeof up.reason === "string" ? up.reason : "" };
+  const lo = (extraction.lower && typeof extraction.lower === "object" && !Array.isArray(extraction.lower)) ? extraction.lower : {};
+  const lower = { covered: !!lo.covered, uncovered_goals: Array.isArray(lo.uncovered_goals) ? lo.uncovered_goals.filter((g) => typeof g === "string") : [] };
+  const ra = (extraction.ratchet && typeof extraction.ratchet === "object" && !Array.isArray(extraction.ratchet)) ? extraction.ratchet : {};
+  let lineage = ra.lineage_supersessions;
+  if (!Number.isInteger(lineage)) { violations.push(`ratchet.lineage_supersessions ${JSON.stringify(lineage)} not an integer — normalised to 0`); lineage = 0; }
+  const ratchet = { lineage_supersessions: lineage, breached: !!ra.breached };
+  const authority = { actor: a.actor, supersedes_provenance: a.supersedes_provenance, by_level: a.by_level };
+  const reasons = Array.isArray(extraction.reasons) ? extraction.reasons.filter((r) => typeof r === "string") : [];
+
+  const loopSupersedesHuman = authority.actor === "loop" && authority.supersedes_provenance === "human";
+  const gatesPass = prdrGatesPass(upper, authority.by_level, ratchet, lower);
+  // The load-bearing conformance: an `admit` must have actually passed every gate AND not be a
+  // loop→human move; a `propose-only` is valid ONLY when gates pass and that move is the sole bar.
+  if (extraction.disposition === "admit" && !(gatesPass && !loopSupersedesHuman)) {
+    violations.push("admit disposition violates the two-gate constraint (requires upper.admit ∧ by_level==ok ∧ ¬ratchet.breached ∧ lower.covered ∧ ¬(loop supersedes human))");
+  }
+  if (extraction.disposition === "propose-only" && !(gatesPass && loopSupersedesHuman)) {
+    violations.push("propose-only is valid only when all gates pass and the sole bar is a loop superseding a human-provenance PRDR");
+  }
+  return { contractData: { disposition: extraction.disposition, upper, lower, authority, ratchet, reasons, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractPrdrAdmission(extraction) {
+  const { contractData, failLoud } = computePrdrAdmission(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "prdr-admission");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
+// The PRODUCER (`faff prdr admit`): the deterministic two-gate gate. Computes authority (provenance),
+// by_level (recursive invariant), and the count-ratchet itself; folds in the FAFF-256 (upper) /
+// FAFF-257 (lower) verdicts, or their fail-safe defaults when absent. Pure — no tracker/network call
+// (parity with `faff next`); the agent maps state → these closed-vocabulary inputs. Emits a verdict
+// that is conformant by construction (validated belt-and-braces by the caller via schemaCheck).
+function computePrdrAdmissionVerdict(input) {
+  const reasons = [];
+  // (B) recursive invariant: human is the outermost encloser (always ok); a loop operating UNDER the
+  // PRDR it would supersede (`self`) cannot move its own setpoint → by_level violation.
+  const by_level = input.actor === "human" ? "ok" : (input.self ? "violation" : "ok");
+  const authority = { actor: input.actor, supersedes_provenance: input.supersedesProvenance, by_level };
+
+  // (C) thrash-ratchet (count half): lineage count within window is agent-supplied; the CLI compares
+  // it to thrash_max. (The per-supersession adversarial drift review is the `review` slot's job.)
+  const lineage = Number.isInteger(input.lineageSupersessions) ? input.lineageSupersessions : 0;
+  const breached = lineage >= input.thrashMax;
+  const ratchet = { lineage_supersessions: lineage, breached };
+
+  // upper (256) — absent ⇒ fail-safe: a NEW-capability PRDR is not admitted (no YAGNI judge to vouch
+  // it isn't gold-plating); a like-for-like supersession is admitted.
+  let upper;
+  if (input.upper && typeof input.upper === "object" && !Array.isArray(input.upper)) {
+    upper = { admit: !!input.upper.admit, reason: typeof input.upper.reason === "string" ? input.upper.reason : "" };
+  } else {
+    const admit = !input.newCapability;
+    upper = { admit, reason: admit ? "fail-safe default: 256 absent — like-for-like supersession admitted" : "fail-safe default: 256 absent — new-capability PRDR not admitted (no YAGNI judge)" };
+  }
+  // lower (257) — absent ⇒ conservative: a supersession that drops a goal's last live PRDR is not
+  // covered (escalate; never silently abandon a goal).
+  let lower;
+  if (input.lower && typeof input.lower === "object" && !Array.isArray(input.lower)) {
+    lower = { covered: !!input.lower.covered, uncovered_goals: Array.isArray(input.lower.uncovered_goals) ? input.lower.uncovered_goals.filter((g) => typeof g === "string") : [] };
+  } else {
+    lower = { covered: !input.dropsLastGoal, uncovered_goals: input.dropsLastGoal ? ["<257 absent: supersession drops a goal's last live PRDR>"] : [] };
+  }
+
+  const loopSupersedesHuman = authority.actor === "loop" && authority.supersedes_provenance === "human";
+  const gatesPass = prdrGatesPass(upper, by_level, ratchet, lower);
+
+  let disposition;
+  if (gatesPass && !loopSupersedesHuman) {
+    disposition = "admit";
+  } else if (gatesPass && loopSupersedesHuman) {
+    disposition = "propose-only";
+    reasons.push("loop supersedes a human-provenance PRDR — propose-only; effective only on human tracker ratification (Status: Accepted). The loop never self-ratifies.");
+  } else {
+    disposition = "reject";
+    if (!upper.admit) reasons.push(`upper/YAGNI gate did not admit: ${upper.reason}`);
+    if (by_level === "violation") reasons.push("by-level violation — actor cannot supersede the PRDR governing its own increment (per-increment immutability)");
+    if (breached) reasons.push(`thrash ratchet breached — lineage accrued ${lineage} supersession(s) (≥ thrash_max ${input.thrashMax}) within window — escalate to human`);
+    if (!lower.covered) reasons.push(`lower/coverage gate: supersession would leave a PRD goal uncovered — escalate, no silent abandonment${lower.uncovered_goals.length ? " (" + lower.uncovered_goals.join(", ") + ")" : ""}`);
+    if (loopSupersedesHuman) reasons.push("note: also a loop→human supersession (would be propose-only were it not for the hard violation above)");
+  }
+  return { disposition, upper, lower, authority, ratchet, reasons, conformant: true, violations: [] };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
   "spec-readiness": {
@@ -4684,6 +4811,21 @@ const CONTRACTS = {
       { name: "admissible-but-unverifiable", in: { verdict: "admissible", reason: "", stop_conditions_verifiable: false, creative_licence: "tight" }, wantExit: 1 },
       { name: "fail-loud-bad-verdict", in: { verdict: "maybe", reason: "", stop_conditions_verifiable: true, creative_licence: "broad" }, wantExit: 2 },
       { name: "fail-loud-bad-licence", in: { verdict: "admissible", reason: "", stop_conditions_verifiable: true, creative_licence: "loose" }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "prdr-admission": {
+    run: contractPrdrAdmission,
+    fixtures: [
+      { name: "conformant-admit", in: { disposition: "admit", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, ratchet: { lineage_supersessions: 1, breached: false }, reasons: [] }, wantExit: 0 },
+      { name: "conformant-propose-only", in: { disposition: "propose-only", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "human", by_level: "ok" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: ["needs ratification"] }, wantExit: 0 },
+      { name: "conformant-reject-by-level", in: { disposition: "reject", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: ["by-level violation"] }, wantExit: 0 },
+      { name: "admit-violates-constraint", in: { disposition: "admit", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "admit-while-ratchet-breached", in: { disposition: "admit", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, ratchet: { lineage_supersessions: 5, breached: true }, reasons: [] }, wantExit: 1 },
+      { name: "propose-only-invalid", in: { disposition: "propose-only", upper: { admit: false, reason: "yagni" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "human", by_level: "ok" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "bad-lineage-normalised", in: { disposition: "reject", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, ratchet: { lineage_supersessions: "3", breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "fail-loud-bad-disposition", in: { disposition: "maybe", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
+      { name: "fail-loud-bad-actor", in: { disposition: "reject", upper: { admit: true, reason: "" }, lower: { covered: true, uncovered_goals: [] }, authority: { actor: "robot", supersedes_provenance: "loop", by_level: "ok" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -6752,7 +6894,41 @@ function cmdPrdr(args) {
     return r.code;
   }
 
-  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate (or --selftest)\n");
+  if (action === "admit") {
+    // The two-gate admission gate (FAFF-255). Pure — no tracker/network call (parity with `faff next`):
+    // the agent maps the move's state onto these closed-vocabulary flags. <prdr> is accepted for the
+    // human-readable echo / lineage label; the verdict itself is a pure function of the flags.
+    const actor = adrFlag(args, "--actor");
+    if (!PRDR_ACTORS.includes(actor)) { process.stderr.write("faff prdr admit: --actor must be loop|human\n"); return 2; }
+    const sup = adrFlag(args, "--supersedes-provenance");
+    if (!PRDR_SUPERSEDES.includes(sup)) { process.stderr.write("faff prdr admit: --supersedes-provenance must be human|loop|none\n"); return 2; }
+    const cfg = loadConfig(root)[0];
+    const tmRaw = adrFlag(args, "--thrash-max") ?? dig(cfg, "prdr.thrash_max") ?? DEFAULTS["prdr.thrash_max"];
+    const thrashMax = parseInt(tmRaw, 10);
+    if (!Number.isInteger(thrashMax)) { process.stderr.write(`faff prdr admit: thrash_max "${tmRaw}" is not an integer\n`); return 2; }
+    const lsRaw = adrFlag(args, "--lineage-supersessions");
+    const lineageSupersessions = lsRaw != null ? parseInt(lsRaw, 10) : 0;
+    if (!Number.isInteger(lineageSupersessions)) { process.stderr.write(`faff prdr admit: --lineage-supersessions "${lsRaw}" is not an integer\n`); return 2; }
+    let upper = null, lower = null;
+    const upRaw = adrFlag(args, "--upper");
+    if (upRaw != null) { try { upper = JSON.parse(upRaw); } catch (e) { process.stderr.write(`faff prdr admit: --upper is not valid JSON: ${e.message}\n`); return 2; } }
+    const loRaw = adrFlag(args, "--lower");
+    if (loRaw != null) { try { lower = JSON.parse(loRaw); } catch (e) { process.stderr.write(`faff prdr admit: --lower is not valid JSON: ${e.message}\n`); return 2; } }
+    const verdict = computePrdrAdmissionVerdict({
+      actor, supersedesProvenance: sup,
+      self: args.includes("--self"),
+      newCapability: args.includes("--new-capability"),
+      dropsLastGoal: args.includes("--drops-last-goal"),
+      lineageSupersessions, thrashMax, upper, lower,
+    });
+    // Belt-and-braces: the produced verdict must itself conform to the prdr-admission contract schema.
+    const schemaErr = schemaCheck(verdict, "prdr-admission");
+    if (schemaErr) { process.stderr.write(`faff prdr admit: ${schemaErr}\n`); return 2; }
+    process.stdout.write(JSON.stringify(verdict) + "\n");
+    return 0;   // report-only (parity with `faff next`): the disposition is in the payload, never the exit code
+  }
+
+  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit (or --selftest)\n");
   return 2;
 }
 
@@ -6810,6 +6986,25 @@ function prdrSelftest() {
   t("--live excludes superseded", live.length === 1 && live[0].num === "0002");
 
   fs.rmSync(tmp, { recursive: true, force: true });
+
+  // --- admit gate (FAFF-255): the pure two-gate producer (no fs needed). ---
+  const adm = (opts) => computePrdrAdmissionVerdict({ thrashMax: 3, ...opts });
+  t("loop→loop, gates pass → admit", adm({ actor: "loop", supersedesProvenance: "loop" }).disposition === "admit");
+  t("loop→human → propose-only (needs ratification)", adm({ actor: "loop", supersedesProvenance: "human" }).disposition === "propose-only");
+  t("human→human → admit (human is the encloser)", adm({ actor: "human", supersedesProvenance: "human" }).disposition === "admit");
+  t("inner-loop self-supersede → reject (by-level)", (() => { const v = adm({ actor: "loop", supersedesProvenance: "loop", self: true }); return v.disposition === "reject" && v.authority.by_level === "violation"; })());
+  t("new-capability + 256 absent → reject (fail-safe, no gold-plating)", (() => { const v = adm({ actor: "loop", supersedesProvenance: "none", newCapability: true }); return v.disposition === "reject" && v.upper.admit === false; })());
+  t("like-for-like + 256 absent → upper admits (fail-safe)", adm({ actor: "loop", supersedesProvenance: "loop" }).upper.admit === true);
+  t("drops-last-goal + 257 absent → reject (coverage, no silent abandonment)", (() => { const v = adm({ actor: "loop", supersedesProvenance: "loop", dropsLastGoal: true }); return v.disposition === "reject" && v.lower.covered === false; })());
+  t("ratchet breach (lineage ≥ thrash_max) → reject + breached", (() => { const v = adm({ actor: "loop", supersedesProvenance: "loop", lineageSupersessions: 3 }); return v.disposition === "reject" && v.ratchet.breached === true; })());
+  t("under thrash_max → not breached", adm({ actor: "loop", supersedesProvenance: "loop", lineageSupersessions: 2 }).ratchet.breached === false);
+  t("explicit --upper admit:false → reject", adm({ actor: "loop", supersedesProvenance: "loop", upper: { admit: false, reason: "yagni" } }).disposition === "reject");
+  t("explicit --lower covered:false → reject", adm({ actor: "loop", supersedesProvenance: "loop", lower: { covered: false, uncovered_goals: ["g"] } }).disposition === "reject");
+  t("hard violation beats propose-only (loop→human + self → reject)", adm({ actor: "loop", supersedesProvenance: "human", self: true }).disposition === "reject");
+  t("every produced verdict is contract-conformant", ["admit", "propose-only", "reject"].every((d) => {
+    const v = adm({ actor: "loop", supersedesProvenance: d === "propose-only" ? "human" : "loop", self: d === "reject" });
+    return computePrdrAdmission(v).contractData.conformant === true && v.disposition === d;
+  }));
 
   let failed = 0;
   for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prdr --selftest FAIL: ${name}\n`); failed++; } }

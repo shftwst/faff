@@ -201,5 +201,46 @@
     "input": "{\"verdict\":\"maybe\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "prdr-admission",
+    "name": "conformant-admit",
+    "input": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":1,\"breached\":false},\"reasons\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "disposition": "admit",
+      "upper": { "admit": true, "reason": "" },
+      "lower": { "covered": true, "uncovered_goals": [] },
+      "authority": { "actor": "loop", "supersedes_provenance": "loop", "by_level": "ok" },
+      "ratchet": { "lineage_supersessions": 1, "breached": false },
+      "reasons": [],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "prdr-admission",
+    "name": "admit-violates-two-gate-constraint",
+    "input": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"violation\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "disposition": "admit",
+      "upper": { "admit": true, "reason": "" },
+      "lower": { "covered": true, "uncovered_goals": [] },
+      "authority": { "actor": "loop", "supersedes_provenance": "loop", "by_level": "violation" },
+      "ratchet": { "lineage_supersessions": 0, "breached": false },
+      "reasons": [],
+      "conformant": false,
+      "violations": [
+        "admit disposition violates the two-gate constraint (requires upper.admit ∧ by_level==ok ∧ ¬ratchet.breached ∧ lower.covered ∧ ¬(loop supersedes human))"
+      ]
+    }
+  },
+  {
+    "contract": "prdr-admission",
+    "name": "fail-loud-bad-disposition",
+    "input": "{\"disposition\":\"maybe\",\"upper\":{\"admit\":true,\"reason\":\"\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[]}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

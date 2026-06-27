@@ -159,6 +159,86 @@ test("validate: numbering gap + asymmetric supersession flagged (shared validato
   for (const root of [gap, asym]) rmSync(root, { recursive: true, force: true });
 });
 
+// --- admit: the two-gate bound (FAFF-255) ---
+const admit = (args) => run(["admit", "P1", ...args]);
+const verdict = (args) => JSON.parse(admit(args).stdout);
+
+test("admit: loop→loop with gates passing → admit (exit 0, pure — no --root needed)", () => {
+  const r = admit(["--actor", "loop", "--supersedes-provenance", "loop"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(JSON.parse(r.stdout).disposition, "admit");
+});
+
+test("admit: loop→human → propose-only (needs human ratification, loop never self-ratifies)", () => {
+  const v = verdict(["--actor", "loop", "--supersedes-provenance", "human"]);
+  assert.equal(v.disposition, "propose-only");
+  assert.match(v.reasons.join(" "), /ratification/i);
+});
+
+test("admit: human→human → admit (human is the outermost encloser)", () => {
+  assert.equal(verdict(["--actor", "human", "--supersedes-provenance", "human"]).disposition, "admit");
+});
+
+test("admit: inner-loop self-supersede → reject with by_level violation (recursive invariant)", () => {
+  const v = verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--self"]);
+  assert.equal(v.disposition, "reject");
+  assert.equal(v.authority.by_level, "violation");
+});
+
+test("admit: new-capability + 256 absent → reject (fail-safe: no gold-plating without the YAGNI judge)", () => {
+  const v = verdict(["--actor", "loop", "--supersedes-provenance", "none", "--new-capability"]);
+  assert.equal(v.disposition, "reject");
+  assert.equal(v.upper.admit, false);
+});
+
+test("admit: like-for-like supersession + 256 absent → upper admits (fail-safe)", () => {
+  assert.equal(verdict(["--actor", "loop", "--supersedes-provenance", "loop"]).upper.admit, true);
+});
+
+test("admit: drops-last-goal + 257 absent → reject (coverage; no silent abandonment)", () => {
+  const v = verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--drops-last-goal"]);
+  assert.equal(v.disposition, "reject");
+  assert.equal(v.lower.covered, false);
+});
+
+test("admit: thrash ratchet — lineage ≥ thrash_max breaches → reject; under it does not", () => {
+  const breached = verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--lineage-supersessions", "3"]);
+  assert.equal(breached.ratchet.breached, true);
+  assert.equal(breached.disposition, "reject");
+  const ok = verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--lineage-supersessions", "2"]);
+  assert.equal(ok.ratchet.breached, false);
+  assert.equal(ok.disposition, "admit");
+  // --thrash-max override tightens the bound
+  assert.equal(verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--lineage-supersessions", "2", "--thrash-max", "2"]).ratchet.breached, true);
+});
+
+test("admit: folds in explicit --upper / --lower verdicts", () => {
+  assert.equal(verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--upper", '{"admit":false,"reason":"gold-plating"}']).disposition, "reject");
+  assert.equal(verdict(["--actor", "loop", "--supersedes-provenance", "loop", "--lower", '{"covered":false,"uncovered_goals":["g3"]}']).disposition, "reject");
+});
+
+test("admit: a hard violation beats propose-only (loop→human + self → reject, not propose-only)", () => {
+  assert.equal(verdict(["--actor", "loop", "--supersedes-provenance", "human", "--self"]).disposition, "reject");
+});
+
+test("admit: every produced verdict is contract-conformant (piped to `contract prdr-admission`)", () => {
+  for (const args of [
+    ["--actor", "loop", "--supersedes-provenance", "loop"],
+    ["--actor", "loop", "--supersedes-provenance", "human"],
+    ["--actor", "loop", "--supersedes-provenance", "loop", "--self"],
+  ]) {
+    const out = admit(args).stdout;
+    const c = spawnSync(process.execPath, [BIN, "contract", "prdr-admission"], { input: out, encoding: "utf8" });
+    assert.equal(c.status, 0, `produced verdict must be conformant: ${out}\n${c.stderr}`);
+  }
+});
+
+test("admit: bad --actor / --supersedes-provenance / malformed --upper are usage errors (exit 2)", () => {
+  assert.equal(admit(["--actor", "robot", "--supersedes-provenance", "loop"]).status, 2);
+  assert.equal(admit(["--actor", "loop", "--supersedes-provenance", "sideways"]).status, 2);
+  assert.equal(admit(["--actor", "loop", "--supersedes-provenance", "loop", "--upper", "notjson"]).status, 2);
+});
+
 test("the real repo tree validates clean (or has no docs/prdr yet)", () => {
   const r = run(["validate"]);
   assert.equal(r.status, 0, r.stdout);

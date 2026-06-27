@@ -6905,10 +6905,12 @@ function cmdPrdr(args) {
     const cfg = loadConfig(root)[0];
     const tmRaw = adrFlag(args, "--thrash-max") ?? dig(cfg, "prdr.thrash_max") ?? DEFAULTS["prdr.thrash_max"];
     const thrashMax = parseInt(tmRaw, 10);
-    if (!Number.isInteger(thrashMax)) { process.stderr.write(`faff prdr admit: thrash_max "${tmRaw}" is not an integer\n`); return 2; }
+    // thrash_max + lineage are COUNTS — a negative is nonsensical and would breach the ratchet at
+    // lineage 0 (lineage >= negative is always true), spuriously rejecting every admit. Reject it.
+    if (!Number.isInteger(thrashMax) || thrashMax < 0) { process.stderr.write(`faff prdr admit: thrash_max "${tmRaw}" must be a non-negative integer\n`); return 2; }
     const lsRaw = adrFlag(args, "--lineage-supersessions");
     const lineageSupersessions = lsRaw != null ? parseInt(lsRaw, 10) : 0;
-    if (!Number.isInteger(lineageSupersessions)) { process.stderr.write(`faff prdr admit: --lineage-supersessions "${lsRaw}" is not an integer\n`); return 2; }
+    if (!Number.isInteger(lineageSupersessions) || lineageSupersessions < 0) { process.stderr.write(`faff prdr admit: --lineage-supersessions "${lsRaw}" must be a non-negative integer\n`); return 2; }
     let upper = null, lower = null;
     const upRaw = adrFlag(args, "--upper");
     if (upRaw != null) { try { upper = JSON.parse(upRaw); } catch (e) { process.stderr.write(`faff prdr admit: --upper is not valid JSON: ${e.message}\n`); return 2; } }

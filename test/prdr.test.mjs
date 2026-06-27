@@ -239,6 +239,12 @@ test("admit: bad --actor / --supersedes-provenance / malformed --upper are usage
   assert.equal(admit(["--actor", "loop", "--supersedes-provenance", "loop", "--upper", "notjson"]).status, 2);
 });
 
+test("admit: negative --thrash-max / --lineage-supersessions rejected (counts, not just integers)", () => {
+  // a negative thrash_max would make `lineage >= thrashMax` true at lineage 0 → spurious breach.
+  assert.equal(admit(["--actor", "loop", "--supersedes-provenance", "loop", "--thrash-max", "-1"]).status, 2);
+  assert.equal(admit(["--actor", "loop", "--supersedes-provenance", "loop", "--lineage-supersessions", "-2"]).status, 2);
+});
+
 test("the real repo tree validates clean (or has no docs/prdr yet)", () => {
   const r = run(["validate"]);
   assert.equal(r.status, 0, r.stdout);

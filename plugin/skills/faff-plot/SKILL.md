@@ -67,6 +67,17 @@ Confirm **level by level** as the recursion descends, not as one giant dump at t
 
 Create top-down as each level is confirmed: initiative containers → project containers under them → first-slice epic issues under each project, with the **blocker / blocked-by links** the methodology proposed between them. Each created item: status `Backlog`, a **type-templated description** produced by the gateway **Ticket templates** fill step (container nodes — initiatives/projects — resolve to the `epic` template; buildable first-slice epics infer their own type per node) — filled from the relevant brief prose, unknown fields placeholdered `_To be determined during prep._`, and the brief's open questions carried into the template's `Open questions` field; the fill step runs before the `rendering_adaptor` pass — the tag **`faff-jot-intake`** via `faff label add <issue> faff-jot-intake` and its descriptor's write (gateway → **Control-label provisioning**; reuses `/faff-prep`'s existing pickup path so the first slice gets specced next), and a `planned by /faff-plot` provenance line. For each created epic, after the label, run `faff intake-record <issue> --via jot --initiated interactive` (FAFF-212/220) — plot is a human-confirmed planning path, so it stamps `initiated: interactive` and runs **no containment check** (the human confirming the structure is the sanction; contrast the autonomous chokepoints). Containers via the configured MCP's initiative/project types; epics as issues nested under their project.
 
+### 5b. Propose a project DoD (`prdr-author`, L3 propose-for-approval)
+
+For each **project** container just written (not initiatives, not epics), ask the configured `methodology` skill's **`prdr-author`** output (default `faffter-noon-methodology-structural`) for a target-scaled project DoD, then **surface it for human approval** — `/faff-plot` runs at L3, so the machine **proposes**, the human **ratifies**:
+
+- Request `prdr-author` with the project's `{outcome, child_specs, target}` — `target` resolves `explicit > inherited > methodology-default` (gateway → **The `methodology` slot**, `prdr-author` row). The methodology writes the `AuthoredPrdr` via `faff prdr new --provenance loop --status Proposed`.
+- **Surface, never auto-accept:** present the proposed `## Definition of done` + decision under the project and gate — "Proposed project DoD for <project> (target: <t>). Approve as-is / edit / skip? (approve / edit / skip)". On **approve**, point the human at the tracker to flip the PRDR `Status: Accepted` (FAFF-255's human gesture — `/faff-plot` never self-Accepts); on **edit**, take the human's DoD edit (that edit wins — human-set > methodology-default) and record it before approval; on **skip**, leave the PRDR `Proposed` for a later pass.
+- **Manual-authoritative:** if the project already carries a human-set DoD, `prdr-author` re-reads it and **never clobbers** it — it fills only the unset parts (gateway → **Manual changes are authoritative (`prdr-author`)**).
+- **Appetite / unanswered:** a methodology that doesn't answer `prdr-author` (or `--no-prdr`) ⇒ no proposal; the human authors the DoD directly. Low-confidence ⇒ a thin DoD flagged needs-human, surfaced as such.
+
+The act of admission stays human (L3); `/faff-plot` only **authors + surfaces**. (The L4 lights-out runner routes the same `Proposed` PRDR through `faff prdr admit` instead — gateway → **Authored-PRDR level-scaling**.)
+
 ### 6. Hand-off
 
 After the skeleton is written, offer two gates in order:

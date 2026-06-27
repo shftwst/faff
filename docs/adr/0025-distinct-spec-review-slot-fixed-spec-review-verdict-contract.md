@@ -1,4 +1,4 @@
-# ADR 0022 — Distinct spec_review slot + fixed spec-review-verdict contract
+# ADR 0025 — Distinct spec_review slot + fixed spec-review-verdict contract
 
 - **Status:** Proposed
 - **Date:** 2026-06-27

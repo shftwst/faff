@@ -1,4 +1,4 @@
-# ADR 0022 — Level-scaled PRDR authoring: methodology authors, the caller's level admits via the single FAFF-255 gate
+# ADR 0023 — Level-scaled PRDR authoring: methodology authors, the caller's level admits via the single FAFF-255 gate
 
 - **Status:** Proposed
 - **Date:** 2026-06-27

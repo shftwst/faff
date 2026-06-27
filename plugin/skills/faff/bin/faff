@@ -4903,7 +4903,12 @@ function computePrdrYagniVerdict(input) {
   const goals = Array.isArray(input.prdGoals) ? input.prdGoals.filter((g) => typeof g === "string") : [];
   const prdGoal = typeof input.prdGoal === "string" ? input.prdGoal : "";
   const trace_to_goal = prdGoal !== "" && goals.includes(prdGoal);
-  const proposalVerdict = PRDR_YAGNI_PROPOSAL_VERDICTS.includes(input.proposalVerdict) ? input.proposalVerdict : "reject";
+  // A Phase-1 proposal is "supplied" only when the methodology actually returned admit|reject.
+  // Absent (or out-of-enum) ⇒ NOT an explicit reject — it gets its own honest conservative-reject
+  // branch below, symmetric with the inconclusive-challenge branch. The recorded verdict is the
+  // safe "reject" representation (the contract enum admits no third state), but the reason is truthful.
+  const proposalSupplied = PRDR_YAGNI_PROPOSAL_VERDICTS.includes(input.proposalVerdict);
+  const proposalVerdict = proposalSupplied ? input.proposalVerdict : "reject";
   const proposal = {
     serves_goal: !!input.servesGoal, within_scope: !!input.withinScope,
     verdict: proposalVerdict, reason: typeof input.proposalReason === "string" ? input.proposalReason : "",
@@ -4917,6 +4922,9 @@ function computePrdrYagniVerdict(input) {
   if (!trace_to_goal) {
     admit = false;
     reason = `no PRD-goal trace: PRDR cites ${JSON.stringify(prdGoal || "<none>")} which is not a declared PRD goal`;
+  } else if (!proposalSupplied) {
+    admit = false;
+    reason = "conservative reject (no gold-plating on doubt) — no methodology (Phase-1) proposal supplied; the upper gate cannot admit without one";
   } else if (proposalVerdict === "reject") {
     admit = false;
     reason = `conservative reject (no gold-plating on doubt) — methodology proposed reject: ${proposal.reason || "unwarranted or exceeds PRD scope"}`;
@@ -7258,6 +7266,8 @@ function prdrSelftest() {
   t("grounding present is shape-carried", yag({ groundingPresent: true }).grounding_present === true);
   t("verdict emits 255's upper shape {admit,reason}", (() => { const v = yag({}); return typeof v.admit === "boolean" && typeof v.reason === "string"; })());
   t("unknown proposal verdict coerces to reject (producer side)", yag({ proposalVerdict: "maybe" }).admit === false);
+  t("absent Phase-1 proposal → honest conservative reject (not 'methodology proposed reject')", (() => { const v = yag({ proposalVerdict: undefined }); return v.admit === false && /no methodology \(Phase-1\) proposal supplied/.test(v.reason); })());
+  t("explicit methodology reject keeps its own distinct reason", (() => { const v = yag({ proposalVerdict: "reject", proposalReason: "off-mission" }); return v.admit === false && /methodology proposed reject/.test(v.reason); })());
   t("every produced yagni verdict is contract-conformant", [
     yag({}),
     yag({ prdGoal: "nope" }),

@@ -5407,6 +5407,9 @@ function profileWalk(root) {
     const d = stack.pop();
     let entries;
     try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+    // Sort for filesystem-independent determinism (readdir order is not portable): same repo ⇒ same
+    // mined order ⇒ same representative-evidence pick on dedup. Reverse so the stack pops alphabetically.
+    entries.sort((a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0));
     for (const e of entries) {
       if (e.isSymbolicLink()) continue;            // never follow symlinks (stay in-repo, avoid cycles)
       const full = path.join(d, e.name);

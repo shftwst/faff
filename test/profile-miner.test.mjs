@@ -252,6 +252,42 @@ test("output: default mine emits exactly one fenced faff-contract:infra-profile 
 });
 
 // ---------------------------------------------------------------------------
+// repo slug — resolved read-only from .git/config (no `git` subprocess), end-anchored so the
+// org/repo is extracted across the realistic remote-URL forms (https, scp-style, ssh://, an
+// embedded credential, an explicit port). `repo` is optional + schema-unvalidated; recall-over-
+// precision (an exotic form yielding harmless slug-noise never invalidates the block).
+// ---------------------------------------------------------------------------
+test("repo slug: extracted across common remote-URL forms", () => {
+  const cases = [
+    ["https://github.com/org/repo.git", "org/repo"],
+    ["git@github.com:org/repo.git", "org/repo"],
+    ["ssh://git@github.com/org/repo.git", "org/repo"],
+    ["https://user:tok@github.com/org/repo.git", "org/repo"],
+    ["https://github.com:8080/org/repo.git", "org/repo"],
+    ["https://github.com/org/repo", "org/repo"],
+  ];
+  for (const [url, want] of cases) {
+    const dir = tmp();
+    try {
+      write(dir, ".git/config", `[remote "origin"]\n\turl = ${url}\n`);
+      const p = mine(dir);
+      assert.equal(p.repo, want, `slug for ${url}`);
+      assert.equal(validate(p).code, 0);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }
+});
+
+test("repo slug: omitted when no .git/config remote (unresolvable → omit, still valid)", () => {
+  const dir = tmp();
+  try {
+    write(dir, "README.md", "# x\n");
+    const p = mine(dir);
+    assert.equal(p.repo, undefined, "repo omitted when unresolvable");
+    assert.equal(validate(p).code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
 // Slot registration — the public `profile` slot is registered: `slots.profile` is a recognised
 // config key, and SLOT_TYPES.profile makes `validate-adapters --configured` lint a swapped-in
 // occupant (it must emit the faff-contract:infra-profile block).

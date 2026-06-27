@@ -4636,6 +4636,7 @@ Subcommands:
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
   label add|remove <issue-id> <label> [--present-label L ...]   FAFF-187: emit a faff-contract:label-op descriptor (issue·label·action·ensure-first·idempotent-noop) for a control-label mutation the agent performs via MCP — PURE, no tracker I/O; rejects a label not in the manifest; --present-label (repeatable) pre-computes the idempotent no-op; --selftest runs the table
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
+  spec-review-lenses --tags T,T,... --level L1|L2|L3|L4 --appetite low|medium|high|full [--selftest]   FAFF-268: cost-gate IN FRONT of the spec_review producer — maps a spec's CLASSIFIED change-surface tags + level + appetite to a LensSelection {lenses,mode,rationale}. Pure; the signal->tag classification is prose-side (faff-prep). v1 additive-only/safe-direction: only architectural (or methodology when no tag adds it) is dropped; infosec+QA sticky at L1-L3; unclassified/unknown tag -> all four (fail-safe); L4 -> adversarial all-four (never narrowed); low/medium appetite widens to all four. --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
@@ -8183,6 +8184,135 @@ function cmdAdmissible(args) {
   return v.admissible ? 0 : 1;
 }
 
+// --- spec-review lens selection (FAFF-268) ---
+// The cost-gate that runs IN FRONT OF the spec_review producer: given a spec's classified
+// change-surface tags + the runtime level + the configured appetite, choose WHICH of the
+// four frozen lenses fire and HOW DEEP (mode). Pure + deterministic — the heuristic
+// signal→tag classification is the prose layer's job (faff-prep, reusing the already-shipped
+// -scan surface extraction); this maps a *classified* surface to a LensSelection.
+//
+// v1 is ADDITIVE-ONLY / safe-direction (ADR 0028): only the `architectural` (and
+// `methodology` where no tag adds it) lens is ever dropped, and only on a confidently
+// -classified surface; `infosec` + `QA` are STICKY (always fire at L1–L3); an unclassified
+// or unrecognised surface fires all four (fail-safe); L4 is pinned to the full adversarial
+// set and never narrowed by appetite; low/medium appetite widens to all four. Symmetric /
+// aggressive skipping (dropping the sticky lenses) is a deferred follow-up.
+const SPEC_REVIEW_SURFACE_TAGS = [
+  "config", "auth-security", "data-schema", "public-api",
+  "infra-deploy", "ui", "pure-logic", "architecture-bearing",
+];
+// Lenses each tag adds ON TOP OF the {infosec, QA} v1 baseline (positive-fire only). The
+// only lens that can be absent from a tag's add-set is the one that surface does not need —
+// that absence is the only v1 skip. infosec/QA never depend on this table (they are sticky).
+const SPEC_REVIEW_SURFACE_FIRES = {
+  "config": [],                                  // trivial — architectural skipped
+  "auth-security": ["infosec"],                  // infosec already baseline; explicit for intent
+  "data-schema": ["architectural", "infosec"],
+  "public-api": ["architectural", "methodology"],
+  "infra-deploy": ["architectural", "infosec"],  // deploy/infra structure + secrets surface
+  "ui": ["methodology"],
+  "pure-logic": ["architectural"],
+  "architecture-bearing": ["architectural"],
+};
+const SPEC_REVIEW_ALL_LENSES = SPEC_REVIEW_LENSES; // ["architectural","infosec","methodology","QA"]
+
+// Pure: { tags:[SurfaceTag], level:"L1".."L4", appetite:"low|medium|high|full" } → LensSelection.
+function selectLenses({ tags = [], level = "L3", appetite = "high" } = {}) {
+  const lvl = String(level).toUpperCase();
+  const app = String(appetite).toLowerCase();
+  const mode = lvl === "L4" ? "adversarial" : "single-pass";
+  const order = (arr) => SPEC_REVIEW_ALL_LENSES.filter((l) => arr.includes(l));
+  const all = () => SPEC_REVIEW_ALL_LENSES.slice();
+
+  const tagList = Array.isArray(tags) ? tags.filter((t) => t != null && t !== "") : [];
+  const unknown = tagList.filter((t) => !SPEC_REVIEW_SURFACE_TAGS.includes(t));
+
+  // Fail-safe (principle 1): no signal at all → fire all four.
+  if (tagList.length === 0) {
+    return { lenses: all(), mode, rationale: `unclassified surface (no tags) → fail-safe all-four; mode=${mode} (level ${lvl})` };
+  }
+  // Fail-safe: a tag we cannot confidently classify → fire all four (never under-review on doubt).
+  if (unknown.length > 0) {
+    return { lenses: all(), mode, rationale: `unrecognised surface tag(s) [${unknown.join(", ")}] → fail-safe all-four; mode=${mode} (level ${lvl})` };
+  }
+  // L4: pinned to the full adversarial set; appetite never narrows below the fail-safe set.
+  if (lvl === "L4") {
+    return { lenses: all(), mode, rationale: `L4 → adversarial all-four (never narrowed by appetite); tags=[${tagList.join(", ")}]` };
+  }
+  // L1–L3, low/medium appetite: widen to all four (fires more, skips less — safe direction).
+  if (app === "low" || app === "medium") {
+    return { lenses: all(), mode, rationale: `${app} appetite → widen to all-four (no skip); tags=[${tagList.join(", ")}]; mode=${mode}` };
+  }
+  // L1–L3, high/full appetite: additive set — sticky {infosec, QA} baseline + each tag's fires.
+  const set = new Set(["infosec", "QA"]);
+  for (const t of tagList) for (const l of SPEC_REVIEW_SURFACE_FIRES[t]) set.add(l);
+  const lenses = order([...set]);
+  const skipped = SPEC_REVIEW_ALL_LENSES.filter((l) => !set.has(l));
+  const rationale = `tags=[${tagList.join(", ")}]; baseline=infosec,QA (sticky); fired=[${lenses.join(", ")}]`
+    + (skipped.length ? `; skipped=[${skipped.join(", ")}] (safe-direction, additive-only v1)` : "; skipped=none")
+    + `; mode=${mode} (level ${lvl}, appetite ${app})`;
+  return { lenses, mode, rationale };
+}
+
+function specReviewLensesSelftest() {
+  const has = (s, l) => s.lenses.includes(l);
+  const cases = [
+    { name: "config-only L2 high → architectural skipped, infosec+QA fire, single-pass",
+      in: { tags: ["config"], level: "L2", appetite: "high" },
+      check: (s) => !has(s, "architectural") && has(s, "infosec") && has(s, "QA") && s.mode === "single-pass" && /config/.test(s.rationale) },
+    { name: "auth-security any level → infosec always present",
+      in: { tags: ["auth-security"], level: "L3", appetite: "full" },
+      check: (s) => has(s, "infosec") },
+    { name: "ambiguous (no tags) → all four (fail-safe)",
+      in: { tags: [], level: "L2", appetite: "high" },
+      check: (s) => s.lenses.length === 4 },
+    { name: "unknown tag → fail-safe all four",
+      in: { tags: ["mystery"], level: "L2", appetite: "high" },
+      check: (s) => s.lenses.length === 4 && /unrecognised/.test(s.rationale) },
+    { name: "L4 → adversarial mode, all four, not narrowed by appetite",
+      in: { tags: ["config"], level: "L4", appetite: "full" },
+      check: (s) => s.mode === "adversarial" && s.lenses.length === 4 },
+    { name: "low appetite widens to all four (no skip)",
+      in: { tags: ["config"], level: "L2", appetite: "low" },
+      check: (s) => s.lenses.length === 4 },
+    { name: "medium appetite widens to all four (safe-direction)",
+      in: { tags: ["config"], level: "L3", appetite: "medium" },
+      check: (s) => s.lenses.length === 4 },
+    { name: "public-api L3 high → architectural + methodology fire",
+      in: { tags: ["public-api"], level: "L3", appetite: "high" },
+      check: (s) => has(s, "architectural") && has(s, "methodology") && has(s, "infosec") && has(s, "QA") },
+    { name: "data-schema L3 high → architectural + infosec, methodology skipped",
+      in: { tags: ["data-schema"], level: "L3", appetite: "high" },
+      check: (s) => has(s, "architectural") && has(s, "infosec") && has(s, "QA") && !has(s, "methodology") },
+    { name: "invariant: infosec+QA sticky in every L1–L3 selection",
+      in: { tags: ["config"], level: "L1", appetite: "full" },
+      check: (s) => has(s, "infosec") && has(s, "QA") },
+    { name: "invariant: lenses ⊆ the four frozen lenses, mode in enum",
+      in: { tags: ["ui", "config"], level: "L2", appetite: "high" },
+      check: (s) => s.lenses.every((l) => SPEC_REVIEW_ALL_LENSES.includes(l)) && ["single-pass", "adversarial"].includes(s.mode) },
+  ];
+  let failed = 0;
+  for (const c of cases) {
+    const s = selectLenses(c.in);
+    const ok = !!c.check(s);
+    if (!ok) failed++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${c.name} → {${s.lenses.join(",")}} ${s.mode}`);
+  }
+  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${cases.length} cases, ${failed} failed)`);
+  return failed ? 1 : 0;
+}
+
+function cmdSpecReviewLenses(args) {
+  if (args.includes("--selftest")) return specReviewLensesSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const tagsArg = get("--tags");
+  const tags = tagsArg ? tagsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const level = get("--level") || "L3";
+  const appetite = get("--appetite") || "high";
+  process.stdout.write(JSON.stringify(selectLenses({ tags, level, appetite })) + "\n");
+  return 0;
+}
+
 // Subcommand registry (ADR 0014) — the single source of truth for the CLI command
 // set. main() dispatches through this map, and `Object.keys(COMMANDS)` is exactly
 // the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a
@@ -8205,6 +8335,7 @@ const COMMANDS = {
   "label": cmdLabel,
   "eligible": cmdEligible,
   "admissible": cmdAdmissible,
+  "spec-review-lenses": cmdSpecReviewLenses,
   "container-check": cmdContainerCheck,
   "next": cmdNext,
   "project-next": cmdProjectNext,

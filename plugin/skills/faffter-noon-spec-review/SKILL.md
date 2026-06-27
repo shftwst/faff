@@ -12,7 +12,7 @@ The default occupant of the **`spec_review`** slot — the L1–L3 single-pass a
 
 ## What it does
 
-One LLM pass walks **four lenses** as a checklist over the spec, gathers `{lens, severity}` objections, maps them to a single verdict, and emits one contract block. It is **not** an adversarial review — that costlier per-lens refuter form is a separate occupant. All four lenses always fire in this one pass.
+One LLM pass walks the **selected lenses** as a checklist over the spec, gathers `{lens, severity}` objections, maps them to a single verdict, and emits one contract block. It is **not** an adversarial review — that costlier per-lens refuter form is a separate occupant. The consumer's lens-selection step (the change-surface cost-gate) chooses which of the four lenses fire; this pass runs exactly that set. **With no lens-set passed, all four fire** (the back-compatible default) — selection only ever *removes* a lens on a confidently-safe surface, and `infosec` + `QA` always fire at L1–L3.
 
 The contract (`faff contract spec-review-verdict`) validates the verdict's **shape** only. This producer owns the **reasoning** — the lenses and the severity→verdict roll-up below. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
 
@@ -21,6 +21,7 @@ The contract (`faff contract spec-review-verdict`) validates the verdict's **sha
 The consumer passes:
 
 - The spec body (the freshly-produced, confidence-rated spec).
+- The **selected lens-set + mode** from the consumer's change-surface lens-selection step. Fire exactly the named lenses; absent a set, fire all four. `mode` is `single-pass` here (the `adversarial` mode routes to the L4 occupant).
 - The attached `## Methodology critique` block, when prep wrote one (the methodology slot's already-computed value/scope signal).
 - Repo architecture context, including `docs/adr/` for cross-slice decisions.
 
@@ -82,6 +83,6 @@ Review depth scales by level, all mapping onto the one `spec-review-verdict` con
 
 - **L1–L3** — this skill: one single-pass 4-lens checklist, one founded verdict.
 - **L4** — independent per-lens adversarial refuters, each prompted to refute the spec from its angle, gated on majority/severity (a separate occupant in the same slot).
-- Depth/cost scales with **level + appetite + change-surface**; selective per-lens firing by change-surface is a later refinement.
+- Depth/cost scales with **level + appetite + change-surface**; selective per-lens firing by change-surface is the consumer's cost-gate (it passes the lens-set this pass fires). v1 is additive-only: only the low-risk lenses are skippable, `infosec` + `QA` always fire at L1–L3, and an uncertain surface fires all four.
 
 This skill ships the L1–L3 form and leaves the L4 hook.

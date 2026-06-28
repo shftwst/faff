@@ -75,13 +75,15 @@ This runs on **all** attach paths: Scenario A fresh-spec (Step 2), Scenario B re
 
 Same-turn attach is a **mechanical guarantee**, not prose discipline — it has silently failed twice (a spec rendered to the user, the turn felt done, and the ticket stayed Backlog with no spec). The guard is `faff prepcheck`, the Stop-hook sibling of `runcheck`: it reads an externalised attach-state marker prep writes and **blocks session-end on any produced-but-not-attached spec**. prep's only job is to keep that marker honest:
 
-- **At produce time — the instant the `spec` slot returns, and _before_ rendering the spec into the conversation** — write the marker `.faff/prep/<ISSUE-XX>.json`:
+- **At produce time — the instant the `spec` slot returns, and _before_ rendering the spec into the conversation** — write the marker `.faff/prep/<ISSUE-XX>.json`, stamping `owner` from the environment at that moment:
 
   ```json
-  { "issue": "FAFF-XX", "spec_produced": true, "attached": false, "mode": "tracker|git-only", "ts": "<ISO-8601>" }
+  { "issue": "FAFF-XX", "spec_produced": true, "attached": false, "mode": "tracker|git-only", "ts": "<ISO-8601>",
+    "owner": { "session_id": "<$FAFF_SESSION_ID>", "run_dir": "<$FAFF_RUN_DIR>", "pid": <process.pid> } }
   ```
 
   The write-before-render ordering is the pin: a render-and-pause leaves `attached:false` for the hook to catch. (Hard floor — written in **both** interactive and autonomous modes, regardless of `logging: essential`, since the hook must find it.)
+  - **`owner` (FAFF-250)** lets `prepcheck --hook` tell its own markers from a parallel run's, exactly as the run-ledger owner stamp does for `runcheck`. Stamp `session_id` from `$FAFF_SESSION_ID` and `run_dir` from `$FAFF_RUN_DIR` (the autonomous path sets both; an interactive prep typically has `session_id` only and no `run_dir`), and `pid` from `process.pid` — **`pid` is recorded for forensics only, never consulted in the hook decision** (FAFF-233). Omit a field whose env var is unset rather than writing an empty string; an absent `owner` is tolerated as legacy/unowned (no migration). The `owner` is written **once** at produce time and never refreshed — liveness comes from the run ledger or the marker's file mtime, never a heartbeat field on the marker (which would re-import the FAFF-234 staleness confound).
 - **On a successful attach** — immediately after `save_comment` (tracker) or the `.faff/specs/<issue-id>.md` write (git-only) — flip the marker to `attached: true`.
 - **On a by-design park** (a `low`-confidence spec that is parked, not attached) — record `"disposition": "parked"` on the marker so `prepcheck` does not false-block a legitimate non-attach.
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/holdout-verdict",
+  "title": "holdout-verdict contract data",
+  "description": "Reference schema (FAFF-34). The SHAPE of the code-blind holdout verdict the `evaluator` slot's producer (default faffter-noon-evaluate) emits after exercising a built feature against its spec in a provisioned env. Shape is normative here; the verdict SEMANTICS (the aggregate derivation, the prose->needs-human rule) live in the gateway / ADR-0032. Fail-loud on a non-object input (no safe coerce target — faff's own producer emits it). `aggregate`, each criterion's `class`, and each `verdict` are plain strings here: their enums ({meets-spec,gaps,fails,needs-human} / {scenario,assertion,prose} / {met,unmet,needs-human}) are enforced in the compute fn via violations (the env-handle/architecture-proposal precedent), so an echoed bad value is exit 1, never a spurious schemaCheck fail-loud (exit 2). The compute fn also enforces the cross-field rules that make exit 0: code_blind MUST be true; a prose criterion MUST be needs-human; a met/unmet criterion MUST carry evidence; and the aggregate MUST match the derivation from the criteria — fail-safe coercion is toward needs-human, never meets-spec.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["aggregate", "code_blind", "criteria", "violations"],
+  "properties": {
+    "aggregate": { "type": "string" },
+    "code_blind": { "type": "boolean" },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["class", "verdict", "evidence_present"],
+        "properties": {
+          "class": { "type": "string" },
+          "verdict": { "type": "string" },
+          "evidence_present": { "type": "boolean" }
+        }
+      }
+    },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

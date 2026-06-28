@@ -522,5 +522,82 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "architecture-proposal",
+    "name": "conformant-build",
+    "input": "{\"chosen_architecture\":\"modular monolith on Node\",\"rationale\":\"fits the single Node runtime + existing CI\",\"recommendation\":\"build\",\"adr_candidates\":[],\"assumptions\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "chosen_architecture": "modular monolith on Node",
+      "rationale": "fits the single Node runtime + existing CI",
+      "adr_candidates": [],
+      "assumptions": [],
+      "recommendation": "build",
+      "violations": []
+    }
+  },
+  {
+    "contract": "architecture-proposal",
+    "name": "conformant-buy",
+    "input": "{\"chosen_architecture\":\"managed Postgres + thin API\",\"rationale\":\"no DB ops capacity in profile\",\"recommendation\":\"buy\",\"adr_candidates\":[{\"title\":\"Use managed Postgres\",\"decision\":\"adopt a managed DB\",\"rationale\":\"no self-host ops capacity\"}],\"assumptions\":[\"budget allows a managed tier\"]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "chosen_architecture": "managed Postgres + thin API",
+      "rationale": "no DB ops capacity in profile",
+      "adr_candidates": [{ "title": "Use managed Postgres", "decision": "adopt a managed DB", "rationale": "no self-host ops capacity" }],
+      "assumptions": ["budget allows a managed tier"],
+      "recommendation": "buy",
+      "violations": []
+    }
+  },
+  {
+    "contract": "architecture-proposal",
+    "name": "empty-chosen-architecture",
+    "input": "{\"chosen_architecture\":\"\",\"rationale\":\"y\",\"recommendation\":\"build\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "chosen_architecture": "",
+      "rationale": "y",
+      "adr_candidates": [],
+      "assumptions": [],
+      "recommendation": "build",
+      "violations": ["chosen_architecture is empty"]
+    }
+  },
+  {
+    "contract": "architecture-proposal",
+    "name": "bad-recommendation",
+    "input": "{\"chosen_architecture\":\"x\",\"rationale\":\"y\",\"recommendation\":\"rent\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "chosen_architecture": "x",
+      "rationale": "y",
+      "adr_candidates": [],
+      "assumptions": [],
+      "recommendation": "rent",
+      "violations": ["recommendation \"rent\" not in {build,buy,hybrid}"]
+    }
+  },
+  {
+    "contract": "architecture-proposal",
+    "name": "malformed-adr-candidate",
+    "input": "{\"chosen_architecture\":\"x\",\"rationale\":\"y\",\"recommendation\":\"build\",\"adr_candidates\":[{\"title\":\"t\"}]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "chosen_architecture": "x",
+      "rationale": "y",
+      "adr_candidates": [{ "title": "t", "decision": "", "rationale": "" }],
+      "assumptions": [],
+      "recommendation": "build",
+      "violations": ["adr_candidates[0] has no decision", "adr_candidates[0] has no rationale"]
+    }
+  },
+  {
+    "contract": "architecture-proposal",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

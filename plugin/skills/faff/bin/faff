@@ -268,6 +268,7 @@ const DEFAULTS = {
   "slots.spec": "faffter-noon-spec",
   "slots.spec_review": "faffter-noon-spec-review",
   "slots.adr": "faffter-noon-adr",
+  "slots.architecture": "faffter-noon-architecture",
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",
   "slots.concurrency": "faffter-noon-concurrency-sequential",
@@ -727,7 +728,7 @@ function cmdConfig(args) {
       if (rest.includes("--selftest")) {
         const expected = [
           "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
-          "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr",
+          "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
         ];
@@ -764,7 +765,7 @@ function cmdConfig(args) {
       // slot is visible, not silent.
       const [data, p] = loadConfig(root);
       const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
-      const SLOTS = ["intake", "spec", "spec_review", "review", "ship", "concurrency", "methodology",
+      const SLOTS = ["intake", "spec", "spec_review", "architecture", "review", "ship", "concurrency", "methodology",
         "routing_adaptor", "rendering_adaptor"];
       console.log(`config:   ${p || "(none — all defaults)"}`);
       console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
@@ -2844,6 +2845,7 @@ const REGISTRY = {
   "faffter-dark-nlspec": { type: "producer-spec" },
   "faffter-noon-spec-review": { type: "producer-spec-review" },
   "faffter-dark-spec-review": { type: "producer-spec-review" },
+  "faffter-noon-architecture": { type: "producer-architecture" },
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },
@@ -2905,6 +2907,7 @@ const SLOT_TYPES = {
   adr: { type: "producer-adr" },
   spec: { type: "producer-spec" },
   spec_review: { type: "producer-spec-review", slot: "spec_review" },
+  architecture: { type: "producer-architecture", slot: "architecture" },
   review: { type: "producer-review" },
   ship: { type: "producer-ship" },
   // FAFF-231: the infra-profile acquirer slot. The shipped default occupant is the built-in
@@ -2977,6 +2980,13 @@ function checksFor(meta, t) {
       // `faff contract spec-review-verdict`. The default occupant is the L1–L3 single-pass
       // four-lens reviewer (FAFF-266); L4 per-lens refuters (FAFF-267) swap in via the same slot.
       out.push([has("faff-contract:spec-review-verdict"), "emits its `faff-contract:spec-review-verdict` artifact block"]);
+      break;
+    case "producer-architecture":
+      // FAFF-27: the architecture PROPOSER (the missing generative box; FAFF-9's architectural lens is
+      // the downstream CRITIC, they meet only through the spec artifact — ADR-0030). It self-declares its
+      // best-fit proposal in a faff-contract:architecture-proposal block the consumer parses and pipes to
+      // `faff contract architecture-proposal`. Default occupant: faffter-noon-architecture.
+      out.push([has("faff-contract:architecture-proposal"), "emits its `faff-contract:architecture-proposal` artifact block"]);
       break;
     case "producer-ship":
       out.push([has("faff-contract:delivery-outcome"), "emits its `faff-contract:delivery-outcome` artifact block"]);
@@ -5006,6 +5016,68 @@ function contractSpecReviewVerdict(extraction) {
   return { contractData };
 }
 
+// --- architecture-proposal (FAFF-27) ---
+// The proposal envelope FAFF-27's `architecture` slot producer (default faffter-noon-architecture)
+// emits: a best-fit, build-biased architecture proposal generated from the infra profile + brief.
+// Validates SHAPE, never the proposing strategy. Fail-loud ONLY on a non-object input (no safe coerce
+// target — faff's own producer emits it). `recommendation` enforces its {build,buy,hybrid} enum via
+// violations (the spec-review-verdict lens/severity precedent), so an out-of-enum value is exit 1, not
+// a spurious schemaCheck fail-loud (exit 2). The proposer GENERATES; FAFF-9's architectural lens
+// CRITIQUES the spec it lands in — no shared logic, they meet only through the spec artifact (ADR-0030).
+const ARCHITECTURE_RECOMMENDATIONS = ["build", "buy", "hybrid"];
+function computeArchitectureProposal(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  const chosen = typeof extraction.chosen_architecture === "string" ? extraction.chosen_architecture : "";
+  if (!chosen.trim()) violations.push("chosen_architecture is empty");
+  const rationale = typeof extraction.rationale === "string" ? extraction.rationale : "";
+  if (!rationale.trim()) violations.push("rationale is empty");
+  const recommendation = typeof extraction.recommendation === "string" ? extraction.recommendation : "";
+  if (!ARCHITECTURE_RECOMMENDATIONS.includes(extraction.recommendation)) {
+    violations.push(`recommendation ${JSON.stringify(extraction.recommendation)} not in {build,buy,hybrid}`);
+  }
+  const rawCand = Array.isArray(extraction.adr_candidates) ? extraction.adr_candidates : [];
+  if (extraction.adr_candidates !== undefined && !Array.isArray(extraction.adr_candidates)) {
+    violations.push("adr_candidates is not an array — treated as empty");
+  }
+  const adr_candidates = rawCand.map((c, i) => {
+    const title = c && typeof c === "object" && !Array.isArray(c) ? c.title : undefined;
+    const decision = c && typeof c === "object" && !Array.isArray(c) ? c.decision : undefined;
+    const rat = c && typeof c === "object" && !Array.isArray(c) ? c.rationale : undefined;
+    if (typeof title !== "string" || !title.trim()) violations.push(`adr_candidates[${i}] has no title`);
+    if (typeof decision !== "string" || !decision.trim()) violations.push(`adr_candidates[${i}] has no decision`);
+    if (typeof rat !== "string" || !rat.trim()) violations.push(`adr_candidates[${i}] has no rationale`);
+    return {
+      title: typeof title === "string" ? title : "",
+      decision: typeof decision === "string" ? decision : "",
+      rationale: typeof rat === "string" ? rat : "",
+    };
+  });
+  const rawAssume = Array.isArray(extraction.assumptions) ? extraction.assumptions : [];
+  if (extraction.assumptions !== undefined && !Array.isArray(extraction.assumptions)) {
+    violations.push("assumptions is not an array — treated as empty");
+  }
+  const assumptions = rawAssume.map((a) => (typeof a === "string" ? a : String(a)));
+  // Surface any input violations the producer self-declared (convention parity with the other contracts).
+  if (Array.isArray(extraction.violations)) {
+    for (const v of extraction.violations) if (typeof v === "string" && v.trim()) violations.push(v);
+  }
+  return {
+    contractData: { chosen_architecture: chosen, rationale, adr_candidates, assumptions, recommendation, violations },
+    failLoud: null,
+  };
+}
+
+function contractArchitectureProposal(extraction) {
+  const { contractData, failLoud } = computeArchitectureProposal(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "architecture-proposal");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- prdr-admission (FAFF-255) ---
 // The two-gate-bound admission verdict the PRDR layer's keystone produces. `faff prdr admit` is the
 // PRODUCER (computePrdrAdmissionVerdict — the deterministic gate computing authority/by-level/ratchet
@@ -5511,6 +5583,20 @@ const CONTRACTS = {
       { name: "bad-lens", in: { verdict: "revise", objections: [{ lens: "vibes", severity: "major" }] }, wantExit: 1 },
       { name: "bad-severity", in: { verdict: "needs-human", objections: [{ lens: "methodology", severity: "huge" }] }, wantExit: 1 },
       { name: "fail-loud-bad-verdict", in: { verdict: "meh", objections: [] }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "architecture-proposal": {
+    run: contractArchitectureProposal,
+    fixtures: [
+      { name: "conformant-build", in: { chosen_architecture: "modular monolith on Node", rationale: "fits the single Node runtime + existing CI", recommendation: "build", adr_candidates: [], assumptions: [] }, wantExit: 0 },
+      { name: "conformant-buy", in: { chosen_architecture: "managed Postgres + thin API", rationale: "no DB ops capacity in profile", recommendation: "buy", adr_candidates: [{ title: "Use managed Postgres", decision: "adopt a managed DB", rationale: "no self-host ops capacity" }], assumptions: ["budget allows a managed tier"] }, wantExit: 0 },
+      { name: "conformant-hybrid", in: { chosen_architecture: "self-host app, managed queue", rationale: "queue ops are the costly part", recommendation: "hybrid", adr_candidates: [], assumptions: ["no infra profile — proposed against brief only"] }, wantExit: 0 },
+      { name: "empty-chosen-architecture", in: { chosen_architecture: "", rationale: "x", recommendation: "build" }, wantExit: 1 },
+      { name: "empty-rationale", in: { chosen_architecture: "x", rationale: "", recommendation: "build" }, wantExit: 1 },
+      { name: "bad-recommendation", in: { chosen_architecture: "x", rationale: "y", recommendation: "rent" }, wantExit: 1 },
+      { name: "malformed-adr-candidate", in: { chosen_architecture: "x", rationale: "y", recommendation: "build", adr_candidates: [{ title: "t" }] }, wantExit: 1 },
+      { name: "surfaced-input-violations", in: { chosen_architecture: "x", rationale: "y", recommendation: "build", violations: ["producer flagged a gap"] }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },

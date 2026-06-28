@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/architecture-proposal",
+  "title": "architecture-proposal contract data",
+  "description": "Reference schema (FAFF-27). The SHAPE of the proposal envelope the `architecture` slot's producer (default faffter-noon-architecture) emits — a best-fit, build-biased architecture proposal generated from the infra profile + brief. Shape is normative here; the proposing STRATEGY (which architecture fits) lives in the producer, not the contract. Fail-loud on a non-object input (no safe coerce target — faff's own producer emits it). recommendation is a plain string here: its {build,buy,hybrid} enum is enforced in the compute fn via violations (the spec-review-verdict lens/severity precedent), so an echoed bad value (exit 1) never trips schemaCheck into a spurious fail-loud (exit 2). The proposer GENERATES; FAFF-9's architectural lens CRITIQUES the spec it lands in — no shared logic, they meet only through the spec artifact (ADR-0030).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["chosen_architecture", "rationale", "recommendation", "adr_candidates", "assumptions", "violations"],
+  "properties": {
+    "chosen_architecture": { "type": "string" },
+    "rationale": { "type": "string" },
+    "recommendation": { "type": "string" },
+    "adr_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "decision", "rationale"],
+        "properties": {
+          "title": { "type": "string" },
+          "decision": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

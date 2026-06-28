@@ -97,6 +97,17 @@ intake_gate: warn   # warn (default) | block | off
 gates:
   fallback: advisory   # advisory (default) | fail-closed
 
+# Within-run convergence (FAFF-87), /faff-beep-boop. Off by default (L4 discipline). When enabled
+# (or run with --converge, which overrides this), beep-boop folds execution-discovered scope into
+# the SAME run — file → narrow-prep → re-assemble → loop — and delegates each wave-boundary stop to
+# `faff run-done` (genuine dryness + budget + non-convergence backstop) instead of plain queue-empty.
+# max_waves is a RUNAWAY BACKSTOP ONLY: K consecutive no-progress waves → a reported non-convergence
+# escalate, never a silent truncation. Eligibility is not bypassed — discovered tickets re-enter only
+# if automation-eligible (so meaningful in-run draining needs automation_default: opt-out, or crank-up).
+convergence:
+  enabled: false   # false (default) | true   (== --converge; the flag overrides this)
+  max_waves: 6     # runaway backstop K — consecutive no-progress waves before non-convergence escalate
+
 # Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
 # whether it offers to promote that spec's architecturally-significant Chosen: decisions into
 # the repo's append-only docs/adr/ log. The `faff adr` CLI (next-number/new/list/validate) is

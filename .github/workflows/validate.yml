@@ -148,5 +148,14 @@ jobs:
           # flip to enforcing once the post-lean floor is calibrated:
           #   node eval/size-census.mjs --gate --against eval/baselines/prompt-size.json --enforce
 
+      - name: Assert docker present (env integration test must not silently skip — FAFF-274)
+        run: |
+          docker info >/dev/null 2>&1 || {
+            echo "::error::docker unavailable on a lane that must run the env integration test (FAFF-274)"
+            exit 1
+          }
+
       - name: Run skill/CLI behaviour tests (node:test)
+        env:
+          FAFF_REQUIRE_DOCKER: "1"
         run: node --test

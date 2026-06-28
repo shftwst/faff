@@ -143,8 +143,18 @@ function dockerAvailable() {
   catch { return false; }
 }
 const DOCKER = dockerAvailable();
+// FAFF-274: a CI lane that MUST run this test sets FAFF_REQUIRE_DOCKER. When set + non-empty,
+// docker absence is a FAILURE (run the test so it fails loudly), not a silent skip — closing the
+// hole where a skipped docker-gated test is indistinguishable from a passing one in a green CI run.
+// Unset / empty keeps the graceful local-dev skip; only a non-empty value arms the guard.
+const REQUIRE_DOCKER = !!process.env.FAFF_REQUIRE_DOCKER;
+const skipIntegration = DOCKER ? false                  // docker here → run
+  : REQUIRE_DOCKER ? false                              // required but absent → RUN so it can FAIL
+  : "docker unavailable";                               // local/dev → graceful skip
 
-test("integration: postgres env stands up, seeds, and tears down [docker-gated]", { skip: DOCKER ? false : "docker unavailable" }, () => {
+test("integration: postgres env stands up, seeds, and tears down [docker-gated]", { skip: skipIntegration }, () => {
+  // FAFF-274: assert docker presence first so a required-but-absent lane fails loudly (not a silent skip).
+  assert.ok(DOCKER, "FAFF_REQUIRE_DOCKER is set but docker is unavailable — this lane must run the env integration test (FAFF-274)");
   const dir = tmp();
   const project = "faff270-it";
   try {

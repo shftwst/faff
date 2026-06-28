@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.6.0](https://github.com/shftwst/faff/compare/faff--v0.5.0...faff--v0.6.0) (2026-06-28)
+
+
+### Features
+
+* **FAFF-11:** cost-ordered engineering-quality gate ladder before review/CI ([#156](https://github.com/shftwst/faff/issues/156)) ([1f1e9e9](https://github.com/shftwst/faff/commit/1f1e9e98142ebe3b5c1255fca3b286c9afd68f36))
+* **FAFF-125:** mechanical pre-worktree eligibility gate in autonomous graft ([#154](https://github.com/shftwst/faff/issues/154)) ([65bb11d](https://github.com/shftwst/faff/commit/65bb11df1bcb4d0ca2d2b9d508640e00f723d9c7))
+* **FAFF-201:** enforce per-issue context isolation — subagent-per-build dispatch ([#166](https://github.com/shftwst/faff/issues/166)) ([3c632f8](https://github.com/shftwst/faff/commit/3c632f8af8ce16403265b526b7a3ebd906380965))
+* **FAFF-212:** intake-provenance guard — graft-time precondition + intake-record/intakecheck CLI ([#155](https://github.com/shftwst/faff/issues/155)) ([99a98b2](https://github.com/shftwst/faff/commit/99a98b23f59775429ea47157615fd79123ef7601))
+* **FAFF-215:** autonomous build-order dependency inference — producer→consumer conflict-analysis heuristic ([#151](https://github.com/shftwst/faff/issues/151)) ([b63eeb4](https://github.com/shftwst/faff/commit/b63eeb495b1fb9eadb10e3aaf417eca0c4269f63))
+* **FAFF-218:** tracker-own eligibility labels — CLI refuses to write faff-automate/faff-automation-hold ([#157](https://github.com/shftwst/faff/issues/157)) ([42767ef](https://github.com/shftwst/faff/commit/42767efa7d32af9f35880fcb5afe4e22a578b776))
+* **FAFF-219:** faff contain — subtree-of-mandate containment primitive ([#159](https://github.com/shftwst/faff/issues/159)) ([f4336aa](https://github.com/shftwst/faff/commit/f4336aa7cdacb52b3d2a601741d7b17f91c4bb5e))
+* **FAFF-220:** provenance schema 1→2 — initiated audit field ([363ca8a](https://github.com/shftwst/faff/commit/363ca8a4469c949ad14df7f199ed224dfe725316))
+* **FAFF-221:** wire containment at the autonomous filing chokepoints + outward-new-root surfacing ([#162](https://github.com/shftwst/faff/issues/162)) ([708ce5e](https://github.com/shftwst/faff/commit/708ce5e53076f2ace184e19dc9d6f683e44d1347))
+* **FAFF-222:** generalize faff contain to container-level mandates (issue|project|initiative) ([7b86b3c](https://github.com/shftwst/faff/commit/7b86b3cba4ad730da86b75890e3ff683180dfd2a))
+* **FAFF-223:** human-side intake provenance — eligibility-gesture basis + --interactive bypass ([#161](https://github.com/shftwst/faff/issues/161)) ([bf6a3fc](https://github.com/shftwst/faff/commit/bf6a3fcba24c1c324f4298a7786675db3029eb6a))
+* **FAFF-224:** lights-out admissibility gate — faff admissible + call-site integrations ([#187](https://github.com/shftwst/faff/issues/187)) ([0167f1f](https://github.com/shftwst/faff/commit/0167f1f0dba35fde2d97670c63833c6164276f0d))
+* **FAFF-231:** infra-profile repo-mining acquirer + public profile slot ([#189](https://github.com/shftwst/faff/issues/189)) ([720d0e7](https://github.com/shftwst/faff/commit/720d0e7eea7d9880fd3f77ffe21e63e70a231d15))
+* **FAFF-232:** adversarial-review fallback chain of backends ([#172](https://github.com/shftwst/faff/issues/172)) ([bedc1e0](https://github.com/shftwst/faff/commit/bedc1e0390f9566aa03a9c9d9c3bb8e7f4b17464))
+* **FAFF-234:** faff heartbeat primitive + boundary-tick wiring for long graft sub-steps ([#177](https://github.com/shftwst/faff/issues/177)) ([9c18bbd](https://github.com/shftwst/faff/commit/9c18bbd734d54571539611b3059ae7a5c5fe6e93))
+* **FAFF-237:** CI guardrail — lint-cli-doc keeps docs/guide/cli.md in sync with the CLI subcommand set ([#176](https://github.com/shftwst/faff/issues/176)) ([de130d2](https://github.com/shftwst/faff/commit/de130d27542c02e3a09c8c9b3ce5de417d750041))
+* **FAFF-238:** self-contained-prose guard (slice 1) — faff lint-refs + docs/guide relocation ([#174](https://github.com/shftwst/faff/issues/174)) ([397b6a0](https://github.com/shftwst/faff/commit/397b6a050ba57b3993e69e814f6c223b601c9bdd))
+* **FAFF-245:** faff prdr — product-requirements decision-record mechanic ([#183](https://github.com/shftwst/faff/issues/183)) ([288fc2b](https://github.com/shftwst/faff/commit/288fc2beb0d24871f95ba77ba7d0272a2c607b9c))
+* **FAFF-246:** agile lens re-homes a stream's gating chain into its order ([#190](https://github.com/shftwst/faff/issues/190)) ([e1f9e5c](https://github.com/shftwst/faff/commit/e1f9e5c5dfaf131a02f4f9314aa84b0104b8100c))
+* **FAFF-248:** faff project-next predicate + faff-tidy state-coherence sweep ([#188](https://github.com/shftwst/faff/issues/188)) ([0ad0da0](https://github.com/shftwst/faff/commit/0ad0da0b9d30cb860f7cc803a3ed9c0a7f9c7696))
+* **FAFF-251:** prdr-author methodology named output — L3 proposes, L4 self-defines ([#195](https://github.com/shftwst/faff/issues/195)) ([6656bc6](https://github.com/shftwst/faff/commit/6656bc60ad6f1709437faff944eaa54706ee3062))
+* **FAFF-252:** faff prd CLI — product-axis PRD artifact + lifecycle ([#179](https://github.com/shftwst/faff/issues/179)) ([9444358](https://github.com/shftwst/faff/commit/9444358662829f79e408b27e8f37fba4d60c6beb))
+* **FAFF-253:** prd-readiness contract — deterministic admissibility-verdict shape gate ([#184](https://github.com/shftwst/faff/issues/184)) ([16b5ba2](https://github.com/shftwst/faff/commit/16b5ba27444ff44d01297e063983348b1fd41436))
+* **FAFF-254:** born-verifiable PRD stop-conditions form-check ([#186](https://github.com/shftwst/faff/issues/186)) ([7ac29c4](https://github.com/shftwst/faff/commit/7ac29c42a7f425b6467fd97b0c96a508b556e007))
+* **FAFF-255:** two-gate bound — faff prdr admit + prdr-admission contract ([#192](https://github.com/shftwst/faff/issues/192)) ([4f246a6](https://github.com/shftwst/faff/commit/4f246a61fb58634b3a8a199e268c6ab8d30caa7a))
+* **FAFF-256:** PRDR upper/YAGNI gate — two-phase arbitration + prdr-yagni contract ([#196](https://github.com/shftwst/faff/issues/196)) ([0306a3f](https://github.com/shftwst/faff/commit/0306a3ff33733de450da1e031cafd86a6d1d4aa9))
+* **FAFF-257:** lower/coverage gate + prd-satisfied roll-up — the product-done predicate ([#197](https://github.com/shftwst/faff/issues/197)) ([b7d6a23](https://github.com/shftwst/faff/commit/b7d6a239c5e763cf744878432e5eaca4dc470dfa))
+* **FAFF-262:** native YAML block-sequence arrays in the config parser ([#191](https://github.com/shftwst/faff/issues/191)) ([05d2e3c](https://github.com/shftwst/faff/commit/05d2e3c89947054862dd8375fb5329a1a22089d3))
+* **FAFF-265:** spec-review-verdict contract + spec_review slot scaffold ([#198](https://github.com/shftwst/faff/issues/198)) ([e27dd90](https://github.com/shftwst/faff/commit/e27dd900a5851bf2e63858800632e640d88bfb71))
+* **FAFF-266:** L1–L3 single-pass spec reviewer, wired prep→build-admission ([#200](https://github.com/shftwst/faff/issues/200)) ([6d7b205](https://github.com/shftwst/faff/commit/6d7b20521c36bbb97f6833a4611040508c46fb3c))
+* **FAFF-267:** L4 adversarial per-lens spec refuters in the spec_review slot ([#201](https://github.com/shftwst/faff/issues/201)) ([5124e1b](https://github.com/shftwst/faff/commit/5124e1bc75a34be67a59e7e730a08b4b12961107))
+* **FAFF-268:** change-surface lens selection for the spec_review cost-gate ([#202](https://github.com/shftwst/faff/issues/202)) ([12eb85a](https://github.com/shftwst/faff/commit/12eb85a38d7855aa0f6d162b60170d6d25df3caf))
+* **FAFF-26:** infra-profile schema + faff profile CLI (slice 1 of 2) ([#167](https://github.com/shftwst/faff/issues/167)) ([9e13882](https://github.com/shftwst/faff/commit/9e13882f6efc31128242768b08092ef3f6da7771))
+* **FAFF-27:** generative architecture & infra proposal — architecture-proposal contract + slot ([#205](https://github.com/shftwst/faff/issues/205)) ([c014be8](https://github.com/shftwst/faff/commit/c014be8b2aa4259be1f47063d08b270e76583161))
+* **FAFF-30:** digital-twin & environment provisioning — env-handle contract + env slot (v1a) ([#206](https://github.com/shftwst/faff/issues/206)) ([b9e99bd](https://github.com/shftwst/faff/commit/b9e99bda9a8bb984452d5f71d5f543130cdf174b))
+* **FAFF-31:** fixtures dataset-manifest schema + faff fixtures CLI (slice 1) ([#178](https://github.com/shftwst/faff/issues/178)) ([1c4d51d](https://github.com/shftwst/faff/commit/1c4d51d24b5fb39178b9ab56273638ef9c0a5058))
+* **FAFF-35:** faff events CLI — structured run-event log substrate (slice 1) ([#181](https://github.com/shftwst/faff/issues/181)) ([e1f6b7e](https://github.com/shftwst/faff/commit/e1f6b7eefc79beb7e86c17ec7e231e1e1e6a53e0))
+* **FAFF-36:** run cost / compute budgeting — BudgetEnvelope + faff budget check ([#165](https://github.com/shftwst/faff/issues/165)) ([17241e4](https://github.com/shftwst/faff/commit/17241e4edfd42f9774ac82775f93caac789b59c4))
+* **FAFF-38:** faff run-done terminating-condition predicate + run-termination contract ([#199](https://github.com/shftwst/faff/issues/199)) ([1b5524c](https://github.com/shftwst/faff/commit/1b5524c36a56c1aaea4a8f63b06bb07e08e56bca))
+* **FAFF-42:** faff container-check — assert the ADR-0010 blast-radius boundary ([#180](https://github.com/shftwst/faff/issues/180)) ([b9413a2](https://github.com/shftwst/faff/commit/b9413a2fdd64fb80acd0815ae20c9bc9cebe1572))
+* **FAFF-87:** within-run convergence loop — drain execution-discovered scope same-run (L4) ([#204](https://github.com/shftwst/faff/issues/204)) ([3b0e6d8](https://github.com/shftwst/faff/commit/3b0e6d8e78b2bd6b5e6824ac7e4e3bba752305ed))
+
+
+### Bug Fixes
+
+* **FAFF-205:** session-scope runcheck Stop hook so a parallel beep-boop run can't false-block ([#153](https://github.com/shftwst/faff/issues/153)) ([4504b19](https://github.com/shftwst/faff/commit/4504b197442e27209f91fcd13bcbe8d30c5bb9a0))
+* **FAFF-227:** bounded transient-transport retry in review-call.mjs, no unmapped exit 1 ([#163](https://github.com/shftwst/faff/issues/163)) ([1dc8ed8](https://github.com/shftwst/faff/commit/1dc8ed8702eaeeb5d899dab14a5f3fff90cc3ad8))
+* **FAFF-228:** map HTTP 429 rate-limit to a documented exit (+ correct timeout-bound doc) ([#168](https://github.com/shftwst/faff/issues/168)) ([532ae14](https://github.com/shftwst/faff/commit/532ae14b7a9ea551df9f34c4c1575f8f658f76c5))
+* **FAFF-229:** attribute child agent-*.jsonl by owning sessionId, not bare mtime ([#169](https://github.com/shftwst/faff/issues/169)) ([2659cbf](https://github.com/shftwst/faff/commit/2659cbfe79a5e1e442c5c3e7c29426f0182fa5f5))
+* **FAFF-233,FAFF-235:** heartbeat-authoritative runcheck liveness + foreign sessions warn, never hard-block ([#171](https://github.com/shftwst/faff/issues/171)) ([a2b6271](https://github.com/shftwst/faff/commit/a2b62710599d1b512a4e0bb8282ff70e6f9ff6cf))
+* **FAFF-247:** map sources cycle + cross-project blockers from always-fires backlog-diagnostics ([#182](https://github.com/shftwst/faff/issues/182)) ([f5421b5](https://github.com/shftwst/faff/commit/f5421b5a1e01c28da0c6860925bea3ece8dfb523))
+
 ## [0.5.0](https://github.com/shftwst/faff/compare/faff--v0.4.1...faff--v0.5.0) (2026-06-22)
 
 

@@ -97,6 +97,9 @@ jobs:
       - name: Validate architecture-proposal contract script
         run: node plugin/skills/faff/bin/faff contract architecture-proposal --selftest
 
+      - name: Validate env-handle contract script (FAFF-30)
+        run: node plugin/skills/faff/bin/faff contract env-handle --selftest
+
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 

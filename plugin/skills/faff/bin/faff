@@ -269,6 +269,7 @@ const DEFAULTS = {
   "slots.spec_review": "faffter-noon-spec-review",
   "slots.adr": "faffter-noon-adr",
   "slots.architecture": "faffter-noon-architecture",
+  "slots.env": "faffter-noon-env-compose",
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",
   "slots.concurrency": "faffter-noon-concurrency-sequential",
@@ -729,6 +730,7 @@ function cmdConfig(args) {
         const expected = [
           "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
+          "slots.env",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
         ];
@@ -765,7 +767,7 @@ function cmdConfig(args) {
       // slot is visible, not silent.
       const [data, p] = loadConfig(root);
       const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
-      const SLOTS = ["intake", "spec", "spec_review", "architecture", "review", "ship", "concurrency", "methodology",
+      const SLOTS = ["intake", "spec", "spec_review", "architecture", "env", "review", "ship", "concurrency", "methodology",
         "routing_adaptor", "rendering_adaptor"];
       console.log(`config:   ${p || "(none — all defaults)"}`);
       console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
@@ -2846,6 +2848,7 @@ const REGISTRY = {
   "faffter-noon-spec-review": { type: "producer-spec-review" },
   "faffter-dark-spec-review": { type: "producer-spec-review" },
   "faffter-noon-architecture": { type: "producer-architecture" },
+  "faffter-noon-env-compose": { type: "producer-env" },
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },
@@ -2908,6 +2911,7 @@ const SLOT_TYPES = {
   spec: { type: "producer-spec" },
   spec_review: { type: "producer-spec-review", slot: "spec_review" },
   architecture: { type: "producer-architecture", slot: "architecture" },
+  env: { type: "producer-env", slot: "env" },
   review: { type: "producer-review" },
   ship: { type: "producer-ship" },
   // FAFF-231: the infra-profile acquirer slot. The shipped default occupant is the built-in
@@ -2987,6 +2991,14 @@ function checksFor(meta, t) {
       // best-fit proposal in a faff-contract:architecture-proposal block the consumer parses and pipes to
       // `faff contract architecture-proposal`. Default occupant: faffter-noon-architecture.
       out.push([has("faff-contract:architecture-proposal"), "emits its `faff-contract:architecture-proposal` artifact block"]);
+      break;
+    case "producer-env":
+      // FAFF-30: the environment PROVISIONER (the provision box of the propose→provision→seed→evaluate
+      // pipeline). It self-declares a provisioned, health-checked env in a faff-contract:env-handle block the
+      // consumer (FAFF-34) parses and pipes to `faff contract env-handle` (gate: status:ready → exit 0). The
+      // handle is the interface; the provisioning mechanism (compose now, cloud later) is swappable behind it.
+      // Default occupant: faffter-noon-env-compose.
+      out.push([has("faff-contract:env-handle"), "emits its `faff-contract:env-handle` artifact block"]);
       break;
     case "producer-ship":
       out.push([has("faff-contract:delivery-outcome"), "emits its `faff-contract:delivery-outcome` artifact block"]);
@@ -5078,6 +5090,79 @@ function contractArchitectureProposal(extraction) {
   return { contractData };
 }
 
+// --- env-handle (FAFF-30) ---
+// The provisioned-environment handle FAFF-30's `env` slot producer (default faffter-noon-env-compose)
+// emits: a description of a running, health-checked stand-in for the system under build that the holdout
+// evaluator (FAFF-34) points at and tears down. Validates SHAPE + the cross-field gate rule, never the
+// provisioning strategy (which lives in the producer — compose now, cloud later). PURE: a function over the
+// handle object, no I/O. Fail-loud ONLY on a non-object input (no safe coerce target — faff's own producer
+// emits it). `status` enforces its {ready,provisioning,failed,terminated} enum via violations (the
+// architecture-proposal recommendation precedent), so an out-of-enum value is exit 1, not a spurious
+// schemaCheck fail-loud (exit 2). The load-bearing gate: exit 0 ONLY when conformant AND status==="ready"
+// — a non-ready env (provisioning/failed/terminated) is NEVER gate-passing, so its non-ready status is
+// surfaced as a violation. `endpoint` is required only when ready (enforced here, not as a schema required
+// field), and a ready handle must expose at least one health_check (what FAFF-34 consumes).
+const ENV_HANDLE_STATUSES = ["ready", "provisioning", "failed", "terminated"];
+function computeEnvHandle(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  const status = typeof extraction.status === "string" ? extraction.status : "";
+  if (!ENV_HANDLE_STATUSES.includes(extraction.status)) {
+    violations.push(`status ${JSON.stringify(extraction.status)} not in {ready,provisioning,failed,terminated}`);
+  } else if (status !== "ready") {
+    violations.push(`status is "${status}" — not a gate-passing (ready) env`);
+  }
+  const endpoint = typeof extraction.endpoint === "string" ? extraction.endpoint : "";
+  if (status === "ready" && !endpoint.trim()) violations.push("status is ready but endpoint is missing/empty");
+
+  const rawChecks = Array.isArray(extraction.health_checks) ? extraction.health_checks : [];
+  if (!Array.isArray(extraction.health_checks)) violations.push("health_checks is missing or not an array");
+  const health_checks = rawChecks.map((c, i) => {
+    const obj = c && typeof c === "object" && !Array.isArray(c) ? c : {};
+    const name = obj.name, hpath = obj.path, expected = obj.expected_status;
+    if (typeof name !== "string" || !name.trim()) violations.push(`health_checks[${i}] has no name`);
+    if (typeof hpath !== "string" || !hpath.trim()) violations.push(`health_checks[${i}] has no path`);
+    if (typeof expected !== "number") violations.push(`health_checks[${i}] has no numeric expected_status`);
+    return {
+      name: typeof name === "string" ? name : "",
+      path: typeof hpath === "string" ? hpath : "",
+      expected_status: typeof expected === "number" ? expected : 0,
+    };
+  });
+  if (status === "ready" && health_checks.length === 0) violations.push("status is ready but health_checks is empty");
+
+  const teardown_ref = typeof extraction.teardown_ref === "string" ? extraction.teardown_ref : "";
+  if (!teardown_ref.trim()) violations.push("teardown_ref is missing or empty");
+  const provisioned_at = typeof extraction.provisioned_at === "string" ? extraction.provisioned_at : "";
+  if (!provisioned_at.trim()) violations.push("provisioned_at is missing or empty");
+  const provisioner = typeof extraction.provisioner === "string" ? extraction.provisioner : "";
+  if (!provisioner.trim()) violations.push("provisioner is missing or empty");
+
+  // Surface any input violations the producer self-declared (convention parity with the other contracts).
+  if (Array.isArray(extraction.violations)) {
+    for (const v of extraction.violations) if (typeof v === "string" && v.trim()) violations.push(v);
+  }
+
+  const contractData = { status, endpoint, health_checks, teardown_ref, provisioned_at, provisioner, violations };
+  // Optional fields: carried through only when present + well-typed (additionalProperties:false on the schema).
+  if (extraction.endpoints && typeof extraction.endpoints === "object" && !Array.isArray(extraction.endpoints)) contractData.endpoints = extraction.endpoints;
+  if (extraction.readiness && typeof extraction.readiness === "object" && !Array.isArray(extraction.readiness)) contractData.readiness = extraction.readiness;
+  if (typeof extraction.teardown_cmd === "string") contractData.teardown_cmd = extraction.teardown_cmd;
+  if (extraction.credentials && typeof extraction.credentials === "object" && !Array.isArray(extraction.credentials)) contractData.credentials = extraction.credentials;
+
+  return { contractData, failLoud: null };
+}
+
+function contractEnvHandle(extraction) {
+  const { contractData, failLoud } = computeEnvHandle(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "env-handle");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- prdr-admission (FAFF-255) ---
 // The two-gate-bound admission verdict the PRDR layer's keystone produces. `faff prdr admit` is the
 // PRODUCER (computePrdrAdmissionVerdict — the deterministic gate computing authority/by-level/ratchet
@@ -5597,6 +5682,19 @@ const CONTRACTS = {
       { name: "bad-recommendation", in: { chosen_architecture: "x", rationale: "y", recommendation: "rent" }, wantExit: 1 },
       { name: "malformed-adr-candidate", in: { chosen_architecture: "x", rationale: "y", recommendation: "build", adr_candidates: [{ title: "t" }] }, wantExit: 1 },
       { name: "surfaced-input-violations", in: { chosen_architecture: "x", rationale: "y", recommendation: "build", violations: ["producer flagged a gap"] }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "env-handle": {
+    run: contractEnvHandle,
+    fixtures: [
+      { name: "conformant-ready", in: { status: "ready", endpoint: "http://localhost:8080", health_checks: [{ name: "api", path: "/healthz", expected_status: 200 }], teardown_ref: "faff-env-abc", teardown_cmd: "docker-compose -p faff-env-abc down", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 0 },
+      { name: "provisioning-not-ready", in: { status: "provisioning", health_checks: [], teardown_ref: "faff-env-abc", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
+      { name: "failed-with-violations", in: { status: "failed", health_checks: [], teardown_ref: "none", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose", violations: ["docker/compose unavailable"] }, wantExit: 1 },
+      { name: "ready-missing-endpoint", in: { status: "ready", endpoint: "", health_checks: [{ name: "api", path: "/healthz", expected_status: 200 }], teardown_ref: "faff-env-abc", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
+      { name: "ready-empty-health-checks", in: { status: "ready", endpoint: "http://localhost:8080", health_checks: [], teardown_ref: "faff-env-abc", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
+      { name: "bad-status-enum", in: { status: "booting", health_checks: [{ name: "api", path: "/healthz", expected_status: 200 }], teardown_ref: "faff-env-abc", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
+      { name: "missing-required-field", in: { status: "ready", endpoint: "http://localhost:8080", health_checks: [{ name: "api", path: "/healthz", expected_status: 200 }], provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },

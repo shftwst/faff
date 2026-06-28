@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/env-handle",
+  "title": "env-handle contract data",
+  "description": "Reference schema (FAFF-30). The SHAPE of the provisioned-environment handle the `env` slot's producer (default faffter-noon-env-compose) emits — a description of a running, health-checked stand-in for the system under build that the holdout evaluator (FAFF-34) points at and tears down. Shape is normative here; the provisioning MECHANISM (compose now, cloud later) lives in the producer, not the contract. Fail-loud on a non-object input (no safe coerce target — faff's own producer emits it). status is a plain string here: its {ready,provisioning,failed,terminated} enum is enforced in the compute fn via violations (the architecture-proposal recommendation precedent), so an echoed bad value (exit 1) never trips schemaCheck into a spurious fail-loud (exit 2). The compute fn also enforces the cross-field rule that exit 0 requires status=ready AND a non-empty endpoint AND non-empty health_checks — a non-ready env is never gate-passing. endpoint is required only when ready, so it is enforced in compute, not as a schema required field.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "health_checks", "teardown_ref", "provisioned_at", "provisioner", "violations"],
+  "properties": {
+    "status": { "type": "string" },
+    "endpoint": { "type": "string" },
+    "endpoints": { "type": "object" },
+    "health_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "path", "expected_status"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "expected_status": { "type": "number" }
+        }
+      }
+    },
+    "readiness": { "type": "object" },
+    "teardown_ref": { "type": "string" },
+    "teardown_cmd": { "type": "string" },
+    "credentials": { "type": "object" },
+    "provisioned_at": { "type": "string" },
+    "provisioner": { "type": "string" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -599,5 +599,59 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "env-handle",
+    "name": "conformant-ready",
+    "input": "{\"status\":\"ready\",\"endpoint\":\"http://localhost:8080\",\"endpoints\":{\"api\":\"http://localhost:8080\"},\"health_checks\":[{\"name\":\"api\",\"path\":\"/healthz\",\"expected_status\":200}],\"teardown_ref\":\"faff-env-7f3a\",\"teardown_cmd\":\"docker-compose -p faff-env-7f3a down\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "status": "ready",
+      "endpoint": "http://localhost:8080",
+      "health_checks": [{ "name": "api", "path": "/healthz", "expected_status": 200 }],
+      "teardown_ref": "faff-env-7f3a",
+      "provisioned_at": "2026-06-28T00:00:00Z",
+      "provisioner": "faffter-noon-env-compose",
+      "violations": [],
+      "endpoints": { "api": "http://localhost:8080" },
+      "teardown_cmd": "docker-compose -p faff-env-7f3a down"
+    }
+  },
+  {
+    "contract": "env-handle",
+    "name": "provisioning-not-ready",
+    "input": "{\"status\":\"provisioning\",\"health_checks\":[],\"teardown_ref\":\"faff-env-abc\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "status": "provisioning",
+      "endpoint": "",
+      "health_checks": [],
+      "teardown_ref": "faff-env-abc",
+      "provisioned_at": "2026-06-28T00:00:00Z",
+      "provisioner": "faffter-noon-env-compose",
+      "violations": ["status is \"provisioning\" — not a gate-passing (ready) env"]
+    }
+  },
+  {
+    "contract": "env-handle",
+    "name": "ready-missing-endpoint",
+    "input": "{\"status\":\"ready\",\"endpoint\":\"\",\"health_checks\":[{\"name\":\"api\",\"path\":\"/healthz\",\"expected_status\":200}],\"teardown_ref\":\"faff-env-abc\",\"provisioned_at\":\"2026-06-28T00:00:00Z\",\"provisioner\":\"faffter-noon-env-compose\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "status": "ready",
+      "endpoint": "",
+      "health_checks": [{ "name": "api", "path": "/healthz", "expected_status": 200 }],
+      "teardown_ref": "faff-env-abc",
+      "provisioned_at": "2026-06-28T00:00:00Z",
+      "provisioner": "faffter-noon-env-compose",
+      "violations": ["status is ready but endpoint is missing/empty"]
+    }
+  },
+  {
+    "contract": "env-handle",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

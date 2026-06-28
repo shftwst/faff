@@ -6964,6 +6964,361 @@ function fixturesSelftest() {
 }
 
 // ===========================================================================
+// env — FAFF-270: live compose provisioning, hardened + tested.
+//   env compose-gen [--profile FILE] [--out PATH] [--project NAME]   PURE: infra-profile → compose file + ProvisionPlan (stdout)
+//   env up   [--plan FILE | --profile FILE] [--project NAME] [--sla-secs N] [--poll-secs N]   docker: compose up -d + health-wait
+//   env seed [--plan FILE] [--manifest FILE]                                docker: fixtures realise + load per seed_targets
+//   env down [--project NAME]                                               docker: compose down -v (idempotent teardown)
+//   env --selftest                                                          pure compose-gen cases (no docker)
+// compose-gen is the deterministic, docker-FREE core (unit-tested, byte-identical: no wall-clock, no
+// random). The live verbs (up/seed/down) are thin docker orchestration the faffter-noon-env-compose
+// producer calls; their integration tests are docker-gated (skip when docker absent). An unprovisionable
+// datastore kind (no DATASTORE_TABLE entry) is REPORTED in plan.unprovisionable[] — never silently
+// skipped — so the producer fails loud rather than ship an incomplete env. FAFF-30 fixed the env-handle
+// contract; FAFF-270 makes its §4.1 procedure real. Seed-loader breadth (FAFF-270 resolved scope):
+// sql-load = postgres/mysql/sqlite; redis/mongo provision but mount-seed until FAFF-271/272; s3 → FAFF-273.
+// ===========================================================================
+const DATASTORE_TABLE = {
+  postgres: { image: "postgres:16-alpine", port: 5432,  probe: "pg_isready",      seed_strategy: "sql-load", file_based: false },
+  mysql:    { image: "mysql:8",            port: 3306,  probe: "mysqladmin ping", seed_strategy: "sql-load", file_based: false },
+  sqlite:   { image: null,                 port: null,  probe: null,              seed_strategy: "sql-load", file_based: true },
+  redis:    { image: "redis:7-alpine",     port: 6379,  probe: "redis-cli ping",  seed_strategy: "mount",    file_based: false, followup: "FAFF-271" },
+  mongo:    { image: "mongo:7",            port: 27017, probe: "mongosh ping",    seed_strategy: "mount",    file_based: false, followup: "FAFF-272" },
+};
+const ENV_APP_PORT = 8080;
+const ENV_DEFAULT_SLA_SECS = 60;
+const ENV_DEFAULT_POLL_SECS = 2;
+
+// Deterministic FNV-1a short hash → stable project-name component (no wall-clock, no random).
+function envShortHash(str) {
+  let h = 0x811c9dc5;
+  const s = String(str);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+// Deterministic compose-file renderer. Stable key order, no timestamps, no random — byte-identical
+// across runs for the same services. (No `version:` key — modern compose infers it.)
+function renderCompose(services) {
+  const lines = ["services:"];
+  for (const s of services) {
+    lines.push(`  ${s.name}:`);
+    if (s.built_from) {
+      lines.push("    build:");
+      lines.push("      context: .");
+      lines.push(`      dockerfile: ${s.built_from}`);
+    } else {
+      lines.push(`    image: ${s.image}`);
+    }
+    if (s.ports && s.ports.length) {
+      lines.push("    ports:");
+      for (const p of s.ports) lines.push(`      - "${p}"`);
+    }
+    if (s.health_check && s.health_check.path) {
+      const probe = s.name === "app"
+        ? `curl -fsS http://localhost:${ENV_APP_PORT}${s.health_check.path} || exit 1`
+        : s.health_check.path;
+      lines.push("    healthcheck:");
+      lines.push(`      test: ["CMD-SHELL", ${JSON.stringify(probe)}]`);
+      lines.push(`      interval: ${ENV_DEFAULT_POLL_SECS}s`);
+      lines.push("      timeout: 5s");
+      lines.push("      retries: 30");
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+
+// PURE: (profile, projectName, outPath) → { plan, compose }. No docker, no I/O. Deterministic.
+// Maps profile.datastores via DATASTORE_TABLE; an unknown kind is REPORTED in unprovisionable[]
+// (the producer fails loud), never silently skipped. sqlite is file-based: a seed target, no service.
+function composeGen(profile, projectName, outPath) {
+  const datastores = Array.isArray(profile && profile.datastores) ? profile.datastores : [];
+  const deployTargets = Array.isArray(profile && profile.deploy_targets) ? profile.deploy_targets : [];
+  const services = [], seed_targets = [], unprovisionable = [], notes = [];
+  for (const ds of datastores) {
+    const kind = ds && typeof ds.kind === "string" ? ds.kind : "";
+    const spec = DATASTORE_TABLE[kind];
+    if (!spec) { unprovisionable.push(kind || JSON.stringify(ds)); continue; }
+    if (spec.file_based) {
+      seed_targets.push({ service: `${kind}-file`, strategy: "sql-load", kind, file_based: true });
+      continue;
+    }
+    services.push({
+      name: kind, image: spec.image, ports: [`${spec.port}:${spec.port}`],
+      health_check: { name: kind, path: spec.probe, expected_status: 0 },
+    });
+    seed_targets.push({ service: kind, strategy: spec.seed_strategy, kind, file_based: false });
+    if (spec.seed_strategy === "mount") notes.push(`${kind} provisioned but unseeded (${spec.followup || "loader pending"})`);
+  }
+  const containerImage = deployTargets.find(d => d && d.kind === "container-image");
+  if (containerImage) {
+    services.push({
+      name: "app", built_from: (typeof containerImage.evidence === "string" && containerImage.evidence) ? containerImage.evidence : "Dockerfile",
+      ports: [`${ENV_APP_PORT}:${ENV_APP_PORT}`],
+      health_check: { name: "app", path: "/health", expected_status: 200 },
+    });
+  }
+  const endpoints = {};
+  for (const s of services) {
+    const hostPort = (s.ports[0] || "").split(":")[0];
+    endpoints[s.name] = s.name === "app" ? `http://localhost:${hostPort}` : `tcp://localhost:${hostPort}`;
+  }
+  // endpoint precedence: app → first non-file-based datastore → first file-based store (file path) → ""
+  let endpoint = "";
+  if (endpoints["app"]) endpoint = endpoints["app"];
+  else if (services.length) endpoint = endpoints[services[0].name];
+  else if (seed_targets.length) endpoint = `file://${path.join(path.dirname(outPath), seed_targets[0].service + ".sqlite")}`;
+  const health_checks = services.map(s => s.health_check);
+  const plan = { schema: 1, project_name: projectName, compose_file: outPath,
+    services, endpoint, endpoints, health_checks, seed_targets, unprovisionable, notes };
+  return { plan, compose: renderCompose(services) };
+}
+
+function envDockerAvailable() {
+  const r = spawnSync("docker", ["info"], { stdio: "ignore", timeout: 30000 });
+  return r.status === 0;
+}
+
+// Parse `docker compose ps --format json` (array OR newline-delimited objects).
+function envParsePs(stdout) {
+  const t = (stdout || "").trim();
+  if (!t) return [];
+  if (t[0] === "[") { try { return JSON.parse(t); } catch { return []; } }
+  return t.split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+}
+function envAllHealthy(stdout, plan) {
+  const rows = envParsePs(stdout);
+  if (!rows.length) return false;
+  const byName = {};
+  for (const r of rows) byName[r.Service || r.Name] = r;
+  for (const s of plan.services) {
+    const r = byName[s.name];
+    if (!r) return false;
+    const health = r.Health || "";
+    const state = r.State || r.Status || "";
+    if (health) { if (health !== "healthy") return false; }
+    else if (!/running|up/i.test(state)) return false;
+  }
+  return true;
+}
+
+// Build portable INSERTs from realised per-entity JSON. All columns TEXT (a representative seed,
+// not a schema migration); per-engine identifier quoting via `q`.
+function envBuildSql(datasetDir, q) {
+  if (!fs.existsSync(datasetDir)) return "";
+  const files = fs.readdirSync(datasetDir).filter(f => f.endsWith(".json"));
+  const stmts = [];
+  for (const f of files) {
+    let rows; try { rows = JSON.parse(fs.readFileSync(path.join(datasetDir, f), "utf8")); } catch { continue; }
+    if (!Array.isArray(rows) || !rows.length) continue;
+    const table = f.replace(/\.json$/, "");
+    const cols = Object.keys(rows[0]);
+    stmts.push(`CREATE TABLE IF NOT EXISTS ${q(table)} (${cols.map(c => `${q(c)} TEXT`).join(", ")});`);
+    for (const row of rows) {
+      const vals = cols.map(c => "'" + String(row[c] === null || row[c] === undefined ? "" : row[c]).replace(/'/g, "''") + "'");
+      stmts.push(`INSERT INTO ${q(table)} (${cols.map(q).join(", ")}) VALUES (${vals.join(", ")});`);
+    }
+  }
+  return stmts.join("\n") + (stmts.length ? "\n" : "");
+}
+
+// Deliver the realised dataset into one sql-load target (postgres COPY-shaped via psql / mysql / sqlite file).
+function envSqlLoad(root, project, target, datasetDir, composeFile) {
+  if (target.kind === "sqlite") {
+    const sql = envBuildSql(datasetDir, (s) => '"' + String(s).replace(/"/g, '""') + '"');
+    if (!sql) return true;
+    const dbPath = path.join(root, ".faff", "env", "sqlite", `${target.kind}.sqlite`);
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    const r = spawnSync("sqlite3", [dbPath], { input: sql, encoding: "utf8" });
+    return r.status === 0;
+  }
+  if (target.kind === "postgres") {
+    const sql = envBuildSql(datasetDir, (s) => '"' + String(s).replace(/"/g, '""') + '"');
+    if (!sql) return true;
+    const r = spawnSync("docker", ["compose", "-p", project, "-f", composeFile, "exec", "-T",
+      "postgres", "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres"], { input: sql, encoding: "utf8" });
+    return r.status === 0;
+  }
+  if (target.kind === "mysql") {
+    const sql = envBuildSql(datasetDir, (s) => "`" + String(s).replace(/`/g, "``") + "`");
+    if (!sql) return true;
+    const r = spawnSync("docker", ["compose", "-p", project, "-f", composeFile, "exec", "-T",
+      "mysql", "mysql", "-uroot"], { input: sql, encoding: "utf8" });
+    return r.status === 0;
+  }
+  return false;
+}
+
+function cmdEnv(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  root = root || findRoot();
+  const cmd = rest[0];
+  if (cmd === "--selftest" || rest.includes("--selftest")) return envSelftest();
+
+  const flag = (name) => { const i = rest.indexOf(name); return i !== -1 ? rest[i + 1] : null; };
+
+  const resolveProfile = (label) => {
+    const pf = flag("--profile");
+    if (pf) {
+      let raw; try { raw = fs.readFileSync(pf, "utf8"); }
+      catch { process.stderr.write(`faff env ${label}: cannot read --profile ${pf}\n`); return { err: 2 }; }
+      try { return { profile: JSON.parse(raw) }; }
+      catch { process.stderr.write(`faff env ${label}: malformed profile JSON in ${pf}\n`); return { err: 2 }; }
+    }
+    const profPath = path.join(root, ".faff", "infra-profile.json");
+    if (!fs.existsSync(profPath)) {
+      process.stderr.write(`faff env ${label}: no --profile and no .faff/infra-profile.json (run \`faff profile mine --json > .faff/infra-profile.json\`)\n`);
+      return { err: 3 };
+    }
+    try { return { profile: JSON.parse(fs.readFileSync(profPath, "utf8")) }; }
+    catch { process.stderr.write(`faff env ${label}: malformed .faff/infra-profile.json\n`); return { err: 2 }; }
+  };
+  const defaultProject = (profile) =>
+    `faff-env-${envShortHash(JSON.stringify(profile.datastores || []) + JSON.stringify(profile.deploy_targets || []))}`;
+
+  if (cmd === "compose-gen") {
+    const r = resolveProfile("compose-gen");
+    if (r.err) return r.err;
+    const project = flag("--project") || defaultProject(r.profile);
+    let out = flag("--out") || path.join(".faff", "env", "docker-compose.yml");
+    if (!path.isAbsolute(out)) out = path.join(root, out);
+    const { plan, compose } = composeGen(r.profile, project, out);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, compose);
+    console.log(JSON.stringify(plan, null, 2));   // ProvisionPlan → stdout (producer / `env up` consume it)
+    return 0;
+  }
+
+  if (cmd === "up") {
+    let plan;
+    const planFile = flag("--plan");
+    if (planFile) {
+      try { plan = JSON.parse(fs.readFileSync(planFile, "utf8")); }
+      catch { process.stderr.write(`faff env up: cannot read --plan ${planFile}\n`); return 2; }
+    } else {
+      const r = resolveProfile("up");
+      if (r.err) return r.err;
+      const project = flag("--project") || defaultProject(r.profile);
+      let out = path.join(root, ".faff", "env", "docker-compose.yml");
+      const g = composeGen(r.profile, project, out);
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, g.compose);
+      plan = g.plan;
+    }
+    if (Array.isArray(plan.unprovisionable) && plan.unprovisionable.length) {
+      process.stderr.write(`faff env up: unprovisionable datastore kind(s): ${plan.unprovisionable.join(", ")} — extend DATASTORE_TABLE\n`);
+      return 1;
+    }
+    const project = flag("--project") || plan.project_name;
+    if (!envDockerAvailable()) { process.stderr.write("faff env up: docker unavailable\n"); return 1; }
+    const upr = spawnSync("docker", ["compose", "-p", project, "-f", plan.compose_file, "up", "-d"],
+      { encoding: "utf8", timeout: 5 * 60 * 1000 });
+    if (upr.status !== 0) { process.stderr.write(`faff env up: docker compose up failed\n${upr.stderr || ""}`); return 1; }
+    const slaSecs = parseInt(flag("--sla-secs") || ENV_DEFAULT_SLA_SECS, 10);
+    const pollSecs = Math.max(1, parseInt(flag("--poll-secs") || ENV_DEFAULT_POLL_SECS, 10));
+    const retries = Math.max(1, Math.ceil(slaSecs / pollSecs));
+    let healthy = plan.services.length === 0;   // nothing to wait on (e.g. sqlite-only) = trivially up
+    for (let i = 0; i < retries && !healthy; i++) {
+      const ps = spawnSync("docker", ["compose", "-p", project, "-f", plan.compose_file, "ps", "--format", "json"],
+        { encoding: "utf8" });
+      if (ps.status === 0 && envAllHealthy(ps.stdout, plan)) { healthy = true; break; }
+      spawnSync("sleep", [String(pollSecs)]);
+    }
+    if (!healthy) { process.stderr.write("faff env up: health checks did not pass within SLA\n"); return 1; }
+    console.log(`OK — env up (project ${project}); ${plan.services.length} service(s) healthy`);
+    return 0;
+  }
+
+  if (cmd === "seed") {
+    const planFile = flag("--plan");
+    if (!planFile) { process.stderr.write("faff env seed: --plan required (the ProvisionPlan from compose-gen)\n"); return 2; }
+    let plan;
+    try { plan = JSON.parse(fs.readFileSync(planFile, "utf8")); }
+    catch { process.stderr.write(`faff env seed: cannot read --plan ${planFile}\n`); return 2; }
+    const datasetDir = path.join(root, ".faff", "fixtures", "dataset");
+    const manifest = flag("--manifest");
+    if (manifest) {
+      const r = spawnSync(process.execPath, [__filename, "fixtures", "realise", "--file", manifest, "--out", datasetDir],
+        { encoding: "utf8" });
+      if (r.status !== 0) { process.stderr.write(`faff env seed: fixtures realise failed\n${r.stderr || ""}`); return 1; }
+    }
+    const project = flag("--project") || plan.project_name;
+    const needsDocker = (plan.seed_targets || []).some(t => t.strategy === "sql-load" && t.kind !== "sqlite");
+    if (needsDocker && !envDockerAvailable()) { process.stderr.write("faff env seed: docker unavailable\n"); return 1; }
+    let errored = false;
+    for (const t of (plan.seed_targets || [])) {
+      if (t.strategy === "sql-load") {
+        if (!envSqlLoad(root, project, t, datasetDir, plan.compose_file)) {
+          errored = true; process.stderr.write(`faff env seed: sql-load failed for ${t.kind}\n`);
+        }
+      } else if (t.strategy === "mount") {
+        console.log(`note — ${t.kind}: dataset mounted, not imported (loader pending)`);
+      }
+    }
+    if (errored) return 1;
+    console.log(`OK — env seed (project ${project})`);
+    return 0;
+  }
+
+  if (cmd === "down") {
+    const project = flag("--project");
+    if (!project) { process.stderr.write("faff env down: --project required\n"); return 2; }
+    if (!envDockerAvailable()) { console.log(`OK — env down (project ${project}); docker unavailable, nothing to tear down`); return 0; }
+    spawnSync("docker", ["compose", "-p", project, "down", "-v"], { encoding: "utf8", timeout: 2 * 60 * 1000 });
+    console.log(`OK — env down (project ${project})`);   // idempotent: down of an absent project is success
+    return 0;
+  }
+
+  process.stderr.write("faff env: expected one of compose-gen | up | seed | down (or --selftest)\n");
+  return 2;
+}
+
+// In-memory self-test of the pure compose-gen core (no docker). Mirrors the profile/fixtures style.
+function envSelftest() {
+  let failed = 0;
+  const check = (label, cond) => { if (!cond) { process.stderr.write(`env --selftest FAIL: ${label}\n`); failed++; } };
+
+  const p1 = { datastores: [{ kind: "postgres", evidence: "docker-compose.yml" }], deploy_targets: [{ kind: "container-image", evidence: "Dockerfile" }] };
+  const r1 = composeGen(p1, "proj1", "/tmp/x/docker-compose.yml");
+  check("pg+app: 2 services", r1.plan.services.length === 2);
+  check("pg+app: app built_from Dockerfile", r1.plan.services.some(s => s.name === "app" && s.built_from === "Dockerfile"));
+  check("pg+app: postgres sql-load target", r1.plan.seed_targets.some(t => t.kind === "postgres" && t.strategy === "sql-load"));
+  check("pg+app: empty unprovisionable", r1.plan.unprovisionable.length === 0);
+  check("pg+app: health_checks non-empty", r1.plan.health_checks.length === 2);
+  check("pg+app: endpoint is app", r1.plan.endpoint === r1.plan.endpoints["app"]);
+
+  const r1b = composeGen(p1, "proj1", "/tmp/x/docker-compose.yml");
+  check("determinism: compose byte-identical", r1.compose === r1b.compose);
+  check("determinism: plan identical", JSON.stringify(r1.plan) === JSON.stringify(r1b.plan));
+
+  const r3 = composeGen({ datastores: [{ kind: "cassandra", evidence: "x" }], deploy_targets: [] }, "p3", "/tmp/x/dc.yml");
+  check("unknown: cassandra → unprovisionable", r3.plan.unprovisionable.includes("cassandra"));
+  check("unknown: no cassandra service", !r3.plan.services.some(s => s.name === "cassandra"));
+
+  const r4 = composeGen({ datastores: [{ kind: "sqlite", evidence: "x" }], deploy_targets: [] }, "p4", "/tmp/x/dc.yml");
+  check("sqlite: file_based seed target", r4.plan.seed_targets.some(t => t.kind === "sqlite" && t.file_based === true));
+  check("sqlite: no sqlite service", !r4.plan.services.some(s => s.name === "sqlite"));
+
+  const r5 = composeGen({ datastores: [{ kind: "redis", evidence: "x" }], deploy_targets: [] }, "p5", "/tmp/x/dc.yml");
+  check("redis: has service", r5.plan.services.some(s => s.name === "redis"));
+  check("redis: mount seed", r5.plan.seed_targets.some(t => t.kind === "redis" && t.strategy === "mount"));
+  check("redis: unseeded note cites FAFF-271", r5.plan.notes.some(n => /redis/.test(n) && /FAFF-271/.test(n)));
+  check("endpoint: first datastore when no app", r5.plan.endpoint === r5.plan.endpoints["redis"]);
+
+  const r6 = composeGen({ datastores: [{ kind: "mysql", evidence: "x" }, { kind: "sqlite", evidence: "y" }], deploy_targets: [] }, "p6", "/tmp/x/dc.yml");
+  check("mixed: mysql service + sqlite file target", r6.plan.services.some(s => s.name === "mysql") && r6.plan.seed_targets.some(t => t.kind === "sqlite"));
+
+  if (failed) return 1;
+  console.log("env --selftest: ok");
+  return 0;
+}
+
+// ===========================================================================
 // events — FAFF-35 (slice 1): structured run-event log — the timeline substrate
 // for run observability. An append-only JSONL log at .faff/runs/<run-id>/events.jsonl,
 // one RunEvent per line. The CLI owns the envelope (schema/run_id/seq/ts); the caller
@@ -8531,6 +8886,7 @@ const COMMANDS = {
   "prdr": cmdPrdr,
   "profile": cmdProfile,
   "fixtures": cmdFixtures,
+  "env": cmdEnv,
   "events": cmdEvents,
   "gates": cmdGates,
   "contract": cmdContract,

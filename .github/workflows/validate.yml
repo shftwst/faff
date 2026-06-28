@@ -106,6 +106,9 @@ jobs:
       - name: Validate infra-profile validator table (FAFF-26)
         run: node plugin/skills/faff/bin/faff profile --selftest
 
+      - name: Validate env compose-gen table (FAFF-270)
+        run: node plugin/skills/faff/bin/faff env --selftest
+
       - name: Validate park-history repeat-park counting table
         run: node plugin/skills/faff/bin/faff park-history --selftest
 

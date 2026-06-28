@@ -100,6 +100,12 @@ jobs:
       - name: Validate env-handle contract script (FAFF-30)
         run: node plugin/skills/faff/bin/faff contract env-handle --selftest
 
+      - name: Validate holdout-verdict contract script (FAFF-34)
+        run: node plugin/skills/faff/bin/faff contract holdout-verdict --selftest
+
+      - name: Validate dod-classify table (FAFF-34)
+        run: node plugin/skills/faff/bin/faff dod --selftest
+
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 

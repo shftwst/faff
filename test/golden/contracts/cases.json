@@ -653,5 +653,56 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "holdout-verdict",
+    "name": "conformant-meets-spec",
+    "input": "{\"aggregate\":\"meets-spec\",\"code_blind\":true,\"criteria\":[{\"class\":\"scenario\",\"verdict\":\"met\",\"evidence_present\":true}],\"violations\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "aggregate": "meets-spec",
+      "code_blind": true,
+      "criteria": [
+        { "class": "scenario", "verdict": "met", "evidence_present": true }
+      ],
+      "violations": []
+    }
+  },
+  {
+    "contract": "holdout-verdict",
+    "name": "conformant-needs-human-prose",
+    "input": "{\"aggregate\":\"needs-human\",\"code_blind\":true,\"criteria\":[{\"class\":\"prose\",\"verdict\":\"needs-human\",\"evidence_present\":false}],\"violations\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "aggregate": "needs-human",
+      "code_blind": true,
+      "criteria": [
+        { "class": "prose", "verdict": "needs-human", "evidence_present": false }
+      ],
+      "violations": []
+    }
+  },
+  {
+    "contract": "holdout-verdict",
+    "name": "code-blind-false-violation",
+    "input": "{\"aggregate\":\"meets-spec\",\"code_blind\":false,\"criteria\":[{\"class\":\"scenario\",\"verdict\":\"met\",\"evidence_present\":true}],\"violations\":[]}",
+    "expectExit": 1,
+    "expectStdout": {
+      "aggregate": "meets-spec",
+      "code_blind": false,
+      "criteria": [
+        { "class": "scenario", "verdict": "met", "evidence_present": true }
+      ],
+      "violations": [
+        "code_blind is not true — a non-blind verdict is structurally inadmissible"
+      ]
+    }
+  },
+  {
+    "contract": "holdout-verdict",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

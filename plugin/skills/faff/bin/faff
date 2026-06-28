@@ -270,6 +270,7 @@ const DEFAULTS = {
   "slots.adr": "faffter-noon-adr",
   "slots.architecture": "faffter-noon-architecture",
   "slots.env": "faffter-noon-env-compose",
+  "slots.evaluator": "faffter-noon-evaluate",
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",
   "slots.concurrency": "faffter-noon-concurrency-sequential",
@@ -2849,6 +2850,7 @@ const REGISTRY = {
   "faffter-dark-spec-review": { type: "producer-spec-review" },
   "faffter-noon-architecture": { type: "producer-architecture" },
   "faffter-noon-env-compose": { type: "producer-env" },
+  "faffter-noon-evaluate": { type: "producer-evaluator" },
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },
@@ -2912,6 +2914,7 @@ const SLOT_TYPES = {
   spec_review: { type: "producer-spec-review", slot: "spec_review" },
   architecture: { type: "producer-architecture", slot: "architecture" },
   env: { type: "producer-env", slot: "env" },
+  evaluator: { type: "producer-evaluator", slot: "evaluator" },
   review: { type: "producer-review" },
   ship: { type: "producer-ship" },
   // FAFF-231: the infra-profile acquirer slot. The shipped default occupant is the built-in
@@ -2999,6 +3002,13 @@ function checksFor(meta, t) {
       // handle is the interface; the provisioning mechanism (compose now, cloud later) is swappable behind it.
       // Default occupant: faffter-noon-env-compose.
       out.push([has("faff-contract:env-handle"), "emits its `faff-contract:env-handle` artifact block"]);
+      break;
+    case "producer-evaluator":
+      // FAFF-34: the code-blind holdout JUDGE (the evaluate box of propose→provision→seed→evaluate). It
+      // self-declares its per-criterion + aggregate verdict in a faff-contract:holdout-verdict block the
+      // consumer parses and pipes to `faff contract holdout-verdict` (gate: code_blind:true + aggregate
+      // matches derivation → exit 0). Default occupant: faffter-noon-evaluate.
+      out.push([has("faff-contract:holdout-verdict"), "emits its `faff-contract:holdout-verdict` artifact block"]);
       break;
     case "producer-ship":
       out.push([has("faff-contract:delivery-outcome"), "emits its `faff-contract:delivery-outcome` artifact block"]);
@@ -4659,6 +4669,7 @@ Subcommands:
   label add|remove <issue-id> <label> [--present-label L ...]   FAFF-187: emit a faff-contract:label-op descriptor (issue·label·action·ensure-first·idempotent-noop) for a control-label mutation the agent performs via MCP — PURE, no tracker I/O; rejects a label not in the manifest; --present-label (repeatable) pre-computes the idempotent no-op; --selftest runs the table
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
   spec-review-lenses --tags T,T,... --level L1|L2|L3|L4 --appetite low|medium|high|full [--selftest]   FAFF-268: cost-gate IN FRONT of the spec_review producer — maps a spec's CLASSIFIED change-surface tags + level + appetite to a LensSelection {lenses,mode,rationale}. Pure; the signal->tag classification is prose-side (faff-prep). v1 additive-only/safe-direction: only architectural (or methodology when no tag adds it) is dropped; infosec+QA sticky at L1-L3; unclassified/unknown tag -> all four (fail-safe); L4 -> adversarial all-four (never narrowed); low/medium appetite widens to all four. --selftest runs the table
+  dod classify --spec <path|-> [--json]         FAFF-34: classify a spec's DoD criteria (## Scenarios + ### N. DONE) by born-verifiability class (scenario|assertion|prose), reusing classifyCriterion verbatim — the evaluator uses this to decide which criteria it may machine-judge vs force to needs-human (prose). PURE (file/stdin in, JSON out, no tracker/network/LLM); emits {criteria:[{text,class,source}],counts}; exit 0 on a successful parse / 2 usage/unreadable; --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
@@ -5159,6 +5170,83 @@ function contractEnvHandle(extraction) {
   const { contractData, failLoud } = computeEnvHandle(extraction);
   if (failLoud) return { failLoud };
   const schemaErr = schemaCheck(contractData, "env-handle");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
+// --- holdout-verdict (FAFF-34) ---
+// The code-blind holdout verdict the `evaluator` slot producer (default faffter-noon-evaluate) emits after
+// exercising a built feature against its spec's DoD in a provisioned env. Validates SHAPE + the cross-field
+// consistency rules, never the exercise strategy (which lives in the producer). PURE: a function over the
+// verdict object, no I/O. Fail-loud ONLY on a non-object (no safe coerce target — faff's own producer emits
+// it). The enums for aggregate/class/verdict are enforced via violations (the env-handle precedent), so an
+// echoed bad value is exit 1, not a spurious schemaCheck fail-loud (exit 2). The fail-safe coercion target
+// for a bad aggregate is `needs-human` — NEVER `meets-spec` (mirrors review-verdict). The load-bearing gates
+// (exit 0 only when ALL hold): code_blind===true (a non-blind verdict is structurally inadmissible — ADR-0032);
+// a `prose` criterion is never machine-judged (verdict MUST be needs-human — ADR-0029); a met/unmet criterion
+// MUST carry evidence; and the aggregate MUST match the derivation from the criteria (no hand-waved meets-spec).
+const HOLDOUT_AGGREGATES = ["meets-spec", "gaps", "fails", "needs-human"];
+const HOLDOUT_CLASSES = ["scenario", "assertion", "prose"];
+const HOLDOUT_VERDICTS = ["met", "unmet", "needs-human"];
+
+// The aggregate derivation (gateway-normative, ADR-0032). Shared so producer + validator agree.
+function deriveHoldoutAggregate(verdicts) {
+  if (verdicts.some((v) => v === "needs-human")) return "needs-human";
+  if (verdicts.length === 0) return "needs-human";       // nothing judged → needs-human
+  if (verdicts.every((v) => v === "met")) return "meets-spec";
+  if (verdicts.every((v) => v === "unmet")) return "fails";
+  return "gaps";                                          // mixed met/unmet
+}
+
+function computeHoldoutVerdict(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+
+  // code_blind — the by-construction attestation; MUST be exactly true to gate-pass.
+  const code_blind = extraction.code_blind === true;
+  if (extraction.code_blind !== true) violations.push("code_blind is not true — a non-blind verdict is structurally inadmissible");
+
+  const rawCriteria = Array.isArray(extraction.criteria) ? extraction.criteria : [];
+  if (!Array.isArray(extraction.criteria)) violations.push("criteria is missing or not an array");
+  const criteria = rawCriteria.map((c, i) => {
+    const obj = c && typeof c === "object" && !Array.isArray(c) ? c : {};
+    const klass = HOLDOUT_CLASSES.includes(obj.class) ? obj.class : "";
+    if (!HOLDOUT_CLASSES.includes(obj.class)) violations.push(`criteria[${i}].class ${JSON.stringify(obj.class)} not in {scenario,assertion,prose}`);
+    const verdict = HOLDOUT_VERDICTS.includes(obj.verdict) ? obj.verdict : "";
+    if (!HOLDOUT_VERDICTS.includes(obj.verdict)) violations.push(`criteria[${i}].verdict ${JSON.stringify(obj.verdict)} not in {met,unmet,needs-human}`);
+    const evidence_present = obj.evidence_present === true;
+    if (klass === "prose" && obj.verdict !== "needs-human") violations.push(`criteria[${i}] is prose but verdict is ${JSON.stringify(obj.verdict)} — prose must be needs-human (ADR-0029)`);
+    if ((obj.verdict === "met" || obj.verdict === "unmet") && !evidence_present) violations.push(`criteria[${i}] verdict ${obj.verdict} has no evidence (evidence_present false)`);
+    return { class: klass, verdict, evidence_present };
+  });
+
+  // aggregate — an out-of-enum echoed value coerces to needs-human (NEVER meets-spec).
+  let aggregate = extraction.aggregate;
+  if (!HOLDOUT_AGGREGATES.includes(aggregate)) {
+    violations.push(`aggregate ${JSON.stringify(aggregate)} not in {meets-spec,gaps,fails,needs-human} — coerced to needs-human`);
+    aggregate = "needs-human";
+  }
+  // Consistency: the declared aggregate must match the derivation from the criteria. Only checkable when
+  // every verdict is well-formed (an out-of-enum verdict already pushed its own violation above).
+  if (criteria.every((c) => HOLDOUT_VERDICTS.includes(c.verdict))) {
+    const expected = deriveHoldoutAggregate(criteria.map((c) => c.verdict));
+    if (aggregate !== expected) violations.push(`aggregate is "${aggregate}" but criteria derive "${expected}"`);
+  }
+
+  // Surface any producer-declared violations (convention parity with the other contracts).
+  if (Array.isArray(extraction.violations)) {
+    for (const v of extraction.violations) if (typeof v === "string" && v.trim()) violations.push(v);
+  }
+
+  return { contractData: { aggregate, code_blind, criteria, violations }, failLoud: null };
+}
+
+function contractHoldoutVerdict(extraction) {
+  const { contractData, failLoud } = computeHoldoutVerdict(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "holdout-verdict");
   if (schemaErr) return { failLoud: schemaErr };
   return { contractData };
 }
@@ -5695,6 +5783,23 @@ const CONTRACTS = {
       { name: "ready-empty-health-checks", in: { status: "ready", endpoint: "http://localhost:8080", health_checks: [], teardown_ref: "faff-env-abc", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
       { name: "bad-status-enum", in: { status: "booting", health_checks: [{ name: "api", path: "/healthz", expected_status: 200 }], teardown_ref: "faff-env-abc", provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
       { name: "missing-required-field", in: { status: "ready", endpoint: "http://localhost:8080", health_checks: [{ name: "api", path: "/healthz", expected_status: 200 }], provisioned_at: "2026-06-28T00:00:00Z", provisioner: "faffter-noon-env-compose" }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
+  "holdout-verdict": {
+    run: contractHoldoutVerdict,
+    fixtures: [
+      { name: "conformant-meets-spec", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, wantExit: 0 },
+      { name: "conformant-gaps", in: { aggregate: "gaps", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }] }, wantExit: 0 },
+      { name: "conformant-fails", in: { aggregate: "fails", code_blind: true, criteria: [{ class: "scenario", verdict: "unmet", evidence_present: true }] }, wantExit: 0 },
+      { name: "conformant-needs-human-prose", in: { aggregate: "needs-human", code_blind: true, criteria: [{ class: "prose", verdict: "needs-human", evidence_present: false }] }, wantExit: 0 },
+      { name: "conformant-empty-needs-human", in: { aggregate: "needs-human", code_blind: true, criteria: [] }, wantExit: 0 },
+      { name: "code-blind-false", in: { aggregate: "meets-spec", code_blind: false, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, wantExit: 1 },
+      { name: "prose-judged", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "prose", verdict: "met", evidence_present: true }] }, wantExit: 1 },
+      { name: "met-without-evidence", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: false }] }, wantExit: 1 },
+      { name: "aggregate-mismatch", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "unmet", evidence_present: true }] }, wantExit: 1 },
+      { name: "out-of-enum-aggregate-coerced", in: { aggregate: "perfect", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, wantExit: 1 },
+      { name: "out-of-enum-class", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "behavioural", verdict: "met", evidence_present: true }] }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -7739,6 +7844,46 @@ function classifyAcceptanceCriteria(sectionText) {
   return units.map((text) => ({ text, kind: classifyCriterion(text) }));
 }
 
+// --- dod classify (FAFF-34) ---
+// The body of a heading section (`## Scenarios`, `### N. DONE`, …) up to the next equal/higher heading.
+// Fence-aware: a `#` inside a code fence is not a heading. Returns null when the heading is absent. Pure.
+function sectionBody(specText, headingRe) {
+  const lines = String(specText == null ? "" : specText).split(/\r?\n/);
+  let start = -1, level = 0, fence = false;
+  for (let k = 0; k < lines.length; k++) {
+    if (/^\s*(?:```|~~~)/.test(lines[k])) { fence = !fence; continue; }
+    if (!fence && headingRe.test(lines[k])) { start = k; level = headingLevel(lines[k]); break; }
+  }
+  if (start === -1) return null;
+  const body = [];
+  fence = false;
+  for (let k = start + 1; k < lines.length; k++) {
+    if (/^\s*(?:```|~~~)/.test(lines[k])) { fence = !fence; body.push(lines[k]); continue; }
+    const lvl = fence ? 0 : headingLevel(lines[k]);
+    if (lvl > 0 && lvl <= level) break;
+    body.push(lines[k]);
+  }
+  return body.join("\n");
+}
+
+// Classify a spec's DoD criteria by born-verifiability class, reusing classifyCriterion VERBATIM (no forked
+// rule — the same scenario>assertion>prose function `faff admissible` applies). Criteria are drawn from the
+// SAME structures admissible reads: the `## Scenarios` section (each Given/When/Then block + each assertion
+// bullet, via classifyAcceptanceCriteria) and the `### N. DONE` checklist (each `- [ ]` item). Pure — no I/O.
+function dodClassify(specText) {
+  const criteria = [];
+  const scenBody = sectionBody(specText, /^\s*#{1,6}\s+scenarios\b/i);
+  if (scenBody != null) {
+    for (const u of classifyAcceptanceCriteria(scenBody)) criteria.push({ text: u.text, class: u.kind, source: "scenarios" });
+  }
+  for (const t of parseDoneChecklist(specText)) {
+    criteria.push({ text: t, class: classifyCriterion(t), source: "done" });
+  }
+  const counts = { scenario: 0, assertion: 0, prose: 0 };
+  for (const c of criteria) counts[c.class]++;
+  return { criteria, counts };
+}
+
 // The `## Acceptance criteria` section body (case-insensitive heading PREFIX, so
 // "## Acceptance Criteria" / "## Acceptance criteria (release)" match), up to the
 // next "## " heading or EOF. null when no such section exists.
@@ -8731,6 +8876,69 @@ function cmdAdmissible(args) {
   return v.admissible ? 0 : 1;
 }
 
+// faff dod classify — FAFF-34: classify a spec's DoD criteria by born-verifiability class (reusing
+// classifyCriterion verbatim), for the evaluator to decide which it may machine-judge (scenario/assertion)
+// vs force to needs-human (prose). Pure: file/stdin in, JSON out, no tracker/network/LLM.
+function cmdDod(args) {
+  if (args.includes("--selftest")) return dodSelftest();
+  const action = args.find((a) => !a.startsWith("--"));
+  if (action !== "classify") {
+    process.stderr.write("faff dod: usage: faff dod classify --spec <path|-> [--json]\n");
+    return 2;
+  }
+  const json = args.includes("--json");
+  const specIdx = args.indexOf("--spec");
+  const specArg = specIdx !== -1 ? args[specIdx + 1] : null;
+  let specText;
+  try {
+    if (specArg && specArg !== "-") specText = fs.readFileSync(specArg, "utf8");
+    else specText = fs.readFileSync(0, "utf8");   // --spec - or no --spec → stdin
+  } catch (e) {
+    process.stderr.write(`faff dod classify: cannot read spec: ${e.message}\n`);
+    return 2;
+  }
+  const r = dodClassify(specText);
+  process.stdout.write(JSON.stringify(r, null, json ? 0 : 2) + "\n");
+  return 0;   // a successful parse is exit 0 (an empty criteria set is valid data the evaluator handles)
+}
+
+// In-memory selftest of dodClassify + classifyCriterion parity (mirrors admissible --selftest). No I/O.
+function dodSelftest() {
+  let failed = 0;
+  const check = (label, cond) => { if (!cond) { process.stderr.write(`dod --selftest FAIL: ${label}\n`); failed++; } };
+  const spec = [
+    "## Scenarios",
+    "```",
+    "Given a user is logged in",
+    "When they click checkout",
+    "Then the order is submitted",
+    "```",
+    "",
+    "- The p99 latency MUST be < 200ms",
+    "",
+    "## 8. DONE",
+    "",
+    "### From WHY",
+    "- [ ] Given X is set, When Y runs, Then Z holds",
+    "- [ ] The API MUST return 200 on /healthz",
+    "- [ ] The onboarding copy reads warmly",
+  ].join("\n");
+  const r = dodClassify(spec);
+  check("a Given/When/Then unit → scenario", r.criteria.some((c) => c.class === "scenario"));
+  check("a MUST/comparator unit → assertion", r.criteria.some((c) => c.class === "assertion"));
+  check("anything else → prose", r.criteria.some((c) => c.class === "prose"));
+  check("scenarios + done sources both present", r.criteria.some((c) => c.source === "scenarios") && r.criteria.some((c) => c.source === "done"));
+  check("counts sum equals criteria length", r.counts.scenario + r.counts.assertion + r.counts.prose === r.criteria.length);
+  check("classifyCriterion parity: Then → scenario", classifyCriterion("Then it happens") === "scenario");
+  check("classifyCriterion parity: MUST → assertion", classifyCriterion("It MUST be fast") === "assertion");
+  check("classifyCriterion parity: comparator → assertion", classifyCriterion("count = 5") === "assertion");
+  check("classifyCriterion parity: plain prose → prose", classifyCriterion("It feels nice") === "prose");
+  const empty = dodClassify("# Spec with no DoD sections\n\njust prose.\n");
+  check("no DoD sections → empty criteria, parse still succeeds", empty.criteria.length === 0);
+  if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
+  console.log("dod --selftest: ok"); return 0;
+}
+
 // --- spec-review lens selection (FAFF-268) ---
 // The cost-gate that runs IN FRONT OF the spec_review producer: given a spec's classified
 // change-surface tags + the runtime level + the configured appetite, choose WHICH of the
@@ -8882,6 +9090,7 @@ const COMMANDS = {
   "label": cmdLabel,
   "eligible": cmdEligible,
   "admissible": cmdAdmissible,
+  "dod": cmdDod,
   "spec-review-lenses": cmdSpecReviewLenses,
   "container-check": cmdContainerCheck,
   "next": cmdNext,

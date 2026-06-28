@@ -6978,12 +6978,15 @@ function fixturesSelftest() {
 // contract; FAFF-270 makes its §4.1 procedure real. Seed-loader breadth (FAFF-270 resolved scope):
 // sql-load = postgres/mysql/sqlite; redis/mongo provision but mount-seed until FAFF-271/272; s3 → FAFF-273.
 // ===========================================================================
+// `env` = dev/test container environment (synthetic, ephemeral, local) — without it the official
+// postgres/mysql images refuse to boot (no password set), so the env never reaches healthy. Trust /
+// empty-password auth is intentional: this is a throwaway local stand-in, never a real datastore.
 const DATASTORE_TABLE = {
-  postgres: { image: "postgres:16-alpine", port: 5432,  probe: "pg_isready",      seed_strategy: "sql-load", file_based: false },
-  mysql:    { image: "mysql:8",            port: 3306,  probe: "mysqladmin ping", seed_strategy: "sql-load", file_based: false },
+  postgres: { image: "postgres:16-alpine", port: 5432,  probe: "pg_isready -U postgres", seed_strategy: "sql-load", file_based: false, env: { POSTGRES_HOST_AUTH_METHOD: "trust" } },
+  mysql:    { image: "mysql:8",            port: 3306,  probe: "mysqladmin ping -h 127.0.0.1", seed_strategy: "sql-load", file_based: false, env: { MYSQL_ALLOW_EMPTY_PASSWORD: "yes", MYSQL_DATABASE: "app" } },
   sqlite:   { image: null,                 port: null,  probe: null,              seed_strategy: "sql-load", file_based: true },
   redis:    { image: "redis:7-alpine",     port: 6379,  probe: "redis-cli ping",  seed_strategy: "mount",    file_based: false, followup: "FAFF-271" },
-  mongo:    { image: "mongo:7",            port: 27017, probe: "mongosh ping",    seed_strategy: "mount",    file_based: false, followup: "FAFF-272" },
+  mongo:    { image: "mongo:7",            port: 27017, probe: "mongosh --eval 'db.runCommand({ping:1})'", seed_strategy: "mount", file_based: false, followup: "FAFF-272" },
 };
 const ENV_APP_PORT = 8080;
 const ENV_DEFAULT_SLA_SECS = 60;
@@ -7013,6 +7016,10 @@ function renderCompose(services) {
     if (s.ports && s.ports.length) {
       lines.push("    ports:");
       for (const p of s.ports) lines.push(`      - "${p}"`);
+    }
+    if (s.env && Object.keys(s.env).length) {
+      lines.push("    environment:");
+      for (const k of Object.keys(s.env)) lines.push(`      ${k}: ${JSON.stringify(String(s.env[k]))}`);
     }
     if (s.health_check && s.health_check.path) {
       const probe = s.name === "app"
@@ -7045,6 +7052,7 @@ function composeGen(profile, projectName, outPath) {
     }
     services.push({
       name: kind, image: spec.image, ports: [`${spec.port}:${spec.port}`],
+      env: spec.env || null,
       health_check: { name: kind, path: spec.probe, expected_status: 0 },
     });
     seed_targets.push({ service: kind, strategy: spec.seed_strategy, kind, file_based: false });
@@ -7143,7 +7151,7 @@ function envSqlLoad(root, project, target, datasetDir, composeFile) {
     const sql = envBuildSql(datasetDir, (s) => "`" + String(s).replace(/`/g, "``") + "`");
     if (!sql) return true;
     const r = spawnSync("docker", ["compose", "-p", project, "-f", composeFile, "exec", "-T",
-      "mysql", "mysql", "-uroot"], { input: sql, encoding: "utf8" });
+      "mysql", "mysql", "-uroot", "app"], { input: sql, encoding: "utf8" });
     return r.status === 0;
   }
   return false;

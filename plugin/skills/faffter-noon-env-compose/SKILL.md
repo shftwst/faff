@@ -23,15 +23,14 @@ The contract (`faff contract env-handle`) validates the handle's **shape** + the
 
 ## How it provisions
 
-The procedure, in order — every step is a gate on declaring the env ready:
+The procedure calls the deterministic **`faff env`** verbs — compose generation is a pure, tested CLI, the live steps are thin docker orchestration — rather than narrating the mechanics. Every step is a gate on declaring the env ready:
 
 - **Honour the recommendation.** On `recommendation` ≠ `build` (a `buy`/`hybrid` design), provision nothing: surface the proposal for a human and emit no handle. Procurement is a separate, out-of-scope concern.
-- **Check docker + compose first.** If docker / docker-compose is unavailable, emit a `status: failed` handle with a `violations` entry and stop — a clean failure, never a crash.
-- **Derive the services.** Map the profile's runtimes + datastores (and the proposal) to compose services; reuse a committed Dockerfile when the deploy targets carry a container image.
-- **Locate or generate the compose file**, then bring it up detached under a project name; that project name is the `teardown_ref`.
-- **Wait for health within the SLA.** Poll each service's health check until all pass. If the deadline passes, tear the env down and emit a `status: failed` handle with the failed checks + a `violations` entry — **never leave a half-up env**.
-- **Seed before ready.** Realise a deterministic synthetic dataset (`faff fixtures realise`) and load it into the datastores. A seeding failure is a `status: failed` handle with `violations` (env torn down). No `status: ready` is ever emitted against an unseeded env.
-- **Emit the ready handle** only once the env is up, healthy, and seeded: `status: ready` with `endpoint`, a non-empty `health_checks[]`, the `teardown_ref` + a human-runnable `teardown_cmd`, dev/test `credentials` in-block (synthetic, ephemeral, local), `provisioned_at`, and `provisioner`. The env is **ephemeral by default** — one env per evaluation run, torn down on completion via the `teardown_ref`.
+- **Generate the plan** — `faff env compose-gen --profile <profile>` writes the compose file and prints a deterministic **ProvisionPlan** (`services`, `endpoint`, `endpoints`, `health_checks[]`, `seed_targets[]`, `unprovisionable[]`). This is the single source for the handle's fields — copy them from the plan, never re-derive in prose.
+- **Fail loud on an unprovisionable datastore.** If `plan.unprovisionable[]` is non-empty, emit a `status: failed` handle with a `violations` entry naming the kind(s) and stop — **never** a `ready` handle over an env missing a store the system needs. (A human extends the CLI's `DATASTORE_TABLE`; the producer never guesses an image.)
+- **Bring it up + health-wait** — `faff env up --plan <plan>` runs `docker compose up -d` and polls each service's engine-native health check to the SLA (default 60s, 2s poll). On a non-zero exit (docker unavailable, or health never passed) run `faff env down` and emit a `status: failed` handle with the failed checks + a `violations` entry — **never leave a half-up env**.
+- **Seed before ready** — `faff env seed --plan <plan> --manifest <manifest>` realises the deterministic dataset (`faff fixtures realise`) and loads it per `seed_targets`: `sql-load` for postgres/mysql/sqlite, `mount` (provisioned-but-unseeded, carried as a handle `note`) for redis/mongo until their loaders land. A non-zero exit is a `status: failed` handle (env torn down via `faff env down`). No `status: ready` is ever emitted against a failed seed.
+- **Emit the ready handle** only once the env is up, healthy, and seeded: `status: ready` with the plan's `endpoint` / `endpoints` / `health_checks[]`, the plan's `project_name` as `teardown_ref` + `teardown_cmd: "faff env down --project <name>"`, dev/test `credentials` in-block, `provisioned_at`, `provisioner`, and any plan `notes` (e.g. an unseeded `mount` store) carried through. The env is **ephemeral by default** — one env per evaluation run, torn down on completion via `faff env down`.
 
 Dev/test credentials in the handle are synthetic and local-only; they are runtime-consumed and must not be persisted to the tracker or PR logs.
 
@@ -46,7 +45,7 @@ Emit exactly one fenced block as the producer's output — the consumer locates 
   "health_checks": [ { "name": "api", "path": "/healthz", "expected_status": 200 } ],
   "readiness": { "all_checks_passing": true, "last_check_time": "2026-06-28T00:00:00Z" },
   "teardown_ref": "faff-env-7f3a",
-  "teardown_cmd": "docker-compose -p faff-env-7f3a down",
+  "teardown_cmd": "faff env down --project faff-env-7f3a",
   "credentials": { "db_user": "dev", "db_password": "dev" },
   "provisioned_at": "2026-06-28T00:00:00Z",
   "provisioner": "faffter-noon-env-compose",

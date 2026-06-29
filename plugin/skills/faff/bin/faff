@@ -8992,7 +8992,7 @@ function sectionBody(specText, headingRe) {
 // bullet, via classifyAcceptanceCriteria) and the `### N. DONE` checklist (each `- [ ]` item). Pure — no I/O.
 function dodClassify(specText) {
   const criteria = [];
-  const scenBody = sectionBody(specText, /^\s*#{1,6}\s+scenarios\b/i);
+  const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE);
   if (scenBody != null) {
     for (const u of classifyAcceptanceCriteria(scenBody)) criteria.push({ text: u.text, class: u.kind, source: "scenarios" });
   }
@@ -9839,6 +9839,15 @@ function matchesBannedVague(text) {
   return BANNED_VAGUE.some((p) => t.includes(p));
 }
 
+// The `## Scenarios` heading matcher, shared by parseScenarios (R1, `faff
+// admissible`) and dodClassify's sectionBody call (`faff dod classify`) so the two
+// recognise the SAME heading forms by construction. Tolerant of an optional leading
+// list-number (`5. ` / `5) `, matching the file's `\d+[.)]` numbering convention) and
+// case-insensitive, so the producer's own `### 5. SCENARIOS` form is recognised (the
+// DONE matcher is already number-tolerant — it keys on the word `\bdone\b`). Recognition
+// only — the R1/R2a/R2b counting logic is unchanged (FAFF-300).
+const SCENARIOS_HEADING_RE = /^\s*#{1,6}\s+(?:\d+[.)]\s+)?scenarios\b/i;
+
 // Heading level of a markdown ATX heading line (count of leading #), else 0.
 function headingLevel(line) {
   const m = String(line).match(/^\s*(#{1,6})\s+\S/);
@@ -9855,7 +9864,7 @@ function parseScenarios(specText) {
   let start = -1, level = 0, fence = false;
   for (let k = 0; k < lines.length; k++) {
     if (isFence(lines[k])) { fence = !fence; continue; }
-    if (!fence && /^\s*#{1,6}\s+scenarios\b/i.test(lines[k])) { start = k; level = headingLevel(lines[k]); break; }
+    if (!fence && SCENARIOS_HEADING_RE.test(lines[k])) { start = k; level = headingLevel(lines[k]); break; }
   }
   if (start === -1) return 0;
   let count = 0;
@@ -9945,10 +9954,20 @@ const ADMISSIBLE_GOOD = [
   "**Integration smoke test.**", "```", "faff admissible --selftest", "```", "",
 ].join("\n");
 
+// The producer's own default heading form: numbered + H3 + uppercase
+// (`### 5. SCENARIOS` / `### 8. DONE`). Same content as ADMISSIBLE_GOOD; only the
+// heading style differs — recognition must not gate on it (FAFF-300).
+const ADMISSIBLE_GOOD_NUMBERED = [
+  "### 5. SCENARIOS", "",
+  "```", "Given a lights-out run and a concrete spec", "When the gate evaluates it", "Then the verdict is admissible", "```", "",
+  "### 8. DONE", "", "- [ ] `faff admissible` emits the verdict JSON", "- [ ] exit code is 0 admissible / 1 inadmissible", "",
+].join("\n");
+
 function admissibleSelftest() {
   const noScenarios = ADMISSIBLE_GOOD.replace(/## Scenarios[\s\S]*?\n\n(?=## 8\. DONE)/, "");
   const cases = [
     { name: "admissible (R1+R2 pass, R3 ok)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantWarn: false },
+    { name: "admissible numbered headings (### N. SCENARIOS / ### N. DONE)", text: ADMISSIBLE_GOOD_NUMBERED, lights: true, wantAdmissible: true },
     { name: "R1-fail (no Scenarios)", text: noScenarios, lights: true, wantAdmissible: false, wantReason: /R1|scenario/i },
     { name: "R2a-fail (empty DONE)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n(no items)\n", lights: true, wantAdmissible: false, wantReason: /DONE checklist/i },
     { name: "R2b-fail (vague DONE item)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the feature works correctly\n", lights: true, wantAdmissible: false, wantReason: /vague DONE/i },
@@ -10055,6 +10074,10 @@ function dodSelftest() {
   check("classifyCriterion parity: plain prose → prose", classifyCriterion("It feels nice") === "prose");
   const empty = dodClassify("# Spec with no DoD sections\n\njust prose.\n");
   check("no DoD sections → empty criteria, parse still succeeds", empty.criteria.length === 0);
+  // FAFF-300: the shared SCENARIOS_HEADING_RE means a numbered `### 5. SCENARIOS`
+  // heading (the producer's own form) is recognised by dodClassify, not just by admissible.
+  const numbered = dodClassify("### 5. SCENARIOS\n```\nGiven x\nWhen y\nThen z\n```\n\n### 8. DONE\n- [ ] the parser returns >=1 item\n");
+  check("numbered `### N. SCENARIOS` heading → scenarios source recognised", numbered.criteria.some((c) => c.source === "scenarios"));
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;
 }

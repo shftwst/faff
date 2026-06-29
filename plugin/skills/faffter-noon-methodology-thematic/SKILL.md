@@ -272,6 +272,8 @@ The thematic lens respects appetite but has limited agency by design:
 
 Note: the thematic lens never reorders by value/risk/principles — that's what opinionated methodologies (like `faffter-dark-methodology-agile-delivery`) add. Thematic ordering is always priority + unlock value.
 
+Any authority to write tracker **topology** (reparent / convert / rehome) is governed by the shared dial at gateway → **Appetite for destruction** → **Topology-write authority**, not a story this lens invents. Being opinion-free, the thematic lens sits at the dial's surface-only end — it reflects the topology the graph already states and never restructures it; the reversibility floor and the human-curated-structure floor there bind it as they do every lens.
+
 ## Rules
 
 - This methodology is **graph-derived, not opinion-derived**. It never says "this is too big" or "this ordering is wrong" — it says "this cycle exists", "this gap exists", "this issue unlocks 5 others."

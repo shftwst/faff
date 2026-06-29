@@ -274,7 +274,7 @@ const DEFAULTS = {
   "slots.review": "faffter-noon-review",
   "slots.ship": "faffter-noon-ship",
   "slots.concurrency": "faffter-noon-concurrency-sequential",
-  "slots.methodology": "faffter-noon-methodology-structural",
+  "slots.methodology": "faffter-noon-methodology-thematic",
   "slots.routing_adaptor": "faffidavit-routing",
   "slots.rendering_adaptor": "faffidavit-rendering",
   "logging": "full",
@@ -3000,7 +3000,7 @@ function hooksEnsureSelftest() {
 const REGISTRY = {
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor", contract: "automation-routing" },
   "faffidavit-rendering": { type: "pure-adaptor", slot: "rendering_adaptor" },
-  "faffter-noon-methodology-structural": { type: "methodology" },
+  "faffter-noon-methodology-thematic": { type: "methodology" },
   "faffter-dark-methodology-agile-delivery": { type: "methodology" },
   "faffter-noon-concurrency-sequential": { type: "mechanism" },
   "faffter-dark-concurrency-parallel": { type: "mechanism" },

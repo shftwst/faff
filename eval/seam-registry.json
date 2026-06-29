@@ -8,7 +8,7 @@
     "superseded": { "surface": "faff-tidy", "status": "covered" },
     "splittable": { "surface": "faff-tidy", "status": "covered" },
     "chain-gap": { "surface": "faff-tidy", "status": "covered" },
-    "ordering": { "surface": "faffter-noon-methodology-structural", "status": "covered" },
+    "ordering": { "surface": "faffter-noon-methodology-thematic", "status": "covered" },
     "gloss": { "surface": "faffidavit-rendering", "status": "covered" },
     "explanatory-order": { "surface": "faffidavit-rendering", "status": "covered" },
     "routing": { "surface": "faffidavit-routing", "status": "covered" },

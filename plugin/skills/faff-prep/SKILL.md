@@ -46,7 +46,7 @@ The spec is a high-level design document. It does **not** contain implementation
 
 **Methodology critique block (rendered only when a `methodology` skill is configured).**
 
-After the main spec body, **request the `issue-critique` output from the configured methodology** (gateway → **The `methodology` slot**, an Optional named output) — pass the issue + its spec, and render what the lens returns. faff-prep does not impose the critique's shape; the configured methodology decides what it cares about. If the methodology doesn't answer `issue-critique` (e.g. the structural default), **omit the block**.
+After the main spec body, **request the `issue-critique` output from the configured methodology** (gateway → **The `methodology` slot**, an Optional named output) — pass the issue + its spec, and render what the lens returns. faff-prep does not impose the critique's shape; the configured methodology decides what it cares about. If the methodology doesn't answer `issue-critique` (e.g. the thematic default), **omit the block**.
 
 For reference, the agile-delivery lens answers `issue-critique` along these axes — right-sized? (principle 4: single 1–3 day unit, or two independent concerns → split; always-ships-together sibling → merge), workstream fit? (principles 1+5: outcome-named and cohesive), deps surfaced? (principle 6: implicit dep with no blocker link), risk profile? (principle 7: novel-integration/external-dep risk → de-risking spike) — each rendered as a full what's-there / why / what-to-do diagnosis when there's something to surface, "No issues" when the check passes. A different methodology returns its own axes.
 

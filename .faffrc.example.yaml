@@ -39,7 +39,7 @@ slots:
   gates: # engineering-quality gate ladder at /faff-graft Step 7.5 (default: built-in graft-step → `faff gates run` of the repo's own declared cheap checks; set a custom runner skill to override)
   ship: # delivery producer inside /faff-graft Step 10 (default: faffter-noon-ship — gh pr merge; set a deploy-capable producer e.g. gstack:land-and-deploy)
   concurrency: # build-pass executor for /faff-beep-boop (default: faffter-noon-concurrency-sequential; set faffter-dark-concurrency-parallel for capped, worktree-isolated concurrency)
-  methodology: # diagnostic lens over backlog/build state (default: faffter-noon-methodology-structural; set faffter-dark-methodology-agile-delivery for the opinionated agile lens)
+  methodology: # diagnostic lens over backlog/build state (default: faffter-noon-methodology-thematic; set faffter-dark-methodology-agile-delivery for the opinionated agile lens)
   # Adaptors (translate a producer's output onto a fixed contract; validate conformance)
   # Note: spec / review / ship are producer-emitted — the producer self-declares a faff-contract:<name> block the consumer (faff-prep / faff-graft) parses; FAFF-109 retired their adaptor slots. Only the two below remain.
   routing_adaptor: # assigns + displays the automation-routing verdict; the six verdicts + admission rule are fixed in the gateway (default: faffidavit-routing)

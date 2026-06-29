@@ -40,7 +40,7 @@ If the brief is too thin to plan a coherent roadmap (one vague capability, no st
 
 ### 2. Recurse top-down
 
-Descend the altitudes **outcome → initiatives → projects → first-slice epics**. At each node, invoke the configured `methodology` skill's **`ticket-shaping`** output (default `faffter-noon-methodology-structural`) with:
+Descend the altitudes **outcome → initiatives → projects → first-slice epics**. At each node, invoke the configured `methodology` skill's **`ticket-shaping`** output (default `faffter-noon-methodology-thematic`) with:
 
 - `shape-level` = the current altitude (`initiative` / `project` / `epic`), and
 - a **node-scoped sub-brief** — the slice of the parent brief relevant to this node (the capability or project being decomposed), plus the live tracker graph.
@@ -70,7 +70,7 @@ Create top-down as each level is confirmed: initiative containers → project co
 
 ### 5b. Propose a project DoD (`prdr-author`, L3 propose-for-approval)
 
-For each **project** container just written (not initiatives, not epics), ask the configured `methodology` skill's **`prdr-author`** output (default `faffter-noon-methodology-structural`) for a target-scaled project DoD, then **surface it for human approval** — `/faff-plot` runs at L3, so the machine **proposes**, the human **ratifies**:
+For each **project** container just written (not initiatives, not epics), ask the configured `methodology` skill's **`prdr-author`** output (default `faffter-noon-methodology-thematic`) for a target-scaled project DoD, then **surface it for human approval** — `/faff-plot` runs at L3, so the machine **proposes**, the human **ratifies**:
 
 - Request `prdr-author` with the project's `{outcome, child_specs, target}` — `target` resolves `explicit > inherited > methodology-default` (gateway → **The `methodology` slot**, `prdr-author` row). The methodology writes the `AuthoredPrdr` via `faff prdr new --provenance loop --status Proposed`.
 - **Surface, never auto-accept:** present the proposed `## Definition of done` + decision under the project and gate — "Proposed project DoD for <project> (target: <t>). Approve as-is / edit / skip? (approve / edit / skip)". On **approve**, point the human at the tracker to flip the PRDR `Status: Accepted` (FAFF-255's human gesture — `/faff-plot` never self-Accepts); on **edit**, take the human's DoD edit (that edit wins — human-set > methodology-default) and record it before approval; on **skip**, leave the PRDR `Proposed` for a later pass.

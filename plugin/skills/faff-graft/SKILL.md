@@ -97,7 +97,7 @@ The gate ensures no one starts building without a validated spec. Per the shared
 
 **Automation eligibility (interactive).** If the issue is **not automation-eligible** (gateway → **Automation eligibility**) — lacks `faff-automate` under the opt-in default, or carries `faff-automation-hold` — warn — "this ticket isn't automation-eligible; proceeding interactively, eligibility is unchanged until you set it" — then continue. Interactive graft is never blocked by eligibility, and graft never changes the eligibility labels.
 
-**Automation-eligibility gate (autonomous — pre-worktree, mechanical).** Under the autonomous-mode signal *only*, at the **tail of Step 2 before Step 3 creates a worktree**, deterministically resolve eligibility by shelling `faff eligible` and hard-stop on a `false` verdict. Interactive graft skips this gate entirely — the WARN above is its whole eligibility behaviour. The verdict is the CLI's, never agent re-derivation of label precedence:
+**Automation-eligibility gate (autonomous — pre-worktree, mechanical).** Under the autonomous-mode signal *only*, at the **tail of Step 2 before Step 3 creates a worktree**, deterministically resolve eligibility by shelling `faff eligible` and hard-stop on a `false` verdict. Interactive graft skips this gate entirely — the WARN above is its whole eligibility behaviour. The verdict is the CLI's, never agent re-derivation of label precedence. The labels fed to `faff eligible` here are the **at-the-gate read** — Step 1's `get_issue` is this gate's label source (gateway → **Re-ground before gate**), captured from the same fresh fetch and **not** a snapshot carried from an earlier orchestrator read; so a human who cranked the issue up just before dispatch is judged on the live labels:
 
 ```bash
 # autonomous path only — skip wholesale when interactive (the WARN above already covered it)
@@ -206,7 +206,7 @@ No intent comment, or `adr.mode: off` → skip (no materialisation, no contradic
 
 **Step 5: Claim the issue (In Progress) + status-monotonicity guard**
 
-The issue's **`In Progress` status is the claim** — the one coordination point every orchestrator shares (gateway → **Issue claim & status monotonicity**), so two independent runs don't build it at once. Re-read the issue's **live** status (not a Step-1 snapshot), then:
+The issue's **`In Progress` status is the claim** — the one coordination point every orchestrator shares (gateway → **Issue claim & status monotonicity**), so two independent runs don't build it at once. Re-read the issue's **live** status **and its eligibility-label set** (`faff-automate` / `faff-automation-hold`) in this one fetch — not a Step-1 snapshot — per the **Re-ground before gate** invariant's co-location rule (gateway): the same claim-time re-read that guards status also confirms the eligibility labels are live, so a hold a human applied between dispatch and claim is honoured. Then:
 
 - If it is already `In Progress` / `In Review` / `Done`, or its PR is merged → a peer is building it, or it's done → **stop**. Interactive: tell the user "another run is already building <issue> — not starting a second build". Autonomous: skip it as `claimed-by-peer` (a skip, never a park).
 - Else transition it `→ In Progress`. That is the claim.

@@ -4928,6 +4928,7 @@ Subcommands:
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
   sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
+  lights-out [--check] [--until HH:MM] [--max N] [--slot-unreachable review|spec_review ...] [--id RUN-ID] [--json] [--root DIR]   FAFF-225: the L4 lights-out entry point / runner — "leave the building" as one enforced action. Runs a fail-closed BASIC preflight over v1's launch preconditions (container-check contained — WARN→BLOCK on this path only; review + spec_review slots reachable, unreachable==absent; a budget ceiling set; all 8 shipped guardrail contracts — admissible / spec-review-verdict / run-done / budget / events / sentry / holdout|prdr-coverage / container — reachable by a genuine --selftest probe, NOT config presence; FAFF-68 no-execute + worktree isolation + Autonomous Mode Contract floor assertions hold), then on pass MINTS a strict-defaults L4 run-ledger carrying armed:Map<Guardrail,State ∈ {live|degraded|absent}> + a banner derivable 1:1 from armed (persisted, not just printed) + a run-start event; on ANY miss REFUSES (mints nothing, emits no work). Composes the contracts, re-implements none; never self-grants --dangerously-skip-permissions (the cage is the container's job). v1 does basic preflight only (rich dial-coherence + the adversarial advisory→gating promotion are separate follow-ons). --check runs preflight without minting; exit 0 armed/minted · 1 refused; --selftest runs the proceed/refuse + armed-derivation + banner table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
@@ -10231,6 +10232,322 @@ function cmdSpecReviewLenses(args) {
   return 0;
 }
 
+// ===========================================================================
+// lights-out — FAFF-225: the L4 lights-out entry point / runner.
+//
+// COMPOSITION, NOT MECHANISM. The runner (a) runs a fail-closed BASIC preflight
+// over v1's launch preconditions, (b) on pass MINTS an L4 run-ledger with strict
+// defaults carrying `armed: Map<Guardrail, State>`, (c) renders + PERSISTS a banner
+// derivable 1:1 from `armed`, (d) emits a run-start event. It re-implements NO
+// guardrail logic — every guardrail decision traces to a CLI-contract reachability
+// probe at launch (the wrapped run then calls each contract at its boundary; that
+// loop is the orchestrator prose layer's job — the CLI owns the gate + the mint).
+//
+// FAIL-CLOSED EVERYWHERE: ambiguity, absence, or any non-live guardrail/precondition
+// refuses to go lights-out. There is no keystone-absent reduced mode. The cage
+// (`--dangerously-skip-permissions`, host isolation) is the container's job — the
+// runner detects and refuses, it never self-grants nor weakens the host.
+//
+// Pure core (lightsOutPreflight) + thin I/O wrapper (cmdLightsOut) + --selftest,
+// mirroring container-check / budget / events / sentry.
+// ===========================================================================
+
+// The 8 shipped guardrail contracts the runner composes, in banner order. Each id
+// pairs with the CLI contract that backs it (label only — the runner OWNS no copy
+// of the logic) and the subcommand whose --selftest is its reachability probe
+// (null ⇒ resolved differently: container from container-check's own verdict).
+const LIGHTS_OUT_GUARDRAILS = [
+  { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible" },
+  { id: "spec_review",   contract: "faff contract spec-review-verdict",     probe: "contract" },
+  { id: "terminating",   contract: "faff run-done",                         probe: "run-done" },
+  { id: "budget",        contract: "faff budget check",                     probe: "budget" },
+  { id: "observability", contract: "faff events",                           probe: "events" },
+  { id: "kill_switch",   contract: "faff sentry check",                     probe: "sentry" },
+  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout" },
+  { id: "container",     contract: "faff container-check",                  probe: null },
+];
+const LIGHTS_OUT_GUARDRAIL_IDS = LIGHTS_OUT_GUARDRAILS.map((g) => g.id);
+const GUARDRAIL_STATES = new Set(["live", "degraded", "absent"]);
+const LIGHTS_OUT_FLOOR_KEYS = ["no_execute", "worktree_isolation", "autonomous_contract"];
+
+// Pure: derive each guardrail's armed State ∈ {live|degraded|absent} from the probe
+// results — NEVER from config presence alone (a configured-but-unreachable contract
+// is degraded/absent, never silently live). `reachable[id]` is the contract probe;
+// `container` is container-check's verdict; `specReviewSlot` is the slots.spec_review
+// configured+reachable boolean (a live contract but a down slot ⇒ degraded).
+function lightsOutArmed(probes) {
+  const reach = (probes && probes.reachable) || {};
+  const armed = {};
+  for (const id of LIGHTS_OUT_GUARDRAIL_IDS) {
+    if (id === "container") {
+      armed[id] = probes.container === "contained" ? "live" : "absent";
+    } else if (id === "spec_review") {
+      // contract unreachable ⇒ absent; contract live but slot down ⇒ degraded; both ⇒ live.
+      armed[id] = !reach[id] ? "absent" : (probes.specReviewSlot ? "live" : "degraded");
+    } else {
+      armed[id] = reach[id] ? "live" : "absent";
+    }
+  }
+  return armed;
+}
+
+// Pure: the refuse-to-start decision over v1's preconditions + the armed guardrail
+// set. Returns { proceed, refusals:[{gate,detail}], armed, banner, floor }. Proceed
+// iff EVERY guardrail is `live`, the review + spec_review slots are reachable, a
+// budget ceiling is set, and every floor assertion holds. Any miss refuses.
+function lightsOutPreflight(probes) {
+  const armed = lightsOutArmed(probes);
+  const floor = (probes && probes.floor) || {};
+  const refusals = [];
+
+  // Per-guardrail reachability (keystones included). Anything not `live` refuses —
+  // a reachability fault, fail-closed; there is no designed keystone-absent mode.
+  for (const id of LIGHTS_OUT_GUARDRAIL_IDS) {
+    if (armed[id] === "live") continue;
+    if (id === "container") {
+      refusals.push({ gate: "guardrail:container", detail: "container-check not_confirmed — go lights-out only inside the host-isolation container (claude-box); the cage is the container's job, faff refuses to self-grant or weaken it" });
+    } else {
+      refusals.push({ gate: `guardrail:${id}`, detail: `${id} not live (${armed[id]}) — its CLI contract failed the launch reachability probe; fail-closed, no reduced mode` });
+    }
+  }
+  // Basic preconditions (NOT rich dial-coherence — reckless level+appetite+slots+gates
+  // adjudication is a deferred follow-on; v1 does cheap reachability/presence probes).
+  if (!probes.reviewReachable)
+    refusals.push({ gate: "review-slot", detail: "review slot unreachable (configured-but-unreachable == absent) — the second-opinion gate must refuse, never silently pass+skip" });
+  if (!probes.specReviewSlot)
+    refusals.push({ gate: "spec_review-slot", detail: "spec_review slot not configured + reachable — spec admission gating would be skipped" });
+  if (!probes.budgetCeilingSet)
+    refusals.push({ gate: "budget-ceiling", detail: "no budget ceiling set — an unbounded lights-out run is refused (set budget.* / --until / --max)" });
+  // Floor assertions — must hold in-container; a failed assertion refuses the run.
+  for (const k of LIGHTS_OUT_FLOOR_KEYS) {
+    if (floor[k] !== true)
+      refusals.push({ gate: `floor:${k}`, detail: `floor assertion '${k}' does not hold — refuse (no-execute / worktree isolation / Autonomous Mode Contract must all hold)` });
+  }
+
+  const proceed = refusals.length === 0;
+  const banner = renderLightsOutBanner(armed, floor, proceed, probes);
+  return { proceed, refusals, armed, banner, floor };
+}
+
+// Pure: render the human-facing banner — the trust contract. Derivable 1:1 from
+// `armed` (every guardrail id + state appears), so a human can confirm a fully-armed
+// L4 run without re-deriving config. Persisted into the ledger, not just printed.
+function renderLightsOutBanner(armed, floor, proceed, probes) {
+  const mark = (s) => (s === "live" ? "●" : s === "degraded" ? "◐" : "○");
+  const lines = [];
+  lines.push(`faff lights-out — L4 run banner`);
+  lines.push(`  level: L4   container: ${probes && probes.container === "contained" ? "contained" : "refused"}`);
+  lines.push(`  guardrails (${LIGHTS_OUT_GUARDRAILS.length}):`);
+  for (const g of LIGHTS_OUT_GUARDRAILS) {
+    const st = armed[g.id];
+    lines.push(`    ${mark(st)} ${g.id.padEnd(14)} ${String(st).padEnd(9)} (${g.contract})`);
+  }
+  const fl = floor || {};
+  lines.push(`  floor: no-execute ${fl.no_execute ? "✓" : "✗"}  worktree-isolation ${fl.worktree_isolation ? "✓" : "✗"}  autonomous-contract ${fl.autonomous_contract ? "✓" : "✗"}`);
+  const allLive = LIGHTS_OUT_GUARDRAIL_IDS.every((id) => armed[id] === "live");
+  lines.push(`  status: ${proceed ? `ARMED — all ${LIGHTS_OUT_GUARDRAILS.length} guardrails live` : `REFUSED — preflight not satisfied${allLive ? "" : " (a guardrail is not live)"}`}`);
+  return lines.join("\n");
+}
+
+// Reachability probe for a CLI-backed guardrail: spawn THIS binary's `<sub> --selftest`
+// and treat exit 0 as live. A genuine probe (it executes the contract), not a config
+// read — a stale binary lacking `sentry`/`holdout` fails here and the run refuses.
+function probeContractReachable(binPath, sub) {
+  try {
+    const r = spawnSync(process.execPath, [binPath, sub, "--selftest"], { encoding: "utf8", timeout: 20000 });
+    return r.status === 0;
+  } catch { return false; }
+}
+
+function resolveSlotOccupant(cfg, name) {
+  const v = dig(cfg, `slots.${name}`);
+  if (v != null && String(v).trim() !== "") return String(v).trim();
+  return DEFAULTS[`slots.${name}`] || null;
+}
+
+function cmdLightsOut(args) {
+  if (args.includes("--selftest")) return lightsOutSelftest();
+  const json = args.includes("--json");
+  const checkOnly = args.includes("--check");
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  // --slot-unreachable <name> (repeatable): the prose layer passes the result of its
+  // real skill-liveness probe; tests use it to drive the configured-but-down refusal.
+  const unreachable = new Set();
+  for (let i = 0; i < args.length; i++) if (args[i] === "--slot-unreachable" && args[i + 1]) unreachable.add(args[i + 1]);
+
+  const [cfg] = loadConfig(root);
+  const binPath = process.argv[1];
+
+  // Container preflight (the containerisation ADR / claude-box): WARN→BLOCK on the
+  // lights-out path only — L1–L3 keep today's warn-don't-block behaviour.
+  const container = containerCheck(process.env, realFsq()).result;
+
+  // Per-guardrail contract reachability probes (genuine, not config presence).
+  const reachable = {};
+  for (const g of LIGHTS_OUT_GUARDRAILS) {
+    if (g.probe === null) { reachable[g.id] = container === "contained"; continue; }
+    reachable[g.id] = probeContractReachable(binPath, g.probe);
+  }
+
+  // Slots: configured occupant + the prose-supplied liveness (default reachable when
+  // the slot resolves to a non-empty occupant; --slot-unreachable forces absent).
+  const reviewOccupant = resolveSlotOccupant(cfg, "review");
+  const specReviewOccupant = resolveSlotOccupant(cfg, "spec_review");
+  const reviewReachable = !!reviewOccupant && !unreachable.has("review");
+  const specReviewSlot = !!specReviewOccupant && !unreachable.has("spec_review");
+
+  // Budget ceiling: any bounded dimension counts (flags override config).
+  const envelope = envelopeFrom(cfg, { until: get("--until"), max_attempts: get("--max") });
+  const budgetCeilingSet = Object.values(envelope.ceilings).some((v) => v != null);
+
+  // Floor assertions — asserted, not re-implemented. no-execute is a structural
+  // invariant (the runner derives no command from free text); worktree isolation is
+  // a resolvable worktree root; the Autonomous Mode Contract holds in-container.
+  const worktreeRoot = process.env.FAFF_WORKTREE_ROOT || (dig(cfg, "worktree_root") ? String(dig(cfg, "worktree_root")) : `${process.env.HOME || "~"}/.faff/worktrees`);
+  const floor = {
+    no_execute: true,
+    worktree_isolation: !!worktreeRoot,
+    autonomous_contract: true,
+  };
+
+  const probes = { container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet, floor };
+  const pf = lightsOutPreflight(probes);
+
+  const appetite = dig(cfg, "appetite") || DEFAULTS["appetite"];
+  const dial_profile = {
+    appetite,
+    slots: { review: reviewOccupant, spec_review: specReviewOccupant },
+    gates: resolveSlotOccupant(cfg, "gates"),
+  };
+
+  // REFUSE (fail-closed): print the banner + refusals, mint nothing, emit no work.
+  if (!pf.proceed) {
+    if (json) {
+      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, armed: pf.armed, refusals: pf.refusals, banner: pf.banner }) + "\n");
+    } else {
+      console.log(pf.banner);
+      console.log(`\nREFUSED — lights-out preflight not satisfied:`);
+      for (const r of pf.refusals) console.log(`  ✗ ${r.gate}: ${r.detail}`);
+    }
+    return 1;
+  }
+
+  // --check: would-proceed, but mint nothing (a side-effect-free preflight probe).
+  if (checkOnly) {
+    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, armed: pf.armed, banner: pf.banner, checked: true }) + "\n");
+    else { console.log(pf.banner); console.log(`\nPreflight PASS (--check: no run minted).`); }
+    return 0;
+  }
+
+  // PROCEED: mint the strict-defaults L4 run-ledger, persist the banner, emit run-start.
+  const nowIso = new Date().toISOString();
+  const stamp = nowIso.replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-"); // YYYYMMDD-HHMMSS
+  const runId = get("--id") || `${stamp}-lights-out`;
+  const runDir = path.join(root, ".faff", "runs", runId);
+  fs.mkdirSync(runDir, { recursive: true });
+
+  const ledger = {
+    run_id: runId,
+    level: "L4",
+    armed: pf.armed,
+    banner: pf.banner,
+    budget: { envelope },
+    budget_ceiling: envelope.ceilings,
+    dial_profile,
+    container: "contained",
+    floor,
+    admitted: [],
+    outcomes: {},
+    owner: {
+      status: "running",
+      session_id: process.env.FAFF_SESSION_ID || null,
+      pid: process.pid,
+      started_at: nowIso,
+      last_heartbeat: nowIso,
+    },
+  };
+  atomicWriteLedger(runDir, ledger);
+
+  // Emit the run-start event onto the observability timeline substrate.
+  const eventsPath = path.join(runDir, "events.jsonl");
+  const seq = eventLineCount(eventsPath);
+  const evt = { schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-start" };
+  fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
+
+  if (json) {
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", armed: pf.armed, dial_profile, banner: pf.banner }) + "\n");
+  } else {
+    console.log(pf.banner);
+    console.log(`\nPreflight PASS — L4 run minted: ${runDir}`);
+    console.log(`Launch the unattended drain with this run armed:  FAFF_RUN_DIR=${runDir} /faff-beep-boop`);
+  }
+  return 0;
+}
+
+// In-memory selftest of the pure preflight core over synthetic probe fixtures —
+// the proceed/refuse table, the armed-state derivation, and the banner 1:1 property.
+function lightsOutSelftest() {
+  let failed = 0;
+  const check = (label, cond) => { if (!cond) { process.stderr.write(`lights-out --selftest FAIL: ${label}\n`); failed++; } };
+  const allReach = () => { const r = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) r[id] = true; return r; };
+  const okFloor = { no_execute: true, worktree_isolation: true, autonomous_contract: true };
+  const armedProbes = (over = {}) => ({
+    container: "contained", reachable: allReach(), reviewReachable: true,
+    specReviewSlot: true, budgetCeilingSet: true, floor: { ...okFloor }, ...over,
+  });
+
+  // Happy path: every guardrail live, all preconditions met → proceed, all-8-live.
+  const happy = lightsOutPreflight(armedProbes());
+  check("happy path proceeds", happy.proceed === true && happy.refusals.length === 0);
+  check("all 8 guardrails live", LIGHTS_OUT_GUARDRAIL_IDS.every((id) => happy.armed[id] === "live"));
+  check("armed covers exactly the 8 guardrails", Object.keys(happy.armed).length === 8);
+
+  // Banner is derivable 1:1 from armed: every guardrail id + state appears.
+  for (const id of LIGHTS_OUT_GUARDRAIL_IDS) check(`banner names ${id}`, happy.banner.includes(id));
+  check("banner reports ARMED on proceed", /ARMED/.test(happy.banner));
+
+  // Container not_confirmed → refuse, container guardrail absent, banner REFUSED.
+  const bare = lightsOutPreflight(armedProbes({ container: "not_confirmed", reachable: { ...allReach(), container: false } }));
+  check("bare host refuses", bare.proceed === false);
+  check("container guardrail absent on bare host", bare.armed.container === "absent");
+  check("bare-host refusal names container gate", bare.refusals.some((r) => r.gate === "guardrail:container"));
+  check("banner reports REFUSED on bare host", /REFUSED/.test(bare.banner));
+
+  // Review slot unreachable → refuse (configured-but-down == absent, never pass+skip).
+  const noReview = lightsOutPreflight(armedProbes({ reviewReachable: false }));
+  check("unreachable review slot refuses", noReview.proceed === false && noReview.refusals.some((r) => r.gate === "review-slot"));
+
+  // spec_review slot down but its contract live → degraded armed-state + refuse.
+  const downSpecReview = lightsOutPreflight(armedProbes({ specReviewSlot: false }));
+  check("spec_review slot down → degraded", downSpecReview.armed.spec_review === "degraded");
+  check("spec_review slot down refuses", downSpecReview.proceed === false && downSpecReview.refusals.some((r) => r.gate === "spec_review-slot"));
+
+  // No budget ceiling → refuse (no unbounded lights-out run).
+  const noBudget = lightsOutPreflight(armedProbes({ budgetCeilingSet: false }));
+  check("no budget ceiling refuses", noBudget.proceed === false && noBudget.refusals.some((r) => r.gate === "budget-ceiling"));
+
+  // Keystone (sentry) probe fails → refuse, no reduced mode.
+  const noSentry = lightsOutPreflight(armedProbes({ reachable: { ...allReach(), kill_switch: false } }));
+  check("keystone kill_switch probe fail → absent", noSentry.armed.kill_switch === "absent");
+  check("keystone probe failure refuses (no reduced mode)", noSentry.proceed === false && noSentry.refusals.some((r) => r.gate === "guardrail:kill_switch"));
+
+  // Holdout keystone probe fails → refuse.
+  const noHoldout = lightsOutPreflight(armedProbes({ reachable: { ...allReach(), holdout: false } }));
+  check("keystone holdout probe failure refuses", noHoldout.proceed === false && noHoldout.refusals.some((r) => r.gate === "guardrail:holdout"));
+
+  // Floor assertion failure → refuse.
+  const noFloor = lightsOutPreflight(armedProbes({ floor: { ...okFloor, no_execute: false } }));
+  check("floor assertion failure refuses", noFloor.proceed === false && noFloor.refusals.some((r) => r.gate === "floor:no_execute"));
+
+  // Every derived armed state is in the closed vocabulary.
+  check("armed states are in {live,degraded,absent}", LIGHTS_OUT_GUARDRAIL_IDS.every((id) => GUARDRAIL_STATES.has(happy.armed[id]) && GUARDRAIL_STATES.has(bare.armed[id])));
+
+  if (failed) { console.log(`lights-out --selftest: FAIL (${failed} failed)`); return 1; }
+  console.log("lights-out --selftest: ok");
+  return 0;
+}
+
 // Subcommand registry (ADR 0014) — the single source of truth for the CLI command
 // set. main() dispatches through this map, and `Object.keys(COMMANDS)` is exactly
 // the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a
@@ -10270,6 +10587,7 @@ const COMMANDS = {
   "env": cmdEnv,
   "events": cmdEvents,
   "sentry": cmdSentry,
+  "lights-out": cmdLightsOut,
   "audit": cmdAudit,
   "gates": cmdGates,
   "contract": cmdContract,

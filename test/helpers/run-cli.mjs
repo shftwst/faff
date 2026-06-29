@@ -14,14 +14,16 @@ const faffBin = path.join(repoRoot, "plugin", "skills", "faff", "bin", "faff");
 /**
  * Run a faff subcommand and capture its observable output/exit (the deterministic seam).
  * @param {string[]} args  subcommand + args, e.g. ["next", "--status", "todo", "--spec", "high"]
- * @param {{cwd?: string, input?: string}} [opts]  cwd defaults to repo root; provision a fixture
- *        dir for config/git-dependent subcommands. input is fed to stdin.
+ * @param {{cwd?: string, input?: string, env?: object}} [opts]  cwd defaults to repo root; provision a
+ *        fixture dir for config/git-dependent subcommands. input is fed to stdin. env (when supplied)
+ *        replaces the child environment — defaults to the parent's process.env.
  * @returns {{stdout: string, stderr: string, code: number|null}}
  */
 export function runCli(args, opts = {}) {
   const r = spawnSync("node", [faffBin, ...args], {
     cwd: opts.cwd ?? repoRoot,
     input: opts.input,
+    env: opts.env ?? process.env,
     encoding: "utf8",
   });
   return { stdout: r.stdout ?? "", stderr: r.stderr ?? "", code: r.status };

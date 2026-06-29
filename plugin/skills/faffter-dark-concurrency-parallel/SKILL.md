@@ -2,6 +2,7 @@
 name: faffter-dark-concurrency-parallel
 description: "Concurrent build-pass executor for the `concurrency` slot — runs faff-beep-boop's builds in multiple worktrees at once, capped, with rebase-before-merge. The speed option vs the sequential default. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
+judgement_seam: none
 ---
 
 # faffter-dark-concurrency-parallel

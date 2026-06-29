@@ -110,6 +110,7 @@ const NON_CONFORMANT_SPEC = [
 const CONFORMANT_SPEC = [
   "---",
   "user-invocable: false",
+  "judgement_seam: confidence, marker", // FAFF-281 C1: a registry surface must declare its seam
   "---",
   "# faffter-noon-spec (conformant fixture)",
   "",

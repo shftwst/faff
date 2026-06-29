@@ -3097,7 +3097,7 @@ function loadSeamRegistryForLint() {
 // null (ABSENT — advisory-pass in FAFF-280; the absent→fail enforcement is FAFF-281) | "none" |
 // string[]. Surface matches the skill dir name. Returns [ok,label] tuples (empty when absent). The
 // canonical KIND set is the registry's own keys (== grader KINDS, asserted equal by the grader).
-function reconcileSeam(skillName, declared, registry) {
+function reconcileSeam(skillName, declared, registry, adaptorRegistry) {
   if (declared === null) return [];
   const allKinds = Object.keys(registry.kinds);
   const registered = allKinds.filter((k) => registry.kinds[k].surface === skillName);
@@ -3109,11 +3109,23 @@ function reconcileSeam(skillName, declared, registry) {
   }
   const unknown = declared.filter((k) => !allKinds.includes(k));
   if (unknown.length) return [[false, `judgement_seam declares unknown KIND(s): ${unknown.join(", ")}`]];
-  const d = [...new Set(declared)].sort(), r = [...registered].sort();
+  // FAFF-281 slot-sibling relaxation: an alternate occupant owns no registry row but fills the same
+  // slot as a surface sibling (a REGISTRY skill of the same `type`); it may declare that sibling's
+  // KIND(s) honestly without owning the row and without the `none`-lie. Expected = its own rows if it
+  // is itself a surface, else the union of its slot-siblings' rows. (Falls back to own rows when no
+  // adaptor registry is supplied or the skill is not a REGISTRY occupant — the FAFF-280 behaviour.)
+  let expected = registered;
+  if (registered.length === 0 && adaptorRegistry && adaptorRegistry[skillName]) {
+    const myType = adaptorRegistry[skillName].type;
+    const siblings = new Set(Object.keys(adaptorRegistry)
+      .filter((n) => n !== skillName && adaptorRegistry[n].type === myType));
+    expected = allKinds.filter((k) => siblings.has(registry.kinds[k].surface));
+  }
+  const d = [...new Set(declared)].sort(), r = [...new Set(expected)].sort();
   const eq = d.length === r.length && d.every((k, i) => k === r[i]);
   return [[eq, eq
     ? "judgement_seam == registry surface rows"
-    : `judgement_seam mismatch — declared [${d.join(", ")}] vs registry [${r.join(", ")}]`]];
+    : `judgement_seam mismatch — declared [${d.join(", ")}] vs expected [${r.join(", ")}]`]];
 }
 
 // .faffrc slot name → the conformance profile its occupant must satisfy. Lets the
@@ -3498,25 +3510,65 @@ function cmdValidateAdapters(args) {
   }
 
   // FAFF-280: judgement-seam reconciliation — each skill's `judgement_seam:` frontmatter declaration
-  // must agree with the seam→KIND registry (eval/seam-registry.json). Absent key = advisory-pass here
-  // (the absent→fail enforcement is FAFF-281); `none` must own no registered KIND; an unknown kind-id,
-  // or a declared-set ≠ registry-rows mismatch, FAILS the skill. A missing/malformed registry (with an
-  // eval/ harness present) fails loud. Reuses allSkills above; surface == skill dir name.
+  // must agree with the seam→KIND registry (eval/seam-registry.json). `none` must own no registered
+  // KIND; an unknown kind-id, or a declared-set ≠ expected-rows mismatch (with the FAFF-281 slot-
+  // sibling relaxation), FAILS the skill. A missing/malformed registry (with an eval/ harness present)
+  // fails loud. FAFF-281 adds the absent-key coverage gate (C1/C2) below. Reuses allSkills above;
+  // surface == skill dir name.
   {
     const { registry: seamReg, error: seamErr } = loadSeamRegistryForLint();
     if (seamErr) {
-      failed = true;
+      // FAFF-281: a missing/malformed registry (with an eval/ harness present) is a structural/harness
+      // error, not a lint failure — fail loud with exit 2 (the "harness can't run" code, as for an
+      // absent skills dir / uncovered slot skill), distinct from a content FAIL (exit 1).
       console.log(`FAIL  eval/seam-registry.json (seam registry)`);
-      console.log(`        ✗ ${seamErr} — both consumers fail loud on a missing/malformed registry (FAFF-280)`);
+      console.log(`        ✗ ${seamErr} — both consumers fail loud on a missing/malformed registry (FAFF-280/281: exit 2)`);
+      return 2;
     } else if (seamReg) {
       for (const name of allSkills) {
         const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
-        const bad = reconcileSeam(name, readJudgementSeam(text), seamReg)
+        const bad = reconcileSeam(name, readJudgementSeam(text), seamReg, REGISTRY)
           .filter(([ok]) => !ok).map(([, label]) => label);
         if (bad.length) {
           failed = true;
           console.log(`FAIL  ${name} (judgement seam)`);
           for (const label of bad) console.log(`        ✗ ${label}`);
+        }
+      }
+
+      // FAFF-281: eval-coverage gate (shipped-defaults only — this whole pass is after the early
+      // --configured return). C1 — a registry SURFACE (the registry attributes ≥1 KIND to it, so a
+      // declaration is owed and authorable) whose SKILL.md carries NO `judgement_seam:` key FAILS. A
+      // REGISTRY slot-skill with no registry row yet (no KIND maps to it) is an advisory `undeclared`
+      // line, NOT a fail — it flips to a hard C1 fail automatically the instant a backfill ticket adds
+      // its registry row. C2 — a kind whose registry status is `covered` but has 0 live cases in
+      // eval/cases/ FAILS (the dishonest state); `designed` with 0 cases is an advisory NEEDS-CASES,
+      // never a fail. `cases_present` is derived live from eval/cases/, never stored.
+      const surfaces = new Set(Object.values(seamReg.kinds).map((e) => e.surface));
+      const c1Names = [...new Set([...Object.keys(REGISTRY), ...surfaces])].sort();
+      for (const name of c1Names) {
+        const skillFile = path.join(skillsDir, name, "SKILL.md");
+        if (!fs.existsSync(skillFile)) continue;
+        if (readJudgementSeam(fs.readFileSync(skillFile, "utf8")) !== null) continue; // declared — reconcile owns it
+        if (surfaces.has(name)) {
+          failed = true;
+          console.log(`FAIL  ${name} (eval coverage)`);
+          console.log(`        ✗ registry surface with no \`judgement_seam:\` declaration — the registry attributes a grader KIND to it; declare its seam KIND(s) (FAFF-281 C1)`);
+        } else {
+          console.log(`UNDECLARED  ${name} — REGISTRY slot skill, no judgement_seam key and no registry row yet (advisory; flips to FAIL when its backfill ticket registers a row)`);
+        }
+      }
+      const casesDir = path.join(path.resolve(HERE, "..", "..", "..", ".."), "eval", "cases");
+      const caseFiles = fs.existsSync(casesDir) ? fs.readdirSync(casesDir) : [];
+      const casesPresent = (kind) => caseFiles.filter((f) => f.startsWith(`${kind}-`) && f.endsWith(".json")).length;
+      for (const [kind, entry] of Object.entries(seamReg.kinds)) {
+        if (casesPresent(kind) > 0) continue;
+        if (entry.status === "covered") {
+          failed = true;
+          console.log(`FAIL  eval/cases/${kind} (eval coverage)`);
+          console.log(`        ✗ kind \`${kind}\` is registry-status \`covered\` but has 0 cases in eval/cases/ (FAFF-281 C2)`);
+        } else if (entry.status === "designed") {
+          console.log(`NEEDS-CASES  ${kind} (surface ${entry.surface}) — registry-status \`designed\`, 0 cases yet (advisory)`);
         }
       }
     }

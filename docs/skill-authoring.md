@@ -32,6 +32,14 @@ Run over every `SKILL.md`. A violation prints `FAIL <name> (<category>) ✗ <lab
 
 **Honest limits.** The `validate-adapters` rules catch the realistic drift (a skill ballooning, a wall-of-text paragraph, copied prose, a stray war-story idiom). They do **not** measure taste or skimmability — that stays human/agent review judgement. The `stray marker` rule is deliberately narrow (precise idioms, not a blanket ban); ticket/ADR refs are not its job — `faff lint-refs` owns that ban.
 
+## Eval coverage — born with the ticket
+
+A judgement seam ships with its eval coverage; the net never plays catch-up (the FAFF-145 / ADR-0004 lesson — every seam used to ship first and the evals chased).
+
+- **Declare the seam.** Every slot skill carries a `judgement_seam:` frontmatter key (sibling to `name` / `user-invocable`): a comma list of the grader `KIND`(s) its LLM-judgement seam owns — or `none` for an asserted-deterministic skill. An alternate occupant declares its slot sibling's KIND(s) (the slot-sibling relaxation), not `none`.
+- **Register the coverage in the same change.** A ticket that introduces or changes a judgement seam registers a grader `KIND` + ≥1 case fixture (`eval/cases/<kind>-NNN.json`) + the `eval/seam-registry.json` row — all autonomous-doable. It must **not** require a recorded baseline value: accepting the baseline is the one human-supervised, CI-excluded step (ADR-0004), so the gate would otherwise block every autonomous build.
+- **The mechanical backstop.** `faff validate-adapters` gates the structural half: a registry **surface** with no `judgement_seam:` declaration fails (C1); a `covered` KIND with zero cases fails (C2); a `designed` KIND with zero cases and an unrowed slot-skill are loud advisories that flip to a hard fail the instant a row is registered. "Did the ticket actually need a seam" stays review judgement — intent isn't statically inferable.
+
 ## For new slot skills
 
 `faffter-dark-authoring-adaptors` scaffolds new adaptors/producers/methodologies **to** this charter — write to it from the start rather than retrofitting.

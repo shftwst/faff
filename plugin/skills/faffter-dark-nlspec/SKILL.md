@@ -2,6 +2,7 @@
 name: faffter-dark-nlspec
 description: "Full nlspec-format spec producer for the `spec` slot — the heavy, formal counterpart to the lite default. Runs via faff-prep, not the user `/` menu."
 user-invocable: false
+judgement_seam: confidence, marker
 ---
 
 # faffter-dark-nlspec
@@ -188,6 +189,8 @@ Format:
 ```
 
 Each item must be concrete enough to write a test against. "Works correctly" is not a DONE item. "Returns 401 with body `{ error: "session_expired" }`" is.
+
+**Eval coverage.** If the work introduces or changes an LLM-judgement seam, a DONE item registers its grader `KIND` + ≥1 eval case + the seam-registry row in this same ticket — all autonomous-doable. Recording/accepting the baseline value is a separate human-supervised step and is never required by this DONE item.
 
 **Integration smoke test:** pseudocode for a single end-to-end path that exercises the happy case. This is not exhaustive — it's the "if this one thing works, the plumbing is connected" test.
 

@@ -73,6 +73,28 @@ The agile lens sequences a *set* of tickets, but a value stream is only **done**
 
 **Re-homing reparents — governed by the gateway dial.** Re-homing is a **structural move**: it reparents the gating chain into the gated stream (a real container / `parentId` move with the `blockedBy` edges preserved), not just a reordered view. How much of that authority the lens holds per level is the gateway **Appetite for destruction → Topology-write authority** dial — surface-only at `low`, act on clear chains at `high`, `full` owns it end-to-end — bounded by that dial's reversibility floor (reparent is reversible ⇒ allowed; the move never cancels or deletes scope) and its human-curated-structure floor (faff-authored topology only — a human-curated boundary stays propose-and-confirm). The levels are not re-derived here. **Idempotent / anti-thrash:** the lens reads the tracker fresh each pass, so a reparent **converges** — once a blocker's home is the gated stream, the next pass recognises it as already-homed and is a no-op (it is neither re-evaluated as an "outside" blocker to drag in again, nor rehomed back to its origin). faff-beep-boop's conflict-analysis still consumes whatever the lens presents and owns concurrent-safety serialisation downstream — it only adds serialisation constraints, it does not itself reparent or reorder — so the two compose without contradiction.
 
+**Complementary outward direction.** The reverse move — reparenting a *non-critical* issue *out* of an MVP to converge scope early — is **Cutting non-spine scope out of an MVP (rehome, never delete)** below. It operates on a **disjoint** set (non-critical, non-blocking issues) from this inward walk (which pulls only `blockedBy` prerequisites), so the two directions never thrash.
+
+## Cutting non-spine scope out of an MVP (rehome, never delete)
+
+The lens champions converging value early by shedding non-spine scope (principle 2). That cut is the **complementary outward direction** of the inward re-home above: where **Re-homing gating chains into the stream they gate** drags a blocker *into* the MVP, this **reparents a non-critical issue *out* of the MVP** into another deliverable — reusing the same `parentId`-move mechanism, reversibility floor, and anti-thrash convergence, not a new one. Cutting scope is **not** deleting it; the two are distinct acts:
+
+- **Lost scope** — cancel or delete an issue/workstream (irreversible; the work ceases to exist). Forbidden at every level, including `full` — the hard floor's existing never.
+- **Rehomed scope** — reparent a **non-critical** MVP issue (one *not* load-bearing on the MVP's Definition of Done) *out* into another **outcome-led, DoD-bearing project** (a `parentId` move, `blockedBy` edges preserved). Reversible ⇒ **permitted** under the gate below.
+
+**The gate — both must hold before any cut:**
+
+1. **DoD still satisfied** — after removing the issue, the MVP container's Definition of Done remains satisfiable by its remaining members (read against the `prdr-author` / `faff prdr` DoD machinery). If the MVP has no machine-readable DoD to read, the gate cannot clear ⇒ surface only.
+2. **Real deliverable home** — the target is itself an outcome-led project carrying a DoD (an existing one, or a proposed follow-up such as *harden / enhance / simplify the MVP*) — **never** the void (parentless / backlog) and **never** a thematic / activity bucket.
+
+**Per level** (the lens's flavour of the gateway **Appetite for destruction → Topology-write authority** dial — the levels are not re-derived here): `low` / `medium` **surface** the cut candidate + its proposed home as a finding, zero topology writes; `high` (default) **proposes** the cut + home and the human confirms the DoD-still-satisfied judgement, then the issue is reparented out, logged; `full` **acts** — evaluates the DoD gate and reparents in one pass, logged (cut + rehome together). A cut is a judgement, so it is never an autonomous reparent without the DoD gate clearing.
+
+**Reversibility floor (reused, not a new invariant).** Reparent is reversible ⇒ allowed; cancel/delete is lost scope ⇒ forbidden always — the lens's reading of the gateway dial's reversibility floor, named for this cut, not a second rule. The cut stays *beneath* the human-owned DoD (the dial's DoD ceiling): it rearranges which container holds the work, it never redefines the ends.
+
+**Idempotent / disjoint from the inward walk.** The lens reads the tracker fresh each pass, so a rehomed-out issue is **no longer an MVP member** and is not re-evaluated as a cut candidate (the cut converges). A non-critical issue is **never** dragged back *in* by the inward gating-chain walk — that walk pulls only `blockedBy` prerequisites, which a non-critical issue is not. Outward- and inward-rehome therefore operate on **disjoint** sets and cannot thrash (no A→B→A).
+
+**Anti-pattern.** A cut to "no home" (parentless / backlog-void) or into a thematic bucket is **lost scope wearing a reparent's clothes** — the work loses its deliverable and its DoD. The real-home requirement forbids it.
+
 ## Default landing — new work to project-less Backlog
 
 This lens owns where newly captured or unsequenced work lands — a `ticket-shaping` opinion, not the orchestrator's. The default is **project-less Backlog**: shape the ticket(s), but propose **no container** unless the brief names one coherent, currently-actionable outcome that can be sequenced now — in which case an outcome-named project is proposed (principle 1). Sequencing unsequenced work into an outcome-led project is a deliberate later step (tidy / plot / a later methodology pass), never a capture-time default. The explicit "under new project" path stays available as a human/`/faff-plot` choice; greenfield project kickoff is exempt — it is itself an explicit project creation. Execution-discovered and methodology-fill tickets default the same way: project-less in Backlog, not auto-filed into a standing project.
@@ -180,6 +202,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 **low — surface only.**
 - All findings are informational. No tracker mutations. No reordering.
 - The human reads, decides, acts.
+- **Scope cuts** surface as a finding only — name the non-spine cut candidate + its proposed real home, zero topology writes (see **Cutting non-spine scope out of an MVP (rehome, never delete)**).
 - Equivalent to "show me what you'd recommend but don't touch anything."
 
 **medium — surface + limited action.**
@@ -191,6 +214,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 **high (default) — surface + act.**
 - **Auto-split** oversized tickets (principle 4) — creates the sub-tickets, links them, logs the action. Never deletes the parent.
 - **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides the thematic ordering when materially different — and **re-home** a value stream's gating chain by **reparenting the clear chain into the gated stream** (real container / `parentId` move, `blockedBy` edges preserved), per the gateway topology-write-authority dial (see **Re-homing gating chains into the stream they gate**).
+- **Propose a scope cut** (principle 2) — surface a non-critical MVP issue to rehome *out* + its proposed real DoD-bearing home, for the human to confirm the *DoD-still-satisfied* judgement; on confirm, **reparent it out** (never cancel/delete), logged. See **Cutting non-spine scope out of an MVP (rehome, never delete)**.
 - **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-methodology-fill`.
 - **Flag stalled work for demotion** — issues stuck In Progress with no commits for N days get surfaced with a demotion recommendation. At high appetite, the demotion executes (In Progress → Backlog) with a tracker comment explaining why.
 - Every action is documented: tracker comment on the affected issue, log entry in `.faff/logs/`.
@@ -200,12 +224,13 @@ Everything `high` does, plus:
 - **Auto-merge** always-ship-together tickets (principle 4) — combines them into one, links the originals as "merged into", logs the action.
 - **Reparent** misplaced tickets — moves outcome-misplaced tickets to the workstream where they belong based on outcome alignment (principle 5). (Gating-chain reparent is already a `high`-and-above capability above; `full` extends reparent to outcome-misplacement and owns project formation end-to-end.)
 - **Demote without flagging first** — stalled work demotes immediately (In Progress → Backlog) rather than flagging then waiting a cycle.
+- **Act on a cleared scope cut** (principle 2) — when the MVP DoD still holds without a non-critical issue and a real DoD-bearing home exists, reparent it *out* in one pass, logged (cut + rehome together); never cancel/delete — lost scope stays forbidden. See **Cutting non-spine scope out of an MVP (rehome, never delete)**.
 - **Methodology owns sequencing entirely** — explicit priority is an input signal, not a veto. Value x risk x deps determines the order.
 - **Resolve all methodology findings in a single pass** — no "surface now, act next run" cycle. Findings are acted on in the same invocation they're detected.
 - Still logs every action. Still never cancels or deletes.
 
 **What no appetite level does:**
-- Cancel, delete, or reduce scope (irreversible).
+- **Lost scope** — cancel or delete an issue/workstream (irreversible; the work ceases to exist). Forbidden at every level, including `full`. This is *not* the same as **rehomed scope** — reparenting a non-critical issue *out* of an MVP into another DoD-bearing home — which **is** permitted under the gate in **Cutting non-spine scope out of an MVP (rehome, never delete)**; cutting scope by rehoming is reversible, deleting it is not.
 - Override user-explicit "ask first" rules.
 - Skip adversarial review.
 - Act without evidence (every action traces to a principle + observable tracker state).
@@ -217,4 +242,4 @@ Everything `high` does, plus:
 - Findings that repeat across runs without human action are surfaced at most once per `/faff-wtf` invocation — don't nag.
 - This skill is **additive over the thematic baseline, not a from-scratch replacement of it.** For `backlog-diagnostics` it composes the shared **structural/topology floor** for the mandatory graph floor (cycle + ghost-project detection that feeds the `circular-blocked` / `gap-blocked` routing verdicts — see the gateway → **The `methodology` slot** swap-floor clause), then layers its seven-principle findings on top. It does not re-implement or override the topology floor's graph detection, chain gaps, stale blockers, or dupes.
 - At `low` and `medium` appetite, this skill is **read-only** — it never mutates tracker state.
-- At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues, and reparenting a gating chain into the gated stream (per the gateway topology-write-authority dial). All mutations logged.
+- At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues, reparenting a gating chain into the gated stream, and — on a human-confirmed DoD-still-satisfied judgement — reparenting a non-critical issue *out* of an MVP into a real DoD-bearing home (never cancel/delete) (all per the gateway topology-write-authority dial). All mutations logged.

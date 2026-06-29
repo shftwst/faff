@@ -4978,7 +4978,7 @@ Subcommands:
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
-  sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> (or \$FAFF_NOW_MS) is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — precedence --now-ms > --now > env > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
+  sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
   lights-out [--check] [--until HH:MM] [--max N] [--slot-unreachable review|spec_review ...] [--id RUN-ID] [--json] [--root DIR]   FAFF-225: the L4 lights-out entry point / runner — "leave the building" as one enforced action. Runs a fail-closed BASIC preflight over v1's launch preconditions (container-check contained — WARN→BLOCK on this path only; review + spec_review slots reachable, unreachable==absent; a budget ceiling set; all 8 shipped guardrail contracts — admissible / spec-review-verdict / run-done / budget / events / sentry / holdout|prdr-coverage / container — reachable by a genuine --selftest probe, NOT config presence; FAFF-68 no-execute + worktree isolation + Autonomous Mode Contract floor assertions hold), then on pass MINTS a strict-defaults L4 run-ledger carrying armed:Map<Guardrail,State ∈ {live|degraded|absent}> + a banner derivable 1:1 from armed (persisted, not just printed) + a run-start event; on ANY miss REFUSES (mints nothing, emits no work). Composes the contracts, re-implements none; never self-grants --dangerously-skip-permissions (the cage is the container's job). v1 does basic preflight only (rich dial-coherence + the adversarial advisory→gating promotion are separate follow-ons). --check runs preflight without minting; exit 0 armed/minted · 1 refused; --selftest runs the proceed/refuse + armed-derivation + banner table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
@@ -8245,13 +8245,19 @@ function sentryReadBudget(runDir) {
 // Hermetic, TEST-ONLY clock seam for `sentry check` (FAFF-301). Resolves the
 // instant time-based signals (wall-clock-runaway) are computed against, so a test
 // can pin `now` across two subprocess calls and stop flaking on the time of day.
-// Precedence: --now-ms > --now <ISO> > $FAFF_NOW_MS > Date.now() (production default).
+// Precedence: --now-ms > --now <ISO> > Date.now() (production default).
 // An injected-but-unparseable value is a HARD ERROR (never a silent Date.now()
-// fall-through), mirroring `park-history --now`. No production caller passes these:
-// the orchestrator owns the `sentry check` invocation, so the seam cannot widen the
-// surface a build subagent could use to relax a trip (and budget-breach, the abort
-// driver, is clock-independent regardless).
-function resolveSentryNow(get, env) {
+// fall-through), mirroring `park-history --now`.
+//
+// Deliberately EXPLICIT-FLAG-ONLY — no ambient/env form. The seam is exercised
+// only via per-invocation flags a caller types; there is no inherited `$FAFF_NOW_MS`
+// that a child process could carry up into a parent's invocation. `sentry check` is
+// the orchestrator-owned supervisory surface (gateway: "un-subvertable by
+// construction"); keeping the only override explicit means an isolated build
+// subagent has no ambient channel into the orchestrator's clock either. (And
+// budget-breach, the abort driver, is clock-independent regardless, so no clock
+// value can relax it — AC5 asserts this directly.)
+function resolveSentryNow(get) {
   const nowMsArg = get("--now-ms");
   if (nowMsArg != null) {
     const n = Number(nowMsArg);
@@ -8262,12 +8268,6 @@ function resolveSentryNow(get, env) {
   if (nowArg != null) {
     const n = Date.parse(nowArg);
     if (Number.isNaN(n)) return { error: `--now '${nowArg}' is not a parseable ISO-8601 timestamp` };
-    return { now_ms: n };
-  }
-  const envNow = env.FAFF_NOW_MS;
-  if (envNow != null && envNow !== "") {
-    const n = Number(envNow);
-    if (!Number.isFinite(n)) return { error: `FAFF_NOW_MS '${envNow}' is not a finite epoch-millis value` };
     return { now_ms: n };
   }
   return { now_ms: Date.now() }; // unchanged production default
@@ -8287,7 +8287,7 @@ function cmdSentry(args) {
   if (sub === "check") {
     const [cfg] = loadConfig(root);
     const th = sentryThresholds(cfg);
-    const nowRes = resolveSentryNow(get, process.env); // hermetic test-only clock seam (FAFF-301)
+    const nowRes = resolveSentryNow(get); // hermetic test-only clock seam (FAFF-301)
     if (nowRes.error) { process.stderr.write(`faff sentry check: ${nowRes.error}\n`); return 2; }
     let ledger = {}, events = [], budget = { breached: [], outcome: "none" };
     if (runDir) {

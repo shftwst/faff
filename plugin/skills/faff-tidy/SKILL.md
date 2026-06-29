@@ -82,7 +82,7 @@ An issue is ready when:
 
 **Decide readiness via `faff next`, not by re-checking these criteria by hand** (gateway → **Next-step transition**): map each issue's fetched state to the flags and consult `faff next` — `graft` ⇒ ready (promote candidate), `prep` ⇒ "Almost ready" (needs `/faff-prep`), `skip-ineligible` ⇒ the **On hold** section, `needs-human`/`blocked` ⇒ not ready. The bullets above are the human-readable shape of that transition. The labels + status mapped to those flags are **sourced from the live backlog re-fetch this pass took** (gateway → **Always pull fresh** + **Re-ground before gate**) — the promote gate reads eligibility at the gate, never from a stale snapshot, so an issue a human cranked up just before this run promotes on its live labels.
 
-**Order ready issues via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) — tidy states no ordering of its own; it renders the order the methodology returns (the structural default supplies priority + chainable unlock value when no methodology is set). Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
+**Order ready issues via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) — tidy states no ordering of its own; it renders the order the methodology returns (the thematic default supplies priority + chainable unlock value when no methodology is set). Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
 ### 3. Almost ready (flag)
 
@@ -102,7 +102,7 @@ Issues that are **not automation-eligible** (gateway → **Automation eligibilit
 
 **Render each held issue with the shared On-hold-entry form** — `rendering_adaptor` slot → **Canonical visual forms → (f) On-hold entry** (default `faffidavit-rendering`). That single shared form is the canonical definition; `/faff-wtf` §4b renders the same form, so the two stay DRY — do not re-specify the fields here. It carries, per held issue: the grounded synthesis gloss, then the three release-decision signals (**reversibility tier** — coarse/advisory `low-risk` / `higher-risk` from the gateway side-effect-outside-PR taxonomy · **standalone-ness** — `independent` / `blocks N` / `blocked by N` from the relation graph · **unlock value** — `unlocks N` direct+transitive dependents), then the hold reason + how to release. The signals are mechanical reads of state tidy already pulls fresh (the relation graph, the chainable-unlock metric — an objective graph fact).
 
-**Order the section via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) over the held issues — tidy states no risk/unlock ordering of its own; the methodology decides (the structural default surfaces the best release candidates first). The On-hold-entry signals (reversibility tier, blocks-N, unlock-N) still render as objective facts.
+**Order the section via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) over the held issues — tidy states no risk/unlock ordering of its own; the methodology decides (the thematic default surfaces the best release candidates first). The On-hold-entry signals (reversibility tier, blocks-N, unlock-N) still render as objective facts.
 
 **Crank-up-set proposals (rendered when a `methodology` slot answers `crank-up-set`).** After the flat On-hold list, request the `crank-up-set` output from the configured methodology (gateway → **The `methodology` slot**) and render the ranked batches as cards — the **root** via the On-hold-entry form + the **slice** via the value-chain arrow render (`rendering_adaptor`), with per-member badges (would-build / would-need-prep / would-still-need-decision from `faff next --if-eligible`), the hypothetical-verdict distribution one-liner, the stop-reason, and deferred-with-reason members. **Omit** when no methodology is configured / no not-eligible items / no qualifying root (degrades to the flat list above).
 
@@ -114,7 +114,7 @@ tidy's crank-up and `/faff-jot ISSUE-XX`'s crank up/crank down are **complementa
 
 ### 5. Structural diagnostics
 
-A separate pass that examines the **shape of the backlog itself**, not individual issues. Request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-structural`) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Automation-routing verdict (fixed)** (the root-cause class enum) for the shared park-classification taxonomy it uses.
+A separate pass that examines the **shape of the backlog itself**, not individual issues. Request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-thematic`) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Automation-routing verdict (fixed)** (the root-cause class enum) for the shared park-classification taxonomy it uses.
 
 Categories detected:
 
@@ -294,6 +294,6 @@ Record each finding in `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md` with the issue id,
 - **Comments are mandatory** in spec discovery (gateway → **Spec discovery**): fetch them before classifying; descriptions-only is invalid output.
 - Spec health is **not just** does-a-spec-exist; it includes scanning post-spec comments for challenges, resolutions, and context. Challenges/resolutions → "Challenged" → re-prep, not ready. Context-only → "Context-pending" → low-priority annotate-into-spec, doesn't block build.
 - Labels are `/faff-prep`'s job. Tidy never proposes them.
-- Promotion order = readiness gate → the configured methodology's `pick-ordering` (the structural default orders by priority → chainable unlock value; gateway → **Ordering & judgement delegation**)
+- Promotion order = readiness gate → the configured methodology's `pick-ordering` (the thematic default orders by priority → chainable unlock value; gateway → **Ordering & judgement delegation**)
 - The same methodology `pick-ordering` orders the "Stuck in prep — needs human decision" bucket — surface the highest-leverage parks first
 - When a `methodology` slot is configured, tidy adds bucket 7 (Methodology findings) — surface-only in 2a (no mechanical fixes); 2b adds them.

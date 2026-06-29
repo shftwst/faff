@@ -17,7 +17,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 
 | Skill | Slot | What it does |
 |---|---|---|
-| `faffter-noon-methodology-structural` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
+| `faffter-noon-methodology-thematic` | `methodology` | The implicit default. Pure structural analysis — ordering by priority + unlock value, graph-level diagnostics (cycles, chain gaps, ghost pointers, repeat-parks), promotion/demotion by spec readiness. No opinions about value, risk, or right-sizing. |
 | `faffter-noon-review` | `review` | The implicit default. Senior-engineer code review — AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging. Emits its `faff-contract:review-verdict` block (pass/fail/needs-human) that faff-graft parses. |
 | `faffter-noon-intake` | `intake` | The implicit default intake producer. Runs new-work discovery for `/faff-jot` (greenfield project or single feature/bug) and emits a discovery brief. The light counterpart to ideation skills like `superpowers:brainstorming`. |
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
@@ -41,7 +41,7 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 |---|---|---|
 | `faffter-dark-nlspec` | `spec` | Full nlspec-format spec generation — formal type definitions, pseudocode procedures, closed-loop DoD, appendices. Heavier than the built-in lite arc. |
 | `faffter-dark-adversarial-review` | `review` | Two-phase review: runs `faffter-noon-review` first, then sends the diff to a different LLM for a structurally independent second opinion. Replaces the default review. |
-| `faffter-dark-methodology-agile-delivery` | `methodology` | Agile delivery methodology lens — seven principles (outcome-named workstreams, value × risk sequencing, WIP caps, right-sized tickets, cohesive workstreams, surfaced deps, risk-aware ordering). An opinionated alternative to the structural default. |
+| `faffter-dark-methodology-agile-delivery` | `methodology` | Agile delivery methodology lens — seven principles (outcome-named workstreams, value × risk sequencing, WIP caps, right-sized tickets, cohesive workstreams, surfaced deps, risk-aware ordering). An opinionated alternative to the thematic default. |
 | `faffter-dark-concurrency-parallel` | `concurrency` | Concurrent build-pass executor — runs independents in parallel, each in its own worktree, capped at `concurrency_max`, with rebase-before-merge so a moving `main` can't merge stale-green. Replaces the sequential default for speed. |
 | `faffter-dark-authoring-adaptors` | — (tooling) | Author/validate skill for slot occupants. Scaffolds a new adaptor/producer/methodology with the correct refer-back prose + contract mapping, and validates that an existing slot skill conforms. A development-time tool, not a pipeline slot. |
 

@@ -1,6 +1,6 @@
 ---
 name: faffter-dark-methodology-agile-delivery
-description: "Agile-delivery `methodology` lens — answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the structural default. Runs as a configured slot, not the user `/` menu."
+description: "Agile-delivery `methodology` lens — answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the thematic default. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
 ---
 
@@ -26,14 +26,14 @@ How the principles map onto the outputs:
 | Output | Principles applied |
 |---|---|
 | `ticket-shaping` | 1 (outcome-named workstreams, not the brief's literal capability names), 4 (right-sized — split a capability that's too big, merge always-together items), 6 (surface deps as explicit blocker links), 2 + 7 (sequence the proposed tickets by value × risk) |
-| `pick-ordering` / `build-queue` | 2 (value × risk, sharpened to incremental end-user value), 7 (risk-aware) — override structural priority+unlock when materially different; **re-home a value stream's gating chain into that stream's order** (see **Re-homing gating chains into the stream they gate**) |
+| `pick-ordering` / `build-queue` | 2 (value × risk, sharpened to incremental end-user value), 7 (risk-aware) — override the thematic default's priority+unlock when materially different; **re-home a value stream's gating chain into that stream's order** (see **Re-homing gating chains into the stream they gate**) |
 | `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
-| `backlog-diagnostics` | Composes the structural default for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6 |
+| `backlog-diagnostics` | Composes the shared structural/topology floor for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6 |
 | `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
 | `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 | `issue-critique` | per-issue: 4 (right-sized / split / merge), 1 + 5 (workstream fit), 6 (surfaced deps), 7 (risk profile → de-risking spike) |
-| `crank-up-set` | **Composes** `faffter-noon-methodology-structural`'s `crank-up-set` slice algorithm for the graph walk + frontiers, then **re-ranks** the returned sets by 2 (value × risk) and 7 (risk-aware), trimming to the thinnest coherent slice (MVP, principle 4). Does not re-implement the walk. Appetite per-level: low = solo safe roots; full = deepest runway. |
-| `prdr-author` | **Composes** the structural baseline's `prdr-author` field derivation, then **scales the DoD by the agile lens**: 4 (right-sized — the thinnest coherent done-bar for the target, MVP cut over exhaustive coverage), 2 + 7 (value × risk — the DoD's done-criteria are the highest-value increment the target funds, de-risked first). Does not re-author from scratch — composes the structural fields and re-frames the `definition_of_done` ambition. |
+| `crank-up-set` | **Composes** `faffter-noon-methodology-thematic`'s `crank-up-set` slice algorithm for the graph walk + frontiers, then **re-ranks** the returned sets by 2 (value × risk) and 7 (risk-aware), trimming to the thinnest coherent slice (MVP, principle 4). Does not re-implement the walk. Appetite per-level: low = solo safe roots; full = deepest runway. |
+| `prdr-author` | **Composes** the thematic baseline's `prdr-author` field derivation, then **scales the DoD by the agile lens**: 4 (right-sized — the thinnest coherent done-bar for the target, MVP cut over exhaustive coverage), 2 + 7 (value × risk — the DoD's done-criteria are the highest-value increment the target funds, de-risked first). Does not re-author from scratch — composes the thematic fields and re-frames the `definition_of_done` ambition. |
 | `yagni-judge` | Proposes the upper-gate Phase-1 `{serves_goal, within_scope, verdict, reason}` through the value lens: 2 + 7 (value × risk — does this PRDR earn its keep for the goal it cites?), 4 (right-sized — MVP cut, so *exceeding* the goal reads as `within_scope: false`). The agile lens is the natural YAGNI judge (it owns the MVP/bet call). It **proposes, never admits** — the adversarial skeptic challenges it (Phase 2) and `faff prdr yagni` arbitrates conservatively. |
 
 The WIP cap (principle 3) applies to `standup-digest` only — never to `build-queue` (autonomous work is unbounded).
@@ -46,7 +46,7 @@ The WIP cap (principle 3) applies to `standup-digest` only — never to `build-q
 
 `/faff-plot` owns the stop rule (first-slice epics, never the leaves below); this skill shapes the level it's asked for. Absent a `shape-level`, the single-level brief→tickets behaviour is unchanged (what `/faff-jot` uses).
 
-**Target-scaled `prdr-author`.** Composes the structural baseline's field derivation (gateway → **The `methodology` slot**; `faffter-noon-methodology-structural` → `prdr-author`), then scales the `definition_of_done` through the lens — the agile cut is the **thinnest coherent done-bar the target funds**, highest-value increment first, de-risked early (principles 4 + 2 + 7), not the structural "all children delivered" sum. A **thin-MVP** target ⇒ the minimal shippable outcome slice; a **finished** target ⇒ the full value the container promises. It **authors but never admits** (admission is the caller's level — gateway → **Authored-PRDR level-scaling**) and re-reads any human-set DoD first, never clobbering it (gateway → **Manual changes are authoritative (`prdr-author`)**). Low confidence ⇒ a thin DoD flagged needs-human, never a vacuous L4 self-define.
+**Target-scaled `prdr-author`.** Composes the thematic baseline's field derivation (gateway → **The `methodology` slot**; `faffter-noon-methodology-thematic` → `prdr-author`), then scales the `definition_of_done` through the lens — the agile cut is the **thinnest coherent done-bar the target funds**, highest-value increment first, de-risked early (principles 4 + 2 + 7), not the thematic "all children delivered" sum. A **thin-MVP** target ⇒ the minimal shippable outcome slice; a **finished** target ⇒ the full value the container promises. It **authors but never admits** (admission is the caller's level — gateway → **Authored-PRDR level-scaling**) and re-reads any human-set DoD first, never clobbering it (gateway → **Manual changes are authoritative (`prdr-author`)**). Low confidence ⇒ a thin DoD flagged needs-human, never a vacuous L4 self-define.
 
 ## Re-homing gating chains into the stream they gate
 
@@ -62,7 +62,7 @@ The agile lens sequences a *set* of tickets, but a value stream is only **done**
 **How the lens re-homes when answering `pick-ordering` / `build-queue` for a stream:**
 
 1. Identify stream membership from the workstream grouping it is handed. When the grouping surfaces DoD presence, a stream is a Definition-of-Done-bearing deliverable and a bare container is skipped; until it does, fall back to the project/initiative unit as the stream and name the container in the finding (so a non-cohesive, activity-named boundary is visible, not silently trusted).
-2. Walk `blockedBy` transitively *outward* from the stream's tickets toward the deepest unstarted prerequisite, stopping at the **deepest actionable** one. Defer cycles to the composed structural baseline's cycle detection — never order through a cycle (it surfaces as the existing `circular-blocked` diagnostic). A link that is externally blocked or otherwise not actionable stops the walk and is named as a dead-end (the deepest actionable prerequisite is the last reachable one before it).
+2. Walk `blockedBy` transitively *outward* from the stream's tickets toward the deepest unstarted prerequisite, stopping at the **deepest actionable** one. Defer cycles to the composed structural/topology floor's cycle detection — never order through a cycle (it surfaces as the existing `circular-blocked` diagnostic). A link that is externally blocked or otherwise not actionable stops the walk and is named as a dead-end (the deepest actionable prerequisite is the last reachable one before it).
 3. Fold each chain member not already sequenced ahead for another stream into this stream's order, deepest-first — the deepest actionable prerequisite before the work it gates.
 4. Emit a **principle-6** finding naming the chain, the gated stream, the deepest actionable prerequisite, and any dead-end.
 5. Order the combined set by **incremental end-user value** (principle 2), risk-aware (principle 7) — sequence to light up each increment, crossing structural slices as needed.
@@ -180,7 +180,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 
 **high (default) — surface + act.**
 - **Auto-split** oversized tickets (principle 4) — creates the sub-tickets, links them, logs the action. Never deletes the parent.
-- **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides structural ordering when materially different, including **re-homing** a value stream's gating chain into its order (see **Re-homing gating chains into the stream they gate**). Re-homing reorders the presented queue only; it never reparents.
+- **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides the thematic ordering when materially different, including **re-homing** a value stream's gating chain into its order (see **Re-homing gating chains into the stream they gate**). Re-homing reorders the presented queue only; it never reparents.
 - **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-methodology-fill`.
 - **Flag stalled work for demotion** — issues stuck In Progress with no commits for N days get surfaced with a demotion recommendation. At high appetite, the demotion executes (In Progress → Backlog) with a tracker comment explaining why.
 - Every action is documented: tracker comment on the affected issue, log entry in `.faff/logs/`.
@@ -205,6 +205,6 @@ Everything `high` does, plus:
 - Findings must be grounded in observable tracker state — not speculation about intent or future plans.
 - Each finding must name the specific issues/workstreams involved (by tracker ID + descriptive gloss).
 - Findings that repeat across runs without human action are surfaced at most once per `/faff-wtf` invocation — don't nag.
-- This skill is **additive over the structural baseline, not a from-scratch replacement of it.** For `backlog-diagnostics` it composes `faffter-noon-methodology-structural` for the mandatory graph floor (cycle + ghost-project detection that feeds the `circular-blocked` / `gap-blocked` routing verdicts — see the gateway → **The `methodology` slot** swap-floor clause), then layers its seven-principle findings on top. It does not re-implement or override structural's graph detection, chain gaps, stale blockers, or dupes.
+- This skill is **additive over the thematic baseline, not a from-scratch replacement of it.** For `backlog-diagnostics` it composes the shared **structural/topology floor** for the mandatory graph floor (cycle + ghost-project detection that feeds the `circular-blocked` / `gap-blocked` routing verdicts — see the gateway → **The `methodology` slot** swap-floor clause), then layers its seven-principle findings on top. It does not re-implement or override the topology floor's graph detection, chain gaps, stale blockers, or dupes.
 - At `low` and `medium` appetite, this skill is **read-only** — it never mutates tracker state.
 - At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues. All mutations logged.

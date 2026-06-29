@@ -4911,6 +4911,7 @@ Subcommands:
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
   spec-review-lenses --tags T,T,... --level L1|L2|L3|L4 --appetite low|medium|high|full [--selftest]   FAFF-268: cost-gate IN FRONT of the spec_review producer — maps a spec's CLASSIFIED change-surface tags + level + appetite to a LensSelection {lenses,mode,rationale}. Pure; the signal->tag classification is prose-side (faff-prep). v1 additive-only/safe-direction: only architectural (or methodology when no tag adds it) is dropped; infosec+QA sticky at L1-L3; unclassified/unknown tag -> all four (fail-safe); L4 -> adversarial all-four (never narrowed); low/medium appetite widens to all four. --selftest runs the table
   dod classify --spec <path|-> [--json]         FAFF-34: classify a spec's DoD criteria (## Scenarios + ### N. DONE) by born-verifiability class (scenario|assertion|prose), reusing classifyCriterion verbatim — the evaluator uses this to decide which criteria it may machine-judge vs force to needs-human (prose). PURE (file/stdin in, JSON out, no tracker/network/LLM); emits {criteria:[{text,class,source}],counts}; exit 0 on a successful parse / 2 usage/unreadable; --selftest runs the table
+  holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]   FAFF-277: pure, trust-gated bridge from the evaluator's persisted holdout verdicts (.faff/holdout/<issue|run>.json) to the already-shipped 'faff prdr coverage --dod-verdicts' flag. Reads each verdict, RE-VALIDATES it through the same computeHoldoutVerdict gate (never a forked rule), translates only a conformant code_blind:true meets-spec -> the literal "met", folds conservatively per PRDR (any non-met sibling makes the PRDR not-met), and keys by the supplied issue->PRDR association; every other aggregate passes through (!= met), untrusted files are omitted. Emits {verdicts:{prdr:value},skipped:[{key,reason}]}; skipped also summarised to stderr. PURE (filesystem read of --dir only, no tracker/network/LLM). Absent --dir -> empty map (exit 0); missing/non-object --association, malformed --association JSON, or unreadable --dir -> exit 2; a successful run (incl. empty map) -> exit 0 (no exit 1, report-only). --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
@@ -5490,6 +5491,43 @@ function contractHoldoutVerdict(extraction) {
   const schemaErr = schemaCheck(contractData, "holdout-verdict");
   if (schemaErr) return { failLoud: schemaErr };
   return { contractData };
+}
+
+// --- holdout verdicts → DoD-verdict map (FAFF-277) ---
+// The pure, trust-gated bridge between the evaluator's persisted holdout verdicts and the already-shipped
+// `faff prdr coverage --dod-verdicts` flag. Reuses computeHoldoutVerdict VERBATIM as the trust gate (never
+// a forked rule). Input: an issue→PRDR `association` {key: prdr-id} (orchestrator-lane data — the evaluator
+// stays PRDR-blind) and a SORTED list of `files` {key, text} (raw `.faff/holdout/<key>.json` contents).
+// Output: { verdicts: {prdr: "met"|"<aggregate>"}, skipped: [{key, reason}] }. The contract IS the boundary:
+// a verdict yields `met` only when it re-passes the gate (conformant ∧ code_blind:true) AND aggregate is
+// exactly "meets-spec"; every other aggregate passes through as its own ≠"met" string; untrusted files are
+// omitted entirely (their aggregate cannot be believed). Conservative duplicate-PRDR fold: a PRDR is `met`
+// only when EVERY trusted file mapping to it is `met` (a single failing re-run is never masked).
+function computeHoldoutVerdictsMap(association, files) {
+  const contributions = new Map();   // prdr-id -> [trusted value, ...] (insertion order = sorted-key order)
+  const skipped = [];
+  for (const { key, text, unreadable } of files) {
+    if (!Object.prototype.hasOwnProperty.call(association, key)) { skipped.push({ key, reason: "no-association" }); continue; }
+    const prdr = association[key];
+    if (unreadable) { skipped.push({ key, reason: "unreadable" }); continue; }
+    let block;
+    try { block = JSON.parse(text); } catch { skipped.push({ key, reason: "unreadable" }); continue; }
+    // The trust gate — the SAME compute fn `faff contract holdout-verdict` runs. A fail-loud (non-object),
+    // any contract violation, or a non-true code_blind ⇒ untrusted ⇒ never "met".
+    const { contractData, failLoud } = computeHoldoutVerdict(block);
+    if (failLoud || (contractData && contractData.violations.length > 0) || block.code_blind !== true) {
+      skipped.push({ key, reason: "contract-rejected" }); continue;
+    }
+    const value = (block.aggregate === "meets-spec") ? "met" : block.aggregate;
+    if (!contributions.has(prdr)) contributions.set(prdr, []);
+    contributions.get(prdr).push(value);
+  }
+  const verdicts = {};
+  for (const [prdr, values] of contributions) {
+    // Conservative fold: `met` only when all contributing trusted values are `met`; else the first non-`met`.
+    verdicts[prdr] = values.every((v) => v === "met") ? "met" : values.find((v) => v !== "met");
+  }
+  return { verdicts, skipped };
 }
 
 // --- prdr-admission (FAFF-255) ---
@@ -9180,6 +9218,112 @@ function dodSelftest() {
   console.log("dod --selftest: ok"); return 0;
 }
 
+// faff holdout verdicts — FAFF-277: the pure, trust-gated bridge from the evaluator's persisted holdout
+// verdicts (`.faff/holdout/<key>.json`) to the already-shipped `faff prdr coverage --dod-verdicts` flag.
+// Reads each verdict, re-validates it through the SAME `computeHoldoutVerdict` gate (never a forked rule),
+// translates a passing `meets-spec` → the literal `met`, folds conservatively per PRDR, and emits the
+// `{prdr-id: value}` map keyed by the supplied issue→PRDR association. Pure: filesystem read of --dir +
+// args only (no tracker/network/LLM) — parity with `dod classify` / `prdr coverage`.
+function cmdHoldout(args) {
+  if (args.includes("--selftest")) return holdoutVerdictsSelftest();
+  const action = args.find((a) => !a.startsWith("--"));
+  if (action !== "verdicts") {
+    process.stderr.write("faff holdout: usage: faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n");
+    return 2;
+  }
+  // --association (required): inline JSON, @path, or - for stdin. A broken association is operator error
+  // (fail-loud exit 2), NOT a silent empty map.
+  const assocRaw = adrFlag(args, "--association");
+  if (assocRaw == null) { process.stderr.write("faff holdout verdicts: --association is required (JSON object { holdout-key: prdr-id }, @path, or - for stdin)\n"); return 2; }
+  let assocText;
+  try {
+    if (assocRaw === "-") assocText = fs.readFileSync(0, "utf8");
+    else if (assocRaw.startsWith("@")) assocText = fs.readFileSync(assocRaw.slice(1), "utf8");
+    else assocText = assocRaw;
+  } catch (e) { process.stderr.write(`faff holdout verdicts: cannot read --association: ${e.message}\n`); return 2; }
+  let association;
+  try { association = JSON.parse(assocText); } catch (e) { process.stderr.write(`faff holdout verdicts: --association is not valid JSON: ${e.message}\n`); return 2; }
+  if (association === null || typeof association !== "object" || Array.isArray(association)) {
+    process.stderr.write("faff holdout verdicts: --association must be a JSON object { holdout-key: prdr-id }\n"); return 2;
+  }
+  const dir = adrFlag(args, "--dir") || ".faff/holdout";
+  // Read the store. An ABSENT dir (ENOENT) is the valid "nothing trusted yet" case → empty map, exit 0
+  // (coverage already handles it). An UNREADABLE dir (a file, a permission error) is operator error → exit 2.
+  let names;
+  try {
+    names = fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
+  } catch (e) {
+    if (e.code === "ENOENT") names = [];
+    else { process.stderr.write(`faff holdout verdicts: cannot read --dir ${JSON.stringify(dir)}: ${e.message}\n`); return 2; }
+  }
+  const files = names.map((name) => {
+    const key = name.slice(0, -".json".length);
+    try { return { key, text: fs.readFileSync(path.join(dir, name), "utf8") }; }
+    catch { return { key, unreadable: true }; }
+  });
+  const out = computeHoldoutVerdictsMap(association, files);
+  const json = args.includes("--json");   // accepted for symmetry with `dod classify`; output is always JSON
+  process.stdout.write(JSON.stringify(out, null, json ? 0 : 2) + "\n");
+  // The skipped audit trail also goes to stderr so a missing/untrusted PRDR is visible, never silent.
+  if (out.skipped.length) {
+    process.stderr.write(`faff holdout verdicts: skipped ${out.skipped.length} file(s): ${out.skipped.map((s) => `${s.key}(${s.reason})`).join(", ")}\n`);
+  }
+  return 0;   // report-only (parity with coverage/yagni): an empty map is a valid conservative answer, exit 0
+}
+
+// In-memory selftest of computeHoldoutVerdictsMap — the gate + translate + conservative fold (mirrors
+// dod --selftest; no fs needed, the map fn is pure over {key,text}).
+function holdoutVerdictsSelftest() {
+  let failed = 0;
+  const check = (label, cond) => { if (!cond) { process.stderr.write(`holdout --selftest FAIL: ${label}\n`); failed++; } };
+  const block = (aggregate, verdict, code_blind = true) => JSON.stringify({
+    aggregate, code_blind,
+    criteria: [{ class: "assertion", verdict, evidence_present: true }],
+    violations: [],
+  });
+  const meets = block("meets-spec", "met");
+  const fails = block("fails", "unmet");
+
+  // 1. conformant meets-spec + association → {prdr:"met"}
+  const r1 = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, [{ key: "FAFF-34", text: meets }]);
+  check("conformant meets-spec → {prdr:met}", JSON.stringify(r1.verdicts) === JSON.stringify({ "0007": "met" }) && r1.skipped.length === 0);
+
+  // 2. code_blind:false → PRDR absent, skipped contract-rejected
+  const r2 = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, [{ key: "FAFF-34", text: block("meets-spec", "met", false) }]);
+  check("code_blind:false → absent + contract-rejected", !("0007" in r2.verdicts) && r2.skipped.some((s) => s.key === "FAFF-34" && s.reason === "contract-rejected"));
+
+  // 3. conformant fails → verdicts[prdr]=="fails" (≠ met)
+  const r3 = computeHoldoutVerdictsMap({ "FAFF-B": "0008" }, [{ key: "FAFF-B", text: fails }]);
+  check("conformant fails → 'fails' (≠ met)", r3.verdicts["0008"] === "fails");
+
+  // 4. empty dir → {}
+  const r4 = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, []);
+  check("empty files → {} verdicts", Object.keys(r4.verdicts).length === 0);
+
+  // 5. conservative fold: meets-spec + fails on one PRDR → not met
+  const r5 = computeHoldoutVerdictsMap({ "FAFF-A": "0007", "FAFF-B": "0007" }, [{ key: "FAFF-A", text: meets }, { key: "FAFF-B", text: fails }]);
+  check("two files one PRDR (meets+fails) → not met", r5.verdicts["0007"] !== "met" && r5.verdicts["0007"] === "fails");
+
+  // 6. fold: met + met on one PRDR → met
+  const r6 = computeHoldoutVerdictsMap({ "FAFF-A": "0007", "FAFF-C": "0007" }, [{ key: "FAFF-A", text: meets }, { key: "FAFF-C", text: meets }]);
+  check("two files one PRDR (met+met) → met", r6.verdicts["0007"] === "met");
+
+  // 7. no association entry → skipped no-association, contributes nothing
+  const r7 = computeHoldoutVerdictsMap({}, [{ key: "FAFF-X", text: meets }]);
+  check("no-association → skipped, nothing contributed", Object.keys(r7.verdicts).length === 0 && r7.skipped.some((s) => s.reason === "no-association"));
+
+  // 8. unreadable / malformed JSON → skipped unreadable
+  const r8 = computeHoldoutVerdictsMap({ "FAFF-A": "0007", "FAFF-B": "0007" }, [{ key: "FAFF-A", unreadable: true }, { key: "FAFF-B", text: "{not json" }]);
+  check("unreadable + malformed → skipped unreadable, never met", !("0007" in r8.verdicts) && r8.skipped.filter((s) => s.reason === "unreadable").length === 2);
+
+  // 9. trusted non-'met' passes through as its own string (gaps/needs-human are ≠ met)
+  const r9 = computeHoldoutVerdictsMap({ "FAFF-G": "0009" }, [{ key: "FAFF-G", text: JSON.stringify({ aggregate: "gaps", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] }) }]);
+  check("trusted 'gaps' passes through (≠ met)", r9.verdicts["0009"] === "gaps");
+
+  if (failed) { console.log(`holdout --selftest: FAIL (${failed} failed)`); return 1; }
+  console.log("holdout --selftest: ok"); return 0;
+}
+
 // --- spec-review lens selection (FAFF-268) ---
 // The cost-gate that runs IN FRONT OF the spec_review producer: given a spec's classified
 // change-surface tags + the runtime level + the configured appetite, choose WHICH of the
@@ -9332,6 +9476,7 @@ const COMMANDS = {
   "eligible": cmdEligible,
   "admissible": cmdAdmissible,
   "dod": cmdDod,
+  "holdout": cmdHoldout,
   "spec-review-lenses": cmdSpecReviewLenses,
   "container-check": cmdContainerCheck,
   "next": cmdNext,

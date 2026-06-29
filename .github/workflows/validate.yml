@@ -106,6 +106,9 @@ jobs:
       - name: Validate dod-classify table (FAFF-34)
         run: node plugin/skills/faff/bin/faff dod --selftest
 
+      - name: Validate holdout verdicts → DoD-verdict map table (FAFF-277)
+        run: node plugin/skills/faff/bin/faff holdout --selftest
+
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 

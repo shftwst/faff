@@ -54,3 +54,32 @@ test("doctor: a target with no faff skills is a usage error (exit 2)", () => {
   try { assert.equal(run("doctor", "--target", dir).code, 2); }
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// FAFF-299 — a dangling symlink (target gone, e.g. a rename-orphaned link) is unhealthy,
+// not `✓ live → repo`. lstat says "is-a-symlink"; existsSync follows the link to check it resolves.
+test("doctor: a dangling symlink is flagged unhealthy (exit 1, not live → repo)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "doc-dangle-"));
+  try {
+    symlinkSync(join(dir, "no-such-target-xyz"), join(dir, "faffter-noon-methodology-structural")); // dangling
+    const r = run("doctor", "--target", dir);
+    assert.equal(r.code, 1, "exit non-zero when a skill symlink is dangling");
+    assert.match(r.out, /faffter-noon-methodology-structural\s+symlink-dangling/);
+    assert.match(r.out, /install is not clean/);
+    assert.doesNotMatch(r.out, /faffter-noon-methodology-structural\s+symlink \(live → repo\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// FAFF-299 — a mix of live + dangling + copy distinguishes each state with its own label.
+test("doctor: mixed live / dangling / copy — each distinguished (exit 1)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "doc-mix3-"));
+  try {
+    symlinkSync("/tmp", join(dir, "faff-graft"));                          // live
+    symlinkSync(join(dir, "gone"), join(dir, "faffter-noon-review"));      // dangling
+    mkdirSync(join(dir, "faff-prep"));                                     // copy
+    const r = run("doctor", "--target", dir);
+    assert.equal(r.code, 1);
+    assert.match(r.out, /faff-graft\s+symlink \(live → repo\)/);
+    assert.match(r.out, /faffter-noon-review\s+symlink-dangling/);
+    assert.match(r.out, /faff-prep\s+COPY/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

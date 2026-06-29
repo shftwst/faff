@@ -4926,6 +4926,7 @@ Subcommands:
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
+  sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
@@ -7907,6 +7908,437 @@ function eventsSelftest() {
 }
 
 // ===========================================================================
+// sentry — FAFF-49: live-run derailment detection + the hard kill-switch.
+//
+// The active L4 supervisory lane — a fourth lane peer to orchestrator / implementor
+// / evaluator. Sentry READS a live run's out-of-band, append-only surface — the
+// orchestrator-owned events.jsonl + run-ledger.json + owner.last_heartbeat, plus the
+// pure `faff budget check` reading — WITHOUT mutating it, evaluates the v1 derailment
+// triggers, and emits DerailmentVerdicts + the chosen v1 intervention (continue |
+// pause | abort — NEVER `correct`, which is Sentry-2 / FAFF-278).
+//
+// Un-subvertable BY CONSTRUCTION: evaluateDerailment reads ONLY the normalized
+// orchestrator surface (a closed input allowlist). The supervised build subagent
+// returns only a terminal token and owns no field in Sentry's decision inputs — no
+// value it controls can flip a trip to continue (the no-write-path selftest pins this).
+//
+// CONSUME, never re-implement: budget-breach is `faff budget check`'s {breached,
+// outcome} read via a CHILD invocation of THIS bin — Sentry owns no token/cost
+// counter. Liveness is owner.last_heartbeat staleness — no new liveness mechanism.
+//
+// `abort` leaves RESUMABLE state: commit in-flight worktree WIP to its branch
+// (park-protocol shape), mark the ledger `aborted-resumable`, never force-reset — the
+// run is re-enterable (no corrupt half-state; the in-flight issue stays undispatched
+// in the ledger so re-entry resumes it). Pure cores + a thin I/O wrapper + --selftest,
+// mirroring budget / heartbeat / events.
+// ===========================================================================
+
+const DERAILMENT_SIGNALS = new Set([
+  "fix-review-thrash", "budget-breach", "repeated-identical-failure",
+  "wall-clock-runaway", "scope-drift", "forbidden-side-effect-attempt",
+]);
+// The v1 intervention ladder, ASCENDING severity (index = rank). `correct` is
+// DELIBERATELY absent — that authority is the deferred Sentry-2 slice.
+const SENTRY_INTERVENTIONS = ["continue", "pause", "abort"];
+// The intervention a signal routes to WHEN IT TRIPS. warn-severity verdicts never
+// escalate past `continue`; scope-drift is advisory (warn-only ⇒ never reaches here).
+const SIGNAL_TRIP_INTERVENTION = {
+  "budget-breach": "abort",
+  "wall-clock-runaway": "abort",
+  "repeated-identical-failure": "abort",
+  "forbidden-side-effect-attempt": "abort",
+  "fix-review-thrash": "pause",
+  "scope-drift": "continue",
+};
+// v1 default thresholds — config values (overridable via `.faffrc` sentry.*).
+// stall_window mirrors the heartbeat staleness window for consistency.
+const SENTRY_THRESHOLD_DEFAULTS = {
+  thrash_n: 3,                                      // >=N build-starts on one issue, no ship → trip
+  failure_k: 3,                                     // same failure fingerprint >=K times → trip
+  stall_window_secs: RUN_HEARTBEAT_STALE_SECS_DEFAULT, // heartbeat staleness ceiling (900s)
+  run_elapsed_ceiling_secs: 14400,                  // 4h wall-clock run-elapsed ceiling
+};
+
+// Resolve thresholds from config, falling back to the documented v1 defaults. A
+// non-positive / non-numeric config value falls back (never weakens to 0/∞ silently).
+function sentryThresholds(cfg) {
+  const d = SENTRY_THRESHOLD_DEFAULTS;
+  const num = (v, def) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : def; };
+  return {
+    thrash_n: num(dig(cfg, "sentry.thrash_n"), d.thrash_n),
+    failure_k: num(dig(cfg, "sentry.failure_k"), d.failure_k),
+    stall_window_secs: num(dig(cfg, "sentry.stall_window_secs"), d.stall_window_secs),
+    run_elapsed_ceiling_secs: num(dig(cfg, "sentry.run_elapsed_ceiling_secs"), d.run_elapsed_ceiling_secs),
+  };
+}
+
+// Coerce a raw signal bundle onto the CLOSED orchestrator-surface input set. This is
+// the structural heart of the un-subvertable property (AC5): only these keys are ever
+// read, so any foreign key a supervised subagent might inject is dropped here and never
+// reaches a predicate. Never throws.
+function normalizeSentrySignals(raw) {
+  const r = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  const b = (r.budget && typeof r.budget === "object" && !Array.isArray(r.budget)) ? r.budget : {};
+  return {
+    events: Array.isArray(r.events) ? r.events.filter((e) => e && typeof e === "object") : [],
+    ledger: (r.ledger && typeof r.ledger === "object" && !Array.isArray(r.ledger)) ? r.ledger : {},
+    budget: {
+      breached: Array.isArray(b.breached) ? b.breached.filter((x) => typeof x === "string") : [],
+      outcome: typeof b.outcome === "string" ? b.outcome : "none",
+    },
+    now_ms: Number.isFinite(r.now_ms) ? r.now_ms : Date.now(),
+    // Advisory hints the ORCHESTRATOR (never the build subagent) may set; default off.
+    scope_drift: r.scope_drift === true,
+    forbidden_side_effect: r.forbidden_side_effect === true,
+  };
+}
+
+// owner.last_heartbeat age in seconds (null if absent/unparseable). Reused from the
+// FAFF-205 liveness model — Sentry derives nothing new.
+function sentryHeartbeatAgeSecs(ledger, nowMs) {
+  const owner = ledger && ledger.owner;
+  if (!owner) return null;
+  const t = Date.parse(owner.last_heartbeat);
+  return Number.isFinite(t) ? (nowMs - t) / 1000 : null;
+}
+function sentryRunElapsedSecs(ledger, nowMs) {
+  const owner = ledger && ledger.owner;
+  if (!owner) return null;
+  const t = Date.parse(owner.started_at);
+  return Number.isFinite(t) ? (nowMs - t) / 1000 : null;
+}
+
+// --- per-trigger predicates (PURE; each returns a DerailmentVerdict or null) ---
+
+// budget-breach — CONSUMED from `faff budget check`'s {breached,outcome}; NO token/cost
+// math here. stop/escalate are hard breaches (trip); narrow is a soften (warn).
+function evalBudgetBreach(budget) {
+  if (!budget || !Array.isArray(budget.breached) || budget.breached.length === 0) return null;
+  const outcome = budget.outcome;
+  const severity = (outcome === "stop" || outcome === "escalate") ? "trip" : "warn";
+  return { signal: "budget-breach", severity, evidence: { budget_outcome: outcome, breached: budget.breached.slice() } };
+}
+
+// wall-clock-runaway — heartbeat staleness beyond the window OR run-elapsed beyond the
+// ceiling. Only a RUNNING owner can run away (a done/unowned run never trips).
+function evalWallClock(ledger, nowMs, th) {
+  const owner = ledger && ledger.owner;
+  if (!owner || owner.status !== "running") return null;
+  const age = sentryHeartbeatAgeSecs(ledger, nowMs);
+  const elapsed = sentryRunElapsedSecs(ledger, nowMs);
+  const staleTrip = age != null && age > th.stall_window_secs;
+  const elapsedTrip = elapsed != null && elapsed > th.run_elapsed_ceiling_secs;
+  if (!staleTrip && !elapsedTrip) return null;
+  return {
+    signal: "wall-clock-runaway", severity: "trip",
+    evidence: {
+      ledger_field: "owner.last_heartbeat",
+      heartbeat_age_secs: age != null ? Math.round(age) : null,
+      run_elapsed_secs: elapsed != null ? Math.round(elapsed) : null,
+      tripped_on: staleTrip ? "heartbeat-staleness" : "run-elapsed",
+    },
+  };
+}
+
+// fix-review-thrash — >= thrash_n build-start events for ONE issue with no shipped
+// outcome (a re-dispatch loop making no progress). Event-derived → coarse by design.
+function evalThrash(events, th) {
+  const starts = {}, lastSeq = {}, shipped = new Set();
+  for (const e of events) {
+    if (e.type === "build-start" && e.issue) {
+      starts[e.issue] = (starts[e.issue] || 0) + 1;
+      if (Number.isInteger(e.seq)) lastSeq[e.issue] = e.seq;
+    }
+    if (e.type === "issue-outcome" && e.issue && e.data && e.data.outcome === "shipped") shipped.add(e.issue);
+  }
+  let worst = null;
+  for (const issue of Object.keys(starts)) {
+    if (shipped.has(issue)) continue;
+    if (starts[issue] >= th.thrash_n && (!worst || starts[issue] > worst.count)) {
+      worst = { issue, count: starts[issue], seq: lastSeq[issue] };
+    }
+  }
+  if (!worst) return null;
+  return { signal: "fix-review-thrash", severity: "trip", evidence: { issue: worst.issue, build_starts: worst.count, event_seq: worst.seq ?? null } };
+}
+
+// repeated-identical-failure — same failure fingerprint >= failure_k times. A failure
+// is a park event or an errored issue-outcome; the fingerprint prefers an explicit
+// data.fingerprint, else issue + the failure key.
+function sentryFailureFingerprint(e) {
+  if (e.data && typeof e.data.fingerprint === "string" && e.data.fingerprint) return e.data.fingerprint;
+  const issue = e.issue || "?";
+  if (e.type === "park") return `${issue}:park:${(e.data && (e.data.reason || e.data.root_cause)) || "park"}`;
+  if (e.type === "issue-outcome") return `${issue}:outcome:${(e.data && e.data.outcome) || "?"}`;
+  return null;
+}
+function evalRepeatedFailure(events, th) {
+  const counts = {}, lastSeq = {};
+  for (const e of events) {
+    const isFailure = (e.type === "park") || (e.type === "issue-outcome" && e.data && e.data.outcome === "errored");
+    if (!isFailure) continue;
+    const fp = sentryFailureFingerprint(e);
+    if (!fp) continue;
+    counts[fp] = (counts[fp] || 0) + 1;
+    if (Number.isInteger(e.seq)) lastSeq[fp] = e.seq;
+  }
+  let worst = null;
+  for (const fp of Object.keys(counts)) {
+    if (counts[fp] >= th.failure_k && (!worst || counts[fp] > worst.count)) worst = { fp, count: counts[fp], seq: lastSeq[fp] };
+  }
+  if (!worst) return null;
+  return { signal: "repeated-identical-failure", severity: "trip", evidence: { fingerprint: worst.fp, count: worst.count, event_seq: worst.seq ?? null } };
+}
+
+// scope-drift — ADVISORY (warn only, never trips). v1 heuristic: surfaced when the
+// orchestrator flags it (signals.scope_drift) or an event carries data.scope_drift.
+function evalScopeDrift(signals) {
+  let seq = null, hit = signals.scope_drift === true;
+  for (const e of signals.events) {
+    if (e.data && e.data.scope_drift === true) { hit = true; if (Number.isInteger(e.seq)) seq = e.seq; }
+  }
+  if (!hit) return null;
+  return { signal: "scope-drift", severity: "warn", evidence: { event_seq: seq, advisory: true } };
+}
+
+// forbidden-side-effect-attempt — consumes the FAFF-42 boundary. DEGRADES to no-signal
+// in v1 (no FAFF-42 runtime emitter is wired yet) unless the orchestrator supplies the
+// signal (signals.forbidden_side_effect / an event data.forbidden_side_effect).
+function evalForbiddenSideEffect(signals) {
+  let seq = null, hit = signals.forbidden_side_effect === true;
+  for (const e of signals.events) {
+    if (e.data && e.data.forbidden_side_effect === true) { hit = true; if (Number.isInteger(e.seq)) seq = e.seq; }
+  }
+  if (!hit) return null;
+  return { signal: "forbidden-side-effect-attempt", severity: "trip", evidence: { event_seq: seq } };
+}
+
+// Fold the surface into the verdict set + the chosen v1 intervention. Reads ONLY the
+// normalized orchestrator surface (AC5: no subagent-controlled field is consulted). The
+// aggregate intervention is the ladder-max over tripped verdicts; warn-only ⇒ continue.
+function evaluateDerailment(rawSignals, thresholds) {
+  const s = normalizeSentrySignals(rawSignals);
+  const th = thresholds || SENTRY_THRESHOLD_DEFAULTS;
+  const verdicts = [];
+  const push = (v) => { if (v && DERAILMENT_SIGNALS.has(v.signal) && (v.severity === "warn" || v.severity === "trip")) verdicts.push(v); };
+  push(evalBudgetBreach(s.budget));
+  push(evalWallClock(s.ledger, s.now_ms, th));
+  push(evalThrash(s.events, th));
+  push(evalRepeatedFailure(s.events, th));
+  push(evalScopeDrift(s));
+  push(evalForbiddenSideEffect(s));
+
+  let intervention = "continue", tripped = false;
+  for (const v of verdicts) {
+    if (v.severity !== "trip") continue;
+    tripped = true;
+    const mapped = SIGNAL_TRIP_INTERVENTION[v.signal] || "pause";
+    if (SENTRY_INTERVENTIONS.indexOf(mapped) > SENTRY_INTERVENTIONS.indexOf(intervention)) intervention = mapped;
+  }
+  return { verdicts, intervention, tripped };
+}
+
+// PURE ledger-mark for `abort` (mirrors applyHeartbeat). Records an `aborted-resumable`
+// abort entry + flips a RUNNING owner to status aborted-resumable. NEVER resurrects a
+// done/unowned run, NEVER force-resets, NEVER writes outcomes — the in-flight issue
+// stays undispatched so the run is re-enterable. Returns { marked }.
+function applySentryAbort(ledger, rec) {
+  if (!ledger || typeof ledger !== "object") return { marked: false };
+  ledger.abort = {
+    status: "aborted-resumable",
+    at: rec.at,
+    ...(rec.issue ? { issue: rec.issue } : {}),
+    ...(rec.signal ? { signal: rec.signal } : {}),
+    ...(rec.wip_commit ? { wip_commit: rec.wip_commit } : {}),
+  };
+  const owner = ledger.owner;
+  if (owner && owner.status === "running") owner.status = "aborted-resumable";
+  return { marked: true };
+}
+
+// Read the run's append-only event log into a record array (absent ⇒ []). Tolerant of
+// blank/unparseable lines (parity with `events read`). READ-ONLY.
+function sentryReadEvents(runDir) {
+  const p = path.join(runDir, "events.jsonl");
+  if (!fs.existsSync(p)) return [];
+  return fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "")
+    .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+}
+
+// CONSUME `faff budget check --json` via a CHILD invocation of THIS bin — FAFF-36 owns
+// the math; Sentry never re-derives a counter. Any failure ⇒ the unbreached default.
+function sentryReadBudget(runDir) {
+  try {
+    const r = spawnSync(process.execPath, [__filename, "budget", "check", "--json", "--run-dir", runDir], { encoding: "utf8" });
+    if (r.status === 0 && r.stdout) {
+      const j = JSON.parse(r.stdout.trim());
+      return { breached: Array.isArray(j.breached) ? j.breached : [], outcome: typeof j.outcome === "string" ? j.outcome : "none" };
+    }
+  } catch { /* fall through to the unbreached default */ }
+  return { breached: [], outcome: "none" };
+}
+
+function cmdSentry(args) {
+  if (args.includes("--selftest")) return sentrySelftest();
+  const sub = args.find((a) => !a.startsWith("-"));
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const asJson = args.includes("--json");
+  const root = get("--root") || findRoot();
+
+  let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
+  if (!runDir) runDir = latestRunDir(root);
+
+  if (sub === "check") {
+    const [cfg] = loadConfig(root);
+    const th = sentryThresholds(cfg);
+    let ledger = {}, events = [], budget = { breached: [], outcome: "none" };
+    if (runDir) {
+      try { ledger = readLedger(runDir); } catch { ledger = {}; }
+      events = sentryReadEvents(runDir);
+      const injected = get("--budget-json"); // hermetic-test hook; default CONSUMES the CLI
+      budget = injected
+        ? (() => { try { return JSON.parse(injected); } catch { return { breached: [], outcome: "none" }; } })()
+        : sentryReadBudget(runDir);
+    }
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: Date.now() }, th);
+    const payload = { run_dir: runDir || null, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th };
+    if (asJson) { console.log(JSON.stringify(payload)); return 0; }
+    if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
+    else {
+      console.log(`sentry: ${result.verdicts.length} verdict(s) — intervention: ${result.intervention}${result.tripped ? " (TRIP)" : ""}`);
+      for (const v of result.verdicts) console.log(`  - ${v.signal} [${v.severity}]`);
+    }
+    return 0; // report-only; the orchestrator acts on the intervention
+  }
+
+  if (sub === "abort") {
+    if (!runDir) { process.stderr.write("faff sentry abort: no run dir (pass --run-dir, set $FAFF_RUN_DIR, or run inside a run)\n"); return 3; }
+    let ledger;
+    try { ledger = readLedger(runDir); }
+    catch (e) { process.stderr.write(`faff sentry abort: malformed ledger in ${runDir}: ${e.message}\n`); return 2; }
+    const issue = get("--issue"), signal = get("--signal"), worktree = get("--worktree");
+    let wipCommit = null;
+    if (worktree) {
+      // Commit in-flight WIP to the branch — park-protocol shape, NEVER force-reset.
+      try {
+        const isRepo = spawnSync("git", ["-C", worktree, "rev-parse", "--is-inside-work-tree"], { encoding: "utf8" });
+        if (isRepo.status === 0) {
+          const st = spawnSync("git", ["-C", worktree, "status", "--porcelain"], { encoding: "utf8" });
+          if (st.status === 0 && st.stdout.trim() !== "") {
+            spawnSync("git", ["-C", worktree, "add", "-A"], { encoding: "utf8" });
+            const msg = `wip: sentry abort (resumable)${issue ? " " + issue : ""}${signal ? " — " + signal : ""}`;
+            const ci = spawnSync("git", ["-C", worktree, "commit", "-m", msg], { encoding: "utf8" });
+            if (ci.status === 0) {
+              const sha = spawnSync("git", ["-C", worktree, "rev-parse", "HEAD"], { encoding: "utf8" });
+              if (sha.status === 0) wipCommit = sha.stdout.trim();
+            }
+          }
+        }
+      } catch { /* WIP commit is best-effort; the ledger mark still records the abort */ }
+    }
+    applySentryAbort(ledger, { issue, signal, wip_commit: wipCommit, at: new Date().toISOString() });
+    atomicWriteLedger(runDir, ledger);
+    const payload = { run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null, wip_commit: wipCommit };
+    if (asJson) console.log(JSON.stringify(payload));
+    else console.log(`sentry: run aborted (resumable)${wipCommit ? ` — WIP committed ${wipCommit.slice(0, 8)}` : ""}; ledger marked aborted-resumable`);
+    return 0;
+  }
+
+  process.stderr.write("faff sentry: expected one of check | abort (or --selftest)\n");
+  return 2;
+}
+
+// In-memory selftest of the pure cores (mirrors budget/heartbeat/events --selftest).
+// No filesystem, no tracker, no child process — drives the predicates, the aggregation,
+// the abort mark, and the AC5 no-write-path property directly.
+function sentrySelftest() {
+  let fail = 0;
+  const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
+  const NOW = Date.parse("2026-06-29T12:00:00Z");
+  const ago = (s) => new Date(NOW - s * 1000).toISOString();
+  const TH = SENTRY_THRESHOLD_DEFAULTS;
+
+  // --- budget-breach: consumes {breached,outcome}, no own counter (AC2) ---
+  const b1 = evalBudgetBreach({ breached: ["max_attempts"], outcome: "escalate" });
+  ok("budget escalate → trip", b1 && b1.severity === "trip" && b1.evidence.budget_outcome === "escalate");
+  ok("budget stop → trip", evalBudgetBreach({ breached: ["until"], outcome: "stop" }).severity === "trip");
+  ok("budget narrow → warn", evalBudgetBreach({ breached: ["tokens"], outcome: "narrow" }).severity === "warn");
+  ok("budget unbreached → null", evalBudgetBreach({ breached: [], outcome: "none" }) === null);
+
+  // --- wall-clock-runaway: heartbeat staleness (AC3) + run-elapsed ceiling ---
+  const stale = { owner: { status: "running", last_heartbeat: ago(TH.stall_window_secs + 60), started_at: ago(100) } };
+  const w1 = evalWallClock(stale, NOW, TH);
+  ok("stale heartbeat → trip (AC3)", w1 && w1.severity === "trip" && w1.evidence.tripped_on === "heartbeat-staleness");
+  ok("fresh heartbeat → null", evalWallClock({ owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } }, NOW, TH) === null);
+  const longrun = { owner: { status: "running", last_heartbeat: ago(10), started_at: ago(TH.run_elapsed_ceiling_secs + 60) } };
+  ok("run-elapsed over ceiling → trip", evalWallClock(longrun, NOW, TH).evidence.tripped_on === "run-elapsed");
+  ok("done owner never runs away", evalWallClock({ owner: { status: "done", last_heartbeat: ago(99999), started_at: ago(99999) } }, NOW, TH) === null);
+  ok("ownerless ledger → null", evalWallClock({}, NOW, TH) === null);
+
+  // --- fix-review-thrash ---
+  const thr = [{ type: "build-start", issue: "A", seq: 0 }, { type: "build-start", issue: "A", seq: 1 }, { type: "build-start", issue: "A", seq: 2 }];
+  const t1 = evalThrash(thr, TH);
+  ok("3 build-starts no ship → trip", t1 && t1.signal === "fix-review-thrash" && t1.evidence.build_starts === 3);
+  ok("2 build-starts → null", evalThrash(thr.slice(0, 2), TH) === null);
+  ok("3 build-starts then shipped → null", evalThrash([...thr, { type: "issue-outcome", issue: "A", data: { outcome: "shipped" }, seq: 3 }], TH) === null);
+
+  // --- repeated-identical-failure ---
+  const fEv = [0, 1, 2].map((seq) => ({ type: "issue-outcome", issue: "B", data: { outcome: "errored", fingerprint: "boom" }, seq }));
+  const r1 = evalRepeatedFailure(fEv, TH);
+  ok("3 identical failures → trip", r1 && r1.signal === "repeated-identical-failure" && r1.evidence.count === 3);
+  ok("2 identical failures → null", evalRepeatedFailure(fEv.slice(0, 2), TH) === null);
+  ok("distinct failures under K → null", evalRepeatedFailure([
+    { type: "park", issue: "C", data: { reason: "x" }, seq: 0 }, { type: "park", issue: "C", data: { reason: "y" }, seq: 1 },
+  ], TH) === null);
+
+  // --- scope-drift advisory (warn, never trip); forbidden-side-effect degraded ---
+  const sd = evalScopeDrift(normalizeSentrySignals({ scope_drift: true }));
+  ok("scope-drift → warn advisory", sd && sd.severity === "warn" && sd.evidence.advisory === true);
+  ok("no scope-drift → null", evalScopeDrift(normalizeSentrySignals({})) === null);
+  ok("forbidden-side-effect degraded → null", evalForbiddenSideEffect(normalizeSentrySignals({})) === null);
+  ok("forbidden-side-effect flagged → trip", evalForbiddenSideEffect(normalizeSentrySignals({ forbidden_side_effect: true })).severity === "trip");
+
+  // --- intervention aggregation (ladder-max) ---
+  const aggAbort = evaluateDerailment({ budget: { breached: ["max_attempts"], outcome: "escalate" }, events: thr, ledger: {} }, TH);
+  ok("escalate+thrash → abort (max of pause,abort)", aggAbort.intervention === "abort" && aggAbort.tripped === true);
+  const aggPause = evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH);
+  ok("thrash only → pause", aggPause.intervention === "pause" && aggPause.tripped === true);
+  const aggCont = evaluateDerailment({ scope_drift: true, ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
+  ok("warn-only (scope-drift) → continue, not tripped", aggCont.intervention === "continue" && aggCont.tripped === false && aggCont.verdicts.length === 1);
+  const aggNone = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
+  ok("clean run → continue, no verdicts", aggNone.intervention === "continue" && aggNone.verdicts.length === 0);
+
+  // --- AC5: no-write-path — a supervised subagent's injected fields cannot flip a trip ---
+  const hostile = {
+    budget: { breached: ["max_attempts"], outcome: "escalate" }, // real orchestrator-surface trip
+    events: [], ledger: {},
+    // fields a build subagent might forge to subvert the kill — ALL must be ignored:
+    intervention: "continue", override: "continue", suppress: true, tripped: false,
+    terminal_token: { issue: "X", outcome: "shipped", pr: 1 }, verdicts: [], owner: { status: "done" },
+  };
+  const hv = evaluateDerailment(hostile, TH);
+  ok("AC5 hostile injected fields ignored — still aborts", hv.intervention === "abort" && hv.tripped === true);
+  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,ledger,now_ms,scope_drift");
+
+  // --- abort marker: resumable, outcomes preserved, owner flipped, no force-reset (AC4) ---
+  const led = { admitted: ["Z"], outcomes: {}, owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } };
+  applySentryAbort(led, { issue: "Z", signal: "budget-breach", wip_commit: "abc1234", at: ago(0) });
+  ok("abort marks ledger aborted-resumable", led.abort && led.abort.status === "aborted-resumable" && led.abort.wip_commit === "abc1234");
+  ok("abort flips running owner to aborted-resumable", led.owner.status === "aborted-resumable");
+  ok("abort preserves admitted/outcomes (resumable, no force-reset)", JSON.stringify(led.admitted) === JSON.stringify(["Z"]) && Object.keys(led.outcomes).length === 0);
+  const ledDone = { owner: { status: "done" } };
+  applySentryAbort(ledDone, { at: ago(0) });
+  ok("abort never resurrects a done owner", ledDone.owner.status === "done");
+
+  // --- `correct` is intentionally NOT in the v1 ladder (deferred to Sentry-2) ---
+  ok("ladder stops at abort (no `correct`)", !SENTRY_INTERVENTIONS.includes("correct") && SENTRY_INTERVENTIONS[SENTRY_INTERVENTIONS.length - 1] === "abort");
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (sentry --selftest, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
 // lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations /
 // numbered docs/adr pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
 // Slice 1 enforces docs/guide/** (the public user-guide surface); the SKILL.md
@@ -9491,6 +9923,7 @@ const COMMANDS = {
   "fixtures": cmdFixtures,
   "env": cmdEnv,
   "events": cmdEvents,
+  "sentry": cmdSentry,
   "gates": cmdGates,
   "contract": cmdContract,
   "doctor": cmdDoctor,

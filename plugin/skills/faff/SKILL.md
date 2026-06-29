@@ -610,11 +610,7 @@ Per-skill autonomous specifics live in each sub-skill's `Autonomous Mode` sectio
 
 ### Appetite for destruction
 
-A suite-wide dial (`appetite: low | medium | high | full` in `.faffrc`, default `high`) that tunes how much agency the entire faff pipeline has — build decisions, methodology actions, backlog management, and every pluggable skill that accepts it. The name signals the underlying tradeoff: more autonomous decisions ship faster but accept a small rate of "wrong call, revert it."
-
-The reason this dial exists: the autonomous pipeline's value collapses when it brings every minor call back to the human. A pipeline that parks on every `confidence: medium`, every Punt, every gap-blocked verdict, every methodology finding, demands the same input from the human as building the thing manually would — except now they have to also context-switch into "interpret faff's parks" mode each time. The human's control over project direction lives in the **spec** (front-loaded, considered architecture); past the spec gate, appetite governs how much the pipeline executes without checking back.
-
-Every faff sub-skill and every pluggable skill reads the current appetite level. The four levels:
+A suite-wide dial (`appetite: low | medium | high | full` in `.faffrc`, default `high`) that tunes how much agency the entire faff pipeline has — build decisions, methodology actions, backlog management, and every pluggable skill that accepts it. The name signals the tradeoff: more autonomous decisions ship faster but accept a small rate of "wrong call, revert it." The pipeline's value collapses if every minor call goes back to the human, so control over project direction lives in the **spec** (front-loaded architecture); past the spec gate, appetite governs how much the pipeline executes without checking back. Every faff sub-skill reads the current appetite level. The four levels:
 
 | Level | Intent |
 |---|---|
@@ -623,7 +619,7 @@ Every faff sub-skill and every pluggable skill reads the current appetite level.
 | `high` (default) | Confident — proceed on defensible calls with an audit trail; park architectural/irreversible only. |
 | `full` | Maximum agency — resolve everything resolvable, document, proceed; only the hard floor below ever stops it. |
 
-Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The one table the gateway keeps is the appetite-modulation of two shared contracts — resolve-attempt (gateway-owned) and automation-routing (the `routing_adaptor` slot):
+Each skill that accepts appetite **documents its own per-level response** in its `SKILL.md`. The gateway owns the level vocabulary and the hard floor; it does not restate per-skill behaviour. The tables the gateway keeps are the appetite-modulation of the shared contracts — resolve-attempt (gateway-owned), automation-routing (the `routing_adaptor` slot), and the methodology's tracker-topology writes (below):
 
 #### Build pipeline (modulation of the resolve-attempt + automation-routing contracts)
 
@@ -638,24 +634,35 @@ Each skill that accepts appetite **documents its own per-level response** in its
 | Execution-discovered auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if the item is concrete | Always — every concrete discovered item gets a ticket |
 | Outward / new-root auto-create (FAFF-221) | **Never** | **Never** | **Never** | **Never (hard floor)** |
 
-The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-graft recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing `faff-chain-gap-fill` tickets before filing.
-
-The **Outward / new-root** row (FAFF-217 / FAFF-221) is the scope-containment floor: an item whose `faff contain` verdict is `outward-new-root` — its intended parent falls outside the subtree of the mandate the autonomous run holds — is **never** auto-filed at any level, including `full` (it is recorded `containment: outward-new-root` and surfaced for a human to create interactively). Both autonomous create chokepoints (`/faff-beep-boop` §10, `/faff-tidy` chain-gap auto-fill) run the check before the appetite gate; see `/faff-beep-boop` → _Containment at the filing chokepoint_.
+The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-graft recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing `faff-chain-gap-fill` tickets before filing. The **Outward / new-root** row is the scope-containment floor — see the matching hard-floor bullet below.
 
 The methodology slot's per-level response lives in the configured methodology skill. The review slot's per-level response lives in the configured review skill — note that review quality never loosens at any level (see the hard floor below).
+
+#### Topology-write authority (modulation of the methodology's tracker-topology writes)
+
+The third shared-contract modulation (sibling of the table above). *Topology* is the tracker's structural ground truth — the dependency graph, blocker edges, and which project / parent a ticket sits under; reparenting, converting, rehoming a gating chain, or defaulting where new work lands are all **topology writes**. This dial sets how much of that authority the methodology holds per level (vocabulary gateway-owned; per-principle flavour stays in the configured methodology skill):
+
+| Appetite | Methodology's authority over tracker topology |
+|---|---|
+| `low` | Surface only — zero topology writes; topology stays 100% human-owned. |
+| `medium` | Unambiguous, low-judgement ops only (e.g. the default-landing op); no reparent / convert. |
+| `high` (default) | Act on clear cases — drag a blocker in, spin a follow-up project, reorder, rehome a gating chain; **propose** scope-cuts for human confirm. |
+| `full` | Own project formation + scope end-to-end; one pass, fully logged. |
+
+- **Guardrails (every write).** *Anti-thrash:* the tracker is re-read each pass (the lights-out control-plane), so every write is **idempotent** — a rehome A→B never flips back B→A (mirrors the authored-record thrash-guard). *Legibility-preserver (matched pair):* "new work lands in plain backlog, never auto-filed into a project" constrains inflow precisely *because* the higher levels grant more topology power.
+- **Invariants (every level, incl. `full`).** *Reversibility floor:* reparent / convert / rehome (reversible) ⇒ allowed; cancel / delete (lost scope) ⇒ forbidden always — the hard floor's "no level cancels/deletes; `full` adds but never removes scope" (below), named for the topology axis, **not** a second rule. *DoD ceiling:* moves stay *beneath* the human-owned DoD / PRD (recursive-setpoint — rearrange the means, never redefine the ends).
+- **Composition (load-bearing).** The dial governs **faff-authored / methodology-derived** topology only; it does **not** punch through **Never silently restructure human-curated structure** (→ **Shared Rules**) — human-curated grouping / ordering / blockers stay **propose-and-confirm at every level**, detected by the existing provenance rule (faff-authored structure carries faff's own markers; everything else is the human's). It *adds the topology axis to* the hard floor below; it never relaxes it.
 
 #### What appetite NEVER changes (hard floor — applies at ALL levels including `full`)
 
 - **Destructive / irreversible operations still park.** Anything that can't be undone with `git revert` and a redeploy still escalates — production data, secrets, external messaging, irreversible cloud-resource changes.
 - **User-explicit "ask first" rules** in the `slots` config, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
 - **Cancellation / deletion** of issues or workstreams. No appetite level autonomously cancels or deletes. `full` adds scope (splits, merges, new tickets) but never removes it.
-- **Outward / new-root autonomous create (FAFF-221).** An autonomous-discovered item whose intended parent is outside the subtree of the run's mandate (`faff contain` → `outward-new-root`) is **never** auto-filed, at any level including `full`. The two create chokepoints surface it for a human to create interactively; no `--via fast-track` self-call converts it.
+- **Outward / new-root autonomous create (FAFF-221).** An autonomous-discovered item whose intended parent is outside the subtree of the run's mandate (`faff contain` → `outward-new-root`) is **never** auto-filed, at any level including `full` (recorded `containment: outward-new-root`). Both create chokepoints (`/faff-beep-boop` §10, `/faff-tidy` chain-gap auto-fill) run the check before the appetite gate and surface it for a human to create interactively (see `/faff-beep-boop` → _Containment at the filing chokepoint_); no `--via fast-track` self-call converts it.
 - **Review runs and gates.** `full` does not skip or weaken the review. If it fails, the pipeline iterates or parks — never overrides.
 - **Spec quality.** Front-loaded prep still aims for `confidence: high`. `full` resolves more aggressively past the spec gate but doesn't lower the bar for what constitutes a good spec.
 
-**Audit trail.** Every appetite-influenced decision writes a tracker comment in the same shape as the standard resolve-attempt, tagged `(appetite: high)`:
-
-> _Faff autonomous resolve-attempt (appetite: high):_ The spec rated this `confidence: medium` on the storage-layer choice between Redis and Postgres. The codebase uses Postgres for every other persistence site (`src/db/*`) and Redis only for caching in `src/cache.ts`. Proceeding with Postgres. **If this is wrong, comment on this PR before merge and faff will re-park.**
+**Audit trail.** Every appetite-influenced decision writes a tracker comment in the standard resolve-attempt shape (see **Resolve-attempt before park** → Audit trail), tagged `(appetite: high)` — e.g. a `confidence: medium` storage choice resolved to Postgres because every other persistence site uses it.
 
 **Calibration.** High-appetite decisions accumulate in `.faff/calibration/appetite-decisions/<issue-id>.md` (same shape as the existing calibration logs). If `appetite: high` produces an elevated rate of wrong-inferences or post-merge-reverts, the next `/faff-tidy` calibration-signal pass surfaces the pattern and recommends dialling back to `medium` for the affected work areas. This is how the human keeps directional control without micro-managing every call — they see what got decided across a run, not approve each one inline.
 
@@ -663,11 +670,7 @@ The methodology slot's per-level response lives in the configured methodology sk
 
 ### Resolve-attempt before park
 
-Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing verdict (fixed)**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments).
-
-`repeat-parked` does **not** get a resolve-attempt — the pattern itself signals that a human needs to act.
-
-**Why this exists.** Interactive Claude routinely completes work that autonomous Claude parks, because the autonomous gate is over-literal: it checks for a marker (`Punt:`, `TBD`, `needs human`) and parks on the marker's existence. Interactive Claude reads the same marker, evaluates whether the answer is actually obvious from the codebase, and proceeds. The resolve-attempt gives autonomous mode the same evaluative step, with a safety log.
+Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing verdict (fixed)**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments). `repeat-parked` does **not** get one — the pattern itself signals that a human needs to act.
 
 **Per-verdict resolve rules:**
 
@@ -677,17 +680,13 @@ Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` v
 | `gap-blocked` (external dep doesn't exist) | Re-read the dependency claim. Determine whether the named dep is **load-bearing** (the work can't proceed without it) or **precautionary** (the spec mentioned it but the work can complete without). | Dep is precautionary — work can proceed; the dep can be filed as a future issue | Dep is load-bearing — actually needed for the work to compile / pass tests |
 | `circular-blocked` (in dep cycle) | Re-read each edge of the cycle. Determine whether breaking one specific edge is mechanically obvious — e.g. "A blocks B" was added defensively but A's spec doesn't actually depend on B's output. | A break-edge is unambiguous (spec doesn't load-bear on it) — proceed by serialising remaining edges as a collision group | Every edge looks load-bearing — the cycle is real and a human has to redesign |
 
-**Boundedness.** The attempt reads at most **3 files outside the spec's named scope** at `medium` appetite. At `high` appetite (default) the budget grows to **5 files**. Beyond the budget, treat as park. Keeps cost contained and avoids rabbit-hole investigations.
-
-**Appetite-aware thresholds.** At `appetite: high` (see **Appetite for destruction**), each row's "Proceed if" column widens — a single *defensible* answer is enough where `medium` appetite requires a single *clear* answer. The "Park if" thresholds narrow correspondingly: architectural calls still escalate, but stylistic or convention-following calls proceed with the audit-trail comment. At `appetite: low`, resolve-attempt does not run at all — every flagged verdict parks.
+**Boundedness + appetite.** The attempt reads at most **3 files outside the spec's named scope** at `medium` appetite, **5** at `high` (default); beyond the budget, treat as park. At `high` each row's "Proceed if" widens — a single *defensible* answer suffices where `medium` needs a single *clear* one (architectural calls still escalate); at `low`, resolve-attempt does not run at all — every flagged verdict parks.
 
 **Audit trail.** A proceeding resolve-attempt **always writes a tracker comment** in this format:
 
 > _Faff autonomous resolve-attempt:_ The spec flagged this as `Punt: cron vs queue-driven send` but the codebase uses cron in every other scheduled-job site (`src/jobs/*`). Proceeding with cron. **If this is wrong, comment on this PR before merge and faff will re-park.**
 
-This makes the inference reviewable. The human sees what was decided and why; the PR can be flipped back to draft if the call was wrong; the merge-confidence gate is the backstop.
-
-**What resolve-attempt does NOT do.** It does not bypass existing autonomous safety boundaries. Side-effects-outside-PR-flow (per the rules above) still park unconditionally. Destructive operations still park unconditionally. The resolve-attempt only applies to the three verdicts above, where over-literal marker matching is the dominant park-cause.
+The PR can be flipped back to draft if the call was wrong; the merge-confidence gate is the backstop. **Scope:** resolve-attempt bypasses no safety boundary — side-effects-outside-PR-flow and destructive operations still park unconditionally — and applies only to the three verdicts above, where over-literal marker matching is the dominant park-cause.
 
 ### Calibration log
 

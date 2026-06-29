@@ -6511,11 +6511,21 @@ function cmdDoctor(args) {
 
   console.log(`faff doctor — install health (${target})`);
   let copies = 0;
+  let dangling = 0;
   for (const name of entries) {
+    const full = path.join(target, name);
     let st;
-    try { st = fs.lstatSync(path.join(target, name)); } catch { continue; }
+    try { st = fs.lstatSync(full); } catch { continue; }
     if (st.isSymbolicLink()) {
-      console.log(`  ✓ ${name}  symlink (live → repo)`);
+      // A symlink is healthy only if its target resolves. lstat answers "is-a-symlink"
+      // without following the link, so a dangling link (a rename-orphan, FAFF-296) reads
+      // as healthy. existsSync follows the link — false ⇒ target gone ⇒ dangling. (FAFF-299)
+      if (fs.existsSync(full)) {
+        console.log(`  ✓ ${name}  symlink (live → repo)`);
+      } else {
+        dangling++;
+        console.log(`  ✗ ${name}  symlink-dangling (target gone — stale orphan)`);
+      }
     } else {
       copies++;
       console.log(`  ✗ ${name}  COPY — not dev-linked; shipped changes won't go live`);
@@ -6527,9 +6537,9 @@ function cmdDoctor(args) {
     console.log(`  ${bst.isSymbolicLink() ? "✓" : "•"} bin/faff  ${bst.isSymbolicLink() ? "symlink (live)" : "real file (copy)"}`);
   } catch { /* bin link optional */ }
 
-  if (copies > 0) {
-    console.log(`\nRESULT: ${copies} skill(s) are COPIES, not dev-linked — repo changes are NOT live.`);
-    console.log(`Fix: bash scripts/link-skills.sh --global --replace`);
+  if (copies > 0 || dangling > 0) {
+    console.log(`\nRESULT: ${copies} copy / ${dangling} dangling skill link(s) — install is not clean.`);
+    console.log(`Fix: bash scripts/link-skills.sh --global --replace --prune`);
     return 1;
   }
   console.log(`\nRESULT: all faff skills are dev-linked (symlinks) — repo is live.`);

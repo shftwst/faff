@@ -11,7 +11,7 @@ The front door for new work — and the human's entry point to shape or gate a t
 One skill, three entry points — **not** separate commands per item type:
 
 - **Kick off an empty project** — greenfield. No tracker project yet, or an empty repo. Produces an initial structure: workstreams/containers and the first tickets to reach a usable v0.
-- **Capture a new feature, bug, or ticket** — single-item. An existing project. Produces one well-formed ticket (or a small set, if it genuinely splits), placed in the right workstream.
+- **Capture a new feature, bug, or ticket** — single-item. An existing project. Produces one well-formed ticket (or a small set, if it genuinely splits), landed wherever the `methodology` slot's `ticket-shaping` places it — a workstream/project home, or (the agile-lens default) project-less in Backlog.
 - **Shape or gate an existing ticket** — `/faff-jot ISSUE-XX`. *Not* new work: the human's conversational entry point to decide an existing ticket's **shape and eligibility** — v1 ships **crank up/crank down of automation eligibility** (`faff-automate`), plus the `faff-automation-hold` hard stop. Narrow remit (see **Existing-ticket interactor** below); never speccing, grooming, or building.
 
 ## Configuration
@@ -68,6 +68,8 @@ Hand the discovery brief to the configured `methodology` skill's **`ticket-shapi
 > "This looks application-scale — decompose into a full roadmap (initiatives → projects → first-slice epics) via `/faff-plot` first? (y/n)"
 
 On confirm, hand the **discovery brief** to the `faff-plot` skill via the Skill tool and stop here — do **not** also create the flat set (plot writes the skeleton, including the first-slice epics). On deny, or for a single-item / small greenfield brief, proceed with the flat create below exactly as before. The fork is a one-time offer at the shape boundary, not a new mode.
+
+**Default landing — act on the shaped container, never the methodology name.** Whether new work gets a project/container home is the `methodology` slot's call, returned by `ticket-shaping` (gateway → **The `methodology` slot**, Default landing): when it proposes a container, confirm and create it as below; when it proposes none, create the tickets **project-less in Backlog** and **skip the `prdr-author` proposal** (no container ⇒ no container DoD — the existing flat-set carve-out). Under the agile lens the no-container default is the norm, so the "under new project '<name>'" path is the **deliberate, opt-in branch** (the human picks it, or `/faff-plot` supplies it), never the capture-time default; greenfield kickoff is exempt — it is itself an explicit project creation. jot reads the shape it was handed; it never inspects which methodology is configured.
 
 Show the proposed structure (containers + tickets + relationships) and gate before writing:
 

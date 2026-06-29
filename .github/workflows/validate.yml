@@ -142,6 +142,9 @@ jobs:
       - name: Validate run-done terminating-condition predicate table (FAFF-38)
         run: node plugin/skills/faff/bin/faff run-done --selftest
 
+      - name: Validate sentry derailment-detection + kill-switch table (FAFF-49)
+        run: node plugin/skills/faff/bin/faff sentry --selftest
+
       - name: Validate run-termination contract script (FAFF-38)
         run: node plugin/skills/faff/bin/faff contract run-termination --selftest
 

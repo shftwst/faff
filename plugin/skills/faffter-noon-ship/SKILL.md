@@ -2,6 +2,7 @@
 name: faffter-noon-ship
 description: "Default `ship` producer — merges a gate-cleared PR (gh pr merge --squash), no-op deploy-readiness, emits a native delivery result + a faff-contract:delivery-outcome block faff-graft consumes. Swap for a deploy-capable producer. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
+judgement_seam: none
 ---
 
 # faffter-noon-ship

@@ -1,6 +1,7 @@
 ---
 name: faff-plot
 description: "Turn an application-scale idea into a planned, dependency-linked roadmap. Recurses a discovery brief top-down into initiatives → projects → first-slice epics. Use for 'plan this out', 'decompose this app', 'break this big thing into a roadmap', 'map out the whole project', 'plot the build'."
+judgement_seam: decomposition
 ---
 
 # faff-plot

@@ -6,7 +6,11 @@
 // (spec Decision 3). Flakiness — not accuracy — is the load-bearing metric, so we measure
 // per-case *signature* stability across reps, distinct from oracle accuracy.
 //
-// Zero-dependency: node builtins only. Pure functions — no clock / random / network.
+// Zero-dependency: node builtins only. The grade* functions are pure (no clock / random / network);
+// the one impurity is a fail-loud read of the sibling seam registry (eval/seam-registry.json) on
+// module load — see assertRegistryConsistent below (FAFF-280).
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // FAFF-146 — prep's three judgement surfaces join tidy's six. confidence + marker are isolatable
 // (black-box lane); reconciliation is execution-entangled (live-driver lane). All three grade through
@@ -102,6 +106,44 @@ const ADMITTED_VERDICTS = new Set(["fire-and-forget", "likely-fire"]);
 export const admits = (verdict) => ADMITTED_VERDICTS.has(verdict);
 
 export class CaseError extends Error {}
+
+// FAFF-280 — the seam registry (eval/seam-registry.json) is the single source of truth mapping each
+// grader KIND to the skill/slot whose LLM-judgement seam it backs. The grader keeps KINDS as its
+// executable enum but asserts, fail-loud on load, that the registry's KIND axis matches KINDS exactly
+// — so the two files can never drift. The equality is total because the registry lists all 18 KINDs.
+// `cases_present` is NOT sourced here; `status` (covered/designed) lives in the registry, coverage is
+// derived live from eval/cases/. Re-sourcing KINDS *from* the registry is a later ticket (OUT OF SCOPE).
+export function loadSeamRegistry() {
+  const p = fileURLToPath(new URL("./seam-registry.json", import.meta.url));
+  let raw;
+  try { raw = readFileSync(p, "utf8"); }
+  catch (e) { throw new CaseError(`seam-registry missing/unreadable at ${p}: ${e.message}`); }
+  let reg;
+  try { reg = JSON.parse(raw); }
+  catch (e) { throw new CaseError(`seam-registry malformed JSON at ${p}: ${e.message}`); }
+  if (!reg || typeof reg.kinds !== "object" || reg.kinds === null) {
+    throw new CaseError("seam-registry missing the `kinds` map");
+  }
+  return reg;
+}
+
+export function assertRegistryConsistent(registry) {
+  const registryKinds = Object.keys(registry.kinds);
+  const want = new Set(KINDS), got = new Set(registryKinds);
+  const missing = KINDS.filter((k) => !got.has(k));        // in KINDS, absent from registry
+  const extra = registryKinds.filter((k) => !want.has(k)); // in registry, absent from KINDS
+  if (missing.length || extra.length) {
+    const diff = [
+      missing.length ? `missing from registry: [${missing.join(", ")}]` : "",
+      extra.length ? `unknown in registry: [${extra.join(", ")}]` : "",
+    ].filter(Boolean).join("; ");
+    throw new CaseError(`seam-registry KINDS drift — ${diff}`);
+  }
+  return true;
+}
+
+// Fail loud on load: never silently grade against a registry whose KIND axis has drifted from KINDS.
+assertRegistryConsistent(loadSeamRegistry());
 
 // FAFF-146 — prep surfaces carry a non-backlog fixture (a spec body / decision sections / a comment
 // thread), so the harness reads the shape the kind expects rather than the tidy `issues[]` backlog.

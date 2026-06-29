@@ -2900,6 +2900,62 @@ function hasUserInvocableFalse(text) {
   return /^user-invocable:\s*false\b/m.test(m ? m[1] : "");
 }
 
+// FAFF-280: a skill declares its LLM-judgement seam(s) via a `judgement_seam:` frontmatter key,
+// sibling to name/description/user-invocable. Value is a comma-separated list of grader kind-ids
+// OR the literal `none` (asserted-deterministic, no seam). Read with the same frontmatter-regex
+// precedent as hasUserInvocableFalse. Returns: null (key ABSENT/undeclared) | "none" | string[] of
+// kind-ids. A single comma-scalar line (no YAML sequence — faff's frontmatter parsers carry no array).
+function readJudgementSeam(text) {
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const m = (fm ? fm[1] : "").match(/^judgement_seam:\s*(.+?)\s*$/m);
+  if (!m) return null;
+  const raw = m[1].trim();
+  if (raw === "none") return "none";
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+// FAFF-280: load eval/seam-registry.json (the seam→KIND SSOT) relative to the repo root (this CLI
+// lives at <root>/plugin/skills/faff/bin/faff). Returns { registry, error }. A plugin-only install
+// with no eval/ harness yields {registry:null, error:null} — nothing to reconcile. An eval/ dir WITH
+// a missing/malformed registry is a hard error (fail-loud, mirroring the grader consumer).
+function loadSeamRegistryForLint() {
+  const repoRoot = path.resolve(HERE, "..", "..", "..", "..");
+  const evalDir = path.join(repoRoot, "eval");
+  const regPath = path.join(evalDir, "seam-registry.json");
+  if (!fs.existsSync(evalDir)) return { registry: null, error: null };
+  if (!fs.existsSync(regPath)) return { registry: null, error: `eval/seam-registry.json not found (${regPath})` };
+  let reg;
+  try { reg = JSON.parse(fs.readFileSync(regPath, "utf8")); }
+  catch (e) { return { registry: null, error: `eval/seam-registry.json malformed JSON: ${e.message}` }; }
+  if (!reg || typeof reg.kinds !== "object" || reg.kinds === null) {
+    return { registry: null, error: "eval/seam-registry.json missing the `kinds` map" };
+  }
+  return { registry: reg, error: null };
+}
+
+// FAFF-280: reconcile a skill's `judgement_seam:` declaration against the registry. `declared`:
+// null (ABSENT — advisory-pass in FAFF-280; the absent→fail enforcement is FAFF-281) | "none" |
+// string[]. Surface matches the skill dir name. Returns [ok,label] tuples (empty when absent). The
+// canonical KIND set is the registry's own keys (== grader KINDS, asserted equal by the grader).
+function reconcileSeam(skillName, declared, registry) {
+  if (declared === null) return [];
+  const allKinds = Object.keys(registry.kinds);
+  const registered = allKinds.filter((k) => registry.kinds[k].surface === skillName);
+  if (declared === "none") {
+    return [[registered.length === 0,
+      registered.length
+        ? `declares \`none\` but registry maps [${registered.join(", ")}] to it`
+        : "judgement_seam: none — owns no registered KIND"]];
+  }
+  const unknown = declared.filter((k) => !allKinds.includes(k));
+  if (unknown.length) return [[false, `judgement_seam declares unknown KIND(s): ${unknown.join(", ")}`]];
+  const d = [...new Set(declared)].sort(), r = [...registered].sort();
+  const eq = d.length === r.length && d.every((k, i) => k === r[i]);
+  return [[eq, eq
+    ? "judgement_seam == registry surface rows"
+    : `judgement_seam mismatch — declared [${d.join(", ")}] vs registry [${r.join(", ")}]`]];
+}
+
 // .faffrc slot name → the conformance profile its occupant must satisfy. Lets the
 // --configured pre-flight derive the expected `checksFor` type from the slot alone,
 // so a third-party occupant (not in REGISTRY) can still be structurally linted.
@@ -3279,6 +3335,31 @@ function cmdValidateAdapters(args) {
     console.log(`FAIL  ${[...names].sort().join(", ")} (duplicated block)`);
     console.log(`        ✗ ${DUP_BLOCK_WINDOW}+ identical lines shared across skills — give shared prose one home (gateway) and reference it, never copy (FAFF-120/115)`);
     console.log(`          first line: "${key.split("\n")[0].slice(0, 70)}"`);
+  }
+
+  // FAFF-280: judgement-seam reconciliation — each skill's `judgement_seam:` frontmatter declaration
+  // must agree with the seam→KIND registry (eval/seam-registry.json). Absent key = advisory-pass here
+  // (the absent→fail enforcement is FAFF-281); `none` must own no registered KIND; an unknown kind-id,
+  // or a declared-set ≠ registry-rows mismatch, FAILS the skill. A missing/malformed registry (with an
+  // eval/ harness present) fails loud. Reuses allSkills above; surface == skill dir name.
+  {
+    const { registry: seamReg, error: seamErr } = loadSeamRegistryForLint();
+    if (seamErr) {
+      failed = true;
+      console.log(`FAIL  eval/seam-registry.json (seam registry)`);
+      console.log(`        ✗ ${seamErr} — both consumers fail loud on a missing/malformed registry (FAFF-280)`);
+    } else if (seamReg) {
+      for (const name of allSkills) {
+        const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+        const bad = reconcileSeam(name, readJudgementSeam(text), seamReg)
+          .filter(([ok]) => !ok).map(([, label]) => label);
+        if (bad.length) {
+          failed = true;
+          console.log(`FAIL  ${name} (judgement seam)`);
+          for (const label of bad) console.log(`        ✗ ${label}`);
+        }
+      }
+    }
   }
 
   for (const n of Object.keys(REGISTRY)) {

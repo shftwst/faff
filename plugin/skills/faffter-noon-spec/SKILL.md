@@ -73,6 +73,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 
 - A testable checklist mirroring the body sections 1:1. Every WHY/WHAT/HOW requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded ones.
 - Each item concrete enough to write a test against. "Works correctly" is not a DONE item; "returns 401 with body `{ error: \"session_expired\" }`" is.
+- **Eval coverage.** If the work introduces or changes an LLM-judgement seam, add a DONE item to register its grader `KIND` + ≥1 eval case + the seam-registry row in this same ticket (recording the baseline value is a separate human step, never blocked on here).
 - If the work spans a structural boundary (two independent concerns), recommend a split instead of speccing both.
 
 ## Self-review before returning (mandatory, all sizes)

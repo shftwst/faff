@@ -2,6 +2,7 @@
 name: faffter-dark-adversarial-review
 description: "Adversarial second-opinion code review for the `review` slot: a standard structural pass plus an adversarial review by a different LLM to catch correlated blind spots. Returns the fixed pass/fail/needs-human verdict. Swappable review occupant; runs as a configured slot, not the user `/` menu."
 user-invocable: false
+judgement_seam: verdict-revert, verdict-build
 ---
 
 # faffter-dark-adversarial-review

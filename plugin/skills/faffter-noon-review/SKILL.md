@@ -2,6 +2,7 @@
 name: faffter-noon-review
 description: "Default code review for the `review` slot — a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns pass/fail/needs-human. Runs via faff-graft, not the user `/` menu."
 user-invocable: false
+judgement_seam: verdict-revert, verdict-build
 ---
 
 # faffter-noon-review

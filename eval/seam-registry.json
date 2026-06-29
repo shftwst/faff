@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "_comment": "FAFF-280 — seam→KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter↔registry reconciliation). Keys are exactly the 18 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet. `cases_present` is NOT stored — it is derived live from eval/cases/ so it cannot go stale.",
+  "kinds": {
+    "dupe": { "surface": "faff-tidy", "status": "covered" },
+    "vague": { "surface": "faff-tidy", "status": "covered" },
+    "stale": { "surface": "faff-tidy", "status": "covered" },
+    "superseded": { "surface": "faff-tidy", "status": "covered" },
+    "splittable": { "surface": "faff-tidy", "status": "covered" },
+    "chain-gap": { "surface": "faff-tidy", "status": "covered" },
+    "ordering": { "surface": "faffter-noon-methodology-structural", "status": "covered" },
+    "gloss": { "surface": "faffidavit-rendering", "status": "covered" },
+    "explanatory-order": { "surface": "faffidavit-rendering", "status": "covered" },
+    "routing": { "surface": "faffidavit-routing", "status": "covered" },
+    "confidence": { "surface": "faffter-noon-spec", "status": "covered" },
+    "marker": { "surface": "faffter-noon-spec", "status": "covered" },
+    "reconciliation": { "surface": "faff-prep", "status": "designed" },
+    "modedetect": { "surface": "faffter-noon-intake", "status": "covered" },
+    "shaping": { "surface": "faff-jot", "status": "covered" },
+    "decomposition": { "surface": "faff-plot", "status": "covered" },
+    "verdict-revert": { "surface": "faffter-noon-review", "status": "covered" },
+    "verdict-build": { "surface": "faffter-noon-review", "status": "designed" }
+  }
+}

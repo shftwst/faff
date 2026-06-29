@@ -1,6 +1,7 @@
 ---
 name: faff-prep
 description: "Turn a vague ticket into something you can actually build — explores the codebase, writes a spec, attaches it to the issue. Trigger for: 'prep ISSUE-XX' / 'prep this' / 'spec this out' / 'what does this ticket need?'."
+judgement_seam: reconciliation
 ---
 
 # Faff — Prep

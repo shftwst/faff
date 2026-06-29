@@ -1,6 +1,7 @@
 ---
 name: faff-jot
 description: "Start something new. Kick off an empty project, or capture a new feature, bug, or idea — and turn it into a sensible set of tickets. Use for 'new project', 'I've got an idea', 'add a feature', 'file a bug', 'scope this', 'kick off'. Or point it at an existing ticket (`/faff-jot ISSUE-XX`) to shape/gate it — v1 crank up/crank down its automation eligibility."
+judgement_seam: shaping
 ---
 
 # faff-jot

@@ -112,6 +112,9 @@ jobs:
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 
+      - name: Validate run-reconstruction forensics join table (FAFF-289)
+        run: node plugin/skills/faff/bin/faff audit --selftest
+
       - name: Validate infra-profile validator table (FAFF-26)
         run: node plugin/skills/faff/bin/faff profile --selftest
 

@@ -28,7 +28,7 @@ How the principles map onto the outputs:
 | `ticket-shaping` | 1 (outcome-named workstreams, not the brief's literal capability names), 4 (right-sized — split a capability that's too big, merge always-together items), 6 (surface deps as explicit blocker links), 2 + 7 (sequence the proposed tickets by value × risk) |
 | `pick-ordering` / `build-queue` | 2 (value × risk, sharpened to incremental end-user value), 7 (risk-aware) — override the thematic default's priority+unlock when materially different; **re-home a value stream's gating chain into that stream's order** (see **Re-homing gating chains into the stream they gate**) |
 | `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
-| `backlog-diagnostics` | Composes the shared structural/topology floor for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6 |
+| `backlog-diagnostics` | Composes the shared structural/topology floor for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6, plus the **thematic-project** structural-category finding (a project grouped by a capability / layer / theme, not an outcome — see **Converting a thematic project to outcome-led**) |
 | `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
 | `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 | `issue-critique` | per-issue: 4 (right-sized / split / merge), 1 + 5 (workstream fit), 6 (surfaced deps), 7 (risk profile → de-risking spike) |
@@ -102,6 +102,30 @@ This lens owns where newly captured or unsequenced work lands — a `ticket-shap
 **Why.** New work auto-filed at capture time inflates whichever project is handy and buries real blockers; a plain, human-owned Backlog inflow keeps the control plane legible while the lens reorganises what is already there. This is the inflow counterweight to the lens's growing topology-write power — see the gateway's **Appetite for destruction → Topology-write authority** dial (the matched-pair legibility-preserver), which this rule realises in the capture path.
 
 **Appetite.** `low` — surface the recommendation only; the human places the ticket (zero topology writes). `medium` and up — apply the default: new captured work is shaped project-less in Backlog (the dial's named low-judgement default-landing op). This composes with the **Appetite integration** below and never reparents an existing ticket.
+
+## Converting a thematic project to outcome-led
+
+Under the agile lens an **outcome-led project is the only legitimate project shape**. A **thematic** project — grouped by a capability, a system layer, a technology area, or a theme rather than the shippable outcome it delivers — is **structural's** territory (the topology lens groups by where work *sits* in the system); under the agile lens it is itself a **structural-category error**. This is the `backlog-diagnostics` **thematic-project** finding, plus the convert path that resolves it.
+
+**Sharper than Principle 1.** Principle 1 flags an activity-*named* workstream — a naming fault you fix by renaming. This flags the project *as a grouping unit*: even a tidily-named thematic project ("Verifiable delivery") is a violation, because thematic grouping itself isn't an outcome. Renaming can't fix it — the grouping is **converted** into outcome-led homes.
+
+**Detection.** Flag a project thematic when its grouping unit is a capability / system layer / technology area / theme, not a user-facing or business outcome — the project-as-grouping-unit test, distinct from Principle 1's name test. The call is the lens's, backed by observable evidence (the project's name + the spread of outcomes across its member tickets), and it **names the project in every finding** so a human can discount a boundary the lens misjudged. When the input envelope surfaces a project's machine-readable Definition of Done, a project carrying a real outcome DoD is **not** flagged (it is already outcome-led); absent that signal, fall back to the name + member-spread evidence and name the project — the same DoD-presence / fall-back-and-name discipline **Re-homing gating chains into the stream they gate** uses. Additive over the structural/topology floor — it never touches the floor's cycle / ghost-project detection.
+
+**Diagnosis template** (the three-part educational shape):
+> _"Project '[name]' groups by [capability / layer / theme], not by a shippable outcome. Under the agile lens you can't sequence inside it — there's no single outcome these tickets converge on, so 'done' for the project is undefined. Convert it: rehome each live ticket into the outcome project it serves (the MVP, or a follow-up harden / enhance / simplify outcome project), land the rest in plain backlog until it's sequencable, then retire the drained shell."_
+
+**The convert path** (governed by the gateway dial; runs only under the agile lens):
+
+1. **Identify the live work** — the project's non-terminal tickets. Terminal tickets (Done / Cancelled) stay put as historical record; conversion never reopens them.
+2. **Rehome each live ticket into the outcome project it serves** via the **reparent primitive** (**Re-homing gating chains into the stream they gate** — the structural `parentId` / project-membership move, `blockedBy` edges preserved). The outcome home is the MVP it belongs to, or a follow-up outcome project (*harden / enhance / simplify the MVP*). A reparent into another *real* outcome home is **rehomed** scope, not **lost** scope, so it stays on the permitted side of the **Cutting non-spine scope out of an MVP (rehome, never delete)** line.
+3. **Land the remainder in plain backlog** — any live ticket with no outcome home yet is reparented to **no project, plain Backlog** via the **Default landing — new work to project-less Backlog** rule, never into another thematic bucket and never into the void. It waits there until a later tidy / plot / methodology pass can sequence it into an outcome.
+4. **Retire the drained shell** — once the project holds no live work, retire / close the now-empty project (a reversible state move — a drained shell moves to a completed/closed state, the de-inflating retirement, not a delete). The shell and its terminal history survive; only its role as a live grouping unit ends.
+
+**No scope is ever lost.** Every live ticket reaches a real home (an outcome project or plain backlog) *before* the shell is retired; retirement is gated on the project being drained of live work — a shell still holding live tickets is never retired.
+
+**Per level** (the lens's flavour of the gateway **Appetite for destruction → Topology-write authority** dial — the levels are not re-derived here): `low` **diagnoses only** — surface the thematic-project finding + the offered conversion, zero writes; `medium` surfaces the finding with the recommended conversion, no reparent / retire (conversion is a high-judgement op); `high` (default) **proposes the conversion** — the per-ticket rehome plan + remainder-to-backlog + shell retirement, acting on the clear rehomes and proposing the judgement where the outcome home is ambiguous; `full` **converts in one pass** — rehome all live work, land the remainder, retire the drained shell, fully logged.
+
+**Invariants, inherited from the dial (named, not restated):** reversibility (retire / close, never cancel / delete — at every level including `full`); idempotent / anti-thrash (a converted project stays converted — a retired drained shell is recognised as already-converted next pass, a rehomed ticket does not bounce back into a thematic home); the human-curated-structure floor (a project a human curated as a deliberate grouping stays propose-and-confirm at every level).
 
 ## The seven principles
 
@@ -203,6 +227,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 - All findings are informational. No tracker mutations. No reordering.
 - The human reads, decides, acts.
 - **Scope cuts** surface as a finding only — name the non-spine cut candidate + its proposed real home, zero topology writes (see **Cutting non-spine scope out of an MVP (rehome, never delete)**).
+- **Thematic-project conversion** surfaces as a diagnosis only — name the thematic project + the offered conversion, zero topology writes (see **Converting a thematic project to outcome-led**).
 - Equivalent to "show me what you'd recommend but don't touch anything."
 
 **medium — surface + limited action.**
@@ -215,6 +240,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 - **Auto-split** oversized tickets (principle 4) — creates the sub-tickets, links them, logs the action. Never deletes the parent.
 - **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides the thematic ordering when materially different — and **re-home** a value stream's gating chain by **reparenting the clear chain into the gated stream** (real container / `parentId` move, `blockedBy` edges preserved), per the gateway topology-write-authority dial (see **Re-homing gating chains into the stream they gate**).
 - **Propose a scope cut** (principle 2) — surface a non-critical MVP issue to rehome *out* + its proposed real DoD-bearing home, for the human to confirm the *DoD-still-satisfied* judgement; on confirm, **reparent it out** (never cancel/delete), logged. See **Cutting non-spine scope out of an MVP (rehome, never delete)**.
+- **Propose a thematic-project conversion** (the **thematic-project** finding) — lay out the per-ticket rehome plan + remainder-to-backlog + shell retirement, act on the clear rehomes and propose the ambiguous-home judgement for confirm (never cancel/delete). See **Converting a thematic project to outcome-led**.
 - **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-methodology-fill`.
 - **Flag stalled work for demotion** — issues stuck In Progress with no commits for N days get surfaced with a demotion recommendation. At high appetite, the demotion executes (In Progress → Backlog) with a tracker comment explaining why.
 - Every action is documented: tracker comment on the affected issue, log entry in `.faff/logs/`.
@@ -225,6 +251,7 @@ Everything `high` does, plus:
 - **Reparent** misplaced tickets — moves outcome-misplaced tickets to the workstream where they belong based on outcome alignment (principle 5). (Gating-chain reparent is already a `high`-and-above capability above; `full` extends reparent to outcome-misplacement and owns project formation end-to-end.)
 - **Demote without flagging first** — stalled work demotes immediately (In Progress → Backlog) rather than flagging then waiting a cycle.
 - **Act on a cleared scope cut** (principle 2) — when the MVP DoD still holds without a non-critical issue and a real DoD-bearing home exists, reparent it *out* in one pass, logged (cut + rehome together); never cancel/delete — lost scope stays forbidden. See **Cutting non-spine scope out of an MVP (rehome, never delete)**.
+- **Convert a thematic project in one pass** — rehome all live work to its outcome homes, land the remainder in plain backlog, retire the drained shell, fully logged; every live ticket reaches a real home before the shell retires, and the retire is a reversible state move — never cancel/delete. See **Converting a thematic project to outcome-led**.
 - **Methodology owns sequencing entirely** — explicit priority is an input signal, not a veto. Value x risk x deps determines the order.
 - **Resolve all methodology findings in a single pass** — no "surface now, act next run" cycle. Findings are acted on in the same invocation they're detected.
 - Still logs every action. Still never cancels or deletes.
@@ -242,4 +269,4 @@ Everything `high` does, plus:
 - Findings that repeat across runs without human action are surfaced at most once per `/faff-wtf` invocation — don't nag.
 - This skill is **additive over the thematic baseline, not a from-scratch replacement of it.** For `backlog-diagnostics` it composes the shared **structural/topology floor** for the mandatory graph floor (cycle + ghost-project detection that feeds the `circular-blocked` / `gap-blocked` routing verdicts — see the gateway → **The `methodology` slot** swap-floor clause), then layers its seven-principle findings on top. It does not re-implement or override the topology floor's graph detection, chain gaps, stale blockers, or dupes.
 - At `low` and `medium` appetite, this skill is **read-only** — it never mutates tracker state.
-- At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues, reparenting a gating chain into the gated stream, and — on a human-confirmed DoD-still-satisfied judgement — reparenting a non-critical issue *out* of an MVP into a real DoD-bearing home (never cancel/delete) (all per the gateway topology-write-authority dial). All mutations logged.
+- At `high` appetite, mutations are limited to: creating tickets, moving status (never to Done/Cancelled), reordering queues, reparenting a gating chain into the gated stream, reparenting a thematic project's live work into its outcome homes (converting the project — shell retirement is `full`-only), and — on a human-confirmed DoD-still-satisfied judgement — reparenting a non-critical issue *out* of an MVP into a real DoD-bearing home (never cancel/delete) (all per the gateway topology-write-authority dial). All mutations logged.

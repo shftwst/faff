@@ -33,6 +33,20 @@ The safety net isn't you staying awake — it's mechanical and always on:
 
 In an unattended run the tracker is the human-legible record, control plane, and observability surface that makes it safe to step back. Every issue's status, spec, park reason, and delivery outcome is reflected back into the tracker — so when you wake up, the morning view is the tracker plus the run-ledger, not a wall of logs. That's what makes L3 a place you can actually leave the building from.
 
+## Going lights-out (L4) — `faff lights-out`
+
+L3 keeps you *on* the loop: you walk away, but you're the one who reviews the morning's parks. **L4 is *out* of the loop** — correctness is held up by adversarial machinery (a second model trying to break the change, a code-blind holdout marking the work against a spec it never saw) rather than by you reading anything in the morning. `faff lights-out` is the single entry point that turns L3 into L4: it composes the shipped L4 guardrails into **one enforced launch** instead of a hand-assembly of `/faff-beep-boop` flags a forgotten one of which would silently degrade the run.
+
+**Run it inside the cage, not on a bare host.** The blast radius is the **container's** job, not faff's — the runner *detects and refuses* a bare host and never weakens the host or self-grants `--dangerously-skip-permissions`. Launch the unattended run inside a host-isolated container (claude-box is one option; the containerisation ADR in `docs/adr/` settles this boundary). `faff lights-out` calls `faff container-check`, and on the lights-out path a non-contained result is a hard **block** (on L1–L3 the same check only warns).
+
+**What it does, in order:**
+
+1. **Basic preflight (fail-closed).** It refuses to start unless: the host is `contained`; the `review` and `spec_review` slots are reachable (a configured-but-down slot counts as **absent** — the second-opinion gate must never silently skip); a **budget ceiling** is set (`--until HH:MM` / `--max N`, or `budget:` in `.faffrc.yaml`); every one of the **8 shipped guardrail contracts** passes a reachability probe; and the floor assertions (no-execute, worktree isolation, the Autonomous Mode Contract) hold. Any ambiguity, absence, or error **refuses** — it never fails open.
+2. **Mint + banner.** On a clean preflight it mints a strict-defaults **L4 run-ledger** under `.faff/runs/` carrying an `armed` map of each guardrail's `live`/`degraded`/`absent` state, and **persists a banner** derivable one-to-one from that map. The banner is your trust contract: a glance tells a fully-armed L4 run from a degraded one without re-deriving any config.
+3. **Hand off.** It prints the minted run dir; launch the drain with that run armed — `FAFF_RUN_DIR=<run-dir> /faff-beep-boop`. From there the guardrails fire at their boundaries: admissibility filters the queue, the budget + terminating predicates end the run, Sentry watches for derailment with kill-switch authority, and the code-blind holdout verdict gates the merge.
+
+Use `faff lights-out --check` to dry-run the preflight (it mints nothing) — handy for confirming the cage and the slots are wired before you actually leave.
+
 ## Running over SSH
 
 If you run `claude` over a plain SSH session — laptop on the sofa, server in the cupboard — the `claude` process is a *child of that SSH connection*. Close the lid, switch networks, or drop Wi-Fi for a moment and the connection dies, taking the run with it. `/faff-beep-boop` is built for exactly the away-from-keyboard case (overnight, fire-and-forget), so it's exactly where a dropped link bites.

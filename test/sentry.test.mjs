@@ -37,6 +37,14 @@ function mkRun(dir, id, ledger, eventLines) {
 }
 const STALE = "2020-01-01T00:00:00Z"; // far past → heartbeat age >> any window
 
+// FAFF-301: compare two verdict arrays order-insensitively (signal is the stable
+// identity), mirroring AC1's `signals.sort()`. Sorting reorders, never drops — a
+// genuinely different verdict (extra signal / drifted evidence) still fails.
+function assertSameVerdicts(a, b, msg) {
+  const bySignal = (xs) => xs.slice().sort((x, y) => (x.signal < y.signal ? -1 : x.signal > y.signal ? 1 : 0));
+  assert.deepEqual(bySignal(a), bySignal(b), msg);
+}
+
 // --- selftest (drives every pure core, incl. the AC5 no-write-path case) ---------
 
 test("sentry --selftest passes", () => {
@@ -90,7 +98,10 @@ test("AC2: budget-breach mirrors `faff budget check` exactly (Sentry consumes th
     const budget = JSON.parse(run(dir, ["budget", "check", "--run-dir", rd, "--json"]).out);
     assert.ok(budget.breached.includes("max_attempts") && budget.outcome === "escalate", "fixture drives a real budget breach");
 
-    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    // FAFF-301: pin a deterministic clock so this never depends on wall-clock time of
+    // day (the budget-breach assertion is attempts-based and clock-independent, but
+    // pinning future-proofs against the same flake the AC5 fixture hit).
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(Date.parse("2026-06-29T00:00:00Z"))]).out);
     const bb = out.verdicts.find((v) => v.signal === "budget-breach");
     assert.ok(bb, "budget-breach verdict present");
     // The evidence is byte-identical to the budget CLI's reading — consumed, not re-derived.
@@ -213,21 +224,40 @@ test("AC4: abort on a missing run dir → exit 3; malformed ledger → exit 2", 
 test("AC5: no CLI input the build subagent controls can flip a trip — the kill reads only the orchestrator surface", () => {
   const dir = tmp();
   try {
-    // A genuine budget-breach trip on the orchestrator-owned surface.
+    // A genuine budget-breach trip on the orchestrator-owned surface. The fixture's
+    // absolute start may stay absolute — FAFF-301 pins the clock per call (via the
+    // hermetic --now-ms seam), so the test no longer depends on the wall-clock time
+    // of day it runs at. Two ambient Date.now() samples drifting ~1s was the flake.
+    const fixtureStart = "2026-06-29T00:00:00Z";
+    const startMs = Date.parse(fixtureStart);
+    const HOUR = 3_600_000;
     const ledger = {
       run_id: "r", admitted: ["A", "B"], outcomes: { A: "shipped", B: "parked" },
       budget: { envelope: { ceilings: { max_attempts: 1 }, at_ceiling: "escalate" } },
-      owner: { status: "running", started_at: "2026-06-29T00:00:00Z", last_heartbeat: "2026-06-29T00:00:00Z" },
+      owner: { status: "running", started_at: fixtureStart, last_heartbeat: fixtureStart },
     };
     const rd = mkRun(dir, "r", ledger);
-    // The build subagent returns only a terminal token; it has NO flag on `sentry check`.
-    // Feeding token-shaped junk as extra args must not suppress the abort.
-    const base = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
-    assert.equal(base.intervention, "abort");
-    const hostile = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
-      "--intervention", "continue", "--suppress", "--outcome", "shipped", "--override", "continue"]).out);
-    assert.equal(hostile.intervention, "abort", "no subagent-shaped arg flips the verdict");
-    assert.deepEqual(hostile.verdicts, base.verdicts);
+
+    // Multiple simulated late-day clocks (start +1h / +6h / +21h): each pins `now`
+    // to the SAME instant across the base and hostile calls, so their time-based
+    // evidence is identical and the compare is deterministic at any time of day.
+    for (const offset of [1 * HOUR, 6 * HOUR, 21 * HOUR]) {
+      const now = String(startMs + offset);
+      const base = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", now]).out);
+      assert.equal(base.intervention, "abort", `pinned clock +${offset / HOUR}h trips abort`);
+      // The build subagent returns only a terminal token; it has NO flag on `sentry check`.
+      // Feeding token-shaped junk as extra args must not suppress the abort.
+      const hostile = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", now,
+        "--intervention", "continue", "--suppress", "--outcome", "shipped", "--override", "continue"]).out);
+      assert.equal(hostile.intervention, "abort", "no subagent-shaped arg flips the verdict");
+      assertSameVerdicts(hostile.verdicts, base.verdicts, "verdict sets identical (order-insensitive)");
+    }
+
+    // The clock seam itself cannot suppress the abort: budget-breach is clock-independent,
+    // so even passing a clock flag (here trying to look "fresh") still trips abort.
+    const evenNow = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--now-ms", String(startMs + HOUR), "--now-ms", String(startMs)]).out);
+    assert.equal(evenNow.intervention, "abort", "clock seam can't dodge the budget-breach abort");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -5008,7 +5008,7 @@ Subcommands:
   spec-review-lenses --tags T,T,... --level L1|L2|L3|L4 --appetite low|medium|high|full [--selftest]   FAFF-268: cost-gate IN FRONT of the spec_review producer — maps a spec's CLASSIFIED change-surface tags + level + appetite to a LensSelection {lenses,mode,rationale}. Pure; the signal->tag classification is prose-side (faff-prep). v1 additive-only/safe-direction: only architectural (or methodology when no tag adds it) is dropped; infosec+QA sticky at L1-L3; unclassified/unknown tag -> all four (fail-safe); L4 -> adversarial all-four (never narrowed); low/medium appetite widens to all four. --selftest runs the table
   dod classify --spec <path|-> [--json]         FAFF-34: classify a spec's DoD criteria (## Scenarios + ### N. DONE) by born-verifiability class (scenario|assertion|prose), reusing classifyCriterion verbatim — the evaluator uses this to decide which criteria it may machine-judge vs force to needs-human (prose). PURE (file/stdin in, JSON out, no tracker/network/LLM); emits {criteria:[{text,class,source}],counts}; exit 0 on a successful parse / 2 usage/unreadable; --selftest runs the table
   holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]   FAFF-277: pure, trust-gated bridge from the evaluator's persisted holdout verdicts (.faff/holdout/<issue|run>.json) to the already-shipped 'faff prdr coverage --dod-verdicts' flag. Reads each verdict, RE-VALIDATES it through the same computeHoldoutVerdict gate (never a forked rule), translates only a conformant code_blind:true meets-spec -> the literal "met", folds conservatively per PRDR (any non-met sibling makes the PRDR not-met), and keys by the supplied issue->PRDR association; every other aggregate passes through (!= met), untrusted files are omitted. Emits {verdicts:{prdr:value},skipped:[{key,reason}]}; skipped also summarised to stderr. PURE (filesystem read of --dir only, no tracker/network/LLM). Absent --dir -> empty map (exit 0); missing/non-object --association, malformed --association JSON, or unreadable --dir -> exit 2; a successful run (incl. empty map) -> exit 0 (no exit 1, report-only). --selftest runs the table
-  admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
+  admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   project-next --current planned|started|completed|cancelled [--kind project|issue] --total N --active N --done N [--has-dod] [--json]   FAFF-248: container (project|parent-issue) state-coherence transition predicate — emit a ContainerTransition JSON {kind,current,desired,action,reason} from a child-issue rollup. PURE (no tracker/network — parity with next/contain): the /faff-tidy orchestrator-lane sweep maps live child statuses to {total,active,done} and applies any advance. Forward-only + monotonic — advance ONLY when rank(desired)>rank(current); never moves a container backward. v1: project→started (first child starts) · parent-issue→started (any child in progress) · project→completed (ALL children done AND no DoD; --has-dod defers to FAFF-259). Parent-issue→Done out of scope. exit 0 (pure compute) / 2 malformed rollup; --selftest runs the transition + monotonicity table
@@ -9340,7 +9340,11 @@ function classifyAcceptanceCriteria(sectionText) {
 // --- dod classify (FAFF-34) ---
 // The body of a heading section (`## Scenarios`, `### N. DONE`, …) up to the next equal/higher heading.
 // Fence-aware: a `#` inside a code fence is not a heading. Returns null when the heading is absent. Pure.
-function sectionBody(specText, headingRe) {
+// FAFF-306: `opts.extraStop(line)` is an OPTIONAL boundary extension consulted outside fences — the
+// scenarios caller passes `scenariosBoundaryStop` (stop at a DONE heading / contract fence / confidence
+// line regardless of relative level); other callers omit it and keep the equal/higher-heading break alone.
+function sectionBody(specText, headingRe, opts) {
+  const extraStop = opts && opts.extraStop;
   const lines = String(specText == null ? "" : specText).split(/\r?\n/);
   let start = -1, level = 0, fence = false;
   for (let k = 0; k < lines.length; k++) {
@@ -9351,6 +9355,9 @@ function sectionBody(specText, headingRe) {
   const body = [];
   fence = false;
   for (let k = start + 1; k < lines.length; k++) {
+    // The extra boundary is checked OUTSIDE a fence and BEFORE the fence toggle, so a
+    // `faff-contract:` fence-open stops the section instead of being entered as fence content.
+    if (!fence && extraStop && extraStop(lines[k])) break;
     if (/^\s*(?:```|~~~)/.test(lines[k])) { fence = !fence; body.push(lines[k]); continue; }
     const lvl = fence ? 0 : headingLevel(lines[k]);
     if (lvl > 0 && lvl <= level) break;
@@ -9365,7 +9372,7 @@ function sectionBody(specText, headingRe) {
 // bullet, via classifyAcceptanceCriteria) and the `### N. DONE` checklist (each `- [ ]` item). Pure — no I/O.
 function dodClassify(specText) {
   const criteria = [];
-  const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE);
+  const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE, { extraStop: scenariosBoundaryStop });
   if (scenBody != null) {
     for (const u of classifyAcceptanceCriteria(scenBody)) criteria.push({ text: u.text, class: u.kind, source: "scenarios" });
   }
@@ -10227,6 +10234,67 @@ function headingLevel(line) {
   return m ? m[1].length : 0;
 }
 
+// --- Shared DoD-section boundary recognisers (FAFF-306) ---
+// One source of truth for where the SCENARIOS section ends, so `dod classify`
+// (via sectionBody) and `admissible` (via parseScenarios) cannot disagree on the
+// section extent. The defect was a heading-LEVEL break (`lvl <= level`) that let a
+// DEEPER DONE heading (`## Scenarios` h2 → `### N. DONE` h3) fail to stop the
+// section, so it ran to EOF and swallowed the DONE heading, the trailing
+// `confidence:` line, and the `faff-contract:` block as phantom criteria.
+
+// A DONE heading: any ATX heading whose text contains the word `done` (the SAME
+// predicate parseDoneChecklist keys its section START on — name-keyed, level-agnostic).
+function isDoneHeading(line) {
+  return headingLevel(line) > 0 && /\bdone\b/i.test(line);
+}
+
+// The producer's standalone trailing confidence line (`confidence: high|medium|low`).
+// Never a criterion (not a GWT scenario, not a MUST/comparator assertion).
+function isConfidenceLine(line) {
+  return /^\s*confidence:\s*(?:high|medium|low)\s*$/i.test(line);
+}
+
+// A fence-open line whose info string carries `faff-contract:` (the trailing
+// spec-readiness block). Keys on the info string ONLY — a generic GWT / bash fence
+// (no `faff-contract:`) is NOT a stop, so scenario fence content is still kept.
+function opensContractFence(line) {
+  return /^\s*(?:```|~~~)\s*faff-contract:/i.test(line);
+}
+
+// The shared scenarios-section boundary extension: stop at a DONE heading (any
+// level), the trailing contract block, or a standalone confidence line. Consulted
+// OUTSIDE a fence only (in-fence GWT blocks never end the section). The `lvl <= level`
+// equal/higher-heading break stays in each loop — this is the additive part both share.
+function scenariosBoundaryStop(line) {
+  return isDoneHeading(line) || opensContractFence(line) || isConfidenceLine(line);
+}
+
+// Level of the first heading (outside fences) matching `pred`, else 0. Used by the
+// advisory DoD heading-level-mismatch check.
+function firstHeadingLevelMatching(specText, pred) {
+  const lines = String(specText == null ? "" : specText).split(/\r?\n/);
+  let fence = false;
+  for (const line of lines) {
+    if (/^\s*(?:```|~~~)/.test(line)) { fence = !fence; continue; }
+    if (fence) continue;
+    if (pred(line)) return headingLevel(line);
+  }
+  return 0;
+}
+
+// Advisory (never gating) warning when SCENARIOS and DONE headings sit at different
+// levels — the historical over-capture trap. Surfacing it is the reconciliation
+// signal: admissible now flags the exact structural smell that used to silently
+// desync it from `dod classify`. Empty array when levels match or either is absent.
+function doneScenariosLevelWarning(specText) {
+  const s = firstHeadingLevelMatching(specText, (l) => SCENARIOS_HEADING_RE.test(l));
+  const d = firstHeadingLevelMatching(specText, (l) => isDoneHeading(l));
+  if (s > 0 && d > 0 && s !== d) {
+    return [`R4 advisory: SCENARIOS heading (h${s}) and DONE heading (h${d}) are at different levels — normalise them; dod classify reads the same section by name regardless, but a level mismatch is the historical over-capture trap (FAFF-306)`];
+  }
+  return [];
+}
+
 // Count born-verifiable scenarios under a `## Scenarios` heading: each
 // Given/When/Then group (a `Given` line is enough to count one) PLUS each
 // standalone assertion/constraint bullet (non-functional objectives are valid
@@ -10244,6 +10312,9 @@ function parseScenarios(specText) {
   fence = false;
   for (let k = start + 1; k < lines.length; k++) {
     const line = lines[k];
+    // FAFF-306: the SAME boundary `dod classify` uses — stop at a DONE heading / contract
+    // fence / confidence line (outside a fence) so admissible cannot over-count past DONE.
+    if (!fence && scenariosBoundaryStop(line)) break;
     if (isFence(line)) { fence = !fence; continue; }
     const lvl = fence ? 0 : headingLevel(line);               // a `#` inside a code fence is not a heading
     if (lvl > 0 && lvl <= level) break;                       // next equal/higher heading ends the section
@@ -10269,7 +10340,7 @@ function parseDoneChecklist(specText) {
   for (let k = 0; k < lines.length; k++) {
     if (isFence(lines[k])) { fence = !fence; continue; }
     const lvl = fence ? 0 : headingLevel(lines[k]);           // a `#` inside a code fence is not a heading
-    if (lvl > 0 && /\bdone\b/i.test(lines[k])) { start = k; level = lvl; break; }
+    if (lvl > 0 && isDoneHeading(lines[k])) { start = k; level = lvl; break; }   // name-keyed (shared, FAFF-306)
   }
   if (start === -1) return [];
   const items = [];
@@ -10314,6 +10385,7 @@ function admissibleVerdict(specText, lightsOut) {
   const vague = doneItems.filter((it) => matchesBannedVague(it));
   checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
   const warnings = detectRunnableCheck(specText) ? [] : ["R3 advisory: no runnable check command found (recommended for lights-out, not required)"];
+  warnings.push(...doneScenariosLevelWarning(specText));   // FAFF-306: advisory only — never flips admissible
   const admissible = checks.every((c) => c.pass);
   const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
   return { admissible, reasons, checks, warnings };
@@ -10347,6 +10419,11 @@ function admissibleSelftest() {
     { name: "R3-advisory-warn (no runnable check)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarn: true },
     { name: "unparseable-failsafe (empty body)", text: "", lights: true, wantAdmissible: false },
     { name: "scope-inactive (no --lights-out)", text: "", lights: false, wantAdmissible: true, wantScope: true },
+    // FAFF-306: a DoD heading-level mismatch (`## Scenarios` h2 / `### N. DONE` h3) stays admissible
+    // but MUST surface the advisory level-mismatch warning — never flipping the boolean.
+    { name: "FAFF-306 level-mismatch advisory (h2 Scenarios / h3 DONE)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n### 2. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /different levels.*FAFF-306/ },
+    // Consistent levels (both h2) must emit NO level-mismatch warning (regression guard).
+    { name: "FAFF-306 consistent levels → no level warning", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoLevelWarn: true },
   ];
   let failed = 0;
   for (const c of cases) {
@@ -10355,6 +10432,8 @@ function admissibleSelftest() {
     if (ok && c.wantReason) ok = v.reasons.some((r) => c.wantReason.test(r));
     if (ok && c.wantWarn === true) ok = v.warnings.length >= 1;
     if (ok && c.wantWarn === false) ok = v.warnings.length === 0;
+    if (ok && c.wantWarnMatch) ok = v.warnings.some((w) => c.wantWarnMatch.test(w));    // FAFF-306
+    if (ok && c.wantNoLevelWarn) ok = !v.warnings.some((w) => /different levels/.test(w));  // FAFF-306
     if (ok && c.wantScope) ok = v.checks.length === 1 && v.checks[0].id === "scope" && v.warnings.length === 0;
     // invariant: reasons non-empty IFF inadmissible; warnings never flip admissible
     if (ok) ok = (v.reasons.length > 0) === (v.admissible === false);
@@ -10451,6 +10530,25 @@ function dodSelftest() {
   // heading (the producer's own form) is recognised by dodClassify, not just by admissible.
   const numbered = dodClassify("### 5. SCENARIOS\n```\nGiven x\nWhen y\nThen z\n```\n\n### 8. DONE\n- [ ] the parser returns >=1 item\n");
   check("numbered `### N. SCENARIOS` heading → scenarios source recognised", numbered.criteria.some((c) => c.source === "scenarios"));
+  // FAFF-306: a `## Scenarios` (h2) followed by a DEEPER `### N. DONE` (h3) must NOT over-capture
+  // past the DONE heading — the DONE heading line, the trailing `confidence:` line, and the
+  // `faff-contract:` block must never become phantom `prose` criteria, and DONE items must not be
+  // double-counted under `source:"scenarios"`. Correcting only the heading level must not change the result.
+  const mmUnnumbered = [
+    "## Scenarios", "",
+    "```", "Given a user is logged in", "When they checkout", "Then the order is submitted", "```", "",
+    "### 2. DONE", "",
+    "- [ ] The API MUST return 200 on /healthz",
+    "",
+    "confidence: high", "",
+    "```faff-contract:spec-readiness", '{ "confidence": "high" }', "```", "",
+  ].join("\n");
+  const mmNumbered = mmUnnumbered.replace(/^## Scenarios/m, "### 1. SCENARIOS");
+  const mmU = dodClassify(mmUnnumbered), mmN = dodClassify(mmNumbered);
+  check("FAFF-306: h2-Scenarios/h3-DONE → no phantom prose (DONE heading/confidence/contract excluded)", mmU.counts.prose === 0);
+  check("FAFF-306: DONE items not double-counted (source scenarios holds only the real GWT)", mmU.criteria.filter((c) => c.source === "scenarios").length === 1 && mmU.criteria.filter((c) => c.source === "done").length === 1);
+  check("FAFF-306: classification is identical whether SCENARIOS is h2 or h3 (heading level no longer matters)", JSON.stringify(mmU) === JSON.stringify(mmN));
+  check("FAFF-306: parseScenarios count == dod source:scenarios scenario count (cross-parser agreement)", parseScenarios(mmUnnumbered) === mmU.criteria.filter((c) => c.source === "scenarios" && c.class === "scenario").length);
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;
 }

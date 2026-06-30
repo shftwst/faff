@@ -257,3 +257,70 @@ test("unset dimensions are unbounded → never breach (empty budget block)", () 
     assert.equal(s.outcome, "none");
   } finally { f.cleanup(); }
 });
+
+// FAFF-302: hermetic, explicit-flag-only clock seam (--now-ms / --now), the twin of
+// the FAFF-301 sentry seam. baseLedger's `started_at` is a fixed absolute instant
+// (2026-06-23T15:00:00Z) evaluated against `Date.now()`, so before the seam the
+// time-derived fields (spent.elapsed_ms) drifted with the time of day the suite ran
+// at — the same flake class FAFF-301 removed from sentry. Pinning `now` makes them
+// deterministic at any wall-clock time.
+
+const BUDGET_START_MS = Date.parse("2026-06-23T15:00:00Z"); // baseLedger.owner.started_at
+const HOUR = 3_600_000;
+
+test("FAFF-302: verdict + time-derived fields are invariant across pinned late-day clocks (+6h / +21h) and repeat runs", () => {
+  const f = fixture({ rc: "budget:\n  max_attempts: 1\n  at_ceiling: stop\n", ledger: baseLedger() });
+  try {
+    // Each pinned clock is a separate `now`; the VERDICT (breached/outcome) must be
+    // identical at every time of day, and each field deterministic on repeat runs.
+    for (const offset of [6 * HOUR, 21 * HOUR]) {
+      const now = String(BUDGET_START_MS + offset);
+      const first = JSON.parse(run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", now]).out);
+      // Verdict is clock-independent (config-and-ledger driven).
+      assert.deepEqual(first.breached, ["max_attempts"], `breached invariant at +${offset / HOUR}h`);
+      assert.equal(first.outcome, "stop", `outcome invariant at +${offset / HOUR}h`);
+      // The time-derived field is pinned exactly to the injected clock (elapsed = offset).
+      assert.equal(first.spent.elapsed_ms, offset, `elapsed_ms pinned at +${offset / HOUR}h`);
+      // Repeat run at the SAME pinned clock is byte-identical — no time-of-day drift.
+      const second = JSON.parse(run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", now]).out);
+      assert.deepEqual(second, first, `repeat run identical at +${offset / HOUR}h`);
+    }
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-302: --now-ms > --now precedence; --now ISO also pins the clock", () => {
+  const f = fixture({ rc: "budget:\n  max_attempts: 1\n", ledger: baseLedger() });
+  try {
+    const iso = "2026-06-23T21:00:00Z"; // +6h from start
+    const byIso = JSON.parse(run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now", iso]).out);
+    assert.equal(byIso.spent.elapsed_ms, 6 * HOUR);
+    // --now-ms takes precedence over a conflicting --now.
+    const ms = String(BUDGET_START_MS + 21 * HOUR);
+    const both = JSON.parse(run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", ms, "--now", iso]).out);
+    assert.equal(both.spent.elapsed_ms, 21 * HOUR);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-302: an unparseable injected clock exits 2 with a stderr reason (never a silent Date.now() fall-through)", () => {
+  const f = fixture({ rc: "budget:\n  max_attempts: 1\n", ledger: baseLedger() });
+  try {
+    const bad = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "nope"]);
+    assert.equal(bad.code, 2);
+    assert.match(bad.err, /--now-ms 'nope' is not a finite/);
+    const badIso = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now", "not-a-date"]);
+    assert.equal(badIso.code, 2);
+    assert.match(badIso.err, /--now 'not-a-date' is not a parseable/);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-302: production default unchanged — no clock flag uses real Date.now() (elapsed_ms tracks the wall clock)", () => {
+  // started_at is ~now, so real elapsed is a small non-negative number near 0 — the
+  // unpinned production path is untouched by the seam.
+  const f = fixture({ rc: "budget:\n  max_attempts: 5\n", ledger: baseLedger({ owner: { status: "running", started_at: new Date().toISOString() } }) });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    const s = JSON.parse(r.out);
+    assert.equal(typeof s.spent.elapsed_ms, "number");
+    assert.ok(s.spent.elapsed_ms >= 0 && s.spent.elapsed_ms < 60_000, `real-clock elapsed_ms in range: ${s.spent.elapsed_ms}`);
+  } finally { f.cleanup(); }
+});

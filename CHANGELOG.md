@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.7.0](https://github.com/shftwst/faff/compare/faff--v0.6.0...faff--v0.7.0) (2026-06-30)
+
+
+### Features
+
+* **FAFF-225:** faff lights-out — the L4 lights-out entry point / runner ([#223](https://github.com/shftwst/faff/issues/223)) ([a740408](https://github.com/shftwst/faff/commit/a7404080d9a238ef7f9d10cf0164b73c7d3ce5c3))
+* **FAFF-270:** live compose provisioning — env actually stands up, tested ([#207](https://github.com/shftwst/faff/issues/207)) ([94c3b51](https://github.com/shftwst/faff/commit/94c3b515d117b0165c959d991b187ee86c79d1cb))
+* **FAFF-277:** wire holdout verdicts into the PRD-coverage gate — faff holdout verdicts → faff prdr coverage --dod-verdicts ([#213](https://github.com/shftwst/faff/issues/213)) ([db53ef6](https://github.com/shftwst/faff/commit/db53ef643d864465b59877112f8774388dea0e2e))
+* **FAFF-280:** judgement-seam declaration + shared seam→KIND registry ([#212](https://github.com/shftwst/faff/issues/212)) ([785adac](https://github.com/shftwst/faff/commit/785adac387c99204214ea193b2e73c3cbdde50f4))
+* **FAFF-281:** lintable eval-coverage gate in validate-adapters + DoD/authoring rules ([#224](https://github.com/shftwst/faff/issues/224)) ([19d5257](https://github.com/shftwst/faff/commit/19d5257926cfd10b03e7eb3b8d6ae8ff2f554f0b))
+* **FAFF-289:** faff audit &lt;run-id&gt; read-only run-reconstruction forensics view ([#215](https://github.com/shftwst/faff/issues/215)) ([ea65f4e](https://github.com/shftwst/faff/commit/ea65f4e9bd922fa41b56cdd6cdaa1ee2dcaa475c))
+* **FAFF-290:** re-ground-before-gate freshness contract across gating chokepoints ([#216](https://github.com/shftwst/faff/issues/216)) ([7a727da](https://github.com/shftwst/faff/commit/7a727da4ee20d3e86f7781e579f353c02e4fd560))
+* **FAFF-291:** topology-write-authority dial in the gateway + ADR 0035 ([#218](https://github.com/shftwst/faff/issues/218)) ([8088be3](https://github.com/shftwst/faff/commit/8088be39a73b9feca1b702466259f0ba3cef2ff9))
+* **FAFF-292:** agile lens re-homes gating chains by structural reparent, not view-only ([#219](https://github.com/shftwst/faff/issues/219)) ([0e69418](https://github.com/shftwst/faff/commit/0e694189fb7c1a7008c29fbf5d7271909328ee73))
+* **FAFF-293:** agile-lens default landing for new work = project-less Backlog ([#220](https://github.com/shftwst/faff/issues/220)) ([6b1956d](https://github.com/shftwst/faff/commit/6b1956db3a56393e59391077ba65b11b87118ede))
+* **FAFF-294:** split agile-lens scope rule into lost vs rehomed scope ([#221](https://github.com/shftwst/faff/issues/221)) ([1d90dd5](https://github.com/shftwst/faff/commit/1d90dd57cc420a94e0d5b7ea168b561ce73ebc7a))
+* **FAFF-295:** agile lens diagnoses + converts thematic projects to outcome-led ([#222](https://github.com/shftwst/faff/issues/222)) ([198195f](https://github.com/shftwst/faff/commit/198195faf82c027b59b6e74fc00b78234a02ca03))
+* **FAFF-296:** rename default methodology lens → thematic; reserve structural for tracker topology ([#217](https://github.com/shftwst/faff/issues/217)) ([8982ed6](https://github.com/shftwst/faff/commit/8982ed6eaa901a9098f9c8adcb3c5787235cac8e))
+* **FAFF-34:** evaluator-lane holdout harness (v1a) — holdout-verdict contract + evaluator slot ([#209](https://github.com/shftwst/faff/issues/209)) ([e817d33](https://github.com/shftwst/faff/commit/e817d330ff0e499fcdb3e7b08fa14d55bfac129d))
+* **FAFF-49:** faff sentry — live-run derailment detection + hard kill-switch ([#214](https://github.com/shftwst/faff/issues/214)) ([b674f6d](https://github.com/shftwst/faff/commit/b674f6d9848541d849d14830bd9cded8fc26d54c))
+
+
+### Bug Fixes
+
+* **FAFF-250:** session-scope + liveness gate for the prepcheck Stop hook ([#211](https://github.com/shftwst/faff/issues/211)) ([efe6148](https://github.com/shftwst/faff/commit/efe6148579e13cf16bb1afcabc25c5ad3c000129))
+* **FAFF-299:** faff doctor flags a dangling skill symlink as unhealthy ([#225](https://github.com/shftwst/faff/issues/225)) ([396f3da](https://github.com/shftwst/faff/commit/396f3da3b5d02240352defff59c21584644becf0))
+* **FAFF-300:** recognise numbered scenario headings in faff admissible ([#226](https://github.com/shftwst/faff/issues/226)) ([e2c1140](https://github.com/shftwst/faff/commit/e2c11407ae795af20fd214fb15385040e93c37ea))
+* **FAFF-301:** harden the AC5 sentry test against a time-of-day flake ([#227](https://github.com/shftwst/faff/issues/227)) ([3804a08](https://github.com/shftwst/faff/commit/3804a08149b4e83f56b2ea2f5c5510842fbc1a60))
+* **FAFF-302:** harden budget.test.mjs against a time-of-day flake via a hermetic clock seam ([#228](https://github.com/shftwst/faff/issues/228)) ([a315844](https://github.com/shftwst/faff/commit/a315844d71ccce208e55f6240d4e232c7cc3a97d))
+
 ## [0.6.0](https://github.com/shftwst/faff/compare/faff--v0.5.0...faff--v0.6.0) (2026-06-28)
 
 

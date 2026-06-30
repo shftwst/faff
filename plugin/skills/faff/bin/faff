@@ -7672,10 +7672,14 @@ function extractAppOverride(text) {
     if (typeof app.build.dockerfile === "string" && app.build.dockerfile) dockerfile = app.build.dockerfile;
   }
   const db_service_renames = {};
+  // FAFF-303: capture each repo datastore service's own env (the auth vars that create the
+  // role/db/password the app's connection string binds to), keyed by the GENERATED kind name
+  // composeGen will synthesize — so composeGen can merge it onto the generated datastore.
+  const db_env = {};
   for (const n of names) {
     if (n === appName) continue;
     const kind = envDatastoreKindForImage(services[n] && services[n].image);
-    if (kind) db_service_renames[n] = kind;
+    if (kind) { db_service_renames[n] = kind; db_env[kind] = normaliseEnv(services[n] && services[n].environment); }
   }
   const rawEnv = normaliseEnv(app.environment), environment = {};
   for (const k of Object.keys(rawEnv)) environment[k] = realignDbHost(rawEnv[k], db_service_renames);
@@ -7684,7 +7688,7 @@ function extractAppOverride(text) {
   return {
     build_context, dockerfile, ports: normalisePorts(app.ports), environment,
     healthcheck_test, health_path: healthPathFromTest(healthcheck_test),
-    app_service_name: appName, db_service_renames,
+    app_service_name: appName, db_service_renames, db_env,
   };
 }
 
@@ -7751,6 +7755,14 @@ function renderCompose(services) {
       lines.push("      timeout: 5s");
       lines.push("      retries: 30");
     }
+    // FAFF-303: long-form depends_on (the only shape that waits on health). Stable-ordered.
+    if (s.depends_on && Object.keys(s.depends_on).length) {
+      lines.push("    depends_on:");
+      for (const dep of Object.keys(s.depends_on).sort()) {
+        lines.push(`      ${dep}:`);
+        lines.push(`        condition: ${s.depends_on[dep].condition || "service_started"}`);
+      }
+    }
   }
   return lines.join("\n") + "\n";
 }
@@ -7761,6 +7773,9 @@ function renderCompose(services) {
 function composeGen(profile, projectName, outPath, appOverride = null) {
   const datastores = Array.isArray(profile && profile.datastores) ? profile.datastores : [];
   const deployTargets = Array.isArray(profile && profile.deploy_targets) ? profile.deploy_targets : [];
+  // FAFF-303: per-kind repo datastore env to reconcile onto the generated datastore service.
+  // {} when there is no repo compose (appOverride null) → merge is a no-op → byte-identical.
+  const dbEnv = (appOverride && appOverride.db_env) || {};
   const services = [], seed_targets = [], unprovisionable = [], notes = [];
   for (const ds of datastores) {
     const kind = ds && typeof ds.kind === "string" ? ds.kind : "";
@@ -7770,9 +7785,12 @@ function composeGen(profile, projectName, outPath, appOverride = null) {
       seed_targets.push({ service: `${kind}-file`, strategy: "sql-load", kind, file_based: true });
       continue;
     }
+    // default-then-repo: the repo's POSTGRES_USER/DB/PASSWORD (etc.) win, the trust default is
+    // kept unless overridden, so the wired role+db are created and the app can still authenticate.
+    const mergedEnv = { ...(spec.env || {}), ...(dbEnv[kind] || {}) };
     services.push({
       name: kind, image: spec.image, ports: [`${spec.port}:${spec.port}`],
-      env: spec.env || null,
+      env: Object.keys(mergedEnv).length ? mergedEnv : null,
       health_check: { name: kind, path: spec.probe, expected_status: 0 },
     });
     seed_targets.push({ service: kind, strategy: spec.seed_strategy, kind, file_based: false });
@@ -7797,6 +7815,12 @@ function composeGen(profile, projectName, outPath, appOverride = null) {
       app.health_check = (appOverride.healthcheck_test != null)
         ? { name: "app", path: hp, expected_status: 200, raw_test: appOverride.healthcheck_test }
         : { name: "app", path: hp, expected_status: 200, raw_test: envImageAwareProbe(profile, app.ports, hp) };
+      // FAFF-303: order the app behind every generated datastore that has a healthcheck, so a
+      // connect-at-boot app doesn't race the store. `services` holds only datastores here (app is
+      // pushed below). Gated on appOverride → no depends_on when null → byte-identical.
+      const deps = {};
+      for (const s of services) if (s.health_check) deps[s.name] = { condition: "service_healthy" };
+      if (Object.keys(deps).length) app.depends_on = deps;
     }
     services.push(app);
   }
@@ -8109,6 +8133,53 @@ function envSelftest() {
   const multiApp = ["services:", "  a:", "    build: .", "  b:", "    build: ."].join("\n");
   check("extract: 0/≥2 buildable apps ⇒ null", extractAppOverride(multiApp) === null);
   check("extract: unparseable ⇒ null", extractAppOverride("\t- not: valid\nflow: {a: 1}") === null);
+
+  // FAFF-303 (rev 2) — DB-tier auth-env reconcile + service ordering (pure cases).
+  // (d) db_env lifts the repo postgres auth vars onto the generated postgres service, merged over trust.
+  const ovDb = {
+    build_context: ".", dockerfile: "Dockerfile", ports: ["3000:3000"],
+    environment: { DATABASE_URL: "postgres://linkshortener:pw@postgres:5432/linkshortener" },
+    healthcheck_test: ["CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1"],
+    health_path: "/healthz", app_service_name: "api", db_service_renames: { db: "postgres" },
+    db_env: { postgres: { POSTGRES_USER: "linkshortener", POSTGRES_DB: "linkshortener", POSTGRES_PASSWORD: "pw" } },
+  };
+  const rDb = composeGen(p1, "projdb", "/tmp/x/dc.yml", ovDb);
+  const pgSvc = rDb.plan.services.find(s => s.name === "postgres");
+  check("db-env: postgres carries repo POSTGRES_USER", pgSvc.env && pgSvc.env.POSTGRES_USER === "linkshortener");
+  check("db-env: postgres carries repo POSTGRES_DB", pgSvc.env && pgSvc.env.POSTGRES_DB === "linkshortener");
+  check("db-env: postgres carries repo POSTGRES_PASSWORD", pgSvc.env && pgSvc.env.POSTGRES_PASSWORD === "pw");
+  check("db-env: trust default kept (merged, not replaced)", pgSvc.env && pgSvc.env.POSTGRES_HOST_AUTH_METHOD === "trust");
+  check("db-env: rendered postgres environment carries POSTGRES_DB", /POSTGRES_DB/.test(rDb.compose));
+
+  // (e) the same override ⇒ the app is ordered behind postgres with a service_healthy condition.
+  const appDb = rDb.plan.services.find(s => s.name === "app");
+  check("ordering: app depends_on postgres (service_healthy)", appDb.depends_on && appDb.depends_on.postgres && appDb.depends_on.postgres.condition === "service_healthy");
+  check("ordering: rendered long-form depends_on", /depends_on:\n      postgres:\n        condition: service_healthy/.test(rDb.compose));
+
+  // (f) appOverride null ⇒ no depends_on, postgres env is the bare trust default (byte-identical pin).
+  const appNull = rNull.plan.services.find(s => s.name === "app");
+  check("ordering: null ⇒ app has no depends_on", !appNull.depends_on);
+  check("ordering: null ⇒ no depends_on in compose", !/depends_on:/.test(rNull.compose));
+  const pgNull = rNull.plan.services.find(s => s.name === "postgres");
+  check("db-env: null ⇒ postgres env is bare trust", JSON.stringify(pgNull.env) === JSON.stringify({ POSTGRES_HOST_AUTH_METHOD: "trust" }));
+
+  // (g) the extractor lifts the repo datastore service's env into db_env keyed by generated kind.
+  const composeTextDb = [
+    "services:",
+    "  api:",
+    "    build: .",
+    "    environment:",
+    "      - DATABASE_URL=postgres://linkshortener:pw@db:5432/linkshortener",
+    "  db:",
+    "    image: postgres:16-alpine",
+    "    environment:",
+    "      POSTGRES_USER: linkshortener",
+    "      POSTGRES_DB: linkshortener",
+    "      POSTGRES_PASSWORD: pw",
+  ].join("\n");
+  const exDb = extractAppOverride(composeTextDb);
+  check("extract: db_env keyed by generated kind (postgres)", exDb && exDb.db_env.postgres && exDb.db_env.postgres.POSTGRES_USER === "linkshortener");
+  check("extract: db_env captures POSTGRES_DB", exDb && exDb.db_env.postgres.POSTGRES_DB === "linkshortener");
 
   if (failed) return 1;
   console.log("env --selftest: ok");

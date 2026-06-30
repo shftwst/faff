@@ -270,34 +270,75 @@ test("compose-gen: two buildable app services → fall back to profile defaults 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-// --- docker-gated integration: a REAL Node 20 + Postgres service stands up via the env lane ---
+// A repo compose whose app CONNECTS to postgres at boot, using a role+db (`linkshortener`) that
+// only exist if compose-gen reconciles the datastore auth-env (FAFF-303 rev 2). The db service
+// declares POSTGRES_USER/DB/PASSWORD; the app's DATABASE_URL binds to them (host `db` realigned
+// to the generated `postgres` service name).
+const REPO_COMPOSE_DB = [
+  "services:",
+  "  api:",
+  "    build:",
+  "      context: .",
+  "      dockerfile: Dockerfile",
+  "    ports:",
+  '      - "3000:3000"',
+  "    environment:",
+  "      - DATABASE_URL=postgres://linkshortener:pw@db:5432/linkshortener",
+  "    healthcheck:",
+  '      test: ["CMD-SHELL", "node -e \\"require(\'http\').get(\'http://localhost:3000/healthz\',r=>process.exit(r.statusCode===200?0:1)).on(\'error\',()=>process.exit(1))\\""]',
+  "  db:",
+  "    image: postgres:16-alpine",
+  "    environment:",
+  "      POSTGRES_USER: linkshortener",
+  "      POSTGRES_DB: linkshortener",
+  "      POSTGRES_PASSWORD: pw",
+].join("\n");
+
+// --- docker-gated integration: a REAL Node 20 + Postgres service stands up via the env lane,
+// with the app actually CONNECTING to the reconciled role/db at boot (FAFF-303 rev 2) ---
 const skipAppIntegration = DOCKER ? false : REQUIRE_DOCKER ? false : "docker unavailable";
 
-test("integration: real Node + Postgres app tier stands up healthy via env lane [docker-gated]", { skip: skipAppIntegration }, () => {
+test("integration: real Node + Postgres app tier (connects at boot) stands up healthy via env lane [docker-gated]", { skip: skipAppIntegration }, () => {
   assert.ok(DOCKER, "FAFF_REQUIRE_DOCKER is set but docker is unavailable — this lane must run the app-tier integration test (FAFF-303)");
   const dir = tmp();
   const project = "faff303-it";
   try {
-    // A minimal real service: requires DATABASE_URL (fail-fast if unset), serves /healthz → 200.
+    // The app does a real, dependency-free Postgres startup handshake at boot, NO retry: it only
+    // listens (→ healthy) if (a) the wired role+db exist [db-env reconcile] AND (b) postgres is
+    // already up [depends_on service_healthy]. Without either FAFF-303 fix, the app never goes healthy.
     writeFileSync(join(dir, "server.js"), [
       "const http = require('http');",
-      "if (!process.env.DATABASE_URL) { console.error('DATABASE_URL required'); process.exit(1); }",
-      "const port = process.env.PORT || 3000;",
-      "http.createServer((req, res) => {",
-      "  if (req.url === '/healthz') { res.writeHead(200); res.end('ok'); }",
-      "  else { res.writeHead(404); res.end(); }",
-      "}).listen(port, () => console.log('listening on ' + port));",
+      "const net = require('net');",
+      "const u = new URL(process.env.DATABASE_URL);",   // fail-fast (throws) if unset
+      "const params = `user\\0${u.username}\\0database\\0${u.pathname.slice(1)}\\0\\0`;",
+      "const body = Buffer.alloc(4 + Buffer.byteLength(params));",
+      "body.writeInt32BE(196608, 0); body.write(params, 4);",   // protocol 3.0
+      "const msg = Buffer.alloc(4 + body.length); msg.writeInt32BE(msg.length, 0); body.copy(msg, 4);",
+      "const sock = net.connect({ host: u.hostname, port: Number(u.port) || 5432 }, () => sock.write(msg));",
+      "sock.once('data', (buf) => {",
+      "  if (String.fromCharCode(buf[0]) === 'R') {",   // AuthenticationOk → role+db exist, trust accepted
+      "    sock.end();",
+      "    http.createServer((req, res) => { if (req.url === '/healthz') { res.writeHead(200); res.end('ok'); } else { res.writeHead(404); res.end(); } })",
+      "      .listen(Number(process.env.PORT) || 3000, () => console.log('listening'));",
+      "  } else { console.error('db handshake rejected: ' + String.fromCharCode(buf[0])); process.exit(1); }",
+      "});",
+      "sock.on('error', (e) => { console.error('db connect error: ' + e.message); process.exit(1); });",
     ].join("\n"));
     writeFileSync(join(dir, "Dockerfile"), ["FROM node:20-alpine", "WORKDIR /app", "COPY server.js .", "EXPOSE 3000", 'CMD ["node", "server.js"]'].join("\n"));
-    writeFileSync(join(dir, "docker-compose.yml"), REPO_COMPOSE);
+    writeFileSync(join(dir, "docker-compose.yml"), REPO_COMPOSE_DB);
     const p = writeProfile(dir, APP_PROFILE);
     const gen = run(dir, ["env", "compose-gen", "--root", dir, "--profile", p, "--out", join(dir, ".faff", "env", "dc.yml"), "--project", project]);
     assert.equal(gen.code, 0, `compose-gen failed: ${gen.err}`);
     const plan = JSON.parse(gen.out);
+    // the generated postgres carries the reconciled auth-env, and the app is ordered behind it
+    const pg = plan.services.find((s) => s.name === "postgres");
+    assert.equal(pg.env.POSTGRES_DB, "linkshortener", "db-tier auth-env reconciled");
+    const app = plan.services.find((s) => s.name === "app");
+    assert.equal(app.depends_on.postgres.condition, "service_healthy", "app ordered behind postgres");
     writeFileSync(join(dir, "plan.json"), JSON.stringify(plan));
     try {
       const up = run(dir, ["env", "up", "--root", dir, "--plan", join(dir, "plan.json"), "--project", project, "--sla-secs", "180"]);
-      assert.equal(up.code, 0, `up failed: ${up.err}`);    // app tier reaches healthy (the SUT failure no longer reproduces)
+      assert.equal(up.code, 0, `up failed: ${up.err}`);    // app connects to the reconciled DB → healthy (the reopened failure no longer reproduces)
       assert.match(up.out, /2 service\(s\) healthy/);
     } finally {
       run(dir, ["env", "down", "--project", project]);

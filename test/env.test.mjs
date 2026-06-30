@@ -175,3 +175,132 @@ test("integration: postgres env stands up, seeds, and tears down [docker-gated]"
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ===========================================================================
+// FAFF-303 — reconcile the synthesized app service against the repo's own compose,
+// and resolve the build context to the repo root.
+// ===========================================================================
+
+const APP_PROFILE = { schema: 1, runtimes: [{ name: "node", version: "20" }], datastores: [{ kind: "postgres", evidence: "docker-compose.yml" }], deploy_targets: [{ kind: "container-image", evidence: "Dockerfile" }] };
+
+// A production-shaped repo compose: Node api on 3000 with its own node healthcheck + DATABASE_URL,
+// plus a postgres datastore named `db`.
+const REPO_COMPOSE = [
+  "services:",
+  "  api:",
+  "    build:",
+  "      context: .",
+  "      dockerfile: Dockerfile",
+  "    ports:",
+  '      - "3000:3000"',
+  "    environment:",
+  "      - DATABASE_URL=postgres://postgres@db:5432/app",
+  "    healthcheck:",
+  '      test: ["CMD-SHELL", "node -e \\"require(\'http\').get(\'http://localhost:3000/healthz\',r=>process.exit(r.statusCode===200?0:1)).on(\'error\',()=>process.exit(1))\\""]',
+  "  db:",
+  "    image: postgres:16-alpine",
+].join("\n");
+
+// compose-gen run with a repo compose present at --root.
+function composeGenRoot(rootDir, profile, project = "demo") {
+  const p = writeProfile(rootDir, profile);
+  const out = join(rootDir, ".faff", "env", "dc.yml");
+  const r = run(rootDir, ["env", "compose-gen", "--root", rootDir, "--profile", p, "--out", out, "--project", project]);
+  return { r, plan: r.code === 0 ? JSON.parse(r.out) : null, out, compose: r.code === 0 ? readFileSync(out, "utf8") : "" };
+}
+
+test("compose-gen: repo compose present → app port/env/healthcheck/context reconciled (no curl)", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, "docker-compose.yml"), REPO_COMPOSE);
+    const { r, plan, compose } = composeGenRoot(dir, APP_PROFILE);
+    assert.equal(r.code, 0, r.err);
+    const app = plan.services.find((s) => s.name === "app");
+    assert.deepEqual(app.ports, ["3000:3000"]);                          // repo port, not 8080
+    assert.equal(app.env.DATABASE_URL, "postgres://postgres@postgres:5432/app"); // host realigned db→postgres
+    assert.equal(plan.endpoints.app, "http://localhost:3000");
+    assert.match(compose, /context: \./);                                // relative; --project-directory resolves it
+    assert.match(compose, /healthz/);                                    // repo healthcheck path
+    assert.doesNotMatch(compose, /curl/);                                // never curl
+    assert.match(compose, /DATABASE_URL: "postgres:\/\/postgres@postgres:5432\/app"/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("compose-gen: NO repo compose → byte-identical to profile-only synthesis (additive)", () => {
+  const dir = tmp();      // no compose file written
+  try {
+    const withRoot = composeGenRoot(dir, APP_PROFILE).compose;
+    // same profile through the plain profile-only path (no repo compose anywhere)
+    const dir2 = tmp();
+    try {
+      const plain = composeGen(dir2, APP_PROFILE).out;
+      assert.equal(withRoot, readFileSync(plain, "utf8"));
+      assert.match(withRoot, /curl -fsS http:\/\/localhost:8080\/health/); // unchanged default
+    } finally { rmSync(dir2, { recursive: true, force: true }); }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("compose-gen: repo compose with no app healthcheck → node http probe, never curl", () => {
+  const dir = tmp();
+  try {
+    const noHc = [
+      "services:",
+      "  api:",
+      "    build: .",
+      "    ports:",
+      '      - "3000:3000"',
+      "  db:",
+      "    image: postgres:16-alpine",
+    ].join("\n");
+    writeFileSync(join(dir, "compose.yaml"), noHc);
+    const { compose } = composeGenRoot(dir, APP_PROFILE);
+    assert.match(compose, /node -e .*require\('http'\)/);
+    assert.doesNotMatch(compose, /curl/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("compose-gen: two buildable app services → fall back to profile defaults (no crash)", () => {
+  const dir = tmp();
+  try {
+    const multi = ["services:", "  a:", "    build: .", "  b:", "    build: .", "  db:", "    image: postgres:16-alpine"].join("\n");
+    writeFileSync(join(dir, "docker-compose.yml"), multi);
+    const { r, compose } = composeGenRoot(dir, APP_PROFILE);
+    assert.equal(r.code, 0);
+    assert.match(compose, /8080:8080/);     // profile default app, override declined
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- docker-gated integration: a REAL Node 20 + Postgres service stands up via the env lane ---
+const skipAppIntegration = DOCKER ? false : REQUIRE_DOCKER ? false : "docker unavailable";
+
+test("integration: real Node + Postgres app tier stands up healthy via env lane [docker-gated]", { skip: skipAppIntegration }, () => {
+  assert.ok(DOCKER, "FAFF_REQUIRE_DOCKER is set but docker is unavailable — this lane must run the app-tier integration test (FAFF-303)");
+  const dir = tmp();
+  const project = "faff303-it";
+  try {
+    // A minimal real service: requires DATABASE_URL (fail-fast if unset), serves /healthz → 200.
+    writeFileSync(join(dir, "server.js"), [
+      "const http = require('http');",
+      "if (!process.env.DATABASE_URL) { console.error('DATABASE_URL required'); process.exit(1); }",
+      "const port = process.env.PORT || 3000;",
+      "http.createServer((req, res) => {",
+      "  if (req.url === '/healthz') { res.writeHead(200); res.end('ok'); }",
+      "  else { res.writeHead(404); res.end(); }",
+      "}).listen(port, () => console.log('listening on ' + port));",
+    ].join("\n"));
+    writeFileSync(join(dir, "Dockerfile"), ["FROM node:20-alpine", "WORKDIR /app", "COPY server.js .", "EXPOSE 3000", 'CMD ["node", "server.js"]'].join("\n"));
+    writeFileSync(join(dir, "docker-compose.yml"), REPO_COMPOSE);
+    const p = writeProfile(dir, APP_PROFILE);
+    const gen = run(dir, ["env", "compose-gen", "--root", dir, "--profile", p, "--out", join(dir, ".faff", "env", "dc.yml"), "--project", project]);
+    assert.equal(gen.code, 0, `compose-gen failed: ${gen.err}`);
+    const plan = JSON.parse(gen.out);
+    writeFileSync(join(dir, "plan.json"), JSON.stringify(plan));
+    try {
+      const up = run(dir, ["env", "up", "--root", dir, "--plan", join(dir, "plan.json"), "--project", project, "--sla-secs", "180"]);
+      assert.equal(up.code, 0, `up failed: ${up.err}`);    // app tier reaches healthy (the SUT failure no longer reproduces)
+      assert.match(up.out, /2 service\(s\) healthy/);
+    } finally {
+      run(dir, ["env", "down", "--project", project]);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

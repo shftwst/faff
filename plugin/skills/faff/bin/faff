@@ -7493,6 +7493,224 @@ function envShortHash(str) {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 
+// ---------------------------------------------------------------------------
+// FAFF-303: reconcile the synthesized app service against the repo's own compose.
+// All the file I/O lives in `cmdEnv`; everything below is pure (string/data in, data out)
+// so `composeGen` stays byte-deterministic. The extractor fails CLOSED to null on any
+// shape it doesn't recognise (recall-biased: degrade to profile defaults, never crash).
+// ---------------------------------------------------------------------------
+function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+// Strip a YAML inline comment (` #…`) that is not inside a quoted scalar.
+function stripYamlInlineComment(line) {
+  let q = null;
+  for (let k = 0; k < line.length; k++) {
+    const ch = line[k];
+    if (q) { if (ch === q) q = null; }
+    else if (ch === '"' || ch === "'") q = ch;
+    else if (ch === "#" && (k === 0 || /\s/.test(line[k - 1]))) return line.slice(0, k);
+  }
+  return line;
+}
+
+// Parse a flow sequence of scalars: ["CMD-SHELL", "node -e \"…\""] or ['a','b'] or [a, b].
+// Honours YAML quoting so commas/quotes inside a quoted element don't split it: double-quoted
+// strings unescape `\"` / `\\`; single-quoted strings unescape `''`.
+function parseFlowSeq(s) {
+  const inner = s.slice(1, -1);
+  const items = [];
+  let cur = "", q = null, sawToken = false;
+  for (let k = 0; k < inner.length; k++) {
+    const ch = inner[k];
+    if (q === '"') {
+      if (ch === "\\" && k + 1 < inner.length) { const n = inner[++k]; cur += (n === '"' || n === "\\") ? n : ("\\" + n); }
+      else if (ch === '"') q = null;
+      else cur += ch;
+    } else if (q === "'") {
+      if (ch === "'" && inner[k + 1] === "'") { cur += "'"; k++; }
+      else if (ch === "'") q = null;
+      else cur += ch;
+    } else if (ch === '"' || ch === "'") { q = ch; sawToken = true; }
+    else if (ch === ",") { items.push(cur); cur = ""; sawToken = false; }
+    else if (/\s/.test(ch)) { /* skip unquoted whitespace */ }
+    else { cur += ch; sawToken = true; }
+  }
+  if (q) throw new Error("unterminated quote in flow sequence");
+  if (sawToken || items.length) items.push(cur);
+  return items;
+}
+
+// Minimal block-style YAML parser for the common docker-compose subset: nested maps,
+// block sequences, "key: value", "- item", quoted scalars, and a flow sequence of scalars
+// (for healthcheck.test). Does NOT support anchors/aliases, merge keys, flow maps, or
+// multiline scalars — it THROWS on those so the caller falls back to profile defaults.
+function parseComposeSubset(text) {
+  const lines = [];
+  for (const raw of String(text).split(/\r?\n/)) {
+    if (/^\s*#/.test(raw) || /^\s*$/.test(raw)) continue;
+    const stripped = stripYamlInlineComment(raw);
+    if (/^\s*$/.test(stripped)) continue;
+    const indent = stripped.match(/^ */)[0].length;
+    if (/^\t/.test(stripped) || /\t/.test(stripped.slice(0, indent))) throw new Error("tab indentation unsupported");
+    lines.push({ indent, body: stripped.slice(indent).replace(/\s+$/, "") });
+  }
+  let i = 0;
+  const parseScalar = (s) => {
+    s = s.trim();
+    if (s === "" || s === "~" || s === "null") return s === "" ? "" : null;
+    const c = s[0], e = s[s.length - 1];
+    if (c === '"' && e === '"') return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+    if (c === "'" && e === "'") return s.slice(1, -1).replace(/''/g, "'");
+    if (c === "[" && e === "]") return parseFlowSeq(s);
+    if (c === "{" || c === "[") throw new Error("flow collection unsupported");
+    return s;
+  };
+  const parseNode = (minIndent) => {
+    if (i >= lines.length || lines[i].indent < minIndent) return null;
+    const baseIndent = lines[i].indent;
+    if (lines[i].body.startsWith("- ")) {
+      const arr = [];
+      while (i < lines.length && lines[i].indent === baseIndent && lines[i].body.startsWith("- ")) {
+        const rest = lines[i].body.slice(2);
+        if (/^[^\s"'][^:]*:(\s|$)/.test(rest)) {        // inline-map sequence item: "- key: value"
+          lines[i] = { indent: baseIndent + 2, body: rest };
+          arr.push(parseNode(baseIndent + 2));
+        } else { i++; arr.push(parseScalar(rest)); }
+      }
+      return arr;
+    }
+    const obj = {};
+    while (i < lines.length && lines[i].indent === baseIndent && !lines[i].body.startsWith("- ")) {
+      const m = lines[i].body.match(/^([^:]+):(.*)$/);
+      if (!m) throw new Error("unparseable line: " + lines[i].body);
+      const key = m[1].trim(), valuePart = m[2].trim();
+      i++;
+      if (valuePart === "") {
+        obj[key] = (i < lines.length && lines[i].indent > baseIndent) ? parseNode(lines[i].indent) : null;
+      } else { obj[key] = parseScalar(valuePart); }
+    }
+    return obj;
+  };
+  return parseNode(lines.length ? lines[0].indent : 0) || {};
+}
+
+// Map a compose service image to a known DATASTORE_TABLE kind (postgres/mysql/redis/mongo), else null.
+function envDatastoreKindForImage(image) {
+  if (typeof image !== "string" || !image) return null;
+  const repo = image.toLowerCase().split(":")[0].split("/").pop();
+  for (const kind of Object.keys(DATASTORE_TABLE)) {
+    const spec = DATASTORE_TABLE[kind];
+    if (!spec.image) continue;
+    if (repo === spec.image.split(":")[0] || repo === kind) return kind;
+  }
+  return null;
+}
+
+function normalisePorts(ports) {
+  if (!Array.isArray(ports)) return [];
+  const out = [];
+  for (const p of ports) {
+    if (typeof p === "string" && p) out.push(p);
+    else if (p && typeof p === "object" && p.target != null) {
+      out.push(p.published != null ? `${p.published}:${p.target}` : `${p.target}:${p.target}`);
+    }
+  }
+  return out;
+}
+
+function normaliseEnv(env) {
+  const out = {};
+  if (Array.isArray(env)) {
+    for (const e of env) {
+      if (typeof e !== "string") continue;
+      const eq = e.indexOf("=");
+      if (eq === -1) out[e] = ""; else out[e.slice(0, eq)] = e.slice(eq + 1);
+    }
+  } else if (env && typeof env === "object") {
+    for (const k of Object.keys(env)) out[k] = env[k] == null ? "" : String(env[k]);
+  }
+  return out;
+}
+
+// Rewrite a host inside an env value when it exactly equals a repo-compose datastore service name,
+// to the generated kind-name (so e.g. DATABASE_URL resolves on the generated compose network).
+function realignDbHost(value, renames) {
+  let v = String(value);
+  for (const repoName of Object.keys(renames)) {
+    const kind = renames[repoName];
+    if (repoName === kind) continue;
+    const re = new RegExp("(^|[@/=:])" + escapeRegExp(repoName) + "(?=[:/]|$)", "g");
+    v = v.replace(re, (_m, pfx) => pfx + kind);
+  }
+  return v;
+}
+
+// Best-effort path out of a healthcheck test (display only).
+function healthPathFromTest(test) {
+  if (test == null) return null;
+  const s = Array.isArray(test) ? test.join(" ") : String(test);
+  const m = s.match(/https?:\/\/[^\s"']*?(\/[^\s"':]*)/);
+  if (m) return m[1];
+  const m2 = s.match(/\s(\/[A-Za-z0-9_\-./]+)/);
+  return m2 ? m2[1] : null;
+}
+
+// Extract an AppOverride from repo-compose text, or null (no single buildable app / unrecognised shape).
+function extractAppOverride(text) {
+  let doc;
+  try { doc = parseComposeSubset(text); } catch { return null; }
+  const services = doc && doc.services;
+  if (!services || typeof services !== "object" || Array.isArray(services)) return null;
+  const names = Object.keys(services);
+  const appNames = names.filter(n => services[n] && services[n].build != null);
+  if (appNames.length !== 1) return null;                     // 0 or >1 buildable app → OUT OF SCOPE
+  const appName = appNames[0], app = services[appName];
+  let build_context = ".", dockerfile = "Dockerfile";
+  if (typeof app.build === "string") { build_context = app.build || "."; }
+  else if (app.build && typeof app.build === "object") {
+    if (typeof app.build.context === "string" && app.build.context) build_context = app.build.context;
+    if (typeof app.build.dockerfile === "string" && app.build.dockerfile) dockerfile = app.build.dockerfile;
+  }
+  const db_service_renames = {};
+  for (const n of names) {
+    if (n === appName) continue;
+    const kind = envDatastoreKindForImage(services[n] && services[n].image);
+    if (kind) db_service_renames[n] = kind;
+  }
+  const rawEnv = normaliseEnv(app.environment), environment = {};
+  for (const k of Object.keys(rawEnv)) environment[k] = realignDbHost(rawEnv[k], db_service_renames);
+  const healthcheck_test = (app.healthcheck && typeof app.healthcheck === "object" && app.healthcheck.test != null)
+    ? app.healthcheck.test : null;
+  return {
+    build_context, dockerfile, ports: normalisePorts(app.ports), environment,
+    healthcheck_test, health_path: healthPathFromTest(healthcheck_test),
+    app_service_name: appName, db_service_renames,
+  };
+}
+
+// Image-aware default app probe — only used when the repo declares NO app healthcheck. Never curl.
+function envImageAwareProbe(profile, appPorts, healthPath) {
+  const segs = String((Array.isArray(appPorts) && appPorts[0]) || "").split(":");
+  const port = segs[segs.length - 1] || String(ENV_APP_PORT);
+  const url = `http://localhost:${port}${healthPath || "/health"}`;
+  const runtimes = Array.isArray(profile && profile.runtimes) ? profile.runtimes : [];
+  const isNode = runtimes.some(r => /node/i.test(typeof r === "string" ? r : ((r && r.name) || "")));
+  return isNode
+    ? ["CMD-SHELL", `node -e "require('http').get('${url}',function(r){process.exit(r.statusCode<400?0:1)}).on('error',function(){process.exit(1)})"`]
+    : ["CMD-SHELL", `wget -qO- ${url} || exit 1`];
+}
+
+// Locate + read the repo's own compose (file I/O — kept out of the pure composeGen). Returns AppOverride | null.
+function envResolveAppOverride(root) {
+  for (const name of ["docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"]) {
+    const p = path.join(root, name);
+    if (!fs.existsSync(p)) continue;
+    let text; try { text = fs.readFileSync(p, "utf8"); } catch { return null; }
+    try { return extractAppOverride(text); } catch { return null; }
+  }
+  return null;
+}
+
 // Deterministic compose-file renderer. Stable key order, no timestamps, no random — byte-identical
 // across runs for the same services. (No `version:` key — modern compose infers it.)
 function renderCompose(services) {
@@ -7501,7 +7719,7 @@ function renderCompose(services) {
     lines.push(`  ${s.name}:`);
     if (s.built_from) {
       lines.push("    build:");
-      lines.push("      context: .");
+      lines.push(`      context: ${s.build_context || "."}`);   // relative; `env up` passes --project-directory <root>
       lines.push(`      dockerfile: ${s.built_from}`);
     } else {
       lines.push(`    image: ${s.image}`);
@@ -7514,12 +7732,21 @@ function renderCompose(services) {
       lines.push("    environment:");
       for (const k of Object.keys(s.env)) lines.push(`      ${k}: ${JSON.stringify(String(s.env[k]))}`);
     }
-    if (s.health_check && s.health_check.path) {
-      const probe = s.name === "app"
-        ? `curl -fsS http://localhost:${ENV_APP_PORT}${s.health_check.path} || exit 1`
-        : s.health_check.path;
+    if (s.health_check && (s.health_check.raw_test != null || s.health_check.path)) {
       lines.push("    healthcheck:");
-      lines.push(`      test: ["CMD-SHELL", ${JSON.stringify(probe)}]`);
+      if (s.health_check.raw_test != null) {
+        // App reconciled from a repo compose: emit its healthcheck verbatim (list preserved as a
+        // YAML flow list, string wrapped as CMD-SHELL). Never an unconditional curl probe.
+        const rt = s.health_check.raw_test;
+        if (Array.isArray(rt)) lines.push(`      test: ${JSON.stringify(rt.map(String))}`);
+        else lines.push(`      test: ["CMD-SHELL", ${JSON.stringify(String(rt))}]`);
+      } else {
+        // No override: app keeps today's probe (byte-identical), datastores emit their probe verbatim.
+        const probe = s.name === "app"
+          ? `curl -fsS http://localhost:${ENV_APP_PORT}${s.health_check.path} || exit 1`
+          : s.health_check.path;
+        lines.push(`      test: ["CMD-SHELL", ${JSON.stringify(probe)}]`);
+      }
       lines.push(`      interval: ${ENV_DEFAULT_POLL_SECS}s`);
       lines.push("      timeout: 5s");
       lines.push("      retries: 30");
@@ -7531,7 +7758,7 @@ function renderCompose(services) {
 // PURE: (profile, projectName, outPath) → { plan, compose }. No docker, no I/O. Deterministic.
 // Maps profile.datastores via DATASTORE_TABLE; an unknown kind is REPORTED in unprovisionable[]
 // (the producer fails loud), never silently skipped. sqlite is file-based: a seed target, no service.
-function composeGen(profile, projectName, outPath) {
+function composeGen(profile, projectName, outPath, appOverride = null) {
   const datastores = Array.isArray(profile && profile.datastores) ? profile.datastores : [];
   const deployTargets = Array.isArray(profile && profile.deploy_targets) ? profile.deploy_targets : [];
   const services = [], seed_targets = [], unprovisionable = [], notes = [];
@@ -7553,11 +7780,25 @@ function composeGen(profile, projectName, outPath) {
   }
   const containerImage = deployTargets.find(d => d && d.kind === "container-image");
   if (containerImage) {
-    services.push({
+    const app = {
       name: "app", built_from: (typeof containerImage.evidence === "string" && containerImage.evidence) ? containerImage.evidence : "Dockerfile",
       ports: [`${ENV_APP_PORT}:${ENV_APP_PORT}`],
       health_check: { name: "app", path: "/health", expected_status: 200 },
-    });
+    };
+    // FAFF-303: when the repo ships its own compose, the real app contract (port, env, build
+    // context/dockerfile, healthcheck) wins over the profile-shaped defaults. appOverride is null
+    // when there is no repo compose, so this whole block is skipped and output stays byte-identical.
+    if (appOverride) {
+      if (appOverride.dockerfile) app.built_from = appOverride.dockerfile;
+      if (appOverride.build_context) app.build_context = appOverride.build_context;
+      if (Array.isArray(appOverride.ports) && appOverride.ports.length) app.ports = appOverride.ports;
+      if (appOverride.environment && Object.keys(appOverride.environment).length) app.env = appOverride.environment;
+      const hp = appOverride.health_path || "/health";
+      app.health_check = (appOverride.healthcheck_test != null)
+        ? { name: "app", path: hp, expected_status: 200, raw_test: appOverride.healthcheck_test }
+        : { name: "app", path: hp, expected_status: 200, raw_test: envImageAwareProbe(profile, app.ports, hp) };
+    }
+    services.push(app);
   }
   const endpoints = {};
   for (const s of services) {
@@ -7636,14 +7877,14 @@ function envSqlLoad(root, project, target, datasetDir, composeFile) {
   if (target.kind === "postgres") {
     const sql = envBuildSql(datasetDir, (s) => '"' + String(s).replace(/"/g, '""') + '"');
     if (!sql) return true;
-    const r = spawnSync("docker", ["compose", "-p", project, "-f", composeFile, "exec", "-T",
+    const r = spawnSync("docker", ["compose", "--project-directory", root, "-p", project, "-f", composeFile, "exec", "-T",
       "postgres", "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres"], { input: sql, encoding: "utf8" });
     return r.status === 0;
   }
   if (target.kind === "mysql") {
     const sql = envBuildSql(datasetDir, (s) => "`" + String(s).replace(/`/g, "``") + "`");
     if (!sql) return true;
-    const r = spawnSync("docker", ["compose", "-p", project, "-f", composeFile, "exec", "-T",
+    const r = spawnSync("docker", ["compose", "--project-directory", root, "-p", project, "-f", composeFile, "exec", "-T",
       "mysql", "mysql", "-uroot", "app"], { input: sql, encoding: "utf8" });
     return r.status === 0;
   }
@@ -7688,7 +7929,7 @@ function cmdEnv(args) {
     const project = flag("--project") || defaultProject(r.profile);
     let out = flag("--out") || path.join(".faff", "env", "docker-compose.yml");
     if (!path.isAbsolute(out)) out = path.join(root, out);
-    const { plan, compose } = composeGen(r.profile, project, out);
+    const { plan, compose } = composeGen(r.profile, project, out, envResolveAppOverride(root));
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, compose);
     console.log(JSON.stringify(plan, null, 2));   // ProvisionPlan → stdout (producer / `env up` consume it)
@@ -7706,7 +7947,7 @@ function cmdEnv(args) {
       if (r.err) return r.err;
       const project = flag("--project") || defaultProject(r.profile);
       let out = path.join(root, ".faff", "env", "docker-compose.yml");
-      const g = composeGen(r.profile, project, out);
+      const g = composeGen(r.profile, project, out, envResolveAppOverride(root));
       fs.mkdirSync(path.dirname(out), { recursive: true });
       fs.writeFileSync(out, g.compose);
       plan = g.plan;
@@ -7717,7 +7958,9 @@ function cmdEnv(args) {
     }
     const project = flag("--project") || plan.project_name;
     if (!envDockerAvailable()) { process.stderr.write("faff env up: docker unavailable\n"); return 1; }
-    const upr = spawnSync("docker", ["compose", "-p", project, "-f", plan.compose_file, "up", "-d"],
+    // FAFF-303: --project-directory <root> so a relative build `context: .` resolves to the repo root
+    // (not the generated-compose dir, where no Dockerfile exists).
+    const upr = spawnSync("docker", ["compose", "--project-directory", root, "-p", project, "-f", plan.compose_file, "up", "-d"],
       { encoding: "utf8", timeout: 5 * 60 * 1000 });
     if (upr.status !== 0) { process.stderr.write(`faff env up: docker compose up failed\n${upr.stderr || ""}`); return 1; }
     const slaSecs = parseInt(flag("--sla-secs") || ENV_DEFAULT_SLA_SECS, 10);
@@ -7725,7 +7968,7 @@ function cmdEnv(args) {
     const retries = Math.max(1, Math.ceil(slaSecs / pollSecs));
     let healthy = plan.services.length === 0;   // nothing to wait on (e.g. sqlite-only) = trivially up
     for (let i = 0; i < retries && !healthy; i++) {
-      const ps = spawnSync("docker", ["compose", "-p", project, "-f", plan.compose_file, "ps", "--format", "json"],
+      const ps = spawnSync("docker", ["compose", "--project-directory", root, "-p", project, "-f", plan.compose_file, "ps", "--format", "json"],
         { encoding: "utf8" });
       if (ps.status === 0 && envAllHealthy(ps.stdout, plan)) { healthy = true; break; }
       spawnSync("sleep", [String(pollSecs)]);
@@ -7813,6 +8056,59 @@ function envSelftest() {
 
   const r6 = composeGen({ datastores: [{ kind: "mysql", evidence: "x" }, { kind: "sqlite", evidence: "y" }], deploy_targets: [] }, "p6", "/tmp/x/dc.yml");
   check("mixed: mysql service + sqlite file target", r6.plan.services.some(s => s.name === "mysql") && r6.plan.seed_targets.some(t => t.kind === "sqlite"));
+
+  // FAFF-303 — app-tier reconciliation against a repo compose (pure cases).
+  // (a) appOverride null ⇒ byte-identical to the no-override pg+app render.
+  const rNull = composeGen(p1, "proj1", "/tmp/x/docker-compose.yml", null);
+  check("override: null ⇒ byte-identical to no-arg", rNull.compose === r1.compose);
+  check("override: null ⇒ app keeps curl/:8080 default", /curl -fsS http:\/\/localhost:8080\/health/.test(rNull.compose));
+
+  // (b) an override with port 3000 / env / verbatim healthcheck ⇒ all three reflected, no curl.
+  const ov = {
+    build_context: ".", dockerfile: "Dockerfile", ports: ["3000:3000"],
+    environment: { DATABASE_URL: "postgres://postgres@postgres:5432/app" },
+    healthcheck_test: ["CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1"],
+    health_path: "/healthz", app_service_name: "api", db_service_renames: { db: "postgres" },
+  };
+  const rOv = composeGen(p1, "proj1", "/tmp/x/docker-compose.yml", ov);
+  const appOv = rOv.plan.services.find(s => s.name === "app");
+  check("override: app port from repo (3000)", appOv.ports[0] === "3000:3000");
+  check("override: app endpoint host-port 3000", rOv.plan.endpoints.app === "http://localhost:3000");
+  check("override: DATABASE_URL wired into app env", appOv.env && appOv.env.DATABASE_URL === "postgres://postgres@postgres:5432/app");
+  check("override: healthcheck verbatim, no curl", /wget -qO- http:\/\/localhost:3000\/healthz/.test(rOv.compose) && !/curl/.test(rOv.compose));
+
+  // (b') no repo healthcheck on a node runtime ⇒ synthesized node http probe, never curl.
+  const ovNoHc = { build_context: ".", dockerfile: "Dockerfile", ports: ["3000:3000"], environment: {}, healthcheck_test: null, health_path: null, app_service_name: "api", db_service_renames: {} };
+  const rNoHc = composeGen({ datastores: [], deploy_targets: [{ kind: "container-image", evidence: "Dockerfile" }], runtimes: [{ name: "node", version: "20" }] }, "pn", "/tmp/x/dc.yml", ovNoHc);
+  check("override: no-hc node ⇒ node http probe", /node -e .*require\('http'\)/.test(rNoHc.compose) && !/curl/.test(rNoHc.compose));
+
+  // (c) the extractor lifts the app contract from real compose text + realigns the DB host.
+  const composeText = [
+    "services:",
+    "  api:",
+    "    build:",
+    "      context: .",
+    "      dockerfile: Dockerfile",
+    "    ports:",
+    '      - "3000:3000"',
+    "    environment:",
+    "      - DATABASE_URL=postgres://postgres@db:5432/app",
+    "    healthcheck:",
+    '      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1"]',
+    "  db:",
+    "    image: postgres:16-alpine",
+  ].join("\n");
+  const ex = extractAppOverride(composeText);
+  check("extract: single buildable app found", ex && ex.app_service_name === "api");
+  check("extract: ports normalised", ex && ex.ports[0] === "3000:3000");
+  check("extract: db-host realigned db→postgres", ex && ex.environment.DATABASE_URL === "postgres://postgres@postgres:5432/app");
+  check("extract: healthcheck.test verbatim list", ex && Array.isArray(ex.healthcheck_test) && /healthz/.test(ex.healthcheck_test.join(" ")));
+  check("extract: db rename mapped", ex && ex.db_service_renames.db === "postgres");
+
+  // (c') two buildable apps ⇒ out of scope ⇒ null (profile fallback, no crash).
+  const multiApp = ["services:", "  a:", "    build: .", "  b:", "    build: ."].join("\n");
+  check("extract: 0/≥2 buildable apps ⇒ null", extractAppOverride(multiApp) === null);
+  check("extract: unparseable ⇒ null", extractAppOverride("\t- not: valid\nflow: {a: 1}") === null);
 
   if (failed) return 1;
   console.log("env --selftest: ok");

@@ -5022,6 +5022,7 @@ Subcommands:
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
+  effects <declare|observe|check> --run <run-id> [--issue ID] [--step NAME] [--ts ISO] [--json] [--root DIR]   FAFF-106: escaped-side-effect detection via a declared-effects ledger — the PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) consumes. declare/observe read an EffectDescriptor {kind ∈ closed EFFECT_KINDS, target, reversible?} (object or array) on stdin and append a LedgerEntry (CLI fills schema/run_id/seq/ts envelope; kind_of_entry/issue/step required) to .faff/runs/<run-id>/declared-effects.jsonl — a PARALLEL ledger, never an events.jsonl schema bump; exit 0 ok / 1 bad descriptor (unknown kind / missing target) / 2 malformed JSON or missing --run/--issue/--step / 3 run-dir missing. check computes observed-MINUS-declared per (issue, step) using exact-target + "*" matching and emits {escapes:[EscapeSignal{signal:"escaped-side-effect",issue,step,escaped[],event_seq}], any_escape} (--json); a missing ledger file is a clean state ({escapes:[],any_escape:false}, exit 0 — NOT exit 3). Detection only — never aborts (Sentry/FAFF-37's job); the orchestrator bridges any_escape into \`faff sentry check\` via the existing signals.forbidden_side_effect seam. PURE (no tracker/network, writes only under the run dir); --selftest runs the descriptor/matching/escape table
   sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
   lights-out [--check] [--until HH:MM] [--max N] [--slot-unreachable review|spec_review ...] [--id RUN-ID] [--json] [--root DIR]   FAFF-225: the L4 lights-out entry point / runner — "leave the building" as one enforced action. Runs a fail-closed BASIC preflight over v1's launch preconditions (container-check contained — WARN→BLOCK on this path only; review + spec_review slots reachable, unreachable==absent; a budget ceiling set; all 8 shipped guardrail contracts — admissible / spec-review-verdict / run-done / budget / events / sentry / holdout|prdr-coverage / container — reachable by a genuine --selftest probe, NOT config presence; FAFF-68 no-execute + worktree isolation + Autonomous Mode Contract floor assertions hold), then on pass MINTS a strict-defaults L4 run-ledger carrying armed:Map<Guardrail,State ∈ {live|degraded|absent}> + a banner derivable 1:1 from armed (persisted, not just printed) + a run-start event; on ANY miss REFUSES (mints nothing, emits no work). Composes the contracts, re-implements none; never self-grants --dangerously-skip-permissions (the cage is the container's job). v1 does basic preflight only (rich dial-coherence + the adversarial advisory→gating promotion are separate follow-ons). --check runs preflight without minting; exit 0 armed/minted · 1 refused; --selftest runs the proceed/refuse + armed-derivation + banner table
@@ -8383,6 +8384,231 @@ function eventsSelftest() {
 }
 
 // ===========================================================================
+// effects — FAFF-106: escaped-side-effect detection via a declared-effects ledger.
+//
+// The PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) already consumes.
+// A step DECLARES the effects it intends BEFORE acting; chokepoints OBSERVE effects as
+// faff performs/witnesses them; `check` computes observed-MINUS-declared per (issue,
+// step) and emits an EscapeSignal for anything uncovered. Detection ONLY — it never
+// aborts/kills the run (that is Sentry's / FAFF-37's job: producer ≠ consumer).
+//
+// A PARALLEL ledger (.faff/runs/<id>/declared-effects.jsonl), NOT an events.jsonl schema
+// bump — the schema-1 event log stays FROZEN for its shipped readers (FAFF-289, Sentry).
+// The orchestrator bridges `any_escape` into Sentry via the existing
+// signals.forbidden_side_effect seam (no Sentry change, no events-schema change).
+//
+// Observation surface = Option A, faff-mediated only (human Decision 2026-06-29):
+// effects faff observes at its own chokepoints; out-of-band effects are the container's
+// job (ADR-0010). PURE: no tracker/network, writes only under the run dir. Pure cores +
+// a thin I/O wrapper + --selftest, mirroring events / budget.
+// ===========================================================================
+
+const EFFECT_KINDS = new Set([
+  "merge", "branch-delete", "deploy", "db-migration", "secret-rotation",
+  "email", "webhook", "registry-publish", "force-push", "prod-script",
+  "label-write", "tracker-write", "file-write", "other",
+]);
+
+// Pure validator for one EffectDescriptor — returns violation strings (empty == valid).
+// Unknown kind / missing-or-empty target / non-boolean reversible are the invalid cases.
+function effectDescriptorViolations(d) {
+  if (d === null || typeof d !== "object" || Array.isArray(d)) return ["effect must be a JSON object"];
+  const v = [];
+  if (!EFFECT_KINDS.has(d.kind)) v.push(`kind ${JSON.stringify(d.kind)} not in EffectKind`);
+  if (typeof d.target !== "string" || d.target === "") v.push("missing or empty target");
+  if (d.reversible !== undefined && typeof d.reversible !== "boolean") v.push("reversible must be a boolean");
+  return v;
+}
+
+// Canonicalise a validated descriptor to {kind,target,reversible}. reversible defaults
+// true (most effects are revert-undoable; the consumer escalates harder on explicit false).
+function normEffect(d) {
+  return { kind: d.kind, target: d.target, reversible: d.reversible === undefined ? true : d.reversible };
+}
+
+// target_matches — exact string OR a declared "*" wildcard (the step declared this kind
+// broadly). No fuzzy/semantic matching in v1 (deterministic-tools principle).
+function effectTargetMatches(declaredTarget, observedTarget) {
+  return declaredTarget === "*" || declaredTarget === observedTarget;
+}
+
+// Pure escape core: observed-MINUS-declared per (issue, step). `entries` is the parsed
+// ledger; optional issueFilter narrows scope. Returns { escapes: [EscapeSignal], any_escape }.
+function computeEscapes(entries, issueFilter) {
+  const groups = new Map(); // (issue\0step) -> { issue, step, declared:[], observed:[] }
+  for (const e of entries) {
+    if (issueFilter != null && e.issue !== issueFilter) continue;
+    const k = `${e.issue} ${e.step}`;
+    if (!groups.has(k)) groups.set(k, { issue: e.issue, step: e.step, declared: [], observed: [] });
+    const g = groups.get(k);
+    if (e.kind_of_entry === "declare") g.declared.push(e.effect);
+    else if (e.kind_of_entry === "observe") g.observed.push(e.effect);
+  }
+  const escapes = [];
+  for (const g of groups.values()) {
+    const escaped = g.observed.filter((O) =>
+      !g.declared.some((d) => d.kind === O.kind && effectTargetMatches(d.target, O.target)));
+    if (escaped.length) escapes.push({ signal: "escaped-side-effect", issue: g.issue, step: g.step, escaped, event_seq: null });
+  }
+  return { escapes, any_escape: escapes.length > 0 };
+}
+
+function cmdEffects(args) {
+  let root = null, run = null, issue = null, step = null, ts = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else if (args[i] === "--run") run = args[++i];
+    else if (args[i] === "--issue") issue = args[++i];
+    else if (args[i] === "--step") step = args[++i];
+    else if (args[i] === "--ts") ts = args[++i];
+    else rest.push(args[i]);
+  }
+  if (rest.includes("--selftest")) return effectsSelftest();
+  root = root || findRoot();
+  const cmd = rest[0];
+  const asJson = rest.includes("--json");
+
+  if (cmd === "declare" || cmd === "observe") {
+    if (!run) { process.stderr.write(`faff effects ${cmd}: --run <run-id> is required\n`); return 2; }
+    if (!issue) { process.stderr.write(`faff effects ${cmd}: --issue <id> is required\n`); return 2; }
+    if (!step) { process.stderr.write(`faff effects ${cmd}: --step <name> is required\n`); return 2; }
+    const dir = path.join(root, ".faff", "runs", run);
+    // A missing path OR a non-directory there is "no valid run dir" → exit 3 (parity with
+    // `events append`), never an uncaught ENOTDIR when appendFileSync hits a file.
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+      process.stderr.write(`faff effects ${cmd}: run dir missing (${path.join(".faff", "runs", run)}) — initialise the run first\n`);
+      return 3;
+    }
+    let raw;
+    try { raw = fs.readFileSync(0, "utf8"); }
+    catch { process.stderr.write(`faff effects ${cmd}: cannot read payload from stdin\n`); return 2; }
+    let payload;
+    try { payload = JSON.parse(raw); }
+    catch { process.stderr.write(`faff effects ${cmd}: malformed payload (invalid JSON)\n`); return 2; }
+    const descriptors = Array.isArray(payload) ? payload : [payload];
+    if (descriptors.length === 0) { process.stderr.write(`faff effects ${cmd}: no effect descriptors in payload\n`); return 1; }
+    // Validate ALL before writing ANY (all-or-nothing; a bad descriptor writes nothing).
+    for (let i = 0; i < descriptors.length; i++) {
+      const viol = effectDescriptorViolations(descriptors[i]);
+      if (viol.length) { for (const x of viol) process.stderr.write(`- descriptor[${i}]: ${x}\n`); return 1; }
+    }
+    const ledgerPath = path.join(dir, "declared-effects.jsonl");
+    let seq = eventLineCount(ledgerPath); // authoritative monotonic line count
+    const written = [];
+    for (const d of descriptors) {
+      const record = {
+        schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(),
+        kind_of_entry: cmd, issue, step, effect: normEffect(d),
+      };
+      fs.appendFileSync(ledgerPath, JSON.stringify(record) + "\n");
+      written.push(record);
+      seq++;
+    }
+    console.log(JSON.stringify(written.length === 1 ? written[0] : written));
+    return 0;
+  }
+
+  if (cmd === "check") {
+    if (!run) { process.stderr.write("faff effects check: --run <run-id> is required\n"); return 2; }
+    // Absence of the ledger is a CLEAN state (no declared-effects activity), NOT exit 3 —
+    // parity with `events read` tolerance, and the spec's explicit edge case.
+    const ledgerPath = path.join(root, ".faff", "runs", run, "declared-effects.jsonl");
+    let entries = [];
+    if (fs.existsSync(ledgerPath)) {
+      entries = fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")
+        .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    }
+    const result = computeEscapes(entries, issue);
+    if (asJson) { console.log(JSON.stringify(result)); return 0; }
+    if (!result.any_escape) console.log("effects: no escape — every observed effect is covered by a declaration");
+    else {
+      console.log(`effects: ${result.escapes.length} escaped-side-effect signal(s) — any_escape: true`);
+      for (const s of result.escapes) console.log(`  - ${s.issue}/${s.step}: ${s.escaped.map((e) => `${e.kind} ${e.target}`).join(", ")}`);
+    }
+    return 0;
+  }
+
+  process.stderr.write("faff effects: expected one of declare | observe | check (or --selftest)\n");
+  return 2;
+}
+
+// In-memory self-test of the pure cores (mirrors the events/budget selftest style).
+function effectsSelftest() {
+  let failed = 0;
+  const fail = (m) => { process.stderr.write(`effects --selftest FAIL: ${m}\n`); failed++; };
+
+  // --- descriptor validation ---
+  const vcases = [
+    [{ kind: "merge", target: "main", reversible: true }, 0, "valid merge descriptor"],
+    [{ kind: "merge", target: "main" }, 0, "reversible optional"],
+    [{ kind: "no-such-kind", target: "main" }, 1, "unknown kind"],
+    [{ kind: "merge" }, 1, "missing target"],
+    [{ kind: "merge", target: "" }, 1, "empty target"],
+    [{ kind: "merge", target: "main", reversible: "yes" }, 1, "non-boolean reversible"],
+    [["not an object"], 1, "array is not a descriptor"],
+    [null, 1, "null is not a descriptor"],
+  ];
+  for (const [d, want, label] of vcases) {
+    const got = effectDescriptorViolations(d).length > 0 ? 1 : 0;
+    if (got !== want) fail(`${label} (want ${want}, got ${got})`);
+  }
+
+  // --- target_matches ---
+  if (!effectTargetMatches("main", "main")) fail("exact target match");
+  if (!effectTargetMatches("*", "anything")) fail("wildcard target match");
+  if (effectTargetMatches("main", "production")) fail("non-match target reads as escape");
+
+  // --- computeEscapes ---
+  const decl = (issue, step, effect) => ({ kind_of_entry: "declare", issue, step, effect });
+  const obs = (issue, step, effect) => ({ kind_of_entry: "observe", issue, step, effect });
+
+  let r = computeEscapes([
+    decl("FAFF-200", "build", { kind: "merge", target: "main" }),
+    obs("FAFF-200", "build", { kind: "merge", target: "main" }),
+  ]);
+  if (r.any_escape !== false || r.escapes.length !== 0) fail("covered observation => no escape");
+
+  r = computeEscapes([
+    decl("FAFF-200", "build", { kind: "merge", target: "main" }),
+    obs("FAFF-200", "build", { kind: "registry-publish", target: "pkg@1.2.0" }),
+  ]);
+  if (r.any_escape !== true || r.escapes.length !== 1 || r.escapes[0].signal !== "escaped-side-effect"
+      || r.escapes[0].escaped[0].kind !== "registry-publish") fail("uncovered observation => escaped-side-effect");
+
+  r = computeEscapes([obs("FAFF-1", "ship", { kind: "deploy", target: "prod" })]);
+  if (r.any_escape !== true) fail("no declarations + observed => escape");
+
+  r = computeEscapes([decl("FAFF-1", "ship", { kind: "deploy", target: "prod" })]);
+  if (r.any_escape !== false) fail("declarations + no observations => no escape");
+
+  r = computeEscapes([]);
+  if (r.any_escape !== false || r.escapes.length !== 0) fail("empty ledger => clean");
+
+  r = computeEscapes([
+    decl("FAFF-2", "build", { kind: "file-write", target: "*" }),
+    obs("FAFF-2", "build", { kind: "file-write", target: "/tmp/x" }),
+  ]);
+  if (r.any_escape !== false) fail("wildcard declaration covers observation");
+
+  r = computeEscapes([
+    decl("FAFF-3", "build", { kind: "merge", target: "main" }),
+    obs("FAFF-3", "ship", { kind: "merge", target: "main" }),
+  ]);
+  if (r.any_escape !== true) fail("declaration in a different step does not cover");
+
+  r = computeEscapes([
+    obs("FAFF-A", "build", { kind: "deploy", target: "prod" }),
+    obs("FAFF-B", "build", { kind: "deploy", target: "prod" }),
+  ], "FAFF-A");
+  if (r.escapes.length !== 1 || r.escapes[0].issue !== "FAFF-A") fail("issue filter narrows scope");
+
+  if (failed) return 1;
+  console.log("effects --selftest: ok");
+  return 0;
+}
+
+// ===========================================================================
 // sentry — FAFF-49: live-run derailment detection + the hard kill-switch.
 //
 // The active L4 supervisory lane — a fourth lane peer to orchestrator / implementor
@@ -11413,6 +11639,7 @@ const COMMANDS = {
   "fixtures": cmdFixtures,
   "env": cmdEnv,
   "events": cmdEvents,
+  "effects": cmdEffects,
   "sentry": cmdSentry,
   "lights-out": cmdLightsOut,
   "audit": cmdAudit,

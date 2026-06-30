@@ -148,6 +148,9 @@ jobs:
       - name: Validate sentry derailment-detection + kill-switch table (FAFF-49)
         run: node plugin/skills/faff/bin/faff sentry --selftest
 
+      - name: Validate escaped-side-effect detection table (FAFF-106)
+        run: node plugin/skills/faff/bin/faff effects --selftest
+
       - name: Validate run-termination contract script (FAFF-38)
         run: node plugin/skills/faff/bin/faff contract run-termination --selftest
 

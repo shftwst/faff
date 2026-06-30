@@ -10367,6 +10367,83 @@ function detectRunnableCheck(specText) {
   return false;
 }
 
+// --- prose-DONE punt-prediction advisory (FAFF-304) ---
+// The holdout evaluator forces EVERY prose-class DoD criterion to needs-human (a
+// fixed rule — a code-blind judge can't machine-verify loose prose). So the count of
+// prose DONE items is a deterministic, knowable-in-advance predictor of the
+// evaluator's punt count. This advisory surfaces that prediction on `admissible`'s
+// existing warnings[] channel — additive only, NEVER gating (it can't flip
+// `admissible`). It reuses dodClassify (the SAME classifier the evaluator uses), so
+// the count agrees with the evaluator by construction and inherits FAFF-306's
+// corrected `## Scenarios` / `### N. DONE` section boundaries for free.
+
+// Recall-biased duplicate threshold + stopwords — tunable constants (a floor, by
+// design; tune from real misses, never escalate to an LLM), mirroring BANNED_VAGUE.
+const DUP_THRESHOLD = 0.6;
+const PROSE_DONE_STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "at", "by", "for",
+  "with", "is", "are", "be", "was", "were", "been", "it", "its", "this", "that",
+  "these", "those", "as", "so", "if", "then", "when", "given", "than", "into",
+  "from", "over", "via", "not", "will", "must", "should", "can", "may", "each",
+  "any", "all", "no", "new",
+]);
+
+// Content tokens of a criterion: lowercase, strip markdown/backticks/punctuation,
+// drop 1-char tokens and stopwords (incl. Given/When/Then scaffolding). Returns a Set.
+function proseDoneTokens(text) {
+  const cleaned = String(text == null ? "" : text)
+    .toLowerCase()
+    .replace(/`+/g, " ")
+    .replace(/[^a-z0-9\s-]/g, " ");
+  const out = new Set();
+  for (const w of cleaned.split(/\s+/)) {
+    if (w.length > 1 && !PROSE_DONE_STOPWORDS.has(w)) out.add(w);
+  }
+  return out;
+}
+
+// One-directional containment of the DONE item's tokens in a born-verifiable
+// criterion's tokens (NOT symmetric Jaccard) — a restated DONE item is typically a
+// near-subset of the fuller scenario, which carries extra Given/When/Then scaffolding
+// a symmetric score would under-weight. Returns the fraction of the DONE item's tokens
+// the born-verifiable one covers, in [0,1].
+function proseDoneContainment(doneText, bornText) {
+  const dt = proseDoneTokens(doneText);
+  if (dt.size === 0) return 0;
+  const bt = proseDoneTokens(bornText);
+  let inter = 0;
+  for (const w of dt) if (bt.has(w)) inter++;
+  return inter / dt.size;
+}
+
+// Pure: given the spec text, return the prose-DONE advisory data, or null when there
+// is no prose DONE item (no warning). Reuses dodClassify — the single source of truth,
+// no second parser. The duplicate flag is a recall-biased advisory refinement; it
+// annotates, never gates.
+function proseDoneAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const proseDone = classified.criteria.filter((c) => c.source === "done" && c.class === "prose");
+  if (proseDone.length === 0) return null;
+  const bornVerifiable = classified.criteria.filter((c) => c.class === "scenario" || c.class === "assertion");
+  const duplicates = proseDone.filter((p) => bornVerifiable.some((b) => proseDoneContainment(p.text, b.text) >= DUP_THRESHOLD));
+  return { count: proseDone.length, items: proseDone, duplicates };
+}
+
+// Render the single-line advisory (deterministic "prose-DONE advisory:" prefix). Items
+// whitespace-collapsed + truncated ~50 chars, mirroring the R2b detail style. The
+// duplicate clause is omitted entirely when no item looks like a restatement.
+function renderProseDoneWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  const items = adv.items.map((p) => trunc(p.text)).join(" | ");
+  let s = `prose-DONE advisory: ${adv.count} DONE item(s) are loose prose and will be forced to needs-human by the holdout evaluator: ${items}`;
+  if (adv.duplicates.length >= 1) {
+    const dups = adv.duplicates.map((p) => trunc(p.text)).join(" | ");
+    s += `  (${adv.duplicates.length} appear to restate a born-verifiable scenario — candidates to remove: ${dups})`;
+  }
+  return s;
+}
+
 // The pure verdict. Any parse exception coerces to inadmissible (fail-safe).
 function admissibleVerdict(specText, lightsOut) {
   if (!lightsOut) {
@@ -10386,6 +10463,8 @@ function admissibleVerdict(specText, lightsOut) {
   checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
   const warnings = detectRunnableCheck(specText) ? [] : ["R3 advisory: no runnable check command found (recommended for lights-out, not required)"];
   warnings.push(...doneScenariosLevelWarning(specText));   // FAFF-306: advisory only — never flips admissible
+  const adv = proseDoneAdvisory(specText);                 // FAFF-304: predict the evaluator's prose-DONE punts
+  if (adv) warnings.push(renderProseDoneWarning(adv));     // advisory only — never flips admissible
   const admissible = checks.every((c) => c.pass);
   const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
   return { admissible, reasons, checks, warnings };
@@ -10395,7 +10474,7 @@ function admissibleVerdict(specText, lightsOut) {
 const ADMISSIBLE_GOOD = [
   "## Scenarios", "",
   "```", "Given a lights-out run and a concrete spec", "When the gate evaluates it", "Then the verdict is admissible", "```", "",
-  "## 8. DONE", "", "- [ ] `faff admissible` emits the verdict JSON", "- [ ] exit code is 0 admissible / 1 inadmissible", "",
+  "## 8. DONE", "", "- [ ] `faff admissible` MUST emit the verdict JSON", "- [ ] exit code MUST be 0 admissible / 1 inadmissible", "",
   "**Integration smoke test.**", "```", "faff admissible --selftest", "```", "",
 ].join("\n");
 
@@ -10405,7 +10484,29 @@ const ADMISSIBLE_GOOD = [
 const ADMISSIBLE_GOOD_NUMBERED = [
   "### 5. SCENARIOS", "",
   "```", "Given a lights-out run and a concrete spec", "When the gate evaluates it", "Then the verdict is admissible", "```", "",
-  "### 8. DONE", "", "- [ ] `faff admissible` emits the verdict JSON", "- [ ] exit code is 0 admissible / 1 inadmissible", "",
+  "### 8. DONE", "", "- [ ] `faff admissible` MUST emit the verdict JSON", "- [ ] exit code MUST be 0 admissible / 1 inadmissible", "",
+].join("\n");
+
+// FAFF-304 fixtures — prose DONE items trip the holdout evaluator's prose→needs-human
+// punt rule. ADMISSIBLE_PROSE_DONE: 3 prose DONE that do NOT restate the scenario (no
+// duplicate clause). ADMISSIBLE_DUP_DONE: 3 prose DONE, 2 of which restate the scenario
+// (the duplicate clause names those 2 as candidates to remove).
+const ADMISSIBLE_PROSE_DONE = [
+  "## Scenarios", "",
+  "```", "Given a request to /healthz", "When the server is running", "Then it responds 200", "```", "",
+  "## 8. DONE", "",
+  "- [ ] The dashboard surfaces deployment status to operators",
+  "- [ ] Operators can filter the audit log by actor",
+  "- [ ] The onboarding flow welcomes new users",
+].join("\n");
+
+const ADMISSIBLE_DUP_DONE = [
+  "## Scenarios", "",
+  "```", "Given a user submits a shortened link request", "When the server stores the mapping", "Then the api returns the short code", "```", "",
+  "## 8. DONE", "",
+  "- [ ] the server stores the mapping for a shortened link request",
+  "- [ ] the api returns the short code to the user",
+  "- [ ] operators receive a weekly analytics digest",
 ].join("\n");
 
 function admissibleSelftest() {
@@ -10424,6 +10525,12 @@ function admissibleSelftest() {
     { name: "FAFF-306 level-mismatch advisory (h2 Scenarios / h3 DONE)", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n### 2. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /different levels.*FAFF-306/ },
     // Consistent levels (both h2) must emit NO level-mismatch warning (regression guard).
     { name: "FAFF-306 consistent levels → no level warning", text: "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoLevelWarn: true },
+    // FAFF-304: prose DONE items predict the holdout evaluator's needs-human punts —
+    // advisory only, never flipping the boolean.
+    { name: "FAFF-304 prose-DONE-fires-advisory (3 prose DONE)", text: ADMISSIBLE_PROSE_DONE, lights: true, wantAdmissible: true, wantAdvisory: true, wantAdvisoryCount: 3, wantDuplicate: false },
+    { name: "FAFF-304 born-verifiable-DONE-no-advisory", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantAdvisory: false },
+    { name: "FAFF-304 duplicate-annotation-present (2 restate a scenario)", text: ADMISSIBLE_DUP_DONE, lights: true, wantAdmissible: true, wantAdvisory: true, wantAdvisoryCount: 3, wantDuplicate: true },
+    { name: "FAFF-304 advisory-never-flips-admissible (prose DONE stays admissible)", text: ADMISSIBLE_PROSE_DONE, lights: true, wantAdmissible: true, wantAdvisory: true },
   ];
   let failed = 0;
   for (const c of cases) {
@@ -10434,6 +10541,13 @@ function admissibleSelftest() {
     if (ok && c.wantWarn === false) ok = v.warnings.length === 0;
     if (ok && c.wantWarnMatch) ok = v.warnings.some((w) => c.wantWarnMatch.test(w));    // FAFF-306
     if (ok && c.wantNoLevelWarn) ok = !v.warnings.some((w) => /different levels/.test(w));  // FAFF-306
+    // FAFF-304: the prose-DONE punt-prediction advisory (a warnings[] string, never gating)
+    const advWarn = v.warnings.find((w) => w.startsWith("prose-DONE advisory:"));
+    if (ok && c.wantAdvisory === true) ok = !!advWarn;
+    if (ok && c.wantAdvisory === false) ok = !advWarn;
+    if (ok && typeof c.wantAdvisoryCount === "number") ok = !!advWarn && new RegExp(`^prose-DONE advisory: ${c.wantAdvisoryCount} DONE item`).test(advWarn);
+    if (ok && c.wantDuplicate === true) ok = !!advWarn && /candidates to remove:/.test(advWarn);
+    if (ok && c.wantDuplicate === false) ok = !!advWarn && !/candidates to remove:/.test(advWarn);
     if (ok && c.wantScope) ok = v.checks.length === 1 && v.checks[0].id === "scope" && v.warnings.length === 0;
     // invariant: reasons non-empty IFF inadmissible; warnings never flip admissible
     if (ok) ok = (v.reasons.length > 0) === (v.admissible === false);

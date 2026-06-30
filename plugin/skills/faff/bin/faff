@@ -10714,15 +10714,23 @@ function cmdSpecReviewLenses(args) {
 // pairs with the CLI contract that backs it (label only — the runner OWNS no copy
 // of the logic) and the subcommand whose --selftest is its reachability probe
 // (null ⇒ resolved differently: container from container-check's own verdict).
+// `enforced` (FAFF-305): true iff an orchestrator step actually INVOKES this
+// guardrail in the loop — distinct from `probe`/armed reachability (the contract
+// answers --selftest). `holdout` is reachable but called by no orchestrator
+// (faffter-noon-evaluate / faffter-noon-env-compose have no caller — the env→evaluate
+// chain is the out-of-scope L4 frontier), so it is enforced:false. Flip it to true
+// when the chain is wired and the banner self-updates to 8/8 enforced. Derived
+// fail-closed via strict === true (see lightsOutEnforced) — a new entry without an
+// explicit enforced:true reads as not-enforced, never silently counted.
 const LIGHTS_OUT_GUARDRAILS = [
-  { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible" },
-  { id: "spec_review",   contract: "faff contract spec-review-verdict",     probe: "contract" },
-  { id: "terminating",   contract: "faff run-done",                         probe: "run-done" },
-  { id: "budget",        contract: "faff budget check",                     probe: "budget" },
-  { id: "observability", contract: "faff events",                           probe: "events" },
-  { id: "kill_switch",   contract: "faff sentry check",                     probe: "sentry" },
-  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout" },
-  { id: "container",     contract: "faff container-check",                  probe: null },
+  { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible", enforced: true },
+  { id: "spec_review",   contract: "faff contract spec-review-verdict",     probe: "contract",   enforced: true },
+  { id: "terminating",   contract: "faff run-done",                         probe: "run-done",   enforced: true },
+  { id: "budget",        contract: "faff budget check",                     probe: "budget",     enforced: true },
+  { id: "observability", contract: "faff events",                           probe: "events",     enforced: true },
+  { id: "kill_switch",   contract: "faff sentry check",                     probe: "sentry",     enforced: true },
+  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout",    enforced: false },
+  { id: "container",     contract: "faff container-check",                  probe: null,         enforced: true },
 ];
 const LIGHTS_OUT_GUARDRAIL_IDS = LIGHTS_OUT_GUARDRAILS.map((g) => g.id);
 const GUARDRAIL_STATES = new Set(["live", "degraded", "absent"]);
@@ -10749,12 +10757,25 @@ function lightsOutArmed(probes) {
   return armed;
 }
 
+// Pure: derive each guardrail's enforced flag — true iff an orchestrator step
+// INVOKES it in the loop. A STATIC property of the shipped pipeline (which steps
+// exist), not of probe results, so it takes no probes (contrast lightsOutArmed,
+// which is probe-derived). Fail-closed via strict === true: a missing / non-`true`
+// flag reads false, so a new guardrail without an explicit enforced:true is never
+// silently counted as enforced. Reported by the banner + ledger, never gated on.
+function lightsOutEnforced(guardrails = LIGHTS_OUT_GUARDRAILS) {
+  const enforced = {};
+  for (const g of guardrails) enforced[g.id] = g.enforced === true;
+  return enforced;
+}
+
 // Pure: the refuse-to-start decision over v1's preconditions + the armed guardrail
-// set. Returns { proceed, refusals:[{gate,detail}], armed, banner, floor }. Proceed
+// set. Returns { proceed, refusals:[{gate,detail}], armed, enforced, banner, floor }. Proceed
 // iff EVERY guardrail is `live`, the review + spec_review slots are reachable, a
 // budget ceiling is set, and every floor assertion holds. Any miss refuses.
 function lightsOutPreflight(probes) {
   const armed = lightsOutArmed(probes);
+  const enforced = lightsOutEnforced();
   const floor = (probes && probes.floor) || {};
   const refusals = [];
 
@@ -10783,27 +10804,45 @@ function lightsOutPreflight(probes) {
   }
 
   const proceed = refusals.length === 0;
-  const banner = renderLightsOutBanner(armed, floor, proceed, probes);
-  return { proceed, refusals, armed, banner, floor };
+  const banner = renderLightsOutBanner(armed, floor, proceed, probes, enforced);
+  return { proceed, refusals, armed, enforced, banner, floor };
 }
 
 // Pure: render the human-facing banner — the trust contract. Derivable 1:1 from
-// `armed` (every guardrail id + state appears), so a human can confirm a fully-armed
-// L4 run without re-deriving config. Persisted into the ledger, not just printed.
-function renderLightsOutBanner(armed, floor, proceed, probes) {
+// `armed` + `enforced` (every guardrail id, its reachability state, AND its
+// enforcement flag appears), so a human can confirm an L4 run without re-deriving
+// config — and never reads a bare "live" that conflates reachable with enforced
+// (FAFF-305). Persisted into the ledger, not just printed. `enforced` is the
+// fail-closed {id: boolean} map from lightsOutEnforced(); a 4-arg call leaves it
+// undefined and every line degrades to "reachable-only" (the documented failure
+// mode the selftest catches), never throwing.
+function renderLightsOutBanner(armed, floor, proceed, probes, enforced) {
   const mark = (s) => (s === "live" ? "●" : s === "degraded" ? "◐" : "○");
+  const enf = enforced || {};
   const lines = [];
   lines.push(`faff lights-out — L4 run banner`);
   lines.push(`  level: L4   container: ${probes && probes.container === "contained" ? "contained" : "refused"}`);
   lines.push(`  guardrails (${LIGHTS_OUT_GUARDRAILS.length}):`);
   for (const g of LIGHTS_OUT_GUARDRAILS) {
     const st = armed[g.id];
-    lines.push(`    ${mark(st)} ${g.id.padEnd(14)} ${String(st).padEnd(9)} (${g.contract})`);
+    const enfTok = enf[g.id] === true ? "enforced" : "reachable-only";
+    lines.push(`    ${mark(st)} ${g.id.padEnd(14)} reachable:${String(st).padEnd(9)} ${enfTok.padEnd(14)} (${g.contract})`);
   }
   const fl = floor || {};
   lines.push(`  floor: no-execute ${fl.no_execute ? "✓" : "✗"}  worktree-isolation ${fl.worktree_isolation ? "✓" : "✗"}  autonomous-contract ${fl.autonomous_contract ? "✓" : "✗"}`);
-  const allLive = LIGHTS_OUT_GUARDRAIL_IDS.every((id) => armed[id] === "live");
-  lines.push(`  status: ${proceed ? `ARMED — all ${LIGHTS_OUT_GUARDRAILS.length} guardrails live` : `REFUSED — preflight not satisfied${allLive ? "" : " (a guardrail is not live)"}`}`);
+  if (proceed) {
+    const total = LIGHTS_OUT_GUARDRAILS.length;
+    const enforcedN = LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => enf[id] === true).length;
+    const notEnforced = LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => enf[id] !== true);
+    const base = `ARMED — ${enforcedN}/${total} enforced`;
+    const status = notEnforced.length
+      ? `${base}; ${notEnforced.length} reachable-but-not-enforced: ${notEnforced.join(", ")}`
+      : base;
+    lines.push(`  status: ${status}`);
+  } else {
+    const allLive = LIGHTS_OUT_GUARDRAIL_IDS.every((id) => armed[id] === "live");
+    lines.push(`  status: REFUSED — preflight not satisfied${allLive ? "" : " (a guardrail is not live)"}`);
+  }
   return lines.join("\n");
 }
 
@@ -10882,7 +10921,7 @@ function cmdLightsOut(args) {
   // REFUSE (fail-closed): print the banner + refusals, mint nothing, emit no work.
   if (!pf.proceed) {
     if (json) {
-      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, armed: pf.armed, refusals: pf.refusals, banner: pf.banner }) + "\n");
+      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, armed: pf.armed, enforced: pf.enforced, refusals: pf.refusals, banner: pf.banner }) + "\n");
     } else {
       console.log(pf.banner);
       console.log(`\nREFUSED — lights-out preflight not satisfied:`);
@@ -10893,7 +10932,7 @@ function cmdLightsOut(args) {
 
   // --check: would-proceed, but mint nothing (a side-effect-free preflight probe).
   if (checkOnly) {
-    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, armed: pf.armed, banner: pf.banner, checked: true }) + "\n");
+    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true }) + "\n");
     else { console.log(pf.banner); console.log(`\nPreflight PASS (--check: no run minted).`); }
     return 0;
   }
@@ -10909,6 +10948,7 @@ function cmdLightsOut(args) {
     run_id: runId,
     level: "L4",
     armed: pf.armed,
+    enforced: pf.enforced,
     banner: pf.banner,
     budget: { envelope },
     budget_ceiling: envelope.ceilings,
@@ -10934,7 +10974,7 @@ function cmdLightsOut(args) {
   fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
 
   if (json) {
-    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", armed: pf.armed, dial_profile, banner: pf.banner }) + "\n");
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner }) + "\n");
   } else {
     console.log(pf.banner);
     console.log(`\nPreflight PASS — L4 run minted: ${runDir}`);
@@ -10965,12 +11005,58 @@ function lightsOutSelftest() {
   for (const id of LIGHTS_OUT_GUARDRAIL_IDS) check(`banner names ${id}`, happy.banner.includes(id));
   check("banner reports ARMED on proceed", /ARMED/.test(happy.banner));
 
+  // FAFF-305 — enforced map: reported alongside armed, fail-closed via strict === true.
+  check("preflight returns an enforced map", happy.enforced && typeof happy.enforced === "object");
+  check("enforced map covers exactly the 8 guardrails", Object.keys(happy.enforced || {}).length === 8);
+  check("holdout is reachable-but-not-enforced", happy.enforced.holdout === false);
+  check("the other 7 guardrails are enforced",
+    LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => id !== "holdout").every((id) => happy.enforced[id] === true));
+  check("enforced count is 7/8",
+    LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => happy.enforced[id] === true).length === 7);
+  // Strict === true: a truthy-but-not-true flag (1) reads as NOT enforced (fail-closed);
+  // a missing flag reads false; only an exact `true` counts.
+  const strict = lightsOutEnforced([
+    { id: "exact", enforced: true },
+    { id: "truthy", enforced: 1 },
+    { id: "string", enforced: "true" },
+    { id: "missing" },
+  ]);
+  check("strict === true: exact true is enforced", strict.exact === true);
+  check("strict === true: truthy-non-true (1) is NOT enforced", strict.truthy === false);
+  check("strict === true: string 'true' is NOT enforced", strict.string === false);
+  check("strict === true: missing flag is NOT enforced (fail-closed)", strict.missing === false);
+  // proceed is UNCHANGED by enforcement: holdout reachable-but-not-enforced still proceeds.
+  check("proceed unchanged when holdout not enforced (banner honesty only)", happy.proceed === true);
+
+  // Banner: status line states enforcement; no guardrail line shows a bare "live".
+  check("proceed-path status line reads 7/8 enforced + names holdout",
+    happy.banner.includes("ARMED — 7/8 enforced; 1 reachable-but-not-enforced: holdout"));
+  const guardrailLines = happy.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l));
+  check("every guardrail line carries a reachability token",
+    guardrailLines.length === 8 && guardrailLines.every((l) => /reachable:/.test(l)));
+  check("every guardrail line carries an enforcement token (no bare live)",
+    guardrailLines.every((l) => /\b(enforced|reachable-only)\b/.test(l)));
+  check("holdout line shows reachable:live with reachable-only enforcement token",
+    guardrailLines.some((l) => /\bholdout\b/.test(l) && /reachable:live/.test(l) && /reachable-only/.test(l)));
+
+  // Status line generalises: an all-enforced table yields N/N with no trailing clause.
+  const allEnf = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) allEnf[id] = true;
+  const allEnfBanner = renderLightsOutBanner(happy.armed, okFloor, true, armedProbes(), allEnf);
+  check("all-enforced status line reads N/N with no trailing clause",
+    allEnfBanner.includes(`ARMED — ${LIGHTS_OUT_GUARDRAIL_IDS.length}/${LIGHTS_OUT_GUARDRAIL_IDS.length} enforced`) &&
+    !allEnfBanner.includes("reachable-but-not-enforced"));
+
   // Container not_confirmed → refuse, container guardrail absent, banner REFUSED.
   const bare = lightsOutPreflight(armedProbes({ container: "not_confirmed", reachable: { ...allReach(), container: false } }));
   check("bare host refuses", bare.proceed === false);
   check("container guardrail absent on bare host", bare.armed.container === "absent");
   check("bare-host refusal names container gate", bare.refusals.some((r) => r.gate === "guardrail:container"));
   check("banner reports REFUSED on bare host", /REFUSED/.test(bare.banner));
+  // FAFF-305: the REFUSED status line is unchanged (a guardrail-not-live suffix), and
+  // per-guardrail lines still carry the enforcement token on the refuse path too.
+  check("REFUSED status line unchanged", bare.banner.includes("REFUSED — preflight not satisfied (a guardrail is not live)"));
+  check("refuse-path guardrail lines still carry enforcement token",
+    bare.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l)).every((l) => /\b(enforced|reachable-only)\b/.test(l)));
 
   // Review slot unreachable → refuse (configured-but-down == absent, never pass+skip).
   const noReview = lightsOutPreflight(armedProbes({ reviewReachable: false }));

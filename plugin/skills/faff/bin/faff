@@ -292,6 +292,36 @@ const DEFAULTS = {
   "prdr.thrash_window": "21",
 };
 
+// FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution
+// channel — under an active L4 lights-out run appetite resolves to `full` unconditionally
+// and config `appetite` is ignored; config stays authoritative for L1–L3. The pin bites
+// HERE (behind `faff config get appetite`) so every consumer inherits the L4 guarantee with
+// zero per-call-site edits. The hard floor (destructive/irreversible always parks) is
+// unchanged and still wins at `full` — "L4 = full" is never "L4 = reckless".
+// Precedence: env FAFF_APPETITE (valid token) > active-L4 ledger (FAFF_RUN_DIR, level:"L4")
+//             > config `appetite` > baked default. A missing/unreadable/non-L4 ledger and an
+// invalid FAFF_APPETITE token both fail safe to config — the override never fabricates `full`
+// nor lowers safety.
+const VALID_APPETITES = new Set(["low", "medium", "high", "full"]);
+
+function resolveAppetite(cfg, env = process.env) {
+  // 1. env belt — the runner-exported fast-path (greppable in a process; may not cross every
+  //    subagent shell, which is why the ledger brace below exists).
+  const envApp = env.FAFF_APPETITE;
+  if (envApp && VALID_APPETITES.has(String(envApp).toLowerCase())) return String(envApp).toLowerCase();
+  // 2. ledger brace — authoritative + subagent-safe (FAFF_RUN_DIR is inherited by beep-boop
+  //    subagents, as budget-check/runcheck already rely on). Reads the EXPLICITLY-handed run
+  //    dir, never a globally-sorted latest (dodges the latestRunDir lexical-sort hazard).
+  const runDir = env.FAFF_RUN_DIR;
+  if (runDir) {
+    try { const ledger = readLedger(runDir); if (ledger && ledger.level === "L4") return "full"; }
+    catch { /* unreadable / absent ledger → fall through (never fabricate `full`) */ }
+  }
+  // 3. config → baked default — the unchanged L1–L3 path.
+  const v = dig(cfg, "appetite");
+  return (v === null || v === undefined) ? DEFAULTS["appetite"] : v;
+}
+
 function fmt(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -711,6 +741,14 @@ function cmdConfig(args) {
         if (key === null) key = a;
       }
       const [data] = loadConfig(root);
+      // FAFF-308: appetite is the one level-scoped dial — route it through the sole appetite
+      // resolver so an active L4 run forces `full`. Guarded to the `appetite` key ONLY; every
+      // other key's resolution below is byte-for-byte unchanged.
+      if (key === "appetite") {
+        const app = resolveAppetite(data, process.env);
+        console.log(wantJson ? JSON.stringify(app) : app);
+        return 0;
+      }
       const value = dig(data, key);
       if (value === null || value === undefined) {
         // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
@@ -11504,7 +11542,11 @@ function cmdLightsOut(args) {
   const probes = { container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet, floor, dial: coherenceDial };
   const pf = lightsOutPreflight(probes);
 
-  const appetite = dig(cfg, "appetite") || DEFAULTS["appetite"];
+  // FAFF-308: appetite is level-scoped — at L4 the runner forces `full` unconditionally,
+  // ignoring config `appetite` (choosing L4 IS handing over the reins; appetite is not an
+  // operator dial here). The level-scoping is recorded at mint time in the ledger, which the
+  // `resolveAppetite` brace then reads so every consumer sees `full`.
+  const appetite = "full";
   const dial_profile = {
     appetite,
     slots: { review: reviewOccupant, spec_review: specReviewOccupant },
@@ -11571,7 +11613,9 @@ function cmdLightsOut(args) {
   } else {
     console.log(pf.banner);
     console.log(`\nPreflight PASS — L4 run minted: ${runDir}`);
-    console.log(`Launch the unattended drain with this run armed:  FAFF_RUN_DIR=${runDir} /faff-beep-boop`);
+    // FAFF-308: export FAFF_APPETITE=full on the handoff so downstream shells fast-path the
+    // level-scoped `full` without a ledger read (belt; the FAFF_RUN_DIR ledger is the brace).
+    console.log(`Launch the unattended drain with this run armed:  FAFF_APPETITE=full FAFF_RUN_DIR=${runDir} /faff-beep-boop`);
   }
   return 0;
 }

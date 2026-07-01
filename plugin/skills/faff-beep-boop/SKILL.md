@@ -55,8 +55,6 @@ budget:
   price_per_mtok: 0         # cost-dimension price input; 0 disables the cost dimension
 ```
 
-The `--until`/`--max` flags remain and **override** config. With neither flag nor a `budget:` block, behaviour is unchanged from the no-budget run.
-
 ### The check — `faff budget check` (FAFF-36)
 
 At each between-units checkpoint (below), call **`faff budget check`** — a **pure** CLI (no tracker/network call, parity with `faff next`) that reads the run-ledger + config + the run's local transcripts and emits a `BudgetState` JSON:
@@ -87,21 +85,13 @@ Between units, never mid-unit (a turn's `usage` only lands in the transcript onc
 - After every build return (or before every launch in parallel mode), before dispatching the next build issue in the same wave.
 - At every wave boundary, before re-assembling the next wave's build queue.
 
-In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-graft` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). Under the parallel executor, up to `concurrency_max` issues may finish after the budget fires; that's expected.
-
-### Launch-counted, not terminal-state-counted
-
-`max_attempts` fires when the count of **launched** build attempts reaches N, not the count of returned terminal states. In sequential mode the two are identical. Under the parallel executor, counting launches prevents the `concurrency_max - 1` overshoot you'd get from waiting for the Nth terminal state — every launch eventually terminates, so terminal-state count converges to exactly N anyway (or to whatever was launched when another dimension fired first).
+In-flight units finish naturally. There is **no mid-issue cancellation** — a `/faff-graft` run in progress when the budget fires completes normally and lands in its terminal state (which then appears in Shipped / PR-open / Parked / Errored as usual). Under the parallel executor, up to `concurrency_max` issues may finish after the budget fires; that's expected. `max_attempts` fires on **launched** attempts, not returned terminals (identical in sequential mode; in parallel it avoids the overshoot of waiting for the Nth terminal).
 
 ### Unreached issues
 
 Issues that reached build-ready (spec present, verdict-admitted, partitioned by conflict analysis) but were never dispatched because the budget fired land in a new **Unreached (budget hit)** bucket in the run summary. They are **not parked** — they retain Todo + spec state and the next run picks them up. No tracker comment is added (their state is unchanged from run start).
 
 Un-prepped Backlog candidates whose prep dispatch never fired because `--until` cut prep short do **not** appear in `Unreached`. They remain in Backlog (their pre-run state, unchanged); the prep-queue summary just has smaller counts than possible. The next run picks them up.
-
-### Default behaviour (no budget)
-
-With no flag and no `budget:` block, behaviour is unchanged from the no-budget run: the envelope has no ceilings, every `faff budget check` returns `breached: []`, and the run ends by queue emptiness or all-remaining-parked, exactly as before.
 
 **Within-run convergence (`--converge`, opt-in — FAFF-87).** By default, execution-discovered scope is filed at end-of-run for the *next* run (step 10, file-and-defer) — depth grows ~one layer per run. The opt-in **`--converge`** flag (or `convergence.enabled: true`; the flag overrides config) instead closes the loop **inside one run** — each wave's discovered scope is filed mid-run (step 8.0), prepped, folded into the queue, and built this run until **both** bottom-up tributaries run dry; the wave-boundary stop is delegated to `faff run-done` (8.5), depth bounded by dryness + budget + value/dedup gating (never a fixed count — `convergence.max_waves`, default 6, is only a *reported* runaway backstop). L4 discipline, **off by default**; the file-and-defer path is unchanged without it.
 
@@ -237,6 +227,21 @@ PROCEDURE autonomous_file_check(mandate, candidate):
 - **`--root`, a cycle, or an unknown/absent parentId** all return outward (fail-closed, delegated to `faff contain`); **mandate == parent** is the contained base case.
 - **Containment is a precondition, not a replacement for appetite** — a `contained` verdict still goes through the existing appetite gate, which decides whether to file at this level. **outward-new-root is never filed at any appetite including `full`** (the hard floor — gateway → **Appetite for destruction**).
 
+### 10b. Per-run holdout phase (L4 lights-out signal only — the enforced holdout guardrail)
+
+Under the **L4 lights-out signal only** (resolve fail-safe **off**; an ordinary L3 run runs no holdout phase), after step 10 and before step 11's `runcheck`, invoke the **holdout step** once per run over the integrated post-merge system. This is the orchestrator caller that makes the `holdout` guardrail **enforced**, not merely reachable — code-blindness is **free** here (the orchestrator lane never writes code, so the evaluator cannot see it). It composes the shipped CLI gates and re-implements none: each step's exit code *is* the gate. Heartbeat `faff heartbeat "$run_dir"` around the evaluate.
+
+**`holdout_step(spec, prdr_id, key, run_dir) → meets-spec | gaps | fails | needs-human`** — call-site-agnostic, so the per-issue graft merge-gate reuses it unchanged with a per-issue association:
+
+1. Invoke `slots.env` (`faff config get slots.env`) with the architecture proposal + infra profile → an env-handle. No handle (recommendation ≠ build) → provision nothing, surface the proposal, return `needs-human`.
+2. Pipe the handle to `faff contract env-handle`; non-zero (not ready / no endpoint / no health-checks / no teardown_ref) → `needs-human`, go to teardown (a non-ready env is never judged).
+3. Invoke `slots.evaluator` (`faff config get slots.evaluator`) **code-blind** — hand it **only** `{spec, env-handle}`, never the diff / codebase / build-history / builder's tests (separate worktree/context; the lane invariant, not a preference).
+4. Pipe the verdict to `faff contract holdout-verdict`; non-zero (not code-blind / prose-judged / evidence-missing / incoherent) → `needs-human` (never `meets-spec`), go to teardown.
+5. Confirm the evaluator persisted `.faff/holdout/<key>.json`, then bridge: `faff holdout verdicts --association {"<key>":"<prdr_id>"} --dir .faff/holdout` → `faff prdr coverage --dod-verdicts <map>` → `faff run-done --prd-coverage <coverage>` (`prd_satisfied === false` ⇒ `escalate` / `product-incomplete`, the fixed floor no policy weakens).
+6. **Teardown on every path** (success, early return, exception): `faff env down --project <teardown_ref>` — a teardown failure is logged loudly, never changes the verdict. Return the aggregate.
+
+**Wiring.** Run-keyed: `key = run id`, `prdr_id = the run's project PRDR`, association `{run-id: project-prdr-id}` (matching the run-keyed verdicts→PRDR→coverage bridge). **Detect-and-escalate, not prevent** — it runs after each graft already self-merged, so a `fails` / `gaps` / `needs-human` aggregate makes the run **escalate and refuse to claim PRD-done** (the new **`product-incomplete`** run outcome, surfaced in reporting) and never blocks a merge; per-issue merge-gating is the sibling graft-gate follow-up that reuses this step. **De-risk:** faff is a Node CLI, not a service — if no in-repo runnable-system spec yields a provisionable env, narrow to the thinnest provisionable target and defer the real runnable-system proof to the greenfield cross-repo acceptance follow-up (a valid, honest outcome, not a gap to hide).
+
 ### 11. Run completeness check (mechanical)
 
 Before writing the run summary, run the bundled **runcheck** script — the mechanical backstop for the "never silently defer the queue" guarantee. It reads the run ledger and fails if any admitted issue has no terminal outcome (resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`):
@@ -342,8 +347,6 @@ Before the build pass, partition the ready set into **independents** (safe to bu
 
 **Critical framing:** conflict analysis is the mechanism that handles **in-queue dependencies**. Issue A depending on issue B, where B is in the same run's queue, is a collision group — not a park. "Serialise A behind B" is the answer. Parking A because "B isn't Done yet" when B is literally about to be built in this same run is the failure mode that breaks the pipeline: a chain of 5 issues all parking for "depends on earlier" means nothing ships. The chain is the whole point of overnight automation.
 
-**Verdict integration.** When the automation-routing verdict is computed (by tidy in the full pipeline, or inline in explicit-list mode), `likely-fire` is assigned precisely to issues that conflict analysis will serialise into a collision group with another in-queue issue. This means conflict analysis here is **confirming** the partition the verdict already implies — not reclassifying. Output of conflict analysis is the concrete (independents, groups) partition; the verdict was the up-front signal.
-
 Heuristics — issues are considered likely to collide when any of these hold:
 
 1. **Same file(s).** Their specs name one or more of the same files — exact path overlap.
@@ -354,8 +357,6 @@ Heuristics — issues are considered likely to collide when any of these hold:
 6. **Inferred producer→consumer dependency.** One spec *consumes* a surface another spec *produces*, with no declared blocker and no file/symbol overlap already catching it — see _Inferred build-order dependencies_ below. Serialise the pair into a collision group, producer-before-consumer. This is the asymmetric case rules 1–4 miss: B creates a module/endpoint/migration/symbol/config-key, A assumes it exists, and the specs share nothing the other rules can see, so both would otherwise read as independent and A could build before B.
 
 When in doubt, serialise. Parallelism is a speedup, not a correctness requirement — a false-positive collision costs a little time; a false-negative costs merge conflicts and broken builds. The full-path rule (2) trims the false positives that collapse the queue to near-sequential; the named-shared-surface rule (3) catches the false negatives that bare path-matching misses. The parallel executor's rebase-before-merge step (see the `concurrency` slot) is the backstop for any collision that slips through both.
-
-**What conflict analysis does NOT do:** it does not park issues. Everything that reached build-ready (spec present, not cancelled/archived, no external dependency missing from the run's combined queue) gets built — either as an independent or as an element of a serialised group. If you find yourself writing "park SHF-X because SHF-Y is Todo" during conflict analysis, stop: SHF-Y is Todo *in this run's queue*, so the correct action is `[SHF-Y, SHF-X]` as a serialised collision group, not a park.
 
 Output of conflict analysis:
 
@@ -372,8 +373,6 @@ Output of conflict analysis:
   ]
 }
 ```
-
-`inferred` is a **run-local audit list** added by heuristic 6 — every firm and ambiguous producer→consumer inference, each with quoted evidence. It does not change the `{independents, groups}` shape the `concurrency` slot consumes (firm inferences are already folded into `groups`); it exists for the run summary and audit log. **No tracker write derives from it.**
 
 Log the partition and the reasoning ("ISSUE-D and ISSUE-E both touch `src/auth/`"; inferred edges with their evidence) to `.faff/runs/<run-id>/conflict-analysis.md`.
 
@@ -392,8 +391,6 @@ Run this as the **first pass within Conflict analysis** (step 5), over the **alr
 3. **Fold into the partition.**
    - `firm` → place the pair in a collision group, **producer before consumer**, merging transitively with existing groups. Adding a real producer→consumer edge **can move an issue out of independents into a group — that is the correctness win**, the whole point of the heuristic. What it must never do is reorder *by value/risk/priority* (the methodology's job): the order it imposes is the dependency direction alone.
    - `ambiguous` → **do not serialise**; record under "surfaced, not serialised" (mirrors chain-gap's ambiguity downgrade — a false-positive serialisation drives the queue sequential, so don't guess).
-
-Transitive merging can, in principle, collapse much of the queue into one serialised group if firm edges chain densely — that is "when in doubt, serialise" working as intended (correct order beats parallelism), and the `ambiguous`-downgrade is the release valve that stops vague matches from driving it there.
 
 **Edge cases:**
 - **Cycle (A↔B consume each other, over the inferred edges):** collapse into one serialised group, deterministic intra-group order (ticket-id), and **flag the cycle** in the run summary as a likely spec error. Cycle detection is over the firm inferred edges built in this pass only.
@@ -488,6 +485,9 @@ repeat-parked ⚠ (N)
 
 ## Unreached (budget hit): N
 - ISSUE-VV: title — admitted to build queue, not dispatched (--until 06:00 fired before launch)
+
+## Product-incomplete (holdout escalation): rendered only when the L4 holdout phase ran
+- The per-run holdout verdict rolled up `fails`/`gaps`/`needs-human` → run escalated, PRD-done not claimed: [aggregate] (holdout: `.faff/holdout/<run-id>.json`)
 
 ## Inferred build-order deps: N (run-local — no tracker write)
 - ISSUE-E ← ISSUE-D (consumer ← producer; firm, paraphrase): serialised D-before-E — E **Assumes:** a rate limiter; D produces module `rate_limiter`

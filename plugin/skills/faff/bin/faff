@@ -11225,10 +11225,10 @@ function cmdSpecReviewLenses(args) {
 // (null ⇒ resolved differently: container from container-check's own verdict).
 // `enforced` (FAFF-305): true iff an orchestrator step actually INVOKES this
 // guardrail in the loop — distinct from `probe`/armed reachability (the contract
-// answers --selftest). `holdout` is reachable but called by no orchestrator
-// (faffter-noon-evaluate / faffter-noon-env-compose have no caller — the env→evaluate
-// chain is the out-of-scope L4 frontier), so it is enforced:false. Flip it to true
-// when the chain is wired and the banner self-updates to 8/8 enforced. Derived
+// answers --selftest). All 8 guardrails are now enforced: the per-run holdout
+// phase (beep-boop, sibling to runcheck) invokes the env→evaluate chain via the
+// call-site-agnostic holdout step (faffter-noon-env-compose provisions, faffter-noon-evaluate
+// judges code-blind), so `holdout` earns enforced:true and the banner reads 8/8. Derived
 // fail-closed via strict === true (see lightsOutEnforced) — a new entry without an
 // explicit enforced:true reads as not-enforced, never silently counted.
 const LIGHTS_OUT_GUARDRAILS = [
@@ -11238,7 +11238,7 @@ const LIGHTS_OUT_GUARDRAILS = [
   { id: "budget",        contract: "faff budget check",                     probe: "budget",     enforced: true },
   { id: "observability", contract: "faff events",                           probe: "events",     enforced: true },
   { id: "kill_switch",   contract: "faff sentry check",                     probe: "sentry",     enforced: true },
-  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout",    enforced: false },
+  { id: "holdout",       contract: "faff holdout / faff prdr coverage",     probe: "holdout",    enforced: true },
   { id: "container",     contract: "faff container-check",                  probe: null,         enforced: true },
 ];
 const LIGHTS_OUT_GUARDRAIL_IDS = LIGHTS_OUT_GUARDRAILS.map((g) => g.id);
@@ -11517,11 +11517,11 @@ function lightsOutSelftest() {
   // FAFF-305 — enforced map: reported alongside armed, fail-closed via strict === true.
   check("preflight returns an enforced map", happy.enforced && typeof happy.enforced === "object");
   check("enforced map covers exactly the 8 guardrails", Object.keys(happy.enforced || {}).length === 8);
-  check("holdout is reachable-but-not-enforced", happy.enforced.holdout === false);
-  check("the other 7 guardrails are enforced",
-    LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => id !== "holdout").every((id) => happy.enforced[id] === true));
-  check("enforced count is 7/8",
-    LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => happy.enforced[id] === true).length === 7);
+  check("holdout is now enforced (the per-run holdout phase invokes the env→evaluate chain)", happy.enforced.holdout === true);
+  check("all 8 guardrails are enforced",
+    LIGHTS_OUT_GUARDRAIL_IDS.every((id) => happy.enforced[id] === true));
+  check("enforced count is 8/8",
+    LIGHTS_OUT_GUARDRAIL_IDS.filter((id) => happy.enforced[id] === true).length === 8);
   // Strict === true: a truthy-but-not-true flag (1) reads as NOT enforced (fail-closed);
   // a missing flag reads false; only an exact `true` counts.
   const strict = lightsOutEnforced([
@@ -11534,19 +11534,19 @@ function lightsOutSelftest() {
   check("strict === true: truthy-non-true (1) is NOT enforced", strict.truthy === false);
   check("strict === true: string 'true' is NOT enforced", strict.string === false);
   check("strict === true: missing flag is NOT enforced (fail-closed)", strict.missing === false);
-  // proceed is UNCHANGED by enforcement: holdout reachable-but-not-enforced still proceeds.
-  check("proceed unchanged when holdout not enforced (banner honesty only)", happy.proceed === true);
+  // proceed is UNCHANGED by enforcement (it turns only on reachability — banner honesty only).
+  check("proceed unchanged by enforcement (banner honesty only)", happy.proceed === true);
 
   // Banner: status line states enforcement; no guardrail line shows a bare "live".
-  check("proceed-path status line reads 7/8 enforced + names holdout",
-    happy.banner.includes("ARMED — 7/8 enforced; 1 reachable-but-not-enforced: holdout"));
+  check("proceed-path status line reads 8/8 enforced with no trailing clause",
+    happy.banner.includes("ARMED — 8/8 enforced") && !happy.banner.includes("reachable-but-not-enforced"));
   const guardrailLines = happy.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l));
   check("every guardrail line carries a reachability token",
     guardrailLines.length === 8 && guardrailLines.every((l) => /reachable:/.test(l)));
   check("every guardrail line carries an enforcement token (no bare live)",
     guardrailLines.every((l) => /\b(enforced|reachable-only)\b/.test(l)));
-  check("holdout line shows reachable:live with reachable-only enforcement token",
-    guardrailLines.some((l) => /\bholdout\b/.test(l) && /reachable:live/.test(l) && /reachable-only/.test(l)));
+  check("holdout line shows reachable:live with enforced token",
+    guardrailLines.some((l) => /\bholdout\b/.test(l) && /reachable:live/.test(l) && /\benforced\b/.test(l)));
 
   // Status line generalises: an all-enforced table yields N/N with no trailing clause.
   const allEnf = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) allEnf[id] = true;

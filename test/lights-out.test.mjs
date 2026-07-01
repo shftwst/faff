@@ -138,29 +138,29 @@ test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", ()
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-// FAFF-305 — banner honesty: the proceed path reports each guardrail's enforcement
-// state (reachable vs enforced), distinct from armed reachability. `holdout` is
-// reachable-but-not-enforced (no orchestrator invokes it), so it must NOT count as
-// enforced and the status line must say so — while `proceed` is unchanged (banner
-// honesty only, never gated on enforcement).
-test("lights-out: proceed reports enforced map (7/8) + ledger carries it", () => {
+// FAFF-305/FAFF-309 — banner honesty: the proceed path reports each guardrail's
+// enforcement state (reachable vs enforced), distinct from armed reachability. Once
+// the per-run holdout phase invokes the env→evaluate chain (FAFF-309), `holdout` is
+// enforced too, so all 8 count and the status line reads 8/8 — while `proceed` is
+// unchanged (banner honesty only, never gated on enforcement).
+test("lights-out: proceed reports enforced map (8/8) + ledger carries it", () => {
   const root = tmpRoot();
   const { stdout, code } = runCli(["lights-out", "--root", root, "--max", "5", "--json"], { env: CONTAINED });
   assert.equal(code, 0, stdout);
   const out = JSON.parse(stdout);
   assert.equal(out.proceed, true); // enforcement does not gate — identical to pre-change
-  // enforced map: exactly the 8 ids, holdout false, the other 7 true.
+  // enforced map: exactly the 8 ids, all true (holdout now enforced by the per-run phase).
   assert.equal(Object.keys(out.enforced).length, 8);
-  assert.equal(out.enforced.holdout, false);
-  assert.equal(Object.entries(out.enforced).filter(([id, v]) => id !== "holdout" && v === true).length, 7);
-  assert.equal(Object.values(out.enforced).filter((v) => v === true).length, 7);
-  // status line states 7/8 enforced and names holdout as reachable-but-not-enforced.
-  assert.match(out.banner, /ARMED — 7\/8 enforced; 1 reachable-but-not-enforced: holdout/);
+  assert.equal(out.enforced.holdout, true);
+  assert.equal(Object.values(out.enforced).filter((v) => v === true).length, 8);
+  // status line states 8/8 enforced with no trailing reachable-but-not-enforced clause.
+  assert.match(out.banner, /ARMED — 8\/8 enforced/);
+  assert.ok(!out.banner.includes("reachable-but-not-enforced"));
   // no guardrail line shows a bare "live" without an enforcement token.
   const guardrailLines = out.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l));
   assert.equal(guardrailLines.length, 8);
   assert.ok(guardrailLines.every((l) => /\b(enforced|reachable-only)\b/.test(l)), "every line has an enforcement token");
-  assert.ok(guardrailLines.some((l) => /\bholdout\b/.test(l) && /reachable:live/.test(l) && /reachable-only/.test(l)));
+  assert.ok(guardrailLines.some((l) => /\bholdout\b/.test(l) && /reachable:live/.test(l) && /\benforced\b/.test(l)));
   // ledger persists enforced alongside armed, matching the JSON.
   const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
   assert.deepEqual(ledger.enforced, out.enforced);

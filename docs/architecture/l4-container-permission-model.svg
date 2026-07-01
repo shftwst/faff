@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1010" viewBox="0 0 1240 1010" font-family="'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#334155"/></marker>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#c53030"/></marker>
+    <marker id="at" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#0e7490"/></marker>
+    <marker id="ap" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#6b46c1"/></marker>
+    <style>
+      .t{fill:#16202e}.sub{fill:#5b6472}.mut{fill:#7a8494}
+      .flow{stroke:#334155;stroke-width:1.6;fill:none}
+      .ctx{stroke:#7b8494;stroke-width:1.6;stroke-dasharray:7 5;fill:none}
+    </style>
+  </defs>
+  <rect width="1240" height="1010" fill="#f6f8fc"/>
+
+  <!-- header -->
+  <text x="32" y="38" class="t" font-size="24" font-weight="800">faff · L4 — container &amp; permission model</text>
+  <text x="32" y="60" class="sub" font-size="13.5">what is a REAL container (solid) vs. a CONTEXT boundary (dashed) · who launches what · who could escape</text>
+  <g transform="translate(760,12)" font-size="11">
+    <line x1="0" y1="10" x2="30" y2="10" stroke="#c53030" stroke-width="3.5"/><text x="38" y="14" class="t">OS container — host isolation (a real cage)</text>
+    <line x1="0" y1="30" x2="30" y2="30" stroke="#0e7490" stroke-width="2.6"/><text x="38" y="34" class="t">OS container — the SUT (docker-compose)</text>
+    <line x1="0" y1="50" x2="30" y2="50" class="ctx"/><text x="38" y="54" class="t">context isolation — subagent/process (NOT a container)</text>
+    <line x1="240" y1="50" x2="270" y2="50" stroke="#6b46c1" stroke-width="1.6" stroke-dasharray="5 4"/><text x="278" y="54" class="t">FAFF-276 (not built) — future hard sandbox</text>
+  </g>
+
+  <!-- HOST -->
+  <rect x="28" y="84" width="1184" height="900" rx="10" fill="#eef1f7" stroke="#c3ccdb"/>
+  <text x="46" y="106" class="t" font-size="13" font-weight="700">HOST — your laptop · a CI runner · factory compute</text>
+
+  <!-- human + launch arrow -->
+  <rect x="46" y="118" width="150" height="40" rx="8" fill="#e3e8f2" stroke="#94a3b8"/>
+  <text x="121" y="143" text-anchor="middle" class="t" font-size="12.5" font-weight="600">👤 You</text>
+  <path class="flow" d="M196,138 C260,138 280,150 300,168" marker-end="url(#ar)" stroke="#c53030"/>
+  <text x="212" y="128" class="sub" font-size="10.5">docker run claude-box --dangerously-skip-permissions</text>
+
+  <!-- ================= claude-box (the ONE cage) ================= -->
+  <rect x="44" y="168" width="1152" height="800" rx="12" fill="#fff6f6" stroke="#c53030" stroke-width="3"/>
+  <text x="64" y="194" class="t" font-size="14" font-weight="800" fill="#c53030">🔒 claude-box — ONE container, human-launched</text>
+  <text x="470" y="194" class="t" font-size="12">GRANTS: no-human-stop (--dangerously-skip-permissions)  +  host-isolated blast radius   ·   ADR-0010 “the cage”</text>
+  <text x="64" y="214" class="sub" font-size="11.5">faff runs <tspan font-weight="700">inside</tspan> this box · <tspan font-weight="700">container-check ✔</tspan> asserts it (else lights-out <tspan font-weight="700" fill="#c53030">REFUSES</tspan>) · faff launches <tspan font-weight="700">no agent container</tspan> and <tspan font-weight="700">never self-grants</tspan> the escape</text>
+
+  <!-- Row 1: orchestrator | evaluator -->
+  <rect x="64" y="234" width="500" height="126" rx="9" fill="#e8f1fc" stroke="#2b6cb0"/>
+  <text x="80" y="256" class="t" font-size="13" font-weight="700" fill="#2b6cb0">ORCHESTRATOR LANE</text>
+  <text x="80" y="277" class="t" font-size="11.5">the main Claude Code process <tspan font-weight="700">you</tspan> launched — runs faff</text>
+  <text x="80" y="294" class="t" font-size="11.5">(tidy · prep · assemble+verdict · sequence). Holds only the</text>
+  <text x="80" y="311" class="t" font-size="11.5">ledger + return tokens. Reads code · talks to tracker + you.</text>
+  <text x="80" y="335" class="mut" font-size="11" font-style="italic">= a context, not a container. IS the process that “can’t stop for a human”.</text>
+
+  <rect x="588" y="234" width="588" height="126" rx="9" fill="#f3eefb" stroke="#6b46c1"/>
+  <text x="604" y="256" class="t" font-size="13" font-weight="700" fill="#6b46c1">EVALUATOR LANE</text>
+  <text x="604" y="277" class="t" font-size="11.5">a fresh process, handed <tspan font-weight="700">spec + env endpoint ONLY</tspan>, cwd outside the repo.</text>
+  <text x="604" y="294" class="t" font-size="11.5"><tspan font-weight="700">code-blind = a CONTEXT CONVENTION today</tspan> (“we didn’t hand it the code”),</text>
+  <text x="604" y="311" class="t" font-size="11.5">not a wall — it shares claude-box’s envelope, so a stray repo path would let it read code.</text>
+  <rect x="604" y="322" width="558" height="30" rx="6" fill="#f7f2ff" stroke="#6b46c1" stroke-dasharray="5 4"/>
+  <text x="612" y="341" class="t" font-size="11" fill="#6b46c1"><tspan font-weight="700">FAFF-276 (NOT BUILT):</tspan> give the evaluator its OWN sandbox → the codebase is <tspan font-weight="700">physically unreadable</tspan> (convention → wall).</text>
+
+  <!-- Row 2: implementor lane (dashed context region) -->
+  <rect x="64" y="374" width="1112" height="132" rx="9" fill="#eafaf0" stroke="#2f855a" stroke-dasharray="8 5"/>
+  <text x="80" y="396" class="t" font-size="13" font-weight="700" fill="#2f855a">IMPLEMENTOR LANE — build subagents (dispatched by the concurrency slot)</text>
+  <g font-size="11">
+    <rect x="80" y="408" width="300" height="60" rx="7" fill="#fff" stroke="#2f855a"/>
+    <text x="230" y="428" text-anchor="middle" class="t" font-weight="700">build subagent ①</text>
+    <text x="230" y="446" text-anchor="middle" class="t">LLM context + git worktree (fs)</text>
+    <text x="230" y="461" text-anchor="middle" class="mut">↑ returns only {issue,outcome,pr}</text>
+    <rect x="398" y="408" width="300" height="60" rx="7" fill="#fff" stroke="#2f855a"/>
+    <text x="548" y="428" text-anchor="middle" class="t" font-weight="700">build subagent ②</text>
+    <text x="548" y="446" text-anchor="middle" class="t">isolated worktree · own review/merge</text>
+    <rect x="716" y="408" width="300" height="60" rx="7" fill="#fff" stroke="#2f855a"/>
+    <text x="866" y="428" text-anchor="middle" class="t" font-weight="700">build subagent ③ …</text>
+    <text x="866" y="446" text-anchor="middle" class="t">up to concurrency_max</text>
+  </g>
+  <text x="1030" y="432" class="mut" font-size="10.5" text-anchor="middle">isolation =</text>
+  <text x="1030" y="447" class="mut" font-size="10.5" text-anchor="middle">context +</text>
+  <text x="1030" y="462" class="mut" font-size="10.5" text-anchor="middle">worktree</text>
+  <text x="80" y="492" class="mut" font-size="11" font-style="italic">context (throwaway LLM ctx) + worktree (filesystem) — <tspan font-weight="700">SAME permission envelope as claude-box</tspan>, not a separate cage.</text>
+
+  <!-- docker engine bar -->
+  <rect x="64" y="520" width="1112" height="38" rx="7" fill="#e2f4f6" stroke="#0e7490"/>
+  <text x="80" y="544" class="t" font-size="12"><tspan font-size="14">🐳</tspan>  <tspan font-weight="700">docker engine INSIDE claude-box</tspan>  (precondition: a mounted socket / docker-in-docker) — the <tspan font-weight="700">only</tspan> container-launching capability faff drives, and only via the env slot</text>
+
+  <!-- SUT env (real containers) -->
+  <rect x="64" y="572" width="1112" height="196" rx="9" fill="#e6f7f9" stroke="#0e7490" stroke-width="2"/>
+  <text x="80" y="594" class="t" font-size="13" font-weight="700" fill="#0e7490">SUT ENVIRONMENT — the env slot runs `docker compose up`</text>
+  <text x="470" y="594" class="sub" font-size="11.5">nested REAL containers = the system under test · seeded · health-checked · <tspan font-weight="700">torn down on every path</tspan></text>
+  <g font-size="11.5">
+    <rect x="90" y="612" width="230" height="90" rx="8" fill="#fff" stroke="#0e7490" stroke-width="1.6"/>
+    <text x="205" y="640" text-anchor="middle" class="t" font-weight="700">app (the SUT)</text>
+    <text x="205" y="662" text-anchor="middle" class="mut" font-size="10.5">the delivered feature,</text>
+    <text x="205" y="678" text-anchor="middle" class="mut" font-size="10.5">running for real</text>
+    <rect x="340" y="612" width="200" height="90" rx="8" fill="#fff" stroke="#0e7490" stroke-width="1.6"/>
+    <text x="440" y="648" text-anchor="middle" class="t" font-weight="700">postgres</text>
+    <text x="440" y="668" text-anchor="middle" class="mut" font-size="10.5">seeded datastore</text>
+    <rect x="560" y="612" width="200" height="90" rx="8" fill="#fff" stroke="#0e7490" stroke-width="1.6"/>
+    <text x="660" y="648" text-anchor="middle" class="t" font-weight="700">redis / minio …</text>
+    <text x="660" y="668" text-anchor="middle" class="mut" font-size="10.5">per the compose plan</text>
+  </g>
+  <text x="90" y="726" class="mut" font-size="10.5">real OS containers · permissions = only what the compose file grants · nested inside claude-box (still within the blast radius) · ephemeral</text>
+
+  <!-- env-up arrow from orchestrator -->
+  <path class="flow" d="M300,360 L300,571" stroke="#0e7490" marker-end="url(#at)"/>
+  <text x="306" y="540" class="sub" font-size="10">env slot → compose up</text>
+  <!-- evaluator → endpoint URL only -->
+  <path d="M880,360 C880,470 830,540 780,610" fill="none" stroke="#6b46c1" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ap)"/>
+  <text x="892" y="470" class="t" font-size="10.5" fill="#6b46c1">reaches the running system by</text>
+  <text x="892" y="485" class="t" font-size="10.5" fill="#6b46c1"><tspan font-weight="700">endpoint URL only</tspan> — never its source</text>
+
+  <!-- bottom two-column callout -->
+  <rect x="64" y="784" width="546" height="168" rx="9" fill="#fbfcff" stroke="#cbd5e1"/>
+  <text x="80" y="806" class="t" font-size="12.5" font-weight="700">Who launches what</text>
+  <text x="80" y="828" class="t" font-size="11.5">• <tspan font-weight="700">You</tspan> → the <tspan fill="#c53030" font-weight="700">one claude-box</tspan> (the cage + the no-stop grant).</text>
+  <text x="80" y="848" class="t" font-size="11.5">• <tspan font-weight="700">faff</tspan> → <tspan font-weight="700">NOTHING</tspan>. It asserts containment, never spawns a cage,</text>
+  <text x="96" y="864" class="t" font-size="11.5">never self-grants the escape (ADR-0010).</text>
+  <text x="80" y="884" class="t" font-size="11.5">• <tspan font-weight="700">env slot</tspan> → the <tspan fill="#0e7490" font-weight="700">SUT containers</tspan> (docker compose), inside</text>
+  <text x="96" y="900" class="t" font-size="11.5">claude-box, torn down every path.</text>
+  <text x="80" y="920" class="t" font-size="11.5">• <tspan font-weight="700">build subagents / evaluator</tspan> → spawned as <tspan font-weight="700">contexts/processes</tspan>,</text>
+  <text x="96" y="936" class="t" font-size="11.5">NOT containers (v1).</text>
+
+  <rect x="630" y="784" width="546" height="168" rx="9" fill="#fdf6f6" stroke="#e3b7b7"/>
+  <text x="646" y="806" class="t" font-size="12.5" font-weight="700">Permissions &amp; the gap</text>
+  <text x="646" y="828" class="t" font-size="11.5">• <tspan fill="#c53030" font-weight="700">claude-box</tspan>: no-human-stop + host isolation = <tspan font-weight="700">the blast radius</tspan>.</text>
+  <text x="662" y="844" class="t" font-size="11.5">The single grant — <tspan font-weight="700">human-made</tspan>, once.</text>
+  <text x="646" y="864" class="t" font-size="11.5">• <tspan font-weight="700">Every lane inside</tspan> inherits that <tspan font-weight="700">same envelope</tspan> — isolation is</text>
+  <text x="662" y="880" class="t" font-size="11.5">context / worktree / code-blindness, <tspan font-weight="700">not permissions</tspan>.</text>
+  <text x="646" y="900" class="t" font-size="11.5">• <tspan fill="#0e7490" font-weight="700">SUT containers</tspan>: only what the compose grants; nested; ephemeral.</text>
+  <text x="646" y="922" class="t" font-size="11.5">• <tspan fill="#6b46c1" font-weight="700">The gap:</tspan> the evaluator shares the envelope, so blindness is a</text>
+  <text x="662" y="938" class="t" font-size="11.5">convention → <tspan font-weight="700" fill="#6b46c1">FAFF-276</tspan> makes it a wall (its own sandbox).</text>
+</svg>

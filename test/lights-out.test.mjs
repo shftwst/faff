@@ -13,9 +13,19 @@ import { runCli } from "./helpers/run-cli.mjs";
 
 // A throwaway repo root with a .git marker so findRoot anchors there, and a forced
 // container signal so container-check resolves `contained` regardless of the host.
-function tmpRoot() {
+// It also writes a COHERENT dial (FAFF-298): adversarial review + spec_review slots
+// and fail-closed gates, so the dial-coherence pass admits the proceed path and each
+// refuse fixture isolates only its own gate. `dial` overrides let a test drive an
+// incoherent dial explicitly (see the dial-coherence refuse test).
+function tmpRoot(dial = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-"));
   fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  const review = dial.review ?? "faffter-dark-adversarial-review";
+  const specReview = dial.spec_review ?? "faffter-dark-spec-review";
+  const gatesFallback = dial.gates_fallback ?? "fail-closed";
+  fs.writeFileSync(
+    path.join(dir, ".faffrc.yaml"),
+    `slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n`);
   return dir;
 }
 const CONTAINED = { ...process.env, KUBERNETES_SERVICE_HOST: "10.0.0.1" };
@@ -165,6 +175,25 @@ test("lights-out: proceed reports enforced map (8/8) + ledger carries it", () =>
   const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
   assert.deepEqual(ledger.enforced, out.enforced);
   assert.equal(ledger.banner, out.banner);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-298 — dial-coherence end-to-end: a fully-contained, budgeted run whose dials
+// are each individually valid but JOINTLY reckless (non-adversarial review + advisory
+// gates) refuses at preflight with the named dial-coherence gates, mints nothing.
+test("lights-out: reckless dial combination refuses (non-adversarial review + advisory gates)", () => {
+  const root = tmpRoot({ review: "faffter-noon-review", gates_fallback: "advisory" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--max", "5", "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  assert.ok(out.refusals.some((r) => r.gate === "dial-coherence:adversarial-review"), "names the non-adversarial review gate");
+  assert.ok(out.refusals.some((r) => r.gate === "dial-coherence:gates-fallback"), "names the advisory gates.fallback gate");
+  // every coherence refusal carries a non-empty detail (greppable + human-readable).
+  for (const r of out.refusals.filter((x) => x.gate.startsWith("dial-coherence:"))) {
+    assert.ok(typeof r.detail === "string" && r.detail.length > 0, `${r.gate} has a detail`);
+  }
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on a reckless dial");
   fs.rmSync(root, { recursive: true, force: true });
 });
 

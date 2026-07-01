@@ -11245,6 +11245,70 @@ const LIGHTS_OUT_GUARDRAIL_IDS = LIGHTS_OUT_GUARDRAILS.map((g) => g.id);
 const GUARDRAIL_STATES = new Set(["live", "degraded", "absent"]);
 const LIGHTS_OUT_FLOOR_KEYS = ["no_execute", "worktree_isolation", "autonomous_contract"];
 
+// ---------------------------------------------------------------------------
+// FAFF-298 — dial-coherence. Refuse dial COMBINATIONS that pass every single-dial
+// check but are jointly reckless for an unattended (L4) run. Pure, no I/O; its
+// refusals fold into lightsOutPreflight's existing array, so the banner, the
+// persisted ledger, and the exit code carry them with no new plumbing. By the time
+// this runs the basic preflight has already proven each dial individually valid, so
+// its sole job is the JOINT incoherence the per-dial probes structurally cannot see.
+// Appetite is NOT a dimension here — L4 forces `appetite: full` (level-scoped,
+// owned by FAFF-308), so there is nothing to ceiling and this pass never reads it.
+//
+// Adversarial-occupant allowlists — name-based, fail-closed on the unknown. The
+// capability-vs-name question (an occupant self-declaring its adversariality) is a
+// Punt: a future contract would supersede these sets. isAdversarial(null|unknown) is
+// false, so a null/unknown occupant refuses fail-closed rather than slipping through.
+const ADVERSARIAL_REVIEW_OCCUPANTS = new Set(["faffter-dark-adversarial-review"]);
+const ADVERSARIAL_SPEC_REVIEW_OCCUPANTS = new Set(["faffter-dark-spec-review"]);
+// Vetted-by-construction recipe names — the FAFF-18 forward-compat seam. A non-null
+// recipe in this set short-circuits dialCoherence to coherent (human-ratified); a
+// non-vetted recipe string falls THROUGH to the standalone rules (never an auto-pass).
+// No `recipe` config key exists yet, so nothing can supply one today; `mature-prod`
+// is FAFF-18's worked example, pre-seeded here so the seam is exercised and inert.
+const VETTED_RECIPES = new Set(["mature-prod"]);
+
+// Pure: is `occupant` a known adversarial occupant of `kindSet`? Fail-closed on
+// null/unknown (returns false) — the caller treats that as a refusal.
+function isAdversarial(occupant, kindSet) {
+  return occupant != null && kindSet.has(occupant);
+}
+
+// Pure: adjudicate the assembled dial tuple, returning CoherenceRefusal[] ({gate,
+// detail}). Empty ⇒ coherent. A non-null vetted recipe short-circuits to coherent.
+// Otherwise: Rule (A) — L4 needs an adversarial review AND spec_review occupant;
+// Rule (B) — gates.fallback must be fail-closed. Fail-closed throughout: an unknown
+// occupant or an unrecognised gates.fallback token refuses, never proceeds.
+function dialCoherence(dial) {
+  const d = dial || {};
+  if (d.recipe != null && VETTED_RECIPES.has(d.recipe)) return [];
+  const refusals = [];
+  const slots = d.slots || {};
+  // Rule (A) — the adversarial second-opinion machinery is a keystone of L4's trust
+  // model; a single-model reviewer silently removes it.
+  if (!isAdversarial(slots.review, ADVERSARIAL_REVIEW_OCCUPANTS)) {
+    refusals.push({
+      gate: "dial-coherence:adversarial-review",
+      detail: `L4 lights-out requires an adversarial review occupant; '${slots.review == null ? "" : slots.review}' is not one — the second-opinion gate would be a single-model pass`,
+    });
+  }
+  if (!isAdversarial(slots.spec_review, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS)) {
+    refusals.push({
+      gate: "dial-coherence:adversarial-spec-review",
+      detail: `L4 lights-out requires an adversarial spec_review occupant; '${slots.spec_review == null ? "" : slots.spec_review}' is the single-pass default — the approach-challenge would not be adversarial`,
+    });
+  }
+  // Rule (B) — the engineering gate ladder must fail closed under lights-out; advisory
+  // lets a repo with no declared gates pass silently. Any non-fail-closed token refuses.
+  if (d.gates_fallback !== "fail-closed") {
+    refusals.push({
+      gate: "dial-coherence:gates-fallback",
+      detail: `gates.fallback is '${d.gates_fallback == null ? "" : d.gates_fallback}' — an unattended run needs fail-closed engineering gates; advisory lets a repo with no declared gates pass silently`,
+    });
+  }
+  return refusals;
+}
+
 // Pure: derive each guardrail's armed State ∈ {live|degraded|absent} from the probe
 // results — NEVER from config presence alone (a configured-but-unreachable contract
 // is degraded/absent, never silently live). `reachable[id]` is the contract probe;
@@ -11310,6 +11374,13 @@ function lightsOutPreflight(probes) {
   for (const k of LIGHTS_OUT_FLOOR_KEYS) {
     if (floor[k] !== true)
       refusals.push({ gate: `floor:${k}`, detail: `floor assertion '${k}' does not hold — refuse (no-execute / worktree isolation / Autonomous Mode Contract must all hold)` });
+  }
+  // Dial-coherence (FAFF-298) — refuse jointly-reckless dial COMBINATIONS the single-
+  // dial checks above structurally cannot see. Runs only when the wrapper supplied an
+  // assembled dial profile (cmdLightsOut always does); its refusals fold into the
+  // array so proceed / banner / ledger / exit reflect them with no new plumbing.
+  if (probes && probes.dial) {
+    for (const r of dialCoherence(probes.dial)) refusals.push(r);
   }
 
   const proceed = refusals.length === 0;
@@ -11417,7 +11488,20 @@ function cmdLightsOut(args) {
     autonomous_contract: true,
   };
 
-  const probes = { container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet, floor };
+  // Dial-coherence profile (FAFF-298) — the tuple dialCoherence adjudicates. Appetite
+  // is deliberately absent (L4 forces `appetite: full`, level-scoped — FAFF-308); this
+  // reads only the two resolved occupant names, gates.fallback, and any vetted recipe.
+  const gatesFallback = dig(cfg, "gates.fallback") || DEFAULTS["gates.fallback"];
+  const recipeRaw = dig(cfg, "recipe");
+  const recipe = recipeRaw != null && String(recipeRaw).trim() !== "" ? String(recipeRaw).trim() : null;
+  const coherenceDial = {
+    level: "L4",
+    slots: { review: reviewOccupant, spec_review: specReviewOccupant },
+    gates_fallback: gatesFallback,
+    recipe,
+  };
+
+  const probes = { container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet, floor, dial: coherenceDial };
   const pf = lightsOutPreflight(probes);
 
   const appetite = dig(cfg, "appetite") || DEFAULTS["appetite"];
@@ -11499,9 +11583,18 @@ function lightsOutSelftest() {
   const check = (label, cond) => { if (!cond) { process.stderr.write(`lights-out --selftest FAIL: ${label}\n`); failed++; } };
   const allReach = () => { const r = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) r[id] = true; return r; };
   const okFloor = { no_execute: true, worktree_isolation: true, autonomous_contract: true };
+  // Coherent default dial (FAFF-298): adversarial review + spec_review, fail-closed
+  // gates, no recipe — so the happy path proceeds. A fixture overrides `dial` to drive
+  // the reckless-combination cases.
+  const coherentDial = () => ({
+    level: "L4",
+    slots: { review: "faffter-dark-adversarial-review", spec_review: "faffter-dark-spec-review" },
+    gates_fallback: "fail-closed",
+    recipe: null,
+  });
   const armedProbes = (over = {}) => ({
     container: "contained", reachable: allReach(), reviewReachable: true,
-    specReviewSlot: true, budgetCeilingSet: true, floor: { ...okFloor }, ...over,
+    specReviewSlot: true, budgetCeilingSet: true, floor: { ...okFloor }, dial: coherentDial(), ...over,
   });
 
   // Happy path: every guardrail live, all preconditions met → proceed, all-8-live.
@@ -11595,6 +11688,79 @@ function lightsOutSelftest() {
 
   // Every derived armed state is in the closed vocabulary.
   check("armed states are in {live,degraded,absent}", LIGHTS_OUT_GUARDRAIL_IDS.every((id) => GUARDRAIL_STATES.has(happy.armed[id]) && GUARDRAIL_STATES.has(bare.armed[id])));
+
+  // ---- Dial-coherence (FAFF-298) -----------------------------------------
+  // The coherent default dial proceeds (folded into the happy path above too).
+  check("coherent dial proceeds (no coherence refusals)",
+    happy.proceed === true && !happy.refusals.some((r) => r.gate.startsWith("dial-coherence:")));
+
+  // Rule (A) — a non-adversarial review occupant refuses with its named gate; every
+  // basic precondition still passes so the ONLY refusal is the coherence one.
+  const reckReview = lightsOutPreflight(armedProbes({
+    dial: { ...coherentDial(), slots: { review: "faffter-noon-review", spec_review: "faffter-dark-spec-review" } },
+  }));
+  check("Rule A: non-adversarial review refuses",
+    reckReview.proceed === false && reckReview.refusals.some((r) => r.gate === "dial-coherence:adversarial-review"));
+  check("Rule A: review refusal is the only refusal (basic checks all pass)",
+    reckReview.refusals.length === 1);
+
+  // Rule (A) — a non-adversarial spec_review occupant refuses with its named gate.
+  const reckSpecReview = lightsOutPreflight(armedProbes({
+    dial: { ...coherentDial(), slots: { review: "faffter-dark-adversarial-review", spec_review: "faffter-noon-spec-review" } },
+  }));
+  check("Rule A: non-adversarial spec_review refuses",
+    reckSpecReview.proceed === false && reckSpecReview.refusals.some((r) => r.gate === "dial-coherence:adversarial-spec-review"));
+
+  // Rule (B) — gates.fallback = advisory refuses with its named gate.
+  const reckGates = lightsOutPreflight(armedProbes({
+    dial: { ...coherentDial(), gates_fallback: "advisory" },
+  }));
+  check("Rule B: advisory gates.fallback refuses",
+    reckGates.proceed === false && reckGates.refusals.some((r) => r.gate === "dial-coherence:gates-fallback"));
+
+  // Edge: an unrecognised gates.fallback token refuses fail-closed (inequality).
+  const reckGatesTypo = lightsOutPreflight(armedProbes({
+    dial: { ...coherentDial(), gates_fallback: "fail-clsoed" },
+  }));
+  check("Edge: unrecognised gates.fallback token refuses fail-closed",
+    reckGatesTypo.refusals.some((r) => r.gate === "dial-coherence:gates-fallback"));
+
+  // Edge: null / unknown occupant names refuse fail-closed, not a silent pass.
+  check("Edge: null review occupant refuses fail-closed",
+    dialCoherence({ slots: { review: null, spec_review: "faffter-dark-spec-review" }, gates_fallback: "fail-closed" })
+      .some((r) => r.gate === "dial-coherence:adversarial-review"));
+  check("Edge: unknown (bespoke) review occupant refuses fail-closed",
+    dialCoherence({ slots: { review: "my-custom-reviewer", spec_review: "faffter-dark-spec-review" }, gates_fallback: "fail-closed" })
+      .some((r) => r.gate === "dial-coherence:adversarial-review"));
+
+  // isAdversarial classifier: false for null/unknown, true for an allowlisted name.
+  check("isAdversarial(null) is false", isAdversarial(null, ADVERSARIAL_REVIEW_OCCUPANTS) === false);
+  check("isAdversarial(unknown) is false", isAdversarial("nope", ADVERSARIAL_REVIEW_OCCUPANTS) === false);
+  check("isAdversarial(allowlisted) is true", isAdversarial("faffter-dark-adversarial-review", ADVERSARIAL_REVIEW_OCCUPANTS) === true);
+
+  // Vetted recipe short-circuits: even an otherwise-reckless dial yields no refusals.
+  check("vetted recipe short-circuits to no refusals",
+    dialCoherence({ recipe: "mature-prod", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" }).length === 0);
+  const vettedProceed = lightsOutPreflight(armedProbes({
+    dial: { level: "L4", recipe: "mature-prod", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" },
+  }));
+  check("vetted recipe proceeds through the preflight", vettedProceed.proceed === true);
+
+  // Edge: a non-vetted recipe string falls THROUGH to the standalone rules (no auto-pass).
+  check("non-vetted recipe falls through to the standalone rules",
+    dialCoherence({ recipe: "made-up-recipe", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" }).length > 0);
+
+  // Assertion: every coherence refusal carries a `dial-coherence:` gate and a non-empty detail.
+  const allCoherenceRefusals = [...reckReview.refusals, ...reckSpecReview.refusals, ...reckGates.refusals]
+    .filter((r) => r.gate.startsWith("dial-coherence:"));
+  check("coherence refusals are greppable + have non-empty detail",
+    allCoherenceRefusals.length >= 3 && allCoherenceRefusals.every((r) => /^dial-coherence:/.test(r.gate) && typeof r.detail === "string" && r.detail.length > 0));
+
+  // preflight with NO dial supplied skips coherence (internal callers only; the
+  // wrapper always supplies one) — proves the guard, not a silent coherence pass.
+  const noDial = lightsOutPreflight({ container: "contained", reachable: allReach(), reviewReachable: true, specReviewSlot: true, budgetCeilingSet: true, floor: { ...okFloor } });
+  check("no-dial preflight proceeds (coherence guard skips absent dial)",
+    noDial.proceed === true && !noDial.refusals.some((r) => r.gate.startsWith("dial-coherence:")));
 
   if (failed) { console.log(`lights-out --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("lights-out --selftest: ok");

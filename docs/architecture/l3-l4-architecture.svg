@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1560" viewBox="0 0 1280 1560" font-family="'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#c53030"/>
+    </marker>
+    <marker id="arrowP" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 z" fill="#6b46c1"/>
+    </marker>
+    <style>
+      .t   { fill:#1a202c; }
+      .sub { fill:#5b6472; font-size:12px; }
+      .lane{ font-size:13px; font-weight:700; letter-spacing:.3px; }
+      .box { font-size:11.5px; }
+      .badge{ font-size:11px; }
+      .flow{ stroke:#334155; stroke-width:1.6; fill:none; }
+      .read{ stroke:#dd6b20; stroke-width:1.3; stroke-dasharray:3 3; fill:none; }
+      .iso { stroke:#7b8494; stroke-width:1.4; stroke-dasharray:7 5; fill:none; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="1560" fill="#f6f8fc"/>
+
+  <!-- ===================== HEADER ===================== -->
+  <text x="34" y="40" class="t" font-size="26" font-weight="800">faff — L3 vs L4</text>
+  <text x="34" y="62" class="sub" font-size="14">major components · control flow · isolation.  L4 = L3 + the cage, the second opinion, the code-blind judge, and the live watcher.</text>
+
+  <!-- legend -->
+  <g transform="translate(720,16)">
+    <line x1="0" y1="12" x2="34" y2="12" stroke="#c53030" stroke-width="4"/>
+    <text x="42" y="16" class="badge">container / host-isolation (the cage)</text>
+    <line x1="0" y1="34" x2="34" y2="34" class="iso"/>
+    <text x="42" y="38" class="badge">context isolation — subagent returns only {issue,outcome,pr}</text>
+    <line x1="0" y1="56" x2="34" y2="56" class="read"/>
+    <text x="42" y="60" class="badge">read-only signal tap (Sentry watches, never touches)</text>
+    <rect x="330" y="28" width="52" height="15" rx="3" fill="#efe9fb" stroke="#6b46c1"/>
+    <text x="356" y="39" text-anchor="middle" fill="#6b46c1" font-size="9.5" font-weight="700">NO CODE</text>
+    <text x="390" y="39" class="badge">code-blind lane (no codebase access)</text>
+  </g>
+
+  <!-- ============================================================= -->
+  <!-- ===========================  L3  ============================ -->
+  <!-- ============================================================= -->
+  <rect x="24" y="92" width="1232" height="560" rx="10" fill="#ffffff" stroke="#d3d9e6"/>
+  <text x="44" y="122" class="t" font-size="18" font-weight="800">L3 · ON the loop</text>
+  <text x="200" y="122" class="sub">/faff-beep-boop — you watch from the sofa; the net is mechanical, not your vigilance</text>
+
+  <!-- human -->
+  <rect x="44" y="140" width="196" height="42" rx="8" fill="#eef2f9" stroke="#94a3b8"/>
+  <text x="142" y="166" text-anchor="middle" class="box" font-weight="600">👤 Human — on the sofa</text>
+  <path class="flow" d="M240,161 L300,161" marker-end="url(#arrow)"/>
+  <text x="270" y="153" text-anchor="middle" class="sub" font-size="10.5">trigger</text>
+
+  <!-- orchestrator lane -->
+  <rect x="300" y="140" width="936" height="150" rx="9" fill="#e8f1fc" stroke="#2b6cb0"/>
+  <text x="316" y="160" class="lane" fill="#2b6cb0">ORCHESTRATOR LANE — tracker · human dialogue · read-only code · sequences (holds only the ledger + N tokens)</text>
+
+  <!-- pipeline boxes -->
+  <g class="box">
+    <!-- 7 boxes -->
+    <g>
+      <rect x="316" y="176" width="118" height="40" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="375" y="200" text-anchor="middle">Tidy</text>
+      <rect x="450" y="176" width="118" height="40" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="509" y="194" text-anchor="middle">Prep-queue</text><text x="509" y="208" text-anchor="middle">drain</text>
+      <rect x="584" y="176" width="130" height="40" rx="6" fill="#fbf3e0" stroke="#b7791f"/><text x="649" y="193" text-anchor="middle">Build-queue asm</text><text x="649" y="207" text-anchor="middle" fill="#b7791f" font-weight="700">+ verdict gate</text>
+      <rect x="730" y="176" width="120" height="40" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="790" y="194" text-anchor="middle">Conflict</text><text x="790" y="208" text-anchor="middle">analysis</text>
+      <rect x="866" y="176" width="120" height="40" rx="6" fill="#e6f4ec" stroke="#2f855a"/><text x="926" y="200" text-anchor="middle" font-weight="700">Build pass</text>
+      <rect x="1002" y="176" width="104" height="40" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="1054" y="194" text-anchor="middle">Wave</text><text x="1054" y="208" text-anchor="middle">re-entry</text>
+      <rect x="1120" y="176" width="102" height="40" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="1171" y="194" text-anchor="middle">runcheck</text><text x="1171" y="208" text-anchor="middle">→ report</text>
+    </g>
+    <!-- arrows between -->
+    <path class="flow" d="M434,196 L449,196" marker-end="url(#arrow)"/>
+    <path class="flow" d="M568,196 L583,196" marker-end="url(#arrow)"/>
+    <path class="flow" d="M714,196 L729,196" marker-end="url(#arrow)"/>
+    <path class="flow" d="M850,196 L865,196" marker-end="url(#arrow)"/>
+    <path class="flow" d="M986,196 L1001,196" marker-end="url(#arrow)"/>
+    <path class="flow" d="M1106,196 L1119,196" marker-end="url(#arrow)"/>
+    <!-- wave re-entry loop back to build-queue asm -->
+    <path class="flow" d="M1054,216 L1054,232 L649,232 L649,216" marker-end="url(#arrow)"/>
+    <text x="820" y="246" text-anchor="middle" class="sub" font-size="10">wave loop — re-assemble on chain-unlocks until the queue drains</text>
+  </g>
+
+  <!-- governance strip -->
+  <rect x="316" y="256" width="906" height="26" rx="5" fill="#fbf3e0" stroke="#b7791f"/>
+  <text x="326" y="273" class="badge" fill="#7a5310"><tspan font-weight="700">Governance:</tspan>  Budget envelope (max_attempts · tokens · until — at_ceiling: <tspan font-weight="700">stop</tspan>)   ·   Run-ledger (admitted − outcomes = ∅)   ·   runcheck + Stop-hook = mechanical completeness</text>
+
+  <!-- context isolation divider -->
+  <line class="iso" x1="300" y1="330" x2="1236" y2="330"/>
+  <text x="768" y="322" text-anchor="middle" class="sub" font-size="11">▲ context isolation — each build is a throwaway subagent; the orchestrator never holds N build working-sets</text>
+
+  <!-- implementor lane -->
+  <rect x="300" y="344" width="936" height="150" rx="9" fill="#e9f5ee" stroke="#2f855a"/>
+  <text x="316" y="364" class="lane" fill="#2f855a">IMPLEMENTOR LANE — full codebase R/W · spec · architecture · NO tracker  (dispatched by the concurrency slot, sequential or parallel)</text>
+
+  <!-- three build subagents -->
+  <g class="box">
+    <g>
+      <rect x="330" y="382" width="270" height="86" rx="7" fill="#fff" stroke="#2f855a"/>
+      <text x="465" y="404" text-anchor="middle" font-weight="700">Build subagent  ①</text>
+      <text x="465" y="424" text-anchor="middle" font-size="10.5">worktree → build → gate ladder →</text>
+      <text x="465" y="439" text-anchor="middle" font-size="10.5">review → merge-gate (AC ∧ CI ∧ review)</text>
+      <text x="465" y="458" text-anchor="middle" font-size="10.5" fill="#2f855a" font-weight="700">↑ returns only {issue, outcome, pr}</text>
+    </g>
+    <rect x="620" y="382" width="270" height="86" rx="7" fill="#fff" stroke="#2f855a"/>
+    <text x="755" y="404" text-anchor="middle" font-weight="700">Build subagent  ②</text>
+    <text x="755" y="428" text-anchor="middle" font-size="10.5">isolated worktree · own review · own merge</text>
+    <text x="755" y="458" text-anchor="middle" font-size="10.5" fill="#2f855a" font-weight="700">↑ {issue, outcome, pr}</text>
+    <rect x="910" y="382" width="270" height="86" rx="7" fill="#fff" stroke="#2f855a"/>
+    <text x="1045" y="404" text-anchor="middle" font-weight="700">Build subagent  ③  …</text>
+    <text x="1045" y="428" text-anchor="middle" font-size="10.5">review = faffter-noon (senior pass)</text>
+    <text x="1045" y="448" text-anchor="middle" font-size="10.5">swap → faffter-dark (adversarial)</text>
+  </g>
+  <!-- dispatch arrows -->
+  <path class="iso" d="M926,216 L926,336 L465,336 L465,381" marker-end="url(#arrow)"/>
+  <path class="iso" d="M940,320 L755,320 L755,381" marker-end="url(#arrow)"/>
+  <path class="iso" d="M1000,320 L1045,320 L1045,381" marker-end="url(#arrow)"/>
+  <!-- token return -->
+  <path class="flow" d="M600,392 C700,360 760,300 900,236" marker-end="url(#arrow)"/>
+  <text x="700" y="352" class="sub" font-size="10">reconcile token vs git ground truth → ledger</text>
+
+  <!-- L3 footer badges -->
+  <rect x="44" y="512" width="330" height="116" rx="8" fill="#f2f5fb" stroke="#cbd5e1"/>
+  <text x="60" y="534" class="box" font-weight="700">Safety net (L3)</text>
+  <text x="60" y="556" class="box" font-size="11">• park protocol — nothing loose is binned</text>
+  <text x="60" y="574" class="box" font-size="11">• run-ledger + runcheck — no silent deferral</text>
+  <text x="60" y="592" class="box" font-size="11">• Stop-hook — harness-enforced backstop</text>
+  <text x="60" y="614" class="sub" font-size="11">Ends: queue-drained · all-parked · budget-hit</text>
+
+  <rect x="390" y="512" width="846" height="116" rx="8" fill="#fbfcff" stroke="#dbe2ee"/>
+  <text x="406" y="534" class="box" font-weight="700">What L3 gives you</text>
+  <text x="406" y="556" class="box" font-size="11.5">The agent drives the whole delivery loop unattended and <tspan font-weight="700">parks anything it can't call.</tspan> You're on the loop:</text>
+  <text x="406" y="574" class="box" font-size="11.5">the correctness net is the mechanical park-protocol + ledger, not you staying awake. Review is a single senior pass</text>
+  <text x="406" y="592" class="box" font-size="11.5">(swappable to adversarial). Termination is by <tspan font-weight="700">queue emptiness</tspan> or a user budget — there is no code-blind judge,</text>
+  <text x="406" y="610" class="box" font-size="11.5">no live watcher, and no host-isolation requirement. Blast radius = your machine.</text>
+
+  <!-- ============================================================= -->
+  <!-- ===========================  L4  ============================ -->
+  <!-- ============================================================= -->
+  <!-- CONTAINER cage -->
+  <rect x="24" y="686" width="1232" height="854" rx="12" fill="#fff6f6" stroke="#c53030" stroke-width="3"/>
+  <text x="44" y="716" class="t" font-size="18" font-weight="800">L4 · OUT of the loop</text>
+  <text x="205" y="716" class="sub">lights-out — you're down the pub; correctness held by adversarial machinery</text>
+  <text x="640" y="716" fill="#c53030" font-size="12.5" font-weight="700">🔒 CONTAINER (ADR-0010) — host-isolation blast-radius cage · faff never self-grants --dangerously-skip-permissions</text>
+
+  <!-- preflight gate -->
+  <rect x="44" y="732" width="700" height="70" rx="8" fill="#fbecec" stroke="#c53030"/>
+  <text x="60" y="752" class="box" font-weight="700" fill="#c53030">lights-out preflight  (FAIL-CLOSED — any miss ⇒ refuse, mint nothing)</text>
+  <text x="60" y="770" class="box" font-size="10.8">container contained · budget ceiling SET · adversarial review + spec_review reachable ·</text>
+  <text x="60" y="786" class="box" font-size="10.8">dial-coherence (no reckless dial tuple) · all 8 guardrail contracts live · FAFF-68 no-execute + floor assertions</text>
+
+  <rect x="760" y="732" width="230" height="70" rx="8" fill="#eef7f0" stroke="#2f855a"/>
+  <text x="875" y="752" text-anchor="middle" class="box" font-weight="700" fill="#2f855a">✓ MINT L4 ledger</text>
+  <text x="875" y="770" text-anchor="middle" class="box" font-size="10.8">armed:Map&lt;guardrail,state&gt;</text>
+  <text x="875" y="786" text-anchor="middle" class="box" font-size="10.8">banner “ARMED — N/8 enforced”</text>
+  <path class="flow" d="M744,767 L759,767" marker-end="url(#arrow)"/>
+
+  <rect x="1006" y="732" width="216" height="70" rx="8" fill="#f3eefb" stroke="#6b46c1"/>
+  <text x="1114" y="751" text-anchor="middle" class="box" font-weight="700" fill="#6b46c1">appetite forced = full</text>
+  <text x="1114" y="769" text-anchor="middle" class="box" font-size="10.5">L4 owns the dial, ignores</text>
+  <text x="1114" y="785" text-anchor="middle" class="box" font-size="10.5">config; hard floor still binds</text>
+
+  <!-- orchestrator lane L4 -->
+  <rect x="44" y="820" width="890" height="96" rx="9" fill="#e8f1fc" stroke="#2b6cb0"/>
+  <text x="60" y="840" class="lane" fill="#2b6cb0">ORCHESTRATOR LANE  (same pipeline + adversarial review &amp; spec-review · run-done as terminator)</text>
+  <g class="box">
+    <rect x="60" y="852" width="150" height="48" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="135" y="872" text-anchor="middle">tidy · prep ·</text><text x="135" y="888" text-anchor="middle">assemble+verdict</text>
+    <rect x="226" y="852" width="150" height="48" rx="6" fill="#e6f4ec" stroke="#2f855a"/><text x="301" y="872" text-anchor="middle" font-weight="700">build pass</text><text x="301" y="888" text-anchor="middle" font-size="10">(→ implementor)</text>
+    <rect x="392" y="852" width="176" height="48" rx="6" fill="#efe9fb" stroke="#6b46c1"/><text x="480" y="871" text-anchor="middle" font-weight="700" fill="#6b46c1">per-run holdout phase</text><text x="480" y="887" text-anchor="middle" font-size="10">(→ evaluator lane)</text>
+    <rect x="584" y="852" width="150" height="48" rx="6" fill="#eef7f0" stroke="#2f855a"/><text x="659" y="872" text-anchor="middle" font-weight="700">run-done</text><text x="659" y="888" text-anchor="middle" font-size="10">dryness ∧ PRD-met</text>
+    <rect x="750" y="852" width="168" height="48" rx="6" fill="#fff" stroke="#2b6cb0"/><text x="834" y="871" text-anchor="middle">wave loop → runcheck</text><text x="834" y="887" text-anchor="middle" font-size="10">→ report / escalate</text>
+    <path class="flow" d="M210,876 L225,876" marker-end="url(#arrow)"/>
+    <path class="flow" d="M568,876 L583,876" marker-end="url(#arrow)"/>
+    <path class="flow" d="M734,876 L749,876" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- governance strip L4 -->
+  <rect x="44" y="924" width="890" height="26" rx="5" fill="#fbf3e0" stroke="#b7791f"/>
+  <text x="54" y="941" class="badge" fill="#7a5310"><tspan font-weight="700">Governance (L4):</tspan>  run-done = <tspan font-weight="700">TERMINATOR</tspan> (doneness, not a count)   ·   Sentry = <tspan font-weight="700">live interrupt</tspan>   ·   budget = generous spend/time <tspan font-weight="700">backstop</tspan> (at_ceiling: escalate)</text>
+
+  <!-- SENTRY watcher -->
+  <rect x="950" y="820" width="272" height="130" rx="9" fill="#fff3ea" stroke="#dd6b20" stroke-width="1.6"/>
+  <text x="1086" y="840" text-anchor="middle" class="lane" fill="#c05621">🛰  SENTRY — live derailment watcher</text>
+  <text x="1086" y="860" text-anchor="middle" class="box" font-size="10.5">reads the append-only surface, never mutates:</text>
+  <text x="1086" y="877" text-anchor="middle" class="box" font-size="10.5">events.jsonl · run-ledger · heartbeat · budget</text>
+  <text x="1086" y="898" text-anchor="middle" class="box" font-size="10.5" font-weight="700">triggers: thrash · no-progress · runaway</text>
+  <text x="1086" y="913" text-anchor="middle" class="box" font-size="10.5" font-weight="700">rate · escaped side-effect · wall-clock</text>
+  <text x="1086" y="936" text-anchor="middle" class="box" font-size="10.5" fill="#c05621" font-weight="700">→ continue · pause · ABORT (resumable kill)</text>
+  <!-- sentry read taps -->
+  <path class="read" d="M934,890 L949,890"/>
+  <text x="905" y="884" text-anchor="middle" class="sub" font-size="9.5">watches</text>
+  <path class="read" d="M1086,950 L1086,975 L640,975 L640,918" marker-end="url(#arrowR)"/>
+  <text x="820" y="990" text-anchor="middle" class="sub" font-size="9.5">un-gameable: acts at the dispatch boundary the build agent has no handle on</text>
+
+  <!-- context isolation divider L4 -->
+  <line class="iso" x1="44" y1="1000" x2="934" y2="1000"/>
+
+  <!-- implementor lane L4 -->
+  <rect x="44" y="1012" width="890" height="92" rx="9" fill="#e9f5ee" stroke="#2f855a"/>
+  <text x="60" y="1032" class="lane" fill="#2f855a">IMPLEMENTOR LANE — full codebase R/W · spec (isolated subagents; returns only a token)</text>
+  <g class="box">
+    <rect x="60" y="1044" width="270" height="48" rx="6" fill="#fff" stroke="#2f855a"/><text x="195" y="1064" text-anchor="middle">worktree · build · gate ladder</text><text x="195" y="1080" text-anchor="middle" font-size="10.5" fill="#c53030" font-weight="700">review = ADVERSARIAL (2nd model)</text>
+    <rect x="346" y="1044" width="270" height="48" rx="6" fill="#fff" stroke="#2f855a"/><text x="481" y="1064" text-anchor="middle">spec-review = per-lens refuters</text><text x="481" y="1080" text-anchor="middle" font-size="10.5">↑ {issue, outcome, pr}</text>
+    <rect x="632" y="1044" width="286" height="48" rx="6" fill="#fff" stroke="#2f855a"/><text x="775" y="1064" text-anchor="middle">merge-gate — never weakened</text><text x="775" y="1080" text-anchor="middle" font-size="10.5">(holdout can become a 4th condition)</text>
+  </g>
+  <path class="iso" d="M301,900 L301,1043" marker-end="url(#arrow)"/>
+
+  <!-- EVALUATOR lane -->
+  <rect x="44" y="1120" width="1178" height="150" rx="9" fill="#f3eefb" stroke="#6b46c1"/>
+  <text x="60" y="1140" class="lane" fill="#6b46c1">EVALUATOR LANE  — running environment + spec only · marks the work from the outside</text>
+  <rect x="1090" y="1126" width="118" height="20" rx="4" fill="#efe9fb" stroke="#6b46c1"/>
+  <text x="1149" y="1140" text-anchor="middle" fill="#6b46c1" font-size="10.5" font-weight="800">NO CODEBASE</text>
+
+  <g class="box">
+    <rect x="66" y="1160" width="200" height="86" rx="7" fill="#fff" stroke="#6b46c1"/>
+    <text x="166" y="1184" text-anchor="middle" font-weight="700">env slot</text>
+    <text x="166" y="1204" text-anchor="middle" font-size="10.5">docker-compose stand-in</text>
+    <text x="166" y="1220" text-anchor="middle" font-size="10.5">provision · seed · health-check</text>
+    <text x="166" y="1238" text-anchor="middle" font-size="10.5">→ env-handle (torn down)</text>
+
+    <rect x="312" y="1160" width="210" height="86" rx="7" fill="#fff" stroke="#6b46c1"/>
+    <text x="417" y="1184" text-anchor="middle" font-weight="700">evaluator (code-blind)</text>
+    <text x="417" y="1204" text-anchor="middle" font-size="10.5">given spec + env-handle ONLY</text>
+    <text x="417" y="1220" text-anchor="middle" font-size="10.5">fresh process, cwd outside repo</text>
+    <text x="417" y="1238" text-anchor="middle" font-size="10.5">→ holdout-verdict (code_blind:true)</text>
+
+    <rect x="568" y="1160" width="220" height="86" rx="7" fill="#fff" stroke="#6b46c1"/>
+    <text x="678" y="1184" text-anchor="middle" font-weight="700">prd-coverage bridge</text>
+    <text x="678" y="1206" text-anchor="middle" font-size="10.5">verdict → {prdr: met/…}</text>
+    <text x="678" y="1224" text-anchor="middle" font-size="10.5">→ prd-satisfied roll-up</text>
+
+    <rect x="834" y="1160" width="200" height="86" rx="7" fill="#eef7f0" stroke="#2f855a"/>
+    <text x="934" y="1184" text-anchor="middle" font-weight="700">run-done</text>
+    <text x="934" y="1206" text-anchor="middle" font-size="10.5">prd-satisfied=false ⇒</text>
+    <text x="934" y="1224" text-anchor="middle" font-size="10.5">escalate / product-incomplete</text>
+
+    <path class="flow" d="M266,1203 L311,1203" marker-end="url(#arrow)"/>
+    <path class="flow" d="M522,1203 L567,1203" marker-end="url(#arrow)"/>
+    <path class="flow" d="M788,1203 L833,1203" marker-end="url(#arrow)"/>
+  </g>
+  <!-- per-run phase → evaluator -->
+  <path class="flow" d="M480,900 L480,1030 L1055,1030 L1055,1120" stroke="#6b46c1" marker-end="url(#arrowP)"/>
+  <text x="1055" y="1112" text-anchor="middle" class="sub" font-size="10" fill="#6b46c1">holdout fires</text>
+  <text x="1075" y="1290" text-anchor="middle" class="sub" font-size="10.5">the evaluator marks the delivered behaviour against a spec it never saw the code for — a passing signal ≠ “tests passed”, it means the feature works</text>
+
+  <!-- L4 footer safety -->
+  <rect x="44" y="1312" width="1178" height="52" rx="8" fill="#fbecec" stroke="#c53030"/>
+  <text x="60" y="1334" class="box" font-weight="700" fill="#c53030">Safety net (L4) — no human in the net:</text>
+  <text x="330" y="1334" class="box" font-size="11.5">container (blast radius bounded) · adversarial 2nd-model review · isolated CODE-BLIND holdout · Sentry resumable kill-switch · run-done doneness</text>
+  <text x="60" y="1352" class="sub" font-size="11">L4 = L3's whole loop, moved inside the cage, with a second opinion that can't collude, a judge that can't see the code, and a watcher that can't be reached by what it watches.</text>
+
+  <!-- lane isolation summary (right, under container top-right free space) -->
+  <rect x="950" y="1120" width="272" height="1" fill="none"/>
+</svg>

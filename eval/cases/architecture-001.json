@@ -1,0 +1,8 @@
+{ "id": "architecture-001", "kind": "architecture",
+  "fixture": { "version": 1,
+    "brief": "Brief: a small internal tool that records timesheet entries and reports weekly totals. The data is relational (users, projects, entries), must survive restarts, and needs transactional integrity when concurrent edits land. Expected load is a handful of users; there is no streaming, analytics, or high-throughput ingestion requirement.",
+    "infra_profile": "Infra profile: team runs Node services locally and in CI via docker-compose; CI is GitHub Actions on ubuntu-latest (docker available). No managed-PaaS entitlements recorded. Preference stated for local-first, build-not-buy." },
+  "question": "Propose one best-fit, build-biased, production-grade architecture for this brief. State the datastore, the runtime/deploy shape, the ADR-worthy decisions, and any assumptions.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["postgres", "relational", "rdbms"], ["docker", "container", "compose"], ["durable", "persist", "survive restart"] ],
+    "must_avoid": [ ["hand-wave", "tbd", "we could maybe", "some datastore"], ["microservice", "micro-service"] ] } } }

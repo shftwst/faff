@@ -43,7 +43,9 @@ test("shipped tree passes the eval-coverage gate (exit 0, no `(eval coverage)` F
 
 test("day-one: post-265 family is advisory `undeclared`; designed kinds are advisory NEEDS-CASES", () => {
   const r = runValidate();
-  for (const n of ["faffter-noon-architecture", "faffter-noon-env-compose", "faffter-noon-evaluate",
+  // FAFF-285 removed faffter-noon-architecture from this list: it now owns the `architecture` registry
+  // row and declares `judgement_seam: architecture`, so it reconciles clean rather than being undeclared.
+  for (const n of ["faffter-noon-env-compose", "faffter-noon-evaluate",
                    "faffter-noon-adr", "faffter-noon-spec-review", "faffter-dark-spec-review"]) {
     assert.match(r.stdout, new RegExp(`UNDECLARED  ${n} `), `${n} should be advisory undeclared`);
   }
@@ -59,9 +61,11 @@ test("C1: a registry SURFACE with no judgement_seam key FAILS (eval coverage)", 
 });
 
 test("C1: an unrowed REGISTRY slot-skill with no key is advisory undeclared, NOT an eval-coverage FAIL", () => {
-  const r = runOnFixtures({ "faffter-noon-architecture": fm("faffter-noon-architecture") });
-  assert.match(r.stdout, /UNDECLARED  faffter-noon-architecture /);
-  assert.doesNotMatch(r.stdout, /faffter-noon-architecture \(eval coverage\)/);
+  // FAFF-285: faffter-noon-architecture is now a registry SURFACE, so the exemplar of a still-unrowed
+  // REGISTRY slot-skill is faffter-noon-env-compose (no registry row → advisory undeclared, not a fail).
+  const r = runOnFixtures({ "faffter-noon-env-compose": fm("faffter-noon-env-compose") });
+  assert.match(r.stdout, /UNDECLARED  faffter-noon-env-compose /);
+  assert.doesNotMatch(r.stdout, /faffter-noon-env-compose \(eval coverage\)/);
 });
 
 test("slot-sibling relaxation: an alternate declaring its sibling's KINDs reconciles clean", () => {

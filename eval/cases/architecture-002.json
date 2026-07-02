@@ -1,0 +1,8 @@
+{ "id": "architecture-002", "kind": "architecture",
+  "fixture": { "version": 1,
+    "brief": "Brief: add a nightly batch job that reads the existing timesheet table, computes each project's weekly total, and writes a summary row. It runs once per night, reads a few thousand rows, and writes a few dozen. There is no real-time, no fan-out to consumers, and no ordering-across-partitions requirement — a plain scheduled query is the honest fit.",
+    "infra_profile": "Infra profile: existing Postgres database (from the timesheet tool), Node services in docker-compose, GitHub Actions CI. No message broker, stream processor, or event store is provisioned or entitled." },
+  "question": "Propose one best-fit, build-biased, production-grade architecture for this nightly batch job. State the datastore, the scheduling mechanism, the ADR-worthy decisions, and any assumptions — do not introduce infrastructure the brief does not warrant.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["batch", "scheduled", "cron", "nightly"], ["postgres", "existing database", "sql query"] ],
+    "must_avoid": [ ["kafka", "event-sourcing", "event sourcing", "event store"], ["message broker", "stream processor", "pub/sub", "pubsub"] ] } } }

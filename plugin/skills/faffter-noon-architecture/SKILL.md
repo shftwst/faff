@@ -2,6 +2,7 @@
 name: faffter-noon-architecture
 description: "Default `architecture` slot occupant — the generative architecture/infra PROPOSER. Reads the team's infra profile + the brief/spec and proposes one best-fit, build-biased, production-grade architecture, emitting a founded `faff-contract:architecture-proposal` block + ADR promotion intent. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
+judgement_seam: architecture
 ---
 
 # faffter-noon-architecture

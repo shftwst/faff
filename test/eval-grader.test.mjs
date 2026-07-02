@@ -218,6 +218,48 @@ test("chain-gap wired through grade() on a chain-gap case", () => {
   assert.equal(grade(c, {}).graded, "FAIL");
 });
 
+// --- FAFF-285: architecture — collection-level rubric coverage over the proposal's key claims ---
+test("architecture PASS: a build-biased proposal covering the rubric scores 1.0", () => {
+  const c = { id: "arch", kind: "architecture",
+    oracle: { gloss_rubric: {
+      must_include: [["postgres", "rdbms"], ["docker", "container"]],
+      must_avoid: [["hand-wave", "some datastore"], ["microservice"]] } } };
+  // proposal names Postgres-in-a-container, no hand-waving, no microservice → all checks pass
+  const good = grade(c, { architecture: {
+    store: "Postgres for the relational data",
+    runtime: "runs in a docker container via compose" } });
+  assert.equal(good.graded, "PASS");
+  assert.equal(good.score, 1);
+  // a hand-wavy "some datastore" proposal misses must_include AND trips a must_avoid → PARTIAL
+  const wavy = grade(c, { architecture: { store: "some datastore, TBD", runtime: "we could maybe use a microservice" } });
+  assert.equal(wavy.graded, "PARTIAL");
+  assert.ok(wavy.score < 1);
+});
+test("architecture PARTIAL: a hallucinated assumption is penalised", () => {
+  const c = { id: "arch2", kind: "architecture",
+    oracle: { gloss_rubric: {
+      must_include: [["batch", "scheduled"]],
+      must_avoid: [["kafka", "event-sourcing"]] } } };
+  // a proposal that invents an event-sourcing backbone the brief never warranted drops below 1.0
+  const halluc = grade(c, { architecture: ["a scheduled batch job backed by an event-sourcing kafka backbone"] });
+  assert.equal(halluc.graded, "PARTIAL");
+  assert.ok(halluc.score < 1);
+  // the honest scheduled-query proposal covers must_include and trips no must_avoid → PASS
+  const honest = grade(c, { architecture: ["a nightly scheduled batch query"] });
+  assert.equal(honest.graded, "PASS");
+});
+test("architecture: missing/garbage env.architecture is a clean low score, never a crash", () => {
+  const c = { id: "arch3", kind: "architecture",
+    oracle: { gloss_rubric: { must_include: [["postgres"]], must_avoid: [] } } };
+  assert.ok(grade(c, {}).score < 1);          // absent field → empty collection → must_include misses
+  assert.ok(grade(c, { architecture: null }).score < 1);
+  assert.doesNotThrow(() => grade(c, { architecture: "not-a-collection" }));
+});
+test("validateCase routes architecture to the gloss_rubric oracle field", () => {
+  assert.doesNotThrow(() => validateCase({ id: "a", kind: "architecture", oracle: { gloss_rubric: { must_include: [["x"]] } } }));
+  assert.throws(() => validateCase({ id: "a", kind: "architecture", oracle: { closed_set: ["x"] } }), CaseError);
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);
@@ -301,13 +343,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-153: +2 chain-gap (one positive upstream gap + one conservative-skip empty-oracle case).
   // FAFF-193: +1 gloss (gloss-003, "surface the concrete" rubric).
   // FAFF-203: +2 explanatory-order (Edit A lead-with-the-model ordering, two domains).
-  assert.equal(cases.length, 42);
+  // FAFF-285: +2 architecture (the generative architecture-proposal rubric-coverage surface).
+  assert.equal(cases.length, 44);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

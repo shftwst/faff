@@ -123,8 +123,19 @@ import { fileURLToPath } from "node:url";
 //                    output's sections for BODY quality (gloss_rubric) — different envelope field,
 //                    different oracle field, no overlap. Any LLM judge stays strictly ADVISORY (ADR-0004);
 //                    the measured frontier baseline is the human-supervised carved follow-up.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
+// FAFF-284 — the code-blind holdout JUDGE (faffter-noon-evaluate) adds one kind:
+//   holdout        — SHIPPED. Scores the evaluator's OFFLINE DoD-classification seam: given a spec's
+//                    done-criteria (each born a scenario / assertion / prose criterion) plus a RECORDED
+//                    feature-exercise transcript, does the judge class each criterion met / unmet /
+//                    needs-human, and does it ALWAYS force every `prose` criterion to needs-human (the
+//                    green-washing guard — a prose criterion the judge grades itself is the exact risk).
+//                    Oracle = closed-set of `<criterion-key>:<class>` pairs (the marker/reconciliation
+//                    shape, pairsOf); env.holdout = { "<criterion-key>": "<class>" }. A missing/garbage
+//                    map → empty set → clean FAIL. IN CLOSED_SET_KINDS — zero new grade math. OUT OF
+//                    SCOPE (carved to FAFF-317): exercising a real/recorded LIVE env slot; and code-
+//                    blindness itself, enforced by construction + the sandbox (FAFF-276), not this eval.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -189,6 +200,10 @@ const FIXTURE_SHAPE = {
   // FAFF-241 — specqual specs FROM an issue (+ explore findings): the driver renders `issue` and reads
   // the producer's own arc rubric verbatim from faffter-noon-spec/SKILL.md. validateCase asserts `issue`.
   specqual: ["issue"],
+  // FAFF-284 — holdout: the offline DoD-classification fixture. `spec_dod` is the done-criteria list
+  // (each { key, text, class ∈ {scenario, assertion, prose} }); `exercise` is the RECORDED running-
+  // feature observation the judge reasons over (a canned env-response transcript — no live env slot).
+  holdout: ["spec_dod", "exercise"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -448,6 +463,13 @@ function predictedSet(c, env) {
       return pairsOf(env.markers);
     case "reconciliation":
       return pairsOf(env.reconciliation);
+    // FAFF-284 — holdout: per-criterion `<criterion-key>:<class>` pairs (the marker/reconciliation
+    // shape). A missing/garbage env.holdout map → empty set (pairsOf fail-safe) → a clean FAIL; an
+    // out-of-enum class is passed through verbatim so setEqual fails it cleanly with a distinct
+    // signature. The prose→needs-human rule is asserted at the CASE level (the oracle pins every prose
+    // criterion to `:needs-human`, so an env classing it met/unmet FAILS) — no grader-side coercion.
+    case "holdout":
+      return pairsOf(env.holdout);
     default:
       return (env.classifications && env.classifications[c.kind]) || [];
   }

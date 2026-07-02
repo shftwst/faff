@@ -7508,7 +7508,7 @@ function fixturesSelftest() {
 // datastore kind (no DATASTORE_TABLE entry) is REPORTED in plan.unprovisionable[] — never silently
 // skipped — so the producer fails loud rather than ship an incomplete env. FAFF-30 fixed the env-handle
 // contract; FAFF-270 makes its §4.1 procedure real. Seed-loader breadth (FAFF-270 resolved scope):
-// sql-load = postgres/mysql/sqlite; mongoimport = mongo; redis provisions but mount-seeds until FAFF-271; s3 → FAFF-273.
+// sql-load = postgres/mysql/sqlite; mongoimport = mongo; command-replay = redis; s3 → FAFF-273.
 // ===========================================================================
 // `env` = dev/test container environment (synthetic, ephemeral, local) — without it the official
 // postgres/mysql images refuse to boot (no password set), so the env never reaches healthy. Trust /
@@ -7517,7 +7517,7 @@ const DATASTORE_TABLE = {
   postgres: { image: "postgres:16-alpine", port: 5432,  probe: "pg_isready -U postgres", seed_strategy: "sql-load", file_based: false, env: { POSTGRES_HOST_AUTH_METHOD: "trust" } },
   mysql:    { image: "mysql:8",            port: 3306,  probe: "mysqladmin ping -h 127.0.0.1", seed_strategy: "sql-load", file_based: false, env: { MYSQL_ALLOW_EMPTY_PASSWORD: "yes", MYSQL_DATABASE: "app" } },
   sqlite:   { image: null,                 port: null,  probe: null,              seed_strategy: "sql-load", file_based: true },
-  redis:    { image: "redis:7-alpine",     port: 6379,  probe: "redis-cli ping",  seed_strategy: "mount",    file_based: false, followup: "FAFF-271" },
+  redis:    { image: "redis:7-alpine",     port: 6379,  probe: "redis-cli ping",  seed_strategy: "command-replay", file_based: false },
   mongo:    { image: "mongo:7",            port: 27017, probe: "mongosh --eval 'db.runCommand({ping:1})'", seed_strategy: "mongoimport", file_based: false },
 };
 const ENV_APP_PORT = 8080;
@@ -7974,6 +7974,39 @@ function envMongoImport(root, project, target, datasetDir, composeFile) {
   return true;
 }
 
+// Deliver the realised dataset into the provisioned redis service via command-replay: one hash per
+// entity row, key `<entity>:<id-or-index>`, fields = the row's columns, emitted as inline HSET
+// commands and replayed on stdin through `redis-cli --pipe`. Empty arrays / zero-column rows are
+// skipped; an empty/absent dataset dir is a no-op → true, mirroring envMongoImport. Returns true
+// iff the pipe exited 0.
+// NOTE (FAFF-271): the hash-per-row value shape is an autonomous modeling choice — redis has no
+// single native shape (string-JSON / hash / sorted-set all defensible). The born-verifiable test
+// only asserts a non-empty keyspace, so the exact scheme can be adjusted without breaking the DoD.
+function envRedisLoad(root, project, target, datasetDir, composeFile) {
+  if (!fs.existsSync(datasetDir)) return true;
+  const files = fs.readdirSync(datasetDir).filter(f => f.endsWith(".json"));
+  // inline-command double-quoting: redis parses \\, \", \n, \r, \t inside double quotes.
+  const q = (s) => '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t") + '"';
+  const cmds = [];
+  for (const f of files) {
+    let rows; try { rows = JSON.parse(fs.readFileSync(path.join(datasetDir, f), "utf8")); } catch { continue; }
+    if (!Array.isArray(rows) || !rows.length) continue;          // skip empty arrays — nothing to load
+    const entity = f.replace(/\.json$/, "");
+    rows.forEach((row, idx) => {
+      const cols = Object.keys(row);
+      if (!cols.length) return;                                  // HSET needs >=1 field/value pair
+      const id = row.id === null || row.id === undefined ? idx : row.id;
+      const pairs = cols.map(c => `${q(c)} ${q(row[c] === null || row[c] === undefined ? "" : row[c])}`).join(" ");
+      cmds.push(`HSET ${q(`${entity}:${id}`)} ${pairs}`);
+    });
+  }
+  if (!cmds.length) return true;                                 // nothing to load
+  const r = spawnSync("docker", ["compose", "--project-directory", root, "-p", project, "-f", composeFile, "exec", "-T",
+    "redis", "redis-cli", "--pipe"], { input: cmds.join("\n") + "\n", encoding: "utf8" });
+  return r.status === 0;
+}
+
 function cmdEnv(args) {
   let root = null;
   const rest = [];
@@ -8075,7 +8108,7 @@ function cmdEnv(args) {
       if (r.status !== 0) { process.stderr.write(`faff env seed: fixtures realise failed\n${r.stderr || ""}`); return 1; }
     }
     const project = flag("--project") || plan.project_name;
-    const needsDocker = (plan.seed_targets || []).some(t => (t.strategy === "sql-load" && t.kind !== "sqlite") || t.strategy === "mongoimport");
+    const needsDocker = (plan.seed_targets || []).some(t => t.strategy === "command-replay" || (t.strategy === "sql-load" && t.kind !== "sqlite") || t.strategy === "mongoimport");
     if (needsDocker && !envDockerAvailable()) { process.stderr.write("faff env seed: docker unavailable\n"); return 1; }
     let errored = false;
     for (const t of (plan.seed_targets || [])) {
@@ -8086,6 +8119,10 @@ function cmdEnv(args) {
       } else if (t.strategy === "mongoimport") {
         if (!envMongoImport(root, project, t, datasetDir, plan.compose_file)) {
           errored = true; process.stderr.write(`faff env seed: mongoimport failed for ${t.kind}\n`);
+        }
+      } else if (t.strategy === "command-replay") {
+        if (!envRedisLoad(root, project, t, datasetDir, plan.compose_file)) {
+          errored = true; process.stderr.write(`faff env seed: command-replay failed for ${t.kind}\n`);
         }
       } else if (t.strategy === "mount") {
         console.log(`note — ${t.kind}: dataset mounted, not imported (loader pending)`);
@@ -8137,8 +8174,8 @@ function envSelftest() {
 
   const r5 = composeGen({ datastores: [{ kind: "redis", evidence: "x" }], deploy_targets: [] }, "p5", "/tmp/x/dc.yml");
   check("redis: has service", r5.plan.services.some(s => s.name === "redis"));
-  check("redis: mount seed", r5.plan.seed_targets.some(t => t.kind === "redis" && t.strategy === "mount"));
-  check("redis: unseeded note cites FAFF-271", r5.plan.notes.some(n => /redis/.test(n) && /FAFF-271/.test(n)));
+  check("redis: command-replay seed strategy (not mount)", r5.plan.seed_targets.some(t => t.kind === "redis" && t.strategy === "command-replay"));
+  check("redis: no unseeded note", !r5.plan.notes.some(n => /redis/.test(n)));
   check("endpoint: first datastore when no app", r5.plan.endpoint === r5.plan.endpoints["redis"]);
 
   const r5b = composeGen({ datastores: [{ kind: "mongo", evidence: "x" }], deploy_targets: [] }, "p5b", "/tmp/x/dc.yml");

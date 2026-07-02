@@ -1,0 +1,13 @@
+{ "id": "holdout-002", "kind": "holdout",
+  "fixture": { "version": 1,
+    "spec_dod": [
+      { "key": "health-200", "class": "scenario",
+        "text": "GET /health returns HTTP 200 once the service has finished booting." },
+      { "key": "idempotent-send", "class": "assertion",
+        "text": "Re-POSTing the same digest for a recipient on the same day does not send a second email." },
+      { "key": "tone-friendly", "class": "prose",
+        "text": "The welcome email copy feels warm and on-brand." }
+    ],
+    "exercise": "Recorded holdout exercise transcript (code-blind — the judge never sees the diff):\n- `curl -sS -o /dev/null -w '%{http_code}' http://env:8080/health` → `500`; body `{\"error\":\"database connection refused\"}`. Health check is failing.\n- `POST /digests {recipient:\"a@x.io\",date:\"2026-07-02\"}` → 202 accepted; mail sink shows 1 queued message. Repeating the identical POST → 200 with `{deduped:true}`; mail sink still shows 1 message (no second send).\n- No observation bears on whether the welcome copy 'feels warm and on-brand' — that is a subjective prose judgement with no born-verifiable exercise." },
+  "question": "Classify each DoD criterion met / unmet / needs-human against the recorded exercise. Force every `prose` criterion to needs-human.",
+  "oracle": { "closed_set": ["health-200:unmet", "idempotent-send:met", "tone-friendly:needs-human"] } }

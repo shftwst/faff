@@ -309,6 +309,43 @@ test("validateCase routes specqual to the gloss_rubric oracle field + requires t
   assert.throws(() => validateCase({ id: "s", kind: "specqual", oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
 });
 
+// --- FAFF-284: holdout — per-criterion `key:class` closed set (the marker shape); prose→needs-human ---
+test("FAFF-284 holdout grades per-criterion key:class pairs by set-equality", () => {
+  const c = { id: "hd", kind: "holdout",
+    oracle: { closed_set: ["health-endpoint:met", "error-schema:met", "readable-output:needs-human"] } };
+  assert.equal(grade(c, { holdout: { "health-endpoint": "met", "error-schema": "met", "readable-output": "needs-human" } }).graded, "PASS");
+  // a born-verifiable criterion the exercise shows failing must be caught unmet
+  const c2 = { id: "hd2", kind: "holdout", oracle: { closed_set: ["health-200:unmet", "idempotent-send:met"] } };
+  assert.equal(grade(c2, { holdout: { "health-200": "unmet", "idempotent-send": "met" } }).graded, "PASS");
+  assert.equal(grade(c2, { holdout: { "health-200": "met", "idempotent-send": "met" } }).score, 0); // missed the failure
+});
+
+test("FAFF-284 holdout: the green-washing guard — a judge grading a prose criterion itself FAILS", () => {
+  // oracle pins the prose criterion to needs-human; classing it met (or unmet) is a real miss
+  const c = { id: "hd3", kind: "holdout", oracle: { closed_set: ["scenario-ok:met", "readable-output:needs-human"] } };
+  assert.equal(grade(c, { holdout: { "scenario-ok": "met", "readable-output": "met" } }).score, 0);   // self-graded prose → FAIL
+  assert.equal(grade(c, { holdout: { "scenario-ok": "met", "readable-output": "unmet" } }).score, 0); // still self-graded → FAIL
+  assert.equal(grade(c, { holdout: { "scenario-ok": "met", "readable-output": "needs-human" } }).graded, "PASS");
+});
+
+test("FAFF-284 holdout: a missing/garbage env.holdout map is a clean FAIL, never a crash", () => {
+  const c = { id: "hd4", kind: "holdout", oracle: { closed_set: ["k:met"] } };
+  assert.equal(grade(c, {}).graded, "FAIL");                       // absent field → empty set
+  assert.equal(grade(c, {}).signature, JSON.stringify([]));
+  assert.doesNotThrow(() => grade(c, { holdout: "not-a-map" }));   // garbage → pairsOf fail-safe → []
+  assert.equal(grade(c, { holdout: "not-a-map" }).graded, "FAIL");
+});
+
+test("FAFF-284 validateCase routes holdout to closed_set + requires the spec_dod + exercise fixture", () => {
+  const ok = { spec_dod: [], exercise: "…" };
+  assert.doesNotThrow(() => validateCase({ id: "h", kind: "holdout", fixture: ok, oracle: { closed_set: ["k:met"] } }));
+  // wrong oracle field
+  assert.throws(() => validateCase({ id: "h", kind: "holdout", fixture: ok, oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
+  // FIXTURE_SHAPE requires both spec_dod and exercise
+  assert.throws(() => validateCase({ id: "h", kind: "holdout", fixture: { spec_dod: [] }, oracle: { closed_set: ["k:met"] } }), CaseError);
+  assert.throws(() => validateCase({ id: "h", kind: "holdout", fixture: { exercise: "…" }, oracle: { closed_set: ["k:met"] } }), CaseError);
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);
@@ -394,13 +431,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-203: +2 explanatory-order (Edit A lead-with-the-model ordering, two domains).
   // FAFF-285: +2 architecture (the generative architecture-proposal rubric-coverage surface).
   // FAFF-241: +2 specqual (the generated lite-nlspec body-quality rubric-coverage surface).
-  assert.equal(cases.length, 46);
+  // FAFF-284: +2 holdout (the code-blind evaluator's offline DoD-classification + prose→needs-human seam).
+  assert.equal(cases.length, 48);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

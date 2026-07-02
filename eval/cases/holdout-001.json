@@ -1,0 +1,13 @@
+{ "id": "holdout-001", "kind": "holdout",
+  "fixture": { "version": 1,
+    "spec_dod": [
+      { "key": "health-endpoint", "class": "scenario",
+        "text": "GET /health returns HTTP 200 with a JSON body {status:\"ok\"} within 500ms of a cold start." },
+      { "key": "error-schema", "class": "assertion",
+        "text": "Any 4xx response body conforms to the shared error schema {code:string, message:string}." },
+      { "key": "readable-output", "class": "prose",
+        "text": "The CLI's summary output reads clearly and is pleasant to skim." }
+    ],
+    "exercise": "Recorded holdout exercise transcript (code-blind — the judge never sees the diff):\n- `curl -sS -o /dev/null -w '%{http_code} %{time_total}' http://env:8080/health` → `200 0.180`; body `{\"status\":\"ok\"}`.\n- `curl -sS http://env:8080/widgets/does-not-exist` → HTTP 404; body `{\"code\":\"not_found\",\"message\":\"no widget with id does-not-exist\"}` (both required keys present, both strings).\n- No observation bears on whether the summary output 'reads clearly / is pleasant to skim' — that is an aesthetic prose judgement with no born-verifiable exercise." },
+  "question": "Classify each DoD criterion met / unmet / needs-human against the recorded exercise. Force every `prose` criterion to needs-human.",
+  "oracle": { "closed_set": ["health-endpoint:met", "error-schema:met", "readable-output:needs-human"] } }

@@ -2,7 +2,7 @@
 name: faffter-noon-spec
 description: "Default `spec` producer — turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Runs via faff-prep, not the user `/` menu."
 user-invocable: false
-judgement_seam: confidence, marker
+judgement_seam: confidence, marker, specqual
 ---
 
 # faffter-noon-spec

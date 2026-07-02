@@ -108,7 +108,22 @@ import { fileURLToPath } from "node:url";
 //                    proposer/critic boundary + the spec-review architectural lens stay out of scope.
 //                    Any LLM judge stays strictly ADVISORY (ADR-0004); the measured frontier baseline
 //                    is the human-supervised carved follow-up.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture"];
+// FAFF-241 — the generative spec-generation surface (faffter-noon-spec / faffter-dark-nlspec) adds one kind:
+//   specqual       — SHIPPED. Scores a GENERATED lite-nlspec's BODY quality by collection-level rubric
+//                    coverage over its emitted sections (env.specqual, a {id: text} map OR a flat array —
+//                    the env.architecture/shaping precedent). REUSES gradeCoverage verbatim (no new grade
+//                    math): each must_include synonym-set is one check that passes if ANY section matches
+//                    it (the WHY/WHAT/HOW/DONE arc anchors + testable-AC signals), each must_avoid one
+//                    check that passes if NO section matches (the vagueness anti-patterns — "as
+//                    appropriate", "handle it", "TBD") — so a coherent, testable, buildable spec covers
+//                    the rubric (PASS on 1) while a hand-wavy spec or a missing arc section drops below
+//                    1.0 (PARTIAL). Carries its oracle in the EXISTING `gloss_rubric` field. NON-closed-
+//                    set (generative, multi-valued). CLEANLY DISTINCT from `confidence`: confidence reads
+//                    `env.spec_body` for the self-rating LEVEL (closed-set), specqual reads the generated
+//                    output's sections for BODY quality (gloss_rubric) — different envelope field,
+//                    different oracle field, no overlap. Any LLM judge stays strictly ADVISORY (ADR-0004);
+//                    the measured frontier baseline is the human-supervised carved follow-up.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -123,7 +138,7 @@ export class CaseError extends Error {}
 // FAFF-280 — the seam registry (eval/seam-registry.json) is the single source of truth mapping each
 // grader KIND to the skill/slot whose LLM-judgement seam it backs. The grader keeps KINDS as its
 // executable enum but asserts, fail-loud on load, that the registry's KIND axis matches KINDS exactly
-// — so the two files can never drift. The equality is total because the registry lists all 18 KINDs.
+// — so the two files can never drift. The equality is total because the registry lists all 20 KINDs.
 // `cases_present` is NOT sourced here; `status` (covered/designed) lives in the registry, coverage is
 // derived live from eval/cases/. Re-sourcing KINDS *from* the registry is a later ticket (OUT OF SCOPE).
 export function loadSeamRegistry() {
@@ -171,6 +186,9 @@ const FIXTURE_SHAPE = {
   // FAFF-203 — explanatory-order carries a fixture-of-segments: the driver renders the SCRAMBLED
   // `segments` (a [{id, text}] list) the model must order. validateCase asserts the field is present.
   "explanatory-order": ["segments"],
+  // FAFF-241 — specqual specs FROM an issue (+ explore findings): the driver renders `issue` and reads
+  // the producer's own arc rubric verbatim from faffter-noon-spec/SKILL.md. validateCase asserts `issue`.
+  specqual: ["issue"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -192,8 +210,9 @@ export function validateCase(c) {
   // FAFF-203 — explanatory-order reuses the `ordering` oracle field (a segment-id list), so it joins
   // the `ordering` arm of the exclusivity check — zero new oracle-field machinery.
   // FAFF-285 — architecture joins the gloss_rubric arm (collection-level coverage, gradeCoverage).
+  // FAFF-241 — specqual joins the same gloss_rubric arm (collection-level coverage over the spec body).
   const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
-    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture") ? "gloss_rubric"
+    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual") ? "gloss_rubric"
     : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
@@ -582,6 +601,15 @@ export function grade(c, env) {
   // collection → every must_include misses (coverage low), never a crash. No new grade math.
   if (c.kind === "architecture") {
     const { score, vector } = gradeCoverage((env && env.architecture) || [], c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  // FAFF-241 — specqual: collection-level rubric coverage over the GENERATED spec's sections
+  // (env.specqual, a {id: text} map or flat array), delegating byte-for-byte to gradeCoverage — the
+  // architecture/gradeShaping pattern (PARTIAL on [0,1), PASS on 1, vector signature). A missing/garbage
+  // field → empty collection → every must_include misses (coverage low), never a crash. No new grade
+  // math. Distinct from `confidence`: this reads the spec BODY, not the self-rating level.
+  if (c.kind === "specqual") {
+    const { score, vector } = gradeCoverage((env && env.specqual) || [], c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
   }
   if (c.kind === "splittable") {

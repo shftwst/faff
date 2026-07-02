@@ -69,7 +69,9 @@ test("C1: an unrowed REGISTRY slot-skill with no key is advisory undeclared, NOT
 });
 
 test("slot-sibling relaxation: an alternate declaring its sibling's KINDs reconciles clean", () => {
-  const r = runOnFixtures({ "faffter-dark-nlspec": fm("faffter-dark-nlspec", "confidence, marker") });
+  // FAFF-241: faffter-noon-spec's sibling row-set is now [confidence, marker, specqual], so an alternate
+  // that declares all three reconciles clean (the sibling relaxation, one KIND wider than before).
+  const r = runOnFixtures({ "faffter-dark-nlspec": fm("faffter-dark-nlspec", "confidence, marker, specqual") });
   assert.doesNotMatch(r.stdout, /faffter-dark-nlspec \(judgement seam\)/);
   assert.doesNotMatch(r.stdout, /faffter-dark-nlspec \(eval coverage\)/);
 });
@@ -77,7 +79,8 @@ test("slot-sibling relaxation: an alternate declaring its sibling's KINDs reconc
 test("slot-sibling: an alternate declaring only a partial sibling set still mismatches", () => {
   const r = runOnFixtures({ "faffter-dark-nlspec": fm("faffter-dark-nlspec", "confidence") });
   assert.match(r.stdout, /faffter-dark-nlspec \(judgement seam\)/);
-  assert.match(r.stdout, /judgement_seam mismatch — declared \[confidence\] vs expected \[confidence, marker\]/);
+  // FAFF-241: expected set widened to [confidence, marker, specqual] (faffter-noon-spec's rows).
+  assert.match(r.stdout, /judgement_seam mismatch — declared \[confidence\] vs expected \[confidence, marker, specqual\]/);
 });
 
 test("--configured runs no coverage sweep (no eval-coverage / undeclared / needs-cases lines)", () => {

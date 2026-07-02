@@ -260,6 +260,55 @@ test("validateCase routes architecture to the gloss_rubric oracle field", () => 
   assert.throws(() => validateCase({ id: "a", kind: "architecture", oracle: { closed_set: ["x"] } }), CaseError);
 });
 
+// --- FAFF-241: specqual — collection-level rubric coverage over the GENERATED spec's body sections ---
+test("specqual PASS: a spec covering the WHY/WHAT/HOW/DONE arc with testable ACs scores 1.0", () => {
+  const c = { id: "sq", kind: "specqual",
+    oracle: { gloss_rubric: {
+      must_include: [["why"], ["what"], ["how"], ["done", "acceptance"]],
+      must_avoid: [["as appropriate", "handle it"], ["tbd"]] } } };
+  // a spec whose sections carry all four arc anchors, a concrete AC, and no vagueness → all checks pass
+  const good = grade(c, { specqual: {
+    why: "WHY: the config reader has no single-key accessor, so callers grep the whole dump",
+    what: "WHAT: a `get <key>` subcommand; returns the resolved value on stdout",
+    how: "HOW: read resolveConfig(), dig the key, exit 0 on hit / 1 on miss",
+    done: "DONE / acceptance: `faff get missing.key` exits 1; `faff get a.b` prints the value" } });
+  assert.equal(good.graded, "PASS");
+  assert.equal(good.score, 1);
+  // a spec that drops the HOW section AND hand-waves the AC misses must_include and trips must_avoid → PARTIAL
+  const wavy = grade(c, { specqual: {
+    why: "WHY: it's broken",
+    what: "WHAT: fix it",
+    done: "acceptance: it works, TBD — handle it as appropriate" } });
+  assert.equal(wavy.graded, "PARTIAL");
+  assert.ok(wavy.score < 1);
+});
+test("specqual PARTIAL: vagueness anti-patterns are penalised", () => {
+  const c = { id: "sq2", kind: "specqual",
+    oracle: { gloss_rubric: {
+      must_include: [["idempoten", "unique constraint"]],
+      must_avoid: [["as appropriate", "handle it"], ["some way", "somehow"]] } } };
+  // a hand-wavy spec that names no concrete mechanism and leans on "handle it as appropriate" drops below 1.0
+  const wavy = grade(c, { specqual: ["HOW: dedupe the sends in some way — handle it as appropriate at send time"] });
+  assert.equal(wavy.graded, "PARTIAL");
+  assert.ok(wavy.score < 1);
+  // the concrete "add a unique constraint" spec covers must_include and trips no must_avoid → PASS
+  const concrete = grade(c, { specqual: ["HOW: add a unique constraint on (recipient, digest_date) so sends are idempotent"] });
+  assert.equal(concrete.graded, "PASS");
+});
+test("specqual: missing/garbage env.specqual is a clean low score, never a crash", () => {
+  const c = { id: "sq3", kind: "specqual",
+    oracle: { gloss_rubric: { must_include: [["why"]], must_avoid: [] } } };
+  assert.ok(grade(c, {}).score < 1);          // absent field → empty collection → must_include misses
+  assert.ok(grade(c, { specqual: null }).score < 1);
+  assert.doesNotThrow(() => grade(c, { specqual: "not-a-collection" }));
+});
+test("validateCase routes specqual to the gloss_rubric oracle field + requires the issue fixture", () => {
+  assert.doesNotThrow(() => validateCase({ id: "s", kind: "specqual", fixture: { issue: "x" }, oracle: { gloss_rubric: { must_include: [["x"]] } } }));
+  assert.throws(() => validateCase({ id: "s", kind: "specqual", fixture: { issue: "x" }, oracle: { closed_set: ["x"] } }), CaseError);
+  // FIXTURE_SHAPE requires `issue` — a specqual case without it is rejected
+  assert.throws(() => validateCase({ id: "s", kind: "specqual", oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);
@@ -344,13 +393,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-193: +1 gloss (gloss-003, "surface the concrete" rubric).
   // FAFF-203: +2 explanatory-order (Edit A lead-with-the-model ordering, two domains).
   // FAFF-285: +2 architecture (the generative architecture-proposal rubric-coverage surface).
-  assert.equal(cases.length, 44);
+  // FAFF-241: +2 specqual (the generated lite-nlspec body-quality rubric-coverage surface).
+  assert.equal(cases.length, 46);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

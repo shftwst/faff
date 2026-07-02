@@ -111,6 +111,16 @@ test("compose-gen: redis provisions (service) but mount-seeds with an unseeded n
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("compose-gen: mongo provisions (service) and mongoimport-seeds — no unseeded note", () => {
+  const dir = tmp();
+  try {
+    const { plan } = composeGen(dir, { schema: 1, datastores: [{ kind: "mongo", evidence: "x" }], deploy_targets: [] });
+    assert.ok(plan.services.some((s) => s.name === "mongo" && s.image === "mongo:7"));
+    assert.ok(plan.seed_targets.some((t) => t.kind === "mongo" && t.strategy === "mongoimport"));
+    assert.ok(!plan.notes.some((n) => /mongo/.test(n)));         // seeded now → no "unseeded" note
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("compose-gen: endpoint precedence — app when present, else first datastore", () => {
   const dir = tmp();
   try {
@@ -170,6 +180,36 @@ test("integration: postgres env stands up, seeds, and tears down [docker-gated]"
       assert.equal(up.code, 0, `up failed: ${up.err}`);
       const seed = run(dir, ["env", "seed", "--plan", join(dir, "plan.json"), "--manifest", join(dir, "manifest.json"), "--project", project]);
       assert.equal(seed.code, 0, `seed failed: ${seed.err}`);
+    } finally {
+      run(dir, ["env", "down", "--project", project]);           // always tear down
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("integration: mongo env stands up, mongoimport-seeds, and tears down [docker-gated]", { skip: skipIntegration }, () => {
+  // FAFF-274: assert docker presence first so a required-but-absent lane fails loudly (not a silent skip).
+  assert.ok(DOCKER, "FAFF_REQUIRE_DOCKER is set but docker is unavailable — this lane must run the mongo env integration test (FAFF-272)");
+  const dir = tmp();
+  const project = "faff272-it";
+  const compose = join(dir, "dc.yml");
+  try {
+    const profile = { schema: 1, datastores: [{ kind: "mongo", evidence: "x" }], deploy_targets: [] };
+    const p = writeProfile(dir, profile);
+    const plan = JSON.parse(run(dir, ["env", "compose-gen", "--profile", p, "--out", compose, "--project", project]).out);
+    writeFileSync(join(dir, "plan.json"), JSON.stringify(plan));
+    // a tiny fixtures manifest so seed has one entity (2 rows) to import
+    const manifest = { schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [{ name: "users", fields: [{ name: "id", type: "uuid" }] }] }, volumes: { users: 2 } };
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest));
+    try {
+      const up = run(dir, ["env", "up", "--plan", join(dir, "plan.json"), "--project", project, "--sla-secs", "90"]);
+      assert.equal(up.code, 0, `up failed: ${up.err}`);
+      const seed = run(dir, ["env", "seed", "--plan", join(dir, "plan.json"), "--manifest", join(dir, "manifest.json"), "--project", project]);
+      assert.equal(seed.code, 0, `seed failed: ${seed.err}`);
+      // the born-verifiable AC: the collection actually landed the 2 documents inside the mongo service.
+      const count = execFileSync("docker", ["compose", "--project-directory", dir, "-p", project, "-f", compose, "exec", "-T",
+        "mongo", "mongosh", "--quiet", "--eval", 'db.getSiblingDB("app").users.countDocuments()'],
+        { cwd: dir, encoding: "utf8" }).trim();
+      assert.equal(count, "2", `expected 2 documents in app.users, got: ${count}`);
     } finally {
       run(dir, ["env", "down", "--project", project]);           // always tear down
     }

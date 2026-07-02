@@ -1,0 +1,7 @@
+{ "id": "specqual-001", "kind": "specqual",
+  "fixture": { "version": 1,
+    "issue": "Issue: add a `faff config get <key>` subcommand that reads a single value from the resolved .faffrc config and prints it to stdout, exiting 0 on a hit and 1 on a missing key. Explore findings: config resolution already lives in lib/config.mjs (`resolveConfig()` returns a plain object); the CLI dispatch table is in bin/faff; no existing subcommand prints a single key. Tests use node:test in test/." },
+  "question": "Write a buildable lite-nlspec (WHY / WHAT / HOW / DONE arc, with testable acceptance criteria and a concrete, scoped HOW) for this issue and its explore findings, following the producer's own arc rubric.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["why", "problem", "motivation"], ["what", "interface", "data"], ["how", "approach", "behaviour"], ["done", "acceptance", "definition of done"], ["exit 1", "exits 0", "returns", "prints", "stdout"] ],
+    "must_avoid": [ ["as appropriate", "handle it appropriately", "some way", "somehow"], ["tbd", "to be determined", "figure out later"], ["works correctly", "works as expected", "etc."] ] } } }

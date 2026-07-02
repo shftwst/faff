@@ -1,0 +1,7 @@
+{ "id": "specqual-002", "kind": "specqual",
+  "fixture": { "version": 1,
+    "issue": "Issue: the nightly digest email sometimes double-sends when the cron overlaps a manual trigger. Make sends idempotent per (recipient, digest-date). Explore findings: sends go through lib/digest.mjs `sendDigest()`; there is a `sent_digests` table with columns (recipient, digest_date, sent_at); no uniqueness constraint exists yet." },
+  "question": "Write a buildable lite-nlspec (WHY / WHAT / HOW / DONE arc, testable ACs, concrete scoped HOW) for this idempotency fix. The generated spec must name the concrete mechanism and observable outcomes, not hand-wave.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["why", "problem"], ["what"], ["how", "approach"], ["done", "acceptance"], ["idempoten", "unique constraint", "upsert", "dedupe"] ],
+    "must_avoid": [ ["as appropriate", "handle it", "handle appropriately"], ["some way", "somehow", "in a sensible manner"], ["tbd", "to be determined"], ["works correctly", "etc."] ] } } }

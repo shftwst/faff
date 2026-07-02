@@ -353,6 +353,49 @@ test("validateCase routes roadmap to the gloss_rubric oracle field + requires th
   assert.throws(() => validateCase({ id: "r", kind: "roadmap", oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
 });
 
+// --- FAFF-286: adr-gloss — collection-level rubric coverage over the authored ADR body sections ---
+test("adr-gloss PASS: a body naming decision + rejected alternative + real consequence scores 1.0", () => {
+  const c = { id: "adr", kind: "adr-gloss",
+    oracle: { gloss_rubric: {
+      must_include: [["postgres"], ["sqlite"], ["rejected", "ruled out"], ["concurren", "row-level"]],
+      must_avoid: [["it depends", "best practice"], ["nosql", "sharding"]] } } };
+  // a sound body names Postgres, the rejected SQLite, and the real concurrency consequence → all checks pass
+  const good = grade(c, { adr: {
+    context: "The service takes concurrent writes from multiple workers.",
+    decision: "Use PostgreSQL; SQLite was rejected because its single-writer lock serialises concurrent writes.",
+    consequences: "We gain row-level concurrency and carry a Postgres container." } });
+  assert.equal(good.graded, "PASS");
+  assert.equal(good.score, 1);
+  // a body that omits the rejected alternative misses a must_include → PARTIAL
+  const partial = grade(c, { adr: { decision: "Use Postgres for row-level concurrency." } });
+  assert.equal(partial.graded, "PARTIAL");
+  assert.ok(partial.score < 1);
+});
+test("adr-gloss PARTIAL: boilerplate / fabricated rationale is penalised", () => {
+  const c = { id: "adr2", kind: "adr-gloss",
+    oracle: { gloss_rubric: {
+      must_include: [["json", "structured"]],
+      must_avoid: [["best practice", "it depends"], ["tbd", "for future consideration"]] } } };
+  // padded boilerplate trips the must_avoid checks → drops below 1.0
+  const boiler = grade(c, { adr: ["We adopt structured JSON logging as a best practice; the rest is TBD."] });
+  assert.equal(boiler.graded, "PARTIAL");
+  assert.ok(boiler.score < 1);
+  // the honest body covers must_include and trips no must_avoid → PASS
+  const honest = grade(c, { adr: ["We emit structured JSON logs to stdout."] });
+  assert.equal(honest.graded, "PASS");
+});
+test("adr-gloss: missing/garbage env.adr is a clean low score, never a crash", () => {
+  const c = { id: "adr3", kind: "adr-gloss",
+    oracle: { gloss_rubric: { must_include: [["postgres"]], must_avoid: [] } } };
+  assert.ok(grade(c, {}).score < 1);          // absent field → empty collection → must_include misses
+  assert.ok(grade(c, { adr: null }).score < 1);
+  assert.doesNotThrow(() => grade(c, { adr: "not-a-collection" }));
+});
+test("validateCase routes adr-gloss to the gloss_rubric oracle field", () => {
+  assert.doesNotThrow(() => validateCase({ id: "a", kind: "adr-gloss", oracle: { gloss_rubric: { must_include: [["x"]] } } }));
+  assert.throws(() => validateCase({ id: "a", kind: "adr-gloss", oracle: { closed_set: ["x"] } }), CaseError);
+});
+
 // --- FAFF-284: holdout — per-criterion `key:class` closed set (the marker shape); prose→needs-human ---
 test("FAFF-284 holdout grades per-criterion key:class pairs by set-equality", () => {
   const c = { id: "hd", kind: "holdout",
@@ -505,13 +548,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-284: +2 holdout (the code-blind evaluator's offline DoD-classification + prose→needs-human seam).
   // FAFF-282: +3 spec-verdict (the spec-review admission-gate verdict — approve + reject-approach + needs-human).
   // FAFF-240: +2 roadmap (the faff-map roadmap-synthesis rubric-coverage surface — chain-id + gate-fireability).
-  assert.equal(cases.length, 53);
+  // FAFF-286: +2 adr-gloss (the ADR-body writer rubric-coverage surface; env-compose is declared-deterministic, no case).
+  assert.equal(cases.length, 55);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

@@ -2,6 +2,7 @@
 name: faffter-noon-adr
 description: "Default `adr` producer — authors the Nygard body (Context/Decision/Consequences) of an architecture decision record at graft time, from a settled decision plus the spec rationale and the existing docs/adr log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
+judgement_seam: adr-gloss
 ---
 
 # faffter-noon-adr

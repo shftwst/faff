@@ -1,0 +1,9 @@
+{ "id": "adr-gloss-001", "kind": "adr-gloss",
+  "fixture": { "version": 1,
+    "decision": "Chosen: use PostgreSQL as the primary datastore. Rejected alternative: SQLite — it was rejected because the service takes concurrent writes from multiple workers and SQLite's single-writer lock would serialise them, whereas Postgres gives real row-level concurrency and transactional integrity. Consequence: the deploy now carries a Postgres container and a connection-pool dependency the SQLite path did not need.",
+    "spec_rationale": "The timesheet service accepts concurrent edits; data must survive restarts and stay transactionally consistent under contention.",
+    "existing_adrs": "No prior datastore ADR." },
+  "question": "Author the Nygard ADR body (Context / Decision / Consequences) for this settled decision. State the decision, the trade-off actually made, and the real consequences; do not invent rationale the decision does not carry.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["postgres", "postgresql"], ["concurren", "row-level", "multiple writer"], ["sqlite"], ["rejected", "ruled out", "over sqlite"], ["container", "connection pool", "new dependency"] ],
+    "must_avoid": [ ["it depends", "best practice", "tbd", "for future consideration"], ["nosql", "sharding", "read replica"] ] } } }

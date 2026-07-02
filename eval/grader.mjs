@@ -164,7 +164,24 @@ import { fileURLToPath } from "node:url";
 //                    field. NON-closed-set (generative, multi-valued). A missing/garbage env.roadmap →
 //                    empty collection → low score, never a crash. Any LLM judge stays strictly ADVISORY
 //                    (ADR-0004); the measured frontier baseline is the human-supervised carved follow-up.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap"];
+// FAFF-286 — the ADR-body writer surface (faffter-noon-adr) adds one kind:
+//   adr-gloss      — SHIPPED. Scores the authored Nygard ADR body (Context/Decision/Consequences) by
+//                    collection-level rubric coverage over the body sections (env.adr, a {id: text} map
+//                    OR a flat array — the env.architecture/specqual/roadmap precedent). REUSES
+//                    gradeCoverage verbatim (no new grade math): each must_include synonym-set is one
+//                    check that passes if ANY section matches, each must_avoid one check that passes if
+//                    NO section matches — so a body naming the settled decision + the real consequence +
+//                    the rejected alternative covers the rubric (PASS on 1), while one omitting a
+//                    consequence or padded with boilerplate/fabricated rationale drops below 1.0
+//                    (PARTIAL). Carries its oracle in the EXISTING gloss_rubric field. NON-closed-set
+//                    (generative, multi-valued). A missing/garbage env.adr → empty collection → low
+//                    score, never a crash. The human Resolution (2026-07-02) settled ONE KIND for the
+//                    ADR writer and NO judgement KIND for faffter-noon-env-compose (declared
+//                    `judgement_seam: none` — its provisioning is deterministically tested, the
+//                    architecture-fit reading is too thin to grade), so env owns no registry row and is
+//                    not a KIND here. Any LLM judge stays strictly ADVISORY (ADR-0004); the measured
+//                    frontier baseline is the human-supervised carved follow-up.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -266,7 +283,7 @@ export function validateCase(c) {
   // FAFF-241 — specqual joins the same gloss_rubric arm (collection-level coverage over the spec body).
   // FAFF-240 — roadmap joins the same gloss_rubric arm (collection-level coverage over the synthesis).
   const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
-    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap") ? "gloss_rubric"
+    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap" || c.kind === "adr-gloss") ? "gloss_rubric"
     : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
@@ -685,6 +702,14 @@ export function grade(c, env) {
   // missing/garbage field → empty collection → every must_include misses (coverage low), never a crash.
   if (c.kind === "roadmap") {
     const { score, vector } = gradeCoverage((env && env.roadmap) || [], c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  // FAFF-286 — adr-gloss: collection-level rubric coverage over the authored ADR body sections
+  // (env.adr, a {id: text} map or flat array), delegating byte-for-byte to gradeCoverage — the
+  // architecture/specqual/roadmap pattern (PARTIAL on [0,1), PASS on 1, vector signature). A
+  // missing/garbage field → empty collection → every must_include misses (coverage low), never a crash.
+  if (c.kind === "adr-gloss") {
+    const { score, vector } = gradeCoverage((env && env.adr) || [], c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
   }
   if (c.kind === "splittable") {

@@ -41,18 +41,19 @@ test("shipped tree passes the eval-coverage gate (exit 0, no `(eval coverage)` F
   assert.doesNotMatch(r.stdout, /\(eval coverage\)/);
 });
 
-test("day-one: post-265 family is advisory `undeclared`; designed kinds are advisory NEEDS-CASES", () => {
+test("shipped tree has no advisory `undeclared` surface left; designed kinds are advisory NEEDS-CASES", () => {
   const r = runValidate();
-  // FAFF-285 removed faffter-noon-architecture from this list: it now owns the `architecture` registry
-  // row and declares `judgement_seam: architecture`, so it reconciles clean rather than being undeclared.
-  // FAFF-284 removed faffter-noon-evaluate likewise: it now owns the `holdout` registry row and declares
-  // `judgement_seam: holdout`, so it reconciles clean rather than being undeclared.
-  // FAFF-282 removed faffter-noon-spec-review (now owns the `spec-verdict` registry row) and its slot
-  // sibling faffter-dark-spec-review (declares `judgement_seam: spec-verdict` via the sibling relaxation):
-  // both reconcile clean rather than being undeclared.
+  // The post-265 backfill family has fully landed, so no shipped registry/slot skill is undeclared:
+  // FAFF-285 faffter-noon-architecture (owns `architecture`), FAFF-284 faffter-noon-evaluate (owns
+  // `holdout`), FAFF-282 faffter-noon-spec-review (owns `spec-verdict`) + its sibling faffter-dark-spec-
+  // review (sibling relaxation) all reconcile clean. FAFF-286 closes the last two: faffter-noon-adr owns
+  // the `adr-gloss` row (declares `judgement_seam: adr-gloss`), and faffter-noon-env-compose is declared-
+  // deterministic (`judgement_seam: none`, no registry row) — so neither is undeclared any more.
+  assert.doesNotMatch(r.stdout, /UNDECLARED  /);
   for (const n of ["faffter-noon-env-compose", "faffter-noon-adr"]) {
-    assert.match(r.stdout, new RegExp(`UNDECLARED  ${n} `), `${n} should be advisory undeclared`);
+    assert.doesNotMatch(r.stdout, new RegExp(`UNDECLARED  ${n} `), `${n} is now declared, not undeclared`);
   }
+  // the two still-`designed` (zero-case) kinds remain advisory NEEDS-CASES
   assert.match(r.stdout, /NEEDS-CASES  reconciliation /);
   assert.match(r.stdout, /NEEDS-CASES  verdict-build /);
 });

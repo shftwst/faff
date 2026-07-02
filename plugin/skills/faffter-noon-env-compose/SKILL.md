@@ -2,6 +2,7 @@
 name: faffter-noon-env-compose
 description: "Default `env` slot occupant — the environment PROVISIONER. Reads the architecture proposal + the team's infra profile and stands up a representative, health-checked local stand-in via docker-compose, seeds it with a synthetic dataset, and emits a `faff-contract:env-handle` block the evaluator points at and tears down. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
+judgement_seam: none
 ---
 
 # faffter-noon-env-compose

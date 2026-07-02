@@ -1,0 +1,9 @@
+{ "id": "adr-gloss-002", "kind": "adr-gloss",
+  "fixture": { "version": 1,
+    "decision": "Chosen: adopt structured JSON logging emitted to stdout, collected by the platform log agent. Rejected alternative: a self-hosted ELK stack — rejected as operationally heavy for the team's scale. Consequence: log lines are larger and existing grep-based dashboards must be rebuilt against the JSON schema.",
+    "spec_rationale": "The team needs queryable logs but has no appetite to run search infrastructure.",
+    "existing_adrs": "ADR-0007 records the platform log agent as the standard sink." },
+  "question": "Author the Nygard ADR body. Capture the real decision and its concrete consequences; do not pad the record with generic filler or defer the decision.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["json", "structured"], ["stdout", "log agent"], ["elk", "self-hosted"], ["rebuild", "grep", "dashboard"] ],
+    "must_avoid": [ ["best practice", "it depends", "industry standard"], ["tbd", "to be decided", "for future consideration", "revisit later"] ] } } }

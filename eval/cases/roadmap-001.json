@@ -1,0 +1,10 @@
+{ "id": "roadmap-001", "kind": "roadmap",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-A", "title": "Auth service: issue and verify session tokens", "state": "Done", "priority": 2, "relations": { "blocks": ["ISS-B"], "blockedBy": [], "relatedTo": [] } },
+    { "id": "ISS-B", "title": "Account API: read the current user from a verified token", "state": "In Progress", "priority": 2, "relations": { "blocks": ["ISS-C"], "blockedBy": ["ISS-A"], "relatedTo": [] } },
+    { "id": "ISS-C", "title": "Billing dashboard: show the signed-in user's invoices", "state": "Backlog", "priority": 3, "relations": { "blocks": [], "blockedBy": ["ISS-B"], "relatedTo": [] } },
+    { "id": "ISS-D", "title": "Marketing site copy refresh", "state": "Backlog", "priority": 4, "relations": { "blocks": [], "blockedBy": [], "relatedTo": [] } } ] },
+  "question": "Synthesise the roadmap over this seeded tracker: name the dependency chains (heads and their blocked-by spine) and note which items sit off any chain.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["iss-a", "auth"], ["iss-b", "account api"], ["iss-c", "billing"], ["chain", "spine", "dependency", "blocks", "blocked by"] ],
+    "must_avoid": [ ["no dependencies", "everything is independent", "flat backlog", "no chains"] ] } } }

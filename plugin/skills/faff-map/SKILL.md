@@ -1,6 +1,7 @@
 ---
 name: faff-map
 description: "Roadmap synthesis — outcome initiatives, the workstreams under them, the dependency chains between them, and whether the trigger gates can actually fire. The strategic view above /faff-wtf. Trigger for: 'roadmap', 'where are we going', 'explain the backlog', 'do these join up', 'workstream view', 'strategy view', 'what are the chains', 'big picture', 'walk me through the plan', 'is the plan coherent'."
+judgement_seam: roadmap
 ---
 
 # Faff — Map (Roadmap)

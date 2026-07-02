@@ -121,6 +121,37 @@ test("compose-gen: mongo provisions (service) and mongoimport-seeds — no unsee
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("compose-gen: minio provisions (service) with command: + object-upload seed, http endpoint, empty unprovisionable [FAFF-273]", () => {
+  const dir = tmp();
+  try {
+    const { plan, out } = composeGen(dir, { schema: 1, datastores: [{ kind: "minio", evidence: "x" }], deploy_targets: [] });
+    assert.ok(plan.services.some((s) => s.name === "minio" && s.image === "minio/minio"));
+    assert.ok(plan.seed_targets.some((t) => t.kind === "minio" && t.strategy === "object-upload"));
+    assert.equal(plan.unprovisionable.length, 0);
+    assert.equal(plan.endpoints.minio, "http://localhost:9000");   // S3 API is HTTP, not raw tcp
+    const compose = readFileSync(out, "utf8");
+    assert.match(compose, /command: "server \/data --console-address :9001"/);   // MinIO needs the server arg
+    assert.match(compose, /minio\/health\/ready/);                  // engine-native health probe
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("compose-gen: s3 is an alias for minio — provisions minio, not unprovisionable [FAFF-273]", () => {
+  const dir = tmp();
+  try {
+    const { plan } = composeGen(dir, { schema: 1, datastores: [{ kind: "s3", evidence: "x" }], deploy_targets: [] });
+    assert.ok(plan.services.some((s) => s.name === "minio"));
+    assert.equal(plan.unprovisionable.length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("compose-gen: command: is opt-in — a datastore without one (postgres) emits no command line [FAFF-273]", () => {
+  const dir = tmp();
+  try {
+    const { out } = composeGen(dir, PG_APP);
+    assert.doesNotMatch(readFileSync(out, "utf8"), /command:/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("compose-gen: endpoint precedence — app when present, else first datastore", () => {
   const dir = tmp();
   try {
@@ -240,6 +271,36 @@ test("integration: redis env stands up, command-replay-seeds, and tears down [do
         "redis", "redis-cli", "DBSIZE"],
         { cwd: dir, encoding: "utf8" }).trim();
       assert.ok(Number(dbsize) > 0, `expected DBSIZE > 0 after seed, got: ${dbsize}`);
+    } finally {
+      run(dir, ["env", "down", "--project", project]);           // always tear down
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("integration: minio env stands up, object-upload-seeds, and tears down [docker-gated]", { skip: skipIntegration }, () => {
+  // FAFF-274: assert docker presence first so a required-but-absent lane fails loudly (not a silent skip).
+  assert.ok(DOCKER, "FAFF_REQUIRE_DOCKER is set but docker is unavailable — this lane must run the minio env integration test (FAFF-273)");
+  const dir = tmp();
+  const project = "faff273-it";
+  const compose = join(dir, "dc.yml");
+  try {
+    const profile = { schema: 1, datastores: [{ kind: "minio", evidence: "x" }], deploy_targets: [] };
+    const p = writeProfile(dir, profile);
+    const plan = JSON.parse(run(dir, ["env", "compose-gen", "--profile", p, "--out", compose, "--project", project]).out);
+    writeFileSync(join(dir, "plan.json"), JSON.stringify(plan));
+    // a tiny fixtures manifest so seed has one entity (2 rows) to upload
+    const manifest = { schema: 1, authored_at: "t", authored_by: "x", seed: "s", target_schema: { entities: [{ name: "users", fields: [{ name: "id", type: "uuid" }] }] }, volumes: { users: 2 } };
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest));
+    try {
+      const up = run(dir, ["env", "up", "--plan", join(dir, "plan.json"), "--project", project, "--sla-secs", "90"]);
+      assert.equal(up.code, 0, `up failed: ${up.err}`);
+      const seed = run(dir, ["env", "seed", "--plan", join(dir, "plan.json"), "--manifest", join(dir, "manifest.json"), "--project", project]);
+      assert.equal(seed.code, 0, `seed failed: ${seed.err}`);
+      // the born-verifiable AC: the bucket "users" landed 2 objects, counted via an `mc ls` sidecar.
+      const count = execFileSync("docker", ["run", "--rm", "--network", `${project}_default`,
+        "-e", "MC_HOST_local=http://faffdev:faffdevsecret@minio:9000", "minio/mc", "ls", "--recursive", "local/users"],
+        { cwd: dir, encoding: "utf8" }).split("\n").filter((l) => /\.json/.test(l)).length;
+      assert.equal(count, 2, `expected 2 objects in bucket users, got: ${count}`);
     } finally {
       run(dir, ["env", "down", "--project", project]);           // always tear down
     }

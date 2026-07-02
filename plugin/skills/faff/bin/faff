@@ -7508,7 +7508,7 @@ function fixturesSelftest() {
 // datastore kind (no DATASTORE_TABLE entry) is REPORTED in plan.unprovisionable[] — never silently
 // skipped — so the producer fails loud rather than ship an incomplete env. FAFF-30 fixed the env-handle
 // contract; FAFF-270 makes its §4.1 procedure real. Seed-loader breadth (FAFF-270 resolved scope):
-// sql-load = postgres/mysql/sqlite; mongoimport = mongo; command-replay = redis; s3 → FAFF-273.
+// sql-load = postgres/mysql/sqlite; mongoimport = mongo; command-replay = redis; object-upload = minio (S3).
 // ===========================================================================
 // `env` = dev/test container environment (synthetic, ephemeral, local) — without it the official
 // postgres/mysql images refuse to boot (no password set), so the env never reaches healthy. Trust /
@@ -7519,6 +7519,11 @@ const DATASTORE_TABLE = {
   sqlite:   { image: null,                 port: null,  probe: null,              seed_strategy: "sql-load", file_based: true },
   redis:    { image: "redis:7-alpine",     port: 6379,  probe: "redis-cli ping",  seed_strategy: "command-replay", file_based: false },
   mongo:    { image: "mongo:7",            port: 27017, probe: "mongosh --eval 'db.runCommand({ping:1})'", seed_strategy: "mongoimport", file_based: false },
+  // S3-compatible object store (FAFF-273). MinIO refuses to boot without a `command:` (`server /data`)
+  // — the one datastore that needs the renderCompose `command:` capability. Dev/test root creds are
+  // throwaway (never real, never persisted to tracker/PR — FAFF-30 §7). Probe via the image's own
+  // curl on the engine-native readiness endpoint. `s3` is accepted as an alias in composeGen.
+  minio:    { image: "minio/minio", port: 9000, probe: "curl -f http://localhost:9000/minio/health/ready", seed_strategy: "object-upload", file_based: false, env: { MINIO_ROOT_USER: "faffdev", MINIO_ROOT_PASSWORD: "faffdevsecret" }, command: "server /data --console-address :9001" },
 };
 const ENV_APP_PORT = 8080;
 const ENV_DEFAULT_SLA_SECS = 60;
@@ -7767,6 +7772,9 @@ function renderCompose(services) {
     } else {
       lines.push(`    image: ${s.image}`);
     }
+    // FAFF-273: optional `command:` — some images (MinIO) refuse to boot without a server arg.
+    // Only emitted when the datastore spec sets one, so every existing datastore stays byte-identical.
+    if (s.command) lines.push(`    command: ${JSON.stringify(String(s.command))}`);
     if (s.ports && s.ports.length) {
       lines.push("    ports:");
       for (const p of s.ports) lines.push(`      - "${p}"`);
@@ -7817,9 +7825,11 @@ function composeGen(profile, projectName, outPath, appOverride = null) {
   const dbEnv = (appOverride && appOverride.db_env) || {};
   const services = [], seed_targets = [], unprovisionable = [], notes = [];
   for (const ds of datastores) {
-    const kind = ds && typeof ds.kind === "string" ? ds.kind : "";
+    const rawKind = ds && typeof ds.kind === "string" ? ds.kind : "";
+    // FAFF-273: `s3` is an alias for the MinIO S3-compatible store; provision it as `minio`.
+    const kind = rawKind === "s3" ? "minio" : rawKind;
     const spec = DATASTORE_TABLE[kind];
-    if (!spec) { unprovisionable.push(kind || JSON.stringify(ds)); continue; }
+    if (!spec) { unprovisionable.push(rawKind || JSON.stringify(ds)); continue; }
     if (spec.file_based) {
       seed_targets.push({ service: `${kind}-file`, strategy: "sql-load", kind, file_based: true });
       continue;
@@ -7829,6 +7839,7 @@ function composeGen(profile, projectName, outPath, appOverride = null) {
     const mergedEnv = { ...(spec.env || {}), ...(dbEnv[kind] || {}) };
     services.push({
       name: kind, image: spec.image, ports: [`${spec.port}:${spec.port}`],
+      command: spec.command || null,                    // FAFF-273: threaded to renderCompose (MinIO needs a server arg)
       env: Object.keys(mergedEnv).length ? mergedEnv : null,
       health_check: { name: kind, path: spec.probe, expected_status: 0 },
     });
@@ -7866,7 +7877,8 @@ function composeGen(profile, projectName, outPath, appOverride = null) {
   const endpoints = {};
   for (const s of services) {
     const hostPort = (s.ports[0] || "").split(":")[0];
-    endpoints[s.name] = s.name === "app" ? `http://localhost:${hostPort}` : `tcp://localhost:${hostPort}`;
+    // FAFF-273: the app and the S3-compatible store (minio) speak HTTP; other datastores are raw tcp.
+    endpoints[s.name] = (s.name === "app" || s.name === "minio") ? `http://localhost:${hostPort}` : `tcp://localhost:${hostPort}`;
   }
   // endpoint precedence: app → first non-file-based datastore → first file-based store (file path) → ""
   let endpoint = "";
@@ -8007,6 +8019,37 @@ function envRedisLoad(root, project, target, datasetDir, composeFile) {
   return r.status === 0;
 }
 
+// Deliver the realised dataset into the provisioned MinIO (S3-compatible) service via object-upload:
+// bucket-per-entity, one object per row keyed `<id-or-index>.json`, body = the row JSON. Transport is a
+// throwaway `minio/mc` client sidecar joined to the compose network (`<project>_default`) — the
+// minio/minio server image is not a guaranteed `mc` host, so seeding runs from a dedicated client image
+// (this is why an object store is its own slice). `mc mb --ignore-existing local/<entity>` creates the
+// bucket, then one `mc pipe local/<entity>/<key>` per row streams the row JSON on stdin. Empty arrays are
+// skipped; an empty/absent dataset dir is a no-op → true (mirrors envMongoImport/envRedisLoad). Returns
+// true iff every bucket-create + object-put exited 0.
+function envObjectUpload(root, project, target, datasetDir, composeFile) {
+  if (!fs.existsSync(datasetDir)) return true;
+  const files = fs.readdirSync(datasetDir).filter(f => f.endsWith(".json"));
+  const network = `${project}_default`;
+  // Dev/test throwaway creds (match DATASTORE_TABLE.minio env) — runtime-only, never persisted.
+  const mcHost = "http://faffdev:faffdevsecret@minio:9000";
+  const mc = (mcArgs, input) => spawnSync("docker", ["run", "--rm", "-i", "--network", network,
+    "-e", `MC_HOST_local=${mcHost}`, "minio/mc", ...mcArgs],
+    input === undefined ? { encoding: "utf8" } : { input, encoding: "utf8" });
+  for (const f of files) {
+    let rows; try { rows = JSON.parse(fs.readFileSync(path.join(datasetDir, f), "utf8")); } catch { continue; }
+    if (!Array.isArray(rows) || !rows.length) continue;          // skip empty arrays — nothing to upload
+    const entity = f.replace(/\.json$/, "");
+    if (mc(["mb", "--ignore-existing", `local/${entity}`]).status !== 0) return false;
+    for (let idx = 0; idx < rows.length; idx++) {
+      const row = rows[idx];
+      const id = (row && row.id !== null && row.id !== undefined) ? row.id : idx;
+      if (mc(["pipe", `local/${entity}/${id}.json`], JSON.stringify(row)).status !== 0) return false;
+    }
+  }
+  return true;
+}
+
 function cmdEnv(args) {
   let root = null;
   const rest = [];
@@ -8108,7 +8151,7 @@ function cmdEnv(args) {
       if (r.status !== 0) { process.stderr.write(`faff env seed: fixtures realise failed\n${r.stderr || ""}`); return 1; }
     }
     const project = flag("--project") || plan.project_name;
-    const needsDocker = (plan.seed_targets || []).some(t => t.strategy === "command-replay" || (t.strategy === "sql-load" && t.kind !== "sqlite") || t.strategy === "mongoimport");
+    const needsDocker = (plan.seed_targets || []).some(t => t.strategy === "command-replay" || t.strategy === "object-upload" || (t.strategy === "sql-load" && t.kind !== "sqlite") || t.strategy === "mongoimport");
     if (needsDocker && !envDockerAvailable()) { process.stderr.write("faff env seed: docker unavailable\n"); return 1; }
     let errored = false;
     for (const t of (plan.seed_targets || [])) {
@@ -8123,6 +8166,10 @@ function cmdEnv(args) {
       } else if (t.strategy === "command-replay") {
         if (!envRedisLoad(root, project, t, datasetDir, plan.compose_file)) {
           errored = true; process.stderr.write(`faff env seed: command-replay failed for ${t.kind}\n`);
+        }
+      } else if (t.strategy === "object-upload") {
+        if (!envObjectUpload(root, project, t, datasetDir, plan.compose_file)) {
+          errored = true; process.stderr.write(`faff env seed: object-upload failed for ${t.kind}\n`);
         }
       } else if (t.strategy === "mount") {
         console.log(`note — ${t.kind}: dataset mounted, not imported (loader pending)`);
@@ -8182,6 +8229,21 @@ function envSelftest() {
   check("mongo: has service", r5b.plan.services.some(s => s.name === "mongo"));
   check("mongo: mongoimport seed strategy (not mount)", r5b.plan.seed_targets.some(t => t.kind === "mongo" && t.strategy === "mongoimport"));
   check("mongo: no unseeded note", !r5b.plan.notes.some(n => /mongo/.test(n)));
+
+  // FAFF-273 — S3-compatible object store (MinIO): provision row + object-upload seed + command: line.
+  const r5c = composeGen({ datastores: [{ kind: "minio", evidence: "x" }], deploy_targets: [] }, "p5c", "/tmp/x/dc.yml");
+  check("minio: has service (minio/minio)", r5c.plan.services.some(s => s.name === "minio" && s.image === "minio/minio"));
+  check("minio: object-upload seed strategy (not mount)", r5c.plan.seed_targets.some(t => t.kind === "minio" && t.strategy === "object-upload"));
+  check("minio: no unseeded note", !r5c.plan.notes.some(n => /minio/.test(n)));
+  check("minio: empty unprovisionable", r5c.plan.unprovisionable.length === 0);
+  check("minio: command: server /data emitted in compose", /command: "server \/data --console-address :9001"/.test(r5c.compose));
+  check("minio: http endpoint (S3 API, not tcp)", r5c.plan.endpoints.minio === "http://localhost:9000");
+  // `s3` is an alias for the MinIO store — provisions as `minio`, no unprovisionable entry.
+  const r5d = composeGen({ datastores: [{ kind: "s3", evidence: "x" }], deploy_targets: [] }, "p5d", "/tmp/x/dc.yml");
+  check("s3 alias: provisions minio service", r5d.plan.services.some(s => s.name === "minio"));
+  check("s3 alias: empty unprovisionable", r5d.plan.unprovisionable.length === 0);
+  // The command: line is opt-in — a datastore without a `command` (postgres) never emits one.
+  check("no command: for postgres (byte-identical)", !/command:/.test(r1.compose));
 
   const r6 = composeGen({ datastores: [{ kind: "mysql", evidence: "x" }, { kind: "sqlite", evidence: "y" }], deploy_targets: [] }, "p6", "/tmp/x/dc.yml");
   check("mixed: mysql service + sqlite file target", r6.plan.services.some(s => s.name === "mysql") && r6.plan.seed_targets.some(t => t.kind === "sqlite"));

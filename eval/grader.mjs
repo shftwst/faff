@@ -149,7 +149,22 @@ import { fileURLToPath } from "node:url";
 //                    spec-review-verdict`, not here). OUT OF SCOPE: whether an adversarial refuter
 //                    actually CATCHES a planted flaw (catch-rate / false-positive behaviour) — that is
 //                    FAFF-283's own dimension, kept disjoint to avoid double-coverage.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict"];
+// FAFF-240 — the roadmap-synthesis surface (faff-map) adds one kind:
+//   roadmap        — SHIPPED. Scores faff-map's strategic-roadmap synthesis over a SEEDED TRACKER
+//                    fixture (the ordering/dupe issues[] shape, enriched with blockedBy edges +
+//                    trigger-gate markers) by collection-level rubric coverage — the black-box lane the
+//                    human Resolution settled (ADR-0004). env.roadmap = the synthesised roadmap's named
+//                    dependency chains + gate-fireability readings (a {id: text} map OR a flat array —
+//                    the env.architecture/specqual precedent). REUSES gradeCoverage verbatim (no new
+//                    grade math): each must_include synonym-set is one check that passes if ANY item
+//                    matches, each must_avoid one check that passes if NO item matches — so a synthesis
+//                    naming the A→B→C spine and reading a blocked gate as un-fireable covers the rubric
+//                    (PASS on 1), while one that misses the chain or declares an un-buildable gate
+//                    fireable drops below 1.0 (PARTIAL). Carries its oracle in the EXISTING gloss_rubric
+//                    field. NON-closed-set (generative, multi-valued). A missing/garbage env.roadmap →
+//                    empty collection → low score, never a crash. Any LLM judge stays strictly ADVISORY
+//                    (ADR-0004); the measured frontier baseline is the human-supervised carved follow-up.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -164,7 +179,7 @@ export class CaseError extends Error {}
 // FAFF-280 — the seam registry (eval/seam-registry.json) is the single source of truth mapping each
 // grader KIND to the skill/slot whose LLM-judgement seam it backs. The grader keeps KINDS as its
 // executable enum but asserts, fail-loud on load, that the registry's KIND axis matches KINDS exactly
-// — so the two files can never drift. The equality is total because the registry lists all 22 KINDs.
+// — so the two files can never drift. The equality is total because the registry lists all 23 KINDs.
 // `cases_present` is NOT sourced here; `status` (covered/designed) lives in the registry, coverage is
 // derived live from eval/cases/. Re-sourcing KINDS *from* the registry is a later ticket (OUT OF SCOPE).
 export function loadSeamRegistry() {
@@ -223,6 +238,10 @@ const FIXTURE_SHAPE = {
   // verdict. The fixture carries `spec_body` (the spec under review — the confidence precedent);
   // validateCase asserts it is present. The predicted verdict rides env.verdict (the routing arm).
   "spec-verdict": ["spec_body"],
+  // FAFF-240 — roadmap: the seeded tracker fixture (the ordering/dupe issues[] backlog shape, enriched
+  // with blockedBy edges + trigger-gate markers) faff-map synthesises over. validateCase asserts the
+  // `issues` field is present; the predicted synthesis rides env.roadmap.
+  roadmap: ["issues"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -245,8 +264,9 @@ export function validateCase(c) {
   // the `ordering` arm of the exclusivity check — zero new oracle-field machinery.
   // FAFF-285 — architecture joins the gloss_rubric arm (collection-level coverage, gradeCoverage).
   // FAFF-241 — specqual joins the same gloss_rubric arm (collection-level coverage over the spec body).
+  // FAFF-240 — roadmap joins the same gloss_rubric arm (collection-level coverage over the synthesis).
   const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
-    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual") ? "gloss_rubric"
+    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap") ? "gloss_rubric"
     : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
@@ -657,6 +677,14 @@ export function grade(c, env) {
   // math. Distinct from `confidence`: this reads the spec BODY, not the self-rating level.
   if (c.kind === "specqual") {
     const { score, vector } = gradeCoverage((env && env.specqual) || [], c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  // FAFF-240 — roadmap: collection-level rubric coverage over faff-map's synthesised chains + gate-
+  // fireability readings (env.roadmap, a {id: text} map or flat array), delegating byte-for-byte to
+  // gradeCoverage — the architecture/specqual pattern (PARTIAL on [0,1), PASS on 1, vector signature). A
+  // missing/garbage field → empty collection → every must_include misses (coverage low), never a crash.
+  if (c.kind === "roadmap") {
+    const { score, vector } = gradeCoverage((env && env.roadmap) || [], c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
   }
   if (c.kind === "splittable") {

@@ -309,6 +309,50 @@ test("validateCase routes specqual to the gloss_rubric oracle field + requires t
   assert.throws(() => validateCase({ id: "s", kind: "specqual", oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
 });
 
+// --- FAFF-240: roadmap — collection-level rubric coverage over faff-map's synthesis (chains + gates) ---
+test("roadmap PASS: a synthesis naming the chain and reading the gate as un-fireable scores 1.0", () => {
+  const c = { id: "rm", kind: "roadmap",
+    oracle: { gloss_rubric: {
+      must_include: [["a", "auth"], ["chain", "spine", "dependency"], ["cannot fire", "un-fireable"]],
+      must_avoid: [["ready to fire", "fireable now"], ["no dependencies", "flat backlog"]] } } };
+  // a synthesis naming the A-headed dependency spine and reading the blocked gate as un-fireable → all pass
+  const good = grade(c, { roadmap: {
+    chain: "Auth (A) heads the dependency spine: A blocks B blocks C",
+    gate: "the launch gate cannot fire — its upstream is un-fireable until payments land" } });
+  assert.equal(good.graded, "PASS");
+  assert.equal(good.score, 1);
+  // a synthesis that misses the chain and calls the gate fireable-now trips must_include + must_avoid → PARTIAL
+  const wrong = grade(c, { roadmap: ["everything is a flat backlog with no dependencies; the launch gate is fireable now"] });
+  assert.equal(wrong.graded, "PARTIAL");
+  assert.ok(wrong.score < 1);
+});
+test("roadmap PARTIAL: declaring an un-buildable gate fireable is penalised", () => {
+  const c = { id: "rm2", kind: "roadmap",
+    oracle: { gloss_rubric: {
+      must_include: [["cannot fire", "blocked", "un-fireable"]],
+      must_avoid: [["ready to fire", "fireable now", "gate is ready"]] } } };
+  // a synthesis that declares the gate ready despite an unbuilt upstream drops below 1.0
+  const optimistic = grade(c, { roadmap: ["the launch gate is ready to fire"] });
+  assert.equal(optimistic.graded, "PARTIAL");
+  assert.ok(optimistic.score < 1);
+  // the honest reading covers must_include and trips no must_avoid → PASS
+  const honest = grade(c, { roadmap: ["the launch gate cannot fire — its upstream is still blocked"] });
+  assert.equal(honest.graded, "PASS");
+});
+test("roadmap: missing/garbage env.roadmap is a clean low score, never a crash", () => {
+  const c = { id: "rm3", kind: "roadmap",
+    oracle: { gloss_rubric: { must_include: [["chain"]], must_avoid: [] } } };
+  assert.ok(grade(c, {}).score < 1);          // absent field → empty collection → must_include misses
+  assert.ok(grade(c, { roadmap: null }).score < 1);
+  assert.doesNotThrow(() => grade(c, { roadmap: "not-a-collection" }));
+});
+test("validateCase routes roadmap to the gloss_rubric oracle field + requires the issues fixture", () => {
+  assert.doesNotThrow(() => validateCase({ id: "r", kind: "roadmap", fixture: { issues: [] }, oracle: { gloss_rubric: { must_include: [["x"]] } } }));
+  assert.throws(() => validateCase({ id: "r", kind: "roadmap", fixture: { issues: [] }, oracle: { closed_set: ["x"] } }), CaseError);
+  // FIXTURE_SHAPE requires `issues` — a roadmap case without it is rejected
+  assert.throws(() => validateCase({ id: "r", kind: "roadmap", oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
+});
+
 // --- FAFF-284: holdout — per-criterion `key:class` closed set (the marker shape); prose→needs-human ---
 test("FAFF-284 holdout grades per-criterion key:class pairs by set-equality", () => {
   const c = { id: "hd", kind: "holdout",
@@ -460,13 +504,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-241: +2 specqual (the generated lite-nlspec body-quality rubric-coverage surface).
   // FAFF-284: +2 holdout (the code-blind evaluator's offline DoD-classification + prose→needs-human seam).
   // FAFF-282: +3 spec-verdict (the spec-review admission-gate verdict — approve + reject-approach + needs-human).
-  assert.equal(cases.length, 51);
+  // FAFF-240: +2 roadmap (the faff-map roadmap-synthesis rubric-coverage surface — chain-id + gate-fireability).
+  assert.equal(cases.length, 53);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

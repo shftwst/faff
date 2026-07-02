@@ -1,0 +1,15 @@
+{
+  "id": "refutation-code-001",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "--- a/eligible.mjs\n+++ b/eligible.mjs\n export function isEligible(labels, def = 'opt-in') {\n-  if (labels.includes('faff-automation-hold')) return false;\n-  if (labels.includes('faff-automate')) return true;\n+  if (labels.includes('faff-automate')) return true;\n+  if (labels.includes('faff-automation-hold')) return true;\n   return def === 'opt-out';\n }",
+    "spec_summary": "No behaviour change intended — refactor ordering of the eligibility checks."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": [
+      "flagged"
+    ]
+  },
+  "_comment": "LEGIT CATCH (correctness): the hold branch now returns TRUE — a faff-automation-hold makes a ticket eligible, inverting the guarantee that hold beats automate. A correctness/bug pass must flag it. Expected category ~ correctness."
+}

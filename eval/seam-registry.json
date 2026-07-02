@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_comment": "FAFF-280 — seam→KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter↔registry reconciliation). Keys are exactly the 24 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet. `cases_present` is NOT stored — it is derived live from eval/cases/ so it cannot go stale. NOTE (FAFF-286): a surface declared `judgement_seam: none` (e.g. faffter-noon-env-compose — deterministically-tested provisioning, no load-bearing judgement) owns NO registry row and is NOT a KIND key; only covered/designed KINDs are keys, keeping KINDS === registry-keys.",
+  "_comment": "FAFF-280 — seam→KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter↔registry reconciliation). Keys are exactly the 26 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet. `cases_present` is NOT stored — it is derived live from eval/cases/ so it cannot go stale. NOTE (FAFF-286): a surface declared `judgement_seam: none` (e.g. faffter-noon-env-compose — deterministically-tested provisioning, no load-bearing judgement) owns NO registry row and is NOT a KIND key; only covered/designed KINDs are keys, keeping KINDS === registry-keys.",
   "kinds": {
     "dupe": { "surface": "faff-tidy", "status": "covered" },
     "vague": { "surface": "faff-tidy", "status": "covered" },
@@ -25,6 +25,8 @@
     "holdout": { "surface": "faffter-noon-evaluate", "status": "covered" },
     "spec-verdict": { "surface": "faffter-noon-spec-review", "status": "covered" },
     "roadmap": { "surface": "faff-map", "status": "covered" },
-    "adr-gloss": { "surface": "faffter-noon-adr", "status": "covered" }
+    "adr-gloss": { "surface": "faffter-noon-adr", "status": "covered" },
+    "refutation-spec": { "surface": "faffter-dark-spec-review", "status": "covered" },
+    "refutation-code": { "surface": "faffter-dark-adversarial-review", "status": "covered" }
   }
 }

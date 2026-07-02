@@ -1,0 +1,14 @@
+{
+  "id": "refutation-spec-004",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: the roadmap view is hard to read. WHAT: improve the map. HOW: adjust the layout and grouping. DONE: the roadmap feels clearer, performance is good, and users are happy with the layout."
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "closed_set": [
+      "QA"
+    ]
+  },
+  "_comment": "LEGIT CATCH: the DONE criteria are unverifiable ('feels clearer', 'performance is good', 'users are happy') — no scenarios, nothing testable. QA lens must raise major/blocker → revise (add scenarios/DoD in place). Design intent is otherwise unobjectionable."
+}

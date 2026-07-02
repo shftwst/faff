@@ -1,0 +1,15 @@
+{
+  "id": "refutation-code-003",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "spec was: 'add a --json flag to `faff labels`'. The diff adds the --json flag (~8 lines) BUT ALSO: renames 12 internal helpers across bin/faff, reorders the COMMANDS registry, and bumps a runtime dependency major version in package.json.",
+    "spec_summary": "Add --json to `faff labels`."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": [
+      "flagged"
+    ]
+  },
+  "_comment": "LEGIT CATCH (scope): a large unrelated refactor + a major dependency bump smuggled into a one-flag ticket — a scope-check pass must flag it (each is independently risky and unreviewed against its own spec). Expected category ~ scope."
+}

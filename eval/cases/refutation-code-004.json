@@ -1,0 +1,13 @@
+{
+  "id": "refutation-code-004",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "--- a/labels.mjs\n+++ b/labels.mjs\n export function cmdLabels(argv) {\n+  if (argv.includes('--json')) { process.stdout.write(JSON.stringify(LABELS) + '\\n'); return 0; }\n   for (const l of LABELS) process.stdout.write(`${l.name}\\t${l.desc}\\n`);\n   return 0;\n }",
+    "spec_summary": "Add a --json flag to `faff labels` that prints the manifest as JSON."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "CLEAN: exactly the spec, mirrors the existing pattern, in-scope, no security or correctness issue. Reviewer should report clean. A finding here is a false-positive."
+}

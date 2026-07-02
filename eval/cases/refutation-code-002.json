@@ -1,0 +1,15 @@
+{
+  "id": "refutation-code-002",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "--- a/worktree.mjs\n+++ b/worktree.mjs\n export function addWorktree(issue) {\n-  const branch = sanitizeBranch(issue.gitBranchName);\n-  execFileSync('git', ['worktree', 'add', path(branch), branch]);\n+  const branch = issue.gitBranchName;\n+  execSync(`git worktree add ${path(branch)} ${branch}`);\n }",
+    "spec_summary": "Simplify worktree creation."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": [
+      "flagged"
+    ]
+  },
+  "_comment": "LEGIT CATCH (security): drops sanitization and switches execFileSync(argv) to execSync(string) with a branch name interpolated from a tracker field — shell-injection surface (a crafted branch name runs arbitrary commands). Security pass must flag. Expected category ~ security."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "refutation-spec-002",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: post a Slack message on deploy. WHAT: notify #deploys. HOW: store the Slack webhook URL and a bot API token in the issue description and read them at runtime via the tracker API; log the full webhook HTTP response (which echoes the token) at info level for debugging. DONE: a message appears in #deploys."
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "closed_set": [
+      "infosec"
+    ]
+  },
+  "_comment": "LEGIT CATCH: secrets stored in the tracker (readable by anyone with issue access, not a secret store) AND a token echoed into logs. Clear infosec blocker → needs-human. Design is otherwise fine, so architectural should stay quiet."
+}

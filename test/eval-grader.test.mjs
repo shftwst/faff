@@ -260,6 +260,97 @@ test("validateCase routes architecture to the gloss_rubric oracle field", () => 
   assert.throws(() => validateCase({ id: "a", kind: "architecture", oracle: { closed_set: ["x"] } }), CaseError);
 });
 
+// --- FAFF-283: refutation-spec — the objecting-lens closed-set over the adversarial spec-review lenses ---
+test("refutation-spec: the above-minor objecting-lens set grades by set-equality", () => {
+  const c = { id: "rs", kind: "refutation-spec", oracle: { closed_set: ["architectural"] } };
+  // exactly the architectural lens objects at blocker → PASS
+  const ok = grade(c, { objections: [{ lens: "architectural", severity: "blocker" }] });
+  assert.equal(ok.graded, "PASS");
+  assert.equal(ok.score, 1);
+  // an EXTRA lens objecting (cry-wolf on a clean lens) → the whole set fails
+  const extra = grade(c, { objections: [
+    { lens: "architectural", severity: "blocker" }, { lens: "infosec", severity: "major" }] });
+  assert.equal(extra.score, 0);
+  assert.equal(extra.graded, "FAIL");
+});
+test("refutation-spec: only above-minor objections count (a minor-only objection does not add its lens)", () => {
+  const c = { id: "rs", kind: "refutation-spec", oracle: { closed_set: ["QA"] } };
+  // QA objects at major (counts); a minor architectural nit does NOT contribute its lens → PASS
+  const ok = grade(c, { objections: [
+    { lens: "QA", severity: "major" }, { lens: "architectural", severity: "minor" }] });
+  assert.equal(ok.graded, "PASS");
+  // dedup: the same lens objecting twice above minor collapses to one entry
+  assert.equal(grade({ id: "r2", kind: "refutation-spec", oracle: { closed_set: ["QA"] } },
+    { objections: [{ lens: "QA", severity: "blocker" }, { lens: "QA", severity: "major" }] }).graded, "PASS");
+});
+test("refutation-spec: a CLEAN spec (empty oracle) PASSes iff no lens objects above minor (no cry-wolf)", () => {
+  const clean = { id: "rs", kind: "refutation-spec", oracle: { closed_set: [] } };
+  // approve (no objections) → PASS
+  assert.equal(grade(clean, { objections: [] }).graded, "PASS");
+  // a minor-only nit still reads as clean (below the floor) → PASS
+  assert.equal(grade(clean, { objections: [{ lens: "infosec", severity: "minor" }] }).graded, "PASS");
+  // a false blocker on a clean spec → FAIL (the false-positive the near-miss fixtures catch)
+  assert.equal(grade(clean, { objections: [{ lens: "infosec", severity: "blocker" }] }).graded, "FAIL");
+});
+test("refutation-spec: a missing/garbage objections field is a clean grade, never a throw", () => {
+  const clean = { id: "rs", kind: "refutation-spec", oracle: { closed_set: [] } };
+  const flawed = { id: "rs", kind: "refutation-spec", oracle: { closed_set: ["architectural"] } };
+  assert.equal(grade(clean, {}).graded, "PASS");           // absent field + empty oracle → correct clean
+  assert.equal(grade(flawed, {}).graded, "FAIL");          // absent field + non-empty oracle → missed catch
+  assert.doesNotThrow(() => grade(flawed, { objections: "garbage" }));
+  assert.equal(grade(flawed, { objections: null }).graded, "FAIL");
+});
+test("refutation-spec: an out-of-enum lens rides through verbatim (distinct signature, clean FAIL, no coerce)", () => {
+  const c = { id: "rs", kind: "refutation-spec", oracle: { closed_set: ["architectural"] } };
+  const bad = grade(c, { objections: [{ lens: "vibes", severity: "blocker" }] });
+  assert.equal(bad.graded, "FAIL");
+  assert.equal(bad.signature, JSON.stringify(["vibes"])); // observed, not coerced/dropped
+});
+
+// --- FAFF-283: refutation-code — the binary flagged/[] closed-set over the adversarial code review ---
+test("refutation-code: flags iff a finding is above minor severity (binary, set-equality)", () => {
+  const flag = { id: "rc", kind: "refutation-code", oracle: { closed_set: ["flagged"] } };
+  const clean = { id: "rc", kind: "refutation-code", oracle: { closed_set: [] } };
+  // a blocker finding on a should-flag fixture → PASS
+  assert.equal(grade(flag, { findings: [{ severity: "blocker" }] }).graded, "PASS");
+  // multiple findings still collapse to the single ["flagged"] token
+  assert.equal(grade(flag, { findings: [{ severity: "major" }, { severity: "blocker" }] }).score, 1);
+  // clean review (no findings) on a should-stay-clean fixture → PASS
+  assert.equal(grade(clean, { findings: [] }).graded, "PASS");
+  // a minor-only nit is below the flag floor → stays clean → PASS on the clean oracle
+  assert.equal(grade(clean, { findings: [{ severity: "minor" }] }).graded, "PASS");
+});
+test("refutation-code: a false-positive and a missed catch both FAIL (both directions of the binary)", () => {
+  const flag = { id: "rc", kind: "refutation-code", oracle: { closed_set: ["flagged"] } };
+  const clean = { id: "rc", kind: "refutation-code", oracle: { closed_set: [] } };
+  // missed catch: no above-minor finding on a should-flag fixture → [] ≠ ["flagged"] → FAIL
+  assert.equal(grade(flag, { findings: [{ severity: "minor" }] }).graded, "FAIL");
+  // cry-wolf: a blocker on a clean fixture → ["flagged"] ≠ [] → FAIL (the near-miss false-positive)
+  assert.equal(grade(clean, { findings: [{ severity: "blocker" }] }).graded, "FAIL");
+});
+test("refutation-code: a missing/garbage findings field is a clean grade, never a throw", () => {
+  const flag = { id: "rc", kind: "refutation-code", oracle: { closed_set: ["flagged"] } };
+  const clean = { id: "rc", kind: "refutation-code", oracle: { closed_set: [] } };
+  assert.equal(grade(clean, {}).graded, "PASS");   // absent field → [] → correct on the clean oracle
+  assert.equal(grade(flag, {}).graded, "FAIL");    // absent field → [] → missed catch on a flag oracle
+  assert.doesNotThrow(() => grade(flag, { findings: "garbage" }));
+  assert.equal(grade(flag, { findings: null }).graded, "FAIL");
+});
+test("validateCase routes the refutation kinds to the closed_set oracle + enforces the fixture shape", () => {
+  // refutation-spec: closed_set oracle + a `spec` fixture
+  assert.doesNotThrow(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: { closed_set: ["architectural"] } }));
+  assert.throws(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: { gloss_rubric: {} } }), CaseError);
+  assert.throws(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: {}, oracle: { closed_set: [] } }), CaseError); // missing `spec`
+  // refutation-code: closed_set oracle + a `diff` + `spec_summary` fixture
+  assert.doesNotThrow(() => validateCase({ id: "rc", kind: "refutation-code",
+    fixture: { diff: "...", spec_summary: "..." }, oracle: { closed_set: ["flagged"] } }));
+  assert.throws(() => validateCase({ id: "rc", kind: "refutation-code",
+    fixture: { diff: "..." }, oracle: { closed_set: [] } }), CaseError); // missing `spec_summary`
+});
+
 // --- FAFF-241: specqual — collection-level rubric coverage over the GENERATED spec's body sections ---
 test("specqual PASS: a spec covering the WHY/WHAT/HOW/DONE arc with testable ACs scores 1.0", () => {
   const c = { id: "sq", kind: "specqual",
@@ -549,13 +640,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-282: +3 spec-verdict (the spec-review admission-gate verdict — approve + reject-approach + needs-human).
   // FAFF-240: +2 roadmap (the faff-map roadmap-synthesis rubric-coverage surface — chain-id + gate-fireability).
   // FAFF-286: +2 adr-gloss (the ADR-body writer rubric-coverage surface; env-compose is declared-deterministic, no case).
-  assert.equal(cases.length, 55);
+  // FAFF-283: +6 refutation-spec (4 planted-lens + 2 clean/near-miss) + 5 refutation-code (3 planted + 2 clean/near-miss).
+  assert.equal(cases.length, 66);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

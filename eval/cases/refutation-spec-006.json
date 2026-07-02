@@ -1,0 +1,12 @@
+{
+  "id": "refutation-spec-006",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: users need password reset. WHAT: email a reset link. HOW: generate a 32-byte CSPRNG token; store ONLY its SHA-256 hash with a 15-minute TTL, single-use; deliver via the existing transactional-email provider; compare in constant time; never log the raw token. DONE:\n## Scenarios\n- a used or expired token is rejected\n- the raw token never appears in logs (asserted)\n- reset invalidates existing sessions."
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "CLEAN NEAR-MISS: sits squarely in infosec territory (tokens, secrets, sessions) so a trigger-happy infosec lens might object — but it follows best practice on every point. Refuter should APPROVE. This case tests infosec does NOT cry wolf on a sound security-adjacent spec."
+}

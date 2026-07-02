@@ -181,8 +181,23 @@ import { fileURLToPath } from "node:url";
 //                    architecture-fit reading is too thin to grade), so env owns no registry row and is
 //                    not a KIND here. Any LLM judge stays strictly ADVISORY (ADR-0004); the measured
 //                    frontier baseline is the human-supervised carved follow-up.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict"]);
+// FAFF-283 — the adversarial-dimension surfaces add two closed-set kinds (both grade via setEqual —
+// NO new grade math, only two predictedSet extraction arms):
+//   refutation-spec — SHIPPED. The L4 adversarial spec reviewer (faffter-dark-spec-review) runs each
+//                     enabled lens as an INDEPENDENT refuter; the eval scores WHICH lenses objected.
+//                     Oracle = closed-set of the lens(es) that SHOULD object above minor severity
+//                     (a subset of {architectural, infosec, methodology, QA}); [] = clean → approve.
+//                     predictedSet = the set of lenses whose objection carried severity > minor
+//                     (blocker|major) in env.objections. A false objection on a clean fixture is a
+//                     false-positive the set-equality catches; a missed real flaw drops a lens.
+//   refutation-code — SHIPPED. The adversarial code reviewer (faffter-dark-adversarial-review) either
+//                     raises ≥1 finding above severity or stays clean — a BINARY breaks/holds (code
+//                     findings carry no category enum, so the catch-for-the-right-reason lives in each
+//                     fixture's note for the human baseline). Oracle = ["flagged"] if it SHOULD raise a
+//                     finding above minor, else []. predictedSet = ["flagged"] iff env.findings has ≥1
+//                     finding above minor severity, else []. Both reduce to setEqual vs oracle.closed_set.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict", "refutation-spec", "refutation-code"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -196,7 +211,7 @@ export class CaseError extends Error {}
 // FAFF-280 — the seam registry (eval/seam-registry.json) is the single source of truth mapping each
 // grader KIND to the skill/slot whose LLM-judgement seam it backs. The grader keeps KINDS as its
 // executable enum but asserts, fail-loud on load, that the registry's KIND axis matches KINDS exactly
-// — so the two files can never drift. The equality is total because the registry lists all 23 KINDs.
+// — so the two files can never drift. The equality is total because the registry lists all 25 KINDs.
 // `cases_present` is NOT sourced here; `status` (covered/designed) lives in the registry, coverage is
 // derived live from eval/cases/. Re-sourcing KINDS *from* the registry is a later ticket (OUT OF SCOPE).
 export function loadSeamRegistry() {
@@ -255,6 +270,14 @@ const FIXTURE_SHAPE = {
   // verdict. The fixture carries `spec_body` (the spec under review — the confidence precedent);
   // validateCase asserts it is present. The predicted verdict rides env.verdict (the routing arm).
   "spec-verdict": ["spec_body"],
+  // FAFF-283 — refutation-spec: the adversarial spec-review fixture carries the `spec` under refutation
+  // (the driver renders it to each independent lens-refuter). validateCase asserts it is present; the
+  // objecting-lens set rides env.objections (the closed-set arm).
+  "refutation-spec": ["spec"],
+  // FAFF-283 — refutation-code: the adversarial code-review fixture carries the `diff` under review plus
+  // the `spec_summary` the change claims to implement (the driver renders both). validateCase asserts
+  // both; the binary flagged/[] verdict rides env.findings (the closed-set arm).
+  "refutation-code": ["diff", "spec_summary"],
   // FAFF-240 — roadmap: the seeded tracker fixture (the ordering/dupe issues[] backlog shape, enriched
   // with blockedBy edges + trigger-gate markers) faff-map synthesises over. validateCase asserts the
   // `issues` field is present; the predicted synthesis rides env.roadmap.
@@ -492,6 +515,13 @@ function pairsOf(map) {
   if (!map || typeof map !== "object") return [];
   return Object.entries(map).map(([k, v]) => `${k}:${v}`);
 }
+// FAFF-283 — "above minor": the two refutation surfaces both treat an objection/finding as load-bearing
+// only when its severity clears minor. `minor` is the spec-review-verdict floor severity (the
+// {blocker, major, minor} vocabulary `faff contract spec-review-verdict` enforces), so blocker|major are
+// the above-minor severities. A refuter that objects only at `minor` (or a garbage severity) does NOT
+// contribute its lens / does NOT flag — the no-cry-wolf stance the near-miss clean fixtures test.
+const ABOVE_MINOR = new Set(["blocker", "major"]);
+
 function predictedSet(c, env) {
   switch (c.kind) {
     case "confidence":
@@ -532,6 +562,29 @@ function predictedSet(c, env) {
     // criterion to `:needs-human`, so an env classing it met/unmet FAILS) — no grader-side coercion.
     case "holdout":
       return pairsOf(env.holdout);
+    // FAFF-283 — refutation-spec: the objecting-lens SET (not a single verdict — that is spec-verdict's
+    // job, one altitude down). Each independent lens-refuter contributes an objection {lens, severity};
+    // a lens "objects" for the eval iff its severity is ABOVE minor (blocker|major — the
+    // spec-review-verdict severity vocabulary). The predicted set is the deduped lens set over those
+    // above-minor objections, scored by set-equality against the oracle's expected-objecting lenses ([]
+    // = clean → the refuter should approve). A missing/garbage env.objections → [] → a clean FAIL/PASS
+    // (PASS iff the oracle is also [] — the correct no-cry-wolf outcome); an out-of-enum lens token rides
+    // through verbatim so setEqual fails it with a distinct signature (the eval-side fail-safe stance).
+    case "refutation-spec": {
+      const objs = Array.isArray(env.objections) ? env.objections : [];
+      return [...new Set(objs
+        .filter((o) => o && ABOVE_MINOR.has(String(o.severity)))
+        .map((o) => String(o.lens)))];
+    }
+    // FAFF-283 — refutation-code: a BINARY breaks/holds. Code findings carry no category enum, so the
+    // predicted set is ["flagged"] iff the reviewer raised ≥1 finding ABOVE minor severity, else [].
+    // Scored by set-equality against ["flagged"] (should-flag) or [] (should-stay-clean). A missing/
+    // garbage env.findings → [] → the clean outcome; the catch-for-the-right-reason lives in each
+    // fixture's note for the human baseline, never in the mechanical grade.
+    case "refutation-code": {
+      const findings = Array.isArray(env.findings) ? env.findings : [];
+      return findings.some((f) => f && ABOVE_MINOR.has(String(f.severity))) ? ["flagged"] : [];
+    }
     default:
       return (env.classifications && env.classifications[c.kind]) || [];
   }

@@ -1,7 +1,7 @@
 ---
 name: faffter-dark-spec-review
 description: "L4 adversarial occupant of the `spec_review` slot — runs each enabled review lens (architectural / infosec / methodology / QA) as an INDEPENDENT refuter prompted to break the spec, then aggregates the refutations onto the fixed `faff-contract:spec-review-verdict` by majority/severity. Swap-in for the single-pass default; runs as a configured slot, not the user `/` menu."
-judgement_seam: spec-verdict
+judgement_seam: refutation-spec
 user-invocable: false
 ---
 

@@ -1,0 +1,13 @@
+{
+  "id": "refutation-code-005",
+  "kind": "refutation-code",
+  "fixture": {
+    "diff": "--- a/seed.mjs\n+++ b/seed.mjs\n export function envSqlLoad(service, rows) {\n+  const sql = rows.map(() => 'INSERT INTO app VALUES (?, ?)').join(';');\n+  // payload passed on stdin, values bound as params — no interpolation\n+  execFileSync('docker', ['compose','exec','-T',service,'psql','-c',sql], { input: bindValues(rows) });\n }",
+    "spec_summary": "Seed a SQL datastore from the realised dataset."
+  },
+  "question": "Adversarially review this diff. Raise findings above severity, or report clean.",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "CLEAN NEAR-MISS: touches SQL + a datastore + a subprocess (looks injection-risky) but uses execFileSync(argv) with parameterized values bound via stdin — no string interpolation, no secret logging. Reviewer should report clean. Tests the security pass does NOT false-flag correct DB code."
+}

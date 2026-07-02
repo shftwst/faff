@@ -95,7 +95,20 @@ import { fileURLToPath } from "node:url";
 //                       level (≥2 oracle segments) + a dry-smoke guard, NOT by editing the grader. The
 //                       measured frontier baseline (real claude -p reps) is the human-supervised carved
 //                       follow-up (ADR-0004).
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order"];
+// FAFF-285 — the generative architecture PROPOSER surface (faffter-noon-architecture) adds one kind:
+//   architecture   — SHIPPED. Scores an architecture proposal's quality by collection-level rubric
+//                    coverage over the proposal's key claims (env.architecture, a {id: text} map OR a
+//                    flat array — the env.shaping precedent). REUSES gradeCoverage verbatim (no new
+//                    grade math): each must_include synonym-set is one check that passes if ANY claim
+//                    matches it, each must_avoid one check that passes if NO claim matches — so a
+//                    build-biased/best-fit/founded proposal covers the rubric (PASS on 1) while a
+//                    hand-wavy proposal or a hallucinated assumption drops below 1.0 (PARTIAL). Carries
+//                    its oracle in the EXISTING `gloss_rubric` field (the gloss/shaping shape). NON-
+//                    closed-set (generative, multi-valued). Grades the CHOSEN architecture only; the
+//                    proposer/critic boundary + the spec-review architectural lens stay out of scope.
+//                    Any LLM judge stays strictly ADVISORY (ADR-0004); the measured frontier baseline
+//                    is the human-supervised carved follow-up.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -178,8 +191,9 @@ export function validateCase(c) {
   // populate-exactly-one exclusivity check is reused with zero new oracle-field machinery.
   // FAFF-203 — explanatory-order reuses the `ordering` oracle field (a segment-id list), so it joins
   // the `ordering` arm of the exclusivity check — zero new oracle-field machinery.
+  // FAFF-285 — architecture joins the gloss_rubric arm (collection-level coverage, gradeCoverage).
   const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
-    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition") ? "gloss_rubric"
+    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture") ? "gloss_rubric"
     : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
@@ -560,6 +574,14 @@ export function grade(c, env) {
   }
   if (c.kind === "decomposition") {
     const { score, vector } = gradeDecomposition(env, c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  // FAFF-285 — architecture: collection-level rubric coverage over the proposal's key claims
+  // (env.architecture, a {id: text} map or flat array), delegating byte-for-byte to gradeCoverage — the
+  // gradeShaping pattern (PARTIAL on [0,1), PASS on 1, vector signature). A missing/garbage field → empty
+  // collection → every must_include misses (coverage low), never a crash. No new grade math.
+  if (c.kind === "architecture") {
+    const { score, vector } = gradeCoverage((env && env.architecture) || [], c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
   }
   if (c.kind === "splittable") {

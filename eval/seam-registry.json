@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_comment": "FAFF-280 — seam→KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter↔registry reconciliation). Keys are exactly the 21 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet. `cases_present` is NOT stored — it is derived live from eval/cases/ so it cannot go stale.",
+  "_comment": "FAFF-280 — seam→KIND registry: the single source of truth mapping each grader KIND (eval/grader.mjs KINDS) to the skill/slot whose LLM-judgement seam it backs. Read by BOTH eval/grader.mjs (KIND-axis equality assertion) and `faff validate-adapters` (frontmatter↔registry reconciliation). Keys are exactly the 22 grader KINDS. `status`: covered = >=1 case in eval/cases/; designed = registered, 0 cases yet. `cases_present` is NOT stored — it is derived live from eval/cases/ so it cannot go stale.",
   "kinds": {
     "dupe": { "surface": "faff-tidy", "status": "covered" },
     "vague": { "surface": "faff-tidy", "status": "covered" },
@@ -22,6 +22,7 @@
     "verdict-build": { "surface": "faffter-noon-review", "status": "designed" },
     "architecture": { "surface": "faffter-noon-architecture", "status": "covered" },
     "specqual": { "surface": "faffter-noon-spec", "status": "covered" },
-    "holdout": { "surface": "faffter-noon-evaluate", "status": "covered" }
+    "holdout": { "surface": "faffter-noon-evaluate", "status": "covered" },
+    "spec-verdict": { "surface": "faffter-noon-spec-review", "status": "covered" }
   }
 }

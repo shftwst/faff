@@ -346,6 +346,33 @@ test("FAFF-284 validateCase routes holdout to closed_set + requires the spec_dod
   assert.throws(() => validateCase({ id: "h", kind: "holdout", fixture: { exercise: "…" }, oracle: { closed_set: ["k:met"] } }), CaseError);
 });
 
+// --- FAFF-282: spec-verdict — the single spec-review admission verdict, closed-set over the contract enum ---
+test("FAFF-282 spec-verdict grades env.verdict by exact set-equality against the contract enum", () => {
+  const c = { id: "sv", kind: "spec-verdict", fixture: { spec_body: "…" }, oracle: { closed_set: ["approve"] } };
+  assert.equal(grade(c, { verdict: "approve" }).graded, "PASS");
+  // a wrong (but in-enum) verdict is a real miss with a distinct signature
+  const rej = grade(c, { verdict: "reject-approach" });
+  assert.equal(rej.graded, "FAIL");
+  assert.equal(rej.score, 0);
+  assert.notEqual(rej.signature, grade(c, { verdict: "approve" }).signature);
+  // a broken-spec case: approve on a spec that should be rejected FAILs; the correct verdict PASSes
+  const c2 = { id: "sv2", kind: "spec-verdict", fixture: { spec_body: "…" }, oracle: { closed_set: ["reject-approach"] } };
+  assert.equal(grade(c2, { verdict: "approve" }).graded, "FAIL");
+  assert.equal(grade(c2, { verdict: "reject-approach" }).graded, "PASS");
+  // missing / out-of-enum verdict → clean FAIL, never a crash (the routing/verdict-build fail-safe)
+  assert.equal(grade(c, { }).graded, "FAIL");
+  assert.equal(grade(c, { verdict: "definitely-yes" }).graded, "FAIL");
+  assert.doesNotThrow(() => grade(c, { verdict: null }));
+});
+
+test("FAFF-282 validateCase routes spec-verdict to closed_set + requires the spec_body fixture", () => {
+  assert.doesNotThrow(() => validateCase({ id: "sv", kind: "spec-verdict", fixture: { spec_body: "…" }, oracle: { closed_set: ["approve"] } }));
+  // wrong oracle field
+  assert.throws(() => validateCase({ id: "sv", kind: "spec-verdict", fixture: { spec_body: "…" }, oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
+  // FIXTURE_SHAPE requires spec_body
+  assert.throws(() => validateCase({ id: "sv", kind: "spec-verdict", fixture: { version: 1 }, oracle: { closed_set: ["approve"] } }), CaseError);
+});
+
 // --- validation: kind must match the populated oracle field ---
 test("validateCase rejects an oracle that doesn't match the kind", () => {
   assert.throws(() => validateCase({ id: "x", kind: "dupe", oracle: { ordering: ["A"] } }), CaseError);
@@ -432,13 +459,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-285: +2 architecture (the generative architecture-proposal rubric-coverage surface).
   // FAFF-241: +2 specqual (the generated lite-nlspec body-quality rubric-coverage surface).
   // FAFF-284: +2 holdout (the code-blind evaluator's offline DoD-classification + prose→needs-human seam).
-  assert.equal(cases.length, 48);
+  // FAFF-282: +3 spec-verdict (the spec-review admission-gate verdict — approve + reject-approach + needs-human).
+  assert.equal(cases.length, 51);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

@@ -134,8 +134,23 @@ import { fileURLToPath } from "node:url";
 //                    map → empty set → clean FAIL. IN CLOSED_SET_KINDS — zero new grade math. OUT OF
 //                    SCOPE (carved to FAFF-317): exercising a real/recorded LIVE env slot; and code-
 //                    blindness itself, enforced by construction + the sandbox (FAFF-276), not this eval.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout"]);
+// FAFF-282 — the spec-review verdict (faffter-noon-spec-review; faffter-dark-spec-review is its slot
+// sibling) adds one kind:
+//   spec-verdict   — SHIPPED. Scores the spec-stage review verdict that GATES prep→build admission —
+//                    the single final call the reviewer emits after walking its lenses, one of the
+//                    fixed `faff-contract:spec-review-verdict` enum {approve, revise, reject-approach,
+//                    needs-human}. It is ONE aggregate verdict, not one KIND per lens (human decision
+//                    2026-07-02): grade the final call the same way verdict-build/routing/modedetect
+//                    grade their single closed value. Oracle = single-element closed-set over the enum;
+//                    env.verdict carries the one verdict (the routing/verdict-build analogue — reads the
+//                    SAME `env.verdict` field). IN CLOSED_SET_KINDS — zero new grade math; a missing
+//                    verdict → [] → clean FAIL, an out-of-enum token → verbatim → distinct-signature
+//                    FAIL (the eval-side fail-safe; the deterministic coercion stays in `faff contract
+//                    spec-review-verdict`, not here). OUT OF SCOPE: whether an adversarial refuter
+//                    actually CATCHES a planted flaw (catch-rate / false-positive behaviour) — that is
+//                    FAFF-283's own dimension, kept disjoint to avoid double-coverage.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -149,7 +164,7 @@ export class CaseError extends Error {}
 // FAFF-280 — the seam registry (eval/seam-registry.json) is the single source of truth mapping each
 // grader KIND to the skill/slot whose LLM-judgement seam it backs. The grader keeps KINDS as its
 // executable enum but asserts, fail-loud on load, that the registry's KIND axis matches KINDS exactly
-// — so the two files can never drift. The equality is total because the registry lists all 20 KINDs.
+// — so the two files can never drift. The equality is total because the registry lists all 22 KINDs.
 // `cases_present` is NOT sourced here; `status` (covered/designed) lives in the registry, coverage is
 // derived live from eval/cases/. Re-sourcing KINDS *from* the registry is a later ticket (OUT OF SCOPE).
 export function loadSeamRegistry() {
@@ -204,6 +219,10 @@ const FIXTURE_SHAPE = {
   // (each { key, text, class ∈ {scenario, assertion, prose} }); `exercise` is the RECORDED running-
   // feature observation the judge reasons over (a canned env-response transcript — no live env slot).
   holdout: ["spec_dod", "exercise"],
+  // FAFF-282 — spec-verdict: the reviewer reads the spec body under its 4-lens rubric and emits one
+  // verdict. The fixture carries `spec_body` (the spec under review — the confidence precedent);
+  // validateCase asserts it is present. The predicted verdict rides env.verdict (the routing arm).
+  "spec-verdict": ["spec_body"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -450,8 +469,14 @@ function predictedSet(c, env) {
     // routing's arm is the one grader touch; the eval-side fail-safe is identical (missing → [] → clean
     // FAIL; out-of-enum → verbatim → distinct signature). NO eval-side coercion — the malformed→
     // needs-human coercion is computeReviewVerdict's job (out of scope), exactly the routing stance.
+    // FAFF-282 — spec-verdict: the spec-stage review verdict is ALSO one closed value → a single-element
+    // set, and rides the SAME `env.verdict` field as routing/verdict-build. It joins their arm with no
+    // new grade math; the eval-side fail-safe is identical (missing → [] → clean FAIL; an out-of-enum
+    // token → verbatim → distinct-signature FAIL). The deterministic coercion stays in `faff contract
+    // spec-review-verdict`, never here.
     case "routing":
     case "verdict-build":
+    case "spec-verdict":
       return env.verdict == null ? [] : [String(env.verdict)];
     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum

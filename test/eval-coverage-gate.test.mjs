@@ -47,8 +47,10 @@ test("day-one: post-265 family is advisory `undeclared`; designed kinds are advi
   // row and declares `judgement_seam: architecture`, so it reconciles clean rather than being undeclared.
   // FAFF-284 removed faffter-noon-evaluate likewise: it now owns the `holdout` registry row and declares
   // `judgement_seam: holdout`, so it reconciles clean rather than being undeclared.
-  for (const n of ["faffter-noon-env-compose",
-                   "faffter-noon-adr", "faffter-noon-spec-review", "faffter-dark-spec-review"]) {
+  // FAFF-282 removed faffter-noon-spec-review (now owns the `spec-verdict` registry row) and its slot
+  // sibling faffter-dark-spec-review (declares `judgement_seam: spec-verdict` via the sibling relaxation):
+  // both reconcile clean rather than being undeclared.
+  for (const n of ["faffter-noon-env-compose", "faffter-noon-adr"]) {
     assert.match(r.stdout, new RegExp(`UNDECLARED  ${n} `), `${n} should be advisory undeclared`);
   }
   assert.match(r.stdout, /NEEDS-CASES  reconciliation /);

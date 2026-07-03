@@ -1,6 +1,6 @@
 # ADR 0039 — Sentry-2 corrective authority is GO-narrow: subtractive stop-and-redispatch, gated on artifact integrity
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-07-03
 - **Issue:** FAFF-278
 

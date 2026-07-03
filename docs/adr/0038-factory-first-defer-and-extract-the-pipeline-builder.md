@@ -1,6 +1,6 @@
 # ADR 0038 — Factory-first: defer the reconfigurable-pipeline generalization; extract, don't fork
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-07-02
 - **Issue:** FAFF-69
 

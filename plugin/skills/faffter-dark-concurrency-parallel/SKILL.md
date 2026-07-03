@@ -43,7 +43,7 @@ Each agent that refreshes the heartbeat does so through the single sanctioned `f
 Several PRs going green in parallel were each tested against the `main` they branched from. By the time the second one merges, `main` has moved — its green is stale and the merge can break `main` even though CI passed. So merges are **serialised and re-validated** — each build subagent runs its own rebase/merge inside its graft flow, the executor only owns the cross-subagent merge lock:
 
 1. **One merge at a time.** A build subagent acquires a logical merge lock before its graft enters its merge step (only one build is merging at once); the others keep building.
-2. **Rebase onto latest `main`, then re-confirm green.** Before merging, the subagent rebases (or merges `main` into) its PR branch and re-runs the checks the gateway merge gate requires — AC verification stays valid, CI must be **green on the rebased head**, review `pass` still stands. Merging on pre-rebase green is forbidden under concurrency.
+2. **Rebase onto latest `main`, then re-confirm green.** Before merging, the subagent rebases (or merges `main` into) its PR branch and re-runs the checks the gateway merge gate requires — AC verification stays valid, CI must be **green on the rebased head**, review `pass` still stands, and **under the L4 lights-out signal the per-issue code-blind holdout must still return `meets-spec`** (the FAFF-311 fourth floor condition, asserted last). Merging on pre-rebase green is forbidden under concurrency.
 3. **If the rebase conflicts** → this is a real collision the partition missed (two independents that turned out to share surface). The subagent's own graft flow resolves it on the rebased branch (iterate), or parks per the shared protocol if it can't be resolved autonomously — returning the corresponding terminal token. Then it releases the lock; the next ready subagent rebases against the now-updated `main`.
 4. **If CI fails after rebase** → the subagent treats it as a normal post-build CI failure (graft Step 10: one fix attempt if fixable, else park). The stale-green never reaches `main`.
 5. The subagent releases the merge lock; the next ready build takes it.
@@ -53,6 +53,6 @@ This keeps the throughput win of parallel building while making the *merge* boun
 ## Rules
 
 - Honours all four slot-contract obligations (the gateway → **Mechanism slots** → _The `concurrency` slot contract_) — concurrency changes *ordering and isolation*, never *whether* the merge gate runs.
-- The merge gate (AC + CI-green + review `pass`) is never weakened; rebase-before-merge only *adds* a re-validation, it never removes one.
+- The merge gate (AC + CI-green + review `pass`, **plus the L4 per-issue holdout `meets-spec` under the lights-out signal** — FAFF-311 obligation-4) is never weakened; rebase-before-merge only *adds* a re-validation, it never removes one.
 - Never run two builds in the same worktree. Never exceed `concurrency_max`. Never merge on pre-rebase green.
 - Sequencing/holding a build for a free slot is **not** a park — it's scheduling. Every partition member still builds.

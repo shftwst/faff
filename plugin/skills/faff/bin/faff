@@ -290,7 +290,27 @@ const DEFAULTS = {
   // within thrash_window (days) before `prdr admit` escalates (ratchet.breached). Conservative defaults.
   "prdr.thrash_max": "3",
   "prdr.thrash_window": "21",
+  // FAFF-315: per-lane model selection. build/prep_explore take the closed Agent-tool token set
+  // (MODEL_LANE_VOCAB below); "inherit" = dispatch with no model param (byte-for-byte today).
+  // models.eval is the eval frontier driver's pinned default — NEVER the account default (budget guard).
+  "models.build": "inherit",
+  "models.prep_explore": "inherit",
+  "models.eval": "claude-sonnet-4-6",
 };
+
+// FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
+// the set fails LOUD at read (exit 2, names the value + legal set) — a misconfigured model must
+// never silently fall back to the session default (the FAFF-50 dropped-slot failure mode).
+// models.eval is deliberately absent (open vocabulary — `claude -p` validates the id itself).
+const MODEL_LANE_VOCAB = {
+  "models.build": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.prep_explore": ["inherit", "sonnet", "opus", "haiku", "fable"],
+};
+function validateModelLane(key, value) {
+  const vocab = MODEL_LANE_VOCAB[key];
+  if (!vocab || vocab.includes(value)) return null;
+  return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+}
 
 // FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution
 // channel — under an active L4 lights-out run appetite resolves to `full` unconditionally
@@ -760,6 +780,10 @@ function cmdConfig(args) {
         else if (wantJson) console.log("null");
         return 3;
       }
+      // FAFF-315: Agent-token model lanes have a closed vocabulary — an invalid configured
+      // value fails loud here (exit 2), never a silent inherit at the dispatch site.
+      const laneErr = validateModelLane(key, fmt(value));
+      if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       console.log(wantJson ? JSON.stringify(value) : fmt(value));
       return 0;
     }
@@ -772,9 +796,18 @@ function cmdConfig(args) {
           "slots.env",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
+          "models.build", "models.prep_explore", "models.eval",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
+        // FAFF-315: the model-lane vocab table must cover every Agent-token lane, accept its own
+        // defaults, and reject an off-vocabulary token (the fail-loud path is load-bearing).
+        const vocabFail =
+          validateModelLane("models.build", DEFAULTS["models.build"]) ||
+          validateModelLane("models.prep_explore", DEFAULTS["models.prep_explore"]) ||
+          (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
+          (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null);
+        if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
         console.log("config defaults --selftest: ok");
         return 0;
       }
@@ -820,6 +853,13 @@ function cmdConfig(args) {
         if (v !== null && v !== undefined && v !== "") { console.log(`slot ${s}: ${v}`); any = true; }
       }
       if (!any) console.log("slots:    (all defaults)");
+      // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
+      // visible, not silent (the same FAFF-50 intent as the slot echo above).
+      const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
+      for (const lane of ["build", "prep_explore", "eval"]) {
+        const v = models[lane];
+        if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
+      }
       return 0;
     }
   } catch (e) {
@@ -3106,7 +3146,10 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1000 };   // the gateway is the shared-prose hub (single-source home, FAFF-115)
+const SKILL_LINE_CAP_OVERRIDE = { faff: 1100 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
+                                                  // structurally with each new slot/contract (saturated at 998/1000 when the
+                                                  // models: surface landed — FAFF-315, human-confirmed bump), so the cap is
+                                                  // calibrated to the hub's real size while still forcing leanness per addition.
 const PARA_WORD_CAP = 200;                         // longest single prose line (≈ one paragraph) — nudge bullets over walls of prose
 const DUP_BLOCK_WINDOW = 6;                         // identical run of significant lines across 2+ skills = copied prose; single-source it
 const DUP_SIG_MINLEN = 25;                          // a "significant" line for dedup/paragraph purposes is non-trivial prose this long

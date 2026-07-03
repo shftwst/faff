@@ -45,6 +45,19 @@ slots:
   routing_adaptor: # assigns + displays the automation-routing verdict; the six verdicts + admission rule are fixed in the gateway (default: faffidavit-routing)
   rendering_adaptor: # pure adaptor, no internal contract — house output style: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-rendering)
 
+# Per-lane model selection (FAFF-315). Optional; every key optional. Unset ⇒ each
+# dispatch inherits the session/account model exactly as today (byte-for-byte).
+# Only dispatch points that can actually consume a model appear here — a slot invoked
+# inline via the Skill tool inherits the session model and cannot take a per-slot model.
+# build / prep_explore take the CLOSED Agent-token set (sonnet | opus | haiku | fable,
+# plus inherit); an off-vocabulary value FAILS LOUD at read (never a silent inherit).
+# eval is the eval frontier driver's model — a pinned default (never the account
+# default), overridable per run with `run-evals --model <id>`.
+models:
+  build: # Agent-token — the concurrency executors' build subagents (default: inherit)
+  prep_explore: # Agent-token — faff-prep's explore + clean-context verify subagents (default: inherit)
+  eval: # model id for the eval frontier driver's `claude -p --model` (default: claude-sonnet-4-6)
+
 # Max concurrent builds for faffter-dark-concurrency-parallel. Ignored by the
 # sequential default. Bounds worktree count, disk, and branches racing main.
 concurrency_max: 4

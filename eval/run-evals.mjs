@@ -13,7 +13,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
 import https from "node:https";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { grade, aggregateCase, validateCase, hasDisagreement, erroredRep, CLOSED_SET_KINDS } from "./grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "./envelope.mjs";
 
@@ -235,7 +235,7 @@ async function updateBaseline(argv, presets, baselinePath) {
   let prevPolicy = DEFAULT_POLICY;
   try { prevPolicy = JSON.parse(readFileSync(baselinePath, "utf8")).policy ?? DEFAULT_POLICY; } catch { /* new baseline */ }
   const out = {
-    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: argFlag(argv, "--driver") ?? "frontier", base_reps: repsArg ? Number(repsArg) : BASE_REPS, source: "real run via --update-baseline" },
+    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: argFlag(argv, "--driver") ?? "frontier", model: (argFlag(argv, "--driver") ?? "frontier") === "frontier" ? resolveEvalModel(argv) : (argFlag(argv, "--model") ?? null), base_reps: repsArg ? Number(repsArg) : BASE_REPS, source: "real run via --update-baseline" },
     per_kind: summary.per_kind,
     policy: prevPolicy,
   };
@@ -282,13 +282,38 @@ export function resolvePluginDir(argv) {
 // Select the driver from --driver (default frontier). `presets` is injected
 // ({ frontierDriver, localDriver }) so this stays pure/testable — it never spawns. Both presets load
 // the repo's canonical skills by default (FAFF-133), so frontier and local measure the same prose.
+// FAFF-315: the eval frontier lane is PINNED — flag > `faff config get models.eval` > the baked
+// fallback — NEVER the account default. Budget guard: eval bulk must not silently bill the
+// session/account model (e.g. a fast-burning frontier pool); validity guard: the report names the
+// model the numbers belong to (baseline lineage is model-specific). Local/ollama lanes untouched.
+export const EVAL_MODEL_FALLBACK = "claude-sonnet-4-6";
+// `run(bin, args)` is injectable for tests; the default is an argv-array spawn — no shell, so the
+// module-derived path is never subject to shell expansion (adversarial-review hardening).
+export function resolveEvalModel(argv, { run } = {}) {
+  const flag = argFlag(argv, "--model");
+  if (flag) return flag;
+  try {
+    const bin = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
+    const doRun = run ?? ((b, a) => {
+      const r = spawnSync("node", [b, ...a], { encoding: "utf8" });
+      if (r.status !== 0) throw new Error(`faff config get failed: ${r.stderr}`);
+      return r.stdout;
+    });
+    const out = doRun(bin, ["config", "get", "models.eval"]).trim();
+    if (out) return out;
+  } catch { /* config CLI unavailable — fall to the pinned fallback, never the account default */ }
+  return EVAL_MODEL_FALLBACK;
+}
+
 export function resolveDriver(argv, presets) {
   const which = argFlag(argv, "--driver") ?? "frontier";
   const bin = argFlag(argv, "--bin") ?? "claude";
   const pluginDir = resolvePluginDir(argv);
   if (which === "frontier") {
     if (argFlag(argv, "--base-url")) console.warn("[run-evals] WARN: --base-url is ignored for --driver frontier");
-    return presets.frontierDriver({ bin, pluginDir });
+    const model = resolveEvalModel(argv);
+    console.log(`[run-evals] frontier model: ${model} (--model flag > models.eval config > pinned default; never the account default — FAFF-315)`);
+    return presets.frontierDriver({ bin, pluginDir, model });
   }
   if (which === "local") {
     const { baseUrl, model } = resolveLocalParams(argv);

@@ -11213,6 +11213,12 @@ function cmdHoldout(args) {
 function cmdHoldoutVerdict(args) {
   const issue = adrFlag(args, "--issue");
   if (!issue) { process.stderr.write("faff holdout verdict: --issue <id> is required\n"); return 2; }
+  // The issue id is a filename component — a safe ticket token only (letters/digits/._-, no leading dash).
+  // Reject anything else (path separators, `..`, a stray flag captured as the value) so `--issue` can never
+  // traverse out of --dir; usage error (exit 2), never a silent read of an unintended path.
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) {
+    process.stderr.write(`faff holdout verdict: --issue ${JSON.stringify(issue)} is not a valid issue id (letters/digits/._- only, no path separators)\n`); return 2;
+  }
   const dir = adrFlag(args, "--dir") || ".faff/holdout";
   const file = path.join(dir, `${issue}.json`);
   const json = args.includes("--json");

@@ -257,6 +257,16 @@ test("gate: missing --issue → exit 2 (usage), not a silent block", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("gate: a traversing / malformed --issue → exit 2, never reads outside --dir (path-traversal guard)", () => {
+  const dir = store({ "FAFF-OK.json": MEETS });
+  // `..`-bearing, absolute, path-separator, and stray-flag values are all rejected as usage errors —
+  // the issue id is a filename component, never a path.
+  for (const bad of ["../../etc/passwd", "../FAFF-OK", "a/b", "-x", "--json"]) {
+    assert.equal(holdout(["verdict", "--issue", bad, "--dir", dir]).status, 2, `rejected: ${bad}`);
+  }
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("gate + bridge are one artifact, two consumers: the SAME file feeds both, unchanged (Decision 4 → Option A)", () => {
   // The per-issue gate blocks locally; the same file rolls up through `holdout verdicts --association`.
   const dir = store({ "FAFF-One.json": MEETS });

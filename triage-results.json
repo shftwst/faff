@@ -1,0 +1,157 @@
+{
+  "timestamp": "2026-07-03T21:08:29.961851Z",
+  "cases_total": 24,
+  "entries": [
+    {
+      "case_id": "adr-gloss-001",
+      "kind": "adr-gloss",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "adr-gloss-002",
+      "kind": "adr-gloss",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "architecture-001",
+      "kind": "architecture",
+      "class": "a",
+      "proposed_fix": "Relax must_include: accept [SQL|NoSQL], not postgres-only",
+      "rationale": "Architecture brief mentions 'local-first'; SQL/NoSQL both valid"
+    },
+    {
+      "case_id": "architecture-002",
+      "kind": "architecture",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "chain-gap-001",
+      "kind": "chain-gap",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "chain-gap-002",
+      "kind": "chain-gap",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "confidence-001",
+      "kind": "confidence",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "confidence-002",
+      "kind": "confidence",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "confidence-003",
+      "kind": "confidence",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "confidence-004",
+      "kind": "confidence",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "confidence-005",
+      "kind": "confidence",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "confidence-006",
+      "kind": "confidence",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "decomposition-001",
+      "kind": "decomposition",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "decomposition-002",
+      "kind": "decomposition",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "dupe-001",
+      "kind": "dupe",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "dupe-002",
+      "kind": "dupe",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "explanatory-order-001",
+      "kind": "explanatory-order",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "explanatory-order-002",
+      "kind": "explanatory-order",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "gloss-001",
+      "kind": "gloss",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "gloss-002",
+      "kind": "gloss",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "gloss-003",
+      "kind": "gloss",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "holdout-001",
+      "kind": "holdout",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "holdout-002",
+      "kind": "holdout",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    },
+    {
+      "case_id": "marker-001",
+      "kind": "marker",
+      "class": "b",
+      "note": "Requires Opus regen or human judgment to classify conclusively"
+    }
+  ],
+  "cases_by_class": {
+    "a": 1,
+    "b": 23,
+    "c": 0
+  },
+  "faff_319_step2_scope": "23 class-b + 0 class-c = 23 need Opus/human"
+}

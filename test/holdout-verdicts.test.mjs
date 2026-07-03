@@ -179,3 +179,100 @@ test("regression guard: prdr --selftest (the 58-case coverage table) still passe
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /prdr --selftest: ok/);
 });
+
+// --- FAFF-311: the singular per-issue merge-floor gate `faff holdout verdict --issue <id>` ---
+// The graft Step-10 call-site (Decision 4 → Option A). Reuses the SAME computeHoldoutVerdict trust gate
+// as the run-bridge, reduced to one pass/block decision, keyed to the issue, before the PRDR fold. The
+// exit code IS the gate: 0=pass, 1=block, 2=usage. Fail-closed on every non-meets-spec / missing / malformed.
+const seedOne = (issue, body) => { const dir = store({ [`${issue}.json`]: body }); return dir; };
+
+test("gate: conformant code-blind meets-spec → pass, exit 0 (DONE: the only pass condition)", () => {
+  const dir = seedOne("FAFF-311", MEETS);
+  const r = holdout(["verdict", "--issue", "FAFF-311", "--dir", dir, "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = parse(r);
+  assert.equal(out.gate, "pass");
+  assert.equal(out.aggregate, "meets-spec");
+  assert.equal(out.code_blind, true);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: fails → block, exit 1, reason carries the aggregate (DONE: fails never merges)", () => {
+  const dir = seedOne("FAFF-A", FAILS);
+  const r = holdout(["verdict", "--issue", "FAFF-A", "--dir", dir, "--json"]);
+  assert.equal(r.status, 1, "a failing verdict blocks (exit 1)");
+  assert.equal(parse(r).gate, "block");
+  assert.equal(parse(r).reason, "fails");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: code_blind:false meets-spec → block, exit 1 (DONE: a non-blind verdict never merges)", () => {
+  const dir = seedOne("FAFF-NB", block("meets-spec", "met", false));
+  const r = holdout(["verdict", "--issue", "FAFF-NB", "--dir", dir, "--json"]);
+  assert.equal(r.status, 1, "non-blind is structurally inadmissible — block");
+  assert.equal(parse(r).gate, "block");
+  assert.equal(parse(r).reason, "contract-rejected");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: incoherent (aggregate lies about criteria) → block via contract violation, exit 1", () => {
+  // meets-spec declared but the single criterion is unmet → derivation is 'fails' → contract-rejected.
+  const dir = seedOne("FAFF-IC", block("meets-spec", "unmet"));
+  const r = holdout(["verdict", "--issue", "FAFF-IC", "--dir", dir, "--json"]);
+  assert.equal(r.status, 1);
+  assert.equal(parse(r).reason, "contract-rejected");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: gaps / needs-human → block, exit 1 (DONE: only meets-spec passes)", () => {
+  const gaps = JSON.stringify({ aggregate: "gaps", code_blind: true,
+    criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] });
+  const dir = seedOne("FAFF-GP", gaps);
+  const r = holdout(["verdict", "--issue", "FAFF-GP", "--dir", dir, "--json"]);
+  assert.equal(r.status, 1);
+  assert.equal(parse(r).reason, "gaps");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: missing verdict file → block 'missing', exit 1 (DONE: fail-closed, never a silent pass)", () => {
+  const dir = store();  // empty store, no file for this issue
+  const r = holdout(["verdict", "--issue", "FAFF-ABSENT", "--dir", dir, "--json"]);
+  assert.equal(r.status, 1, "a missing verdict blocks — never silently passes");
+  assert.equal(parse(r).gate, "block");
+  assert.equal(parse(r).reason, "missing");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: malformed verdict JSON → block 'unreadable', exit 1 (fail-closed)", () => {
+  const dir = seedOne("FAFF-BAD", "{not json");
+  const r = holdout(["verdict", "--issue", "FAFF-BAD", "--dir", dir, "--json"]);
+  assert.equal(r.status, 1);
+  assert.equal(parse(r).reason, "unreadable");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: missing --issue → exit 2 (usage), not a silent block", () => {
+  const dir = store();
+  assert.equal(holdout(["verdict", "--dir", dir]).status, 2);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate: a traversing / malformed --issue → exit 2, never reads outside --dir (path-traversal guard)", () => {
+  const dir = store({ "FAFF-OK.json": MEETS });
+  // `..`-bearing, absolute, path-separator, and stray-flag values are all rejected as usage errors —
+  // the issue id is a filename component, never a path.
+  for (const bad of ["../../etc/passwd", "../FAFF-OK", "a/b", "-x", "--json"]) {
+    assert.equal(holdout(["verdict", "--issue", bad, "--dir", dir]).status, 2, `rejected: ${bad}`);
+  }
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("gate + bridge are one artifact, two consumers: the SAME file feeds both, unchanged (Decision 4 → Option A)", () => {
+  // The per-issue gate blocks locally; the same file rolls up through `holdout verdicts --association`.
+  const dir = store({ "FAFF-One.json": MEETS });
+  const gate = holdout(["verdict", "--issue", "FAFF-One", "--dir", dir, "--json"]);
+  assert.equal(gate.status, 0, "gate passes on the per-issue file");
+  const roll = holdout(["verdicts", "--association", '{"FAFF-One":"0007"}', "--dir", dir, "--json"]);
+  assert.equal(parse(roll).verdicts["0007"], "met", "the same file feeds the run roll-up unchanged");
+  rmSync(dir, { recursive: true, force: true });
+});

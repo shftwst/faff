@@ -5045,6 +5045,7 @@ Subcommands:
   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: is a ticket automation-eligible? (true/false; hold>automate>default); --selftest runs the table
   spec-review-lenses --tags T,T,... --level L1|L2|L3|L4 --appetite low|medium|high|full [--selftest]   FAFF-268: cost-gate IN FRONT of the spec_review producer — maps a spec's CLASSIFIED change-surface tags + level + appetite to a LensSelection {lenses,mode,rationale}. Pure; the signal->tag classification is prose-side (faff-prep). v1 additive-only/safe-direction: only architectural (or methodology when no tag adds it) is dropped; infosec+QA sticky at L1-L3; unclassified/unknown tag -> all four (fail-safe); L4 -> adversarial all-four (never narrowed); low/medium appetite widens to all four. --selftest runs the table
   dod classify --spec <path|-> [--json]         FAFF-34: classify a spec's DoD criteria (## Scenarios + ### N. DONE) by born-verifiability class (scenario|assertion|prose), reusing classifyCriterion verbatim — the evaluator uses this to decide which criteria it may machine-judge vs force to needs-human (prose). PURE (file/stdin in, JSON out, no tracker/network/LLM); emits {criteria:[{text,class,source}],counts}; exit 0 on a successful parse / 2 usage/unreadable; --selftest runs the table
+  holdout verdict --issue <id> [--dir .faff/holdout] [--json]   FAFF-311: the per-issue merge-floor GATE lookup for faff-graft Step 10 (Decision 4 → Option A). Reads the single .faff/holdout/<id>.json, re-validates it through the SAME computeHoldoutVerdict gate (via holdoutGateResult, never a forked rule), and reduces it to pass|block keyed to the issue being built, BEFORE the FAFF-277 PRDR fold. Fail-closed: a missing/unreadable/malformed/non-blind/incoherent verdict or any aggregate != meets-spec is block (exit 1); a conformant code_blind:true meets-spec is pass (exit 0); missing --issue is exit 2. Emits {issue,gate,reason,aggregate?,code_blind?,violations?}; a block also summarised to stderr. PURE beyond the single-file read (no tracker/network/LLM). The same file still feeds 'faff holdout verdicts --association' unchanged (one artifact, two consumers)
   holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]   FAFF-277: pure, trust-gated bridge from the evaluator's persisted holdout verdicts (.faff/holdout/<issue|run>.json) to the already-shipped 'faff prdr coverage --dod-verdicts' flag. Reads each verdict, RE-VALIDATES it through the same computeHoldoutVerdict gate (never a forked rule), translates only a conformant code_blind:true meets-spec -> the literal "met", folds conservatively per PRDR (any non-met sibling makes the PRDR not-met), and keys by the supplied issue->PRDR association; every other aggregate passes through (!= met), untrusted files are omitted. Emits {verdicts:{prdr:value},skipped:[{key,reason}]}; skipped also summarised to stderr. PURE (filesystem read of --dir only, no tracker/network/LLM). Absent --dir -> empty map (exit 0); missing/non-object --association, malformed --association JSON, or unreadable --dir -> exit 2; a successful run (incl. empty map) -> exit 0 (no exit 1, report-only). --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
@@ -5666,6 +5667,23 @@ function computeHoldoutVerdictsMap(association, files) {
     verdicts[prdr] = values.every((v) => v === "met") ? "met" : values.find((v) => v !== "met");
   }
   return { verdicts, skipped };
+}
+
+// FAFF-311: the per-issue merge-floor gate result — the SAME `computeHoldoutVerdict` trust gate the
+// FAFF-277 run-bridge (computeHoldoutVerdictsMap) applies, reduced to a single pass/block decision for
+// the `faff-graft` Step-10 call-site. `pass` ⇔ well-formed ∧ code_blind:true ∧ zero violations ∧
+// aggregate==="meets-spec"; EVERYTHING else (fails/gaps/needs-human/non-blind/incoherent/malformed) is
+// `block`. Fail-closed by construction — this never returns `pass` on doubt. Pure over the parsed block.
+function holdoutGateResult(block) {
+  const { contractData, failLoud } = computeHoldoutVerdict(block);
+  if (failLoud) return { gate: "block", reason: "contract-rejected", detail: failLoud };
+  if (contractData.violations.length > 0 || block.code_blind !== true) {
+    return { gate: "block", reason: "contract-rejected", aggregate: contractData.aggregate, code_blind: contractData.code_blind, violations: contractData.violations };
+  }
+  if (contractData.aggregate !== "meets-spec") {
+    return { gate: "block", reason: contractData.aggregate, aggregate: contractData.aggregate, code_blind: true };
+  }
+  return { gate: "pass", reason: "meets-spec", aggregate: "meets-spec", code_blind: true };
 }
 
 // --- prdr-admission (FAFF-255) ---
@@ -11139,8 +11157,9 @@ function dodSelftest() {
 function cmdHoldout(args) {
   if (args.includes("--selftest")) return holdoutVerdictsSelftest();
   const action = args.find((a) => !a.startsWith("--"));
+  if (action === "verdict") return cmdHoldoutVerdict(args);   // FAFF-311: the singular per-issue graft gate
   if (action !== "verdicts") {
-    process.stderr.write("faff holdout: usage: faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n");
+    process.stderr.write("faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n");
     return 2;
   }
   // --association (required): inline JSON, @path, or - for stdin. A broken association is operator error
@@ -11183,8 +11202,43 @@ function cmdHoldout(args) {
   return 0;   // report-only (parity with coverage/yagni): an empty map is a valid conservative answer, exit 0
 }
 
-// In-memory selftest of computeHoldoutVerdictsMap — the gate + translate + conservative fold (mirrors
-// dod --selftest; no fs needed, the map fn is pure over {key,text}).
+// faff holdout verdict --issue <id> — FAFF-311: the per-issue merge-floor GATE lookup for `faff-graft`
+// Step 10 (Decision 4 → Option A, persist-once/consume-twice). Reads the SINGLE per-issue verdict
+// `.faff/holdout/<id>.json`, re-validates it through the SAME `computeHoldoutVerdict` gate (never a forked
+// rule — via holdoutGateResult), and reduces it to a pass/block decision keyed to the issue being built,
+// BEFORE the FAFF-277 PRDR fold. Fail-closed: a missing/unreadable/malformed/non-blind/incoherent verdict,
+// or any aggregate ≠ meets-spec, is `block` (exit 1) — never a silent pass. Exit 0 = pass, 1 = block,
+// 2 = usage. PURE beyond the single-file read (no tracker/network/LLM). The same file still feeds the
+// unchanged `faff holdout verdicts --association` run roll-up (one artifact, two consumers).
+function cmdHoldoutVerdict(args) {
+  const issue = adrFlag(args, "--issue");
+  if (!issue) { process.stderr.write("faff holdout verdict: --issue <id> is required\n"); return 2; }
+  // The issue id is a filename component — a safe ticket token only (letters/digits/._-, no leading dash).
+  // Reject anything else (path separators, `..`, a stray flag captured as the value) so `--issue` can never
+  // traverse out of --dir; usage error (exit 2), never a silent read of an unintended path.
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) {
+    process.stderr.write(`faff holdout verdict: --issue ${JSON.stringify(issue)} is not a valid issue id (letters/digits/._- only, no path separators)\n`); return 2;
+  }
+  const dir = adrFlag(args, "--dir") || ".faff/holdout";
+  const file = path.join(dir, `${issue}.json`);
+  const json = args.includes("--json");
+  const emit = (res, status) => {
+    process.stdout.write(JSON.stringify({ issue, ...res }, null, json ? 0 : 2) + "\n");
+    if (res.gate === "block") process.stderr.write(`faff holdout verdict: ${issue} BLOCKED (${res.reason})\n`);
+    return status;
+  };
+  let text;
+  try { text = fs.readFileSync(file, "utf8"); }
+  catch (e) { return emit({ gate: "block", reason: e.code === "ENOENT" ? "missing" : "unreadable", detail: e.message }, 1); }
+  let block;
+  try { block = JSON.parse(text); }
+  catch (e) { return emit({ gate: "block", reason: "unreadable", detail: e.message }, 1); }
+  const res = holdoutGateResult(block);
+  return emit(res, res.gate === "pass" ? 0 : 1);
+}
+
+// In-memory selftest of computeHoldoutVerdictsMap + holdoutGateResult — the gate + translate + conservative
+// fold + the singular per-issue gate (mirrors dod --selftest; the map/gate fns are pure).
 function holdoutVerdictsSelftest() {
   let failed = 0;
   const check = (label, cond) => { if (!cond) { process.stderr.write(`holdout --selftest FAIL: ${label}\n`); failed++; } };
@@ -11231,6 +11285,23 @@ function holdoutVerdictsSelftest() {
   // 9. trusted non-'met' passes through as its own string (gaps/needs-human are ≠ met)
   const r9 = computeHoldoutVerdictsMap({ "FAFF-G": "0009" }, [{ key: "FAFF-G", text: JSON.stringify({ aggregate: "gaps", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] }) }]);
   check("trusted 'gaps' passes through (≠ met)", r9.verdicts["0009"] === "gaps");
+
+  // --- FAFF-311: the singular per-issue graft gate (holdoutGateResult) ---
+  // g1. conformant meets-spec, code-blind → pass
+  check("gate: meets-spec code-blind → pass", holdoutGateResult(JSON.parse(meets)).gate === "pass");
+  // g2. fails → block, reason carries the aggregate
+  const g2 = holdoutGateResult(JSON.parse(fails));
+  check("gate: fails → block (reason=fails)", g2.gate === "block" && g2.reason === "fails");
+  // g3. code_blind:false meets-spec → block (non-blind is structurally inadmissible), never pass
+  check("gate: non-blind meets-spec → block", holdoutGateResult(JSON.parse(block("meets-spec", "met", false))).gate === "block");
+  // g4. incoherent (aggregate lies about the criteria) → block via contract violation
+  const g4 = holdoutGateResult({ aggregate: "meets-spec", code_blind: true, criteria: [{ class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] });
+  check("gate: incoherent meets-spec → block (contract-rejected)", g4.gate === "block" && g4.reason === "contract-rejected");
+  // g5. non-object → block, never throw
+  check("gate: non-object → block", holdoutGateResult(null).gate === "block");
+  // g6. gaps → block (mixed verdicts never merge)
+  const g6 = holdoutGateResult({ aggregate: "gaps", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] });
+  check("gate: gaps → block (reason=gaps)", g6.gate === "block" && g6.reason === "gaps");
 
   if (failed) { console.log(`holdout --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("holdout --selftest: ok"); return 0;

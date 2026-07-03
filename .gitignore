@@ -20,5 +20,10 @@ eval/report/
 # Local worktree scratch dir (not part of the project tree)
 .worktrees/
 
+# Local secrets / env (never commit — FAFF-315 leak fix)
+.env
+.env.*
+!.env.example
+
 # Claude box env
 .env.claude-box

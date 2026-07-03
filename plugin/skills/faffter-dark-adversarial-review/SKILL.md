@@ -39,6 +39,7 @@ Faff-graft provides:
 - The full diff: `git diff main...HEAD`
 - The spec (from the issue comment)
 - The Phase 1 review result (for context, not for agreement — Phase 2 must form its own opinion)
+- The **lights-out signal** — a boolean, true only on a lights-out (L4) run, false or absent otherwise. faff-graft forwards it; the slot never resolves it itself. It gates the Phase-2 `critical` escalation (see **Lights-out escalation**). Default it to false whenever it is not forwarded.
 
 ## Output
 
@@ -65,7 +66,7 @@ The adversarial findings are raised back to the **implementor** (the build agent
 4. **Fix if necessary** — if any finding is valid and actionable, fix the code
 5. **Re-run primary review** — if fixes were made, re-run Phase 1 to confirm nothing regressed
 
-The adversarial review **never directly blocks the pipeline**. It produces signal that the implementor must address with evidence. A dismissed finding with weak rationale ("I don't think that's a problem") is itself a smell — the disposition must be specific and verifiable.
+Off the lights-out path the adversarial review **never directly blocks the pipeline** — it produces signal that the implementor must address with evidence. On a lights-out run there is one exception: a Phase-2 `critical` escalates the returned hard signal to `needs-human` so the merge stops (see **Lights-out escalation**). A dismissed finding with weak rationale ("I don't think that's a problem") is itself a smell — the disposition must be specific and verifiable.
 
 This soft-signal design reflects that the adversarial model may produce lower-quality findings than the primary model. The value is in surfacing blind spots for consideration, not in gating on a potentially less capable reviewer's judgement.
 
@@ -185,11 +186,22 @@ After the output above, append **one** fenced code block — tagged `faff-contra
 ```
 ````
 
-- **Phase 1's verdict only.** `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
-- **Phase-2 adversarial hypotheses are NOT the verdict** — they stay prose under `## Adversarial findings` and are **never** entered into `findings[]`. Folding soft hypotheses in would misrepresent the hard verdict the gate routes on.
+- **Phase 1's verdict only** — *except on the lights-out path*, where a Phase-2 `critical` escalates `signal` to `needs-human` (see **Lights-out escalation**). Otherwise `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
+- **Phase-2 adversarial hypotheses are NOT the verdict** — they stay prose under `## Adversarial findings` and are **never** entered into `findings[]` (except the single lights-out carve-out below). Folding soft hypotheses in would misrepresent the hard verdict the gate routes on. The one narrow carve-out is the lights-out `critical` escalation below: there the escalating `critical` *is* the verdict-driver (the signal is `needs-human` **because of** it), so it is entered honestly — scoped strictly to that escalation, off which this rule is unchanged.
 - `pass` may carry zero findings; `fail` / `needs-human` carry ≥1 (the contract script enforces this).
 - Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction is just `{ signal, findings }`.
 - **One** block, at the very end, machine-only. **Always emit it** — a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-graft reading your prose — the absent-block fallback.)
+
+## Lights-out escalation
+
+On a **lights-out run only**, a Phase-2 `critical` finding must **stop the merge**, not merely be logged — no human is awake to weigh a soft `critical`. When the forwarded lights-out signal is true, escalate the Phase-2 severity into the hard verdict at the moment you author the `faff-contract:review-verdict` block:
+
+- **Escalation threshold — a single named set.** `ESCALATE_SEVERITIES = { critical }` (v1). Only `critical` escalates; `major` / `minor` / `observation` never do, because a lower-capability adversarial model's `major` findings are too noisy to auto-park a run on. To widen the threshold later, add the severity to this one set (e.g. `{ critical, major }`) — nothing else changes.
+- **When it fires — all three must hold:** Phase 1 returned `pass` (so Phase 2 ran), the forwarded lights-out signal is true, and at least one Phase-2 finding has a severity in `ESCALATE_SEVERITIES`. The trigger is the **raw** Phase-2 severity, **not** the implementor's disposition of it — a build agent must not be able to disprove its own way past the gate (marking its own homework is the failure L4 isolation exists to remove). A false-positive `critical` therefore parks the run for a human to clear: a recoverable park is the intended trade against an unrecoverable false auto-merge.
+- **What it emits.** Set the block's `signal` to `needs-human`, and fold each escalating `critical` into `findings[]` as `{ "location_present": true, "action_present": true }` — one entry per escalating finding. A gate-worthy `critical` names a location and an action by the actionability bar (see **Rules**), so these are truthful for a well-formed finding and act as the escalation's conformance markers; the substantive per-finding detail lives in the prose `## Adversarial findings`, exactly as on every other path. This satisfies the contract's rule that a `needs-human` signal carries at least one finding naming a location and an action.
+- **Fail-safe direction.** When the lights-out signal is false, absent, or unresolved, do **not** escalate — author the block exactly as the advisory path does. This matches the rest of the L4 build floor, which fails safe *off* on an unresolvable signal.
+
+Off the lights-out path this section is inert: the block is authored byte-for-byte as it is today, with Phase-2 findings advisory.
 
 ## Rules
 

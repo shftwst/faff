@@ -674,8 +674,10 @@ export function makeCliDriver(opts = {}) {
 // env-token auth, which is why the local lane works under it). Frontier reads `.credentials.json`,
 // so it must NOT pass `--bare`; isolation comes from the fresh CLAUDE_CONFIG_DIR + clean spawn cwd
 // (project hooks/CLAUDE.md aren't pulled in). `--plugin-dir` alone still loads the skills.
-export function frontierOpts({ bin = "claude", bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
-  return { bin, bare, pluginDir, forwardCreds };
+// FAFF-315: `model` is threaded through so the frontier lane can be PINNED (never the account
+// default — the eval-bulk budget guard). buildInvocation already emits `--model` when set.
+export function frontierOpts({ bin = "claude", model = null, bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
+  return { bin, model, bare, pluginDir, forwardCreds };
 }
 export function frontierDriver(args = {}) {
   return makeCliDriver(frontierOpts(args));

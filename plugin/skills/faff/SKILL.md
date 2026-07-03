@@ -140,6 +140,11 @@ slots:             # optional delegation slots; each has a faff default when uns
 
 # mode: delivery-lead is DEPRECATED — use slots.methodology instead. gates.fallback: advisory | fail-closed — what Step 7.5 does when NO declared gates are found (default advisory: surface + pass; fail-closed: needs-human)
 
+models:            # optional per-lane model selection (FAFF-315); every key optional, unset ⇒ inherit (byte-for-byte today)
+  build: sonnet            # Agent-token (sonnet|opus|haiku|fable) — the concurrency executors' build subagents
+  prep_explore: haiku      # Agent-token — faff-prep's explore + clean-context verify subagents
+  eval: claude-sonnet-4-6  # model id for the eval frontier driver's `claude -p --model` (pinned default; never the account default)
+
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
 logging: full                # full | essential — full (default) writes the per-invocation narrative log; essential silences it (the machine-consumed hard floor is always written; see .faff/ logging directory)
@@ -209,6 +214,18 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 | `profile` | _(none — built-in repo-miner: `faff profile mine`)_ | Infra-profile **acquirer** (FAFF-231): scans the repo for committed infra artifacts (CI workflows, Dockerfile/compose, Terraform, netlify/vercel/Procfile, language manifests) and emits one `faff-contract:infra-profile` block (FAFF-26 schema) — evidence-bearing, read-only, no network/install/subprocess; the orchestrator validates it (`faff profile validate`) then writes `.faff/infra-profile.json` (ADR 0013). Default is the faff-owned deterministic miner (`faff profile mine`) — **no slot required**; set `slots.profile` only to bring a different acquisition mode (e.g. intake-Q&A), which must emit the same block. |
 
 `review` and `ship` are **not** user-invokable slash commands. They are internal phases of faff-graft, with optional delegation via these slots.
+
+### Model selection (`models:` — per-lane, FAFF-315)
+
+Slots choose *what skill* runs at a stage; the `models:` map chooses *what model* a dispatch runs on — but only at the points that can actually consume one. Three invocation classes can take a different model: a **true subagent** (the Agent tool's `model` parameter), an **out-of-session helper process** (the `review-call.mjs` pattern, which owns its own engine call), and a **spawned `claude -p`** (the eval driver's `--model`). **A slot invoked inline via the Skill tool runs in the same session and inherits the session model — no `models:` key can change that**; giving such a slot its own model requires re-shaping its invocation into a subagent/helper dispatch (a per-slot future rung, not config).
+
+The v1 lanes and their consumers:
+
+- `models.build` — resolved once per run by the `concurrency` executors and stamped into every `BuildDispatch`; a token is passed as the Agent-tool `model` parameter, `inherit` (default) omits it (byte-for-byte today).
+- `models.prep_explore` — resolved by `faff-prep` for its explore / clean-context-verify subagent dispatches, same semantics.
+- `models.eval` — the eval frontier driver's model (`claude -p --model`), **pinned** (default `claude-sonnet-4-6`) so eval bulk never silently bills the account-default model (the budget guard), with `run-evals --model` as the explicit override; the resolved model is named in the run output and baseline meta because eval numbers are model-specific (the validity guard).
+
+Rules: resolution is **CLI-only** (`faff config get models.<lane>` — the registry supplies defaults); `models.build`/`models.prep_explore` take the **closed Agent-token set** (`sonnet` | `opus` | `haiku` | `fable`, plus `inherit`) and an off-vocabulary value **fails loud at read** (exit 2 naming the legal set) — never a silent fallback. `models:` **composes with, never subsumes**, the engine blocks that own non-Anthropic wire formats: the adversarial reviewer's `faffter_dark.adversarial` block stays authoritative for its lane, and a future evaluate-call helper takes its own block on the same pattern. A non-default `models.*` value is echoed by `faff config resolved`, so a pinned model is visible in the run banner, never silent.
 
 ## Agent Lanes
 

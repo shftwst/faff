@@ -98,7 +98,7 @@ test("resolveLocalParams resolves --base-url and --model from flags", () => {
 
 // --- presets load the repo plugin; frontier drops --bare (FAFF-138: incompatible with OAuth auth) ---
 test("frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true", () => {
-  assert.deepEqual(frontierOpts(), { bin: "claude", bare: false, pluginDir: DEFAULT_PLUGIN_DIR, forwardCreds: true });
+  assert.deepEqual(frontierOpts(), { bin: "claude", model: null, bare: false, pluginDir: DEFAULT_PLUGIN_DIR, forwardCreds: true });
   assert.ok(DEFAULT_PLUGIN_DIR.endsWith("/plugin"), "DEFAULT_PLUGIN_DIR points at the repo plugin");
 });
 

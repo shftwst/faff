@@ -206,6 +206,9 @@ Do **not** include an acceptance-criteria count here — fresh prep hasn't explo
 Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
+
+The explore subagent's dispatch resolves the per-lane model (FAFF-315): `faff config get models.prep_explore` — a resolved Agent-token is passed as the Agent-tool `model` parameter; `inherit` (the default) means omit the parameter (today's dispatch). An invalid token fails loud at the CLI (exit 2 naming the legal set) — fix the config, never dispatch on a silent fallback. The same resolution applies to any other subagent prep dispatches (e.g. the producer's clean-context verify subagent).
+
 - Read the issue (title, description, ACs, dependencies, labels). Skip if cancelled or archived.
 - Explore the codebase: what exists, current architecture, files/modules involved
 - Check blocked-by issues: are they done? What did they produce?

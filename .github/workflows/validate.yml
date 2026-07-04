@@ -103,6 +103,15 @@ jobs:
       - name: Validate holdout-verdict contract script (FAFF-34)
         run: node plugin/skills/faff/bin/faff contract holdout-verdict --selftest
 
+      - name: Validate integrity-floor contract script (FAFF-350)
+        run: node plugin/skills/faff/bin/faff contract integrity-floor --selftest
+
+      - name: Validate merge-gate pure cores (FAFF-350)
+        run: node plugin/skills/faff/bin/faff merge-gate --selftest
+
+      - name: Validate branch-protection classifier (FAFF-350)
+        run: node plugin/skills/faff/bin/faff branch-protection-check --selftest
+
       - name: Validate dod-classify table (FAFF-34)
         run: node plugin/skills/faff/bin/faff dod --selftest
 

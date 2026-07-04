@@ -11821,9 +11821,14 @@ function spendTimeCeilingSet(envelope) {
 // the ceiling" choice and human-explicit config outranks the level default.
 function mintAtCeiling(cfg) {
   const raw = dig(cfg, "budget.at_ceiling");
-  if (raw == null) return "escalate";                 // L4 mint-time default
+  if (raw == null) return "escalate";                 // L4 mint-time default (unset)
   const v = String(raw).trim().toLowerCase();
-  return AT_CEILING_OUTCOMES.has(v) ? v : "stop";     // unknown coerces to safe stop (parity with envelopeFrom)
+  // A recognised explicit value is honoured verbatim; an UNRECOGNISED one (a typo like
+  // `escalte`) fails safe toward `escalate`, NOT `stop`. This is where the level-scoped
+  // L4 default legitimately diverges from envelopeFrom's level-blind unknown→stop: at L4 a
+  // silent stop mid-project is the exact failure this model exists to prevent, so a typo'd
+  // at_ceiling must surface as a structured escalation rather than quietly downgrade.
+  return AT_CEILING_OUTCOMES.has(v) ? v : "escalate";
 }
 
 function cmdLightsOut(args) {
@@ -12102,7 +12107,8 @@ function lightsOutSelftest() {
   check("mint at_ceiling: no budget block → escalate", mintAtCeiling({ budget: {} }) === "escalate");
   check("mint at_ceiling: explicit stop honoured verbatim", mintAtCeiling({ budget: { at_ceiling: "stop" } }) === "stop");
   check("mint at_ceiling: explicit escalate honoured", mintAtCeiling({ budget: { at_ceiling: "escalate" } }) === "escalate");
-  check("mint at_ceiling: unknown coerces to stop (parity with envelopeFrom)", mintAtCeiling({ budget: { at_ceiling: "bogus" } }) === "stop");
+  check("mint at_ceiling: explicit narrow honoured", mintAtCeiling({ budget: { at_ceiling: "narrow" } }) === "narrow");
+  check("mint at_ceiling: unrecognised value (typo) fails safe to escalate, NOT stop", mintAtCeiling({ budget: { at_ceiling: "escalte" } }) === "escalate");
 
   // Keystone (sentry) probe fails → refuse, no reduced mode.
   const noSentry = lightsOutPreflight(armedProbes({ reachable: { ...allReach(), kill_switch: false } }));

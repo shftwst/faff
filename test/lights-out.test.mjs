@@ -143,6 +143,10 @@ test("lights-out: budget check --run-dir reflects the minted escalate at_ceiling
   const { run_dir } = JSON.parse(mint.stdout);
   const lp = path.join(run_dir, "run-ledger.json");
   const ledger = JSON.parse(fs.readFileSync(lp, "utf8"));
+  // Pin the mechanism, not just the consequence: the minted ledger envelope itself carries
+  // at_ceiling escalate, so the escalate outcome below flows through envelopeFromLedger's
+  // ledger-precedence path (not a fresh-config fallback).
+  assert.equal(ledger.budget.envelope.at_ceiling, "escalate", "minted ledger envelope carries escalate");
   ledger.admitted = ["A", "B"];
   ledger.outcomes = { A: "shipped", B: "parked" }; // 2 dispatched attempts vs the max_attempts:1 backstop
   fs.writeFileSync(lp, JSON.stringify(ledger));

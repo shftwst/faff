@@ -5164,6 +5164,7 @@ Subcommands:
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
   lint-refs [--root DIR]                        FAFF-238: ban external-artifact refs (FAFF-NN / ADR NNNN / numbered docs/adr pointers) in prose the reader executes or publicly consumes — slice 1 scans docs/guide/**; "FAIL file:line ✗ match" per hit + exit 1, else exit 0; --selftest runs the matcher table. docs/ outside docs/guide/ (incl. docs/adr/**) is allow-by-default; within-prose anchors (gateway→Section, faff/SKILL.md) never match
   lint-cli-doc [--root DIR] [--json]            FAFF-237: assert docs/guide/cli.md documents every subcommand the CLI dispatches (the COMMANDS registry), bidirectionally — "FAIL docs/guide/cli.md ✗ missing/orphaned: <name>" per drift + exit 1, else "PASS  lint-cli-doc: <N> subcommands documented" + exit 0; exit 2 if the doc is unreadable; --selftest runs the parse/diff table
+  regions <list|check|selftest> [--json] [--region governance|factory|all]   FAFF-359: the logical governance/factory boundary (ADR 0042). list prints the single in-code region map (command → region; --json for the object). check is the direction lint over THIS file's region-tagged section banners — a governance span referencing a factory identifier, or a shared-infra span referencing either region's, is a violation naming both ends; exit 0 clean / 1 violation(s) / 2 malformed (untagged banner, unknown region, or REGION_MAP/COMMANDS drift); no suppression mechanism. selftest spawns each member command's own --selftest (default --region all) and prints a per-command pass/fail table — a governance member without a selftest is FATAL, a factory one is reported no-selftest; --selftest runs the lint fixture table
 `;
 
 // ===========================================================================
@@ -12121,6 +12122,432 @@ function lightsOutSelftest() {
 }
 
 // ===========================================================================
+// === region:factory — regions — the region map + direction lint + region selftest runner ===
+//
+// Phase 1 of the extraction topology (ADR 0042): the governance boundary is
+// LOGICAL — region tags on section banners + this lint — not a repo split. The
+// direction invariant: a governance span never references a factory identifier;
+// a shared-infra span references neither region's. factory→governance stays
+// legal (the future package-consumer relationship). The dispatch shell (USAGE +
+// COMMANDS + main) is exempt — it references everything by design. Self-spawns
+// (`<self> <cmd> …`) are invisible to the lint by design: they are process
+// boundaries, the exact shape extraction preserves; the lint's claim is scoped
+// to in-file identifier references. NO suppression mechanism exists (an escape
+// hatch on a boundary lint is the boundary leaking) — a residual false positive
+// is fixed by renaming toward clarity.
+// ===========================================================================
+
+// The single in-code region map: command name → region. Drives BOTH the
+// `regions check` COMMANDS-bijection assert and `regions selftest` membership —
+// never a second list (this map is also the future package manifest). Membership
+// of a command implies membership of its tagged section's internals.
+const REGION_MAP = {
+  // governance — the flight recorder + interlocks (the extractable layer)
+  "runcheck": "governance",
+  "heartbeat": "governance",
+  "events": "governance",
+  "effects": "governance",
+  "budget": "governance",
+  "sentry": "governance",
+  "audit": "governance",
+  // factory — everything else (faff-the-factory's domain)
+  "config": "factory",
+  "sync": "factory",
+  "prepcheck": "factory",
+  "intakecheck": "factory",
+  "intake-record": "factory",
+  "contain": "factory",
+  "run-done": "factory",
+  "hooks-ensure": "factory",
+  "validate-adapters": "factory",
+  "labels": "factory",
+  "label": "factory",
+  "eligible": "factory",
+  "admissible": "factory",
+  "dod": "factory",
+  "holdout": "factory",
+  "spec-review-lenses": "factory",
+  "container-check": "factory",
+  "next": "factory",
+  "project-next": "factory",
+  "state": "factory",
+  "park-history": "factory",
+  "gitignore-ensure": "factory",
+  "adr": "factory",
+  "prd": "factory",
+  "prdr": "factory",
+  "profile": "factory",
+  "fixtures": "factory",
+  "env": "factory",
+  "lights-out": "factory",
+  "gates": "factory",
+  "contract": "factory",
+  "doctor": "factory",
+  "worktree-prune": "factory",
+  "lint-refs": "factory",
+  "lint-cli-doc": "factory",
+  "regions": "factory",
+};
+
+// Selftest invocation per member, where it differs from `<cmd> --selftest`:
+// an argv array overrides; null = the command ships no standalone selftest
+// (reported `no-selftest`: non-fatal for factory, FATAL for a governance
+// member). DECLARED here, never probed blindly — a flag-tolerant command
+// would EXECUTE its real op on a blind `--selftest` spawn (`sync` re-links
+// ~/.claude, `gitignore-ensure` writes .gitignore); a selftest runner must
+// never mutate the host.
+const REGION_SELFTEST_ARGV = {
+  "config": ["config", "init", "--selftest"],
+  "sync": null,
+  "doctor": null,
+  "labels": null,
+  "state": null,
+  "gitignore-ensure": null,
+  "validate-adapters": null,
+};
+
+const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);
+const REGION_TAG_RE = /^\/\/ === region:([a-z-]+) — (.*) ===$/;
+const REGION_DIVIDER_RE = /^\/\/ ={4,}$/;
+
+// Strip comments + string literals from source, preserving line structure —
+// stripped characters become spaces so line arithmetic survives. Template
+// `${…}` interpolations are KEPT as code (a real reference inside one still
+// counts). Regex literals are not modelled (accepted looseness: a `//` inside
+// a regex reads as a comment start — that can only hide a reference on that
+// line, never invent one).
+function regionsStripSource(src) {
+  const n = src.length;
+  const out = new Array(n);
+  const tplStack = []; // brace-depth counters for `${` nesting inside templates
+  let state = "code";
+  let i = 0;
+  while (i < n) {
+    const c = src[i], d = i + 1 < n ? src[i + 1] : "";
+    if (state === "code") {
+      if (c === "/" && d === "/") { state = "line"; out[i] = " "; out[i + 1] = " "; i += 2; continue; }
+      if (c === "/" && d === "*") { state = "block"; out[i] = " "; out[i + 1] = " "; i += 2; continue; }
+      if (c === "'") { state = "sq"; out[i] = " "; i++; continue; }
+      if (c === '"') { state = "dq"; out[i] = " "; i++; continue; }
+      if (c === "`") { state = "tpl"; out[i] = " "; i++; continue; }
+      if (tplStack.length) {
+        if (c === "{") tplStack[tplStack.length - 1]++;
+        else if (c === "}") {
+          if (tplStack[tplStack.length - 1] === 0) { tplStack.pop(); state = "tpl"; out[i] = " "; i++; continue; }
+          tplStack[tplStack.length - 1]--;
+        }
+      }
+      out[i] = c; i++; continue;
+    }
+    if (state === "line") {
+      if (c === "\n") { state = "code"; out[i] = c; } else out[i] = " ";
+      i++; continue;
+    }
+    if (state === "block") {
+      if (c === "*" && d === "/") { state = "code"; out[i] = " "; out[i + 1] = " "; i += 2; continue; }
+      out[i] = c === "\n" ? c : " "; i++; continue;
+    }
+    if (state === "sq" || state === "dq") {
+      const q = state === "sq" ? "'" : '"';
+      if (c === "\\") { out[i] = " "; if (i + 1 < n) out[i + 1] = src[i + 1] === "\n" ? "\n" : " "; i += 2; continue; }
+      if (c === q || c === "\n") { state = "code"; out[i] = c === "\n" ? c : " "; i++; continue; }
+      out[i] = " "; i++; continue;
+    }
+    // state === "tpl"
+    if (c === "\\") { out[i] = " "; if (i + 1 < n) out[i + 1] = src[i + 1] === "\n" ? "\n" : " "; i += 2; continue; }
+    if (c === "`") { state = "code"; out[i] = " "; i++; continue; }
+    if (c === "$" && d === "{") { tplStack.push(0); state = "code"; out[i] = " "; out[i + 1] = " "; i += 2; continue; }
+    out[i] = c === "\n" ? c : " "; i++; continue;
+  }
+  return out.join("");
+}
+
+// Parse a source file's section banners into contiguous region spans. A banner
+// is a maximal run of `//` comment lines containing >=1 full-width divider
+// (`// ====…`); its tag line is `// === region:<name> — <text> ===`. Content
+// before the first banner is the require preamble — exempt by construction (it
+// defines no region code). Returns { spans, malformed }; line numbers 1-based.
+function regionsParseSpans(rawLines) {
+  const banners = [];
+  const malformed = [];
+  let i = 0;
+  while (i < rawLines.length) {
+    if (!rawLines[i].startsWith("//")) { i++; continue; }
+    let j = i, hasDiv = false, tag = null, tagLine = -1;
+    while (j < rawLines.length && rawLines[j].startsWith("//")) {
+      if (REGION_DIVIDER_RE.test(rawLines[j])) hasDiv = true;
+      if (tag === null) {
+        const m = rawLines[j].match(REGION_TAG_RE);
+        if (m) { tag = m; tagLine = j; }
+      }
+      j++;
+    }
+    if (hasDiv) {
+      if (!tag) {
+        const nameLine = rawLines.slice(i, j).find((l) => !REGION_DIVIDER_RE.test(l)) || rawLines[i];
+        malformed.push(`untagged section banner at line ${i + 1}: ${nameLine}`);
+      } else if (!REGION_NAMES.has(tag[1])) {
+        malformed.push(`unknown region '${tag[1]}' at line ${tagLine + 1} (legal: ${[...REGION_NAMES].join(" | ")})`);
+      } else {
+        banners.push({ start: i, region: tag[1], name: tag[2] });
+      }
+    }
+    i = j;
+  }
+  const spans = banners.map((b, k) => ({
+    region: b.region,
+    name: b.name,
+    start: b.start, // 0-based inclusive
+    end: k + 1 < banners.length ? banners[k + 1].start - 1 : rawLines.length - 1,
+  }));
+  return { spans, malformed };
+}
+
+// Collect top-level definitions (column-0 `function` / `const` / `let` / `var`)
+// per span, from the STRIPPED lines (so template-literal content can never fake
+// a definition). Returns [{ name, line (1-based), span }].
+function regionsCollectDefs(strippedLines, spans) {
+  const defs = [];
+  for (const span of spans) {
+    for (let ln = span.start; ln <= span.end && ln < strippedLines.length; ln++) {
+      const m = strippedLines[ln].match(/^(?:async\s+)?(?:function\s+|const\s+|let\s+|var\s+)([A-Za-z_$][A-Za-z0-9_$]*)/);
+      if (m) defs.push({ name: m[1], line: ln + 1, span });
+    }
+  }
+  return defs;
+}
+
+// The direction-lint core, factored over a file path so the selftest can drive
+// it against synthetic fixtures. Rules: a governance span must not reference a
+// factory-span identifier; a shared-infra span must not reference either
+// region's. factory and shell spans are unchecked (legal consumers). Returns
+// { malformed: [string], violations: [string] }.
+function regionsCheckFile(filePath) {
+  const src = fs.readFileSync(filePath, "utf8");
+  const rawLines = src.split("\n");
+  const { spans, malformed } = regionsParseSpans(rawLines);
+  if (malformed.length) return { malformed, violations: [] };
+  const strippedLines = regionsStripSource(src).split("\n");
+  const defs = regionsCollectDefs(strippedLines, spans);
+  const defsByRegion = (regions) => {
+    const map = new Map();
+    for (const d of defs) if (regions.includes(d.span.region)) map.set(d.name, d);
+    return map;
+  };
+  const violations = [];
+  const scanSpan = (span, forbidden) => {
+    if (forbidden.size === 0) return;
+    const re = new RegExp(`\\b(${[...forbidden.keys()].join("|")})\\b`, "g");
+    for (let ln = span.start; ln <= span.end && ln < strippedLines.length; ln++) {
+      const line = strippedLines[ln];
+      let m;
+      while ((m = re.exec(line)) !== null) {
+        const before = m.index > 0 ? line[m.index - 1] : "";
+        const after = line[m.index + m[0].length] || "";
+        if (before === ".") continue;  // property access, not the top-level binding
+        if (after === ":") continue;   // object-literal key, not a reference
+        const d = forbidden.get(m[0]);
+        violations.push(
+          `${m[0]} referenced at line ${ln + 1} (${span.region} — ${span.name}) ` +
+          `but defined at line ${d.line} (${d.span.region} — ${d.span.name})`);
+      }
+    }
+  };
+  const factoryDefs = defsByRegion(["factory"]);
+  const regionDefs = defsByRegion(["factory", "governance"]);
+  for (const span of spans) {
+    if (span.region === "governance") scanSpan(span, factoryDefs);
+    else if (span.region === "shared-infra") scanSpan(span, regionDefs);
+  }
+  return { malformed, violations };
+}
+
+const regionsExitFor = (res) => (res.malformed.length ? 2 : (res.violations.length ? 1 : 0));
+
+// Fixture-table selftest for the lint core: synthetic files in a tmp dir prove
+// clean → 0, a governance→factory reference → 1 naming both ends, an untagged
+// banner → 2, and string/comment mentions are ignored. Also pins the
+// REGION_MAP ↔ COMMANDS bijection (the single-list invariant).
+function regionsSelftest() {
+  const B = "// ==========";
+  const mk = (...lns) => lns.join("\n") + "\n";
+  const fixtures = {
+    "clean": {
+      text: mk(
+        B, "// === region:shared-infra — helpers ===", B,
+        "function sharedHelper() { return 1; }",
+        B, "// === region:governance — gov ===", B,
+        "function govThing() { return sharedHelper(); }",
+        B, "// === region:factory — fact ===", B,
+        "const factConst = 2;",
+        "function factThing() { return govThing() + sharedHelper() + factConst; }",
+        B, "// === region:shell — dispatch ===", B,
+        "const SHELL_MAP = { run: factThing, gov: govThing };"),
+      wantExit: 0,
+    },
+    "governance→factory reference": {
+      text: mk(
+        B, "// === region:governance — gov ===", B,
+        "function govThing() { return factThing(); }",
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }"),
+      wantExit: 1,
+      wantViolation: /factThing referenced at line 4 \(governance — gov\) but defined at line 8 \(factory — fact\)/,
+    },
+    "shared-infra→governance reference": {
+      text: mk(
+        B, "// === region:shared-infra — helpers ===", B,
+        "function sharedHelper() { return govThing(); }",
+        B, "// === region:governance — gov ===", B,
+        "function govThing() { return 1; }"),
+      wantExit: 1,
+      wantViolation: /govThing referenced at line 4 \(shared-infra — helpers\)/,
+    },
+    "untagged banner": {
+      text: mk(
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }",
+        B, "// a section with no region tag", B,
+        "function mystery() { return 3; }"),
+      wantExit: 2,
+      wantMalformed: /untagged section banner at line 5/,
+    },
+    "string/comment mentions ignored": {
+      text: mk(
+        B, "// === region:governance — gov ===", B,
+        'const a = "factThing()";',
+        "const b = `factThing`;",
+        "// factThing in a line comment",
+        "/* factThing in a block comment */",
+        "function govThing() { return a + b; }",
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }"),
+      wantExit: 0,
+    },
+    "template interpolation still counts": {
+      text: mk(
+        B, "// === region:governance — gov ===", B,
+        "function govThing() { return `x ${factThing()} y`; }",
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }"),
+      wantExit: 1,
+      wantViolation: /factThing referenced at line 4/,
+    },
+  };
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-regions-"));
+  let failed = 0;
+  const report = (name, ok, detail) => {
+    if (!ok) failed++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? ` — ${detail}` : ""}`);
+  };
+  try {
+    let n = 0;
+    for (const [name, f] of Object.entries(fixtures)) {
+      const p = path.join(tmp, `fixture-${n++}.js`);
+      fs.writeFileSync(p, f.text);
+      const res = regionsCheckFile(p);
+      const exit = regionsExitFor(res);
+      let ok = exit === f.wantExit;
+      if (ok && f.wantViolation) ok = res.violations.some((v) => f.wantViolation.test(v));
+      if (ok && f.wantMalformed) ok = res.malformed.some((v) => f.wantMalformed.test(v));
+      report(name, ok, ok ? "" : `exit ${exit} (want ${f.wantExit}); ${JSON.stringify(res)}`);
+    }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+  // Single-list invariant: the map and the registry name exactly the same commands.
+  const mapKeys = Object.keys(REGION_MAP).sort().join(",");
+  const cmdKeys = Object.keys(COMMANDS).sort().join(",");
+  report("REGION_MAP ↔ COMMANDS bijection", mapKeys === cmdKeys, mapKeys === cmdKeys ? "" : "map/registry drift");
+  // Every governance member declares a runnable selftest (the provable-boundary claim).
+  const govNoSelftest = Object.keys(REGION_MAP)
+    .filter((c) => REGION_MAP[c] === "governance" && REGION_SELFTEST_ARGV[c] === null);
+  report("every governance member has a selftest", govNoSelftest.length === 0, govNoSelftest.join(", "));
+  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${Object.keys(fixtures).length + 2} cases, ${failed} failed)`);
+  return failed ? 1 : 0;
+}
+
+// Spawn each member's own selftest as a child process (the lights-out probe
+// pattern) and report a per-command table. Exit 0 iff every spawned selftest
+// passed AND (for governance) every member has one — a governance member
+// without a selftest breaks the standalone-boundary proof.
+function regionsSelftestRun(regionArg) {
+  const want = regionArg || "all";
+  if (!["governance", "factory", "all"].includes(want)) {
+    process.stderr.write("usage: faff regions selftest [--region governance|factory|all]\n");
+    return 2;
+  }
+  const members = Object.keys(REGION_MAP).filter((c) => want === "all" || REGION_MAP[c] === want);
+  let failed = 0;
+  const width = Math.max(...members.map((c) => c.length));
+  for (const cmd of members) {
+    const argv = cmd in REGION_SELFTEST_ARGV ? REGION_SELFTEST_ARGV[cmd] : [cmd, "--selftest"];
+    let status;
+    if (argv === null) {
+      const fatal = REGION_MAP[cmd] === "governance";
+      if (fatal) failed++;
+      status = fatal ? "FAIL (governance member without a selftest)" : "no-selftest";
+    } else {
+      const r = spawnSync(process.execPath, [__filename, ...argv], { encoding: "utf8", timeout: 120000 });
+      if (r.status !== 0) failed++;
+      status = r.status === 0 ? "PASS" : `FAIL (exit ${r.status === null ? "timeout/error" : r.status})`;
+    }
+    console.log(`${cmd.padEnd(width)}  ${REGION_MAP[cmd].padEnd(10)}  ${status}`);
+  }
+  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${members.length} members, ${failed} failed)`);
+  return failed ? 1 : 0;
+}
+
+function cmdRegions(args) {
+  if (args.includes("--selftest")) return regionsSelftest();
+  const sub = args.find((a) => !a.startsWith("-"));
+
+  if (sub === "list") {
+    if (args.includes("--json")) { console.log(JSON.stringify(REGION_MAP)); return 0; }
+    const byRegion = {};
+    for (const [c, r] of Object.entries(REGION_MAP)) (byRegion[r] = byRegion[r] || []).push(c);
+    for (const r of Object.keys(byRegion)) {
+      console.log(`${r} (${byRegion[r].length}):`);
+      for (const c of byRegion[r].sort()) console.log(`  ${c}`);
+    }
+    console.log("(shared-infra and shell are code-only regions — no commands)");
+    return 0;
+  }
+
+  if (sub === "check") {
+    const res = regionsCheckFile(__filename);
+    if (res.malformed.length) {
+      for (const m of res.malformed) process.stderr.write(`faff regions check: MALFORMED — ${m}\n`);
+      return 2;
+    }
+    // Single-list invariant, enforced live: map/registry drift is a malformed map.
+    const mapKeys = Object.keys(REGION_MAP).sort();
+    const cmdKeys = Object.keys(COMMANDS).sort();
+    if (mapKeys.join(",") !== cmdKeys.join(",")) {
+      const missing = cmdKeys.filter((k) => !mapKeys.includes(k));
+      const orphaned = mapKeys.filter((k) => !cmdKeys.includes(k));
+      process.stderr.write(`faff regions check: MALFORMED — REGION_MAP/COMMANDS drift (missing: ${missing.join(", ") || "none"}; orphaned: ${orphaned.join(", ") || "none"})\n`);
+      return 2;
+    }
+    if (res.violations.length) {
+      for (const v of res.violations) process.stderr.write(`faff regions check: VIOLATION — ${v}\n`);
+      process.stderr.write(`faff regions check: ${res.violations.length} direction violation(s) — governance must not reference factory; shared-infra must reference neither region\n`);
+      return 1;
+    }
+    console.log("PASS  regions check: direction invariant holds (governance↛factory, shared-infra↛regions)");
+    return 0;
+  }
+
+  if (sub === "selftest") {
+    const i = args.indexOf("--region");
+    return regionsSelftestRun(i !== -1 ? args[i + 1] : null);
+  }
+
+  process.stderr.write("usage: faff regions <list|check|selftest> [--json] [--region governance|factory|all]\n");
+  return 2;
+}
+
+// ===========================================================================
 // === region:shell — subcommand registry + main dispatch ===
 // ===========================================================================
 // Subcommand registry (ADR 0014) — the single source of truth for the CLI command
@@ -12171,6 +12598,7 @@ const COMMANDS = {
   "worktree-prune": cmdWorktreePrune,
   "lint-refs": cmdLintRefs,
   "lint-cli-doc": cmdLintCliDoc,
+  "regions": cmdRegions,
 };
 
 function main(argv) {

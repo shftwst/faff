@@ -5166,7 +5166,7 @@ Subcommands:
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
   lint-refs [--root DIR]                        FAFF-238: ban external-artifact refs (FAFF-NN / ADR NNNN / numbered docs/adr pointers) in prose the reader executes or publicly consumes — slice 1 scans docs/guide/**; "FAIL file:line ✗ match" per hit + exit 1, else exit 0; --selftest runs the matcher table. docs/ outside docs/guide/ (incl. docs/adr/**) is allow-by-default; within-prose anchors (gateway→Section, faff/SKILL.md) never match
   lint-cli-doc [--root DIR] [--json]            FAFF-237: assert docs/guide/cli.md documents every subcommand the CLI dispatches (the COMMANDS registry), bidirectionally — "FAIL docs/guide/cli.md ✗ missing/orphaned: <name>" per drift + exit 1, else "PASS  lint-cli-doc: <N> subcommands documented" + exit 0; exit 2 if the doc is unreadable; --selftest runs the parse/diff table
-  regions <list|check|selftest> [--json] [--region governance|factory|all]   FAFF-359: the logical governance/factory boundary (ADR 0042). list prints the single in-code region map (command → region; --json for the object). check is the direction lint over THIS file's region-tagged section banners — a governance span referencing a factory identifier, or a shared-infra span referencing either region's, is a violation naming both ends; exit 0 clean / 1 violation(s) / 2 malformed (untagged banner, unknown region, or REGION_MAP/COMMANDS drift); no suppression mechanism. selftest spawns each member command's own --selftest (default --region all) and prints a per-command pass/fail table — a governance member without a selftest is FATAL, a factory one is reported no-selftest; --selftest runs the lint fixture table
+  regions <list|check|selftest> [--json] [--region governance|factory|all]   FAFF-359: the logical governance/factory boundary (ADR 0042). list prints the single in-code region map (command → region; --json for the object). check is the direction lint over THIS file's region-tagged section banners — a governance span referencing a factory identifier, or a shared-infra span referencing either region's, is a violation naming both ends (comment/string/regex-literal mentions ignored; template interpolations still count); exit 0 clean / 1 violation(s) / 2 malformed (untagged banner, unknown region, cross-region duplicate top-level name, or REGION_MAP/COMMANDS drift); no suppression mechanism. selftest spawns each member command's own --selftest per the explicit REGION_SELFTEST_ARGV allowlist (default --region all) and prints a per-command pass/fail table — a governance member without a selftest is FATAL, a factory one is reported no-selftest; exit 2 before any spawn on allowlist drift (unlisted command, or a stale no-selftest entry); --selftest runs the lint fixture table
 `;
 
 // ===========================================================================
@@ -12192,43 +12192,131 @@ const REGION_MAP = {
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
-// an argv array overrides; null = the command ships no standalone selftest
-// (reported `no-selftest`: non-fatal for factory, FATAL for a governance
-// member). DECLARED here, never probed blindly — a flag-tolerant command
-// would EXECUTE its real op on a blind `--selftest` spawn (`sync` re-links
-// ~/.claude, `gitignore-ensure` writes .gitignore); a selftest runner must
-// never mutate the host.
+// a FULL allowlist over REGION_MAP: every command has an explicit entry — an
+// argv array to spawn, or null = deliberately no standalone selftest (reported
+// `no-selftest`: non-fatal for factory, FATAL for a governance member). A
+// REGION_MAP command MISSING here is exit 2 at `regions selftest` (no
+// fall-through: a future flag-tolerant command must never be blind-spawned
+// with --selftest and execute its real op — `sync` re-links ~/.claude,
+// `gitignore-ensure` writes .gitignore; a selftest runner must never mutate
+// the host). A stale null (the handler gained a "--selftest" branch nobody
+// wired) is also exit 2 — see regionsStaleNulls.
 const REGION_SELFTEST_ARGV = {
+  // governance — every member MUST carry a runnable selftest
+  "runcheck": ["runcheck", "--selftest"],
+  "heartbeat": ["heartbeat", "--selftest"],
+  "events": ["events", "--selftest"],
+  "effects": ["effects", "--selftest"],
+  "budget": ["budget", "--selftest"],
+  "sentry": ["sentry", "--selftest"],
+  "audit": ["audit", "--selftest"],
+  // factory — argv per member; null = deliberately no standalone selftest
   "config": ["config", "init", "--selftest"],
   "sync": null,
-  "doctor": null,
-  "labels": null,
-  "state": null,
-  "gitignore-ensure": null,
+  "prepcheck": ["prepcheck", "--selftest"],
+  "intakecheck": ["intakecheck", "--selftest"],
+  "intake-record": ["intake-record", "--selftest"],
+  "contain": ["contain", "--selftest"],
+  "run-done": ["run-done", "--selftest"],
+  "hooks-ensure": ["hooks-ensure", "--selftest"],
   "validate-adapters": null,
+  "labels": null,
+  "label": ["label", "--selftest"],
+  "eligible": ["eligible", "--selftest"],
+  "admissible": ["admissible", "--selftest"],
+  "dod": ["dod", "--selftest"],
+  "holdout": ["holdout", "--selftest"],
+  "spec-review-lenses": ["spec-review-lenses", "--selftest"],
+  "container-check": ["container-check", "--selftest"],
+  "next": ["next", "--selftest"],
+  "project-next": ["project-next", "--selftest"],
+  "state": null,
+  "park-history": ["park-history", "--selftest"],
+  "gitignore-ensure": null,
+  "adr": ["adr", "--selftest"],
+  "prd": ["prd", "--selftest"],
+  "prdr": ["prdr", "--selftest"],
+  "profile": ["profile", "--selftest"],
+  "fixtures": ["fixtures", "--selftest"],
+  "env": ["env", "--selftest"],
+  "lights-out": ["lights-out", "--selftest"],
+  "gates": ["gates", "--selftest"],
+  "contract": ["contract", "--selftest"],
+  "doctor": null,
+  "worktree-prune": ["worktree-prune", "--selftest"],
+  "lint-refs": ["lint-refs", "--selftest"],
+  "lint-cli-doc": ["lint-cli-doc", "--selftest"],
+  "regions": ["regions", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);
 const REGION_TAG_RE = /^\/\/ === region:([a-z-]+) — (.*) ===$/;
 const REGION_DIVIDER_RE = /^\/\/ ={4,}$/;
 
-// Strip comments + string literals from source, preserving line structure —
-// stripped characters become spaces so line arithmetic survives. Template
-// `${…}` interpolations are KEPT as code (a real reference inside one still
-// counts). Regex literals are not modelled (accepted looseness: a `//` inside
-// a regex reads as a comment start — that can only hide a reference on that
-// line, never invent one).
+// Keywords a `/` may legally follow while still opening a REGEX literal (the
+// standard lexer heuristic: `return /re/`, `typeof /re/`, `case /re/:` …).
+const REGEX_PRECEDING_KEYWORDS = new Set([
+  "return", "typeof", "instanceof", "in", "of", "new", "delete", "void",
+  "throw", "case", "do", "else", "yield", "await",
+]);
+
+// Strip comments, string literals, AND regex literals from source, preserving
+// line structure — stripped characters become spaces so line arithmetic
+// survives. Template `${…}` interpolations are KEPT as code (a real reference
+// inside one still counts). Regex-vs-division: a `/` in code state opens a
+// regex literal iff the previous significant character is not an identifier
+// char / `)` / `]` — or ends a keyword like `return` — and the literal is then
+// consumed through its unescaped closing `/`, honouring `\` escapes and `[…]`
+// character classes (a `/` inside a class does not close). Without this, a
+// regex like /https?:\/\// would enter line-comment state and HIDE the rest of
+// its line from the lint.
 function regionsStripSource(src) {
   const n = src.length;
   const out = new Array(n);
+  // String-open checks run BEFORE the tplStack brace counting below, so a brace
+  // inside a quoted string in an interpolation (`${ x ? "{" : "}" }`) is never
+  // counted — state ordering is load-bearing.
   const tplStack = []; // brace-depth counters for `${` nesting inside templates
   let state = "code";
   let i = 0;
+  // Previous significant (non-whitespace) char of the ALREADY-EMITTED output —
+  // stripped content is spaces, so this sees code only.
+  const prevSignificantIdx = (idx) => {
+    let k = idx - 1;
+    while (k >= 0 && (out[k] === " " || out[k] === "\n" || out[k] === "\t" || out[k] === "\r" || out[k] === undefined)) k--;
+    return k;
+  };
+  const regexPosition = (idx) => {
+    const k = prevSignificantIdx(idx);
+    if (k < 0) return true; // start of file → regex
+    const ch = out[k];
+    if (ch === ")" || ch === "]") return false; // call/index result → division
+    if (!/[A-Za-z0-9_$]/.test(ch)) return true; // operator/punctuation → regex
+    // identifier/number end: still a regex when the word is a keyword (return /re/)
+    let s = k;
+    while (s >= 0 && /[A-Za-z0-9_$]/.test(out[s])) s--;
+    return REGEX_PRECEDING_KEYWORDS.has(out.slice(s + 1, k + 1).join(""));
+  };
   while (i < n) {
     const c = src[i], d = i + 1 < n ? src[i + 1] : "";
     if (state === "code") {
       if (c === "/" && d === "/") { state = "line"; out[i] = " "; out[i + 1] = " "; i += 2; continue; }
       if (c === "/" && d === "*") { state = "block"; out[i] = " "; out[i + 1] = " "; i += 2; continue; }
+      if (c === "/" && regexPosition(i)) {
+        // regex literal: blank through the unescaped closing `/` (class-aware).
+        out[i] = " "; i++;
+        let inClass = false;
+        while (i < n) {
+          const rc = src[i];
+          if (rc === "\\") { out[i] = " "; if (i + 1 < n) out[i + 1] = src[i + 1] === "\n" ? "\n" : " "; i += 2; continue; }
+          if (rc === "\n") { out[i] = "\n"; i++; break; } // defensive: regexes are single-line
+          if (rc === "[") inClass = true;
+          else if (rc === "]") inClass = false;
+          else if (rc === "/" && !inClass) { out[i] = " "; i++; break; }
+          out[i] = " "; i++;
+        }
+        continue;
+      }
       if (c === "'") { state = "sq"; out[i] = " "; i++; continue; }
       if (c === '"') { state = "dq"; out[i] = " "; i++; continue; }
       if (c === "`") { state = "tpl"; out[i] = " "; i++; continue; }
@@ -12308,6 +12396,19 @@ function regionsParseSpans(rawLines) {
 // Collect top-level definitions (column-0 `function` / `const` / `let` / `var`)
 // per span, from the STRIPPED lines (so template-literal content can never fake
 // a definition). Returns [{ name, line (1-based), span }].
+//
+// Require-preamble exemption (load-bearing): everything before the first banner
+// — `fs`/`path`/`os`/`spawnSync`/`HERE` — is destructured/derived require state
+// in NO region's definition set, so a reference to it from any span is never a
+// violation. That is deliberate: the preamble is the module system, not region
+// code.
+//
+// Property-access-skip soundness (see scanSpan's `before === "."` skip): in a
+// single-file CommonJS script, module-scoped top-level bindings are NOT
+// reachable via property or computed access (`obj.loadConfig` can only name a
+// property on some object, never the top-level `loadConfig` binding), so
+// skipping dotted matches cannot hide an in-file cross-region edge. Revisit at
+// physical extraction, where exports become properties.
 function regionsCollectDefs(strippedLines, spans) {
   const defs = [];
   for (const span of spans) {
@@ -12331,6 +12432,20 @@ function regionsCheckFile(filePath) {
   if (malformed.length) return { malformed, violations: [] };
   const strippedLines = regionsStripSource(src).split("\n");
   const defs = regionsCollectDefs(strippedLines, spans);
+  // A top-level name defined in TWO DIFFERENT regions makes reference attribution
+  // ambiguous (last-write-wins would mis-blame or false-pass) — malformed-class
+  // failure naming both definition sites. Same-region duplicates stay legal.
+  const defByName = new Map();
+  for (const d of defs) {
+    const prev = defByName.get(d.name);
+    if (prev && prev.span.region !== d.span.region) {
+      malformed.push(
+        `cross-region duplicate definition of '${d.name}': line ${prev.line} ` +
+        `(${prev.span.region} — ${prev.span.name}) and line ${d.line} (${d.span.region} — ${d.span.name})`);
+    }
+    if (!prev) defByName.set(d.name, d);
+  }
+  if (malformed.length) return { malformed, violations: [] };
   const defsByRegion = (regions) => {
     const map = new Map();
     for (const d of defs) if (regions.includes(d.span.region)) map.set(d.name, d);
@@ -12435,6 +12550,45 @@ function regionsSelftest() {
       wantExit: 1,
       wantViolation: /factThing referenced at line 4/,
     },
+    "regex literal cannot hide a reference on its line": {
+      text: mk(
+        B, "// === region:governance — gov ===", B,
+        "function govThing(x) { if (/https:\\/\\//.test(x)) factThing(); return 1; }",
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }"),
+      wantExit: 1,
+      wantViolation: /factThing referenced at line 4 \(governance — gov\)/,
+    },
+    "regex literal does not swallow subsequent lines": {
+      text: mk(
+        B, "// === region:governance — gov ===", B,
+        "const starRe = /\\*/;",
+        "const slashStarRe = /x\\/*y/;",
+        "const classRe = /[/]z/;",
+        "function govThing() { return factThing(); }",
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }"),
+      wantExit: 1,
+      wantViolation: /factThing referenced at line 7 \(governance — gov\)/,
+    },
+    "cross-region duplicate definition is malformed": {
+      text: mk(
+        B, "// === region:factory — fact ===", B,
+        "function dupThing() { return 1; }",
+        B, "// === region:governance — gov ===", B,
+        "function dupThing() { return 2; }"),
+      wantExit: 2,
+      wantMalformed: /cross-region duplicate definition of 'dupThing': line 4 \(factory — fact\) and line 8 \(governance — gov\)/,
+    },
+    "braces inside strings inside an interpolation": {
+      text: mk(
+        B, "// === region:governance — gov ===", B,
+        'function govThing(x) { return `a ${ x ? "{" : "}" } b ${factThing()} c`; }',
+        B, "// === region:factory — fact ===", B,
+        "function factThing() { return 2; }"),
+      wantExit: 1,
+      wantViolation: /factThing referenced at line 4 \(governance — gov\)/,
+    },
   };
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-regions-"));
   let failed = 0;
@@ -12457,33 +12611,103 @@ function regionsSelftest() {
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
-  // Single-list invariant: the map and the registry name exactly the same commands.
+  // Single-list invariant: the map and the registry name exactly the same commands,
+  // and the selftest allowlist covers the map exactly (no fall-through spawns).
   const mapKeys = Object.keys(REGION_MAP).sort().join(",");
   const cmdKeys = Object.keys(COMMANDS).sort().join(",");
   report("REGION_MAP ↔ COMMANDS bijection", mapKeys === cmdKeys, mapKeys === cmdKeys ? "" : "map/registry drift");
+  const argvKeys = Object.keys(REGION_SELFTEST_ARGV).sort().join(",");
+  report("REGION_SELFTEST_ARGV covers REGION_MAP exactly", argvKeys === mapKeys,
+    argvKeys === mapKeys ? "" : "allowlist/map drift");
   // Every governance member declares a runnable selftest (the provable-boundary claim).
   const govNoSelftest = Object.keys(REGION_MAP)
     .filter((c) => REGION_MAP[c] === "governance" && REGION_SELFTEST_ARGV[c] === null);
   report("every governance member has a selftest", govNoSelftest.length === 0, govNoSelftest.join(", "));
-  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${Object.keys(fixtures).length + 2} cases, ${failed} failed)`);
+  // Stale-null detector fires on a handler that mentions the quoted "--selftest"
+  // literal, and only on that (helper-driven fixture, no file round-trip).
+  const staleFixture = [
+    "function cmdFoo(args) {",
+    '  if (args.includes("--selftest")) return 1;',
+    "  return 0;",
+    "}",
+    "function cmdBar(args) {",
+    "  return 0; // no --selftest branch (bare mention in a comment must not trip)",
+    "}",
+  ];
+  const staleGot = regionsStaleNulls(staleFixture,
+    { "foo": null, "bar": null, "baz": ["baz", "--selftest"] },
+    (c) => ({ "foo": "cmdFoo", "bar": "cmdBar", "baz": "cmdBaz" }[c]));
+  const staleOk = staleGot.length === 1 && staleGot[0] === "foo";
+  report("stale-null detection (quoted \"--selftest\" in a null's handler)",
+    staleOk, staleOk ? "" : `got [${staleGot.join(", ")}]`);
+  console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${Object.keys(fixtures).length + 4} cases, ${failed} failed)`);
   return failed ? 1 : 0;
+}
+
+// Locate a top-level function's line range [start, end] (to its column-0 `}`).
+function regionsFnRange(rawLines, fnName) {
+  const start = rawLines.findIndex(
+    (l) => l.startsWith(`function ${fnName}(`) || l.startsWith(`async function ${fnName}(`));
+  if (start === -1) return null;
+  for (let k = start + 1; k < rawLines.length; k++) if (rawLines[k] === "}") return [start, k];
+  return [start, rawLines.length - 1];
+}
+
+// Stale-null detector: a REGION_SELFTEST_ARGV null whose handler body mentions
+// the QUOTED "--selftest" literal means the command gained a selftest nobody
+// wired — the null is stale, fail loud. Scans RAW handler text deliberately:
+// the `args.includes("--selftest")` literal lives inside a string, which the
+// stripper blanks — a post-strip scan could never see it. Quoted-form matching
+// keeps a bare `--selftest` in a comment from false-tripping.
+function regionsStaleNulls(rawLines, argvMap, fnNameOf) {
+  const stale = [];
+  for (const [cmd, argv] of Object.entries(argvMap)) {
+    if (argv !== null) continue;
+    const fnName = fnNameOf(cmd);
+    if (!fnName) continue;
+    const range = regionsFnRange(rawLines, fnName);
+    if (!range) continue;
+    const body = rawLines.slice(range[0], range[1] + 1).join("\n");
+    if (body.includes('"--selftest"') || body.includes("'--selftest'")) stale.push(cmd);
+  }
+  return stale;
 }
 
 // Spawn each member's own selftest as a child process (the lights-out probe
 // pattern) and report a per-command table. Exit 0 iff every spawned selftest
 // passed AND (for governance) every member has one — a governance member
-// without a selftest breaks the standalone-boundary proof.
+// without a selftest breaks the standalone-boundary proof. Exit 2 (before any
+// spawn) on allowlist drift: a REGION_MAP command missing from
+// REGION_SELFTEST_ARGV, or a stale null.
+//
+// Wall-clock: each member gets a 120s timeout; worst case for `--region all`
+// is ~43 × 120s ≈ 86 min, but the selftests are in-memory tables that finish
+// in seconds — a full sweep is typically well under a minute.
 function regionsSelftestRun(regionArg) {
   const want = regionArg || "all";
   if (!["governance", "factory", "all"].includes(want)) {
     process.stderr.write("usage: faff regions selftest [--region governance|factory|all]\n");
     return 2;
   }
+  // Allowlist completeness — checked over the WHOLE map (not just the selected
+  // region): a gap anywhere is config drift, fail loud before spawning anything.
+  const unlisted = Object.keys(REGION_MAP).filter((c) => !(c in REGION_SELFTEST_ARGV));
+  if (unlisted.length) {
+    process.stderr.write(`faff regions selftest: MALFORMED — REGION_MAP command(s) missing from the REGION_SELFTEST_ARGV allowlist: ${unlisted.join(", ")}\n`);
+    return 2;
+  }
+  // Stale-null drift — a null entry whose handler now carries a "--selftest" branch.
+  const rawLines = fs.readFileSync(__filename, "utf8").split("\n");
+  const stale = regionsStaleNulls(rawLines, REGION_SELFTEST_ARGV, (c) => COMMANDS[c] && COMMANDS[c].name);
+  if (stale.length) {
+    process.stderr.write(`faff regions selftest: MALFORMED — stale null(s) in REGION_SELFTEST_ARGV (the handler mentions "--selftest" but the map says no-selftest): ${stale.join(", ")}\n`);
+    return 2;
+  }
   const members = Object.keys(REGION_MAP).filter((c) => want === "all" || REGION_MAP[c] === want);
   let failed = 0;
   const width = Math.max(...members.map((c) => c.length));
   for (const cmd of members) {
-    const argv = cmd in REGION_SELFTEST_ARGV ? REGION_SELFTEST_ARGV[cmd] : [cmd, "--selftest"];
+    const argv = REGION_SELFTEST_ARGV[cmd];
     let status;
     if (argv === null) {
       const fatal = REGION_MAP[cmd] === "governance";

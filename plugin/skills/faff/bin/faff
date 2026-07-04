@@ -11803,7 +11803,7 @@ function lightsOutPreflight(probes) {
   if (!probes.specReviewSlot)
     refusals.push({ gate: "spec_review-slot", detail: "spec_review slot not configured + reachable — spec admission gating would be skipped" });
   if (!probes.budgetCeilingSet)
-    refusals.push({ gate: "budget-ceiling", detail: "no budget ceiling set — an unbounded lights-out run is refused (set budget.* / --until / --max)" });
+    refusals.push({ gate: "budget-ceiling", detail: "count-cap only (or no ceiling) — a count is not an L4 governor; set a spend/time ceiling: budget.tokens, budget.until / --until, or budget.cost with price_per_mtok > 0. max_attempts may stay as an extra backstop." });
   // Floor assertions — must hold in-container; a failed assertion refuses the run.
   for (const k of LIGHTS_OUT_FLOOR_KEYS) {
     if (floor[k] !== true)
@@ -11876,6 +11876,45 @@ function resolveSlotOccupant(cfg, name) {
   return DEFAULTS[`slots.${name}`] || null;
 }
 
+// FAFF-312 — L4 run-governance helpers (pure). ----------------------------------
+// Pure: does the envelope carry a SPEND/TIME ceiling — the only dimension that can
+// govern an UNBOUNDED L4 run? `tokens` and `until` always count; `cost` only when
+// priced (`price_per_mtok > 0`), because an unpriced cost ceiling never breaches
+// (envelopeFrom already nulls it) and a vacuous ceiling must not satisfy a
+// fail-closed precondition. `max_attempts` (a count) is DELIBERATELY excluded: a
+// tally is an L3 cost idiom, uncorrelated with project size or doneness, and
+// stalling a healthy run at attempt N defeats the point of L4 — so it is legal as
+// an extra backstop but never sufficient as the sole L4 ceiling. Replaces the old
+// any-dimension `Object.values(ceilings).some(v != null)`.
+function spendTimeCeilingSet(envelope) {
+  const c = (envelope && envelope.ceilings) || {};
+  return c.tokens != null
+      || c.until != null
+      || (c.cost != null && envelope && envelope.price_per_mtok > 0);
+}
+
+// Pure: the MINT-TIME at_ceiling default for a lights-out (L4) run — `escalate`
+// when config leaves it unset, the explicit configured value (coerced like
+// envelopeFrom) otherwise. Level-scoped: it lives HERE (applied at mint into the
+// run-ledger envelope), NOT in the level-blind DEFAULTS registry — so L3 budget
+// semantics and `config defaults --selftest` are untouched, and `faff budget check
+// --run-dir` reads the minted value back via envelopeFromLedger. Rationale: a
+// backstop binding on an unbounded run is an anomaly that must surface as a
+// structured needs-human (run-done's fixed floor rung), never a silent stop
+// mid-project — but an explicit `stop` is a legitimate "quietly end the night at
+// the ceiling" choice and human-explicit config outranks the level default.
+function mintAtCeiling(cfg) {
+  const raw = dig(cfg, "budget.at_ceiling");
+  if (raw == null) return "escalate";                 // L4 mint-time default (unset)
+  const v = String(raw).trim().toLowerCase();
+  // A recognised explicit value is honoured verbatim; an UNRECOGNISED one (a typo like
+  // `escalte`) fails safe toward `escalate`, NOT `stop`. This is where the level-scoped
+  // L4 default legitimately diverges from envelopeFrom's level-blind unknown→stop: at L4 a
+  // silent stop mid-project is the exact failure this model exists to prevent, so a typo'd
+  // at_ceiling must surface as a structured escalation rather than quietly downgrade.
+  return AT_CEILING_OUTCOMES.has(v) ? v : "escalate";
+}
+
 function cmdLightsOut(args) {
   if (args.includes("--selftest")) return lightsOutSelftest();
   const json = args.includes("--json");
@@ -11908,9 +11947,11 @@ function cmdLightsOut(args) {
   const reviewReachable = !!reviewOccupant && !unreachable.has("review");
   const specReviewSlot = !!specReviewOccupant && !unreachable.has("spec_review");
 
-  // Budget ceiling: any bounded dimension counts (flags override config).
+  // Budget ceiling (FAFF-312): a SPEND/TIME dimension is required — a count-cap
+  // (`max_attempts`) alone is NOT an L4 governor. tokens/until always count; cost
+  // only when priced. Flags override config.
   const envelope = envelopeFrom(cfg, { until: get("--until"), max_attempts: get("--max") });
-  const budgetCeilingSet = Object.values(envelope.ceilings).some((v) => v != null);
+  const budgetCeilingSet = spendTimeCeilingSet(envelope);
 
   // Floor assertions — asserted, not re-implemented. no-execute is a structural
   // invariant (the runner derives no command from free text); worktree isolation is
@@ -11969,6 +12010,11 @@ function cmdLightsOut(args) {
   }
 
   // PROCEED: mint the strict-defaults L4 run-ledger, persist the banner, emit run-start.
+  // FAFF-312: apply the level-scoped mint-time at_ceiling default (escalate-when-unset,
+  // explicit-config-verbatim) into the ledger envelope. envelopeFromLedger reads it back
+  // for `faff budget check --run-dir`, so an L4 backstop breach surfaces as `escalate`
+  // (Sentry budget-breach + run-done's fixed floor) rather than a silent stop mid-project.
+  envelope.at_ceiling = mintAtCeiling(cfg);
   const nowIso = new Date().toISOString();
   const stamp = nowIso.replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-"); // YYYYMMDD-HHMMSS
   const runId = get("--id") || `${stamp}-lights-out`;
@@ -12112,6 +12158,41 @@ function lightsOutSelftest() {
   // No budget ceiling → refuse (no unbounded lights-out run).
   const noBudget = lightsOutPreflight(armedProbes({ budgetCeilingSet: false }));
   check("no budget ceiling refuses", noBudget.proceed === false && noBudget.refusals.some((r) => r.gate === "budget-ceiling"));
+  check("budget-ceiling refusal names the spend/time remedy",
+    noBudget.refusals.find((r) => r.gate === "budget-ceiling").detail.includes("spend/time") &&
+    /budget\.tokens|budget\.until/.test(noBudget.refusals.find((r) => r.gate === "budget-ceiling").detail));
+
+  // FAFF-312 — spend/time ceiling predicate: a count-cap alone is NOT an L4 governor.
+  // Driven both on hand-built envelopes (to exercise the guard directly) and on real
+  // envelopeFrom output (the path cmdLightsOut actually takes).
+  check("spend/time: tokens-only is a ceiling",
+    spendTimeCeilingSet({ ceilings: { tokens: 100, until: null, max_attempts: null, cost: null }, price_per_mtok: 0 }) === true);
+  check("spend/time: until-only is a ceiling",
+    spendTimeCeilingSet({ ceilings: { until: "07:00", tokens: null, max_attempts: null, cost: null }, price_per_mtok: 0 }) === true);
+  check("spend/time: max_attempts-only is NOT a ceiling",
+    spendTimeCeilingSet({ ceilings: { max_attempts: 40, tokens: null, until: null, cost: null }, price_per_mtok: 0 }) === false);
+  check("spend/time: priced cost is a ceiling",
+    spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 3 }) === true);
+  check("spend/time: unpriced cost is NOT a ceiling (vacuous)",
+    spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 0 }) === false);
+  check("spend/time: max_attempts alongside tokens IS a ceiling",
+    spendTimeCeilingSet({ ceilings: { max_attempts: 40, tokens: 100, until: null, cost: null }, price_per_mtok: 0 }) === true);
+  check("spend/time (real envelope): count-only refuses",
+    spendTimeCeilingSet(envelopeFrom({ budget: { max_attempts: 40 } }, {})) === false);
+  check("spend/time (real envelope): tokens proceeds",
+    spendTimeCeilingSet(envelopeFrom({ budget: { tokens: 5_000_000 } }, {})) === true);
+  check("spend/time (real envelope): unpriced cost refuses",
+    spendTimeCeilingSet(envelopeFrom({ budget: { cost: 5, price_per_mtok: 0 } }, {})) === false);
+  check("spend/time (real envelope): --until flag proceeds",
+    spendTimeCeilingSet(envelopeFrom({}, { until: "07:00" })) === true);
+
+  // FAFF-312 — mint-time at_ceiling default: escalate-when-unset, explicit honoured.
+  check("mint at_ceiling: unset → escalate (L4 default)", mintAtCeiling({}) === "escalate");
+  check("mint at_ceiling: no budget block → escalate", mintAtCeiling({ budget: {} }) === "escalate");
+  check("mint at_ceiling: explicit stop honoured verbatim", mintAtCeiling({ budget: { at_ceiling: "stop" } }) === "stop");
+  check("mint at_ceiling: explicit escalate honoured", mintAtCeiling({ budget: { at_ceiling: "escalate" } }) === "escalate");
+  check("mint at_ceiling: explicit narrow honoured", mintAtCeiling({ budget: { at_ceiling: "narrow" } }) === "narrow");
+  check("mint at_ceiling: unrecognised value (typo) fails safe to escalate, NOT stop", mintAtCeiling({ budget: { at_ceiling: "escalte" } }) === "escalate");
 
   // Keystone (sentry) probe fails → refuse, no reduced mode.
   const noSentry = lightsOutPreflight(armedProbes({ reachable: { ...allReach(), kill_switch: false } }));

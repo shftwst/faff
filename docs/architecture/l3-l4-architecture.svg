@@ -146,7 +146,7 @@
   <!-- preflight gate -->
   <rect x="44" y="732" width="700" height="70" rx="8" fill="#fbecec" stroke="#c53030"/>
   <text x="60" y="752" class="box" font-weight="700" fill="#c53030">lights-out preflight  (FAIL-CLOSED — any miss ⇒ refuse, mint nothing)</text>
-  <text x="60" y="770" class="box" font-size="10.8">container contained · budget ceiling SET · adversarial review + spec_review reachable ·</text>
+  <text x="60" y="770" class="box" font-size="10.8">container contained · spend/time budget ceiling SET (count-cap alone refused) · adversarial review + spec_review reachable ·</text>
   <text x="60" y="786" class="box" font-size="10.8">dial-coherence (no reckless dial tuple) · all 8 guardrail contracts live · FAFF-68 no-execute + floor assertions</text>
 
   <rect x="760" y="732" width="230" height="70" rx="8" fill="#eef7f0" stroke="#2f855a"/>

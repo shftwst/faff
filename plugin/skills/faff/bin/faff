@@ -876,6 +876,12 @@ function cmdConfig(args) {
       // value is visible in the run banner, not silently coerced behind the user's back.
       const gate = dig(data, "intake_gate");
       if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
+      // FAFF-42/350: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection) so an opt-in `block` is visible in the run banner, never silent.
+      for (const knob of ["require_container", "require_branch_protection"]) {
+        const v = dig(data, `autonomous.${knob}`);
+        if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
+      }
       let any = false;
       for (const s of SLOTS) {
         const v = slots[s];
@@ -5145,6 +5151,8 @@ Subcommands:
   holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]   FAFF-277: pure, trust-gated bridge from the evaluator's persisted holdout verdicts (.faff/holdout/<issue|run>.json) to the already-shipped 'faff prdr coverage --dod-verdicts' flag. Reads each verdict, RE-VALIDATES it through the same computeHoldoutVerdict gate (never a forked rule), translates only a conformant code_blind:true meets-spec -> the literal "met", folds conservatively per PRDR (any non-met sibling makes the PRDR not-met), and keys by the supplied issue->PRDR association; every other aggregate passes through (!= met), untrusted files are omitted. Emits {verdicts:{prdr:value},skipped:[{key,reason}]}; skipped also summarised to stderr. PURE (filesystem read of --dir only, no tracker/network/LLM). Absent --dir -> empty map (exit 0); missing/non-object --association, malformed --association JSON, or unreadable --dir -> exit 2; a successful run (incl. empty map) -> exit 0 (no exit 1, report-only). --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
+  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 .faff/holdout/<ISSUE>.json via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto/--admin), any other token → exit 2. exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs) with no network
+  branch-protection-check [--repo owner/repo] [--branch name] [--json]   FAFF-350: assert-don't-enforce probe (mirrors container-check / ADR-0010) — is the target branch protected? Probes gh api repos/{repo}/branches/{branch}/protection; PURE classifier over the probe result. Prints {status ∈ protected|unprotected|indeterminate, required_checks, basis}; exit 0 protected · 1 not-confirmed (unprotected/indeterminate). The autonomous-entry preflight (beep-boop + lights-out) WARNS by default on not-confirmed, BLOCKS under the opt-in autonomous.require_branch_protection knob, never fires interactive; --selftest runs the classifier table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   project-next --current planned|started|completed|cancelled [--kind project|issue] --total N --active N --done N [--has-dod] [--json]   FAFF-248: container (project|parent-issue) state-coherence transition predicate — emit a ContainerTransition JSON {kind,current,desired,action,reason} from a child-issue rollup. PURE (no tracker/network — parity with next/contain): the /faff-tidy orchestrator-lane sweep maps live child statuses to {total,active,done} and applies any advance. Forward-only + monotonic — advance ONLY when rank(desired)>rank(current); never moves a container backward. v1: project→started (first child starts) · parent-issue→started (any child in progress) · project→completed (ALL children done AND no DoD; --has-dod defers to FAFF-259). Parent-issue→Done out of scope. exit 0 (pure compute) / 2 malformed rollup; --selftest runs the transition + monotonicity table
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
@@ -6180,8 +6188,84 @@ function computePrdrYagniVerdict(input) {
   return { admit, reason, trace_to_goal, proposal, challenge, grounding_present: !!input.groundingPresent, conformant: true, violations: [] };
 }
 
+// --- integrity-floor (FAFF-350) ---
+// The PURE decision core of `faff merge-gate` — the merge floor as a testable contract,
+// registered here so the same table-driven contract-selftest harness that gates every other
+// contract also gates the floor combination logic (FAFF-3's spec named this extension point).
+// It NEVER observes CI or reads artifacts — the impure `cmdMergeGate` shell gathers those into a
+// FloorInputs record and calls decideFloor; this contract re-validates + decides. Fail-closed:
+// out-of-enum inputs are a shell bug, not a mergeable state, so they FAIL-LOUD (exit 2) — there is
+// no "safe coerce to pass" here, ever. `violations` carries the blockers, so the uniform exitFor
+// maps blockers-empty→exit 0 (merge-ok) and blockers-present→exit 1 (refuse).
+const CI_STATES = ["ci-green", "ci-red", "no-ci-coverage", "indeterminate"];
+const FLOOR_REVIEW_VERDICTS = ["pass", "fail", "needs-human", "missing"];
+const FLOOR_LEVELS = ["L1", "L2", "L3", "L4"];
+const FLOOR_HOLDOUTS = ["meets-spec", "blocked", "missing", "not-applicable"];
+const NO_CI_POLICIES = ["needs-human", "allow"];
+
+// PURE: FloorInputs -> { verdict, blockers }. Same inputs, same verdict — the whole point of the
+// ticket. Every failing leg is reported (never just the first) so a refuse names all its causes.
+function decideFloor(f) {
+  const blockers = [];
+  if (!f.ac_complete) blockers.push("ACs not all verified");
+  if (f.review_verdict !== "pass") blockers.push(`review verdict is ${f.review_verdict} (need pass)`);
+  if (f.ci_state === "ci-red") blockers.push("CI failing on head sha");
+  if (f.ci_state === "indeterminate") blockers.push("CI state indeterminate / not on head sha");
+  if (!f.head_sha_matches) blockers.push("green CI is not on the current PR head sha");
+  if (f.ci_state === "no-ci-coverage" && f.no_ci_policy === "needs-human") blockers.push("no CI coverage for this diff (FAFF-3)");
+  if (f.level === "L4" && f.holdout !== "meets-spec") blockers.push(`L4 holdout: ${f.holdout} (need meets-spec)`);
+  return { verdict: blockers.length === 0 ? "merge-ok" : "refuse", blockers };
+}
+
+function computeIntegrityFloor(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const e = extraction;
+  if (typeof e.ac_complete !== "boolean") return { contractData: null, failLoud: "ac_complete must be a boolean" };
+  if (typeof e.head_sha_matches !== "boolean") return { contractData: null, failLoud: "head_sha_matches must be a boolean" };
+  if (!FLOOR_REVIEW_VERDICTS.includes(e.review_verdict)) return { contractData: null, failLoud: `review_verdict ${JSON.stringify(e.review_verdict)} not in {${FLOOR_REVIEW_VERDICTS.join(",")}}` };
+  if (!CI_STATES.includes(e.ci_state)) return { contractData: null, failLoud: `ci_state ${JSON.stringify(e.ci_state)} not in {${CI_STATES.join(",")}}` };
+  if (!FLOOR_LEVELS.includes(e.level)) return { contractData: null, failLoud: `level ${JSON.stringify(e.level)} not in {${FLOOR_LEVELS.join(",")}}` };
+  if (!FLOOR_HOLDOUTS.includes(e.holdout)) return { contractData: null, failLoud: `holdout ${JSON.stringify(e.holdout)} not in {${FLOOR_HOLDOUTS.join(",")}}` };
+  const no_ci_policy = e.no_ci_policy === undefined ? "needs-human" : e.no_ci_policy;
+  if (!NO_CI_POLICIES.includes(no_ci_policy)) return { contractData: null, failLoud: `no_ci_policy ${JSON.stringify(no_ci_policy)} not in {${NO_CI_POLICIES.join(",")}}` };
+  const f = { ac_complete: e.ac_complete, review_verdict: e.review_verdict, ci_state: e.ci_state, head_sha_matches: e.head_sha_matches, level: e.level, holdout: e.holdout, no_ci_policy };
+  const { verdict, blockers } = decideFloor(f);
+  return { contractData: { verdict, ci_state: f.ci_state, level: f.level, conformant: verdict === "merge-ok", violations: blockers }, failLoud: null };
+}
+
+function contractIntegrityFloor(extraction) {
+  const { contractData, failLoud } = computeIntegrityFloor(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "integrity-floor");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // Each contract: a `run` (extraction -> { contractData, failLoud }) + `--selftest` fixtures.
 const CONTRACTS = {
+  "integrity-floor": {
+    run: contractIntegrityFloor,
+    fixtures: [
+      { name: "all-green-merge-ok", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 0 },
+      { name: "ac-incomplete", in: { ac_complete: false, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "review-missing", in: { ac_complete: true, review_verdict: "missing", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "review-fail", in: { ac_complete: true, review_verdict: "fail", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "ci-red", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-red", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "no-ci-coverage-refuses-by-default", in: { ac_complete: true, review_verdict: "pass", ci_state: "no-ci-coverage", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "no-ci-coverage-allow-opt-in", in: { ac_complete: true, review_verdict: "pass", ci_state: "no-ci-coverage", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "allow" }, wantExit: 0 },
+      { name: "head-sha-mismatch", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: false, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "indeterminate-ci", in: { ac_complete: true, review_verdict: "pass", ci_state: "indeterminate", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "l4-holdout-meets-spec", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "meets-spec" }, wantExit: 0 },
+      { name: "l4-holdout-missing", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "missing" }, wantExit: 1 },
+      { name: "l4-holdout-blocked", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L4", holdout: "blocked" }, wantExit: 1 },
+      { name: "fail-loud-bad-ci-state", in: { ac_complete: true, review_verdict: "pass", ci_state: "greenish", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 2 },
+      { name: "fail-loud-bad-level", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L9", holdout: "not-applicable" }, wantExit: 2 },
+      { name: "fail-loud-non-boolean-ac", in: { ac_complete: "yes", review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "spec-readiness": {
     run: contractSpecReadiness,
     fixtures: [
@@ -12781,6 +12865,272 @@ function cmdRegions(args) {
 // the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a
 // subcommand = one entry here (and a docs/guide/cli.md row, or lint-cli-doc fails CI).
 // The -h/--help/help aliases are handled in main() and are deliberately NOT entries.
+// ===========================================================================
+// merge-gate — FAFF-350: the SOLE sanctioned `gh pr merge` path in autonomous mode.
+// pure-core (decideFloor, registered as CONTRACTS["integrity-floor"]) + impure-shell (here).
+// The shell OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict —
+// the model's self-report is exactly what the gate distrusts), RE-READS the persisted floor
+// artifacts from the run-dir, decides via the pure contract, and executes the merge only on
+// merge-ok. Fail-closed everywhere: a missing/unreadable artifact, an indeterminate CI reading,
+// or a head-sha mismatch REFUSES (exit 1). `gh`/`git` are the only external commands.
+// ===========================================================================
+
+// The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
+// untrusted free-text reaches the merge shell (the caller is always graft / the default ship
+// producer — never a ticket description). Unrecognised token → the whole call fail-louds.
+const MERGE_FLAG_ALLOW = new Set(["--squash", "--merge", "--rebase", "--delete-branch", "--auto", "--admin"]);
+function parseMergeArgs(s) {
+  const toks = String(s || "").trim().split(/\s+/).filter(Boolean);
+  const flags = [], rejected = [];
+  for (const t of toks) { if (MERGE_FLAG_ALLOW.has(t)) flags.push(t); else rejected.push(t); }
+  return { flags, rejected };
+}
+
+// PURE: classify the check set FOR THE HEAD SHA into the FAFF-3 trichotomy (+ indeterminate).
+// `runs` = check-runs API rows [{status, conclusion}]; `statusState`/`statusCount` = the legacy
+// commit-status combined state + count. Staleness (checks exist but not on head) is the shell's
+// job — this only judges the head-sha set. Empty set → no-ci-coverage; any fail/unknown → ci-red
+// (fail-closed); any pending → indeterminate; all-ok → ci-green.
+function classifyHeadShaChecks(runs, statusState, statusCount) {
+  runs = Array.isArray(runs) ? runs : [];
+  const total = runs.length + (statusCount || 0);
+  if (total === 0) return "no-ci-coverage";
+  const FAIL = new Set(["failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure"]);
+  const OK = new Set(["success", "neutral", "skipped"]);
+  let anyPending = false, anyFail = false;
+  for (const r of runs) {
+    if (r && r.status && r.status !== "completed") { anyPending = true; continue; }
+    const c = r && r.conclusion;
+    if (FAIL.has(c) || !OK.has(c)) anyFail = true; // unknown conclusion → fail-closed
+  }
+  if (statusState === "failure" || statusState === "error") anyFail = true;
+  if (statusState === "pending") anyPending = true;
+  if (anyFail) return "ci-red";
+  if (anyPending) return "indeterminate";
+  return "ci-green";
+}
+
+// PURE: the gh-api probe result → BranchProtectionState. Reachable+protected → protected;
+// reachable+404 → unprotected; unreachable/forbidden → indeterminate (fail-closed, warns).
+function classifyBranchProtection(probe) {
+  if (!probe || !probe.ok) return { status: "indeterminate", required_checks: [], basis: (probe && probe.basis) || "gh api unreachable" };
+  if (probe.protected) return { status: "protected", required_checks: probe.required_checks || [], basis: probe.basis || "branch protection present" };
+  return { status: "unprotected", required_checks: [], basis: probe.basis || "no branch protection" };
+}
+
+// Impure gh helper: run `gh <args>`, JSON-parse stdout. Returns { ok, data, status, stderr }.
+function ghJson(args) {
+  const r = spawnSync("gh", args, { encoding: "utf8", timeout: 60000 });
+  if (r.error || r.status !== 0) return { ok: false, data: null, status: r.status, stderr: (r.stderr || (r.error && r.error.message) || "").trim() };
+  try { return { ok: true, data: JSON.parse(r.stdout), status: 0, stderr: "" }; }
+  catch { return { ok: false, data: null, status: 0, stderr: "unparseable gh JSON" }; }
+}
+
+function ghRepoSlug(explicit) {
+  if (explicit) return explicit;
+  const r = ghJson(["repo", "view", "--json", "nameWithOwner"]);
+  return r.ok && r.data ? r.data.nameWithOwner : null;
+}
+
+// Observe CI for the head sha authoritatively (head-sha check-runs + legacy status). A zero head-sha
+// set is disambiguated: if `gh pr checks` shows ANY checks they belong to an earlier commit → stale
+// green (head_sha_matches:false → refuse); otherwise genuine no-ci-coverage. gh outage → indeterminate.
+function observeCi(repo, pr, headSha) {
+  const cr = ghJson(["api", `repos/${repo}/commits/${headSha}/check-runs`, "--jq", "[.check_runs[] | {status, conclusion}]"]);
+  const stt = ghJson(["api", `repos/${repo}/commits/${headSha}/status`, "--jq", "{state: .state, count: (.statuses | length)}"]);
+  if (!cr.ok && !stt.ok) return { ci_state: "indeterminate", head_sha_matches: true, detail: "gh api unreachable for head-sha checks" };
+  const runs = cr.ok && Array.isArray(cr.data) ? cr.data : [];
+  const statusState = stt.ok && stt.data ? stt.data.state : null;
+  const statusCount = stt.ok && stt.data ? stt.data.count : 0;
+  const headState = classifyHeadShaChecks(runs, statusState, statusCount);
+  if (headState !== "no-ci-coverage") return { ci_state: headState, head_sha_matches: true, detail: `head-sha checks: ${headState}` };
+  // Head sha carries zero checks — stale-green or genuine no-CI?
+  const prc = ghJson(["pr", "checks", String(pr), "--json", "state"]);
+  const anyPr = prc.ok && Array.isArray(prc.data) && prc.data.length > 0;
+  if (anyPr) return { ci_state: "ci-green", head_sha_matches: false, detail: "checks exist but none on the current head sha (stale green)" };
+  return { ci_state: "no-ci-coverage", head_sha_matches: true, detail: "no checks on head sha and none on the PR" };
+}
+
+// Read the AC-checklist artifact graft persists at <run-dir>/<ISSUE>/ac-checklist.json.
+// Missing/unreadable/malformed → false (fail-closed: an unverifiable AC leg never passes).
+function readAcComplete(runDir, issue) {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(runDir, issue, "ac-checklist.json"), "utf8"));
+    return j && (j.all_verified === true || j.ac_complete === true);
+  } catch { return false; }
+}
+
+// Read + RE-VALIDATE the review-verdict block graft persists at <run-dir>/<ISSUE>/review-verdict.json
+// through the SAME computeReviewVerdict rule (never a forked check). Missing/unreadable/fail-loud →
+// "missing" (fail-closed). A conformant block yields its own signal (pass|fail|needs-human).
+function readReviewVerdict(runDir, issue) {
+  let block;
+  try { block = JSON.parse(fs.readFileSync(path.join(runDir, issue, "review-verdict.json"), "utf8")); }
+  catch { return "missing"; }
+  const { contractData, failLoud } = computeReviewVerdict(block);
+  if (failLoud || !contractData) return "missing";
+  return contractData.signal;
+}
+
+// Read the per-issue holdout verdict via the SAME holdoutGateResult gate (never forked).
+// pass → meets-spec; a "missing" block → missing; any other block → blocked.
+function readHoldout(issue, dir) {
+  let block;
+  try { block = JSON.parse(fs.readFileSync(path.join(dir || ".faff/holdout", `${issue}.json`), "utf8")); }
+  catch (e) { return "missing"; }
+  const res = holdoutGateResult(block);
+  if (res.gate === "pass") return "meets-spec";
+  return res.reason === "missing" ? "missing" : "blocked";
+}
+
+function cmdMergeGate(args) {
+  if (args.includes("--selftest")) return mergeGateSelftest();
+  const json = args.includes("--json");
+  const pr = adrFlag(args, "--pr");
+  const issue = adrFlag(args, "--issue");
+  const runDir = adrFlag(args, "--run-dir");
+  const level = adrFlag(args, "--level") || "L3";
+  const mode = args.includes("--check-only") ? "check-only" : "execute";
+  const interactive = args.includes("--interactive");
+  const humanOverride = args.includes("--human-override");
+  const noCiPolicy = args.includes("--allow-no-ci") ? "allow" : "needs-human";
+  const mergeArgsRaw = adrFlag(args, "--merge-args") || "";
+  const repoFlag = adrFlag(args, "--repo");
+
+  if (!pr || !issue || !runDir) { process.stderr.write("faff merge-gate: --pr, --issue and --run-dir are required\n"); return 2; }
+  if (!FLOOR_LEVELS.includes(level)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(level)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
+  const parsedMerge = parseMergeArgs(mergeArgsRaw);
+  if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
+
+  const emit = (res, status) => {
+    if (json) process.stdout.write(JSON.stringify(res) + "\n");
+    else {
+      console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}`);
+      for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
+    }
+    return status;
+  };
+
+  const repo = ghRepoSlug(repoFlag);
+  if (!repo) { process.stderr.write("faff merge-gate: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
+  const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,state,url"]);
+  if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
+  const headSha = hv.data.headRefOid;
+  // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status monotonicity).
+  if (hv.data.state === "MERGED") return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headSha, note: "already merged" }, 0);
+
+  const ci = observeCi(repo, pr, headSha);
+  const floor = {
+    ac_complete: readAcComplete(runDir, issue),
+    review_verdict: readReviewVerdict(runDir, issue),
+    ci_state: ci.ci_state,
+    head_sha_matches: ci.head_sha_matches,
+    level,
+    holdout: level === "L4" ? readHoldout(issue) : "not-applicable",
+    no_ci_policy: noCiPolicy,
+  };
+  const { verdict, blockers } = decideFloor(floor);
+  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail };
+
+  if (verdict === "refuse") {
+    if (interactive && humanOverride) {
+      try {
+        fs.mkdirSync(path.join(runDir, issue), { recursive: true });
+        fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ pr, issue, head_sha: headSha, blockers, overridden_at: new Date().toISOString() }, null, 2) + "\n");
+      } catch (e) { process.stderr.write(`faff merge-gate: could not record human override: ${e.message}\n`); return 2; }
+      // fall through to execute — the recorded human override REPLACES the autonomous refusal.
+    } else {
+      return emit(result, 1);
+    }
+  }
+  if (mode === "check-only") return emit({ ...result, verdict: "merge-ok" }, 0);
+
+  const m = spawnSync("gh", ["pr", "merge", String(pr), ...parsedMerge.flags], { encoding: "utf8", timeout: 120000 });
+  if (m.status !== 0) {
+    result.verdict = "refuse";
+    result.blockers = [...blockers, `gh pr merge rejected: ${(m.stderr || "non-zero exit").trim()}`];
+    return emit(result, 1);
+  }
+  result.merged = true;
+  result.verdict = "merge-ok";
+  return emit(result, 0);
+}
+
+function cmdBranchProtectionCheck(args) {
+  if (args.includes("--selftest")) return branchProtectionSelftest();
+  const json = args.includes("--json");
+  const repo = ghRepoSlug(adrFlag(args, "--repo"));
+  if (!repo) { process.stderr.write("faff branch-protection-check: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
+  let branch = adrFlag(args, "--branch");
+  if (!branch) {
+    const dv = ghJson(["repo", "view", "--json", "defaultBranchRef"]);
+    branch = dv.ok && dv.data && dv.data.defaultBranchRef ? dv.data.defaultBranchRef.name : "main";
+  }
+  const r = spawnSync("gh", ["api", `repos/${repo}/branches/${branch}/protection`], { encoding: "utf8", timeout: 60000 });
+  let probe;
+  if (r.error) probe = { ok: false, basis: `gh unavailable: ${r.error.message}` };
+  else if (r.status === 0) {
+    let contexts = [];
+    try { const p = JSON.parse(r.stdout); contexts = (p.required_status_checks && p.required_status_checks.contexts) || []; } catch {}
+    probe = { ok: true, protected: true, required_checks: contexts, basis: `gh api repos/${repo}/branches/${branch}/protection` };
+  } else if (/404|Not Found|Branch not protected/i.test(r.stderr || "")) {
+    probe = { ok: true, protected: false, basis: `no protection on ${branch}` };
+  } else {
+    probe = { ok: false, basis: `gh api error (${r.status}): ${(r.stderr || "").split("\n")[0]}` };
+  }
+  const st = classifyBranchProtection(probe);
+  st.branch = branch; st.repo = repo;
+  if (json) process.stdout.write(JSON.stringify(st) + "\n");
+  else console.log(`${st.status} (basis: ${st.basis})${st.required_checks.length ? ` — required: ${st.required_checks.join(", ")}` : ""}`);
+  return st.status === "protected" ? 0 : 1;
+}
+
+// In-memory selftest: drives the PURE cores (decideFloor via classifyHeadShaChecks + parseMergeArgs
+// + classifyBranchProtection) with NO network. The impure gh/git path is covered by the integration
+// smoke test in the spec, not here (parity with container-check's pure-only selftest).
+function mergeGateSelftest() {
+  let fail = 0;
+  const check = (label, cond) => { if (!cond) { console.log(`FAIL ${label}`); fail++; } else console.log(`ok   ${label}`); };
+  const F = (o) => decideFloor({ ac_complete: true, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "needs-human", ...o });
+  check("all-green → merge-ok", F({}).verdict === "merge-ok");
+  check("ci-red → refuse", F({ ci_state: "ci-red" }).verdict === "refuse");
+  check("no-ci-coverage → refuse (default)", F({ ci_state: "no-ci-coverage" }).verdict === "refuse");
+  check("no-ci-coverage + allow → merge-ok", F({ ci_state: "no-ci-coverage", no_ci_policy: "allow" }).verdict === "merge-ok");
+  check("head-sha-mismatch → refuse", F({ head_sha_matches: false }).verdict === "refuse");
+  check("indeterminate → refuse", F({ ci_state: "indeterminate" }).verdict === "refuse");
+  check("absent review block → refuse", F({ review_verdict: "missing" }).verdict === "refuse");
+  check("L4 holdout meets-spec → merge-ok", F({ level: "L4", holdout: "meets-spec" }).verdict === "merge-ok");
+  check("L4 holdout missing → refuse", F({ level: "L4", holdout: "missing" }).verdict === "refuse");
+  check("L4 holdout blocked → refuse", F({ level: "L4", holdout: "blocked" }).verdict === "refuse");
+  check("multi-blocker names all legs", F({ ac_complete: false, review_verdict: "fail" }).blockers.length === 2);
+  // classifyHeadShaChecks
+  check("head checks: empty → no-ci-coverage", classifyHeadShaChecks([], null, 0) === "no-ci-coverage");
+  check("head checks: all success → ci-green", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }], "success", 1) === "ci-green");
+  check("head checks: a failure → ci-red", classifyHeadShaChecks([{ status: "completed", conclusion: "failure" }], null, 0) === "ci-red");
+  check("head checks: pending → indeterminate", classifyHeadShaChecks([{ status: "in_progress", conclusion: null }], null, 0) === "indeterminate");
+  check("head checks: unknown conclusion → ci-red (fail-closed)", classifyHeadShaChecks([{ status: "completed", conclusion: "weird" }], null, 0) === "ci-red");
+  check("head checks: status failure → ci-red", classifyHeadShaChecks([], "failure", 1) === "ci-red");
+  // parseMergeArgs
+  check("merge-args: allowed pass through", (() => { const p = parseMergeArgs("--squash --delete-branch"); return p.flags.length === 2 && p.rejected.length === 0; })());
+  check("merge-args: unknown token rejected", parseMergeArgs("--squash; rm -rf /").rejected.length > 0);
+  check("merge-args: empty → nothing", (() => { const p = parseMergeArgs(""); return p.flags.length === 0 && p.rejected.length === 0; })());
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+function branchProtectionSelftest() {
+  let fail = 0;
+  const check = (label, cond) => { if (!cond) { console.log(`FAIL ${label}`); fail++; } else console.log(`ok   ${label}`); };
+  check("reachable + protected → protected", classifyBranchProtection({ ok: true, protected: true, required_checks: ["validate"] }).status === "protected");
+  check("protected carries required_checks", classifyBranchProtection({ ok: true, protected: true, required_checks: ["validate"] }).required_checks.length === 1);
+  check("reachable + not protected → unprotected", classifyBranchProtection({ ok: true, protected: false }).status === "unprotected");
+  check("unreachable → indeterminate", classifyBranchProtection({ ok: false, basis: "gh outage" }).status === "indeterminate");
+  check("null probe → indeterminate", classifyBranchProtection(null).status === "indeterminate");
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (branch-protection pure classifier, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 const COMMANDS = {
   "config": cmdConfig,
   "sync": cmdSync,
@@ -12802,6 +13152,8 @@ const COMMANDS = {
   "holdout": cmdHoldout,
   "spec-review-lenses": cmdSpecReviewLenses,
   "container-check": cmdContainerCheck,
+  "merge-gate": cmdMergeGate,
+  "branch-protection-check": cmdBranchProtectionCheck,
   "next": cmdNext,
   "project-next": cmdProjectNext,
   "state": cmdState,

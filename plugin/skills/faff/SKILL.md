@@ -141,7 +141,11 @@ slots:             # optional delegation slots; each has a faff default when uns
 # mode: delivery-lead is DEPRECATED — use slots.methodology instead. gates.fallback: advisory | fail-closed — what Step 7.5 does when NO declared gates are found (default advisory: surface + pass; fail-closed: needs-human)
 
 models:            # optional per-lane model selection (FAFF-315); every key optional, unset ⇒ inherit (byte-for-byte today)
-  build: sonnet            # Agent-token (sonnet|opus|haiku|fable) — the concurrency executors' build subagents
+  build: sonnet            # Agent-token (sonnet|opus|haiku|fable) — the concurrency executors' build subagents (per-run scalar)
+  build_by_confidence:     # OPTIONAL per-issue matcher (FAFF-334); absent ⇒ resolve models.build once/run, byte-for-byte today
+    default: opus          #   Agent-token used when an issue's confidence has no explicit leaf
+    high: sonnet           #   a retained confidence: high (mechanical) spec ⇒ the cheap lane
+    medium: opus           #   a retained confidence: medium / thin spec ⇒ the richer model
   prep_explore: haiku      # Agent-token — faff-prep's explore + clean-context verify subagents
   eval: claude-sonnet-4-6  # model id for the eval frontier driver's `claude -p --model` (pinned default; never the account default)
 
@@ -222,10 +226,11 @@ Slots choose *what skill* runs at a stage; the `models:` map chooses *what model
 The v1 lanes and their consumers:
 
 - `models.build` — resolved once per run by the `concurrency` executors and stamped into every `BuildDispatch`; a token is passed as the Agent-tool `model` parameter, `inherit` (default) omits it (byte-for-byte today).
+  - **Per-issue routing (`models.build_by_confidence`, FAFF-334 — opt-in).** The build model's suitability is per-*issue*, not per-run: on a thin/medium-confidence spec the build subagent runs spec-gap resolve-attempts and its inline first-pass self-review, both of which degrade on a weaker model. So the OPTIONAL sibling matcher `models.build_by_confidence` (a `default` plus confidence-keyed leaves) keys the build model off the issue's **retained spec confidence**, resolved **per issue at dispatch** by the pure resolver **`faff models build-for <confidence>`** — fallback `build_by_confidence.<conf> → .default → models.build → inherit`, the resolved token validated against the same closed set (fail-loud). The confidence rides the partition payload the orchestrator already annotates (it reads each spec's confidence for the routing-verdict gate), so no new tracker read is added. **Matcher absent ⇒ the per-run `models.build` scalar above, byte-for-byte.** Only `high`/`medium` route (a `low` spec never reaches build); an absent/unparseable confidence routes to the `default` bucket.
 - `models.prep_explore` — resolved by `faff-prep` for its explore / clean-context-verify subagent dispatches, same semantics.
 - `models.eval` — the eval frontier driver's model (`claude -p --model`), **pinned** (default `claude-sonnet-4-6`) so eval bulk never silently bills the account-default model (the budget guard), with `run-evals --model` as the explicit override; the resolved model is named in the run output and baseline meta because eval numbers are model-specific (the validity guard).
 
-Rules: resolution is **CLI-only** (`faff config get models.<lane>` — the registry supplies defaults); `models.build`/`models.prep_explore` take the **closed Agent-token set** (`sonnet` | `opus` | `haiku` | `fable`, plus `inherit`) and an off-vocabulary value **fails loud at read** (exit 2 naming the legal set) — never a silent fallback. `models:` **composes with, never subsumes**, the engine blocks that own non-Anthropic wire formats: the adversarial reviewer's `faffter_dark.adversarial` block stays authoritative for its lane, and a future evaluate-call helper takes its own block on the same pattern. A non-default `models.*` value is echoed by `faff config resolved`, so a pinned model is visible in the run banner, never silent.
+Rules: resolution is **CLI-only** (`faff config get models.<lane>`, or `faff models build-for <conf>` for the per-issue matcher — the registry supplies defaults); `models.build`/`models.prep_explore` **and the `models.build_by_confidence.*` matcher leaves** take the **closed Agent-token set** (`sonnet` | `opus` | `haiku` | `fable`, plus `inherit`) and an off-vocabulary value **fails loud at read** (exit 2 naming the legal set) — never a silent fallback. `models:` **composes with, never subsumes**, the engine blocks that own non-Anthropic wire formats: the adversarial reviewer's `faffter_dark.adversarial` block stays authoritative for its lane, and a future evaluate-call helper takes its own block on the same pattern. A non-default `models.*` value is echoed by `faff config resolved`, so a pinned model is visible in the run banner, never silent.
 
 ## Agent Lanes
 

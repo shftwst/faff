@@ -115,7 +115,8 @@ test("AC2: the sentry source carries no token/cost counter — it shells `budget
   const src = readFileSync(CLI, "utf8");
   const start = src.indexOf("function cmdSentry");
   const end = src.indexOf("function sentrySelftest");
-  const region = src.slice(src.indexOf("// sentry — FAFF-49"), end > start ? end : undefined);
+  // Anchor on the section-name fragment, agnostic of the banner's region-tag framing.
+  const region = src.slice(src.indexOf("sentry — FAFF-49"), end > start ? end : undefined);
   assert.ok(/\[__filename, "budget", "check"/.test(region), "consumes `faff budget check` via a child invocation");
   assert.ok(!/measureTokens|tokens_at_start|price_per_mtok|est_tokens_per_attempt/.test(region), "no budget math re-implemented in sentry");
 });

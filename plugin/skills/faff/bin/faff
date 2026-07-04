@@ -31,6 +31,14 @@ const { spawnSync } = require("node:child_process");
 
 const HERE = __dirname;
 
+// ===========================================================================
+// === region:shared-infra — roots, ledgers, yaml subset ===
+//
+// Extraction layering (three-tier region model, ADR 0042): shared-infra may
+// reference NEITHER region's identifiers; governance may reference shared-infra
+// ONLY; factory may reference both (the future package-consumer relationship).
+// `faff regions check` is the direction lint that enforces this.
+// ===========================================================================
 // ---------------------------------------------------------------------------
 // shared: find the repo root (dir containing .git or .faff), else cwd
 // ---------------------------------------------------------------------------
@@ -44,53 +52,22 @@ function findRoot(start = process.cwd()) {
   }
 }
 
-// ===========================================================================
-// config — resolve / read .faffrc (YAML subset, no deps)
-// ===========================================================================
-// FAFF-50: single canonical config filename. The resolver accepts ONLY `.faffrc.yaml`;
-// a legacy-named config (`.faffrc.yml` / `.faffrc`) is a LOUD ERROR, never a silent default —
-// the silent-fallback that dropped configured slots twice.
-const CANONICAL_CONFIG = ".faffrc.yaml";
-const LEGACY_CONFIG = [".faffrc.yml", ".faffrc"];
-
-function findConfigIn(base) {
-  const isFile = (n) => !n.includes(".example") &&
-    fs.existsSync(path.join(base, n)) && fs.statSync(path.join(base, n)).isFile();
-  const legacy = LEGACY_CONFIG.filter(isFile);
-  if (legacy.length) {
-    const err = new Error("legacy-config-name");
-    err.legacy = legacy;
-    throw err;
-  }
-  return isFile(CANONICAL_CONFIG) ? path.join(base, CANONICAL_CONFIG) : null;
+function latestRunDir(root) {
+  const runs = path.join(root, ".faff", "runs");
+  if (!fs.existsSync(runs)) return null;
+  const cands = fs.readdirSync(runs)
+    .map((name) => path.join(runs, name))
+    .filter((p) => fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, "run-ledger.json")));
+  if (!cands.length) return null;
+  return cands.sort()[cands.length - 1]; // run-ids are date-prefixed → lexical == chronological
 }
 
-// FAFF-208: the MAIN worktree's root for a linked git worktree, resolved via git's
-// shared common-dir. Returns null outside a repo, on a bare/odd layout, or when `root`
-// already IS the main checkout — so the fallback below only ever fires for a linked
-// worktree and never changes main-checkout behaviour. Read-only git.
-function mainWorktreeRoot(root) {
-  const r = spawnSync("git", ["-C", root, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
-  if (r.status !== 0) return null;
-  let commonDir = (r.stdout || "").trim();
-  if (!commonDir) return null;
-  if (!path.isAbsolute(commonDir)) commonDir = path.resolve(root, commonDir);
-  // `<main>/.git` for a normal repo; the main checkout is its parent. Bail on bare repos.
-  return path.basename(commonDir) === ".git" ? path.dirname(commonDir) : null;
-}
-
-function findConfig(root) {
-  const here = findConfigIn(root);
-  if (here) return here;
-  // FAFF-208: a linked git worktree shares its repo with the main checkout, but the
-  // gitignored .faffrc.yaml is per-checkout and may not have been copied into the
-  // worktree (e.g. a build worktree created outside the WorktreeCreate hook). Fall back
-  // to the main checkout's config so consumers (adversarial-review host, appetite,
-  // slots) never silently resolve to defaults just because the worktree lacks the copy
-  // — the silent gate-degradation behind FAFF-198's localhost adversarial-review misfire.
-  const mainRoot = mainWorktreeRoot(root);
-  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findConfigIn(mainRoot);
-  return null;
+// Shared ledger reader (FAFF-65): parse a run's run-ledger.json into its object.
+// Used by runcheck's auditRun (per-run completeness audit) AND by `faff state`'s
+// resolveLedgerOutcome (per-issue outcome lookup). Sharing the parse is the right
+// amount of reuse — neither subcommand subsumes the other (spec OQ3).
+function readLedger(runDir) {
+  return JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
 }
 
 function stripInlineComment(s) {
@@ -256,6 +233,55 @@ function dig(data, dotted) {
     else return null;
   }
   return cur;
+}
+
+// ===========================================================================
+// === region:factory — config — resolve / read .faffrc (YAML subset, no deps) ===
+// ===========================================================================
+// FAFF-50: single canonical config filename. The resolver accepts ONLY `.faffrc.yaml`;
+// a legacy-named config (`.faffrc.yml` / `.faffrc`) is a LOUD ERROR, never a silent default —
+// the silent-fallback that dropped configured slots twice.
+const CANONICAL_CONFIG = ".faffrc.yaml";
+const LEGACY_CONFIG = [".faffrc.yml", ".faffrc"];
+
+function findConfigIn(base) {
+  const isFile = (n) => !n.includes(".example") &&
+    fs.existsSync(path.join(base, n)) && fs.statSync(path.join(base, n)).isFile();
+  const legacy = LEGACY_CONFIG.filter(isFile);
+  if (legacy.length) {
+    const err = new Error("legacy-config-name");
+    err.legacy = legacy;
+    throw err;
+  }
+  return isFile(CANONICAL_CONFIG) ? path.join(base, CANONICAL_CONFIG) : null;
+}
+
+// FAFF-208: the MAIN worktree's root for a linked git worktree, resolved via git's
+// shared common-dir. Returns null outside a repo, on a bare/odd layout, or when `root`
+// already IS the main checkout — so the fallback below only ever fires for a linked
+// worktree and never changes main-checkout behaviour. Read-only git.
+function mainWorktreeRoot(root) {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
+  if (r.status !== 0) return null;
+  let commonDir = (r.stdout || "").trim();
+  if (!commonDir) return null;
+  if (!path.isAbsolute(commonDir)) commonDir = path.resolve(root, commonDir);
+  // `<main>/.git` for a normal repo; the main checkout is its parent. Bail on bare repos.
+  return path.basename(commonDir) === ".git" ? path.dirname(commonDir) : null;
+}
+
+function findConfig(root) {
+  const here = findConfigIn(root);
+  if (here) return here;
+  // FAFF-208: a linked git worktree shares its repo with the main checkout, but the
+  // gitignored .faffrc.yaml is per-checkout and may not have been copied into the
+  // worktree (e.g. a build worktree created outside the WorktreeCreate hook). Fall back
+  // to the main checkout's config so consumers (adversarial-review host, appetite,
+  // slots) never silently resolve to defaults just because the worktree lacks the copy
+  // — the silent gate-degradation behind FAFF-198's localhost adversarial-review misfire.
+  const mainRoot = mainWorktreeRoot(root);
+  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findConfigIn(mainRoot);
+  return null;
 }
 
 // FAFF-182: the single source of truth for config defaults, keyed by dotted config path.
@@ -880,27 +906,17 @@ function cmdConfig(args) {
 }
 
 // ===========================================================================
-// runcheck — verify a beep-boop run dispatched its queue
+// === region:governance — runcheck — verify a beep-boop run dispatched its queue ===
 // ===========================================================================
+// Vocabulary: "unit" — the governance core's name for the thing a run admits and
+// resolves. In faff-the-factory's dialect a unit is an issue id; persisted formats
+// keep their field names (see the compat notes at each definition site).
+//
+// TERMINAL_STATES — the outcome vocabulary of the run ledger: the terminal states a
+// unit's recorded outcome must resolve to. Ledger `admitted[]` entries and `outcomes{}`
+// keys are unit keys:
+// "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
 const TERMINAL_STATES = new Set(["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"]);
-
-function latestRunDir(root) {
-  const runs = path.join(root, ".faff", "runs");
-  if (!fs.existsSync(runs)) return null;
-  const cands = fs.readdirSync(runs)
-    .map((name) => path.join(runs, name))
-    .filter((p) => fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, "run-ledger.json")));
-  if (!cands.length) return null;
-  return cands.sort()[cands.length - 1]; // run-ids are date-prefixed → lexical == chronological
-}
-
-// Shared ledger reader (FAFF-65): parse a run's run-ledger.json into its object.
-// Used by runcheck's auditRun (per-run completeness audit) AND by `faff state`'s
-// resolveLedgerOutcome (per-issue outcome lookup). Sharing the parse is the right
-// amount of reuse — neither subcommand subsumes the other (spec OQ3).
-function readLedger(runDir) {
-  return JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
-}
 
 // Pure audit over a parsed ledger object (FAFF-205): the completeness core,
 // decoupled from disk so the gate (which already holds the ledger) and the
@@ -1146,7 +1162,7 @@ function runcheckSelftest() {
 }
 
 // ===========================================================================
-// heartbeat — FAFF-234: the single sanctioned write path for owner.last_heartbeat.
+// === region:governance — heartbeat — FAFF-234: the single sanctioned write path for owner.last_heartbeat. ===
 //
 // Liveness (runIsHeld, above) is heartbeat-only: a run reads `held` while its
 // owner.last_heartbeat is fresher than STALE_SECS. But builds now run as isolated
@@ -1269,7 +1285,7 @@ function heartbeatSelftest() {
 }
 
 // ===========================================================================
-// prepcheck — verify faff-prep attached every spec it produced (same-turn).
+// === region:factory — prepcheck — verify faff-prep attached every spec it produced (same-turn). ===
 // The Stop-hook sibling of runcheck (FAFF-178): "attach the produced spec" is a
 // mechanical guarantee, not prose. prep writes an externalised attach-state marker
 // at produce time (attached:false, before rendering) and flips it true after the
@@ -1532,7 +1548,7 @@ function prepcheckSelftest() {
 }
 
 // ===========================================================================
-// intake-provenance guard (FAFF-212) — make "new work entered through the front
+// === region:factory — intake-provenance guard (FAFF-212) — make "new work entered through the front ===
 // door" a deterministic, checkable fact rather than a prose convention.
 //
 // Today the only signal a ticket came through /faff-jot is the `faff-jot-intake`
@@ -1958,7 +1974,7 @@ function initiatedOfSelftest() {
 }
 
 // ===========================================================================
-// contain — FAFF-219 (Split A of FAFF-217), generalized to container mandates by
+// === region:factory — contain — FAFF-219 (Split A of FAFF-217), generalized to container mandates by ===
 // FAFF-222 (Down the pub / L4). The subtree-of-mandate containment primitive: the
 // net-new deterministic core the whole scope-containment family rests on. An
 // autonomous run holds a MANDATE (the container the orchestrator dispatched it to
@@ -2232,7 +2248,7 @@ function containSelftest() {
 }
 
 // ===========================================================================
-// budget — FAFF-36: run cost / compute budgeting.
+// === region:governance — budget — FAFF-36: run cost / compute budgeting. ===
 //
 // `faff budget check` is a PURE CLI (parity with `faff next` / `faff eligible`):
 // reads the run-ledger + config + the run's local transcripts and emits a
@@ -2636,7 +2652,7 @@ function budgetSelftest() {
 }
 
 // ===========================================================================
-// run-done — FAFF-38: the terminating-condition predicate.
+// === region:factory — run-done — FAFF-38: the terminating-condition predicate. ===
 // `faff run-done` is a PURE CLI (parity with `faff next` / `faff budget check` /
 // `faff prdr coverage`): no tracker, no network, no disk beyond its args, and it
 // NEVER calls the methodology — the orchestrator resolves the policy and hands it
@@ -2885,7 +2901,7 @@ function runDoneSelftest() {
 }
 
 // ===========================================================================
-// hooks-ensure — idempotently register faff's Stop-hook command set into
+// === region:factory — hooks-ensure — idempotently register faff's Stop-hook command set into ===
 // .claude/settings.json (FAFF-192). The deterministic, repeatable replacement
 // for the per-install manual settings edit. Sibling of gitignore-ensure:
 // non-destructive, byte-stable no-op when present, fail-loud (exit 2) on
@@ -3117,7 +3133,7 @@ function hooksEnsureSelftest() {
 }
 
 // ===========================================================================
-// validate-adapters — structural conformance lint of the shipped slot skills
+// === region:factory — validate-adapters — structural conformance lint of the shipped slot skills ===
 // ===========================================================================
 const REGISTRY = {
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor", contract: "automation-routing" },
@@ -3716,7 +3732,7 @@ function cmdValidateAdapters(args) {
 }
 
 // ===========================================================================
-// labels — the canonical faff control-label manifest (FAFF-47).
+// === region:factory — labels — the canonical faff control-label manifest (FAFF-47). ===
 // The single source of truth for faff's control labels. The CLI EMITS the set;
 // it cannot create tracker labels (no MCP). The agent ensures-before-tag via the
 // tracker MCP using this manifest (gateway -> Control-label provisioning).
@@ -3749,7 +3765,7 @@ function cmdLabels(args) {
 }
 
 // ===========================================================================
-// label — FAFF-187: the control-label mutation op. PURE: emits a deterministic
+// === region:factory — label — FAFF-187: the control-label mutation op. PURE: emits a deterministic ===
 // op descriptor (issue · label · action · ensure-first · idempotent-noop) the
 // agent executes via the configured tracker MCP. NO tracker access — same
 // invariant as `next`/`eligible`. Validates <label> against the CONTROL_LABELS
@@ -3882,7 +3898,7 @@ function cmdLabel(args) {
 }
 
 // ===========================================================================
-// eligible — FAFF-61: the automation-eligibility function. PURE: resolves whether
+// === region:factory — eligible — FAFF-61: the automation-eligibility function. PURE: resolves whether ===
 // a ticket may be touched by the AUTONOMOUS pipeline, from its labels + the
 // configured `automation_default` knob. Precedence: hard-exclude > include > default.
 // Fail-safe: the shipped default is opt-in, so an unlabelled ticket is NOT eligible,
@@ -3934,7 +3950,7 @@ function cmdEligible(args) {
 }
 
 // ===========================================================================
-// container-check — FAFF-42: assert the ADR-0010 blast-radius boundary.
+// === region:factory — container-check — FAFF-42: assert the ADR-0010 blast-radius boundary. ===
 // faff owns NO sandbox (ADR 0010); the boundary for an autonomous run is a
 // host-isolated CONTAINER, not faff. This is the thin ASSERTION layer — detect
 // whether that container is present and say so; it never enforces. PURE given
@@ -4031,7 +4047,7 @@ function containerCheckSelftest() {
 }
 
 // ===========================================================================
-// next — FAFF-63: the legal-next-step transition function. PURE: the caller
+// === region:factory — next — FAFF-63: the legal-next-step transition function. PURE: the caller ===
 // passes the issue's resolved state (the CLI has no tracker/MCP access); it
 // computes the step. It NEVER executes the step or enforces the gate (FAFF-57).
 // ===========================================================================
@@ -4123,7 +4139,7 @@ function cmdNext(args) {
 }
 
 // ===========================================================================
-// project-next — FAFF-248: the container (project | parent-issue) state-coherence
+// === region:factory — project-next — FAFF-248: the container (project | parent-issue) state-coherence ===
 // transition predicate. PURE: the caller (the /faff-tidy orchestrator-lane sweep)
 // maps a container's live status CATEGORY + its child-issue rollup into flags; the
 // CLI returns the legal forward-only transition. It NEVER reads or writes the
@@ -4267,7 +4283,7 @@ function cmdProjectNext(args) {
 }
 
 // ===========================================================================
-// state — FAFF-65: the LOCAL read-model sibling to `faff next`. Pure-adjacent:
+// === region:factory — state — FAFF-65: the LOCAL read-model sibling to `faff next`. Pure-adjacent: ===
 // it reads only local sources (committed/git-only specs, git branches/worktrees,
 // .faff/runs park records + ledger) and emits the issue's resolved state as JSON
 // in `faff next`'s flag vocabulary. NO MCP/tracker access, NO mutation, NO network.
@@ -4435,7 +4451,7 @@ function cmdState(args) {
 }
 
 // ===========================================================================
-// park-history — FAFF-152: the DETERMINISTIC repeat-park counting seam. Reads the
+// === region:factory — park-history — FAFF-152: the DETERMINISTIC repeat-park counting seam. Reads the ===
 // newest ~50 .faff/runs/*/summary.md, parses each run's ```faff-parks fenced JSON
 // block (an array of {issue_id, root_cause_class, timestamp} — the root_cause_class
 // is ASSIGNED by the routing_adaptor at park time and READ BACK here, never
@@ -4599,7 +4615,7 @@ function cmdParkHistory(args) {
 }
 
 // ===========================================================================
-// gitignore-ensure — FAFF-67: idempotently, non-destructively add faff's local
+// === region:factory — gitignore-ensure — FAFF-67: idempotently, non-destructively add faff's local ===
 // artifacts (the .faffrc config in all accepted forms + the .faff/ dir) to the
 // project's .gitignore. Append-only: never reorders, deduplicates, rewrites, or
 // removes any existing line. A run against an already-correct file is a clean
@@ -4682,7 +4698,7 @@ function cmdGitignoreEnsure(args) {
 }
 
 // ===========================================================================
-// adr — architecture decision records (FAFF-16). Deterministic mechanics over the
+// === region:factory — adr — architecture decision records (FAFF-16). Deterministic mechanics over the ===
 // repo's append-only docs/adr/NNNN-title.md Nygard log: number / scaffold / list / validate.
 // The judgement (is a decision significant? record it?) stays with the human in faff-prep;
 // this command owns only the mechanical parts. Append-only: `new` never overwrites.
@@ -5065,7 +5081,7 @@ function adrSelftest() {
 }
 
 // ===========================================================================
-// dispatch
+// === region:shell — dispatch ===
 // ===========================================================================
 const USAGE = `faff — the bundled CLI for the faff skill suite.
 
@@ -5116,12 +5132,15 @@ Subcommands:
 `;
 
 // ===========================================================================
-// contract — FAFF-77: per-slot contract scripts (conformance by construction).
-// `faff contract <name>` reads an extraction JSON (the adaptor's LLM-read of the
-// producer's prose output) on stdin and emits the canonical, schema-valid contract
-// data on stdout — or fails loud. Contract data flows ONLY from here (the wiring the
-// spec adaptor is checked against). Schema = shape (the .json); gateway = semantics
-// (this script encodes NO gate meanings — high/medium/low promotion lives upstream).
+// === region:governance — contract validation engine ===
+//
+// The generic machinery the per-contract definitions dispatch through: the
+// dependency-free JSON-Schema-subset validator, the on-disk schema check, and
+// the uniform fail-direction exit policy. The 14 contract definitions + the
+// CONTRACTS fixtures map stay factory (they encode faff-the-factory's domain);
+// this engine is the extractable governance idea — a unit's contract data is
+// validated here regardless of which factory defined it. Schemas load from
+// contracts/*.schema.json relative to the binary — unchanged.
 // ===========================================================================
 
 // Minimal dependency-free JSON Schema (Draft 2020-12 SUBSET) validator — a CommonJS
@@ -5162,6 +5181,35 @@ function validateAgainstSchema(data, schema, p = "") {
   }
   return errs;
 }
+
+// Shared: validate emitted contract data against its on-disk schema (belt-and-braces).
+// Returns a fail-loud reason string, or null when the data conforms.
+function schemaCheck(contractData, contractName) {
+  const schemaPath = path.resolve(HERE, "..", "contracts", `${contractName}.schema.json`);
+  try {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+    const errs = validateAgainstSchema(contractData, schema);
+    if (errs.length) return `internal: emitted contract data non-conformant: ${errs.join("; ")}`;
+  } catch (e) {
+    return `cannot load ${contractName} schema: ${e.message}`;
+  }
+  return null;
+}
+
+// Uniform exit: fail-loud → 2; any violation → 1; else 0. (Every contract data carries `violations`.)
+function exitFor(result) {
+  if (result.failLoud) return 2;
+  return (result.contractData.violations || []).length === 0 ? 0 : 1;
+}
+
+// ===========================================================================
+// === region:factory — contract definitions + dispatch — FAFF-77: per-slot contract scripts (conformance by construction). ===
+// `faff contract <name>` reads an extraction JSON (the adaptor's LLM-read of the
+// producer's prose output) on stdin and emits the canonical, schema-valid contract
+// data on stdout — or fails loud. Contract data flows ONLY from here (the wiring the
+// spec adaptor is checked against). Schema = shape (the .json); gateway = semantics
+// (this script encodes NO gate meanings — high/medium/low promotion lives upstream).
+// ===========================================================================
 
 // The marker → classification map (deterministic; FAFF-77 Decision B).
 const MARKER_CLASS = { chosen: "closed", punt: "open", assumes: "external" };
@@ -5207,20 +5255,6 @@ function contractSpecReadiness(extraction) {
     return { failLoud: `cannot load spec-readiness schema: ${e.message}` };
   }
   return { contractData };
-}
-
-// Shared: validate emitted contract data against its on-disk schema (belt-and-braces).
-// Returns a fail-loud reason string, or null when the data conforms.
-function schemaCheck(contractData, contractName) {
-  const schemaPath = path.resolve(HERE, "..", "contracts", `${contractName}.schema.json`);
-  try {
-    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
-    const errs = validateAgainstSchema(contractData, schema);
-    if (errs.length) return `internal: emitted contract data non-conformant: ${errs.join("; ")}`;
-  } catch (e) {
-    return `cannot load ${contractName} schema: ${e.message}`;
-  }
-  return null;
 }
 
 // --- review-verdict (FAFF-78) ---
@@ -6300,12 +6334,6 @@ const CONTRACTS = {
   },
 };
 
-// Uniform exit: fail-loud → 2; any violation → 1; else 0. (Every contract data carries `violations`.)
-function exitFor(result) {
-  if (result.failLoud) return 2;
-  return (result.contractData.violations || []).length === 0 ? 0 : 1;
-}
-
 function contractSelftest(name) {
   const names = name ? [name] : Object.keys(CONTRACTS);
   let fail = 0, total = 0;
@@ -6344,7 +6372,7 @@ function cmdContract(args) {
 }
 
 // ===========================================================================
-// gates — FAFF-11: the engineering-quality gate ladder.
+// === region:factory — gates — FAFF-11: the engineering-quality gate ladder. ===
 // `faff gates discover` deterministically inspects the repo's OWN declared checks and emits an
 // ordered List<Rung> cheapest-first + a discovery classification (confident/none). Sources read
 // (v1): pre-commit hooks, package.json scripts, Makefile targets. (The spec also names CLAUDE.md
@@ -6757,7 +6785,7 @@ function cmdSync(args) {
 }
 
 // ===========================================================================
-// worktree-prune — FAFF-126: the MECHANICAL replacement for the prose guard
+// === region:factory — worktree-prune — FAFF-126: the MECHANICAL replacement for the prose guard ===
 // "never run a repo-wide `git worktree prune` while a peer may be live". A bare
 // `git worktree prune` is repo-wide: it clears EVERY dangling entry in the
 // shared clone's `.git/worktrees/`, so a concurrent peer whose checkout briefly
@@ -6983,7 +7011,7 @@ function worktreePruneSelftest() {
 }
 
 // ===========================================================================
-// profile — FAFF-26: infra-profile schema + CLI (slice 1); FAFF-231: repo-mining acquirer (slice 2)
+// === region:factory — profile — FAFF-26: infra-profile schema + CLI (slice 1); FAFF-231: repo-mining acquirer (slice 2) ===
 //   profile validate [--file PATH]   validate a profile JSON (stdin or --file): 0 valid / 1 invalid / 2 malformed
 //   profile show                     print the effective profile (.faff/infra-profile.json ⊕ .faffrc.yaml infra:); exit 3 when none
 //   profile mine [--json]            FAFF-231: the default `profile`-slot occupant — a deterministic,
@@ -7309,7 +7337,7 @@ function profileSelftest() {
 }
 
 // ===========================================================================
-// fixtures — FAFF-31: dataset-manifest schema + `faff fixtures` CLI (slice 1 of 2)
+// === region:factory — fixtures — FAFF-31: dataset-manifest schema + `faff fixtures` CLI (slice 1 of 2) ===
 //   fixtures validate [--file PATH]   validate a manifest JSON (stdin or --file): 0 valid / 1 invalid / 2 malformed
 //   fixtures show                     print the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:); exit 3 when none
 //   fixtures realise [--file PATH] [--out DIR]   trivial reference generator — deterministically realise a dataset from (manifest, seed)
@@ -7558,7 +7586,7 @@ function fixturesSelftest() {
 }
 
 // ===========================================================================
-// env — FAFF-270: live compose provisioning, hardened + tested.
+// === region:factory — env — FAFF-270: live compose provisioning, hardened + tested. ===
 //   env compose-gen [--profile FILE] [--out PATH] [--project NAME]   PURE: infra-profile → compose file + ProvisionPlan (stdout)
 //   env up   [--plan FILE | --profile FILE] [--project NAME] [--sla-secs N] [--poll-secs N]   docker: compose up -d + health-wait
 //   env seed [--plan FILE] [--manifest FILE]                                docker: fixtures realise + load per seed_targets
@@ -8416,7 +8444,7 @@ function envSelftest() {
 }
 
 // ===========================================================================
-// events — FAFF-35 (slice 1): structured run-event log — the timeline substrate
+// === region:governance — events — FAFF-35 (slice 1): structured run-event log — the timeline substrate ===
 // for run observability. An append-only JSONL log at .faff/runs/<run-id>/events.jsonl,
 // one RunEvent per line. The CLI owns the envelope (schema/run_id/seq/ts); the caller
 // supplies only the payload {phase,type,issue?,data?}. `seq` (current line count) is the
@@ -8432,6 +8460,7 @@ const EVENT_TYPES = new Set([
   "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",
 ]);
 // Types that are about one specific issue → `issue` is required.
+// "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
 const EVENT_ISSUE_SCOPED = new Set([
   "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
 ]);
@@ -8612,7 +8641,7 @@ function eventsSelftest() {
 }
 
 // ===========================================================================
-// effects — FAFF-106: escaped-side-effect detection via a declared-effects ledger.
+// === region:governance — effects — FAFF-106: escaped-side-effect detection via a declared-effects ledger. ===
 //
 // The PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) already consumes.
 // A step DECLARES the effects it intends BEFORE acting; chokepoints OBSERVE effects as
@@ -8725,6 +8754,7 @@ function cmdEffects(args) {
     let seq = eventLineCount(ledgerPath); // authoritative monotonic line count
     const written = [];
     for (const d of descriptors) {
+      // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
       const record = {
         schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(),
         kind_of_entry: cmd, issue, step, effect: normEffect(d),
@@ -8837,7 +8867,7 @@ function effectsSelftest() {
 }
 
 // ===========================================================================
-// sentry — FAFF-49: live-run derailment detection + the hard kill-switch.
+// === region:governance — sentry — FAFF-49: live-run derailment detection + the hard kill-switch. ===
 //
 // The active L4 supervisory lane — a fourth lane peer to orchestrator / implementor
 // / evaluator. Sentry READS a live run's out-of-band, append-only surface — the
@@ -9073,6 +9103,7 @@ function evaluateDerailment(rawSignals, thresholds) {
 // stays undispatched so the run is re-enterable. Returns { marked }.
 function applySentryAbort(ledger, rec) {
   if (!ledger || typeof ledger !== "object") return { marked: false };
+  // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
   ledger.abort = {
     status: "aborted-resumable",
     at: rec.at,
@@ -9301,7 +9332,7 @@ function sentrySelftest() {
 }
 
 // ===========================================================================
-// audit — FAFF-289: read-only run-reconstruction forensics view. Joins the three
+// === region:governance — audit — FAFF-289: read-only run-reconstruction forensics view. Joins the three ===
 // substrates a finished run leaves on disk — the timeline (events.jsonl), the
 // final-state ledger (run-ledger.json), and per-issue intake proofs
 // (.faff/provenance/<ISSUE>.json) — into one who/what/why reconstruction of a
@@ -9646,7 +9677,7 @@ function auditSelftest() {
 }
 
 // ===========================================================================
-// lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations /
+// === region:factory — lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations / ===
 // numbered docs/adr pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
 // Slice 1 enforces docs/guide/** (the public user-guide surface); the SKILL.md
 // surface is slice 2 (FAFF-239). docs/ outside docs/guide/ is allow-by-default
@@ -9748,7 +9779,7 @@ function lintRefsSelftest() {
 }
 
 // ===========================================================================
-// prd — product requirements documents (FAFF-252; ADR 0016). The PRODUCT-axis
+// === region:factory — prd — product requirements documents (FAFF-252; ADR 0016). The PRODUCT-axis ===
 // counterpart to `adr`: a durable docs/prd/<container-slug>.md per container,
 // structurally mirroring the adr CLI. ONE PRD per container, slug-keyed (no
 // global number — supersession is the PRDR's job, FAFF-245). Lean / format-
@@ -10144,7 +10175,7 @@ function prdSelftest() {
 }
 
 // ===========================================================================
-// prdr — product requirements DECISION records (FAFF-245; design/prdrs.md). The
+// === region:factory — prdr — product requirements DECISION records (FAFF-245; design/prdrs.md). The ===
 // supersedable product-axis decision record sitting BETWEEN the immutable PRD
 // (`faff prd`, FAFF-252) and the per-slice spec. PRD *content* given ADR
 // *mechanics*: immutable + globally-numbered + supersedable, so current product
@@ -10600,7 +10631,7 @@ function prdrSelftest() {
   return 0;
 }
 
-// lint-cli-doc — FAFF-237: assert docs/guide/cli.md documents every subcommand
+// === region:factory — lint-cli-doc — FAFF-237: assert docs/guide/cli.md documents every subcommand ===
 // the CLI dispatches. The canonical set is the COMMANDS registry (single source
 // of truth — see main()); the documented set is parsed from the doc's table rows.
 // Bidirectional: a command in the CLI but not the doc is `missing`; a command in
@@ -11481,7 +11512,7 @@ function cmdSpecReviewLenses(args) {
 }
 
 // ===========================================================================
-// lights-out — FAFF-225: the L4 lights-out entry point / runner.
+// === region:factory — lights-out — FAFF-225: the L4 lights-out entry point / runner. ===
 //
 // COMPOSITION, NOT MECHANISM. The runner (a) runs a fail-closed BASIC preflight
 // over v1's launch preconditions, (b) on pass MINTS an L4 run-ledger with strict
@@ -12054,6 +12085,9 @@ function lightsOutSelftest() {
   return 0;
 }
 
+// ===========================================================================
+// === region:shell — subcommand registry + main dispatch ===
+// ===========================================================================
 // Subcommand registry (ADR 0014) — the single source of truth for the CLI command
 // set. main() dispatches through this map, and `Object.keys(COMMANDS)` is exactly
 // the canonical set `lint-cli-doc` asserts docs/guide/cli.md documents. Adding a

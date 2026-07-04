@@ -1,4 +1,4 @@
-# ADR 0043 — L4 run governance: run-done terminates, Sentry interrupts, budget backstops, count-caps banned
+# ADR 0044 — L4 run governance: run-done terminates, Sentry interrupts, budget backstops, count-caps banned
 
 - **Status:** Proposed
 - **Date:** 2026-07-04

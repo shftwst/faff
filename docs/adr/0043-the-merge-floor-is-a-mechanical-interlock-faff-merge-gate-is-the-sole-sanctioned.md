@@ -1,4 +1,4 @@
-# ADR 0042 — The merge floor is a mechanical interlock: faff merge-gate is the sole sanctioned gh pr merge path
+# ADR 0043 — The merge floor is a mechanical interlock: faff merge-gate is the sole sanctioned gh pr merge path
 
 - **Status:** Proposed
 - **Date:** 2026-07-04

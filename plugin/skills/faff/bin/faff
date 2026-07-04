@@ -235,9 +235,9 @@ function dig(data, dotted) {
   return cur;
 }
 
-// ===========================================================================
-// === region:factory — config — resolve / read .faffrc (YAML subset, no deps) ===
-// ===========================================================================
+// Config-file resolution (canonical/legacy names + linked-worktree fallback) — shared:
+// the factory config command AND governance readers resolve through this one path,
+// so the legacy-name LOUD ERROR (never a silent default) holds in both regions.
 // FAFF-50: single canonical config filename. The resolver accepts ONLY `.faffrc.yaml`;
 // a legacy-named config (`.faffrc.yml` / `.faffrc`) is a LOUD ERROR, never a silent default —
 // the silent-fallback that dropped configured slots twice.
@@ -284,6 +284,9 @@ function findConfig(root) {
   return null;
 }
 
+// ===========================================================================
+// === region:factory — config — resolve / read .faffrc (YAML subset, no deps) ===
+// ===========================================================================
 // FAFF-182: the single source of truth for config defaults, keyed by dotted config path.
 // `config get <key>` applies these so no caller (skill prose) ever supplies a default via `-d` —
 // a prose-supplied default can be forgotten/mistyped/shortcut (the slot-dispatch bug). Slots are
@@ -2283,27 +2286,26 @@ function containSelftest() {
 // (envelopeFrom's fallbacks, est_tokens_per_attempt, SENTRY_THRESHOLD_DEFAULTS) —
 // no default value changes.
 function readGovernanceConfig(root) {
-  const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
-  let rc = path.join(root, ".faffrc.yaml");
-  if (!isFile(rc)) {
-    rc = null;
-    // Main-checkout fallback for a linked worktree (read-only git; null-safe on bare/odd layouts).
-    const r = spawnSync("git", ["-C", root, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
-    let commonDir = r.status === 0 ? (r.stdout || "").trim() : "";
-    if (commonDir) {
-      if (!path.isAbsolute(commonDir)) commonDir = path.resolve(root, commonDir);
-      if (path.basename(commonDir) === ".git") {
-        const mainRoot = path.dirname(commonDir);
-        const cand = path.join(mainRoot, ".faffrc.yaml");
-        if (path.resolve(mainRoot) !== path.resolve(root) && isFile(cand)) rc = cand;
-      }
+  // Governance config read (budget.* / sentry.* only). Resolution — canonical name,
+  // legacy-name refusal, linked-worktree fallback — is the shared resolver's
+  // (findConfig): a governance ceiling must never silently vanish because the rc
+  // file is mis-named, so the legacy error is as LOUD here as in the config command.
+  let rc;
+  try { rc = findConfig(root); } catch (e) {
+    if (e.message === "legacy-config-name") {
+      const names = e.legacy.join(", ");
+      process.stderr.write(
+        "faff: legacy config filename found (" + names + "). faff uses only `" + CANONICAL_CONFIG +
+        "` — rename it to `" + CANONICAL_CONFIG + "`. (Loud error, never a silent default — " +
+        "a governance ceiling must not disappear on a filename mistake.)\n");
+      process.exit(2);
     }
+    throw e;
   }
   if (rc === null) return {};
   const data = parseYamlSubset(fs.readFileSync(rc, "utf8"));
   return (data && typeof data === "object" && !Array.isArray(data)) ? data : {};
 }
-
 const BUDGET_DIMENSIONS = ["until", "max_attempts", "tokens", "cost"];
 const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate"]);
 const BUDGET_TOKEN_USAGE_KEYS = [

@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.8.0](https://github.com/shftwst/faff/compare/faff--v0.7.0...faff--v0.8.0) (2026-07-04)
+
+
+### Features
+
+* **FAFF-106:** faff effects — escaped-side-effect detection via a declared-effects ledger ([#236](https://github.com/shftwst/faff/issues/236)) ([2070681](https://github.com/shftwst/faff/commit/2070681af1ce99461006754fd0812e1faf36a78e))
+* **FAFF-240:** roadmap eval kind — faff-map roadmap-synthesis coverage ([#249](https://github.com/shftwst/faff/issues/249)) ([1547e9f](https://github.com/shftwst/faff/commit/1547e9f63432b4752d91083fcabd0bd34b176e14))
+* **FAFF-241:** specqual eval kind — generated lite-nlspec body-quality coverage ([#246](https://github.com/shftwst/faff/issues/246)) ([dadf126](https://github.com/shftwst/faff/commit/dadf126a4ace885d984f5e08dc9f099814319857))
+* **FAFF-244:** declare faffter-dark-authoring-adaptors judgement_seam: none ([#251](https://github.com/shftwst/faff/issues/251)) ([1a940b6](https://github.com/shftwst/faff/commit/1a940b6acecaf5362002ad60daef703b1104c52a))
+* **FAFF-271:** command-replay seed strategy for the env compose redis datastore ([#243](https://github.com/shftwst/faff/issues/243)) ([4f22a82](https://github.com/shftwst/faff/commit/4f22a825f8e58fe5e494fd733374d1e328e43dc2))
+* **FAFF-272:** mongoimport seed strategy for the env compose mongo datastore ([#242](https://github.com/shftwst/faff/issues/242)) ([25e910b](https://github.com/shftwst/faff/commit/25e910bbc375ddd9b884b4ec50537d1346e1838f))
+* **FAFF-273:** S3-compatible object store (MinIO) env provisioning + object-upload seed ([#245](https://github.com/shftwst/faff/issues/245)) ([2e8e0ef](https://github.com/shftwst/faff/commit/2e8e0ef7e23ceade56b8fea1478bd57ca4c2a75c))
+* **FAFF-278:** Sentry-2 corrective authority — ADR-0039 GO-narrow subtractive stop-and-redispatch ([4721e1f](https://github.com/shftwst/faff/commit/4721e1f97a827d47bf51e79a37507e63d5831251))
+* **FAFF-282:** spec-verdict eval kind — spec-review verdict admission-gate coverage ([#248](https://github.com/shftwst/faff/issues/248)) ([50e0f32](https://github.com/shftwst/faff/commit/50e0f329c914e69a7f9c533e683a1947fd31666b))
+* **FAFF-283:** adversarial-dimension eval coverage — refutation-spec + refutation-code grader KINDs ([#252](https://github.com/shftwst/faff/issues/252)) ([7ffae5c](https://github.com/shftwst/faff/commit/7ffae5c1c981ac96d62dd145302378dd49bf9d67))
+* **FAFF-284:** holdout evaluator eval coverage (holdout grader KIND) ([#247](https://github.com/shftwst/faff/issues/247)) ([596e00d](https://github.com/shftwst/faff/commit/596e00d3acb261ce16d0f41c85a874818108fd03))
+* **FAFF-285:** architecture-proposal eval coverage (faffter-noon-architecture) ([#244](https://github.com/shftwst/faff/issues/244)) ([91f65ba](https://github.com/shftwst/faff/commit/91f65ba9fdb7858efad9c9101d6f2219f2e62de6))
+* **FAFF-286:** adr-gloss eval KIND + env-compose declared-deterministic ([#250](https://github.com/shftwst/faff/issues/250)) ([52e38c4](https://github.com/shftwst/faff/commit/52e38c469623fa681df52faf3861da7bc7a98a8f))
+* **FAFF-297:** lights-out adversarial review — escalate Phase-2 critical to needs-human ([#260](https://github.com/shftwst/faff/issues/260)) ([ab829b7](https://github.com/shftwst/faff/commit/ab829b744aff989ff6f1e1415ebc1f590ed08521))
+* **FAFF-298:** L4 dial-coherence preflight — refuse reckless unattended slot+gates combinations ([#238](https://github.com/shftwst/faff/issues/238)) ([f6c3284](https://github.com/shftwst/faff/commit/f6c3284d5bcc4753a828f46fdee5742bcafb2dfa))
+* **FAFF-304:** admissible warns when prose DONE items will become evaluator punts ([#233](https://github.com/shftwst/faff/issues/233)) ([472a626](https://github.com/shftwst/faff/commit/472a626c78ee180289186cc08301129e958edf7d))
+* **FAFF-308:** make appetite level-scoped — L4 forces full via a single resolution seam ([#239](https://github.com/shftwst/faff/issues/239)) ([068936e](https://github.com/shftwst/faff/commit/068936eb62f626df9fe57c0381321d601c502b58))
+* **FAFF-309:** wire the code-blind holdout step into the L4 delivery path + flip guardrail to enforced ([#237](https://github.com/shftwst/faff/issues/237)) ([7d2110a](https://github.com/shftwst/faff/commit/7d2110aebc81292ea4ea1c9e190101d2c45e772f))
+* **FAFF-311:** wire the code-blind holdout at the per-issue graft gate (4th L4 merge-floor condition) ([#257](https://github.com/shftwst/faff/issues/257)) ([31c3219](https://github.com/shftwst/faff/commit/31c3219b2503f1942ffb8c051e250703bbc3a4de))
+* **FAFF-315:** per-lane model selection — models: config surface + dispatch wiring ([#258](https://github.com/shftwst/faff/issues/258)) ([1161f81](https://github.com/shftwst/faff/commit/1161f81e233c9fe9f3878e04374e20467e02c38f))
+
+
+### Bug Fixes
+
+* **FAFF-303:** reconcile env app tier against repo compose + resolve build context ([#229](https://github.com/shftwst/faff/issues/229)) ([e03bd8c](https://github.com/shftwst/faff/commit/e03bd8c20550583059f2438032b63fbd09c878fd))
+* **FAFF-303:** reconcile env datastore auth-env + order app behind it ([#235](https://github.com/shftwst/faff/issues/235)) ([ab25088](https://github.com/shftwst/faff/commit/ab2508823561754513d8b68da1c4952cf9f68fc6))
+* **FAFF-305:** lights-out banner distinguishes reachable from enforced guardrails ([#231](https://github.com/shftwst/faff/issues/231)) ([55a2942](https://github.com/shftwst/faff/commit/55a2942b9a91d021d89455d64411cab13ec21236))
+* **FAFF-306:** bound the scenarios section so dod classify and admissible cannot over-capture past a shallower DONE heading ([#232](https://github.com/shftwst/faff/issues/232)) ([c15421b](https://github.com/shftwst/faff/commit/c15421b9a2a8afd915acb4a24883438c5b4c56ab))
+* **FAFF-315:** gitignore .env / .env.* (secret-leak root-cause fix) ([#259](https://github.com/shftwst/faff/issues/259)) ([b5c673d](https://github.com/shftwst/faff/commit/b5c673d29d75a9c37339409b8afe0f353ef5913f))
+
 ## [0.7.0](https://github.com/shftwst/faff/compare/faff--v0.6.0...faff--v0.7.0) (2026-06-30)
 
 

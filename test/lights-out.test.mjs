@@ -23,9 +23,15 @@ function tmpRoot(dial = {}) {
   const review = dial.review ?? "faffter-dark-adversarial-review";
   const specReview = dial.spec_review ?? "faffter-dark-spec-review";
   const gatesFallback = dial.gates_fallback ?? "fail-closed";
+  // FAFF-312: a spend/time ceiling is now the mandatory L4 precondition (a count-cap
+  // alone refuses), so proceed-path fixtures carry a `budget.tokens` ceiling by default.
+  // `dial.budget: null` omits the block (the no-ceiling refuse fixture); a string value
+  // supplies an explicit `budget:` block (the count-cap / explicit-at_ceiling fixtures).
+  const budgetBlock = dial.budget === null ? ""
+    : (typeof dial.budget === "string" ? dial.budget : "budget:\n  tokens: 50000000\n");
   fs.writeFileSync(
     path.join(dir, ".faffrc.yaml"),
-    `slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n`);
+    `slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n${budgetBlock}`);
   return dir;
 }
 const CONTAINED = { ...process.env, KUBERNETES_SERVICE_HOST: "10.0.0.1" };
@@ -62,13 +68,89 @@ test("lights-out: bare host (no container signal) refuses, mints nothing", () =>
 
 // No budget ceiling → refuse (no unbounded lights-out run), even fully contained.
 test("lights-out: no budget ceiling refuses", () => {
-  const root = tmpRoot();
+  const root = tmpRoot({ budget: null });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
   assert.equal(code, 1, stdout);
   assert.equal(out.proceed, false);
   assert.ok(out.refusals.some((r) => r.gate === "budget-ceiling"));
   assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-312 — a count-cap (max_attempts) alone is NOT an L4 governor: refuse, mint
+// nothing, and the refusal names the spend/time remedy. (max_attempts is legal only
+// as an extra backstop alongside a spend/time ceiling — see the tokens-only test.)
+test("lights-out: count-cap-only (max_attempts) ceiling refuses — not an L4 governor", () => {
+  const root = tmpRoot({ budget: "budget:\n  max_attempts: 40\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  const bc = out.refusals.find((r) => r.gate === "budget-ceiling");
+  assert.ok(bc, "names the budget-ceiling gate");
+  assert.match(bc.detail, /spend\/time/, "detail names the spend/time remedy");
+  assert.match(bc.detail, /budget\.tokens/);
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on a count-cap-only ceiling");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-312 — an unpriced `cost` ceiling is vacuous (never breaches), so it does NOT
+// satisfy the fail-closed precondition: refuse.
+test("lights-out: unpriced cost ceiling refuses (vacuous — never breaches)", () => {
+  const root = tmpRoot({ budget: "budget:\n  cost: 25\n" }); // no price_per_mtok ⇒ inert
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.ok(out.refusals.some((r) => r.gate === "budget-ceiling"));
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-312 — a spend/time (tokens) ceiling proceeds, and the minted ledger envelope
+// carries the level-scoped mint-time default at_ceiling: "escalate" (config unset).
+test("lights-out: tokens ceiling proceeds; minted envelope defaults at_ceiling escalate", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.budget.envelope.at_ceiling, "escalate", "L4 mint-time default when config unset");
+  assert.equal(ledger.budget.envelope.ceilings.tokens, 50000000);
+  assert.equal(ledger.budget.envelope.ceilings.max_attempts, null);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-312 — an explicit budget.at_ceiling: stop is minted verbatim (human-explicit
+// config outranks the level default; the operator asked for a quiet stop at ceiling).
+test("lights-out: explicit budget.at_ceiling stop is minted verbatim", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  at_ceiling: stop\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.budget.envelope.at_ceiling, "stop", "explicit stop honoured, not overridden to escalate");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-312 — the minted escalate at_ceiling is what `faff budget check --run-dir`
+// reports on breach: tokens satisfies the precondition, max_attempts:1 rides as an
+// extra backstop, and a forced 2-outcome breach yields outcome "escalate" (→ Sentry's
+// budget-breach signal + run-done's fixed-floor escalation, never a silent stop).
+test("lights-out: budget check --run-dir reflects the minted escalate at_ceiling on breach", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  max_attempts: 1\n" });
+  const mint = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const { run_dir } = JSON.parse(mint.stdout);
+  const lp = path.join(run_dir, "run-ledger.json");
+  const ledger = JSON.parse(fs.readFileSync(lp, "utf8"));
+  ledger.admitted = ["A", "B"];
+  ledger.outcomes = { A: "shipped", B: "parked" }; // 2 dispatched attempts vs the max_attempts:1 backstop
+  fs.writeFileSync(lp, JSON.stringify(ledger));
+  const bc = runCli(["budget", "check", "--run-dir", run_dir, "--json"]);
+  assert.equal(bc.code, 0, bc.stdout + bc.stderr);
+  const state = JSON.parse(bc.stdout);
+  assert.ok(state.breached.includes("max_attempts"), "the max_attempts backstop breached");
+  assert.equal(state.outcome, "escalate", "budget check reports the minted escalate at_ceiling");
   fs.rmSync(root, { recursive: true, force: true });
 });
 

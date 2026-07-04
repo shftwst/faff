@@ -10,7 +10,7 @@ The delivery loop, the three agent lanes, and the control flow — with L4 shown
 
 - **L3 · on the loop** (`/faff-beep-boop`) — the orchestrator drains the queue unattended and **parks** anything it can't call. The safety net is mechanical (park protocol + run-ledger + `runcheck` + Stop-hook), not human vigilance. Review is a single senior pass (swappable to adversarial). Ends on queue-drained / all-parked / budget-hit.
 - **L4 · out of the loop** (lights-out) — L3's whole loop, moved **inside the cage**, plus:
-  1. a **fail-closed preflight** (container contained · budget ceiling set · adversarial review + spec_review reachable · dial-coherence · 8 guardrail contracts · floor);
+  1. a **fail-closed preflight** (container contained · spend/time budget ceiling set — a count-cap alone is refused · adversarial review + spec_review reachable · dial-coherence · 8 guardrail contracts · floor);
   2. **adversarial** review & spec-review (a second opinion that can't collude);
   3. the **code-blind holdout** evaluator lane (a judge that can't see the code);
   4. **Sentry** — a live derailment watcher that can't be reached by what it watches.

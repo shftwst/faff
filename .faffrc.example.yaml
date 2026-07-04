@@ -123,6 +123,36 @@ convergence:
   enabled: false   # false (default) | true   (== --converge; the flag overrides this)
   max_waves: 6     # runaway backstop K — consecutive no-progress waves before non-convergence escalate
 
+# Run budget envelope (FAFF-36), /faff-beep-boop + `faff lights-out`. A set of ceilings across four
+# dimensions plus one at-ceiling outcome; any subset, an unset dimension is unbounded. Resolved once at
+# run start (--until / --max flags override). At L3 any ceiling is a legitimate cost idiom. At L4
+# (`faff lights-out`) a SPEND/TIME ceiling (tokens / until / priced cost) is the MANDATORY launch
+# precondition — a max_attempts count-cap alone is REFUSED (a tally is not an L4 governor: it is
+# uncorrelated with project size or doneness, so it may ride along only as an extra backstop). The
+# at_ceiling default is `stop` at L3; a lights-out run MINTS `escalate` when unset (a backstop that
+# binds then surfaces as a structured needs-human, never a silent stop mid-project) — set `stop`
+# explicitly to keep L3's quiet stop at the ceiling.
+budget:
+  until:              # HH:MM wall-clock ceiling (== --until)                    — spend/time
+  max_attempts:       # build-attempt count      (== --max)                      — backstop only; NOT an L4 governor
+  tokens:             # token ceiling (transcript-measured; estimate fallback)   — spend/time
+  cost:               # cost ceiling = tokens × price_per_mtok                    — spend/time only when priced
+  price_per_mtok: 0   # cost-dimension price input; 0 disables the cost dimension (an unpriced cost is inert, never breaches)
+  at_ceiling: stop    # stop (L3 default) | narrow | escalate  (a lights-out run mints escalate when unset)
+  est_tokens_per_attempt: 200000   # estimate-fallback per-attempt token figure when the transcript is unavailable
+
+# Sentry — live-run derailment interrupt + hard kill-switch (FAFF-49). `faff sentry check` is consulted
+# at every /faff-beep-boop dispatch boundary. A lights-out (L4) run ACTS on the intervention (pause →
+# park the implicated issue and continue the queue; abort → mark the ledger aborted-resumable and launch
+# nothing further; evaluator down → fail closed). A non-L4 run LOGS + surfaces the verdicts advisorily —
+# shared telemetry and the calibration feed for these thresholds. Tune the thresholds, not the model, if
+# a healthy run is aborted; an abort is resumable, so the cost is a paused night, not lost work.
+sentry:
+  thrash_n: 3                       # fix↔review thrash: >=N build-starts on one issue with no ship → trip
+  failure_k: 3                      # repeated-identical-failure: same failure fingerprint >=K times → trip
+  stall_window_secs: 900            # heartbeat staleness / no-progress window (seconds)
+  run_elapsed_ceiling_secs: 14400   # absolute wall-clock run-elapsed ceiling (seconds; default 4h)
+
 # Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
 # whether it offers to promote that spec's architecturally-significant Chosen: decisions into
 # the repo's append-only docs/adr/ log. The `faff adr` CLI (next-number/new/list/validate) is

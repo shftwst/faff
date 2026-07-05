@@ -266,6 +266,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 ```json
 { "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
   "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
   "budget": { "envelope": { "ceilings": { "max_attempts": 8 }, "at_ceiling": "stop", "price_per_mtok": 0 },
               "tokens_at_start": 12000 },
   "owner": { "status": "running", "pid": 12345, "session_id": "<run-id>",
@@ -278,6 +279,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admitted issue with no recorded outcome is an undispatched queue, not a finished run.
 
 - **`discovered_scope_filed`** (informational) — the count of execution-discovered tickets filed at step 10 (default timing) **and** at step 8.0 (under `--converge`). These are **new** tickets, not admitted build-queue issues, so they are **outside** the invariant above and never affect `runcheck` — until one is admitted to a wave's build queue, at which point it appears in `admitted` and is covered by the invariant like any other issue.
+- **`review_adversarial_skipped`** (informational, additive — top-level `[issue-id]` array) — the ids of issues that **shipped without adversarial review** because the second-opinion chain was in a **full-chain outage** (every backend unreachable) at review time, in autonomous mode. The build agent's review slot returned `signal: pass` carrying `adversarial_outcome: "chain-outage-skipped"` (an infra outage produces no finding to gate on — a down provider is not a code defect); graft forwards that in its returned token, and the orchestrator records the id here. These issues **still land in `outcomes` as `shipped`** (or whatever terminal bucket they reached) — this array is an **orthogonal annotation**, not a bucket, so it is **outside** the `runcheck` completeness invariant and needs no ledger migration. It drives the distinct run-summary subsection (`## Shipped (adversarial review skipped — chain outage)`) so a review-skipped merge is never presented as an undifferentiated auto-merge. Empty on a run with no outage.
 - **`budget`** (FAFF-36) — the resolved `BudgetEnvelope` plus the `tokens_at_start` baseline, written **once at run start** (alongside the owner stamp): `{ envelope: {ceilings, at_ceiling, price_per_mtok}, tokens_at_start }`. `faff budget check` reads it each between-units checkpoint; `tokens_at_start` is the run-start transcript-sum so the token dimension counts *this run's* spend, not whole-session history. Absent ⇒ no budget set (every check returns `breached: []`). Informational to `runcheck` — outside the completeness invariant.
 - **`owner`** (FAFF-205) — the liveness contract that lets the Stop hook tell an *in-flight* run apart from an *abandoned* one. Without it, a parallel session's hook can't distinguish "an orchestrator is actively draining this" from "this queue was deferred", and it false-blocks the unrelated session (see _Stop hook_ below). Stamp it **at run start**, refresh `last_heartbeat` **across the whole graft lifecycle**, and close it **at exit**:
   - `status` — `"running"` while the orchestrator holds the run; set to `"done"` at orchestrator exit (clean drain, all-parked, **or** budget-hit — every exit path).
@@ -482,6 +484,9 @@ repeat-parked ⚠ (N)
 ## Shipped (auto-merged): N
 - ISSUE-XX: title (PR #nnn)
 
+## Shipped (adversarial review skipped — chain outage): N
+- ISSUE-XX: title (PR #nnn) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)
+
 ## PR open for human review: N
 - ISSUE-YY: title (PR #nnn) — reason: CI failing on e2e; AC3 requires visual review
 
@@ -529,7 +534,7 @@ The **Human follow-ups** section captures post-merge housekeeping that was skipp
 
 **The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of:
 
-- **Shipped**
+- **Shipped** — auto-merged. Rendered under **one** of two subsections: `## Shipped (auto-merged)` (the norm) **or** `## Shipped (adversarial review skipped — chain outage)` when the issue's id is in the ledger's `review_adversarial_skipped` array (it shipped, but with the second-opinion chain in a full-chain outage). Both are the same `shipped` outcome bucket — the split is a rendering that flags the review gap, **not** a new bucket — so an affected issue appears in exactly one of the two and is **never** duplicated across them.
 - **PR open for human review**
 - **Parked**
 - **Errored**
@@ -537,13 +542,7 @@ The **Human follow-ups** section captures post-merge housekeeping that was skipp
 - **Unreached (budget hit)** — appears **only** when a budget dimension (`until` / `max_attempts` / `tokens` / `cost`) was set and breached with a non-empty build queue remaining; reached build-ready but wasn't dispatched before the budget fire (see `## Budget flags`). On a `tokens`/`cost` breach surface the `tokens_source` (`transcript` / `estimate`) so a reader knows whether the figure was metered or estimated.
 - **Claimed by peer** (FAFF-82) — a peer orchestrator holds it (built by another live run); **not** a deferral and **not** a park, and it never entered this run's `admitted` array, so it does not affect `runcheck`.
 
-The ban below is on inventing an additional **outcome bucket** — a euphemism that disguises a parked-on-capacity issue as something other than parked. It does **not** forbid the non-bucket informational sections this template already carries (Discovered scope, Resolve-attempts, Inferred build-order deps, Human follow-ups); those report *about* the run, they don't re-home an issue's outcome. These outcome-bucket names are all **banned** — euphemisms for "Parked on capacity grounds", which is forbidden:
-
-- "Deferred"
-- "Queued for next run"
-- "Saved for later"
-- "Not dispatched this conversation"
-- "Build queue ready for next pass"
+The ban below is on inventing an additional **outcome bucket** — a euphemism that disguises a parked-on-capacity issue as something other than parked. It does **not** forbid the non-bucket informational sections this template already carries (Discovered scope, Resolve-attempts, Inferred build-order deps, Human follow-ups); those report *about* the run, they don't re-home an issue's outcome. These outcome-bucket names are all **banned** — euphemisms for "Parked on capacity grounds", which is forbidden: "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass".
 
 If the report contains one of those headings AND no budget ceiling was set or breached, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a budget dimension firing.
 

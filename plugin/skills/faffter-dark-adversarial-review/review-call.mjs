@@ -479,13 +479,41 @@ export async function runReviewChain(chain = [], shared = {}) {
       log(`${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
       continue;
     }
-    const result = await runReviewFn({
+    // FAFF-329: bound the WHOLE backend call (incl. a slow-trickle stream whose per-chunk activity
+    // resets the socket's idle timeout, and incl. the internal transport-retry backoff) to the budget
+    // still remaining — a real timer the perAttempt idle-clamp alone cannot enforce. On a deadline win
+    // the in-flight backend is ABANDONED (its socket carries the perAttempt idle timeout, so it self-
+    // closes shortly; the timer is unref'd so it never keeps the process alive), and we route to
+    // EXIT.DEADLINE — never a misrouted transport-failed/5 — with a needs-human-class fault seen on an
+    // earlier backend still dominating (no-silent-weakening).
+    const callReview = () => runReviewFn({
       host: b.host, model: b.model, provider: b.provider,
       system: shared.system, user: shared.user, numPredict: shared.numPredict,
       reasoningOff: b.reasoningOff, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
-      hardDeadlineMs,   // FAFF-329: absolute total-budget deadline; the backend clamps every attempt to what remains
+      hardDeadlineMs,   // absolute total-budget deadline; the backend also clamps each attempt's idle timeout to what remains
       getFn: shared.getFn, streamFn: shared.streamFn,
     });
+    let result;
+    if (typeof totalDeadlineMs === "number") {
+      const remaining = totalDeadlineMs - (now() - start);
+      if (remaining <= 0) {   // belt — the top-of-loop gate should already have returned
+        const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+      }
+      const SENTINEL = { __deadline: true };
+      let timer;
+      const deadlineP = new Promise((res) => { timer = setTimeout(() => res(SENTINEL), remaining); if (timer && timer.unref) timer.unref(); });
+      result = await Promise.race([callReview(), deadlineP]);
+      clearTimeout(timer);
+      if (result === SENTINEL) {
+        const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
+        const exit = nh != null ? nh : EXIT.DEADLINE;
+        log(`deadline: Phase-2 backend ${tag} exceeded the ${Math.round(totalDeadlineMs / 1000)}s budget mid-call (exit ${exit})`);
+        return { exit, deadlineExceeded: true, failureClasses };
+      }
+    } else {
+      result = await callReview();
+    }
     const exit = mapResultExit(result, b.hostSource);
     if (exit === EXIT.OK) {
       if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);

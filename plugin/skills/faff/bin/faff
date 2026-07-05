@@ -9215,8 +9215,16 @@ function reviewProgressPath(runDir, issue) {
 // on a `pass`. Seeds phase2 to `pending` when absent so a resume knows Phase-2 has not started.
 function reviewProgressApplyPhase1(existing, issue, diffHash, nowIso) {
   const base = (existing && typeof existing === "object") ? existing : {};
-  const phase2 = (base.phase2 && typeof base.phase2 === "object") ? base.phase2 : { status: "pending", attempts: 0, findings_ref: null };
-  return { issue, phase1: { status: "done", verdict: "pass", diff_hash: String(diffHash) }, phase2, updated_at: nowIso };
+  const hash = String(diffHash);
+  // A new Phase-1 pass VOIDS any prior Phase-2 when the diff moved: a fix-up commit re-runs Phase-1 on a
+  // DIFFERENT diff, but a prior phase2=complete carries findings computed against the OLD diff. Carrying it
+  // forward would let the resume "skip both phases" and disposition stale findings for a diff they were
+  // never computed on. So reset phase2 to `pending` whenever the diff_hash changes; an identical-diff
+  // re-write (idempotent) preserves the in-flight phase2.
+  const priorHash = base.phase1 && base.phase1.diff_hash;
+  const phase2 = (base.phase2 && typeof base.phase2 === "object" && priorHash === hash)
+    ? base.phase2 : { status: "pending", attempts: 0, findings_ref: null };
+  return { issue, phase1: { status: "done", verdict: "pass", diff_hash: hash }, phase2, updated_at: nowIso };
 }
 
 // Pure: fold a Phase-2 status transition into the record (preserving phase1). `findings` sets findings_ref
@@ -9263,7 +9271,20 @@ function cmdReviewProgress(args) {
     if (!REVIEW_PHASE2_STATUSES.has(status)) {
       process.stderr.write(`faff review-progress: invalid phase2 status "${status}" — one of: ${[...REVIEW_PHASE2_STATUSES].join(" | ")}\n`); return 2;
     }
-    rec = reviewProgressApplyPhase2(readExisting(), status, get("--findings"), get("--attempts"), nowIso);
+    const existing = readExisting();
+    // A Phase-2 transition only ever follows a recorded Phase-1 pass (the checkpoint is written on pass and
+    // never earlier) — reject a phase2 write with no prior phase1, so no `phase1: null` checkpoint (an
+    // unenumerated resume state) can ever be created.
+    if (!existing || !existing.phase1 || existing.phase1.verdict !== "pass") {
+      process.stderr.write("faff review-progress write --phase2 requires a prior --phase1-pass checkpoint (no Phase-1 verdict recorded)\n"); return 2;
+    }
+    // A `complete` status MUST carry a findings artifact — a `complete` with no findings_ref is a silent
+    // coverage lie (the resume would skip Phase-2 and disposition nothing). --findings is required here.
+    const findings = get("--findings");
+    if (status === "complete" && !findings) {
+      process.stderr.write("faff review-progress write --phase2 complete requires --findings <path>\n"); return 2;
+    }
+    rec = reviewProgressApplyPhase2(existing, status, findings, get("--attempts"), nowIso);
     rec.issue = rec.issue || issue;
   } else {
     process.stderr.write("faff review-progress write: expected --phase1-pass or --phase2 <status>\n"); return 2;
@@ -9293,6 +9314,13 @@ function reviewProgressSelftest() {
   const p3 = reviewProgressApplyPhase2(p2, "complete", ".faff/x/findings.md", 2, NOW);
   ok("phase2 complete sets findings_ref", p3.phase2.findings_ref === ".faff/x/findings.md");
   ok("phase2 complete records attempts", p3.phase2.attempts === 2);
+  // FAFF-329 F4: a Phase-1 re-pass on a DIFFERENT diff voids the prior (stale) phase2 → reset to pending
+  const p4 = reviewProgressApplyPhase1(p3, "FAFF-329", "def456", NOW);
+  ok("phase1 re-pass on a new diff resets stale phase2 to pending", p4.phase2.status === "pending" && p4.phase2.findings_ref === null);
+  ok("phase1 re-pass records the new diff_hash", p4.phase1.diff_hash === "def456");
+  // an IDENTICAL-diff re-write is idempotent — the in-flight phase2 is preserved
+  const p5 = reviewProgressApplyPhase1(p3, "FAFF-329", "abc123", NOW);
+  ok("phase1 re-write on the SAME diff preserves phase2 (idempotent)", p5.phase2.status === "complete" && p5.phase2.findings_ref === ".faff/x/findings.md");
   // deadline / unreachable skip statuses are valid
   ok("skipped_deadline is a valid status", REVIEW_PHASE2_STATUSES.has("skipped_deadline"));
   ok("skipped_unreachable is a valid status", REVIEW_PHASE2_STATUSES.has("skipped_unreachable"));

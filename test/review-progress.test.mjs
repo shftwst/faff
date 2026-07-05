@@ -94,3 +94,36 @@ test("bad usage (missing sub / run-dir / issue) exits 2", () => {
   assert.equal(runCli(["review-progress", "read"]).code, 2);
   assert.equal(runCli(["review-progress", "write", "/tmp/x"]).code, 2);
 });
+
+test("FAFF-329 F3: a --phase2 write with no prior --phase1-pass is rejected (no phase1:null checkpoint)", () => {
+  const rd = runDir();
+  try {
+    const w = runCli(["review-progress", "write", rd, "FAFF-1", "--phase2", "in_flight"]);
+    assert.equal(w.code, 2);
+    assert.match(w.stderr, /requires a prior --phase1-pass/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("FAFF-329 F7: --phase2 complete without --findings is rejected (no silent-coverage lie)", () => {
+  const rd = runDir();
+  try {
+    runCli(["review-progress", "write", rd, "FAFF-1", "--phase1-pass", "--diff-hash", "h"]);
+    const w = runCli(["review-progress", "write", rd, "FAFF-1", "--phase2", "complete"]);
+    assert.equal(w.code, 2);
+    assert.match(w.stderr, /requires --findings/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("FAFF-329 F4: a Phase-1 re-pass on a different diff resets a stale completed phase2 to pending", () => {
+  const rd = runDir();
+  try {
+    runCli(["review-progress", "write", rd, "FAFF-1", "--phase1-pass", "--diff-hash", "A"]);
+    runCli(["review-progress", "write", rd, "FAFF-1", "--phase2", "complete", "--findings", "/f/a.md"]);
+    // diff moves → Phase-1 re-passes on diff B
+    const w = runCli(["review-progress", "write", rd, "FAFF-1", "--phase1-pass", "--diff-hash", "B"]);
+    const rec = JSON.parse(w.stdout);
+    assert.equal(rec.phase1.diff_hash, "B");
+    assert.equal(rec.phase2.status, "pending", "stale phase2 from diff A must not carry into diff B");
+    assert.equal(rec.phase2.findings_ref, null);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});

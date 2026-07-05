@@ -315,7 +315,7 @@ prog=$("$faff" review-progress read "$run_dir" <ISSUE> 2>/dev/null)   # exit 3 �
 cur_hash=$(git diff main...HEAD | sha256sum | cut -d' ' -f1)
 ```
 
-- **No checkpoint** → run the review fresh (invoke the slot as below).
+- **No checkpoint** (read exit 3), **or a checkpoint lacking a `phase1.verdict=pass`** (a malformed / partial record — the CLI refuses to write a Phase-2 status without a prior Phase-1 pass, so this only arises from corruption) → run the review fresh (invoke the slot as below). Treat "no usable Phase-1 verdict" exactly as "no checkpoint" — never dereference an absent `phase1`.
 - **`phase1.verdict=pass` AND `phase1.diff_hash == cur_hash`** (the **diff-identity guard**): the hard Phase-1 verdict still holds for THIS diff → **skip Phase-1**. If `phase2.status=complete`, skip the review slot entirely and go straight to finding-disposition + the merge gate; if `phase2.status ∈ {pending,in_flight}`, invoke the review slot with a **resume hint** — skip Phase-1, run only the bounded Phase-2.
 - **`phase1.verdict=pass` AND `phase1.diff_hash != cur_hash`**: the diff moved since Phase-1 passed → **discard the checkpoint** and run Phase-1 fresh. A checkpoint is a **hint, never authoritative** over the hard review input — it never skips Phase-1 for a diff it wasn't computed against (git/PR/worktree truth wins on any disagreement, the existing FAFF-201 reconciliation rule).
 

@@ -340,7 +340,7 @@ function validateModelLane(key, value) {
   // FAFF-334: the per-issue build-model matcher leaves (`models.build_by_confidence.<leaf>`) reuse
   // the build lane's closed Agent-token set, so an invalid token in the matcher fails loud at
   // `config get` read time too — never a silent inherit at the per-issue dispatch site.
-  if (!vocab && /^models\.build_by_confidence\.[^.]+$/.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
+  if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
   if (!vocab || vocab.includes(value)) return null;
   return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
 }
@@ -905,7 +905,10 @@ function cmdConfig(args) {
       // FAFF-334: surface the per-issue build-model matcher when set — a routing config that flips
       // build-model resolution from per-run to per-issue must be visible in the run banner, not silent.
       const byConf = (models.build_by_confidence && typeof models.build_by_confidence === "object" && !Array.isArray(models.build_by_confidence)) ? models.build_by_confidence : {};
-      for (const conf of ["default", "high", "medium", "low"]) {
+      // Only the buckets that actually route are echoed (default/high/medium) — a `low` leaf is inert
+      // (a low-confidence spec parks at prep, never builds), so echoing it would imply a live routing
+      // config that does nothing and mislead the reader about what the run will do.
+      for (const conf of ["default", "high", "medium"]) {
         const v = byConf[conf];
         if (v !== null && v !== undefined && v !== "") console.log(`model build_by_confidence.${conf}: ${v}`);
       }
@@ -940,20 +943,30 @@ function cmdConfig(args) {
 // ABSENT ⇒ the scalar path, byte-for-byte FAFF-315.
 function resolveBuildModel(cfg, conf) {
   const byConf = dig(cfg, "models.build_by_confidence");
-  const map = (byConf && typeof byConf === "object" && !Array.isArray(byConf)) ? byConf : null;
-  const pick = (k) => {
-    if (!map || k == null) return null;
-    const v = map[k];
-    return (v === null || v === undefined || v === "") ? null : String(v).trim();
-  };
+  const rawMap = (byConf && typeof byConf === "object" && !Array.isArray(byConf)) ? byConf : null;
+  // Normalise leaf keys to lowercase once — a capitalised YAML key (`High:`) must not silently miss
+  // and route to the default bucket; the confidence tokens themselves are lowercase (high|medium|low).
+  const map = {};
+  if (rawMap) for (const k of Object.keys(rawMap)) {
+    const v = rawMap[k];
+    if (v !== null && v !== undefined && v !== "") map[String(k).trim().toLowerCase()] = String(v).trim();
+  }
+  // Validate EVERY configured leaf up-front — not just the resolved token. The spec's guarantee is
+  // "an invalid Agent-token ANYWHERE in the matcher ⇒ fail-loud at read", so a typo in a not-yet-
+  // dispatched leaf is caught at the first resolution, never left dormant until its bucket happens to build.
+  for (const k of Object.keys(map)) {
+    if (validateModelLane("models.build_by_confidence." + k, map[k])) {
+      return { error: `faff models build-for: invalid model token "${map[k]}" in models.build_by_confidence.${k} — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+    }
+  }
+  const pick = (k) => (k != null && Object.prototype.hasOwnProperty.call(map, k)) ? map[k] : null;
   const key = conf != null ? String(conf).trim().toLowerCase() : null;
   let token = pick(key) ?? pick("default");
   if (token == null) {
     const scalar = dig(cfg, "models.build");
     token = (scalar === null || scalar === undefined || scalar === "") ? DEFAULTS["models.build"] : String(scalar).trim();
   }
-  const err = validateModelLane("models.build", token);
-  if (err) {
+  if (validateModelLane("models.build", token)) {
     return { error: `faff models build-for: resolved token "${token}" is not a legal build model — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
   }
   return { token };
@@ -999,6 +1012,12 @@ function modelsSelftest() {
   ok("invalid matcher leaf token fails loud", !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5" } } }, "high").error);
   ok("invalid scalar fallback fails loud", !!resolveBuildModel({ models: { build: "gpt-5" } }, "zzz").error);
   ok("low leaf tolerated (inert but valid token)", resolveBuildModel({ models: { build_by_confidence: { low: "haiku", default: "opus" } } }, "low").token === "haiku");
+  // fail-loud ANYWHERE — an invalid token in a NOT-dispatched leaf is caught, never left dormant
+  ok("invalid UNUSED leaf fails loud (validate anywhere, not just resolved)",
+    !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5", default: "opus" } } }, "medium").error);
+  // case-insensitive YAML leaf key — a capitalised `High:` must not silently miss → default
+  ok("capitalised YAML leaf key (High:) resolves case-insensitively",
+    resolveBuildModel({ models: { build_by_confidence: { High: "sonnet", default: "opus" } } }, "high").token === "sonnet");
   // read-time matcher-leaf validation (validateModelLane extension)
   ok("validateModelLane accepts a valid matcher leaf", validateModelLane("models.build_by_confidence.high", "sonnet") === null);
   ok("validateModelLane rejects an invalid matcher leaf", validateModelLane("models.build_by_confidence.high", "gpt-5") !== null);

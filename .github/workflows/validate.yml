@@ -207,17 +207,27 @@ jobs:
       - name: Set up a rootless docker daemon (the bounded-engine stand-in)
         run: |
           sudo apt-get update
-          sudo apt-get install -y uidmap dbus-user-session slirp4netns docker-ce-rootless-extras
+          sudo apt-get install -y uidmap dbus-user-session slirp4netns
           # the system daemon must be out of the way: this lane validates the ROOTLESS engine,
           # and a lingering /var/run/docker.sock would let a mis-wired test silently pass on it
           sudo systemctl disable --now docker.service docker.socket
           sudo rm -f /var/run/docker.sock
           # hosted runners have no live systemd user session for the runner user — the rootless
-          # setup tool needs one (and XDG_RUNTIME_DIR) or it fails its systemd detection
+          # daemon needs one (and XDG_RUNTIME_DIR), or the direct-launch fallback below
           sudo loginctl enable-linger "$(whoami)"
           sudo systemctl start "user@$(id -u)" || true
           export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-          dockerd-rootless-setuptool.sh install
+          # user-local rootless install (runner images don't carry Docker's apt repo, so the
+          # docker-ce-rootless-extras package has no candidate — the official script installs
+          # self-contained binaries under ~/bin instead)
+          curl -fsSL https://get.docker.com/rootless | FORCE_ROOTLESS_INSTALL=1 sh
+          export PATH="$HOME/bin:$PATH"
+          export DOCKER_HOST="unix:///run/user/$(id -u)/docker.sock"
+          # start the daemon: the installed systemd user unit, else direct launch; the assert
+          # step below is the loud gate if neither produced a reachable rootless daemon
+          systemctl --user start docker || { nohup "$HOME/bin/dockerd-rootless.sh" >/tmp/dockerd-rootless.log 2>&1 & } || true
+          for i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 2; done
+          echo "$HOME/bin" >> "$GITHUB_PATH"
           echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
           echo "DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock" >> "$GITHUB_ENV"
 

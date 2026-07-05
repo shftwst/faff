@@ -1,0 +1,14 @@
+{
+  "id": "refutation-spec-008",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: L4 runs should get a wider autonomy budget than L3. WHAT: resolve the run's appetite from its ledger level. HOW: read the run ledger at `$FAFF_RUN_DIR/run-ledger.json`; if `owner.level` is `L4`, grant `appetite: full`; otherwise `appetite: high`. DONE:\n## Scenarios\n- a ledger with `owner.level: L4` yields `appetite: full`\n- a ledger with `owner.level: L3` yields `appetite: high`\n- a missing ledger yields `appetite: high`"
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "closed_set": [
+      "infosec"
+    ]
+  },
+  "_comment": "FAFF-SPECIFIC CATCH (the FAFF-378 stale-ledger escalation). The spec grants elevated agency from a persisted ledger FIELD without gating on run LIVENESS. In faff, `$FAFF_RUN_DIR` persists in shell profiles across sessions, so a completed/dead L4 run's ledger grants `appetite: full` to a later, unrelated session — privilege escalation via a stale artifact. The correct design gates on `runIsHeld` (the run must be live) before honouring the level. A GENERIC checklist reads 'reads a config file for a level flag, fail-closed default present' and approves; a faff-threat-primed infosec lens knows the stale-ledger authority-escalation pattern and raises a major → needs-human. Design intent is otherwise fine (architectural/QA quiet)."
+}

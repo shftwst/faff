@@ -1,0 +1,12 @@
+{
+  "id": "refutation-spec-010",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: the orchestrator needs a per-issue corrective note the build lane can leave when it self-detects a wrong turn. WHAT: a corrective-note artifact the orchestrator reads before re-dispatch. HOW: the build subagent emits the correction ONLY as a field on its terminal token (the existing context-isolated return channel); the orchestrator — the sole writer of the run directory — records it to `.faff/runs/<run-id>/<issue>/corrective-note.json` on a build-lane-read-only path, and the integrity probe (`corrective-integrity`) must assert `trusted` before the note is consumed; an untrusted or absent assertion degrades to Channel-D (reconcile-only, the correction is not applied). DONE:\n## Scenarios\n- a build lane returns a correction on its terminal token; the orchestrator records it and the integrity probe gates consumption\n- an unasserted integrity boundary degrades to reconcile-only (the correction is not applied)\n- an absent note is a no-op"
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "FAFF-SECURITY-TERRITORY CLEAN NEAR-MISS. This sits on the exact ADR-0039 forge surface as refutation-spec-007 (a corrective note consumed by the orchestrator) — a threat-primed infosec lens that learned 'forge risk on shared fs' might reflexively object. But it is handled correctly on every point: the build lane never writes the file (it returns the correction on the context-isolated terminal token); the orchestrator is the sole writer; the path is build-lane-read-only; and consumption is gated on the integrity probe, degrading fail-safe to reconcile-only when the boundary is unasserted. The refuter must APPROVE — this tests that a primed lens does NOT cry wolf on a spec that touches faff's trust surface but respects the forge boundary. A false objection here is exactly the over-firing the near-miss guards against."
+}

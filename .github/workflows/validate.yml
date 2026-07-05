@@ -189,3 +189,44 @@ jobs:
         env:
           FAFF_REQUIRE_DOCKER: "1"
         run: node --test
+
+  # FAFF-371: the env lifecycle must also hold against a ROOTLESS daemon reached via DOCKER_HOST —
+  # the host-portable stand-in for the bounded nested engine ADR-0041 decision 3 mandates in the
+  # L4 cage. The suite runs unmodified: passing against the rootless socket proves the ambient
+  # engine-context model with zero engine-specific code in faff. Required lane, no skip path —
+  # a rootless-setup failure fails the job loudly (setup fault, distinct from a test failure).
+  env-rootless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up a rootless docker daemon (the bounded-engine stand-in)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y uidmap dbus-user-session slirp4netns docker-ce-rootless-extras
+          # the system daemon must be out of the way: this lane validates the ROOTLESS engine,
+          # and a lingering /var/run/docker.sock would let a mis-wired test silently pass on it
+          sudo systemctl disable --now docker.service docker.socket
+          sudo rm -f /var/run/docker.sock
+          dockerd-rootless-setuptool.sh install
+          echo "DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock" >> "$GITHUB_ENV"
+
+      - name: Assert the daemon is rootless (a setup fault fails the job loudly — never a silent host-daemon pass)
+        run: |
+          docker info >/dev/null 2>&1 || {
+            echo "::error::rootless dockerd unreachable at ${DOCKER_HOST} — rootless setup failed (FAFF-371)"
+            exit 1
+          }
+          docker info --format '{{.SecurityOptions}}' | grep -q rootless || {
+            echo "::error::daemon at ${DOCKER_HOST} is not rootless — this lane must validate the rootless engine (FAFF-371)"
+            exit 1
+          }
+
+      - name: Run env + holdout integration suites against the rootless engine
+        env:
+          FAFF_REQUIRE_DOCKER: "1"
+        run: node --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs

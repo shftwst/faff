@@ -20,6 +20,16 @@ function run(cwd, args, input) {
     return { code: e.status ?? 1, out: (e.stdout ?? "").toString().trim(), err: (e.stderr ?? "").toString().trim() };
   }
 }
+// FAFF-371: run with an environment override (e.g. a dead DOCKER_HOST) — the env verbs must
+// inherit the ambient engine context, never resolve or fall back to a different socket.
+function runEnv(cwd, args, envOverride) {
+  try {
+    const out = execFileSync("node", [CLI, ...args], { cwd, encoding: "utf8", env: { ...process.env, ...envOverride } });
+    return { code: 0, out: out.trim(), err: "" };
+  } catch (e) {
+    return { code: e.status ?? 1, out: (e.stdout ?? "").toString().trim(), err: (e.stderr ?? "").toString().trim() };
+  }
+}
 
 function tmp() { return mkdtempSync(join(tmpdir(), "faff270-")); }
 function writeProfile(dir, obj) {
@@ -178,10 +188,43 @@ test("down: idempotent — succeeds (exit 0) even with no env / docker", () => {
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-371 — a dead DOCKER_HOST is terminal + named; faff never falls back to the default socket
+// (the silent fallback would re-open the exact host-socket path the bounded-engine posture closes).
+// Deterministic: needs no daemon — `docker info` against the nonexistent socket fails either way.
+test("up: dead DOCKER_HOST fails loud (exit 1) naming the effective engine context", () => {
+  const dir = tmp();
+  try {
+    const p = writeProfile(dir, { schema: 1, datastores: [{ kind: "postgres", evidence: "x" }], deploy_targets: [] });
+    const r = runEnv(dir, ["env", "up", "--profile", p, "--project", "d371"], { DOCKER_HOST: "unix:///nonexistent/faff371.sock" });
+    assert.equal(r.code, 1);
+    assert.match(r.err, /docker unavailable \(DOCKER_HOST=unix:\/\/\/nonexistent\/faff371\.sock\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("down: dead DOCKER_HOST stays idempotent OK and names the engine context", () => {
+  const dir = tmp();
+  try {
+    const r = runEnv(dir, ["env", "down", "--project", "d371"], { DOCKER_HOST: "unix:///nonexistent/faff371.sock" });
+    assert.equal(r.code, 0);
+    assert.match(r.out, /docker unavailable \(DOCKER_HOST=unix:\/\/\/nonexistent\/faff371\.sock\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- docker-gated integration: FAFF-30 §5 scenario 1+3 (real env stands up, seeded, ready) ---
 function dockerAvailable() {
   try { execFileSync("docker", ["info"], { stdio: "ignore", timeout: 30000 }); return true; }
   catch { return false; }
+}
+// FAFF-371: detect the mounted-host-socket cage — this test process is containerised, the host
+// daemon socket is mounted, and the daemon is not rootless. There, containers publish on the HOST
+// loopback (unreachable from in here), so host-side reachability assertions are skipped loudly.
+function hostSocketCage() {
+  const contained = existsSync("/.dockerenv") || existsSync("/run/.containerenv");
+  if (!contained || !existsSync("/var/run/docker.sock")) return false;
+  try {
+    const so = execFileSync("docker", ["info", "--format", "{{.SecurityOptions}}"], { encoding: "utf8", timeout: 30000 });
+    return !/rootless/.test(so);
+  } catch { return true; }
 }
 const DOCKER = dockerAvailable();
 // FAFF-274: a CI lane that MUST run this test sets FAFF_REQUIRE_DOCKER. When set + non-empty,
@@ -471,6 +514,28 @@ test("integration: real Node + Postgres app tier (connects at boot) stands up he
       const up = run(dir, ["env", "up", "--root", dir, "--plan", join(dir, "plan.json"), "--project", project, "--sla-secs", "180"]);
       assert.equal(up.code, 0, `up failed: ${up.err}`);    // app connects to the reconciled DB → healthy (the reopened failure no longer reproduces)
       assert.match(up.out, /2 service\(s\) healthy/);
+      // FAFF-371: the plan endpoint must be reachable from THIS process — the exact property the
+      // holdout evaluator depends on (the env-handle endpoint), and precisely what rootless
+      // port-publishing can break while in-container healthchecks stay green. Small retry loop:
+      // the publish can trail the in-container healthy by a beat.
+      // Carve-out: inside a MOUNTED-HOST-SOCKET cage (containerised test process + host
+      // /var/run/docker.sock + non-rootless daemon) published ports bind on the HOST loopback, so
+      // the property is false by construction — that is the deprecated posture this work exists to
+      // replace. Skip loudly there; the assertion runs on CI VM runners and rootless engines.
+      if (hostSocketCage()) {
+        console.warn("WARN: mounted host-socket cage detected — published ports bind on the host, endpoint reachability cannot hold here; skipping the reachability GET (it runs on CI runners and rootless nested engines)");
+      } else {
+        let reachable = false, lastErr = "";
+        for (let i = 0; i < 5 && !reachable; i++) {
+          try {
+            execFileSync("node", ["-e",
+              "require('http').get(process.argv[1], (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+              `${plan.endpoint}/healthz`], { timeout: 15000 });
+            reachable = true;
+          } catch (e) { lastErr = String(e.message || e); execFileSync("sleep", ["2"]); }
+        }
+        assert.ok(reachable, `plan endpoint ${plan.endpoint}/healthz not reachable from the test process: ${lastErr}`);
+      }
     } finally {
       run(dir, ["env", "down", "--project", project]);
     }

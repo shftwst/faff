@@ -8503,6 +8503,22 @@ function envDockerAvailable() {
   return r.status === 0;
 }
 
+// FAFF-371: name the effective engine context in unreachable-engine errors, so a mis-set rootless
+// socket path is diagnosable from the message alone. Never used to *resolve* an engine — every
+// docker call inherits the ambient environment untouched (no fallback to the default socket).
+function envEngineContext() {
+  return process.env.DOCKER_HOST ? `DOCKER_HOST=${process.env.DOCKER_HOST}` : "default socket";
+}
+
+// FAFF-371: teardown resolves the same compose context `up` used when the default generated file
+// exists (composeFile non-null); --remove-orphans covers a stale/other-project file at that path
+// (label-scoped to the project, so it removes exactly what the -p-only form would have). No file →
+// the label-based form, unchanged. Pure (argv only) so --selftest covers both shapes.
+function envDownArgs(root, project, composeFile) {
+  if (composeFile) return ["compose", "--project-directory", root, "-p", project, "-f", composeFile, "down", "-v", "--remove-orphans"];
+  return ["compose", "-p", project, "down", "-v"];
+}
+
 // Parse `docker compose ps --format json` (array OR newline-delimited objects).
 function envParsePs(stdout) {
   const t = (stdout || "").trim();
@@ -8723,7 +8739,7 @@ function cmdEnv(args) {
       return 1;
     }
     const project = flag("--project") || plan.project_name;
-    if (!envDockerAvailable()) { process.stderr.write("faff env up: docker unavailable\n"); return 1; }
+    if (!envDockerAvailable()) { process.stderr.write(`faff env up: docker unavailable (${envEngineContext()})\n`); return 1; }
     // FAFF-303: --project-directory <root> so a relative build `context: .` resolves to the repo root
     // (not the generated-compose dir, where no Dockerfile exists).
     const upr = spawnSync("docker", ["compose", "--project-directory", root, "-p", project, "-f", plan.compose_file, "up", "-d"],
@@ -8759,7 +8775,7 @@ function cmdEnv(args) {
     }
     const project = flag("--project") || plan.project_name;
     const needsDocker = (plan.seed_targets || []).some(t => t.strategy === "command-replay" || t.strategy === "object-upload" || (t.strategy === "sql-load" && t.kind !== "sqlite") || t.strategy === "mongoimport");
-    if (needsDocker && !envDockerAvailable()) { process.stderr.write("faff env seed: docker unavailable\n"); return 1; }
+    if (needsDocker && !envDockerAvailable()) { process.stderr.write(`faff env seed: docker unavailable (${envEngineContext()})\n`); return 1; }
     let errored = false;
     for (const t of (plan.seed_targets || [])) {
       if (t.strategy === "sql-load") {
@@ -8790,8 +8806,9 @@ function cmdEnv(args) {
   if (cmd === "down") {
     const project = flag("--project");
     if (!project) { process.stderr.write("faff env down: --project required\n"); return 2; }
-    if (!envDockerAvailable()) { console.log(`OK — env down (project ${project}); docker unavailable, nothing to tear down`); return 0; }
-    spawnSync("docker", ["compose", "-p", project, "down", "-v"], { encoding: "utf8", timeout: 2 * 60 * 1000 });
+    if (!envDockerAvailable()) { console.log(`OK — env down (project ${project}); docker unavailable (${envEngineContext()}), nothing to tear down`); return 0; }
+    const defaultCompose = path.join(root, ".faff", "env", "docker-compose.yml");
+    spawnSync("docker", envDownArgs(root, project, fs.existsSync(defaultCompose) ? defaultCompose : null), { encoding: "utf8", timeout: 2 * 60 * 1000 });
     console.log(`OK — env down (project ${project})`);   // idempotent: down of an absent project is success
     return 0;
   }
@@ -8954,6 +8971,22 @@ function envSelftest() {
   const exDb = extractAppOverride(composeTextDb);
   check("extract: db_env keyed by generated kind (postgres)", exDb && exDb.db_env.postgres && exDb.db_env.postgres.POSTGRES_USER === "linkshortener");
   check("extract: db_env captures POSTGRES_DB", exDb && exDb.db_env.postgres.POSTGRES_DB === "linkshortener");
+
+  // FAFF-371 — bounded-engine hardenings (pure cases).
+  // (h) down argv: default compose file present ⇒ full compose context + --remove-orphans.
+  const dArgs = envDownArgs("/r", "proj", "/r/.faff/env/docker-compose.yml");
+  check("down argv: -f form carries --project-directory + -f + --remove-orphans",
+    JSON.stringify(dArgs) === JSON.stringify(["compose", "--project-directory", "/r", "-p", "proj", "-f", "/r/.faff/env/docker-compose.yml", "down", "-v", "--remove-orphans"]));
+  // (h') no default file ⇒ the label-based -p-only form, unchanged.
+  check("down argv: no default file ⇒ -p-only fallback",
+    JSON.stringify(envDownArgs("/r", "proj", null)) === JSON.stringify(["compose", "-p", "proj", "down", "-v"]));
+  // (i) engine context naming: DOCKER_HOST echoed when set, "default socket" when not.
+  const prevDockerHost = process.env.DOCKER_HOST;
+  process.env.DOCKER_HOST = "unix:///tmp/faff371.sock";
+  check("engine context: names DOCKER_HOST when set", envEngineContext() === "DOCKER_HOST=unix:///tmp/faff371.sock");
+  delete process.env.DOCKER_HOST;
+  check("engine context: default socket when unset", envEngineContext() === "default socket");
+  if (prevDockerHost !== undefined) process.env.DOCKER_HOST = prevDockerHost;
 
   if (failed) return 1;
   console.log("env --selftest: ok");

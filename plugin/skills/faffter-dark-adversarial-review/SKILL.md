@@ -39,7 +39,8 @@ Faff-graft provides:
 - The full diff: `git diff main...HEAD`
 - The spec (from the issue comment)
 - The Phase 1 review result (for context, not for agreement — Phase 2 must form its own opinion)
-- The **lights-out signal** — a boolean, true only on a lights-out (L4) run, false or absent otherwise. faff-graft forwards it; the slot never resolves it itself. It gates the Phase-2 `critical` escalation (see **Lights-out escalation**). Default it to false whenever it is not forwarded.
+- The **`autonomous` signal** — a boolean, `true` on **any** unattended run (L3 overnight *or* L4 lights-out), `false`/absent on an interactive (L2) run. faff-graft forwards it; the slot never resolves it itself. It gates the Phase-2 `critical` escalation (see **Autonomous-run escalation**) and the full-chain-outage annotation (see **Backend call** → the exit-code table). Default it to `false` whenever it is not forwarded — an unresolved signal never escalates and never annotates (fail-safe to interactive semantics).
+- The **`lights_out` signal** — a boolean, `true` only on a lights-out (L4) run (L4 = `autonomous ∧ lights_out`); forwarded alongside `autonomous`, orthogonal to it. Both the escalation and the outage annotation key off `autonomous`, not this — so they fire at L3 too, where merges happen unattended without a human watching.
 
 ## Output
 
@@ -66,7 +67,7 @@ The adversarial findings are raised back to the **implementor** (the build agent
 4. **Fix if necessary** — if any finding is valid and actionable, fix the code
 5. **Re-run primary review** — if fixes were made, re-run Phase 1 to confirm nothing regressed
 
-Off the lights-out path the adversarial review **never directly blocks the pipeline** — it produces signal that the implementor must address with evidence. On a lights-out run there is one exception: a Phase-2 `critical` escalates the returned hard signal to `needs-human` so the merge stops (see **Lights-out escalation**). A dismissed finding with weak rationale ("I don't think that's a problem") is itself a smell — the disposition must be specific and verifiable.
+On an **interactive (L2)** run the adversarial review **never directly blocks the pipeline** — it produces signal that the implementor must address with evidence. On an **autonomous (L3/L4)** run there is one exception: a Phase-2 `critical` escalates the returned hard signal to `needs-human` so the merge stops (see **Autonomous-run escalation**) — no human is awake to weigh a soft `critical`, and on an autonomous run the accused must not be the one to clear its own indictment. A dismissed finding with weak rationale ("I don't think that's a problem") is itself a smell — the disposition must be specific and verifiable.
 
 This soft-signal design reflects that the adversarial model may produce lower-quality findings than the primary model. The value is in surfacing blind spots for consideration, not in gating on a potentially less capable reviewer's judgement.
 
@@ -156,20 +157,38 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
   - **Key resolves** (exit 0) → `$host_source=config`; pass `$host` as-is.
   - **Key unset** (non-zero exit) → `$host_source=default`; pass the documented `http://localhost:11434` so the probe can run and produce the distinct exit 6. Do **not** treat the resulting outage as `pass+skip` — an absent provider block must not invisibly disable the review (the same principle as the model-not-served exit-4 case). Keying off "non-zero exit ⇒ unconfigured" (not a specific code) keeps this robust if the CLI's unset-key code changes.
 
-**Exit code → Phase-2 outcome (mechanical — the helper decides, not prose):**
+**Exit code → Phase-2 outcome (mechanical — the helper decides, not prose).** The helper returns the **same exit code in both modes** (`review-call.mjs` exit semantics are unchanged); the two mode columns are how *this slot* handles that code. Only **exit 5 diverges** — an autonomous full-chain outage is loudly annotated, never a bare pass (see **Full-chain outage annotation** below):
 
-| exit | meaning | outcome |
-|---|---|---|
-| `0` | findings on stdout | parse `## Adversarial findings`, disposition each (below) |
-| `2` | usage error, or an unsupported provider (`gemini`/`anthropic`/unknown) | **`needs-human`** — a config fault, not a review result. |
-| `4` | configured model **not served** by the host (config fault — e.g. a name typo) | **`needs-human`**, naming the mismatch. **Never** silent `pass` — a misconfigured model must not invisibly disable the review. |
-| `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`), **or** a persistent mid-stream **transport failure** after the bounded retry (FAFF-227; incl. a persistent **HTTP 429 rate-limit** — FAFF-228) on a configured host | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. |
-| `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset**, **or** a persistent mid-stream **transport failure** (FAFF-227; incl. a persistent **HTTP 429 rate-limit** — FAFF-228) on the default host | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). |
-| `7` | **auth failed** (cloud `401`/`403`, or the `api_key_env` var is unset) | **`needs-human`** — don't retry with broken credentials. |
+| exit | meaning | interactive (L2) | autonomous (L3/L4) |
+|---|---|---|---|
+| `0` | findings on stdout | parse `## Adversarial findings`, disposition each (below) | same |
+| `2` | usage error, or an unsupported provider (`gemini`/`anthropic`/unknown) | **`needs-human`** — a config fault, not a review result. | same |
+| `4` | configured model **not served** by the host (config fault — e.g. a name typo) | **`needs-human`**, naming the mismatch. **Never** silent `pass` — a misconfigured model must not invisibly disable the review. | same |
+| `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`), **or** a persistent mid-stream **transport failure** after the bounded retry (FAFF-227; incl. a persistent **HTTP 429 rate-limit** — FAFF-228) on a configured host | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. | `pass` + a **LOUD** skip finding + block field `adversarial_outcome:"chain-outage-skipped"` — never an undifferentiated pass. The morning brief, not a park, surfaces the gap (an outage is no code defect). |
+| `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset**, **or** a persistent mid-stream **transport failure** (FAFF-227; incl. a persistent **HTTP 429 rate-limit** — FAFF-228) on the default host | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). | same |
+| `7` | **auth failed** (cloud `401`/`403`, or the `api_key_env` var is unset) | **`needs-human`** — don't retry with broken credentials. | same |
 
 A **transient transport fault during streaming** (HTTP 5xx, a dropped socket — `ECONNRESET`/`ETIMEDOUT`/`EPIPE`/"socket hang up", a stream timeout, or an **HTTP 429 rate-limit** — FAFF-228) is **retried** a bounded number of times with exponential backoff before it counts as a failure; only a **persistent** one lands on exit `5`/`6` above (FAFF-227/228). `--timeout` bounds **each individual stream attempt and the inter-retry sleeps** — *not* the total wall-clock: worst-case total wall-clock is **~6× `--timeout`** (3 attempts × 2 `streamOnce`) under stream + truncation + transport-retry composition (FAFF-228 doc correction). **`OTHER` (exit `1`) is reserved for genuine programmer error — no transport/infra condition (now including a rate-limit) exits `1`**, so every exit the helper returns is covered by this table.
 
 Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides).
+
+### Full-chain outage annotation (autonomous exit 5)
+
+On an **autonomous** run where the exit is `5` (every backend in the chain unreachable — a full-chain availability outage), the pipeline is not blocked, but the skip must never read as a silent pass. Do two things when authoring the output:
+
+- **Emit a loud skip header** in place of the normal findings block:
+
+  ```
+  ## Adversarial findings — SKIPPED (all backends unreachable)
+
+  This build shipped without adversarial review — every configured backend was unreachable.
+  ```
+
+- **Set the contract block** to `{ "signal": "pass", "findings": [], "adversarial_outcome": "chain-outage-skipped" }`. The signal stays `pass` (an infra outage produces no finding to gate on — parking would conflate availability with quality), but the optional `adversarial_outcome` field marks *why* it passed without review. faff-graft forwards the token; the beep-boop orchestrator records the issue id in its ledger's `review_adversarial_skipped` array and renders it in a distinct run-summary subsection, so the run never presents it as an undifferentiated auto-merge.
+
+On an **interactive** exit 5 the behaviour is unchanged: `pass` + a plain finding noting the skip, **no** `adversarial_outcome` field, no loud header — a watched human may reasonably proceed on a dead chain.
+
+This annotation path and the **Autonomous-run escalation** below are **mutually exclusive**: escalation requires Phase-2 findings (exit 0), the outage annotation requires no findings (exit 5) — a single review can never hit both.
 
 ## Output to faff-graft
 
@@ -182,26 +201,29 @@ After the output above, append **one** fenced code block — tagged `faff-contra
 ````
 ```faff-contract:review-verdict
 { "signal": "<Phase 1's verdict: pass|fail|needs-human>",
-  "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per Phase-1 finding ] }
+  "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per Phase-1 finding ],
+  "adversarial_outcome": "chain-outage-skipped"   // OPTIONAL — omit unless the autonomous full-chain-outage case fired
+}
 ```
 ````
 
-- **Phase 1's verdict only** — *except on the lights-out path*, where a Phase-2 `critical` escalates `signal` to `needs-human` (see **Lights-out escalation**). Otherwise `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
-- **Phase-2 adversarial hypotheses are NOT the verdict** — they stay prose under `## Adversarial findings` and are **never** entered into `findings[]` (except the single lights-out carve-out below). Folding soft hypotheses in would misrepresent the hard verdict the gate routes on. The one narrow carve-out is the lights-out `critical` escalation below: there the escalating `critical` *is* the verdict-driver (the signal is `needs-human` **because of** it), so it is entered honestly — scoped strictly to that escalation, off which this rule is unchanged.
+- **Phase 1's verdict only** — *except on the autonomous path*, where a Phase-2 `critical` escalates `signal` to `needs-human` (see **Autonomous-run escalation**). Otherwise `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
+- **Phase-2 adversarial hypotheses are NOT the verdict** — they stay prose under `## Adversarial findings` and are **never** entered into `findings[]` (except the single autonomous-escalation carve-out below). Folding soft hypotheses in would misrepresent the hard verdict the gate routes on. The one narrow carve-out is the autonomous `critical` escalation below: there the escalating `critical` *is* the verdict-driver (the signal is `needs-human` **because of** it), so it is entered honestly — scoped strictly to that escalation, off which this rule is unchanged.
+- **`adversarial_outcome` is OPTIONAL and additive** — include it **only** in the autonomous full-chain-outage case, set to `"chain-outage-skipped"` (see **Full-chain outage annotation**); omit it on every other path. The contract validator (`faff contract review-verdict`) reads only `signal`+`findings` and **neither rejects nor forwards** unknown fields — its output is rebuilt from `signal`+`findings` alone, so `adversarial_outcome` **never gates the verdict**. It rides instead on the **raw verdict block** graft persists per-issue (`review-verdict.json`), which the beep-boop orchestrator reads **directly** during its reconciliation to populate the ledger's `review_adversarial_skipped` array — not from the contract script's stdout.
 - `pass` may carry zero findings; `fail` / `needs-human` carry ≥1 (the contract script enforces this).
-- Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction is just `{ signal, findings }`.
+- Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction the gate routes on is just `{ signal, findings }` (plus the optional `adversarial_outcome` annotation above).
 - **One** block, at the very end, machine-only. **Always emit it** — a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-graft reading your prose — the absent-block fallback.)
 
-## Lights-out escalation
+## Autonomous-run escalation
 
-On a **lights-out run only**, a Phase-2 `critical` finding must **stop the merge**, not merely be logged — no human is awake to weigh a soft `critical`. When the forwarded lights-out signal is true, escalate the Phase-2 severity into the hard verdict at the moment you author the `faff-contract:review-verdict` block:
+On **any autonomous run** (L3 overnight or L4 lights-out), a Phase-2 `critical` finding must **stop the merge**, not merely be logged — no human is awake to weigh a soft `critical`, and the implementor the finding indicts must not be the one to clear it. When the forwarded `autonomous` signal is true, escalate the Phase-2 severity into the hard verdict at the moment you author the `faff-contract:review-verdict` block:
 
 - **Escalation threshold — a single named set.** `ESCALATE_SEVERITIES = { critical }` (v1). Only `critical` escalates; `major` / `minor` / `observation` never do, because a lower-capability adversarial model's `major` findings are too noisy to auto-park a run on. To widen the threshold later, add the severity to this one set (e.g. `{ critical, major }`) — nothing else changes.
-- **When it fires — all three must hold:** Phase 1 returned `pass` (so Phase 2 ran), the forwarded lights-out signal is true, and at least one Phase-2 finding has a severity in `ESCALATE_SEVERITIES`. The trigger is the **raw** Phase-2 severity, **not** the implementor's disposition of it — a build agent must not be able to disprove its own way past the gate (marking its own homework is the failure L4 isolation exists to remove). A false-positive `critical` therefore parks the run for a human to clear: a recoverable park is the intended trade against an unrecoverable false auto-merge.
+- **When it fires — all three must hold:** Phase 1 returned `pass` (so Phase 2 ran), the forwarded `autonomous` signal is true, and at least one Phase-2 finding has a severity in `ESCALATE_SEVERITIES`. The trigger is the **raw** Phase-2 severity, **not** the implementor's disposition of it — a build agent must not be able to disprove its own way past the gate (marking its own homework is the failure this escalation exists to remove). A false-positive `critical` therefore parks the run for a human to clear: a recoverable park is the intended trade against an unrecoverable false auto-merge.
 - **What it emits.** Set the block's `signal` to `needs-human`, and fold each escalating `critical` into `findings[]` as `{ "location_present": true, "action_present": true }` — one entry per escalating finding. A gate-worthy `critical` names a location and an action by the actionability bar (see **Rules**), so these are truthful for a well-formed finding and act as the escalation's conformance markers; the substantive per-finding detail lives in the prose `## Adversarial findings`, exactly as on every other path. This satisfies the contract's rule that a `needs-human` signal carries at least one finding naming a location and an action.
-- **Fail-safe direction.** When the lights-out signal is false, absent, or unresolved, do **not** escalate — author the block exactly as the advisory path does. This matches the rest of the L4 build floor, which fails safe *off* on an unresolvable signal.
+- **Fail-safe direction.** When the `autonomous` signal is false, absent, or unresolved, do **not** escalate — author the block exactly as the advisory path does. This fails safe *off* on an unresolvable signal, matching the interactive default.
 
-Off the lights-out path this section is inert: the block is authored byte-for-byte as it is today, with Phase-2 findings advisory.
+On an **interactive (L2)** run — `autonomous` false — this section is inert: the block is authored byte-for-byte as it is today, with Phase-2 findings advisory. This escalation (findings present, exit 0) is **mutually exclusive** with the **Full-chain outage annotation** (no findings, exit 5) — a single review can never trigger both.
 
 ## Rules
 

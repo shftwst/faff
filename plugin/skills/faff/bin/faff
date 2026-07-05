@@ -13868,6 +13868,48 @@ function classifyHeadShaChecks(runs, statusState, statusCount) {
   return "ci-green";
 }
 
+// PURE (FAFF-376): judge whether the CI reading can be TRUSTED before it is classified. The check-runs
+// API is the PRIMARY signal; the legacy commit-status API is only a SUPPLEMENT, trusted solely alongside
+// a readable primary. When the primary signal is unreadable the result is "indeterminate" REGARDLESS of
+// the legacy status — a legacy success never yields ci-green and a legacy failure never upgrades to
+// ci-red (uniform severity: the gate cannot see the primary signal, so it reports exactly that; fail
+// closed on primary-signal loss). When the primary IS readable, classification is delegated unchanged to
+// classifyHeadShaChecks with the legacy supplement folded in only if the legacy API itself was readable.
+// api_degraded_reason is non-null IFF ci_state was forced to "indeterminate" by API loss.
+function classifyCiObservation(checkRunsOk, runs, statusOk, statusState, statusCount) {
+  if (!checkRunsOk) {
+    const reason = statusOk
+      ? "check-runs API unavailable — legacy status alone is not trusted"
+      : "gh api unreachable for head-sha checks";
+    return { ci_state: "indeterminate", api_degraded_reason: reason };
+  }
+  const effectiveState = statusOk ? statusState : null;
+  const effectiveCount = statusOk ? statusCount : 0;
+  return {
+    ci_state: classifyHeadShaChecks(Array.isArray(runs) ? runs : [], effectiveState, effectiveCount),
+    api_degraded_reason: null,
+  };
+}
+
+// PURE (FAFF-376): name a non-zero `gh pr merge` exit into a refusal blocker. Called ONLY on a non-zero
+// merge exit — every kind is a REFUSAL; there is NO success branch. head-drift = the forge rejected the
+// head pin because the live head no longer equals the observed sha (drift in the observe-to-merge
+// window); pin-unsupported = the installed gh lacks --match-head-commit, so an unpinned merge was never
+// attempted (remedy: upgrade gh, not retry); generic = any other rejection, preserving today's blocker
+// text. Unrecognisable pin-rejection wording degrades to generic (still a refusal) — a wording change
+// can only cost blocker specificity, never fail open.
+function classifyMergeFailure(stderr, observedSha) {
+  const s = String(stderr || "").trim();
+  if (/unknown flag.*match-head-commit/i.test(s) || /match-head-commit.*unknown flag/i.test(s)) {
+    return { kind: "pin-unsupported", blocker: "installed gh does not support --match-head-commit — upgrade gh; the gate never merges unpinned" };
+  }
+  // Forge-side expectedHeadOid rejection (empirically-captured wording; candidates below).
+  if (/head branch was modified/i.test(s) || /expected head (?:sha|oid)/i.test(s) || /head (?:sha |ref |oid )?(?:has )?(?:changed|was modified|is out.?of.?date)/i.test(s)) {
+    return { kind: "head-drift", blocker: `head sha changed between CI observation and merge: observed ${observedSha}; the forge refused the head pin` };
+  }
+  return { kind: "generic", blocker: `gh pr merge rejected: ${s || "non-zero exit"}` };
+}
+
 // PURE: the gh-api probe result → BranchProtectionState. Reachable+protected → protected;
 // reachable+404 → unprotected; unreachable/forbidden → indeterminate (fail-closed, warns).
 function classifyBranchProtection(probe) {
@@ -13896,11 +13938,16 @@ function ghRepoSlug(explicit) {
 function observeCi(repo, pr, headSha) {
   const cr = ghJson(["api", `repos/${repo}/commits/${headSha}/check-runs`, "--jq", "[.check_runs[] | {status, conclusion}]"]);
   const stt = ghJson(["api", `repos/${repo}/commits/${headSha}/status`, "--jq", "{state: .state, count: (.statuses | length)}"]);
-  if (!cr.ok && !stt.ok) return { ci_state: "indeterminate", head_sha_matches: true, detail: "gh api unreachable for head-sha checks" };
-  const runs = cr.ok && Array.isArray(cr.data) ? cr.data : [];
-  const statusState = stt.ok && stt.data ? stt.data.state : null;
-  const statusCount = stt.ok && stt.data ? stt.data.count : 0;
-  const headState = classifyHeadShaChecks(runs, statusState, statusCount);
+  // Trust judgement first (FAFF-376): loss of the PRIMARY check-runs signal → indeterminate regardless
+  // of the legacy status. The old `!cr.ok && !stt.ok` early return is subsumed by this (its both-down
+  // detail string is preserved). Only when the primary was readable do we proceed to head-state handling.
+  const cls = classifyCiObservation(
+    cr.ok, cr.ok && Array.isArray(cr.data) ? cr.data : [],
+    stt.ok, stt.ok && stt.data ? stt.data.state : null,
+    stt.ok && stt.data ? stt.data.count : 0,
+  );
+  if (cls.api_degraded_reason) return { ci_state: "indeterminate", head_sha_matches: true, detail: cls.api_degraded_reason };
+  const headState = cls.ci_state;
   if (headState !== "no-ci-coverage") return { ci_state: headState, head_sha_matches: true, detail: `head-sha checks: ${headState}` };
   // Head sha carries zero checks — stale-green or genuine no-CI?
   const prc = ghJson(["pr", "checks", String(pr), "--json", "state"]);
@@ -14004,10 +14051,16 @@ function cmdMergeGate(args) {
   }
   if (mode === "check-only") return emit({ ...result, verdict: "merge-ok" }, 0);
 
-  const m = spawnSync("gh", ["pr", "merge", String(pr), ...parsedMerge.flags], { encoding: "utf8", timeout: 120000 });
+  // Head pin (FAFF-376): --match-head-commit makes the forge itself refuse any merge whose live head no
+  // longer equals `headSha` — the SAME variable CI was classified against (:observed sha). Gate-composed,
+  // appended after parsedMerge.flags so it rides EVERY executed merge (normal path and the human-override
+  // fall-through alike); callers cannot supply it (parseMergeArgs rejects it → exit 2). --check-only and
+  // the already-MERGED no-op never reach this spawn.
+  const m = spawnSync("gh", ["pr", "merge", String(pr), ...parsedMerge.flags, "--match-head-commit", headSha], { encoding: "utf8", timeout: 120000 });
   if (m.status !== 0) {
+    const cls = classifyMergeFailure((m.stderr || "").trim(), headSha);
     result.verdict = "refuse";
-    result.blockers = [...blockers, `gh pr merge rejected: ${(m.stderr || "non-zero exit").trim()}`];
+    result.blockers = [...blockers, cls.blocker];
     return emit(result, 1);
   }
   result.merged = true;
@@ -14082,6 +14135,18 @@ function mergeGateSelftest() {
   check("merge-args: allowed pass through", (() => { const p = parseMergeArgs("--squash --delete-branch"); return p.flags.length === 2 && p.rejected.length === 0; })());
   check("merge-args: unknown token rejected", parseMergeArgs("--squash; rm -rf /").rejected.length > 0);
   check("merge-args: empty → nothing", (() => { const p = parseMergeArgs(""); return p.flags.length === 0 && p.rejected.length === 0; })());
+  // classifyCiObservation (FAFF-376): primary check-runs signal is required; legacy status is an optional supplement
+  check("ci-obs: both APIs down → indeterminate + reason", (() => { const r = classifyCiObservation(false, [], false, null, 0); return r.ci_state === "indeterminate" && !!r.api_degraded_reason; })());
+  check("ci-obs: check-runs down + legacy success(n>0) → indeterminate (FAFF-376)", classifyCiObservation(false, [], true, "success", 1).ci_state === "indeterminate");
+  check("ci-obs: check-runs down + legacy failure(n>0) → indeterminate (uniform severity)", classifyCiObservation(false, [], true, "failure", 1).ci_state === "indeterminate");
+  check("ci-obs: check-runs ok(empty) + legacy API down → no-ci-coverage (classification proceeds)", (() => { const r = classifyCiObservation(true, [], false, null, 0); return r.ci_state === "no-ci-coverage" && r.api_degraded_reason === null; })());
+  check("ci-obs: check-runs ok(success) + legacy API down → ci-green (supplement optional)", classifyCiObservation(true, [{ status: "completed", conclusion: "success" }], false, null, 0).ci_state === "ci-green");
+  check("ci-obs: check-runs ok(success) + legacy success → ci-green (delegation intact)", classifyCiObservation(true, [{ status: "completed", conclusion: "success" }], true, "success", 1).ci_state === "ci-green");
+  // classifyMergeFailure (FAFF-376): every kind is a refusal, no success branch
+  check("merge-fail: pin-mismatch → head-drift names observed sha", (() => { const r = classifyMergeFailure("failed to merge PR: Head branch was modified. Review and try the merge again.", "abc1234"); return r.kind === "head-drift" && r.blocker.includes("abc1234"); })());
+  check("merge-fail: unknown flag → pin-unsupported says upgrade gh", (() => { const r = classifyMergeFailure("unknown flag: --match-head-commit", "abc1234"); return r.kind === "pin-unsupported" && /upgrade gh/i.test(r.blocker); })());
+  check("merge-fail: unrelated stderr → generic embeds it verbatim", (() => { const r = classifyMergeFailure("failed to merge: merge conflict between base and head", "abc1234"); return r.kind === "generic" && r.blocker.includes("merge conflict between base and head"); })());
+  check("merge-fail: empty stderr → generic 'non-zero exit'", (() => { const r = classifyMergeFailure("", "abc1234"); return r.kind === "generic" && /non-zero exit/.test(r.blocker); })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }

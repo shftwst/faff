@@ -291,6 +291,11 @@ test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", ()
   assert.deepEqual(ledger.admitted, []);
   assert.deepEqual(ledger.outcomes, {});
   assert.equal(ledger.budget_ceiling.max_attempts, 5);
+  // FAFF-379: the ledger floor object stays byte-shape-identical — {key: boolean}, no
+  // nested {holds,mode} — so runcheck / ledger consumers see no schema change. Mode
+  // honesty rides on the persisted banner, not the floor object.
+  assert.deepEqual(ledger.floor, { no_execute: true, worktree_isolation: true, autonomous_contract: true });
+  for (const k of Object.keys(ledger.floor)) assert.equal(typeof ledger.floor[k], "boolean", `floor.${k} is a boolean`);
   // banner persisted (not just printed) and derivable 1:1 from armed.
   assert.equal(ledger.banner, out.banner);
   for (const id of Object.keys(out.armed)) assert.ok(ledger.banner.includes(id), `banner names ${id}`);

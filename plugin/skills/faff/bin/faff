@@ -19,6 +19,7 @@
 //   gitignore-ensure [--root DIR] [--json]        idempotently add faff's local artifacts to .gitignore
 //   worktree-prune [--own P ...] [--branch B] [--issue ID] [--dry-run] [--json]   FAFF-126: scoped fail-safe prune — own dangling worktrees only, never repo-wide; --selftest
 //   gates <discover|run> [--json]                FAFF-11: cost-ordered engineering-quality gate ladder — discover/run the repo's own declared cheap checks (pre-commit/pkg/Makefile) cheapest-first, fail-fast, emit a faff-contract:quality-gates block; --selftest
+//   corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface; probe proves no boundary (asserted:false always) → gate degrades corrective→channel-D / detection→reconcile-only. No crypto; always exit 0; --selftest
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
 // (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
@@ -4477,6 +4478,108 @@ function containerCheckSelftest() {
 }
 
 // ===========================================================================
+// === region:factory — corrective-integrity — FAFF-373: fail-safe gate over the FAFF-278 forge surface. ===
+// Under a shared uid faff cannot cryptographically stop a same-uid build lane
+// from forging a corrective artifact or rewriting run-ledger.json (bin/faff:1683 —
+// "Guardrail, not cryptographic control: a local agent can always write a
+// marker"). So the safe posture is DISTRUST BY DEFAULT: the probe proves no
+// integrity boundary (asserted:false for ALL inputs) and the gate degrades
+// corrective authority to Channel D (human relay) / ledger content to
+// reconcile-only. No crypto, no secret, no signature — a shared-uid secret is
+// itself forgeable, so it is false assurance. The `signal` parameter is the inert
+// forward-compatible SEAM FAFF-325 will wire to an un-forgeable channel; in THIS
+// ticket no trusted source exists, so it is NEVER honoured (honouring a signal
+// from any build-lane-writable source would re-open the exact forge this closes).
+// Assert + degrade, never refuse (ADR-0039 names Channel D the fallback; a still-
+// safe run proceeds stop-only, no `correct` rung). PURE over (env, fsq) like
+// container-check; the CLI wrapper does the I/O.
+// ===========================================================================
+
+// Pure probe. Returns { asserted, basis }. `signal` is the inert FAFF-325 seam:
+// no trusted source exists here, so the probe returns asserted:false for EVERY
+// input — a `signal` from any build-lane-writable source is never honoured. No
+// crypto, no secret, no fs read of `signal` as trust.
+function correctiveIntegrityProbe(env, fsq, signal) {
+  return { asserted: false, basis: "no-boundary-signal" };
+}
+
+// Pure gate. Given a probe result + a consumer, decide trust + disposition.
+// asserted:true → trusted (the FAFF-325 seam, unreachable in this ticket).
+// Unasserted degrades: `corrective` → Channel D (human relay); `detection` →
+// reconcile-only (ledger content cross-checked vs git). An UNKNOWN consumer fails
+// safe to Channel D — never trusted.
+function integrityGate(probeResult, consumer) {
+  if (probeResult && probeResult.asserted === true) return { trusted: true, disposition: "trusted" };
+  if (consumer === "detection") return { trusted: false, disposition: "reconcile-only" };
+  return { trusted: false, disposition: "channel-D" };
+}
+
+// The forge-surface path set for a run — the corrective-artifact dir + the
+// run-ledger.json path — single-sourced from the SAME run-dir layout readLedger
+// uses (path.join(runDir, "run-ledger.json")); never a divergent hand-written
+// absolute list (a second list is a real bypass). PURE — derives paths only.
+function correctiveIntegrityDirs(runDir) {
+  return [
+    path.join(runDir, "corrective"),
+    path.join(runDir, "run-ledger.json"),
+  ];
+}
+
+function cmdCorrectiveIntegrity(args) {
+  if (args.includes("--selftest")) return correctiveIntegritySelftest();
+  const json = args.includes("--json");
+  const ci = args.indexOf("--consumer");
+  const consumer = ci !== -1 && args[ci + 1] ? args[ci + 1] : "corrective";
+  const probe = correctiveIntegrityProbe(process.env, realFsq());
+  const gate = integrityGate(probe, consumer);
+  const out = { asserted: probe.asserted, basis: probe.basis, trusted: gate.trusted, disposition: gate.disposition };
+  if (json) console.log(JSON.stringify(out));
+  else console.log(`corrective-integrity: asserted=${out.asserted} basis=${out.basis} → trusted=${out.trusted} disposition=${out.disposition} (consumer: ${consumer})`);
+  // Report/degrade, never a hard failure — an unasserted boundary is the shipped
+  // posture (degrade to Channel D), NOT an error. Always exit 0.
+  return 0;
+}
+
+// In-memory selftest over synthetic fixtures — mirrors the container-check shape
+// (per-case ok/FAIL + a RESULT line, non-zero on any fail). Asserts: the probe is
+// asserted:false for every input incl. a shared-fs-sourced signal; the gate
+// degrades corrective→channel-D / detection→reconcile-only when unasserted; only
+// a synthetic asserted:true reaches trusted; and the dir set is under the run dir.
+function correctiveIntegritySelftest() {
+  let fail = 0;
+  const ok = (cond, label) => { if (!cond) fail++; console.log(`${cond ? "ok  " : "FAIL"} ${label}`); };
+  // A "shared-fs-like" fsq + signal: the security-critical case — a signal sourced
+  // from a build-lane-writable location must NOT flip the probe to trusted.
+  const sharedFsFsq = { exists: () => true, readEnviron: () => "container=forged" };
+  const PROBE_CASES = [
+    [{}, realFsq(), undefined, "bare (no env, no signal)"],
+    [{ FAFF_RUN_DIR: "/x" }, realFsq(), undefined, "run env set"],
+    [{}, sharedFsFsq, { asserted: true, source: "shared-fs" }, "shared-fs signal (security-critical)"],
+    [{}, sharedFsFsq, "trust-me", "string signal from shared fs"],
+  ];
+  for (const [env, fsq, sig, label] of PROBE_CASES) {
+    const p = correctiveIntegrityProbe(env, fsq, sig);
+    ok(p.asserted === false && p.basis === "no-boundary-signal", `probe → asserted:false/no-boundary-signal (${label})`);
+  }
+  const unasserted = { asserted: false, basis: "no-boundary-signal" };
+  const gc = integrityGate(unasserted, "corrective");
+  ok(gc.trusted === false && gc.disposition === "channel-D", "gate corrective/unasserted → channel-D");
+  const gd = integrityGate(unasserted, "detection");
+  ok(gd.trusted === false && gd.disposition === "reconcile-only", "gate detection/unasserted → reconcile-only");
+  const gu = integrityGate(unasserted, "wat");
+  ok(gu.trusted === false && gu.disposition === "channel-D", "gate unknown consumer → not trusted / channel-D");
+  const gt = integrityGate({ asserted: true }, "corrective");
+  ok(gt.trusted === true && gt.disposition === "trusted", "gate synthetic asserted:true → trusted (the FAFF-325 seam)");
+  const runDir = path.join("/tmp", "faff-run-xyz");
+  const dirs = correctiveIntegrityDirs(runDir);
+  ok(dirs.every((d) => d === runDir || d.startsWith(runDir + path.sep)), "all integrity dirs under runDir");
+  ok(dirs.includes(path.join(runDir, "run-ledger.json")), "integrity dirs include the ledger path");
+  ok(dirs.includes(path.join(runDir, "corrective")), "integrity dirs include the corrective-artifact dir");
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${PROBE_CASES.length + 6} checks, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
 // === region:factory — next — FAFF-63: the legal-next-step transition function. PURE: the caller ===
 // passes the issue's resolved state (the CLI has no tracker/MCP access); it
 // computes the step. It NEVER executes the step or enforces the gate (FAFF-57).
@@ -5539,6 +5642,7 @@ Subcommands:
   holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]   FAFF-277: pure, trust-gated bridge from the evaluator's persisted holdout verdicts (.faff/holdout/<issue|run>.json) to the already-shipped 'faff prdr coverage --dod-verdicts' flag. Reads each verdict, RE-VALIDATES it through the same computeHoldoutVerdict gate (never a forked rule), translates only a conformant code_blind:true meets-spec -> the literal "met", folds conservatively per PRDR (any non-met sibling makes the PRDR not-met), and keys by the supplied issue->PRDR association; every other aggregate passes through (!= met), untrusted files are omitted. Emits {verdicts:{prdr:value},skipped:[{key,reason}]}; skipped also summarised to stderr. PURE (filesystem read of --dir only, no tracker/network/LLM). Absent --dir -> empty map (exit 0); missing/non-object --association, malformed --association JSON, or unreadable --dir -> exit 2; a successful run (incl. empty map) -> exit 0 (no exit 1, report-only). --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
+  corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: the corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface. Under a shared uid faff cannot cryptographically stop a same-uid build lane from forging a corrective artifact / rewriting run-ledger.json (bin/faff:1683), so the probe proves no integrity boundary (asserted:false for ALL inputs; the signal seam is inert until FAFF-325 wires an un-forgeable channel) and the gate DEGRADES — corrective→channel-D (human relay), detection→reconcile-only (ledger content cross-checked vs git), unknown consumer→channel-D. No crypto/secret/signature. Prints {asserted, basis, trusted, disposition}; ALWAYS exit 0 (report/degrade, never a hard refuse); --selftest runs the table
   merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 .faff/holdout/<ISSUE>.json via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto/--admin), any other token → exit 2. exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs) with no network
   branch-protection-check [--repo owner/repo] [--branch name] [--json]   FAFF-350: assert-don't-enforce probe (mirrors container-check / ADR-0010) — is the target branch protected? Probes gh api repos/{repo}/branches/{branch}/protection; PURE classifier over the probe result. Prints {status ∈ protected|unprotected|indeterminate, required_checks, basis}; exit 0 protected · 1 not-confirmed (unprotected/indeterminate). The autonomous-entry preflight (beep-boop + lights-out) WARNS by default on not-confirmed, BLOCKS under the opt-in autonomous.require_branch_protection knob, never fires interactive; --selftest runs the classifier table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
@@ -12484,6 +12588,12 @@ function cmdLightsOut(args) {
   // lights-out path only — L1–L3 keep today's warn-don't-block behaviour.
   const container = containerCheck(process.env, realFsq()).result;
 
+  // FAFF-373: corrective-integrity CAPABILITY RECORD (not a guardrail, not a refuse
+  // path) — derive whether corrective authority is available from the fail-safe probe.
+  // No asserted boundary exists in this ticket, so this is always "channel-D-only";
+  // recorded on the minted ledger / JSON output only, never gated on.
+  const correctiveAuthority = correctiveIntegrityProbe(process.env, realFsq()).asserted ? "available" : "channel-D-only";
+
   // Per-guardrail contract reachability probes (genuine, not config presence).
   const reachable = {};
   for (const g of LIGHTS_OUT_GUARDRAILS) {
@@ -12544,7 +12654,7 @@ function cmdLightsOut(args) {
   // REFUSE (fail-closed): print the banner + refusals, mint nothing, emit no work.
   if (!pf.proceed) {
     if (json) {
-      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, armed: pf.armed, enforced: pf.enforced, refusals: pf.refusals, banner: pf.banner }) + "\n");
+      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, refusals: pf.refusals, banner: pf.banner }) + "\n");
     } else {
       console.log(pf.banner);
       console.log(`\nREFUSED — lights-out preflight not satisfied:`);
@@ -12555,7 +12665,7 @@ function cmdLightsOut(args) {
 
   // --check: would-proceed, but mint nothing (a side-effect-free preflight probe).
   if (checkOnly) {
-    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true }) + "\n");
+    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true }) + "\n");
     else { console.log(pf.banner); console.log(`\nPreflight PASS (--check: no run minted).`); }
     return 0;
   }
@@ -12582,6 +12692,7 @@ function cmdLightsOut(args) {
     budget_ceiling: envelope.ceilings,
     dial_profile,
     prd_creative_licence: prdLicence.value,
+    corrective_authority: correctiveAuthority,
     container: "contained",
     floor,
     admitted: [],
@@ -12603,7 +12714,7 @@ function cmdLightsOut(args) {
   fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
 
   if (json) {
-    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner }) + "\n");
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner }) + "\n");
   } else {
     console.log(pf.banner);
     console.log(`\nPreflight PASS — L4 run minted: ${runDir}`);
@@ -12898,6 +13009,7 @@ const REGION_MAP = {
   "holdout": "factory",
   "spec-review-lenses": "factory",
   "container-check": "factory",
+  "corrective-integrity": "factory",
   "next": "factory",
   "project-next": "factory",
   "state": "factory",
@@ -12964,6 +13076,7 @@ const REGION_SELFTEST_ARGV = {
   "holdout": ["holdout", "--selftest"],
   "spec-review-lenses": ["spec-review-lenses", "--selftest"],
   "container-check": ["container-check", "--selftest"],
+  "corrective-integrity": ["corrective-integrity", "--selftest"],
   "next": ["next", "--selftest"],
   "project-next": ["project-next", "--selftest"],
   "state": null,
@@ -13832,6 +13945,7 @@ const COMMANDS = {
   "holdout": cmdHoldout,
   "spec-review-lenses": cmdSpecReviewLenses,
   "container-check": cmdContainerCheck,
+  "corrective-integrity": cmdCorrectiveIntegrity,
   "merge-gate": cmdMergeGate,
   "branch-protection-check": cmdBranchProtectionCheck,
   "next": cmdNext,
@@ -13871,4 +13985,13 @@ function main(argv) {
   return 2;
 }
 
-process.exitCode = main(process.argv.slice(2));
+// Run as a CLI only when invoked directly (shebang / `node …/bin/faff <sub>`), so a
+// `require`/ESM `import` of this file for its exported pure functions (the FAFF-373
+// corrective-integrity tests) does NOT execute a subcommand.
+if (require.main === module) {
+  process.exitCode = main(process.argv.slice(2));
+}
+
+// Exported pure functions (FAFF-373). Extensionless CJS imported from ESM exposes
+// only the default export, so tests destructure this object.
+module.exports = { correctiveIntegrityProbe, integrityGate, correctiveIntegrityDirs };

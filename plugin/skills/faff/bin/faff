@@ -2808,6 +2808,251 @@ function budgetSelftest() {
 }
 
 // ===========================================================================
+// === region:factory — economics — FAFF-357: per-run unit economics (cost-per-shipped-issue). ===
+// A PURE, read-only reporting subcommand (parity with `runcheck` / `budget
+// check`): no tracker, no network, no LLM. It COMPOSES data faff already
+// produces — the run ledger's terminal outcomes, `budget check`'s
+// transcript-summed this-run tokens, and the per-subagent transcript files —
+// into cost-per-shipped-issue + cost-per-attempt. It builds NO new meter and
+// touches NO producer (the ledger writer, `budget check`, and the events log
+// stay byte-unchanged); it only attributes and renders an existing reading.
+// Lives in `factory` — a reporting CONSUMER of the governance budget helpers
+// (measureTokens / attemptsFromLedger / …), not part of the extractable
+// flight-recorder layer. beep-boop's `## Reporting` step renders the JSON.
+// ===========================================================================
+
+// Canonical terminal-bucket render order (superset of the ledger's outcome
+// vocabulary); economics emits one BucketLine per NON-EMPTY bucket in this
+// order, with any unknown outcome value appended (sorted) so a future bucket
+// still surfaces rather than vanishing.
+const ECONOMICS_BUCKET_ORDER = ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer"];
+
+// Best-effort per-issue attribution match: pull the FIRST tracker-key token
+// ([A-Z]+-\d+) from a subagent's meta.json `description` ("Build FAFF-49 via
+// faff-graft") and keep it ONLY when it names an issue the ledger recorded an
+// outcome for. Returns the issue id, or null (no id, or foreign/stale id) — a
+// clean, expected skip. Pure (string + ledger map), so the selftest drives it.
+function economicsAttributeIssue(desc, outcomes) {
+  if (typeof desc !== "string") return null;
+  const m = desc.match(/[A-Z]+-\d+/);
+  if (!m) return null;
+  const issue = m[0];
+  if (!outcomes || !Object.prototype.hasOwnProperty.call(outcomes, issue)) return null;
+  return issue;
+}
+
+// PURE UnitEconomics core — no I/O. Given the ledger, the already-baselined
+// this-run token spend + its source label, the price, the run-start baseline
+// (for the inflation warning), and the best-effort per_issue list, derive the
+// full UnitEconomics record. The caller does ALL I/O (token measurement +
+// meta.json scan) and hands the results in; this function only divides and
+// tallies, so it is identical run-to-run and fully selftest-coverable. Run-level
+// figures NEVER depend on per_issue (best-effort) — they render identically
+// whether or not attribution succeeded.
+function computeUnitEconomics(ledger, opts) {
+  const { tokens_total, tokens_source, price_per_mtok, tokens_at_start, per_issue } = opts;
+  const price = Number.isFinite(price_per_mtok) && price_per_mtok > 0 ? price_per_mtok : 0;
+  const total = Number.isFinite(tokens_total) ? tokens_total : 0;
+  const cost_total = price > 0 ? (total / 1_000_000) * price : null;
+
+  const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
+  const counts = new Map();
+  for (const k of Object.keys(outcomes)) counts.set(outcomes[k], (counts.get(outcomes[k]) || 0) + 1);
+  const ordered = ECONOMICS_BUCKET_ORDER.filter((b) => counts.has(b))
+    .concat([...counts.keys()].filter((b) => !ECONOMICS_BUCKET_ORDER.includes(b)).sort());
+  const buckets = ordered.map((b) => ({ bucket: b, count: counts.get(b) }));
+
+  const shipped_count = counts.get("shipped") || 0;
+  // attempt_count: dispatched builds — every recorded outcome EXCEPT the
+  // never-dispatched ones (parity with attemptsFromLedger's exclusion set),
+  // computed over outcomes directly so an empty/prep-only ledger yields 0 (no
+  // admitted fallback — a run that made no build dispatch has no attempts).
+  let attempt_count = 0;
+  for (const k of Object.keys(outcomes)) if (!BUDGET_NON_ATTEMPT_OUTCOMES.has(outcomes[k])) attempt_count++;
+
+  const unitCost = (denom) => denom > 0 ? {
+    denom,
+    tokens_each: Math.round(total / denom),
+    cost_each: price > 0 ? cost_total / denom : null,
+  } : null;
+
+  const warnings = [];
+  // Inflation warning is a transcript-path concern only (the estimate path never
+  // uses the tokens_at_start baseline, so a 0 there is not an inflation risk).
+  if (tokens_source === "transcript" && tokens_at_start === 0 && total > 0) {
+    warnings.push("tokens_at_start=0 — run total may be inflated by prior-session history");
+  }
+
+  return {
+    run_id: (ledger && typeof ledger.run_id === "string" && ledger.run_id) || opts.run_id || null,
+    tokens_total: total,
+    tokens_source,
+    price_per_mtok: price,
+    cost_total,
+    buckets,
+    shipped_count,
+    attempt_count,
+    cost_per_shipped: unitCost(shipped_count),
+    cost_per_attempt: unitCost(attempt_count),
+    per_issue: Array.isArray(per_issue) ? per_issue : [],
+    zero_ship: shipped_count === 0 && total > 0,
+    warnings,
+  };
+}
+
+// Best-effort per-issue attribution (I/O). For every child agent-*.jsonl this
+// run OWNS (childOwningSession === sid — the FAFF-229 ownership gate), read its
+// sibling agent-*.meta.json, match its `description` to a ledger issue, and sum
+// that transcript's tokens onto the issue (accumulating across retries). Skips
+// silently on a missing/unparseable meta, a description carrying no issue id, or
+// a foreign/stale id. Returns the IssueCost list (empty when nothing matched —
+// an expected, non-fatal fallback; run-level figures never depend on it).
+function attributePerIssueCosts(base, sid, ledger, price) {
+  const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
+  let entries = [];
+  try { entries = fs.readdirSync(base); } catch { return []; }
+  const byIssue = new Map();
+  for (const name of entries) {
+    if (!/^agent-.*\.jsonl$/.test(name)) continue;
+    const f = path.join(base, name);
+    if (childOwningSession(f) !== sid) continue; // this run's owned children only
+    let meta;
+    try { meta = JSON.parse(fs.readFileSync(f.replace(/\.jsonl$/, ".meta.json"), "utf8")); } catch { continue; }
+    const issue = economicsAttributeIssue(meta && meta.description, outcomes);
+    if (!issue) continue;
+    byIssue.set(issue, (byIssue.get(issue) || 0) + sumTranscriptFile(f));
+  }
+  return [...byIssue.keys()].map((issue) => ({
+    issue,
+    bucket: outcomes[issue],
+    tokens: byIssue.get(issue),
+    cost: price > 0 ? (byIssue.get(issue) / 1_000_000) * price : null,
+  }));
+}
+
+function cmdEconomics(args) {
+  if (args.includes("--selftest")) return economicsSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+
+  // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest) —
+  // the same resolution `budget check` uses.
+  let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
+  if (!runDir) runDir = latestRunDir(root);
+  if (!runDir) { process.stderr.write("faff economics: no run dir (pass --run-dir DIR)\n"); return 2; }
+
+  let ledger;
+  try { ledger = readLedger(runDir); }
+  catch { process.stderr.write(`faff economics: cannot read ${path.join(runDir, "run-ledger.json")}\n`); return 2; }
+
+  const cfg = readGovernanceConfig(root);
+  // Same price source budget check reads: a ledger-recorded envelope if present,
+  // else fresh from config. No ceiling flags — economics reports, never gates.
+  const ledgerEnv = (ledger.budget && typeof ledger.budget === "object" && ledger.budget.envelope) || null;
+  const env = ledgerEnv ? envelopeFromLedger(ledgerEnv, { until: null, max_attempts: null }, cfg) : envelopeFrom(cfg, {});
+  const price = env.price_per_mtok > 0 ? env.price_per_mtok : 0;
+
+  const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
+  const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
+  const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+
+  // Reuse budget check's EXACT token path (measureTokens + the tokens_at_start
+  // baseline) — the same figure budget gates on, never a private recount.
+  const measured = measureTokens({ cwd: root, env: process.env, runStartMs });
+  let tokensTotal, tokensSource;
+  if (measured.source === "transcript") {
+    tokensTotal = Math.max(0, measured.total - tokensAtStart);
+    tokensSource = "transcript";
+  } else {
+    const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
+    tokensTotal = attemptsFromLedger(ledger) * estPer;
+    tokensSource = "estimate";
+  }
+
+  // Per-issue attribution is transcript-only (the estimate path has no
+  // transcripts to sum) and best-effort — an empty list is a clean fallback.
+  let perIssue = [];
+  if (tokensSource === "transcript") {
+    const sid = process.env.CLAUDE_CODE_SESSION_ID;
+    if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, process.env), sid, ledger, price);
+  }
+
+  const econ = computeUnitEconomics(ledger, {
+    tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
+    tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
+  });
+  console.log(JSON.stringify(econ));
+  return 0;
+}
+
+// Selftest — drives the pure core (computeUnitEconomics) + the attribution
+// matcher (economicsAttributeIssue) over in-memory cases; no filesystem, no
+// tracker. Covers the DoD selftest matrix: priced vs unpriced, zero-ship,
+// zero-attempt, tokens_at_start=0 warning, and empty/absent per-issue.
+function economicsSelftest() {
+  let fail = 0;
+  const ok = (label, cond) => { if (!cond) { fail++; process.stderr.write(`economics --selftest FAIL: ${label}\n`); } };
+
+  const ledgerMix = { run_id: "run-x", outcomes: { "FAFF-1": "shipped", "FAFF-2": "shipped", "FAFF-3": "parked", "FAFF-4": "routed-out" } };
+
+  // --- unpriced: token figures only, no cost column ---
+  const u = computeUnitEconomics(ledgerMix, { tokens_total: 12_000_000, tokens_source: "transcript", price_per_mtok: 0, tokens_at_start: 100, per_issue: [] });
+  ok("run_id from ledger", u.run_id === "run-x");
+  ok("unpriced cost_total null", u.cost_total === null);
+  ok("unpriced shipped_count", u.shipped_count === 2);
+  ok("attempt_count excludes routed-out", u.attempt_count === 3);
+  ok("cost_per_shipped tokens_each, no cost", u.cost_per_shipped.tokens_each === 6_000_000 && u.cost_per_shipped.cost_each === null);
+  ok("cost_per_attempt denom+tokens", u.cost_per_attempt.denom === 3 && u.cost_per_attempt.tokens_each === 4_000_000);
+  ok("buckets ledger-order, non-empty only", JSON.stringify(u.buckets) === JSON.stringify([{ bucket: "shipped", count: 2 }, { bucket: "parked", count: 1 }, { bucket: "routed-out", count: 1 }]));
+  ok("not zero_ship when shipped>0", u.zero_ship === false);
+  ok("no warning when tokens_at_start>0", u.warnings.length === 0);
+
+  // --- priced: cost twin appears ---
+  const p = computeUnitEconomics({ outcomes: { "FAFF-1": "shipped" } }, { tokens_total: 4_000_000, tokens_source: "transcript", price_per_mtok: 5, tokens_at_start: 10, per_issue: [] });
+  ok("priced cost_total", p.cost_total === 20);
+  ok("priced price_per_mtok carried", p.price_per_mtok === 5);
+  ok("priced cost_per_shipped cost_each", p.cost_per_shipped.cost_each === 20);
+
+  // --- zero-ship: 0 shipped, >0 tokens, but attempts exist ---
+  const z = computeUnitEconomics({ outcomes: { "FAFF-1": "parked", "FAFF-2": "errored" } }, { tokens_total: 17_000_000, tokens_source: "transcript", price_per_mtok: 0, tokens_at_start: 1, per_issue: [] });
+  ok("zero_ship true", z.zero_ship === true);
+  ok("zero-ship cost_per_shipped null", z.cost_per_shipped === null);
+  ok("zero-ship still reports attempts", z.cost_per_attempt.denom === 2);
+
+  // --- zero-attempt: empty ledger + all-non-attempt ledger ---
+  const za = computeUnitEconomics({ outcomes: {} }, { tokens_total: 5_000_000, tokens_source: "transcript", price_per_mtok: 0, tokens_at_start: 1, per_issue: [] });
+  ok("empty ledger attempt_count 0 → cost_per_attempt null", za.attempt_count === 0 && za.cost_per_attempt === null);
+  ok("empty ledger buckets empty", za.buckets.length === 0);
+  const zr = computeUnitEconomics({ outcomes: { "FAFF-9": "routed-out", "FAFF-8": "unreached-budget" } }, { tokens_total: 3_000_000, tokens_source: "transcript", price_per_mtok: 0, tokens_at_start: 5, per_issue: [] });
+  ok("all-non-attempt outcomes → attempt_count 0", zr.attempt_count === 0 && zr.cost_per_attempt === null);
+  ok("all-non-attempt shipped_count 0", zr.shipped_count === 0);
+
+  // --- tokens_at_start=0 inflation warning (transcript path only) ---
+  const w = computeUnitEconomics(ledgerMix, { tokens_total: 9_000_000, tokens_source: "transcript", price_per_mtok: 0, tokens_at_start: 0, per_issue: [] });
+  ok("tokens_at_start=0 warns (transcript)", w.warnings.length === 1 && /tokens_at_start=0/.test(w.warnings[0]));
+  const we = computeUnitEconomics(ledgerMix, { tokens_total: 9_000_000, tokens_source: "estimate", price_per_mtok: 0, tokens_at_start: 0, per_issue: [] });
+  ok("estimate path does not warn on tokens_at_start=0", we.warnings.length === 0);
+
+  // --- per-issue: present vs absent; run-level figures identical either way ---
+  const withPI = computeUnitEconomics(ledgerMix, { tokens_total: 12_000_000, tokens_source: "transcript", price_per_mtok: 0, tokens_at_start: 1, per_issue: [{ issue: "FAFF-1", bucket: "shipped", tokens: 6_000_000, cost: null }] });
+  ok("per_issue passed through", withPI.per_issue.length === 1 && withPI.per_issue[0].issue === "FAFF-1");
+  ok("run-level identical with/without per_issue", withPI.cost_per_shipped.tokens_each === u.cost_per_shipped.tokens_each && withPI.tokens_total === u.tokens_total);
+  ok("per_issue defaults to [] when absent", Array.isArray(u.per_issue) && u.per_issue.length === 0);
+
+  // --- attribution matcher ---
+  const oc = { "FAFF-49": "shipped", "FAFF-50": "parked" };
+  ok("matches first issue id in description", economicsAttributeIssue("Build FAFF-49 via faff-graft", oc) === "FAFF-49");
+  ok("team-key agnostic", economicsAttributeIssue("Build PROJ-123 now", { "PROJ-123": "shipped" }) === "PROJ-123");
+  ok("skips description with no issue id", economicsAttributeIssue("tidy the backlog", oc) === null);
+  ok("skips foreign/stale id not in ledger", economicsAttributeIssue("Build FAFF-999", oc) === null);
+  ok("skips non-string description", economicsAttributeIssue(undefined, oc) === null);
+
+  console.log(`economics --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
 // === region:factory — run-done — FAFF-38: the terminating-condition predicate. ===
 // `faff run-done` is a PURE CLI (parity with `faff next` / `faff budget check` /
 // `faff prdr coverage`): no tracker, no network, no disk beyond its args, and it
@@ -5251,6 +5496,7 @@ Subcommands:
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based fields (spent.elapsed_ms + the resolved --until wall) — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through) (FAFF-302). breached != {} is the terminating signal. --selftest runs the table
+  economics [--run-dir DIR] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. --selftest runs the table
   run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
@@ -12438,6 +12684,10 @@ const REGION_MAP = {
   "intakecheck": "factory",
   "intake-record": "factory",
   "contain": "factory",
+  // economics — a reporting CONSUMER of the governance budget helpers (reads the
+  // ledger + reuses measureTokens/attemptsFromLedger), not part of the
+  // extractable flight-recorder layer → factory (FAFF-357).
+  "economics": "factory",
   "run-done": "factory",
   "hooks-ensure": "factory",
   "validate-adapters": "factory",
@@ -12502,6 +12752,7 @@ const REGION_SELFTEST_ARGV = {
   "intakecheck": ["intakecheck", "--selftest"],
   "intake-record": ["intake-record", "--selftest"],
   "contain": ["contain", "--selftest"],
+  "economics": ["economics", "--selftest"],
   "run-done": ["run-done", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
   "validate-adapters": null,
@@ -13345,6 +13596,7 @@ const COMMANDS = {
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,
   "budget": cmdBudget,
+  "economics": cmdEconomics,
   "run-done": cmdRunDone,
   "hooks-ensure": cmdHooksEnsure,
   "validate-adapters": cmdValidateAdapters,

@@ -105,8 +105,8 @@ Under the **L4 lights-out signal only** (an ordinary L3 run skips this entirely 
 
 1. **Resolve the container.** `faff prd list --json`. Exactly one PRD → use its `container`. Zero → **no-PRD case**: skip to step 1 (tidy). Multiple → keep those whose status is `Active`/`Frozen`; if still more than one → **REFUSE** (`prd-ambiguous: multiple active PRDs, configure tracking.container to disambiguate`), mint nothing.
 2. **Resolve the PRD path.** `faff prd path <container>`. File missing → **no-PRD case** (skip, as for zero PRDs).
-3. **Validate slot liveness.** Resolve `faff config get slots.prd_validator` (default `faffter-noon-prd-validator`). Unreachable → **REFUSE** (`prd-validator-slot-unreachable`), fail-closed.
-4. **Invoke the `prd_validator` slot** via the Skill tool (resolve per gateway → **Sibling-skill invocation**), passing the resolved PRD file path from step 2 (the slot reads that one file). It emits one `faff-contract:prd-readiness` block.
+3. **Validate slot liveness.** Resolve `faff config get slots.prd` (default `faffter-noon-prd`). Unreachable → **REFUSE** (`prd-slot-unreachable`), fail-closed.
+4. **Invoke the `prd` slot** via the Skill tool (resolve per gateway → **Sibling-skill invocation**), passing the resolved PRD file path from step 2 (the slot reads that one file). It emits one `faff-contract:prd-readiness` block.
 5. **Pipe to the contract.** Locate the block, `JSON.parse` it, pipe to `faff contract prd-readiness`. Branch: exit 0 + `admissible` → **PROCEED** (carry `creative_licence` forward); exit 0 + `not-ready` → **REFUSE** (`prd-not-ready: <reason>`, escalate, surface in `/faff-wtf`); exit 1 (violations) or exit 2 (fail-loud / missing block) → **REFUSE** (fail-safe).
 6. **Mint with the licence.** Call `faff lights-out --prd-creative-licence <value>` with the `creative_licence` token; it stores `prd_creative_licence` in the ledger (absent flag → `null`).
 

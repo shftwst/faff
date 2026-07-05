@@ -13903,8 +13903,12 @@ function classifyMergeFailure(stderr, observedSha) {
   if (/unknown flag.*match-head-commit/i.test(s) || /match-head-commit.*unknown flag/i.test(s)) {
     return { kind: "pin-unsupported", blocker: "installed gh does not support --match-head-commit — upgrade gh; the gate never merges unpinned" };
   }
-  // Forge-side expectedHeadOid rejection (empirically-captured wording; candidates below).
-  if (/head branch was modified/i.test(s) || /expected head (?:sha|oid)/i.test(s) || /head (?:sha |ref |oid )?(?:has )?(?:changed|was modified|is out.?of.?date)/i.test(s)) {
+  // Forge-side expectedHeadOid rejection (empirically-captured wording; candidates below). The camelCase
+  // `expectedHeadOid` GraphQL field name is matched directly (it can surface verbatim when gh relays the
+  // raw GraphQL error), alongside the prose forms. An unmatched wording still degrades to `generic` — a
+  // refusal either way, never a fail-open.
+  if (/head (?:branch |ref |commit )?was modified/i.test(s) || /expected head (?:sha|oid)/i.test(s) || /expectedheadoid/i.test(s)
+      || /head (?:sha |ref |oid |commit )?(?:has )?(?:changed|was modified|is out.?of.?date)/i.test(s) || /does not match .*(?:expected )?head/i.test(s)) {
     return { kind: "head-drift", blocker: `head sha changed between CI observation and merge: observed ${observedSha}; the forge refused the head pin` };
   }
   return { kind: "generic", blocker: `gh pr merge rejected: ${s || "non-zero exit"}` };
@@ -13941,8 +13945,12 @@ function observeCi(repo, pr, headSha) {
   // Trust judgement first (FAFF-376): loss of the PRIMARY check-runs signal → indeterminate regardless
   // of the legacy status. The old `!cr.ok && !stt.ok` early return is subsumed by this (its both-down
   // detail string is preserved). Only when the primary was readable do we proceed to head-state handling.
+  // A zero-exit gh call whose payload is NOT the expected array means the primary responded but is
+  // unreadable (malformed/shape-changed) — treat that as check-runs-unavailable (→ indeterminate), never
+  // as an empty green set, so a malformed primary can never fail open into no-ci-coverage.
+  const checkRunsOk = cr.ok && Array.isArray(cr.data);
   const cls = classifyCiObservation(
-    cr.ok, cr.ok && Array.isArray(cr.data) ? cr.data : [],
+    checkRunsOk, checkRunsOk ? cr.data : [],
     stt.ok, stt.ok && stt.data ? stt.data.state : null,
     stt.ok && stt.data ? stt.data.count : 0,
   );
@@ -14144,6 +14152,8 @@ function mergeGateSelftest() {
   check("ci-obs: check-runs ok(success) + legacy success → ci-green (delegation intact)", classifyCiObservation(true, [{ status: "completed", conclusion: "success" }], true, "success", 1).ci_state === "ci-green");
   // classifyMergeFailure (FAFF-376): every kind is a refusal, no success branch
   check("merge-fail: pin-mismatch → head-drift names observed sha", (() => { const r = classifyMergeFailure("failed to merge PR: Head branch was modified. Review and try the merge again.", "abc1234"); return r.kind === "head-drift" && r.blocker.includes("abc1234"); })());
+  check("merge-fail: camelCase expectedHeadOid → head-drift", (() => { const r = classifyMergeFailure("GraphQL: expectedHeadOid abcd does not match head", "abc1234"); return r.kind === "head-drift"; })());
+  check("merge-fail: 'head ref was modified' → head-drift", (() => { const r = classifyMergeFailure("pull request head ref was modified; review and try the merge again", "abc1234"); return r.kind === "head-drift"; })());
   check("merge-fail: unknown flag → pin-unsupported says upgrade gh", (() => { const r = classifyMergeFailure("unknown flag: --match-head-commit", "abc1234"); return r.kind === "pin-unsupported" && /upgrade gh/i.test(r.blocker); })());
   check("merge-fail: unrelated stderr → generic embeds it verbatim", (() => { const r = classifyMergeFailure("failed to merge: merge conflict between base and head", "abc1234"); return r.kind === "generic" && r.blocker.includes("merge conflict between base and head"); })());
   check("merge-fail: empty stderr → generic 'non-zero exit'", (() => { const r = classifyMergeFailure("", "abc1234"); return r.kind === "generic" && /non-zero exit/.test(r.blocker); })());

@@ -102,21 +102,24 @@ test("INTEGRATION: mixed ledger, unpriced/estimate → buckets, counts, no dolla
 });
 
 test("INTEGRATION: transcript path, priced ledger → cost twins on every figure", () => {
-  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  // Non-zero tokens_at_start isolates the pricing assertion from the inflation
+  // warning (which fires on tokens_at_start=0 with spend — covered separately).
+  const ledger = baseLedger({ budget: { tokens_at_start: 10 } });
   const f = fixture({ rc: "budget:\n  price_per_mtok: 5\n", ledger });
   try {
     const sid = "sess-price";
     const cfg = withTranscripts(f.root, f.root, sid, {
-      [`${sid}.jsonl`]: { usage: [{ input_tokens: 4000000 }] },
+      [`${sid}.jsonl`]: { usage: [{ input_tokens: 4000010 }] },
     });
     const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
     const e = JSON.parse(r.out);
     assert.equal(e.tokens_source, "transcript");
-    assert.equal(e.tokens_total, 4000000);
+    assert.equal(e.tokens_total, 4000000);  // 4000010 measured − 10 baseline
     assert.equal(e.price_per_mtok, 5);
     assert.equal(e.cost_total, 20);         // 4M/1e6 * 5
     assert.equal(e.cost_per_shipped.cost_each, 20);
+    assert.deepEqual(e.warnings, []);       // no inflation warning: tokens_at_start > 0
   } finally { f.cleanup(); }
 });
 

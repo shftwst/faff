@@ -13353,20 +13353,35 @@ function parseMergeArgs(s) {
 // (fail-closed); any pending → indeterminate; all-ok → ci-green.
 function classifyHeadShaChecks(runs, statusState, statusCount) {
   runs = Array.isArray(runs) ? runs : [];
-  const total = runs.length + (statusCount || 0);
+  const legacyCount = statusCount || 0;
+  const total = runs.length + legacyCount;
   if (total === 0) return "no-ci-coverage";
   const FAIL = new Set(["failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure"]);
   const OK = new Set(["success", "neutral", "skipped"]);
-  let anyPending = false, anyFail = false;
+  // `anySuccess` = a check that genuinely EXECUTED green. `skipped`/`neutral` are OK-not-fail but did
+  // not run, so they do not count as coverage (FAFF-366).
+  let anyPending = false, anyFail = false, anySuccess = false;
   for (const r of runs) {
     if (r && r.status && r.status !== "completed") { anyPending = true; continue; }
     const c = r && r.conclusion;
-    if (FAIL.has(c) || !OK.has(c)) anyFail = true; // unknown conclusion → fail-closed
+    if (FAIL.has(c) || !OK.has(c)) { anyFail = true; continue; } // unknown conclusion → fail-closed
+    if (c === "success") anySuccess = true;
   }
-  if (statusState === "failure" || statusState === "error") anyFail = true;
-  if (statusState === "pending") anyPending = true;
+  // The legacy combined commit-status is only meaningful when >=1 legacy status actually exists.
+  // GitHub returns {state:"pending", count:0} BY DEFAULT for an Actions-only commit (zero legacy
+  // statuses) — that is not a real pending signal, and heeding it refused every genuinely-green
+  // merge on Actions-only repos (FAFF-369). Only read statusState when legacyCount>0.
+  if (legacyCount > 0) {
+    if (statusState === "failure" || statusState === "error") anyFail = true;
+    else if (statusState === "pending") anyPending = true;
+    else if (statusState === "success") anySuccess = true;
+  }
   if (anyFail) return "ci-red";
   if (anyPending) return "indeterminate";
+  // Checks exist (total>0) but none actually executed to green — every check was skipped/neutral, so
+  // no real CI ran on this head sha. That is absence of coverage, NOT a green (fail-open guard,
+  // FAFF-366). A single genuine success alongside skipped checks still reads ci-green.
+  if (!anySuccess) return "no-ci-coverage";
   return "ci-green";
 }
 
@@ -13571,6 +13586,15 @@ function mergeGateSelftest() {
   check("head checks: pending → indeterminate", classifyHeadShaChecks([{ status: "in_progress", conclusion: null }], null, 0) === "indeterminate");
   check("head checks: unknown conclusion → ci-red (fail-closed)", classifyHeadShaChecks([{ status: "completed", conclusion: "weird" }], null, 0) === "ci-red");
   check("head checks: status failure → ci-red", classifyHeadShaChecks([], "failure", 1) === "ci-red");
+  // FAFF-369: Actions-only repo — green check-run + GitHub's default empty legacy status {pending,0} → ci-green (not indeterminate)
+  check("head checks: success + empty legacy {pending,count:0} → ci-green (FAFF-369)", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }], "pending", 0) === "ci-green");
+  check("head checks: success + no legacy status at all → ci-green", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }], null, 0) === "ci-green");
+  // FAFF-366: checks exist but all skipped/neutral (none executed green) → no-ci-coverage, not a vacuous ci-green (fail-open guard)
+  check("head checks: all skipped → no-ci-coverage (FAFF-366)", classifyHeadShaChecks([{ status: "completed", conclusion: "skipped" }, { status: "completed", conclusion: "skipped" }], null, 0) === "no-ci-coverage");
+  check("head checks: all neutral → no-ci-coverage (FAFF-366)", classifyHeadShaChecks([{ status: "completed", conclusion: "neutral" }], null, 0) === "no-ci-coverage");
+  check("head checks: mixed success + skipped → ci-green (FAFF-366)", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }, { status: "completed", conclusion: "skipped" }], null, 0) === "ci-green");
+  // real legacy status still honoured when it genuinely exists (count>0)
+  check("head checks: legacy pending with count>0 → indeterminate", classifyHeadShaChecks([], "pending", 2) === "indeterminate");
   // parseMergeArgs
   check("merge-args: allowed pass through", (() => { const p = parseMergeArgs("--squash --delete-branch"); return p.flags.length === 2 && p.rejected.length === 0; })());
   check("merge-args: unknown token rejected", parseMergeArgs("--squash; rm -rf /").rejected.length > 0);

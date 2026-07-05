@@ -336,7 +336,11 @@ const MODEL_LANE_VOCAB = {
   "models.prep_explore": ["inherit", "sonnet", "opus", "haiku", "fable"],
 };
 function validateModelLane(key, value) {
-  const vocab = MODEL_LANE_VOCAB[key];
+  let vocab = MODEL_LANE_VOCAB[key];
+  // FAFF-334: the per-issue build-model matcher leaves (`models.build_by_confidence.<leaf>`) reuse
+  // the build lane's closed Agent-token set, so an invalid token in the matcher fails loud at
+  // `config get` read time too — never a silent inherit at the per-issue dispatch site.
+  if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
   if (!vocab || vocab.includes(value)) return null;
   return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
 }
@@ -835,7 +839,10 @@ function cmdConfig(args) {
           validateModelLane("models.build", DEFAULTS["models.build"]) ||
           validateModelLane("models.prep_explore", DEFAULTS["models.prep_explore"]) ||
           (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
-          (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null);
+          (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
+          // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
+          validateModelLane("models.build_by_confidence.high", "sonnet") ||
+          (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token");
         if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
         console.log("config defaults --selftest: ok");
         return 0;
@@ -895,6 +902,16 @@ function cmdConfig(args) {
         const v = models[lane];
         if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
       }
+      // FAFF-334: surface the per-issue build-model matcher when set — a routing config that flips
+      // build-model resolution from per-run to per-issue must be visible in the run banner, not silent.
+      const byConf = (models.build_by_confidence && typeof models.build_by_confidence === "object" && !Array.isArray(models.build_by_confidence)) ? models.build_by_confidence : {};
+      // Only the buckets that actually route are echoed (default/high/medium) — a `low` leaf is inert
+      // (a low-confidence spec parks at prep, never builds), so echoing it would imply a live routing
+      // config that does nothing and mislead the reader about what the run will do.
+      for (const conf of ["default", "high", "medium"]) {
+        const v = byConf[conf];
+        if (v !== null && v !== undefined && v !== "") console.log(`model build_by_confidence.${conf}: ${v}`);
+      }
       return 0;
     }
   } catch (e) {
@@ -912,6 +929,102 @@ function cmdConfig(args) {
   }
   process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved|init\n");
   return 2;
+}
+
+// FAFF-334: per-issue build-model routing. `models.build` (FAFF-315) is a single per-run scalar;
+// this resolver keys the build model off an issue's retained spec confidence via the OPTIONAL sibling
+// matcher `models.build_by_confidence` (a `default` + confidence-keyed leaves), so a mixed-confidence
+// build queue picks the safe model per issue with no rc churn. PURE — the confidence is passed in, no
+// tracker call (the orchestrator already holds it at assembly). Fallback chain, in order:
+//   models.build_by_confidence.<conf> → models.build_by_confidence.default → models.build (scalar) → "inherit".
+// The resolved token is validated against the closed build Agent-token set (fail-loud, never a silent
+// inherit — FAFF-315/FAFF-50). An absent/unknown `conf` routes to the `default` bucket (never guesses
+// `high`), mirroring the "no confidence line" tolerance the routing gate already applies. Matcher
+// ABSENT ⇒ the scalar path, byte-for-byte FAFF-315.
+function resolveBuildModel(cfg, conf) {
+  const byConf = dig(cfg, "models.build_by_confidence");
+  const rawMap = (byConf && typeof byConf === "object" && !Array.isArray(byConf)) ? byConf : null;
+  // Normalise leaf keys to lowercase once — a capitalised YAML key (`High:`) must not silently miss
+  // and route to the default bucket; the confidence tokens themselves are lowercase (high|medium|low).
+  const map = {};
+  if (rawMap) for (const k of Object.keys(rawMap)) {
+    const v = rawMap[k];
+    if (v !== null && v !== undefined && v !== "") map[String(k).trim().toLowerCase()] = String(v).trim();
+  }
+  // Validate EVERY configured leaf up-front — not just the resolved token. The spec's guarantee is
+  // "an invalid Agent-token ANYWHERE in the matcher ⇒ fail-loud at read", so a typo in a not-yet-
+  // dispatched leaf is caught at the first resolution, never left dormant until its bucket happens to build.
+  for (const k of Object.keys(map)) {
+    if (validateModelLane("models.build_by_confidence." + k, map[k])) {
+      return { error: `faff models build-for: invalid model token "${map[k]}" in models.build_by_confidence.${k} — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+    }
+  }
+  const pick = (k) => (k != null && Object.prototype.hasOwnProperty.call(map, k)) ? map[k] : null;
+  const key = conf != null ? String(conf).trim().toLowerCase() : null;
+  let token = pick(key) ?? pick("default");
+  if (token == null) {
+    const scalar = dig(cfg, "models.build");
+    token = (scalar === null || scalar === undefined || scalar === "") ? DEFAULTS["models.build"] : String(scalar).trim();
+  }
+  if (validateModelLane("models.build", token)) {
+    return { error: `faff models build-for: resolved token "${token}" is not a legal build model — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+  }
+  return { token };
+}
+
+// `faff models build-for <confidence>` — print the per-issue build model token (or "inherit", which
+// the caller maps to "omit the Agent-tool model param"). Pure; exit 0 token / 2 usage or invalid token.
+function cmdModels(args) {
+  if (args.includes("--selftest")) return modelsSelftest();
+  const sub = args.find((a) => !a.startsWith("-"));
+  if (sub !== "build-for") {
+    process.stderr.write("usage: faff models build-for <confidence> [--root DIR]\n");
+    return 2;
+  }
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const bfIdx = args.indexOf("build-for");
+  const confArg = (bfIdx !== -1 && args[bfIdx + 1] && !args[bfIdx + 1].startsWith("-")) ? args[bfIdx + 1] : null;
+  const [cfg] = loadConfig(root);
+  const res = resolveBuildModel(cfg, confArg);
+  if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
+  console.log(res.token);
+  return 0;
+}
+
+// Selftest — drives the pure resolver over the fallback chain + the read-time matcher-leaf validation.
+function modelsSelftest() {
+  let fail = 0;
+  const ok = (name, cond) => { if (!cond) { console.log(`FAIL ${name}`); fail++; } else console.log(`ok   ${name}`); };
+  const full = { models: { build: "opus", build_by_confidence: { default: "opus", high: "sonnet", medium: "opus" } } };
+  ok("build-for high → matcher leaf sonnet", resolveBuildModel(full, "high").token === "sonnet");
+  ok("build-for medium → matcher leaf opus", resolveBuildModel(full, "medium").token === "opus");
+  ok("build-for HIGH (case-insensitive) → sonnet", resolveBuildModel(full, "HIGH").token === "sonnet");
+  ok("unknown conf → default bucket (opus)", resolveBuildModel(full, "zzz").token === "opus");
+  ok("null conf → default bucket (opus)", resolveBuildModel(full, null).token === "opus");
+  // fallback precedence: leaf absent → default → scalar → inherit
+  ok("no leaf, has default → default", resolveBuildModel({ models: { build: "haiku", build_by_confidence: { default: "fable", high: "sonnet" } } }, "medium").token === "fable");
+  ok("no leaf, no default → scalar models.build", resolveBuildModel({ models: { build: "haiku", build_by_confidence: { high: "sonnet" } } }, "medium").token === "haiku");
+  ok("no matcher, has scalar → scalar (per-run FAFF-315 path)", resolveBuildModel({ models: { build: "fable" } }, "high").token === "fable");
+  ok("no matcher, no scalar → inherit", resolveBuildModel({ models: {} }, "high").token === "inherit");
+  ok("empty cfg → inherit", resolveBuildModel({}, "high").token === "inherit");
+  // fail-loud on an invalid resolved token — never a silent inherit
+  ok("invalid matcher leaf token fails loud", !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5" } } }, "high").error);
+  ok("invalid scalar fallback fails loud", !!resolveBuildModel({ models: { build: "gpt-5" } }, "zzz").error);
+  ok("low leaf tolerated (inert but valid token)", resolveBuildModel({ models: { build_by_confidence: { low: "haiku", default: "opus" } } }, "low").token === "haiku");
+  // fail-loud ANYWHERE — an invalid token in a NOT-dispatched leaf is caught, never left dormant
+  ok("invalid UNUSED leaf fails loud (validate anywhere, not just resolved)",
+    !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5", default: "opus" } } }, "medium").error);
+  // case-insensitive YAML leaf key — a capitalised `High:` must not silently miss → default
+  ok("capitalised YAML leaf key (High:) resolves case-insensitively",
+    resolveBuildModel({ models: { build_by_confidence: { High: "sonnet", default: "opus" } } }, "high").token === "sonnet");
+  // read-time matcher-leaf validation (validateModelLane extension)
+  ok("validateModelLane accepts a valid matcher leaf", validateModelLane("models.build_by_confidence.high", "sonnet") === null);
+  ok("validateModelLane rejects an invalid matcher leaf", validateModelLane("models.build_by_confidence.high", "gpt-5") !== null);
+  ok("validateModelLane accepts the default leaf", validateModelLane("models.build_by_confidence.default", "opus") === null);
+  ok("validateModelLane leaves models.build scalar unchanged", validateModelLane("models.build", "sonnet") === null && validateModelLane("models.build", "gpt-5") !== null);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (models build-for resolver, ${fail} failed)`);
+  return fail ? 1 : 0;
 }
 
 // ===========================================================================
@@ -5174,6 +5287,7 @@ Subcommands:
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
   lint-refs [--root DIR]                        FAFF-238: ban external-artifact refs (FAFF-NN / ADR NNNN / numbered docs/adr pointers) in prose the reader executes or publicly consumes — slice 1 scans docs/guide/**; "FAIL file:line ✗ match" per hit + exit 1, else exit 0; --selftest runs the matcher table. docs/ outside docs/guide/ (incl. docs/adr/**) is allow-by-default; within-prose anchors (gateway→Section, faff/SKILL.md) never match
   lint-cli-doc [--root DIR] [--json]            FAFF-237: assert docs/guide/cli.md documents every subcommand the CLI dispatches (the COMMANDS registry), bidirectionally — "FAIL docs/guide/cli.md ✗ missing/orphaned: <name>" per drift + exit 1, else "PASS  lint-cli-doc: <N> subcommands documented" + exit 0; exit 2 if the doc is unreadable; --selftest runs the parse/diff table
+  models build-for <confidence> [--root DIR]     FAFF-334: per-issue build-model routing. Print the build model Agent-token for an issue of the given retained spec confidence (high|medium|…), via the OPTIONAL sibling matcher \`models.build_by_confidence\` (a default + confidence-keyed leaves) that extends FAFF-315's per-run \`models.build\` scalar. PURE (confidence passed in, no tracker call). Fallback: build_by_confidence.<conf> → .default → models.build (scalar) → inherit; the resolved token is validated against the closed build set (exit 2 fail-loud, never a silent inherit); an absent/unknown confidence routes to the default bucket. Matcher absent ⇒ the scalar path, byte-for-byte FAFF-315. "inherit" ⇒ caller omits the Agent-tool model param; --selftest runs the resolver + matcher-leaf-validation table
   regions <list|check|selftest> [--json] [--region governance|factory|all]   FAFF-359: the logical governance/factory boundary (ADR 0042). list prints the single in-code region map (command → region; --json for the object). check is the direction lint over THIS file's region-tagged section banners — a governance span referencing a factory identifier, or a shared-infra span referencing either region's, is a violation naming both ends (comment/string/regex-literal mentions ignored; template interpolations still count); exit 0 clean / 1 violation(s) / 2 malformed (untagged banner, unknown region, cross-region duplicate top-level name, or REGION_MAP/COMMANDS drift); no suppression mechanism. selftest spawns each member command's own --selftest per the explicit REGION_SELFTEST_ARGV allowlist (default --region all) and prints a per-command pass/fail table — a governance member without a selftest is FATAL, a factory one is reported no-selftest; exit 2 before any spawn on allowlist drift (unlisted command, or a stale no-selftest entry); --selftest runs the lint fixture table
 `;
 
@@ -12349,6 +12463,7 @@ const REGION_MAP = {
   "lights-out": "factory",
   "gates": "factory",
   "contract": "factory",
+  "models": "factory",
   "doctor": "factory",
   "worktree-prune": "factory",
   "lint-refs": "factory",
@@ -12412,6 +12527,7 @@ const REGION_SELFTEST_ARGV = {
   "lights-out": ["lights-out", "--selftest"],
   "gates": ["gates", "--selftest"],
   "contract": ["contract", "--selftest"],
+  "models": ["models", "--selftest"],
   "doctor": null,
   "worktree-prune": ["worktree-prune", "--selftest"],
   "lint-refs": ["lint-refs", "--selftest"],
@@ -13265,6 +13381,7 @@ const COMMANDS = {
   "lint-refs": cmdLintRefs,
   "lint-cli-doc": cmdLintCliDoc,
   "regions": cmdRegions,
+  "models": cmdModels,
 };
 
 function main(argv) {

@@ -119,3 +119,22 @@ test("corrective-integrity --consumer detection --json: reconcile-only, exit 0",
   assert.equal(out.trusted, false);
   assert.equal(out.disposition, "reconcile-only");
 });
+
+// CLI seam: an unknown --consumer is a usage error (exit 2), not a silent channel-D.
+// The gate's unknown→channel-D fail-safe stays; the CLI rejects garbage loudly.
+test("corrective-integrity --consumer bogus: usage error, exit 2", () => {
+  const { code } = runCli(["corrective-integrity", "--consumer", "bogus", "--json"]);
+  assert.equal(code, 2);
+});
+
+// Lights-out integration: the preflight/ledger JSON carries the corrective_authority
+// capability flag (channel-D-only, since no boundary is asserted) — a capability
+// RECORD, never a refuse. Robust to the preflight's proceed/refuse verdict + any
+// non-JSON preamble: pick the JSON line carrying the flag.
+test("lights-out --check --json carries corrective_authority: channel-D-only", () => {
+  const { stdout } = runCli(["lights-out", "--check", "--json"]);
+  const line = stdout.trim().split("\n").filter((l) => l.includes("corrective_authority")).pop();
+  assert.ok(line, `no corrective_authority in lights-out --check --json output:\n${stdout}`);
+  const out = JSON.parse(line);
+  assert.equal(out.corrective_authority, "channel-D-only");
+});

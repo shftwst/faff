@@ -19,7 +19,7 @@
 //   gitignore-ensure [--root DIR] [--json]        idempotently add faff's local artifacts to .gitignore
 //   worktree-prune [--own P ...] [--branch B] [--issue ID] [--dry-run] [--json]   FAFF-126: scoped fail-safe prune — own dangling worktrees only, never repo-wide; --selftest
 //   gates <discover|run> [--json]                FAFF-11: cost-ordered engineering-quality gate ladder — discover/run the repo's own declared cheap checks (pre-commit/pkg/Makefile) cheapest-first, fail-fast, emit a faff-contract:quality-gates block; --selftest
-//   corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface; probe proves no boundary (asserted:false always) → gate degrades corrective→channel-D / detection→reconcile-only. No crypto; always exit 0; --selftest
+//   corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface; probe proves no boundary (asserted:false always) → gate degrades corrective→channel-D / detection→reconcile-only. No crypto; exit 0 (degrade) / 2 (unknown --consumer); --selftest
 //
 // Single public entrypoint. Extensionless executable run directly via its shebang
 // (`~/.claude/skills/faff/bin/faff <subcommand>`); `node …/bin/faff <subcommand>` also works.
@@ -4500,6 +4500,10 @@ function containerCheckSelftest() {
 // input — a `signal` from any build-lane-writable source is never honoured. No
 // crypto, no secret, no fs read of `signal` as trust.
 function correctiveIntegrityProbe(env, fsq, signal) {
+  // signal is the FAFF-325 seam — intentionally unread here. When it is wired, ONLY
+  // signal (the un-forgeable channel) may ever set asserted:true; env and fsq are
+  // NEVER trust sources. TODO(FAFF-325): before honouring signal, validate its source
+  // ∉ build-lane-writable paths — until then, distrust by default (asserted:false).
   return { asserted: false, basis: "no-boundary-signal" };
 }
 
@@ -4518,6 +4522,10 @@ function integrityGate(probeResult, consumer) {
 // run-ledger.json path — single-sourced from the SAME run-dir layout readLedger
 // uses (path.join(runDir, "run-ledger.json")); never a divergent hand-written
 // absolute list (a second list is a real bypass). PURE — derives paths only.
+// FORWARD-COMPAT: exported for the FAFF-326 Channel-A consumer; the probe/gate in
+// THIS ticket are dir-blind (the probe is inert), so nothing calls it yet — the
+// single-source invariant is structural (one path.join expression), made real when
+// FAFF-326 wires the boundary. Kept + tested now so the seam can't drift.
 function correctiveIntegrityDirs(runDir) {
   return [
     path.join(runDir, "corrective"),
@@ -4530,6 +4538,13 @@ function cmdCorrectiveIntegrity(args) {
   const json = args.includes("--json");
   const ci = args.indexOf("--consumer");
   const consumer = ci !== -1 && args[ci + 1] ? args[ci + 1] : "corrective";
+  // Closed vocabulary — reject an unknown --consumer loudly (usage error, exit 2),
+  // matching the CLI's other flag validation. The gate's unknown→channel-D fail-safe
+  // is defence-in-depth, not a licence for the CLI to accept garbage silently.
+  if (consumer !== "corrective" && consumer !== "detection") {
+    process.stderr.write(`corrective-integrity: unknown --consumer '${consumer}' (expected: corrective | detection)\n`);
+    return 2;
+  }
   const probe = correctiveIntegrityProbe(process.env, realFsq());
   const gate = integrityGate(probe, consumer);
   const out = { asserted: probe.asserted, basis: probe.basis, trusted: gate.trusted, disposition: gate.disposition };
@@ -4575,7 +4590,7 @@ function correctiveIntegritySelftest() {
   ok(dirs.every((d) => d === runDir || d.startsWith(runDir + path.sep)), "all integrity dirs under runDir");
   ok(dirs.includes(path.join(runDir, "run-ledger.json")), "integrity dirs include the ledger path");
   ok(dirs.includes(path.join(runDir, "corrective")), "integrity dirs include the corrective-artifact dir");
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${PROBE_CASES.length + 6} checks, ${fail} failed)`);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${PROBE_CASES.length + 7} checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -5642,7 +5657,7 @@ Subcommands:
   holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]   FAFF-277: pure, trust-gated bridge from the evaluator's persisted holdout verdicts (.faff/holdout/<issue|run>.json) to the already-shipped 'faff prdr coverage --dod-verdicts' flag. Reads each verdict, RE-VALIDATES it through the same computeHoldoutVerdict gate (never a forked rule), translates only a conformant code_blind:true meets-spec -> the literal "met", folds conservatively per PRDR (any non-met sibling makes the PRDR not-met), and keys by the supplied issue->PRDR association; every other aggregate passes through (!= met), untrusted files are omitted. Emits {verdicts:{prdr:value},skipped:[{key,reason}]}; skipped also summarised to stderr. PURE (filesystem read of --dir only, no tracker/network/LLM). Absent --dir -> empty map (exit 0); missing/non-object --association, malformed --association JSON, or unreadable --dir -> exit 2; a successful run (incl. empty map) -> exit 0 (no exit 1, report-only). --selftest runs the table
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
-  corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: the corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface. Under a shared uid faff cannot cryptographically stop a same-uid build lane from forging a corrective artifact / rewriting run-ledger.json (bin/faff:1683), so the probe proves no integrity boundary (asserted:false for ALL inputs; the signal seam is inert until FAFF-325 wires an un-forgeable channel) and the gate DEGRADES — corrective→channel-D (human relay), detection→reconcile-only (ledger content cross-checked vs git), unknown consumer→channel-D. No crypto/secret/signature. Prints {asserted, basis, trusted, disposition}; ALWAYS exit 0 (report/degrade, never a hard refuse); --selftest runs the table
+  corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: the corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface. Under a shared uid faff cannot cryptographically stop a same-uid build lane from forging a corrective artifact / rewriting run-ledger.json (bin/faff:1683), so the probe proves no integrity boundary (asserted:false for ALL inputs; the signal seam is inert until FAFF-325 wires an un-forgeable channel) and the gate DEGRADES — corrective→channel-D (human relay), detection→reconcile-only (ledger content cross-checked vs git), unknown consumer→channel-D. No crypto/secret/signature. Prints {asserted, basis, trusted, disposition}; exit 0 (report/degrade, never a hard refuse) / 2 (unknown --consumer); --selftest runs the table
   merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 .faff/holdout/<ISSUE>.json via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto/--admin), any other token → exit 2. exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs) with no network
   branch-protection-check [--repo owner/repo] [--branch name] [--json]   FAFF-350: assert-don't-enforce probe (mirrors container-check / ADR-0010) — is the target branch protected? Probes gh api repos/{repo}/branches/{branch}/protection; PURE classifier over the probe result. Prints {status ∈ protected|unprotected|indeterminate, required_checks, basis}; exit 0 protected · 1 not-confirmed (unprotected/indeterminate). The autonomous-entry preflight (beep-boop + lights-out) WARNS by default on not-confirmed, BLOCKS under the opt-in autonomous.require_branch_protection knob, never fires interactive; --selftest runs the classifier table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)

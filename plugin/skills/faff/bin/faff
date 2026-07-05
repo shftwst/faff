@@ -364,10 +364,12 @@ function validateModelLane(key, value) {
 // HERE (behind `faff config get appetite`) so every consumer inherits the L4 guarantee with
 // zero per-call-site edits. The hard floor (destructive/irreversible always parks) is
 // unchanged and still wins at `full` — "L4 = full" is never "L4 = reckless".
-// Precedence: env FAFF_APPETITE (valid token) > active-L4 ledger (FAFF_RUN_DIR, level:"L4")
-//             > config `appetite` > baked default. A missing/unreadable/non-L4 ledger and an
-// invalid FAFF_APPETITE token both fail safe to config — the override never fabricates `full`
-// nor lowers safety.
+// Precedence: env FAFF_APPETITE (valid token) > LIVE-L4 ledger (FAFF_RUN_DIR, level:"L4" AND
+//             the run is live per `runIsHeld` — running owner + fresh heartbeat) > config
+// `appetite` > baked default. A missing/unreadable/non-L4 ledger, a DONE/ABANDONED/stale L4
+// ledger (FAFF-378 — the level alone never pins; a dead run's ledger falls through), and an
+// invalid FAFF_APPETITE token all fail safe to config — the override never fabricates `full`
+// nor lowers safety. Staleness can only de-escalate agency here, never escalate it.
 const VALID_APPETITES = new Set(["low", "medium", "high", "full"]);
 
 function resolveAppetite(cfg, env = process.env) {
@@ -380,7 +382,14 @@ function resolveAppetite(cfg, env = process.env) {
   //    dir, never a globally-sorted latest (dodges the latestRunDir lexical-sort hazard).
   const runDir = env.FAFF_RUN_DIR;
   if (runDir) {
-    try { const ledger = readLedger(runDir); if (ledger && ledger.level === "L4") return "full"; }
+    try {
+      // FAFF-378: pin only for a LIVE run. `runIsHeld` is the canonical liveness predicate
+      // (parity with runcheck/sentry): running owner + heartbeat fresher than the staleness
+      // window. A done/abandoned/stale L4 ledger falls through to config — the level alone
+      // must not escalate agency in a later session that never armed `full`.
+      const ledger = readLedger(runDir);
+      if (ledger && ledger.level === "L4" && runIsHeld(ledger, Date.now(), env)) return "full";
+    }
     catch { /* unreadable / absent ledger → fall through (never fabricate `full`) */ }
   }
   // 3. config → baked default — the unchanged L1–L3 path.

@@ -21,10 +21,18 @@ function tmpRoot(appetiteLine = "appetite: low\n") {
 }
 
 // Mint a run-ledger.json fixture at the given level under a fresh run dir; returns the run dir.
-function mintLedger(level) {
+// FAFF-378: the default owner is a LIVE run (status running + a fresh `last_heartbeat`), so the
+// L4 pin fires via `runIsHeld`. Pass an explicit `owner` (2nd arg) to override the whole owner
+// block — including `null` to omit `owner` entirely (a legacy/unowned ledger).
+function mintLedger(level, owner) {
   const runDir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-run-"));
-  fs.writeFileSync(path.join(runDir, "run-ledger.json"),
-    JSON.stringify({ run_id: "fixture", level, owner: { status: "running" } }));
+  const ledger = { run_id: "fixture", level };
+  if (arguments.length >= 2) {
+    if (owner !== null) ledger.owner = owner; // explicit null → omit owner
+  } else {
+    ledger.owner = { status: "running", last_heartbeat: new Date().toISOString() };
+  }
+  fs.writeFileSync(path.join(runDir, "run-ledger.json"), JSON.stringify(ledger));
   return runDir;
 }
 
@@ -107,6 +115,43 @@ test("the override never writes config — .faffrc.yaml is byte-unchanged after 
   runCli(["config", "get", "appetite"], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
   const after = fs.readFileSync(path.join(root, ".faffrc.yaml"), "utf8");
   assert.equal(after, before);
+});
+
+// --- FAFF-378: the L4 pin fires only for a LIVE run (runIsHeld), never a stale/done ledger ---
+
+test("FAFF-378: done-owner L4 ledger (fresh heartbeat) → resolves config appetite, not `full`", () => {
+  const root = tmpRoot("appetite: low\n");
+  const runDir = mintLedger("L4", { status: "done", last_heartbeat: new Date().toISOString() });
+  const { stdout, code } = runCli(["config", "get", "appetite"], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
+  assert.equal(code, 0, stdout);
+  assert.equal(stdout.trim(), "low"); // the issue's headline case — a finished run no longer escalates
+});
+
+test("FAFF-378: stale-heartbeat running-owner L4 ledger → resolves config appetite, not `full`", () => {
+  const root = tmpRoot("appetite: low\n");
+  const stale = new Date(Date.now() - 10_000).toISOString(); // 10s ago
+  const runDir = mintLedger("L4", { status: "running", last_heartbeat: stale });
+  // pin the staleness window small + deterministic via the child env (10s ago > 1s window)
+  const { stdout, code } = runCli(["config", "get", "appetite"],
+    { cwd: root, env: env({ FAFF_RUN_DIR: runDir, FAFF_RUN_HEARTBEAT_STALE_SECS: "1" }) });
+  assert.equal(code, 0, stdout);
+  assert.equal(stdout.trim(), "low"); // crashed/abandoned owner (stale heartbeat) no longer grants full
+});
+
+test("FAFF-378: ownerless L4 ledger → resolves config appetite, not `full`", () => {
+  const root = tmpRoot("appetite: low\n");
+  const runDir = mintLedger("L4", null); // no owner block at all
+  const { stdout, code } = runCli(["config", "get", "appetite"], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
+  assert.equal(code, 0, stdout);
+  assert.equal(stdout.trim(), "low");
+});
+
+test("FAFF-378: live L4 ledger (running + fresh heartbeat) → still resolves `full` (pin unchanged for its own run)", () => {
+  const root = tmpRoot("appetite: low\n");
+  const runDir = mintLedger("L4", { status: "running", last_heartbeat: new Date().toISOString() });
+  const { stdout, code } = runCli(["config", "get", "appetite"], { cwd: root, env: env({ FAFF_RUN_DIR: runDir }) });
+  assert.equal(code, 0, stdout);
+  assert.equal(stdout.trim(), "full");
 });
 
 // --- Runner mint + handoff (cmdLightsOut) ---

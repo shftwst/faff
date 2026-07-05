@@ -196,8 +196,8 @@ import { fileURLToPath } from "node:url";
 //                     fixture's note for the human baseline). Oracle = ["flagged"] if it SHOULD raise a
 //                     finding above minor, else []. predictedSet = ["flagged"] iff env.findings has ≥1
 //                     finding above minor severity, else []. Both reduce to setEqual vs oracle.closed_set.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict", "refutation-spec", "refutation-code"]);
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's

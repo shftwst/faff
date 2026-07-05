@@ -212,7 +212,13 @@ jobs:
           # and a lingering /var/run/docker.sock would let a mis-wired test silently pass on it
           sudo systemctl disable --now docker.service docker.socket
           sudo rm -f /var/run/docker.sock
+          # hosted runners have no live systemd user session for the runner user — the rootless
+          # setup tool needs one (and XDG_RUNTIME_DIR) or it fails its systemd detection
+          sudo loginctl enable-linger "$(whoami)"
+          sudo systemctl start "user@$(id -u)" || true
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
           dockerd-rootless-setuptool.sh install
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
           echo "DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock" >> "$GITHUB_ENV"
 
       - name: Assert the daemon is rootless (a setup fault fails the job loudly — never a silent host-daemon pass)

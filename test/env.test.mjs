@@ -536,6 +536,12 @@ test("integration: real Node + Postgres app tier (connects at boot) stands up he
         }
         assert.ok(reachable, `plan endpoint ${plan.endpoint}/healthz not reachable from the test process: ${lastErr}`);
       }
+      // FAFF-371: teardown leaves nothing behind — down exits 0 and the project's compose ps is
+      // empty (the finally-down below stays as idempotent safety, not the assertion).
+      const down = run(dir, ["env", "down", "--project", project]);
+      assert.equal(down.code, 0, `down failed: ${down.err}`);
+      const psOut = execFileSync("docker", ["compose", "-p", project, "ps", "--format", "json"], { encoding: "utf8" }).trim();
+      assert.ok(psOut === "" || psOut === "[]", `project containers remain after down: ${psOut}`);
     } finally {
       run(dir, ["env", "down", "--project", project]);
     }

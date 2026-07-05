@@ -17,7 +17,7 @@ One pass turns a PRD document into one verdict block. The verdict is a **contrac
 
 ## Inputs
 
-- **The PRD document text** — an absolute file path, resolved upstream by `faff prd path <container>`. This is the *only* input.
+- **The PRD document** — given as an absolute file path (resolved upstream by `faff prd path <container>`), which this skill reads. That one PRD file is the *only* thing it reads.
 - **Never** the codebase, the tracker, the run context, or any spec. Code-blind by construction: the verdict describes the PRD, not an implementation, so it cannot be talked into a pass by plausible code.
 
 ## The rubric (the LLM applies this)

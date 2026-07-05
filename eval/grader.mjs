@@ -544,6 +544,7 @@ function predictedSet(c, env) {
     case "routing":
     case "verdict-build":
     case "spec-verdict":
+    case "prd-readiness":
       return env.verdict == null ? [] : [String(env.verdict)];
     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum

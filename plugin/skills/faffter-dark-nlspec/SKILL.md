@@ -85,7 +85,7 @@ RECORD UserSession:
 
 **Design decisions:** every tradeoff table, "X vs Y" comparison, or architecture pick must conclude with a canonical marker per the spec contract:
 - `**Chosen:** X` / `**Decision:** X` — closed
-- `**Punt:** X or Y — needs human` — open, in "Open Questions" section
+- `**Punt:** X or Y — needs human` — open, in "Open Questions" section. When the punt's class is clear, emit the optional `(decides: <owner>)` suffix per the gateway (`product | architecture | qa | security | any`, or a free-form handle); omit when ambiguous, never guess. The `faff-contract:spec-readiness` block is unchanged — a tagged punt still emits `{ "marker": "punt" }`.
 - `**Assumes:** X exists` — external dependency, in "Assumptions" section
 
 ### 4. HOW — Behavior

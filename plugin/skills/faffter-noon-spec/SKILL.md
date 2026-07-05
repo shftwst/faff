@@ -132,6 +132,7 @@ After the prose spec and the `confidence:` line, append **one** fenced code bloc
 
 - This is the **minimum** structure. Richer producers (like `faffter-dark-nlspec`) may add formal types, appendices, and rationale sections — as long as they satisfy the same gateway spec-readiness contract.
 - The canonical markers are mandatory and defined in the gateway Spec-readiness contract — this skill uses them, it does not define them. If the contract is unavailable, fall back to `**Chosen:**` / `**Punt:**` / `**Assumes:**`.
+- **Punt ownership.** When a `**Punt:**`'s class is clear — a product-scope call, an architecture pick, a test-strategy question, a security decision — emit the optional `(decides: <owner>)` suffix per the gateway Spec-readiness contract (`product | architecture | qa | security | any`, or a free-form handle). Omit it when the class is ambiguous; never guess. The `faff-contract:spec-readiness` block is unchanged either way — a tagged punt still emits `{ "marker": "punt" }`.
 - Pseudocode is language-agnostic. Do not write in a specific programming language — the build agent translates to the project's language.
 - The spec must be buildable by a coding agent with only the spec as context. If a section needs external knowledge not in the explore findings, mark it `**Assumes:**`.
 - Write to be skimmed: no invented labelling schemes, restate subjects on cross-reference (the writing-style rules live in the gateway Spec-readiness contract and apply fully).

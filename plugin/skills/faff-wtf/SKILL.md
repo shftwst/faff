@@ -108,7 +108,7 @@ Render the head issue (the one to build now), an arrow, then the transitive depe
 
 **Build queue (verdicts admitted: `fire-and-forget` + `likely-fire`).** Renders as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Independents are ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**). Collision groups are serialised within themselves and placed by their lead issue's position in that same `pick-ordering`.
 
-**Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `needs-decision-first` has **two causes** — name which one in the diagnosis: a spec `**Punt:**` (show the decision being asked), or a retained `confidence: medium` rating (prep attached the spec for review rather than auto-building — show the rating explicitly and the area the spec was thin on). A medium-confidence spec with no open punt would otherwise render with an empty diagnosis; surfacing the rating is the whole point — it tells the human "give this a once-over" even when there's no single decision to make. `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
+**Needs your call before automation can pick up.** Renders the four non-admitted verdicts in this order: `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`. Each issue carries the synthesis gloss + a one-line diagnosis (the Punt being asked, the named gap, the cycle visualised, or the repeat-park count and root-cause class). `needs-decision-first` has **two causes** — name which one in the diagnosis: a spec `**Punt:**` (show the decision being asked), or a retained `confidence: medium` rating (prep attached the spec for review rather than auto-building — show the rating explicitly and the area the spec was thin on). A medium-confidence spec with no open punt would otherwise render with an empty diagnosis; surfacing the rating is the whole point — it tells the human "give this a once-over" even when there's no single decision to make. **Group `needs-decision-first` by the punt's `(decides: <owner>)` tag** (gateway → Spec readiness → Punt ownership) so each reader sees their own decision queue: closed-vocab tokens (`architecture`, `product`, `qa`, `security`) alphabetically, then free-form handles alphabetically, then `(unowned)` last; within each group preserve the methodology `pick-ordering`. Untagged punts, `any`-tagged punts, and retained `confidence: medium` items fall into `(unowned)`; an issue carrying multiple punts that span different owners repeats under each relevant group, showing the specific punt for that group. `repeat-parked` ⚠ is rendered prominently — pattern parks are the strongest signal the human needs to act.
 
 **Prep queue (drained by default `/faff-beep-boop` full pipeline).** Backlog/pre-Todo issues unblocked (or blocked only by in-queue work), with no discoverable spec or a stale/superseded spec flagged by tidy. List as flat bullets — no conflict analysis needed at prep stage. Apply the synthesis contract for the gloss.
 
@@ -239,8 +239,13 @@ Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared ou
 **Needs your call before automation can pick up:**
 
   needs-decision-first
-    ISSUE-ZZ  [synthesis gloss] — Punt in spec: [decision asked] (decide in N min)
-    ISSUE-QQ  [synthesis gloss] — confidence: medium (spec thin on [area]); prep attached for review
+    (architecture)
+      ISSUE-ZZ  [synthesis gloss] — Punt in spec: [decision asked] (decide in N min)
+    (product)
+      ISSUE-PP  [synthesis gloss] — Punt in spec: cron vs queue-driven send
+    (unowned)
+      ISSUE-YY  [synthesis gloss] — Punt in spec: pino vs winston (no decides: tag)
+      ISSUE-QQ  [synthesis gloss] — confidence: medium (spec thin on [area]); prep attached for review
 
   gap-blocked
     ISSUE-WW  [synthesis gloss] — spec assumes [named gap]; [recommended fix]

@@ -92,7 +92,7 @@ Issues that are close but need one small thing — a blocker that's still In Pro
 
 Issues currently carrying the `faff-parked` label (or tracker equivalent) where the park is **still valid** — i.e. the autonomous-mode auto-removal rules above did **not** clear it, because the park reason is genuinely subjective or judgement-bound: an architectural call to make, scope to decide, a punt the spec didn't close, an explicit "needs human" marker. These are real blockers on a human, not noise.
 
-For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md` and surface it concisely so the human knows what decision is being asked of them.
+For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md` and surface it concisely so the human knows what decision is being asked of them. When the blocker is an open `**Punt:**` carrying a `(decides: <owner>)` tag (gateway → Spec readiness → Punt ownership), include the owner token in the one-line diagnosis so the reader sees who owns the call — e.g. `ISSUE-BB  [gloss] — open punt (decides: product): cron vs queue-driven send`. No grouping change: tidy surfaces punts per issue, and the tag is display metadata on the existing line.
 
 **Order this bucket via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**), the same as Ready — tidy states no ordering of its own. A parked issue gating a long chain tends to surface near the top, especially in autonomous runs where unblocking it lets `/faff-beep-boop` chew through the chain on the next pass.
 

@@ -24,6 +24,8 @@ function tmpRoot(appetiteLine = "appetite: low\n") {
 // FAFF-378: the default owner is a LIVE run (status running + a fresh `last_heartbeat`), so the
 // L4 pin fires via `runIsHeld`. Pass an explicit `owner` (2nd arg) to override the whole owner
 // block — including `null` to omit `owner` entirely (a legacy/unowned ledger).
+// LOAD-BEARING: the default `last_heartbeat` is what keeps every existing L4-pin test (the ones
+// asserting `full`) on the held path — remove it and those tests break, not just the new ones.
 function mintLedger(level, owner) {
   const runDir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-run-"));
   const ledger = { run_id: "fixture", level };

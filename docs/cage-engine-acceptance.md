@@ -46,7 +46,8 @@ green).
 
 ```bash
 endpoint=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("plan.json","utf8")).endpoint)')
-curl -fsS "$endpoint"<health-path>    # e.g. /health — expect the health route's expected status
+hpath=$(node -e 'const p=JSON.parse(require("fs").readFileSync("plan.json","utf8")); console.log((p.health_checks.find(h=>h.name==="app")||{path:"/health"}).path)')
+curl -fsS "$endpoint$hpath"           # expect the health route's expected status
 ```
 
 **Pass:** the HTTP request succeeds from inside the cage (not from the host).

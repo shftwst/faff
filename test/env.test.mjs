@@ -501,7 +501,9 @@ test("integration: real Node + Postgres app tier (connects at boot) stands up he
     writeFileSync(join(dir, "Dockerfile"), ["FROM node:20-alpine", "WORKDIR /app", "COPY server.js .", "EXPOSE 3000", 'CMD ["node", "server.js"]'].join("\n"));
     writeFileSync(join(dir, "docker-compose.yml"), REPO_COMPOSE_DB);
     const p = writeProfile(dir, APP_PROFILE);
-    const gen = run(dir, ["env", "compose-gen", "--root", dir, "--profile", p, "--out", join(dir, ".faff", "env", "dc.yml"), "--project", project]);
+    // FAFF-371: generate at the DEFAULT compose path so the down assertion below exercises the
+    // -f teardown path (envDownArgs resolves <root>/.faff/env/docker-compose.yml), not the fallback.
+    const gen = run(dir, ["env", "compose-gen", "--root", dir, "--profile", p, "--out", join(dir, ".faff", "env", "docker-compose.yml"), "--project", project]);
     assert.equal(gen.code, 0, `compose-gen failed: ${gen.err}`);
     const plan = JSON.parse(gen.out);
     // the generated postgres carries the reconciled auth-env, and the app is ordered behind it
@@ -537,8 +539,9 @@ test("integration: real Node + Postgres app tier (connects at boot) stands up he
         assert.ok(reachable, `plan endpoint ${plan.endpoint}/healthz not reachable from the test process: ${lastErr}`);
       }
       // FAFF-371: teardown leaves nothing behind — down exits 0 and the project's compose ps is
-      // empty (the finally-down below stays as idempotent safety, not the assertion).
-      const down = run(dir, ["env", "down", "--project", project]);
+      // empty (the finally-down below stays as idempotent safety, not the assertion). --root makes
+      // envDownArgs find the default compose file, so this exercises the hardened -f path.
+      const down = run(dir, ["env", "down", "--root", dir, "--project", project]);
       assert.equal(down.code, 0, `down failed: ${down.err}`);
       const psOut = execFileSync("docker", ["compose", "-p", project, "ps", "--format", "json"], { encoding: "utf8" }).trim();
       assert.ok(psOut === "" || psOut === "[]", `project containers remain after down: ${psOut}`);

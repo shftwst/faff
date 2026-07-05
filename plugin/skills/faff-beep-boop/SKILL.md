@@ -443,6 +443,9 @@ Duration: Xh Ym
 Waves: N
 Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>)
 
+## Unit economics — call `faff economics --run-dir <run-dir> --json` (pure) after step-11 runcheck; the CLI computes, beep-boop only renders (FAFF-357)
+Run spend <tokens_total> (<tokens_source>)[ · $<cost_total>] · per shipped <tokens_each>[· $x] (`— (0 shipped) ⚠ ZERO-SHIP` when zero_ship) · per attempt <tokens_each> (<attempt_count>) · per bucket shipped N·parked N (`no build outcomes this run` if empty) · per issue FAFF-49 6.1M (omit if per_issue empty) · one `⚠ <warning>` per warnings[]
+
 ## Methodology findings (rendered only when a methodology skill is configured)
 
 (One-line summary of how the lens shaped this run — e.g. "Re-ordered 2 collision groups for value-aware sequencing; no methodology violations surfaced." Or list the diagnoses the methodology surfaced during the run, one per line, as it returned them.)
@@ -519,8 +522,7 @@ repeat-parked ⚠ (N)
 - Parked: N
 - Errored: N
 
-## Tidy findings (full mode only)
-See logs/YYYY-MM-DD/HHMMSS-tidy.md
+## Tidy findings (full mode only) — see logs/YYYY-MM-DD/HHMMSS-tidy.md
 ```
 
 The **Human follow-ups** section captures post-merge housekeeping that was skipped so the run could continue — branch/worktree cleanup, tracker status bumps, label cleanup, shell return-to-main. See the gateway's Autonomous Mode Contract ("Post-merge housekeeping failures never halt the queue"). These are one-liners the human can clear in a minute the next morning; none of them block shipped work, so none of them justify stopping the pipeline.
@@ -547,11 +549,9 @@ If the report contains one of those headings AND no budget ceiling was set or br
 
 ### 2. Tracker status update
 
-Post the summary content (or a condensed version) to the tracker as a status update / project comment, so team members see the overnight outcome alongside the issues themselves.
+Post the summary content (or a condensed version) to the tracker as a status update / project comment, so team members see the overnight outcome alongside the issues themselves. **Append the condensed one-line economics form (FAFF-357):** `Economics: <tokens_total> tokens (<tokens_source>)[, $<cost_total>] · <shipped_count> shipped · <cost_per_shipped or ZERO-SHIP>` — so the headline cost rides alongside the issues (the full block stays in `summary.md` + the in-conversation output).
 
-### 3. In-conversation output
-
-Print the summary in the conversation at the end of the run.
+### 3. In-conversation output — print the summary in the conversation at the end of the run.
 
 ## Stopping condition
 

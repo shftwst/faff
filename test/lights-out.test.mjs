@@ -196,6 +196,76 @@ test("lights-out --check: passes preflight without minting a run", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+// FAFF-379 — worktree_isolation is now a LIVE floor gate. A worktree root resolving
+// INSIDE the repo tree refuses with gate floor:worktree_isolation and a path-naming
+// detail (formerly a vacuous always-true pass).
+test("lights-out: FAFF_WORKTREE_ROOT inside the repo refuses (floor:worktree_isolation)", () => {
+  const root = tmpRoot();
+  const env = { ...CONTAINED, FAFF_WORKTREE_ROOT: path.join(root, "wt") };
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--check", "--json"], { env });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  const f = out.refusals.find((r) => r.gate === "floor:worktree_isolation");
+  assert.ok(f, "names the floor:worktree_isolation gate");
+  assert.match(f.detail, /inside the repo/);
+  assert.match(f.detail, new RegExp(path.join(root, "wt").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on floor refusal");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-379 — the DEFAULT resolution is now a live gate too: with HOME pointed at the
+// repo root and no override, the default `$HOME/.faff/worktrees` lands inside the repo
+// → refuse. (Proves the formerly-vacuous default path can now fire.)
+test("lights-out: default worktree root inside the repo (HOME=repo) refuses", () => {
+  const root = tmpRoot();
+  const env = { ...CONTAINED, HOME: root };
+  delete env.FAFF_WORKTREE_ROOT;
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--check", "--json"], { env });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.ok(out.refusals.some((r) => r.gate === "floor:worktree_isolation"), stdout);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-379 — a worktree root OUTSIDE the repo (fresh tmpdir) proceeds, and the banner
+// carries the per-entry checked/static mode tokens.
+test("lights-out --check: FAFF_WORKTREE_ROOT outside the repo proceeds; banner carries mode tokens", () => {
+  const root = tmpRoot();
+  const wt = fs.mkdtempSync(path.join(os.tmpdir(), "faff-wt-"));
+  const env = { ...CONTAINED, FAFF_WORKTREE_ROOT: path.join(wt, "roots") };
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--check", "--json"], { env });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.match(out.banner, /worktree-isolation ✓ checked/);
+  assert.match(out.banner, /no-execute ✓ static/);
+  assert.match(out.banner, /autonomous-contract ✓ static/);
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(wt, { recursive: true, force: true });
+});
+
+// FAFF-379 — a worktree root whose nearest existing ancestor is not writable refuses
+// (creatability probe). Skipped as root: a chmod-based writability denial is a no-op
+// for uid 0, so W_OK still succeeds and the refusal would not fire.
+test("lights-out: worktree root under a non-writable ancestor refuses",
+  { skip: (process.getuid && process.getuid() === 0) ? "chmod writability denial is a no-op for uid 0" : false },
+  () => {
+    const root = tmpRoot();
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "faff-ro-"));
+    fs.chmodSync(base, 0o500); // r-x: not writable
+    const env = { ...CONTAINED, FAFF_WORKTREE_ROOT: path.join(base, "wt") };
+    const { stdout, code } = runCli(["lights-out", "--root", root, "--check", "--json"], { env });
+    const out = JSON.parse(stdout);
+    assert.equal(code, 1, stdout);
+    const f = out.refusals.find((r) => r.gate === "floor:worktree_isolation");
+    assert.ok(f, "names the floor:worktree_isolation gate");
+    assert.match(f.detail, /not writable/);
+    fs.chmodSync(base, 0o700);
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(base, { recursive: true, force: true });
+  });
+
 // Proceed path: mint a strict-defaults L4 run-ledger (armed:Map<Guardrail,State>),
 // persist the banner derivable 1:1 from armed, and emit a run-start event.
 test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", () => {

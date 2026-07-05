@@ -217,6 +217,9 @@ jobs:
           sudo loginctl enable-linger "$(whoami)"
           sudo systemctl start "user@$(id -u)" || true
           export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          # Ubuntu 24.04 restricts unprivileged user namespaces via AppArmor — rootlesskit
+          # (the rootless daemon's namespace helper) needs them
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           # user-local rootless install (runner images don't carry Docker's apt repo, so the
           # docker-ce-rootless-extras package has no candidate — the official script installs
           # self-contained binaries under ~/bin instead)

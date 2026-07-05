@@ -332,6 +332,9 @@ const DEFAULTS = {
   "models.spec_review": "inherit",
   "models.methodology": "inherit",
   "models.intake": "inherit",
+  // The architecture proposer's producer-subagent dispatch lane (faff-prep's conditional
+  // architecture step) — same closed Agent-token set as the sibling producer lanes.
+  "models.architecture": "inherit",
   "models.eval": "claude-sonnet-4-6",
 };
 
@@ -347,6 +350,7 @@ const MODEL_LANE_VOCAB = {
   "models.spec_review": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.methodology": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.intake": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.architecture": ["inherit", "sonnet", "opus", "haiku", "fable"],
 };
 function validateModelLane(key, value) {
   let vocab = MODEL_LANE_VOCAB[key];
@@ -853,6 +857,7 @@ function cmdConfig(args) {
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
           "models.build", "models.prep_explore",
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
+          "models.architecture",
           "models.eval",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
@@ -867,6 +872,8 @@ function cmdConfig(args) {
           validateModelLane("models.spec_review", DEFAULTS["models.spec_review"]) ||
           validateModelLane("models.methodology", DEFAULTS["models.methodology"]) ||
           validateModelLane("models.intake", DEFAULTS["models.intake"]) ||
+          validateModelLane("models.architecture", DEFAULTS["models.architecture"]) ||
+          (validateModelLane("models.architecture", "gpt-5") ? null : "architecture lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.spec", "gpt-5") ? null : "producer lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
           (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
@@ -928,7 +935,7 @@ function cmdConfig(args) {
       // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
       // visible, not silent (the same FAFF-50 intent as the slot echo above).
       const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
-      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "eval"]) {
+      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "eval"]) {
         const v = models[lane];
         if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
       }

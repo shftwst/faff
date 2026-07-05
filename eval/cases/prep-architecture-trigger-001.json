@@ -1,0 +1,10 @@
+{ "id": "prep-architecture-trigger-001", "kind": "prep-architecture-trigger",
+  "fixture": { "version": 1,
+    "issue": {
+      "id": "SUT-1",
+      "title": "Stand up a link-shortener service (POST /shorten, GET /{code} redirect)",
+      "description": "Greenfield: build a small HTTP service that shortens URLs. POST /shorten returns a 7-char code; GET /{code} 302-redirects; unknown or expired codes 404; codes survive an api restart (persistence)." },
+    "explore_findings": "The repo is a fresh scaffold: a BRIEF.md, a RUNBOOK.md, and a config file — no source directories, no services, no compose file, no datastore, no CI. There is no established architecture to inherit; the runnable surface is empty. No sibling spec in the project carries an architecture proposal." },
+  "question": "Should prep's conditional architecture step fire on this issue — fire or skip?",
+  "oracle": { "closed_set": ["fire"] },
+  "_comment": "The canonical fire case: a new runnable system (HTTP service + datastore for persistence-across-restart) with an empty runnable surface and no architecture to inherit, and no existing sibling proposal. Every clause of the new-runnable-surface trigger is satisfied, so the precision-biased rule fires unambiguously." }

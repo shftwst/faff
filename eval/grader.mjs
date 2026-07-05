@@ -196,8 +196,8 @@ import { fileURLToPath } from "node:url";
 //                     fixture's note for the human baseline). Oracle = ["flagged"] if it SHOULD raise a
 //                     finding above minor, else []. predictedSet = ["flagged"] iff env.findings has ≥1
 //                     finding above minor severity, else []. Both reduce to setEqual vs oracle.closed_set.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness"]);
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -211,7 +211,7 @@ export class CaseError extends Error {}
 // FAFF-280 — the seam registry (eval/seam-registry.json) is the single source of truth mapping each
 // grader KIND to the skill/slot whose LLM-judgement seam it backs. The grader keeps KINDS as its
 // executable enum but asserts, fail-loud on load, that the registry's KIND axis matches KINDS exactly
-// — so the two files can never drift. The equality is total because the registry lists all 25 KINDs.
+// — so the two files can never drift. The equality is total because the registry lists every KIND.
 // `cases_present` is NOT sourced here; `status` (covered/designed) lives in the registry, coverage is
 // derived live from eval/cases/. Re-sourcing KINDS *from* the registry is a later ticket (OUT OF SCOPE).
 export function loadSeamRegistry() {
@@ -278,6 +278,10 @@ const FIXTURE_SHAPE = {
   // the `spec_summary` the change claims to implement (the driver renders both). validateCase asserts
   // both; the binary flagged/[] verdict rides env.findings (the closed-set arm).
   "refutation-code": ["diff", "spec_summary"],
+  // prep-architecture-trigger — the fire/skip fixture carries the `issue` (title + description) and
+  // the `explore_findings` prose the trigger judges over (new-runnable-surface vs established system).
+  // validateCase asserts both; the single fire|skip verdict rides env.verdict (the routing arm).
+  "prep-architecture-trigger": ["issue", "explore_findings"],
   // FAFF-240 — roadmap: the seeded tracker fixture (the ordering/dupe issues[] backlog shape, enriched
   // with blockedBy edges + trigger-gate markers) faff-map synthesises over. validateCase asserts the
   // `issues` field is present; the predicted synthesis rides env.roadmap.
@@ -541,10 +545,15 @@ function predictedSet(c, env) {
     // new grade math; the eval-side fail-safe is identical (missing → [] → clean FAIL; an out-of-enum
     // token → verbatim → distinct-signature FAIL). The deterministic coercion stays in `faff contract
     // spec-review-verdict`, never here.
+    // prep-architecture-trigger — the fire/skip judgement of faff-prep's conditional architecture
+    // step is ALSO one closed value → a single-element set, riding the SAME `env.verdict` field
+    // (values "fire" | "skip"). It joins this arm with no new grade math; the eval-side fail-safe
+    // is identical (missing → [] → clean FAIL; out-of-enum → verbatim → distinct signature).
     case "routing":
     case "verdict-build":
     case "spec-verdict":
     case "prd-readiness":
+    case "prep-architecture-trigger":
       return env.verdict == null ? [] : [String(env.verdict)];
     // FAFF-150 — modedetect: a single mode verdict → a one-element set (the confidence/routing
     // analogue). A missing `mode` → empty set → a clean FAIL with signature "[]"; an out-of-enum

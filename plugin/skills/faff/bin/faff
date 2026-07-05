@@ -5524,6 +5524,7 @@ Subcommands:
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
+  review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N]]   FAFF-329: per-issue review checkpoint at \`<run-dir>/<issue>/review-progress.json\` so a re-dispatched build subagent RESUMES the graft review step (skips a completed Phase-1/Phase-2) instead of repeating it. read → ReviewProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --phase1-pass --diff-hash records the passing Phase-1 verdict + the diff hash it was computed against (the diff-identity guard — a resume skips Phase-1 only if the CURRENT diff still matches); write --phase2 <pending|in_flight|complete|skipped_deadline|skipped_unreachable> records Phase-2 progress. PURE JSON (no tracker/network); a HINT never authoritative over git/PR truth; exit 2 usage/bad-status; --selftest runs the fold table
   effects <declare|observe|check> --run <run-id> [--issue ID] [--step NAME] [--ts ISO] [--json] [--root DIR]   FAFF-106: escaped-side-effect detection via a declared-effects ledger — the PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) consumes. declare/observe read an EffectDescriptor {kind ∈ closed EFFECT_KINDS, target, reversible?} (object or array) on stdin and append a LedgerEntry (CLI fills schema/run_id/seq/ts envelope; kind_of_entry/issue/step required) to .faff/runs/<run-id>/declared-effects.jsonl — a PARALLEL ledger, never an events.jsonl schema bump; exit 0 ok / 1 bad descriptor (unknown kind / missing target) / 2 malformed JSON or missing --run/--issue/--step / 3 run-dir missing. check computes observed-MINUS-declared per (issue, step) using exact-target + "*" matching and emits {escapes:[EscapeSignal{signal:"escaped-side-effect",issue,step,escaped[],event_seq}], any_escape} (--json); a missing ledger file is a clean state ({escapes:[],any_escape:false}, exit 0 — NOT exit 3). Detection only — never aborts (Sentry/FAFF-37's job); the orchestrator bridges any_escape into \`faff sentry check\` via the existing signals.forbidden_side_effect seam. PURE (no tracker/network, writes only under the run dir); --selftest runs the descriptor/matching/escape table
   sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
@@ -9197,6 +9198,111 @@ function computeEscapes(entries, issueFilter) {
   return { escapes, any_escape: escapes.length > 0 };
 }
 
+// === FAFF-329: review-progress checkpoint =================================
+// A per-issue on-disk record of how far the graft review step got, written before the slow adversarial
+// Phase-2 call so a re-dispatched build subagent RESUMES rather than repeats. Lives beside graft.md at
+// `<run-dir>/<issue>/review-progress.json`. PURE JSON read/write — no tracker, no network (the CLI
+// determinism invariant); it is a HINT the graft flow consults, never authoritative over git/PR truth
+// (the diff-identity guard keeps it honest — Phase-1 is skipped only when phase1.diff_hash still matches).
+const REVIEW_PHASE2_STATUSES = new Set(["pending", "in_flight", "complete", "skipped_deadline", "skipped_unreachable"]);
+
+function reviewProgressPath(runDir, issue) {
+  return path.join(runDir, issue, "review-progress.json");
+}
+
+// Pure: fold a Phase-1 pass (+ the diff hash it was computed against) into the record. Phase-1 fail /
+// needs-human are already terminal (graft returns with no Phase-2), so the checkpoint is only ever written
+// on a `pass`. Seeds phase2 to `pending` when absent so a resume knows Phase-2 has not started.
+function reviewProgressApplyPhase1(existing, issue, diffHash, nowIso) {
+  const base = (existing && typeof existing === "object") ? existing : {};
+  const phase2 = (base.phase2 && typeof base.phase2 === "object") ? base.phase2 : { status: "pending", attempts: 0, findings_ref: null };
+  return { issue, phase1: { status: "done", verdict: "pass", diff_hash: String(diffHash) }, phase2, updated_at: nowIso };
+}
+
+// Pure: fold a Phase-2 status transition into the record (preserving phase1). `findings` sets findings_ref
+// (a `complete` status), `attempts` records backends consumed. An unknown status is rejected by the caller.
+function reviewProgressApplyPhase2(existing, status, findings, attempts, nowIso) {
+  const base = (existing && typeof existing === "object") ? existing : {};
+  const phase2 = (base.phase2 && typeof base.phase2 === "object") ? { ...base.phase2 } : { status: "pending", attempts: 0, findings_ref: null };
+  phase2.status = status;
+  if (findings != null) phase2.findings_ref = String(findings);
+  if (attempts != null) phase2.attempts = Number(attempts);
+  return { issue: base.issue, phase1: base.phase1 || null, phase2, updated_at: nowIso };
+}
+
+function cmdReviewProgress(args) {
+  if (args.includes("--selftest")) return reviewProgressSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const positional = args.filter((a) => !a.startsWith("-"));
+  const sub = positional[0];
+  const runDir = positional[1];
+  const issue = positional[2];
+  if ((sub !== "read" && sub !== "write") || !runDir || !issue) {
+    process.stderr.write("usage: faff review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N]]\n");
+    return 2;
+  }
+  const file = reviewProgressPath(runDir, issue);
+  const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+
+  if (sub === "read") {
+    const rec = readExisting();
+    if (!rec) return 3;   // no checkpoint yet — NOT an error ("nothing recorded"), just absent
+    console.log(JSON.stringify(rec));
+    return 0;
+  }
+
+  // write
+  const nowIso = new Date().toISOString();
+  let rec;
+  if (args.includes("--phase1-pass")) {
+    const diffHash = get("--diff-hash");
+    if (!diffHash) { process.stderr.write("faff review-progress write --phase1-pass requires --diff-hash <h>\n"); return 2; }
+    rec = reviewProgressApplyPhase1(readExisting(), issue, diffHash, nowIso);
+  } else if (args.includes("--phase2")) {
+    const status = get("--phase2");
+    if (!REVIEW_PHASE2_STATUSES.has(status)) {
+      process.stderr.write(`faff review-progress: invalid phase2 status "${status}" — one of: ${[...REVIEW_PHASE2_STATUSES].join(" | ")}\n`); return 2;
+    }
+    rec = reviewProgressApplyPhase2(readExisting(), status, get("--findings"), get("--attempts"), nowIso);
+    rec.issue = rec.issue || issue;
+  } else {
+    process.stderr.write("faff review-progress write: expected --phase1-pass or --phase2 <status>\n"); return 2;
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
+  fs.renameSync(tmp, file);
+  console.log(JSON.stringify(rec));
+  return 0;
+}
+
+function reviewProgressSelftest() {
+  let fail = 0;
+  const ok = (n, c) => { if (!c) { console.log(`FAIL ${n}`); fail++; } else console.log(`ok   ${n}`); };
+  const NOW = "2026-07-05T00:00:00.000Z";
+  // phase1 pass seeds phase2 pending + records the diff hash
+  const p1 = reviewProgressApplyPhase1(null, "FAFF-329", "abc123", NOW);
+  ok("phase1 records done/pass + diff_hash", p1.phase1.status === "done" && p1.phase1.verdict === "pass" && p1.phase1.diff_hash === "abc123");
+  ok("phase1 seeds phase2 pending", p1.phase2.status === "pending");
+  ok("phase1 stamps updated_at", p1.updated_at === NOW);
+  // phase2 in_flight preserves phase1 + its diff hash
+  const p2 = reviewProgressApplyPhase2(p1, "in_flight", null, null, NOW);
+  ok("phase2 transition preserves phase1", p2.phase1.verdict === "pass" && p2.phase1.diff_hash === "abc123");
+  ok("phase2 status set to in_flight", p2.phase2.status === "in_flight");
+  // phase2 complete sets findings_ref + attempts
+  const p3 = reviewProgressApplyPhase2(p2, "complete", ".faff/x/findings.md", 2, NOW);
+  ok("phase2 complete sets findings_ref", p3.phase2.findings_ref === ".faff/x/findings.md");
+  ok("phase2 complete records attempts", p3.phase2.attempts === 2);
+  // deadline / unreachable skip statuses are valid
+  ok("skipped_deadline is a valid status", REVIEW_PHASE2_STATUSES.has("skipped_deadline"));
+  ok("skipped_unreachable is a valid status", REVIEW_PHASE2_STATUSES.has("skipped_unreachable"));
+  ok("an unknown status is rejected by the vocab", !REVIEW_PHASE2_STATUSES.has("bogus"));
+  // path shape
+  ok("checkpoint path is <run-dir>/<issue>/review-progress.json", reviewProgressPath("/r/run-1", "FAFF-329") === path.join("/r/run-1", "FAFF-329", "review-progress.json"));
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (review-progress checkpoint, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 function cmdEffects(args) {
   let root = null, run = null, issue = null, step = null, ts = null;
   const rest = [];
@@ -12679,6 +12785,7 @@ const REGION_MAP = {
   "heartbeat": "governance",
   "events": "governance",
   "effects": "governance",
+  "review-progress": "governance",
   "budget": "governance",
   "sentry": "governance",
   "audit": "governance",
@@ -12747,6 +12854,7 @@ const REGION_SELFTEST_ARGV = {
   "heartbeat": ["heartbeat", "--selftest"],
   "events": ["events", "--selftest"],
   "effects": ["effects", "--selftest"],
+  "review-progress": ["review-progress", "--selftest"],
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
   "audit": ["audit", "--selftest"],
@@ -13652,6 +13760,7 @@ const COMMANDS = {
   "env": cmdEnv,
   "events": cmdEvents,
   "effects": cmdEffects,
+  "review-progress": cmdReviewProgress,
   "sentry": cmdSentry,
   "lights-out": cmdLightsOut,
   "audit": cmdAudit,

@@ -180,7 +180,11 @@ faffter_dark:
     host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
     api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
     reasoning_off: false # true → chat_template_kwargs:{thinking:false} for reasoning models (deepseek)
-    timeout: 120 # seconds
+    timeout: 120 # seconds — bounds ONE stream attempt
+    deadline: 480 # FAFF-329: TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends, so the
+                  # slow Phase-2 fits one subagent turn (default 480, under the 900s staleness window). Deadline-
+                  # exceeded → the second opinion is skipped (pass+skip, logged loudly), never a mid-turn stall.
+                  # Tune up if `phase2: skipped-deadline` shows in run logs while backends were healthy.
     # FAFF-232 — OPTIONAL ordered fallback chain. The block above is the PRIMARY backend; `fallbacks`
     # adds further backends, each tried in order when the one before fails to produce findings
     # (rate-limit / unreachable / persistent transport failure / auth / not-served). First findings win;

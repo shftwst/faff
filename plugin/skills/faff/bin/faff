@@ -3550,7 +3550,7 @@ const REGISTRY = {
   "faffter-noon-architecture": { type: "producer-architecture" },
   "faffter-noon-env-compose": { type: "producer-env" },
   "faffter-noon-evaluate": { type: "producer-evaluator" },
-  "faffter-noon-prd-validator": { type: "producer-prd-validator" },
+  "faffter-noon-prd": { type: "producer-prd" },
   "faffter-noon-intake": { type: "producer-intake" },
   "faffter-noon-adr": { type: "producer-adr" },
   "faffter-noon-review": { type: "producer-review" },
@@ -3686,7 +3686,7 @@ const SLOT_TYPES = {
   architecture: { type: "producer-architecture", slot: "architecture" },
   env: { type: "producer-env", slot: "env" },
   evaluator: { type: "producer-evaluator", slot: "evaluator" },
-  prd_validator: { type: "producer-prd-validator", slot: "prd_validator" },
+  prd: { type: "producer-prd", slot: "prd" },
   review: { type: "producer-review" },
   ship: { type: "producer-ship" },
   // FAFF-231: the infra-profile acquirer slot. The shipped default occupant is the built-in
@@ -3782,11 +3782,11 @@ function checksFor(meta, t) {
       // matches derivation → exit 0). Default occupant: faffter-noon-evaluate.
       out.push([has("faff-contract:holdout-verdict"), "emits its `faff-contract:holdout-verdict` artifact block"]);
       break;
-    case "producer-prd-validator":
-      // The code-blind PRD-admissibility validator (the LLM half of the L4 run-start PRD gate). It
+    case "producer-prd":
+      // The code-blind PRD-admissibility producer (the LLM half of the L4 run-start PRD gate). It
       // self-declares its verdict in a faff-contract:prd-readiness block the run-start caller parses and
-      // pipes to `faff contract prd-readiness` (gate: admissible → admit the run; anything else → refuse,
-      // fail-safe). Default occupant: faffter-noon-prd-validator.
+      // pipes to `faff contract prd-readiness` (the deterministic validator: admissible → admit the run;
+      // anything else → refuse, fail-safe). Default occupant: faffter-noon-prd.
       out.push([has("faff-contract:prd-readiness"), "emits its `faff-contract:prd-readiness` artifact block"]);
       break;
     case "producer-ship":

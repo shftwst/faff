@@ -28,6 +28,6 @@
     "adr-gloss": { "surface": "faffter-noon-adr", "status": "covered" },
     "refutation-spec": { "surface": "faffter-dark-spec-review", "status": "covered" },
     "refutation-code": { "surface": "faffter-dark-adversarial-review", "status": "covered" },
-    "prd-readiness": { "surface": "faffter-noon-prd-validator", "status": "designed" }
+    "prd-readiness": { "surface": "faffter-noon-prd", "status": "designed" }
   }
 }

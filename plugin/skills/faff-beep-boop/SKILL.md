@@ -99,6 +99,19 @@ Issues that reached build-ready (spec present, verdict-admitted, partitioned by 
 
 Two independent phases. The **prep queue** drains fully first. Then the **build phase** runs as one or more **waves**: each wave assembles a build queue from the current Todo+spec set, drains it, and re-checks for work newly unlocked by issues that just shipped. The prep queue always runs to completion regardless of whether any wave ends up non-empty. Overnight prep is valuable on its own.
 
+### 0a. PRD-admissibility pre-check (L4 lights-out only)
+
+Under the **L4 lights-out signal only** (an ordinary L3 run skips this entirely — L3 behaviour is unchanged), run this **before `faff lights-out` mints the ledger**, so a refused PRD never leaves an orphaned run-ledger. `faff lights-out` is a pure CLI and cannot invoke an LLM, so the prose layer owns this pre-step. Resolve the binary per gateway → **Resolving the `faff` executable**.
+
+1. **Resolve the container.** `faff prd list --json`. Exactly one PRD → use its `container`. Zero → **no-PRD case**: skip to step 1 (tidy). Multiple → keep those whose status is `Active`/`Frozen`; if still more than one → **REFUSE** (`prd-ambiguous: multiple active PRDs, configure tracking.container to disambiguate`), mint nothing.
+2. **Resolve the PRD path.** `faff prd path <container>`. File missing → **no-PRD case** (skip, as for zero PRDs).
+3. **Validate slot liveness.** Resolve `faff config get slots.prd_validator` (default `faffter-noon-prd-validator`). Unreachable → **REFUSE** (`prd-validator-slot-unreachable`), fail-closed.
+4. **Invoke the `prd_validator` slot** via the Skill tool (resolve per gateway → **Sibling-skill invocation**), passing the resolved PRD file path from step 2 (the slot reads that one file). It emits one `faff-contract:prd-readiness` block.
+5. **Pipe to the contract.** Locate the block, `JSON.parse` it, pipe to `faff contract prd-readiness`. Branch: exit 0 + `admissible` → **PROCEED** (carry `creative_licence` forward); exit 0 + `not-ready` → **REFUSE** (`prd-not-ready: <reason>`, escalate, surface in `/faff-wtf`); exit 1 (violations) or exit 2 (fail-loud / missing block) → **REFUSE** (fail-safe).
+6. **Mint with the licence.** Call `faff lights-out --prd-creative-licence <value>` with the `creative_licence` token; it stores `prd_creative_licence` in the ledger (absent flag → `null`).
+
+A **REFUSE** here exits before minting — no run-ledger is written, and the cause surfaces for `/faff-wtf`. The no-PRD case proceeds to step 1 normally, with no prd-admissibility gate applied.
+
 ### 1. Tidy pass
 
 Invoke the `faff-tidy` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) in autonomous mode. Applies the auto-actions (archive dead weight, reparent obvious orphans, strip dead references, canonicalise overlooked specs, clear stale park labels) and tags stale-spec / superseded-spec issues so the prep queue picks them up in step 2. Logs remaining findings for morning review.

@@ -49,7 +49,7 @@ When it's genuinely ambiguous (existing project, but the user is describing some
 
 ### 2. Discover — delegate to the `intake` slot
 
-Invoke the configured `intake` skill (default `faffter-noon-intake`; override with `superpowers:brainstorming`, `gstack:office-hours`, or any ideation skill) via the Skill tool (resolve the slot value per gateway → **Sibling-skill invocation**: a bundled default like `faffter-noon-intake` is a canonical name, an explicitly-namespaced override is used verbatim). Pass it: the detected mode, the human's starting description, and — for single-item — the live workstream/container list + naming conventions + current-priority signal so it can place the item.
+**Dispatch the configured `intake` skill** (default `faffter-noon-intake`; override with `superpowers:brainstorming`, `gstack:office-hours`, or any ideation skill) **as a producer subagent** (resolve the slot value + transport per gateway → **Sibling-skill invocation → Producer dispatch**, resolving `models.intake`: a bundled default like `faffter-noon-intake` is a canonical name, an explicitly-namespaced override is used verbatim). Pass it: the detected mode, the human's starting description, and — for single-item — the live workstream/container list + naming conventions + current-priority signal so it can place the item.
 
 The intake skill runs the discovery conversation and returns a **discovery brief** (the `intake`-slot output contract — see `faffter-noon-intake`). **Whatever intake skill ran, its output comes back into this orchestrator lane** — `/faff-jot` owns everything from here. A third-party intake skill only has to emit the discovery-brief shape; it never touches the tracker.
 

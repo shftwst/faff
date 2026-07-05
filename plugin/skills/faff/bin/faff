@@ -324,6 +324,13 @@ const DEFAULTS = {
   // models.eval is the eval frontier driver's pinned default — NEVER the account default (budget guard).
   "models.build": "inherit",
   "models.prep_explore": "inherit",
+  // FAFF-372: per-producer model lanes for the migrated interactive prep/jot producer subagents
+  // (spec / methodology / spec_review / intake). Same closed Agent-token set as build; "inherit"
+  // omits the model param (byte-for-byte today until a repo pins one).
+  "models.spec": "inherit",
+  "models.spec_review": "inherit",
+  "models.methodology": "inherit",
+  "models.intake": "inherit",
   "models.eval": "claude-sonnet-4-6",
 };
 
@@ -334,6 +341,11 @@ const DEFAULTS = {
 const MODEL_LANE_VOCAB = {
   "models.build": ["inherit", "sonnet", "opus", "haiku", "fable"],
   "models.prep_explore": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  // FAFF-372: migrated interactive producer lanes reuse the build lane's closed Agent-token set.
+  "models.spec": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.spec_review": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.methodology": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.intake": ["inherit", "sonnet", "opus", "haiku", "fable"],
 };
 function validateModelLane(key, value) {
   let vocab = MODEL_LANE_VOCAB[key];
@@ -829,7 +841,9 @@ function cmdConfig(args) {
           "slots.env",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
-          "models.build", "models.prep_explore", "models.eval",
+          "models.build", "models.prep_explore",
+          "models.spec", "models.spec_review", "models.methodology", "models.intake",
+          "models.eval",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -838,6 +852,12 @@ function cmdConfig(args) {
         const vocabFail =
           validateModelLane("models.build", DEFAULTS["models.build"]) ||
           validateModelLane("models.prep_explore", DEFAULTS["models.prep_explore"]) ||
+          // FAFF-372: the migrated producer lanes accept their own defaults and reject off-vocabulary tokens.
+          validateModelLane("models.spec", DEFAULTS["models.spec"]) ||
+          validateModelLane("models.spec_review", DEFAULTS["models.spec_review"]) ||
+          validateModelLane("models.methodology", DEFAULTS["models.methodology"]) ||
+          validateModelLane("models.intake", DEFAULTS["models.intake"]) ||
+          (validateModelLane("models.spec", "gpt-5") ? null : "producer lane vocab failed to reject an invalid token") ||
           (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
           (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
           // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
@@ -898,7 +918,7 @@ function cmdConfig(args) {
       // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
       // visible, not silent (the same FAFF-50 intent as the slot echo above).
       const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
-      for (const lane of ["build", "prep_explore", "eval"]) {
+      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "eval"]) {
         const v = models[lane];
         if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
       }

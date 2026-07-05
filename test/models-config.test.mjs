@@ -50,6 +50,39 @@ test("a configured Agent-token resolves; an invalid token fails loud (exit 2, na
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("FAFF-372: producer lanes (spec / spec_review / methodology / intake) default to inherit", () => {
+  const dir = fixtureDir(); // no .faffrc
+  try {
+    for (const key of ["models.spec", "models.spec_review", "models.methodology", "models.intake"]) {
+      const r = runCli(["config", "get", key], { cwd: dir });
+      assert.equal(r.code, 0, `${key} exit`);
+      assert.equal(r.stdout.trim(), "inherit", key);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-372: a producer lane resolves a valid token and fails loud on an invalid one (exit 2)", () => {
+  const dir = fixtureDir("models:\n  spec: opus\n  spec_review: gpt-5\n");
+  try {
+    const ok = runCli(["config", "get", "models.spec"], { cwd: dir });
+    assert.equal(ok.code, 0);
+    assert.equal(ok.stdout.trim(), "opus");
+    const bad = runCli(["config", "get", "models.spec_review"], { cwd: dir });
+    assert.equal(bad.code, 2, "invalid producer-lane token must exit 2 (fail-loud), not silently inherit");
+    assert.match(bad.stderr, /gpt-5/, "message names the bad value");
+    assert.match(bad.stderr, /inherit \| sonnet \| opus \| haiku \| fable/, "message names the legal set");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-372: config resolved echoes a non-default producer lane", () => {
+  const dir = fixtureDir("models:\n  methodology: opus\n");
+  try {
+    const r = runCli(["config", "resolved"], { cwd: dir });
+    assert.equal(r.code, 0);
+    assert.match(r.stdout, /model methodology: opus/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("models.eval is open-vocabulary (any id resolves; claude -p validates it)", () => {
   const dir = fixtureDir("models:\n  eval: claude-opus-4-8\n");
   try {

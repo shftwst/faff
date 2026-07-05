@@ -6629,6 +6629,10 @@ const CONTRACTS = {
   "spec-readiness": {
     run: contractSpecReadiness,
     fixtures: [
+      // FAFF-356: the optional `(decides: <owner>)` Punt suffix is prose-only display
+      // metadata — it is NOT a contract field. A tagged punt and an untagged punt both
+      // emit `{ marker: "punt" }`, so the `conformant` case below already covers both;
+      // do NOT add a `decides`/`owner` field to this block or its schema.
       { name: "conformant", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "chosen" }, { marker: "punt" }] }, wantExit: 0 },
       { name: "missing-marker", in: { confidence: "high", provenance_present: true, decisions: [{ marker: "none" }] }, wantExit: 1 },
       { name: "bad-confidence", in: { confidence: "maybe", provenance_present: true, decisions: [] }, wantExit: 2 },

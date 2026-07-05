@@ -19,7 +19,12 @@ import { readFileSync } from "node:fs";
 // 5 provider-unreachable, explicitly-configured host (→ pass+skip) ·
 // 6 provider-unreachable, unconfigured localhost default (→ needs-human, FAFF-213) ·
 // 7 auth-failed (cloud creds / unset key env, → needs-human, FAFF-209) · 2 usage · 1 other.
-export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7 };
+export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8 };
+// FAFF-329: DEADLINE(8) — the Phase-2 total wall-clock budget (--deadline) was hit before any backend
+// produced findings. Distinct from UNREACHABLE(5) so a deadline-skip is observable, but the caller routes
+// it IDENTICALLY: pass + skip the second opinion, logged loudly (a bounded turn beats an unbounded stall;
+// the hard merge gate — AC + CI + Phase-1 pass — is untouched). A config fault (needs-human class) seen on
+// an earlier backend still DOMINATES (surfaced instead of 8) — the no-silent-weakening invariant.
 export const DEFAULT_NUM_PREDICT = 2000;
 
 // PURE (FAFF-213): map an unreachable result to its exit code by host provenance. An explicitly-
@@ -284,20 +289,27 @@ async function streamOnce({ host, model, system, user, numPredict, streamFn, tim
 // documented exit, never the unmapped EXIT.OTHER.
 async function runReviewOllama({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT,
-  getFn = realGet, streamFn = realStream, timeoutMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs,
 }) {
   const pf = await preflight({ host, model, getFn });
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
   if (!pf.served) return { status: "model-not-served", names: pf.names };
 
+  // FAFF-329: when a total wall-clock hardDeadlineMs is set, re-clamp EVERY stream attempt (incl. the
+  // truncation retry) to the budget still remaining, so a single backend's retry composition can never
+  // overrun the total deadline. Unset ⇒ the per-attempt timeoutMs unchanged (byte-for-byte today).
+  const perAttempt = () => (typeof hardDeadlineMs === "number"
+    ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
+    : timeoutMs);
   const streamCall = async () => {
-    let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs });
+    let out = await streamOnce({ host, model, system, user, numPredict, streamFn, timeoutMs: perAttempt() });
     if (out.truncated) {
-      out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs });
+      out = await streamOnce({ host, model, system, user, numPredict: numPredict * 2, streamFn, timeoutMs: perAttempt() });
     }
     return out;
   };
-  const deadlineMs = typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined;
+  const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
+    : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
   const r = await streamWithTransportRetry(streamCall, { deadlineMs });
   if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
   return { status: "ok", content: r.out.content, truncated: r.out.truncated };
@@ -331,22 +343,27 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
 // an exhausted transport fault surfaces status "transport-failed" → a documented exit, never EXIT.OTHER.
 async function runReviewOpenAi({
   host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, reasoningOff = false, apiKey,
-  getFn = realGet, streamFn = realStream, timeoutMs,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs,
 }) {
   const pf = await preflightOpenAi({ host, model, apiKey, getFn });
   if (pf.authFailed) return { status: "auth-failed", note: pf.error };
   if (pf.unreachable) return { status: "unreachable", note: pf.error };
   if (!pf.served) return { status: "model-not-served", names: pf.names };
 
+  // FAFF-329: re-clamp every attempt to the remaining total budget when hardDeadlineMs is set (see runReviewOllama).
+  const perAttempt = () => (typeof hardDeadlineMs === "number"
+    ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
+    : timeoutMs);
   try {
     const streamCall = async () => {
-      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, apiKey, streamFn, timeoutMs });
+      let out = await streamOnceOpenAi({ host, model, system, user, numPredict, reasoningOff, apiKey, streamFn, timeoutMs: perAttempt() });
       if (out.truncated) {
-        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, apiKey, streamFn, timeoutMs });
+        out = await streamOnceOpenAi({ host, model, system, user, numPredict: numPredict * 2, reasoningOff, apiKey, streamFn, timeoutMs: perAttempt() });
       }
       return out;
     };
-    const deadlineMs = typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined;
+    const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
+      : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
     const r = await streamWithTransportRetry(streamCall, { deadlineMs });
     if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
     return { status: "ok", content: r.out.content, truncated: r.out.truncated };
@@ -380,6 +397,7 @@ export function parseArgs(argv) {
     else if (k === "--context") a.context.push(argv[++i]);
     else if (k === "--num-predict") a.numPredict = Number(argv[++i]);
     else if (k === "--timeout") a.timeoutMs = Number(argv[++i]) * 1000;
+    else if (k === "--deadline") a.totalDeadlineMs = Number(argv[++i]) * 1000;   // FAFF-329: TOTAL wall-clock ceiling across ALL attempts + fallback backends (distinct from --timeout, which bounds ONE stream attempt)
     else if (k === "--host-source") a.hostSource = argv[++i];
     else if (k === "--provider") a.provider = argv[++i];
     else if (k === "--api-key-env") a.apiKeyEnv = argv[++i];
@@ -428,9 +446,22 @@ export function chainTerminalExit(failureClasses = []) {
 export async function runReviewChain(chain = [], shared = {}) {
   const runReviewFn = shared.runReviewFn || runReview;
   const log = shared.log || ((m) => process.stderr.write(m + "\n"));
+  const now = shared.nowFn || (() => Date.now());   // FAFF-329: injectable clock for deterministic deadline tests
+  const totalDeadlineMs = shared.totalDeadlineMs;   // FAFF-329: total wall-clock budget across ALL backends (undefined ⇒ no bound, byte-for-byte today)
+  const start = now();
+  const hardDeadlineMs = typeof totalDeadlineMs === "number" ? start + totalDeadlineMs : undefined;
   const n = chain.length;
   const failureClasses = [];
   for (let i = 0; i < n; i++) {
+    // FAFF-329 deadline gate — checked at the TOP of the loop so no NEW backend starts past the budget.
+    // On a hit: a needs-human-class fault seen on an earlier backend DOMINATES (no-silent-weakening); else
+    // DEADLINE(8) → pass+skip. This is the prevention half — it caps the ~6×timeout×backends blowup.
+    if (typeof totalDeadlineMs === "number" && now() - start >= totalDeadlineMs) {
+      const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
+      const exit = nh != null ? nh : EXIT.DEADLINE;
+      log(`deadline: Phase-2 total wall-clock budget ${Math.round(totalDeadlineMs / 1000)}s exceeded after ${i} backend(s) (exit ${exit})`);
+      return { exit, deadlineExceeded: true, failureClasses };
+    }
     const b = chain[i] || {};
     const tag = `${b.provider || "ollama"}/${b.model || "?"}`;
     const verb = i === n - 1 ? "exhausted" : "advancing";
@@ -448,12 +479,41 @@ export async function runReviewChain(chain = [], shared = {}) {
       log(`${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
       continue;
     }
-    const result = await runReviewFn({
+    // FAFF-329: bound the WHOLE backend call (incl. a slow-trickle stream whose per-chunk activity
+    // resets the socket's idle timeout, and incl. the internal transport-retry backoff) to the budget
+    // still remaining — a real timer the perAttempt idle-clamp alone cannot enforce. On a deadline win
+    // the in-flight backend is ABANDONED (its socket carries the perAttempt idle timeout, so it self-
+    // closes shortly; the timer is unref'd so it never keeps the process alive), and we route to
+    // EXIT.DEADLINE — never a misrouted transport-failed/5 — with a needs-human-class fault seen on an
+    // earlier backend still dominating (no-silent-weakening).
+    const callReview = () => runReviewFn({
       host: b.host, model: b.model, provider: b.provider,
       system: shared.system, user: shared.user, numPredict: shared.numPredict,
       reasoningOff: b.reasoningOff, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
+      hardDeadlineMs,   // absolute total-budget deadline; the backend also clamps each attempt's idle timeout to what remains
       getFn: shared.getFn, streamFn: shared.streamFn,
     });
+    let result;
+    if (typeof totalDeadlineMs === "number") {
+      const remaining = totalDeadlineMs - (now() - start);
+      if (remaining <= 0) {   // belt — the top-of-loop gate should already have returned
+        const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+      }
+      const SENTINEL = { __deadline: true };
+      let timer;
+      const deadlineP = new Promise((res) => { timer = setTimeout(() => res(SENTINEL), remaining); if (timer && timer.unref) timer.unref(); });
+      result = await Promise.race([callReview(), deadlineP]);
+      clearTimeout(timer);
+      if (result === SENTINEL) {
+        const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
+        const exit = nh != null ? nh : EXIT.DEADLINE;
+        log(`deadline: Phase-2 backend ${tag} exceeded the ${Math.round(totalDeadlineMs / 1000)}s budget mid-call (exit ${exit})`);
+        return { exit, deadlineExceeded: true, failureClasses };
+      }
+    } else {
+      result = await callReview();
+    }
     const exit = mapResultExit(result, b.hostSource);
     if (exit === EXIT.OK) {
       if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);
@@ -471,7 +531,7 @@ export async function runReviewChain(chain = [], shared = {}) {
 export async function main(argv, { runReviewFn = runReview } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
     return EXIT.USAGE;
   }
 
@@ -524,14 +584,17 @@ export async function main(argv, { runReviewFn = runReview } = {}) {
   const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
   const user = assembleUserMessage({ contextFiles, diff });
 
-  const res = await runReviewChain(chain, { system, user, numPredict: a.numPredict, runReviewFn });
+  const res = await runReviewChain(chain, { system, user, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs });
 
   if (res.exit === EXIT.OK) {
     if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
     process.stdout.write((res.content || "").trim() + "\n");
     return EXIT.OK;
   }
-  if (chain.length > 1) {
+  // FAFF-329: a deadline-skip is surfaced loudly (never silent) — its own line so the run log + /faff-wtf see it.
+  if (res.exit === EXIT.DEADLINE) {
+    process.stderr.write(`adversarial review: phase2 skipped-deadline (total wall-clock budget hit before findings); exit ${EXIT.DEADLINE} → pass+skip\n`);
+  } else if (chain.length > 1) {
     const provenance = res.exit === EXIT.UNREACHABLE ? "pass+skip"
       : res.exit === EXIT.DEFAULT_HOST_UNREACHABLE ? "needs-human (default host)" : "needs-human";
     process.stderr.write(`adversarial chain exhausted (${chain.length} backends, none produced findings); terminal exit ${res.exit} → ${provenance}\n`);

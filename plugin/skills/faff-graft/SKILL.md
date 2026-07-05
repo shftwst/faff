@@ -308,6 +308,19 @@ Forward both as prose context in the Skill-tool invocation (alongside the diff/s
 
 **Heartbeat ticks (FAFF-234 — autonomous only).** Review is the longest quiet sub-step — an adversarial second-opinion pass calls a *different, slower* LLM and can run minutes writing nothing to the run ledger, the exact case that ages a live build out of the staleness window. Tick **`faff heartbeat "$run_dir"`** (the single sanctioned write path; soft no-op outside a run) at **entry** to review, **between** the adversarial Phase-1 and Phase-2 calls, and **after** review returns its verdict; for an L4 holdout eval, tick **before and after** the eval. Pass `$run_dir` (forwarded in the `BuildDispatch`) explicitly — never rely on "latest run". Any one tick resets the age to ~0, so the maximum heartbeat age is bounded by the longest *single* blocking call (one adversarial phase), which is well under 900s.
 
+**Resume from a review-progress checkpoint (FAFF-329 — autonomous only).** The adversarial Phase-2 second-opinion is the slow sub-step that can end a build subagent's turn mid-flight; when the orchestrator re-dispatches the issue, graft must **resume** the review, not repeat it (a fresh re-run re-does Phase-1 and a completed Phase-2 — the double-spend). On entry to this step, read the checkpoint and compute the current diff hash:
+
+```bash
+prog=$("$faff" review-progress read "$run_dir" <ISSUE> 2>/dev/null)   # exit 3 ⇒ no checkpoint yet
+cur_hash=$(git diff main...HEAD | sha256sum | cut -d' ' -f1)
+```
+
+- **No checkpoint** (read exit 3), **or a checkpoint lacking a `phase1.verdict=pass`** (a malformed / partial record — the CLI refuses to write a Phase-2 status without a prior Phase-1 pass, so this only arises from corruption) → run the review fresh (invoke the slot as below). Treat "no usable Phase-1 verdict" exactly as "no checkpoint" — never dereference an absent `phase1`.
+- **`phase1.verdict=pass` AND `phase1.diff_hash == cur_hash`** (the **diff-identity guard**): the hard Phase-1 verdict still holds for THIS diff → **skip Phase-1**. If `phase2.status=complete`, skip the review slot entirely and go straight to finding-disposition + the merge gate; if `phase2.status ∈ {pending,in_flight}`, invoke the review slot with a **resume hint** — skip Phase-1, run only the bounded Phase-2.
+- **`phase1.verdict=pass` AND `phase1.diff_hash != cur_hash`**: the diff moved since Phase-1 passed → **discard the checkpoint** and run Phase-1 fresh. A checkpoint is a **hint, never authoritative** over the hard review input — it never skips Phase-1 for a diff it wasn't computed against (git/PR/worktree truth wins on any disagreement, the existing FAFF-201 reconciliation rule).
+
+Forward `$run_dir` + `<ISSUE>` to the review slot so it writes its own phase checkpoints (`--phase1-pass --diff-hash $cur_hash` after a Phase-1 pass; `--phase2 in_flight` before the slow call; `--phase2 complete|skipped_deadline|skipped_unreachable` on resolution) — the artifact a later re-dispatch resumes from. **Interactive graft skips this wholesale** (a human absorbs a stall; the checkpoint mechanism is L3/L4-only).
+
 The review returns one of three signals. The verdict vocabulary, their semantics, and the revert test below are the **fixed review-verdict contract** in the gateway. **faff-graft is the consumer (FAFF-109):** it locates the reviewer's `faff-contract:review-verdict` block, `JSON.parse`s it, and pipes it to `faff contract review-verdict` — the sole source of contract data — then branches on the script's verdict (a malformed/unknown signal coerces to `needs-human`, never `pass`). A reviewer that emits no block falls back to reading its native `signal:` / `## Findings` prose into the same extraction JSON. faff-graft branches on the verdict; it does not redefine it:
 
 | Signal | Meaning | Autonomous action |

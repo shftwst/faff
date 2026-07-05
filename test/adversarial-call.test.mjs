@@ -734,3 +734,82 @@ test("FAFF-232 main(): empty --backends-json → USAGE (2)", async () => {
 test("FAFF-232 parseArgs: --backends-json is collected", () => {
   assert.equal(parseArgs(["--backends-json", "/tmp/b.json"]).backendsJson, "/tmp/b.json");
 });
+
+// ── FAFF-329: total wall-clock --deadline on the Phase-2 chain ──
+
+test("FAFF-329 EXIT.DEADLINE === 8, distinct from UNREACHABLE(5)", () => {
+  assert.equal(EXIT.DEADLINE, 8);
+  assert.notEqual(EXIT.DEADLINE, EXIT.UNREACHABLE);
+});
+
+test("FAFF-329 parseArgs: --deadline <s> → totalDeadlineMs (seconds → ms), distinct from --timeout", () => {
+  const a = parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d", "--timeout", "120", "--deadline", "480"]);
+  assert.equal(a.totalDeadlineMs, 480000);
+  assert.equal(a.timeoutMs, 120000);
+});
+
+test("FAFF-329 runReviewChain: total deadline hit → exit 8 (pass+skip), no new backend started past budget", async () => {
+  let t = 0; const nowFn = () => t;
+  // each backend advances the clock 1000ms and does not produce findings
+  const runReviewFn = async () => { t += 1000; return { status: "unreachable" }; };
+  const chain = Array.from({ length: 5 }, (_, i) => ({ provider: "nvidia", model: "m" + i, host: "h", hostSource: "config" }));
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 2000, log: () => {} });
+  assert.equal(r.exit, EXIT.DEADLINE, "deadline → exit 8");
+  assert.equal(r.deadlineExceeded, true);
+});
+
+test("FAFF-329 runReviewChain: no --deadline ⇒ unchanged (chain exhausts to UNREACHABLE), byte-for-byte", async () => {
+  let t = 0; const nowFn = () => t;
+  const runReviewFn = async () => { t += 1000; return { status: "unreachable" }; };
+  const chain = [{ model: "m", host: "h", hostSource: "config" }, { model: "n", host: "h", hostSource: "config" }];
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, nowFn, log: () => {} });
+  assert.equal(r.exit, EXIT.UNREACHABLE, "no deadline → exhaust to 5");
+  assert.ok(!r.deadlineExceeded);
+});
+
+test("FAFF-329 runReviewChain: a needs-human fault before the deadline DOMINATES exit 8 (no-silent-weakening)", async () => {
+  let t = 0, call = 0; const nowFn = () => t;
+  const runReviewFn = async () => { t += 1500; call++; return call === 1 ? { status: "auth-failed" } : { status: "unreachable" }; };
+  const chain = Array.from({ length: 5 }, (_, i) => ({ model: "m" + i, host: "h", hostSource: "config" }));
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 2000, log: () => {} });
+  assert.equal(r.exit, EXIT.AUTH, "auth fault surfaces (needs-human), not masked by the deadline");
+});
+
+test("FAFF-329 runReviewChain: a healthy backend within budget still wins (exit 0)", async () => {
+  let t = 0; const nowFn = () => t;
+  const runReviewFn = async () => { t += 100; return { status: "ok", content: "## findings" }; };
+  const chain = [{ model: "m", host: "h", hostSource: "config" }];
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 2000, log: () => {} });
+  assert.equal(r.exit, EXIT.OK);
+});
+
+test("FAFF-329 runReviewChain: the absolute hardDeadlineMs is threaded to each backend (per-attempt clamp)", async () => {
+  let seen; let t = 0; const nowFn = () => t;
+  const runReviewFn = async (opts) => { seen = opts.hardDeadlineMs; return { status: "ok", content: "x" }; };
+  await runReviewChain([{ model: "m", host: "h", hostSource: "config" }], { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 3000, log: () => {} });
+  assert.equal(seen, 3000, "hardDeadlineMs = start(0) + totalDeadlineMs(3000)");
+});
+
+test("FAFF-329 runReviewChain: a slow-trickle backend that outruns the budget MID-CALL is aborted → exit 8 (real timer, not idle-clamp)", async () => {
+  // A backend whose promise resolves only AFTER the deadline (models a stream whose per-chunk activity
+  // keeps the socket's idle timeout from ever firing). The real total-deadline race must abort it → 8.
+  const runReviewFn = () => new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500));
+  const chain = [{ model: "m", host: "h", hostSource: "config" }];
+  const t0 = Date.now();
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 120, log: () => {} });
+  assert.equal(r.exit, EXIT.DEADLINE, "the mid-call deadline aborts the slow backend → exit 8, not a late OK");
+  assert.equal(r.deadlineExceeded, true);
+  assert.ok(Date.now() - t0 < 400, "returned at ~the deadline, not after the backend's 500ms");
+});
+
+test("FAFF-329 runReviewChain: a needs-human fault before a mid-call deadline still dominates exit 8", async () => {
+  let call = 0;
+  const runReviewFn = ({ model }) => {
+    call++;
+    if (call === 1) return Promise.resolve({ status: "auth-failed" });      // fast config fault on backend 1
+    return new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500)); // slow backend 2
+  };
+  const chain = [{ model: "a", host: "h", hostSource: "config" }, { model: "b", host: "h", hostSource: "config" }];
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 120, log: () => {} });
+  assert.equal(r.exit, EXIT.AUTH, "the earlier auth fault surfaces (needs-human), not the deadline");
+});

@@ -37,7 +37,7 @@ Strictly one issue at a time, no worktree concurrency:
 
 Because only one build runs at a time and each subagent merges (or parks) before the next starts, every later build sees `main` exactly as the prior build left it — there is no merge race to manage and no rebase step needed. The one case to handle: a dependent whose in-group blocker terminated **unmerged** is parked, not built (obligation 2) — it can't build on a `main` that's missing its dependency. Throughput is the cost; safety and simplicity are the payoff.
 
-**Resume-from-ledger.** An `admitted` issue with no `outcomes` entry (compaction mid-build) is re-dispatched as a fresh build subagent; graft re-attaches idempotently to its existing worktree/branch/PR. Nothing build-specific is ever held in orchestrator context, so resumability is unchanged.
+**Resume-from-ledger.** An `admitted` issue with no `outcomes` entry (compaction mid-build, or a stall mid-review) is re-dispatched as a fresh build subagent; graft re-attaches idempotently to its existing worktree/branch/PR. Nothing build-specific is ever held in orchestrator context, so resumability is unchanged. **The re-attach is CHEAP (FAFF-329):** the re-dispatched graft reads the per-issue `review-progress` checkpoint and resumes the review at the right phase — skipping a completed Phase-1 (diff-identity-guarded) and a completed Phase-2 — instead of re-running the slow adversarial second-opinion from scratch. All review compute still runs **inside the (re-dispatched) subagent** — the orchestrator never invokes `review-call.mjs` nor runs a review phase itself (the FAFF-201 isolation the checkpoint preserves, not breaks).
 
 ## Rules
 

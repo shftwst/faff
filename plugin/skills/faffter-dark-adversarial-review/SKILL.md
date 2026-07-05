@@ -113,7 +113,11 @@ faffter_dark:
     host: http://localhost:11434     # ollama/vllm: base host. openai-compatible: base URL incl. /v1
     api_key_env: NVIDIA_API_KEY      # env var NAME holding the API key (not the key itself)
     reasoning_off: false             # true → send chat_template_kwargs:{thinking:false} (reasoning models)
-    timeout: 120                     # seconds
+    timeout: 120                     # seconds — bounds ONE stream attempt
+    deadline: 480                    # FAFF-329: TOTAL wall-clock budget (seconds) across ALL attempts + fallback backends;
+                                     #   default 480 (8 min, under the 900s runcheck staleness window) — a human-tunable
+                                     #   turn-fit budget so the slow Phase-2 fits one subagent turn (too tight ⇒ more
+                                     #   skipped_deadline, too loose ⇒ the stall it prevents returns)
     fallbacks: '[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]'   # FAFF-232, optional
 ```
 
@@ -136,10 +140,10 @@ faffter_dark:
 
 The key principle is **independence from the primary model**. If Claude wrote the code and ran the primary review, don't configure Claude here. Use a structurally different model to maximise the chance of catching correlated blind spots.
 
-**Backend call — the bundled `review-call.mjs` helper (do not hand-roll the API call).** The robust call is a tool, not prose (FAFF-183): `plugin/skills/faffter-dark-adversarial-review/review-call.mjs` does model **preflight** (ollama `/api/tags` or OpenAI-compatible `/v1/models`), think-suppression (ollama `think:false`; OpenAI-compatible `--reasoning-off`), **streaming** (NDJSON or SSE — so a long response doesn't drop the connection), and a **token budget** with one truncation retry. Resolve `provider`/`host`/`model`/`timeout`/`api_key_env`/`reasoning_off` from `faffter_dark.adversarial` via `faff config get`, then invoke:
+**Backend call — the bundled `review-call.mjs` helper (do not hand-roll the API call).** The robust call is a tool, not prose (FAFF-183): `plugin/skills/faffter-dark-adversarial-review/review-call.mjs` does model **preflight** (ollama `/api/tags` or OpenAI-compatible `/v1/models`), think-suppression (ollama `think:false`; OpenAI-compatible `--reasoning-off`), **streaming** (NDJSON or SSE — so a long response doesn't drop the connection), and a **token budget** with one truncation retry. Resolve `provider`/`host`/`model`/`timeout`/`api_key_env`/`reasoning_off` from `faffter_dark.adversarial` via `faff config get`, plus the FAFF-329 total-budget **`deadline`** (`faff config get faffter_dark.adversarial.deadline -d 480`), then invoke:
 
 ```bash
-node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
+node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" --deadline "$deadline" \
   --host-source "$host_source" \
   --provider "$provider" --api-key-env "$api_key_env" ${reasoning_off:+--reasoning-off} \
   --system <review-lens-file> \
@@ -153,6 +157,7 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
 - **`--system`** = the review lens above (the five categories), written to a file.
 - **`--context`** = the **gateway** (`plugin/skills/faff/SKILL.md`) **plus every file the diff touches** — so the reviewer can verify existence/structure claims instead of hallucinating "this heading doesn't exist" from a diff-only view. (FAFF-183: a model given only the diff produced confident false criticals; a *more* capable model was *more* wrong for exactly this reason.)
 - **`--diff`** = `git diff main...HEAD` written to a file.
+- **`--deadline`** (FAFF-329) = the total wall-clock budget in seconds (`faffter_dark.adversarial.deadline`, default `480`), distinct from `--timeout` (one attempt). The helper stops before starting a new backend past the budget and clamps every attempt to what remains, so the composed `~6×timeout×backends` blowup cannot end the subagent's turn mid-Phase-2. Deadline-exceeded → exit `8` (below). Omit only to run unbounded (the pre-FAFF-329 behaviour).
 - **`--host-source`** (FAFF-213) = the **provenance** of `$host`: never silently substitute the localhost default. Resolve it off the `faff config get` exit status — `faff config get faffter_dark.adversarial.host` **exits non-zero (3) when the key is unset**:
   - **Key resolves** (exit 0) → `$host_source=config`; pass `$host` as-is.
   - **Key unset** (non-zero exit) → `$host_source=default`; pass the documented `http://localhost:11434` so the probe can run and produce the distinct exit 6. Do **not** treat the resulting outage as `pass+skip` — an absent provider block must not invisibly disable the review (the same principle as the model-not-served exit-4 case). Keying off "non-zero exit ⇒ unconfigured" (not a specific code) keeps this robust if the CLI's unset-key code changes.
@@ -167,8 +172,9 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
 | `5` / timeout | provider **unreachable**, `--host-source config` — an **explicitly-configured** host down (incl. an explicit `localhost`), **or** a persistent mid-stream **transport failure** after the bounded retry (FAFF-227; incl. a persistent **HTTP 429 rate-limit** — FAFF-228) on a configured host | `pass` + a finding noting the skip — don't block the pipeline on infra; explicit config is the human's call. | `pass` + a **LOUD** skip finding + block field `adversarial_outcome:"chain-outage-skipped"` — never an undifferentiated pass. The morning brief, not a park, surfaces the gap (an outage is no code defect). |
 | `6` | provider **unreachable**, `--host-source default` — the localhost fallback because `faffter_dark.adversarial.host` was **unset**, **or** a persistent mid-stream **transport failure** (FAFF-227; incl. a persistent **HTTP 429 rate-limit** — FAFF-228) on the default host | **`needs-human`** — adversarial review configured but no provider set. **Never** silent `pass` — an absent provider block must not invisibly disable the review (FAFF-213, same class as exit 4). | same |
 | `7` | **auth failed** (cloud `401`/`403`, or the `api_key_env` var is unset) | **`needs-human`** — don't retry with broken credentials. | same |
+| `8` | **deadline exceeded** (FAFF-329) — the total `--deadline` wall-clock budget was hit before any backend produced findings (a *slow-but-healthy* Phase-2, not a config fault) | `pass` + skip the second opinion, **logged loudly** (`phase2: skipped-deadline`) so a mis-tuned budget is visible, never silent. | same — `pass` + skip, logged loudly. **Distinct from the exit-5 outage annotation** (a deadline is a slow-but-healthy backend, not an availability outage) — no `chain-outage-skipped` field. A needs-human-class fault seen on an earlier backend still dominates (the helper returns that code, not `8`). |
 
-A **transient transport fault during streaming** (HTTP 5xx, a dropped socket — `ECONNRESET`/`ETIMEDOUT`/`EPIPE`/"socket hang up", a stream timeout, or an **HTTP 429 rate-limit** — FAFF-228) is **retried** a bounded number of times with exponential backoff before it counts as a failure; only a **persistent** one lands on exit `5`/`6` above (FAFF-227/228). `--timeout` bounds **each individual stream attempt and the inter-retry sleeps** — *not* the total wall-clock: worst-case total wall-clock is **~6× `--timeout`** (3 attempts × 2 `streamOnce`) under stream + truncation + transport-retry composition (FAFF-228 doc correction). **`OTHER` (exit `1`) is reserved for genuine programmer error — no transport/infra condition (now including a rate-limit) exits `1`**, so every exit the helper returns is covered by this table.
+A **transient transport fault during streaming** (HTTP 5xx, a dropped socket — `ECONNRESET`/`ETIMEDOUT`/`EPIPE`/"socket hang up", a stream timeout, or an **HTTP 429 rate-limit** — FAFF-228) is **retried** a bounded number of times with exponential backoff before it counts as a failure; only a **persistent** one lands on exit `5`/`6` above (FAFF-227/228). `--timeout` bounds **each individual stream attempt and the inter-retry sleeps** — *not* the total wall-clock: worst-case per-backend wall-clock is **~6× `--timeout`** (3 attempts × 2 `streamOnce`) under stream + truncation + transport-retry composition (FAFF-228 doc correction), and across a fallback chain that composes further. **`--deadline` (FAFF-329) is the cap on that composed total** — the helper never starts a new backend past the budget and re-clamps every attempt to what remains, so the whole chain fits one subagent turn (exit `8` when it binds). **`OTHER` (exit `1`) is reserved for genuine programmer error — no transport/infra condition (now including a rate-limit or a deadline) exits `1`**, so every exit the helper returns is covered by this table.
 
 Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides).
 
@@ -188,7 +194,18 @@ On an **autonomous** run where the exit is `5` (every backend in the chain unrea
 
 On an **interactive** exit 5 the behaviour is unchanged: `pass` + a plain finding noting the skip, **no** `adversarial_outcome` field, no loud header — a watched human may reasonably proceed on a dead chain.
 
-This annotation path and the **Autonomous-run escalation** below are **mutually exclusive**: escalation requires Phase-2 findings (exit 0), the outage annotation requires no findings (exit 5) — a single review can never hit both.
+This annotation path and the **Autonomous-run escalation** below are **mutually exclusive**: escalation requires Phase-2 findings (exit 0), the outage annotation requires no findings (exit 5) — a single review can never hit both. (A deadline-skip — exit 8 — is a third, distinct case: a slow-but-healthy backend, `pass` + skip with no outage annotation.)
+
+### Review-progress checkpoint (FAFF-329 — autonomous resume)
+
+When faff-graft forwards `$run_dir` + `<ISSUE>` (autonomous L3/L4 only — interactive skips this), write the review-progress checkpoint at the phase boundaries so a re-dispatched build subagent **resumes** instead of repeating the slow Phase-2 (graft Step 9 → **Resume from a review-progress checkpoint**). All writes go through the deterministic CLI — never a hand-rolled JSON edit:
+
+- **Honour a resume hint.** If graft invoked with "skip Phase-1, run only Phase-2" (its diff-identity guard confirmed the checkpointed `phase1.verdict=pass` still matches the current diff), **do not re-run Phase-1** — resume at Phase-2. Absent a hint, run Phase-1 normally.
+- **After a Phase-1 `pass`:** `faff review-progress write "$run_dir" <ISSUE> --phase1-pass --diff-hash <cur_hash>` (a `fail`/`needs-human` is already terminal — return, write nothing, no Phase-2).
+- **Before the `review-call.mjs` call:** `faff review-progress write "$run_dir" <ISSUE> --phase2 in_flight` — this is the stall window the checkpoint exists to survive.
+- **On the call's resolution, map the exit → the phase2 status:** exit `0` → `--phase2 complete --findings <path>`; exit `8` → `--phase2 skipped_deadline`; a `5`/`6`-class unreachable pass+skip → `--phase2 skipped_unreachable`. (A needs-human exit returns terminal without a `complete` write.)
+
+The checkpoint is a **hint** — graft reconciles it against git/PR/worktree truth on any disagreement (the diff-identity guard discards a stale `pass`), so it can only ever *save* repeated work, never skip the hard review for the wrong diff.
 
 ## Output to faff-graft
 

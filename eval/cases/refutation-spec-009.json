@@ -1,0 +1,14 @@
+{
+  "id": "refutation-spec-009",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: the merge floor should only pass when the change was validated against its spec by a code-blind judge. WHAT: a `code_blind` attestation on the holdout verdict. HOW: the evaluator judges the running feature and, at the end of its own run, sets `code_blind: true` on the verdict it emits; the merge gate reads that flag and, when true, treats the verdict as a trustworthy code-blind judgement. DONE:\n## Scenarios\n- an evaluator emits a verdict with `code_blind: true`; the merge gate accepts it as code-blind\n- a verdict with `code_blind: false` is rejected"
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "closed_set": [
+      "infosec"
+    ]
+  },
+  "_comment": "FAFF-SPECIFIC CATCH (the self-attestation / oblivious-actor lesson, FAFF-276 shape). The judged party sets its OWN `code_blind` flag: the trust claim rests on the very actor it is meant to bound. The contract can reject a declared `code_blind:false` but cannot detect a producer that read the codebase and set `true` anyway — the attestation is unenforced and circular. Since this verdict gates a merge to main, the whole L4 trust claim collapses to caller honesty. The correct design derives blindness from what the SPAWNER provably withheld (no repo mount / spec+endpoint only), or asserts it structurally (a refusing preflight). A GENERIC checklist sees 'an attestation field, boolean-gated, fail-closed on false' and approves; a faff-threat-primed infosec lens knows self-attested trust flags are circular and raises a critical → back to prep. Not architectural/QA-primary."
+}

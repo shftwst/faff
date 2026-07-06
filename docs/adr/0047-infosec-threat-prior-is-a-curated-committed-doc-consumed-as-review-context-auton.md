@@ -1,4 +1,4 @@
-# ADR 0046 — Infosec threat-prior is a curated committed doc consumed as review context; autonomous mining refuted
+# ADR 0047 — Infosec threat-prior is a curated committed doc consumed as review context; autonomous mining refuted
 
 - **Status:** Accepted
 - **Date:** 2026-07-05

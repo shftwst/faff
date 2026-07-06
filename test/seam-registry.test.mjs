@@ -21,10 +21,10 @@ test("grader loads — the on-load registry-consistency assertion passes (no thr
   assert.ok(assertRegistryConsistent(registry));
 });
 
-test("registry keys are EXACTLY the 27 grader KINDS (total equality)", () => {
+test("registry keys are EXACTLY the 28 grader KINDS (total equality)", () => {
   const rk = Object.keys(registry.kinds);
-  assert.equal(rk.length, 27);
-  assert.equal(KINDS.length, 27);
+  assert.equal(rk.length, 28);
+  assert.equal(KINDS.length, 28);
   assert.deepEqual(new Set(rk), new Set(KINDS));
 });
 

@@ -641,13 +641,14 @@ test("all eval/cases load and validate", () => {
   // FAFF-240: +2 roadmap (the faff-map roadmap-synthesis rubric-coverage surface — chain-id + gate-fireability).
   // FAFF-286: +2 adr-gloss (the ADR-body writer rubric-coverage surface; env-compose is declared-deterministic, no case).
   // FAFF-283: +6 refutation-spec (4 planted-lens + 2 clean/near-miss) + 5 refutation-code (3 planted + 2 clean/near-miss).
-  assert.equal(cases.length, 66);
+  // FAFF-346: +2 prep-architecture-trigger (the prep-time new-runnable-surface fire/skip seam — one per verdict).
+  assert.equal(cases.length, 68);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

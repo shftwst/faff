@@ -1,0 +1,10 @@
+{ "id": "prep-architecture-trigger-002", "kind": "prep-architecture-trigger",
+  "fixture": { "version": 1,
+    "issue": {
+      "id": "APP-42",
+      "title": "Add a rate-limit header to the existing API's error responses",
+      "description": "When the api rejects a request with 429, include Retry-After and X-RateLimit-Remaining headers. The limiter middleware already exists; this only changes the response shape." },
+    "explore_findings": "The repo is an Express service with a docker-compose file (api + postgres + redis), CI, and an architecture overview in docs/. The rate-limiter middleware exists at src/middleware/rate-limit.js with tests; the 429 response is written in its error branch. The change fits inside that one module and its test file." },
+  "question": "Should prep's conditional architecture step fire on this issue — fire or skip?",
+  "oracle": { "closed_set": ["skip"] },
+  "_comment": "The canonical skip case: brownfield work on an established system — the issue mentions the API's architecture ambiently, but introduces no new runnable surface and inherits the existing architecture, so the precision-biased trigger must NOT fire (prep proceeds byte-for-byte as today)." }

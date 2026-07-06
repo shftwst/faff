@@ -1,7 +1,7 @@
 ---
 name: faff-prep
 description: "Turn a vague ticket into something you can actually build — explores the codebase, writes a spec, attaches it to the issue. Trigger for: 'prep ISSUE-XX' / 'prep this' / 'spec this out' / 'what does this ticket need?'."
-judgement_seam: reconciliation
+judgement_seam: reconciliation, prep-architecture-trigger
 ---
 
 # Faff — Prep
@@ -150,7 +150,17 @@ What prep still owns around the producer's output:
 - **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it. The narrative `HHMMSS-prep-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/prep.md` resume artifact is hard floor and written regardless.
 - **The confidence gate** (`high` → promote; `medium` → attach + retain; `low` → park), applied to whatever rating the producer returns.
 
-**Refresh exemption.** On the stale-refresh path (Path 1 in autonomous), prep refreshes an already-vetted spec itself rather than re-invoking the producer — a scoped, annotated change, not a whole-cloth redraft — so the producer's self-review does not re-fire. If a refresh would require a whole-cloth redraft, prep re-invokes the producer (which self-reviews) instead.
+**Refresh exemption.** On the stale-refresh path (Path 1 in autonomous), prep refreshes an already-vetted spec itself rather than re-invoking the producer — a scoped, annotated change, not a whole-cloth redraft — so the producer's self-review does not re-fire. If a refresh would require a whole-cloth redraft, prep re-invokes the producer (which self-reviews) instead — and because a redraft is fresh spec production, the conditional **Architecture proposal step** (below) runs first, exactly as on the fresh-spec paths (the superseded spec's own proposal block is what is being redrafted, so it does not count as the trigger's existing sibling proposal).
+
+## Architecture proposal step (shared subroutine — conditional)
+
+Both spec-producing flows invoke this subroutine at the point named in their sections: interactive **Scenario A**, between Step 1 (explore) and Step 2 (spec dispatch); autonomous **Path 2 (fresh-spec)**, immediately before its spec-production step. It asks: *does this work need an architecture decided at all?* — and when it does, produces the proposal the spec will carry to every downstream consumer (the spec-review architectural lens and the holdout env step both read it **from the spec**, never out-of-band).
+
+1. **Trigger test (prose judgement, precision-biased).** Fire **only** when the issue + explore findings show **new-runnable-surface work** — a new runnable system, or a material change to the deployment shape (new service / app / deployable / datastore / runtime surface) — with **no established architecture to inherit**, **and** no current proposal already exists for the same system (a sibling spec in the same project already carrying a proposal block counts as existing — never dispatch a second proposer for one system). **Uncertain → do not fire**: skip, and prep proceeds exactly as today. This is deliberately the opposite bias from spec-review lens selection (recall-biased): a spurious proposal injects unfounded architecture prose into a spec, while a missed fire costs nothing beyond the status quo and is caught fail-closed by the downstream holdout gates.
+2. **On fire — dispatch the producer.** Resolve `faff config get slots.architecture`; validate a non-default occupant per the slot-conformance rule (gateway → **Slot conformance validation**); dispatch it with the issue/brief + explore findings, using the same transport as the adjacent spec-producer dispatch (gateway → **Sibling-skill invocation → Producer dispatch**, resolving `models.architecture` when prep is top-level; in-context when prep is itself a subagent — single-level nesting). The occupant reads the infra profile itself.
+3. **Fold the result.** Locate the returned `faff-contract:architecture-proposal` block and pipe it to `faff contract architecture-proposal`:
+   - **exit 0** → pass the block + the producer's `## ADR promotion intent` section to the spec producer as input, with the instruction that the spec body carries the block **verbatim** — it must survive onto the attached spec, because downstream readers depend on it.
+   - **exit non-zero / no block** → **degrade**: proceed to spec production with no proposal and surface the failure loudly in prep's output. **Never park solely for this** — the proposal is an enrichment of spec production, not a gate; the gates that depend on its consequences (env-handle, holdout-verdict) already fail closed. In interactive mode a contract exit 1 may be retried once at the operator's discretion; autonomous mode never retries — degrade and continue.
 
 ## Prep Gate
 
@@ -213,6 +223,8 @@ The explore subagent's dispatch resolves the per-lane model (FAFF-315): `faff co
 - Explore the codebase: what exists, current architecture, files/modules involved
 - Check blocked-by issues: are they done? What did they produce?
 - Surface ambiguities in the current issue description
+
+**Step 1b: Architecture proposal (conditional).** Run the shared **Architecture proposal step** (above) on the issue + explore findings. On most issues the trigger does not fire and prep proceeds exactly as today; when it fires, the validated proposal block becomes spec-producer input carried verbatim into the spec.
 
 **Step 2: Spec** (delegated to the `spec` slot)
 
@@ -365,6 +377,8 @@ If the refreshed spec fails marker validation → **park** with cause "spec cont
 ### Path 2 — Fresh-spec (no existing spec)
 
 Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous never parks merely because no `spec` override is configured; the default producer always exists.
+
+**Step 0 — architecture proposal (conditional).** Run the shared **Architecture proposal step** (above) on the issue + explore findings, immediately before spec production. The autonomous path is the one that feeds the holdout consumers, so this invocation is load-bearing — a fired trigger's validated proposal block becomes spec-producer input carried verbatim into the spec; a failed dispatch/fold degrades loud and never parks.
 
 **Step 1 — produce the spec.** Invoke the `spec` slot, passing the _spec contract_ in the instructions. The producer runs its own clean-context self-review and returns the spec body, the review findings + resolutions, and a `confidence:` self-rating at the end of its output. (The self-review and the self-rating downgrade rule live in the producer — see `faffter-noon-spec/SKILL.md` → _Self-review before returning_.)
 

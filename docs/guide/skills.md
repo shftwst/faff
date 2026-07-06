@@ -23,6 +23,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 | `faffter-noon-spec` | `spec` | The implicit default spec producer. Issue context in, a spec following the lite nlspec arc (WHY/WHAT/HOW/DONE) out. The light counterpart to `faffter-dark-nlspec`. |
 | `faffter-noon-concurrency-sequential` | `concurrency` | The implicit default build-pass executor. Runs `/faff-beep-boop`'s queue one `/faff-graft` at a time over the conflict-analysis partition — no worktree contention, no merge races. The safe counterpart to `faffter-dark-concurrency-parallel`. |
 | `faffter-noon-ship` | `ship` | The implicit default delivery producer. Merges a gate-cleared PR (`gh pr merge --squash`), with a no-op deploy-readiness check — emits its `faff-contract:delivery-outcome` block, which faff-graft parses onto shipped/not-ready/failed. Swap for a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery means more than a merge. |
+| `faffter-noon-architecture` | `architecture` | The implicit default architecture proposer. Reads the brief/spec + the acquired infra profile and proposes one best-fit, production-grade architecture, emitting a `faff-contract:architecture-proposal` block. Invoked by faff-prep's conditional architecture step on new-runnable-surface work only; the proposal lands verbatim in the attached spec, where the spec-review architectural lens and the holdout env step read it. |
 
 ### faffidavit-* (adaptors)
 

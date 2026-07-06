@@ -19,7 +19,7 @@ The contract (`faff contract env-handle`) validates the handle's **shape** + the
 
 ## Inputs
 
-- The architecture proposal for the work under build (read its `recommendation` + `chosen_architecture`).
+- The architecture proposal for the work under build (read its `recommendation` + `chosen_architecture`), extracted from the spec by the caller when prep landed one there. **Absent-proposal posture:** when no proposal is supplied (or the caller found only a malformed block), record an explicit "no architecture proposal" note (carried into the handle's `notes`), derive the service set from the infra profile (+ the repo-compose reconciliation, the existing path), and treat the recommendation gate as `build` — no buy/hybrid signal exists to honour. When the profile is **also** absent (`faff profile show` exit 3 — the double-absent case), the repo-compose reconciliation alone supplies the service set; if that too yields nothing, emit a non-ready handle (which never passes the gate) rather than guessing an environment.
 - The team's infra profile, read via `faff profile show --json` (the shipped read path). **Never** call `faff profile mine` — acquisition is the `profile` slot's job. On `faff profile show` exit 3 (no profile), record an explicit "no infra profile" assumption and derive services from the proposal alone.
 
 ## How it provisions

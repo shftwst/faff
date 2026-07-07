@@ -18,8 +18,10 @@ import { readFileSync } from "node:fs";
 // Exit codes the skill maps to a verdict: 0 ok · 4 model-not-served (→ needs-human) ·
 // 5 provider-unreachable, explicitly-configured host (→ pass+skip) ·
 // 6 provider-unreachable, unconfigured localhost default (→ needs-human, FAFF-213) ·
-// 7 auth-failed (cloud creds / unset key env, → needs-human, FAFF-209) · 2 usage · 1 other.
-export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8 };
+// 7 auth-failed (cloud creds / unset key env, → needs-human, FAFF-209) · 2 usage · 1 other ·
+// 9 mandatory-chain-outage — a MANDATORY (L4 --lights-out) review's chain exhausted with no opinion
+//   obtained (all UNREACHABLE/5 or DEADLINE/8), which fails CLOSED → needs-human (FAFF-398).
+export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9 };
 // FAFF-329: DEADLINE(8) — the Phase-2 total wall-clock budget (--deadline) was hit before any backend
 // produced findings. Distinct from UNREACHABLE(5) so a deadline-skip is observable, but the caller routes
 // it IDENTICALLY: pass + skip the second opinion, logged loudly (a bounded turn beats an unbounded stall;
@@ -403,6 +405,7 @@ export function parseArgs(argv) {
     else if (k === "--api-key-env") a.apiKeyEnv = argv[++i];
     else if (k === "--reasoning-off") a.reasoningOff = true;
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
+    else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
   }
   return a;
 }
@@ -432,6 +435,21 @@ export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFA
 export function chainTerminalExit(failureClasses = []) {
   for (const c of failureClasses) if (CHAIN_NEEDS_HUMAN.has(c)) return c;
   return EXIT.UNREACHABLE;
+}
+
+// PURE (FAFF-398): a MANDATORY review (an L4 lights-out run, where dialCoherence already REQUIRES the
+// adversarial occupant) whose chain exhausted with only a "no-opinion" class — UNREACHABLE(5, all
+// configured hosts down) or DEADLINE(8, budget hit before any findings) — must FAIL CLOSED: no second
+// opinion was obtained and no human is watching, so map to MANDATORY_OUTAGE(9), which the skill reads as
+// needs-human (park the PR). Config-fault classes (2/4/6/7) already map to needs-human and pass through
+// UNCHANGED — the remap must not upgrade or MASK a specific cause. Advisory reviews (mandatory=false,
+// L1–L3) are byte-for-byte unchanged. Applied ONCE at main()'s single caller boundary on runReviewChain's
+// terminal exit, so every exhaustion path (all three deadline returns + the chain-exhausted return) is
+// covered by construction — runReviewChain itself never learns "mandatory" (stays level-agnostic).
+export function mandatoryRemap(exit, mandatory) {
+  if (!mandatory) return exit;
+  if (exit === EXIT.UNREACHABLE || exit === EXIT.DEADLINE) return EXIT.MANDATORY_OUTAGE;
+  return exit;
 }
 
 // FAFF-232: run an ORDERED chain of backends, returning the first that produces findings. A backend that
@@ -591,15 +609,22 @@ export async function main(argv, { runReviewFn = runReview } = {}) {
     process.stdout.write((res.content || "").trim() + "\n");
     return EXIT.OK;
   }
-  // FAFF-329: a deadline-skip is surfaced loudly (never silent) — its own line so the run log + /faff-wtf see it.
-  if (res.exit === EXIT.DEADLINE) {
+  // FAFF-398: single-chokepoint mandatory remap. On a MANDATORY review (L4 --lights-out), an exhausted chain
+  // that yielded NO opinion (UNREACHABLE/5 or DEADLINE/8) fails CLOSED → MANDATORY_OUTAGE(9 → needs-human).
+  // Applied ONCE here on runReviewChain's terminal exit, so every exhaustion path (the three deadline returns
+  // + the chain-exhausted return) is covered by construction; config-fault classes (2/4/6/7) pass through.
+  const finalExit = mandatoryRemap(res.exit, a.mandatory);
+  if (finalExit === EXIT.MANDATORY_OUTAGE) {
+    process.stderr.write(`adversarial review: MANDATORY second opinion unavailable — chain exhausted, no opinion obtained (mandatory-chain-outage); exit ${EXIT.MANDATORY_OUTAGE} → needs-human\n`);
+  } else if (finalExit === EXIT.DEADLINE) {
+    // FAFF-329: a deadline-skip is surfaced loudly (never silent) — its own line so the run log + /faff-wtf see it.
     process.stderr.write(`adversarial review: phase2 skipped-deadline (total wall-clock budget hit before findings); exit ${EXIT.DEADLINE} → pass+skip\n`);
   } else if (chain.length > 1) {
     const provenance = res.exit === EXIT.UNREACHABLE ? "pass+skip"
       : res.exit === EXIT.DEFAULT_HOST_UNREACHABLE ? "needs-human (default host)" : "needs-human";
     process.stderr.write(`adversarial chain exhausted (${chain.length} backends, none produced findings); terminal exit ${res.exit} → ${provenance}\n`);
   }
-  return res.exit;
+  return finalExit;
 }
 
 if (process.argv[1] && process.argv[1].endsWith("review-call.mjs")) {

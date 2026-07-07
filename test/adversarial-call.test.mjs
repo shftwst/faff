@@ -11,7 +11,7 @@ import {
   buildOpenAiPayload, modelServedOpenAi, accumulateSse, isAuthError,
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
-  runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN,
+  runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -812,4 +812,91 @@ test("FAFF-329 runReviewChain: a needs-human fault before a mid-call deadline st
   const chain = [{ model: "a", host: "h", hostSource: "config" }, { model: "b", host: "h", hostSource: "config" }];
   const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 120, log: () => {} });
   assert.equal(r.exit, EXIT.AUTH, "the earlier auth fault surfaces (needs-human), not the deadline");
+});
+
+// ── FAFF-398: MANDATORY chain-outage — an L4 lights-out review fails a no-opinion exhaustion CLOSED ──
+// The fail-direction is a single pure remap (mandatoryRemap) applied ONCE at main()'s res.exit chokepoint;
+// runReviewChain stays level-agnostic (returns raw 5/8), so every exhaustion path is covered by construction.
+
+test("FAFF-398 parseArgs: --lights-out → mandatory=true; absent ⇒ falsy", () => {
+  assert.equal(parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d", "--lights-out"]).mandatory, true);
+  assert.ok(!parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d"]).mandatory);
+});
+
+test("FAFF-398 mandatoryRemap: no-opinion classes (UNREACHABLE/DEADLINE) → MANDATORY_OUTAGE only when mandatory", () => {
+  // mandatory: the two no-opinion classes fail closed
+  assert.equal(mandatoryRemap(EXIT.UNREACHABLE, true), EXIT.MANDATORY_OUTAGE);
+  assert.equal(mandatoryRemap(EXIT.DEADLINE, true), EXIT.MANDATORY_OUTAGE);
+  // mandatory: config-fault classes pass through UNCHANGED (never upgraded or masked)
+  for (const c of [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH]) {
+    assert.equal(mandatoryRemap(c, true), c, `config-fault ${c} must pass through unchanged`);
+  }
+  assert.equal(mandatoryRemap(EXIT.OK, true), EXIT.OK, "OK is never remapped");
+  // advisory: mandatory=false is a byte-for-byte no-op for every class
+  for (const c of [EXIT.OK, EXIT.USAGE, EXIT.NOT_SERVED, EXIT.UNREACHABLE, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.DEADLINE]) {
+    assert.equal(mandatoryRemap(c, false), c, `advisory must not touch ${c}`);
+  }
+});
+
+test("FAFF-398 runReviewChain stays level-agnostic: returns raw UNREACHABLE(5) even if a mandatory key is passed", async () => {
+  const chain = [{ model: "m1", host: "http://a:1", hostSource: "config" }, { model: "m2", host: "http://b:1", hostSource: "config" }];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", mandatory: true, log: () => {},   // runReviewChain must IGNORE mandatory — the remap is main()'s job
+    runReviewFn: scriptedRunReview({ "http://a:1": { status: "unreachable" }, "http://b:1": { status: "unreachable" } }),
+  });
+  assert.equal(res.exit, EXIT.UNREACHABLE, "the helper never learns 'mandatory' — the chokepoint remap lives in main()");
+});
+
+// main() integration — --lights-out flips a no-opinion exhaustion to MANDATORY_OUTAGE, nothing else.
+function specFiles398() {
+  const dir = mkdtempSync(join(tmpdir(), "faff398-"));
+  const sys = join(dir, "system.txt"); writeFileSync(sys, "SYSTEM");
+  const dif = join(dir, "diff.txt"); writeFileSync(dif, "DIFF");
+  return { sys, dif };
+}
+
+test("FAFF-398 main: --lights-out + all-unreachable chain → MANDATORY_OUTAGE (needs-human)", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+  );
+  assert.equal(code, EXIT.MANDATORY_OUTAGE);
+});
+
+test("FAFF-398 main: NO flag + all-unreachable → UNREACHABLE (5, advisory pass+skip — no regression)", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+  );
+  assert.equal(code, EXIT.UNREACHABLE);
+});
+
+test("FAFF-398 main: --lights-out + a served backend → OK (0), no false fail-closed", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "## findings" } }) },
+  );
+  assert.equal(code, EXIT.OK);
+});
+
+test("FAFF-398 main: --lights-out + a mid-call DEADLINE (slow backend) → MANDATORY_OUTAGE (8 remapped)", async () => {
+  const { sys, dif } = specFiles398();
+  const slow = () => new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500));
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--deadline", "0.12", "--lights-out"],
+    { runReviewFn: slow },
+  );
+  assert.equal(code, EXIT.MANDATORY_OUTAGE, "the deadline terminal (8) fails closed → 9 under --lights-out");
+});
+
+test("FAFF-398 main: --lights-out + a config fault (AUTH) → that class UNCHANGED (needs-human, not masked)", async () => {
+  const { sys, dif } = specFiles398();
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "auth-failed" } }) },
+  );
+  assert.equal(code, EXIT.AUTH, "a config fault dominates — the remap only touches 5/8");
 });

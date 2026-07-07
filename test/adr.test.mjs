@@ -250,6 +250,23 @@ test("renumber: refuses an occupied target and an ambiguous bare number, leaving
   rmSync(root, { recursive: true, force: true });
 });
 
+test("renumber: a non-ADR file passed in --ref-scope is never read or rewritten (blast-radius bound)", () => {
+  // even if the stray file carries a canonical "Superseded by ADR-0002" line, it must stay byte-identical:
+  // ref-scope keeps only real ADR filenames, so an arbitrary/traversed entry can neither be corrupted nor escape.
+  const root = tmpRepo({
+    "0001-a.md": validAdr("0001", "a"),
+    "0002-peer.md": validAdr("0002", "peer"),
+    "0002-mine.md": validAdr("0002", "mine"),
+  });
+  const stray = join(root, "docs", "adr", "NOTES.txt");
+  const strayBefore = "arbitrary file — Superseded by ADR-0002 mentioned in prose\n";
+  writeFileSync(stray, strayBefore);
+  const r = renumber(["0002-mine.md", "--to", "next", "--ref-scope", "0002-mine.md,NOTES.txt,../../../etc/passwd"], root);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(readFileSync(stray, "utf8"), strayBefore, "the non-ADR file is byte-identical");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("validate: a duplicate number names EVERY colliding file", () => {
   const root = tmpRepo({ "0043-foo.md": validAdr("0043", "foo"), "0043-bar.md": validAdr("0043", "bar") });
   const r = run(["validate", "--root", root]);

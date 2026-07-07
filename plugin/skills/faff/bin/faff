@@ -5484,8 +5484,12 @@ function adrRenumber(dir, selector, target, refScope) {
   const oldNum = source.num;
   const newFile = `${newNum}-${source.slug}.md`;
   const newPath = path.join(dir, newFile);
-  // ref-scope: normalise to basenames; the moved file is always in scope for its own refs.
-  const scope = new Set((refScope || []).map((f) => path.basename(String(f).trim())).filter(Boolean));
+  // ref-scope: normalise to basenames and keep ONLY real ADR filenames (matching ADR_FILE_RE) —
+  // never read/rewrite a non-ADR path handed in, so an arbitrary or traversed entry can neither
+  // corrupt an unrelated file nor escape docs/adr/ (basename + ADR-shape bound the blast radius to
+  // this-PR ADRs, upholding the spec's "never touch main's untouched files" invariant). The moved
+  // file is always in scope for its own heading/refs.
+  const scope = new Set((refScope || []).map((f) => path.basename(String(f).trim())).filter((f) => ADR_FILE_RE.test(f)));
   scope.add(source.file);
 
   // 5. rewrite source text: heading always; its own canonical self-refs to oldNum (in-scope).

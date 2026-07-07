@@ -5414,11 +5414,15 @@ function adrValidate(dir) {
     else if (!ADR_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(a.status))) problems.push(`${a.file}: Status "${a.status.slice(0, 30)}" must start with one of ${ADR_STATUSES.join("|")}`);
     if (!a.date) problems.push(`${a.file}: missing Date field`);
   }
-  const seen = new Set();
-  for (const a of adrs) {
-    if (seen.has(a.number)) problems.push(`duplicate ADR number ${a.num}`);
-    seen.add(a.number);
+  // FAFF-368: a duplicate number names EVERY colliding filename (one message per number),
+  // so both the CI backstop and the graft merge-guard can identify which files collide
+  // without a second scan. `listAdrs` is already read; grouping is free.
+  const byNum = new Map();
+  for (const a of adrs) { if (!byNum.has(a.num)) byNum.set(a.num, []); byNum.get(a.num).push(a.file); }
+  for (const [num, files] of byNum) {
+    if (files.length > 1) problems.push(`duplicate ADR number ${num} — ${files.join(", ")}`);
   }
+  const seen = new Set(adrs.map((a) => a.number));
   for (let i = 1; i <= adrs.length; i++) {
     if (!seen.has(i)) problems.push(`numbering gap: ADR ${String(i).padStart(4, "0")} missing (expected contiguous 0001..${String(adrs.length).padStart(4, "0")})`);
   }
@@ -5426,6 +5430,89 @@ function adrValidate(dir) {
   // FAFF-245: shared, prefix-parameterised — `prdrValidate` calls the same helper.
   problems.push(...recordSupersessionProblems(adrs, texts, "ADR"));
   return problems;
+}
+
+// FAFF-368: rewrite canonical supersession refs that POINT AT `oldNum` → `newNum`, in one
+// file's text. Mirrors the canonical forms `recordSupersededBy`/`recordSupersedesSet` match
+// ("Superseded by <prefix>-NNNN" status value; "Supersedes: <prefix>-NNNN") so a freeform
+// legacy line ("Supersedes / unblocks: FAFF-77") is never rewritten. Number-tolerant: a ref
+// written "ADR-43" or "ADR-0043" both re-point when they resolve to oldNum. Pure string→string.
+function renumberRefsTo(text, oldNum, newNum, prefix) {
+  const target = parseInt(oldNum, 10);
+  const repl = (pre, n, whole) => (parseInt(n, 10) === target ? pre + newNum : whole);
+  return text
+    .replace(new RegExp(`(\\bSuperseded\\s+by\\s+${prefix}[-\\s]?)(\\d{1,4})\\b`, "gi"), (m, pre, n) => repl(pre, n, m))
+    .replace(new RegExp(`(^[\\s>*-]*Supersedes[\\s*]*:[\\s*]*.*?\\b${prefix}[-\\s]?)(\\d{1,4})\\b`, "gim"), (m, pre, n) => repl(pre, n, m));
+}
+
+// FAFF-368: the merge-time collision-repair primitive. Move ONE ADR file to a free number,
+// fix its heading, fix in-`refScope` back-refs to it, and re-validate — atomically enough that
+// a failure leaves no half-renamed tree (the rename is applied only AFTER the target slot is
+// confirmed free). git-agnostic (pure `fs`, parity with `new`/`supersede`); graft stages the
+// rename with `git add -A` so git records it by similarity. Returns { code, out, err }.
+//   selector  a docs/adr filename OR a bare number (a duplicated bare number is REJECTED —
+//             ambiguous under exactly the collision this addresses; pass the filename).
+//   target    a 1–4 digit number OR the literal "next" (→ adrNextNumber against the tree).
+//   refScope  filenames (basenames or repo-relative) within which back-refs to the moved
+//             number may be rewritten. The moved file is always in scope for its own heading.
+function adrRenumber(dir, selector, target, refScope) {
+  const adrs = listAdrs(dir);
+  // 1–2. resolve selector → source
+  let source = adrs.find((a) => a.file === selector);
+  if (!source) {
+    if (/^\d{1,4}$/.test(String(selector || ""))) {
+      const num = String(selector).padStart(4, "0");
+      const matches = adrs.filter((a) => a.num === num);
+      if (matches.length > 1) return { code: 1, out: "", err: `faff adr renumber: ambiguous: ${num} is duplicated in the tree — pass a filename\n` };
+      if (matches.length === 0) return { code: 1, out: "", err: `faff adr renumber: no ADR ${num}\n` };
+      source = matches[0];
+    } else {
+      return { code: 1, out: "", err: `faff adr renumber: no ADR matching "${selector}"\n` };
+    }
+  }
+  // 3. resolve target
+  let newNum;
+  if (target === "next") newNum = adrNextNumber(dir);
+  else if (/^\d{1,4}$/.test(String(target || ""))) newNum = String(target).padStart(4, "0");
+  else return { code: 2, out: "", err: `faff adr renumber: --to must be a 4-digit number or "next"\n` };
+  // 3c. never move onto an occupied slot (confirm free BEFORE any rename — no partial move)
+  if (adrs.some((a) => a.file !== source.file && a.num === newNum)) return { code: 1, out: "", err: `faff adr renumber: target ADR ${newNum} is occupied\n` };
+  // 3d. no-op
+  const oldPath = path.join(dir, source.file);
+  if (newNum === source.num) return { code: 0, out: `${oldPath} -> ${oldPath}\n`, err: "" };
+
+  const oldNum = source.num;
+  const newFile = `${newNum}-${source.slug}.md`;
+  const newPath = path.join(dir, newFile);
+  // ref-scope: normalise to basenames and keep ONLY real ADR filenames (matching ADR_FILE_RE) —
+  // never read/rewrite a non-ADR path handed in, so an arbitrary or traversed entry can neither
+  // corrupt an unrelated file nor escape docs/adr/ (basename + ADR-shape bound the blast radius to
+  // this-PR ADRs, upholding the spec's "never touch main's untouched files" invariant). The moved
+  // file is always in scope for its own heading/refs.
+  const scope = new Set((refScope || []).map((f) => path.basename(String(f).trim())).filter((f) => ADR_FILE_RE.test(f)));
+  scope.add(source.file);
+
+  // 5. rewrite source text: heading always; its own canonical self-refs to oldNum (in-scope).
+  let srcText = fs.readFileSync(oldPath, "utf8")
+    .replace(/^(#\s*ADR\s+)(\d+)(\s*[—\-])/mi, (m, pre, n, post) => (parseInt(n, 10) === parseInt(oldNum, 10) ? `${pre}${newNum}${post}` : m));
+  if (scope.has(source.file)) srcText = renumberRefsTo(srcText, oldNum, newNum, "ADR");
+  // 6. move: write the new file, then remove the old path (atomic-enough; target confirmed free above).
+  fs.writeFileSync(newPath, srcText);
+  fs.rmSync(oldPath);
+  // 7. rewrite in-scope OTHER files' back-refs that point at the moved number.
+  for (const f of scope) {
+    if (f === source.file) continue;
+    const p = path.join(dir, f);
+    if (!fs.existsSync(p)) continue;
+    const before = fs.readFileSync(p, "utf8");
+    const after = renumberRefsTo(before, oldNum, newNum, "ADR");
+    if (after !== before) fs.writeFileSync(p, after);
+  }
+  // 8–9. re-validate; never claim success on a red tree.
+  const problems = adrValidate(dir);
+  if (problems.length) return { code: 1, out: "", err: problems.map((p) => `FAIL  ${p}`).join("\n") + "\n" };
+  // 10. success
+  return { code: 0, out: `${oldPath} -> ${newPath}\n`, err: "" };
 }
 
 function adrTemplate({ num, title, date, issue, initiative, status }) {
@@ -5550,7 +5637,23 @@ function cmdAdr(args) {
     return r.code;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede (or --selftest)\n");
+  if (action === "renumber") {
+    // faff adr renumber <selector> --to <target> [--ref-scope f,f...] — FAFF-368: the merge-time
+    // collision-repair primitive. Moves ONE ADR to a free number, fixes heading + in-scope back-refs,
+    // and re-validates; graft's Step-10 merge guard calls it, never free-hands git mv + heading edits.
+    const selector = args[1];
+    if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr renumber: <selector> (a docs/adr filename or a bare number) is required\n"); return 2; }
+    const to = adrFlag(args, "--to");
+    if (!to) { process.stderr.write("faff adr renumber: --to <NNNN|next> is required\n"); return 2; }
+    const rsFlag = adrFlag(args, "--ref-scope");
+    const refScope = rsFlag ? rsFlag.split(/[,\s]+/).filter(Boolean) : [];
+    const r = adrRenumber(dir, selector, to, refScope);
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
+  }
+
+  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | renumber (or --selftest)\n");
   return 2;
 }
 
@@ -5642,6 +5745,77 @@ function adrSelftest() {
     const hi = route({ interactive: false, mode: "offer", contradicts: true, appetite: "high" });
     return lo.surface_prominently === false && hi.surface_prominently === true; })());
 
+  // FAFF-368 — `adr renumber`: happy path, occupied-target refusal, ambiguous-bare-number refusal,
+  // ref-scope-bounded back-ref rewrite (symmetric supersession), out-of-scope byte-invariance, no-op.
+  const rndir = path.join(tmp, "renum", "docs", "adr");
+  fs.mkdirSync(rndir, { recursive: true });
+  const rnmk = (n, slug, body) => fs.writeFileSync(path.join(rndir, `${n}-${slug}.md`),
+    body != null ? body : `# ADR ${n} — ${slug}\n\n- **Status:** Proposed\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  // happy path: two 0003s (peer + mine); renumber mine → next (0004), validate clean, peer byte-unchanged.
+  rnmk("0001", "a"); rnmk("0002", "b"); rnmk("0003", "peer"); rnmk("0003", "mine");
+  const peerBefore = fs.readFileSync(path.join(rndir, "0003-peer.md"), "utf8");
+  const rn1 = adrRenumber(rndir, "0003-mine.md", "next", []);
+  t("renumber: happy path exits 0 with '<old> -> <new>'", rn1.code === 0 && /0003-mine\.md -> .*0004-mine\.md/.test(rn1.out));
+  t("renumber: moved file now at 0004, heading updated", fs.existsSync(path.join(rndir, "0004-mine.md")) && !fs.existsSync(path.join(rndir, "0003-mine.md")) && /# ADR 0004 —/.test(fs.readFileSync(path.join(rndir, "0004-mine.md"), "utf8")));
+  t("renumber: post-move tree validates clean", adrValidate(rndir).length === 0);
+  t("renumber: the peer 0003 file is byte-unchanged", fs.readFileSync(path.join(rndir, "0003-peer.md"), "utf8") === peerBefore);
+  // occupied-target refusal (no partial rename): move 0004 → 0001 (occupied).
+  const rn2 = adrRenumber(rndir, "0004-mine.md", "0001", []);
+  t("renumber: occupied target exits 1, names the slot", rn2.code === 1 && /target ADR 0001 is occupied/.test(rn2.err));
+  t("renumber: occupied-target left tree unchanged (no partial move)", fs.existsSync(path.join(rndir, "0004-mine.md")) && !fs.existsSync(path.join(rndir, "0001-mine.md")));
+  // ambiguous bare-number refusal.
+  rnmk("0002", "dup2");   // reintroduce a duplicate 0002
+  const rn3 = adrRenumber(rndir, "0002", "next", []);
+  t("renumber: ambiguous bare number exits 1, asks for a filename", rn3.code === 1 && /ambiguous.*pass a filename/i.test(rn3.err));
+  fs.rmSync(path.join(rndir, "0002-dup2.md"));
+  // ref-scope-bounded back-ref rewrite (supersession sub-case): the incoming 0003-new supersedes the
+  // existing 0001-old and collides with a peer 0003-peer; renumber 0003-new→next, in-scope back-ref follows,
+  // symmetric re-validates clean (the peer at 0003 keeps the tree contiguous — the realistic collision shape).
+  const sdir2 = path.join(tmp, "renum-sup", "docs", "adr");
+  fs.mkdirSync(sdir2, { recursive: true });
+  const smk2 = (n, slug, body) => fs.writeFileSync(path.join(sdir2, `${n}-${slug}.md`), body);
+  smk2("0001", "old", `# ADR 0001 — old\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  smk2("0002", "mid", `# ADR 0002 — mid\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  smk2("0003", "peer", `# ADR 0003 — peer\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  smk2("0003", "new", `# ADR 0003 — new\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  const rn4 = adrRenumber(sdir2, "0003-new.md", "next", ["0003-new.md", "0001-old.md"]);
+  t("renumber: supersession sub-case exits 0", rn4.code === 0);
+  t("renumber: in-scope back-ref re-pointed to the new number", /Superseded by ADR-0004/.test(fs.readFileSync(path.join(sdir2, "0001-old.md"), "utf8")));
+  t("renumber: supersession re-validates symmetric (clean)", adrValidate(sdir2).length === 0);
+  // out-of-scope back-ref stays byte-identical when it still resolves — clean collision + a peer occupying
+  // the vacated slot keeps the tree contiguous; the out-of-scope "Supersedes" is never touched.
+  const odir = path.join(tmp, "renum-oos", "docs", "adr");
+  fs.mkdirSync(odir, { recursive: true });
+  const omk = (n, slug, body) => fs.writeFileSync(path.join(odir, `${n}-${slug}.md`), body);
+  omk("0001", "peer", `# ADR 0001 — peer\n\n- **Status:** Superseded by ADR-0002\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  omk("0002", "other", `# ADR 0002 — other\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0001\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // out-of-scope; its ref points at 0001-peer
+  omk("0001", "mine", `# ADR 0001 — mine\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // the incoming collision at 0001
+  const otherBefore = fs.readFileSync(path.join(odir, "0002-other.md"), "utf8");
+  const rn5 = adrRenumber(odir, "0001-mine.md", "next", ["0001-mine.md"]);
+  t("renumber: clean collision exits 0 (peer keeps tree contiguous)", rn5.code === 0);
+  t("renumber: out-of-scope file is byte-identical (never rewritten)", fs.readFileSync(path.join(odir, "0002-other.md"), "utf8") === otherBefore);
+  // AND a renumber that WOULD leave a dangling/asymmetric out-of-scope ref fails the step-6 re-validate → exit 1.
+  const adir = path.join(tmp, "renum-asym", "docs", "adr");
+  fs.mkdirSync(adir, { recursive: true });
+  const amk = (n, slug, body) => fs.writeFileSync(path.join(adir, `${n}-${slug}.md`), body);
+  amk("0001", "a", `# ADR 0001 — a\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  amk("0002", "peer", `# ADR 0002 — peer\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  amk("0002", "mine", `# ADR 0002 — mine\n\n- **Status:** Superseded by ADR-0003\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // incoming collision at 0002
+  amk("0003", "other", `# ADR 0003 — other\n\n- **Status:** Accepted\n- **Supersedes:** ADR-0002\n- **Date:** 2026-06-21\n\n## Context\nx\n`);   // out-of-scope; symmetric with 0002-mine PRE-move
+  const rn6 = adrRenumber(adir, "0002-mine.md", "next", ["0002-mine.md"]);   // moves 0002-mine→0004, out-of-scope 0003-other left pointing at 0002-peer → asymmetric
+  t("renumber: an asymmetric out-of-scope ref makes re-validate red → exit 1 (never a silent green)", rn6.code === 1 && /FAIL/.test(rn6.err));
+  // no-op: renumber to the same number exits 0.
+  const ndir = path.join(tmp, "renum-noop", "docs", "adr");
+  fs.mkdirSync(ndir, { recursive: true });
+  fs.writeFileSync(path.join(ndir, "0001-a.md"), `# ADR 0001 — a\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  t("renumber: to the same number is a no-op exit 0", adrRenumber(ndir, "0001-a.md", "0001", []).code === 0);
+  // sharpened duplicate message names every colliding file.
+  const ddir = path.join(tmp, "dupmsg", "docs", "adr");
+  fs.mkdirSync(ddir, { recursive: true });
+  fs.writeFileSync(path.join(ddir, "0043-foo.md"), `# ADR 0043 — foo\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  fs.writeFileSync(path.join(ddir, "0043-bar.md"), `# ADR 0043 — bar\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+  t("validate: duplicate message names every colliding file", adrValidate(ddir).some((p) => /duplicate ADR number 0043 —/.test(p) && /0043-foo\.md/.test(p) && /0043-bar\.md/.test(p)));
+
   fs.rmSync(tmp, { recursive: true, force: true });
   let failed = 0;
   for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
@@ -5686,7 +5860,7 @@ Subcommands:
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json]        idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore
-  adr <next-number|new|list|live-decisions|validate|supersede> [--root DIR]   FAFF-16/197/198: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs); supersede <old> --by <new>; --selftest runs the table
+  adr <next-number|new|list|live-decisions|validate|supersede|renumber> [--root DIR]   FAFF-16/197/198/368: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs; a duplicate number names every colliding file); supersede <old> --by <new>; renumber <filename|number> --to <NNNN|next> [--ref-scope f,f...] (FAFF-368: the merge-time collision-repair primitive — move one ADR to a free number, fix heading + in-scope back-refs, re-validate; exit 1 on occupied target / ambiguous bare number / still-red re-validate); --selftest runs the table
   prdr <path|new|list|supersede|validate|admit|yagni|coverage> [--root DIR]   FAFF-245/255/256/257: deterministic mechanics over the docs/prdr/ product-requirements DECISION-record log — the supersedable product-axis record between the immutable PRD and the per-slice spec (PRD content, ADR mechanics). path [<number>]; new <title> --container <slug> --prd-goal <g> [--provenance human|loop] [--status|--date]; list [--json] [--container <slug>] [--live]; supersede <old> --by <new> (pure mechanical linker); validate (presence-only: metadata + enums + contiguous numbering + the four body sections + symmetric supersession; never section content); admit <prdr> --actor loop|human --supersedes-provenance human|loop|none [--self] [--new-capability] [--drops-last-goal] [--lineage-supersessions N] [--thrash-max N] [--upper JSON] [--lower JSON] (FAFF-255 two-gate bound: pure verdict — computes authority/by-level/ratchet, folds in the 256/257 verdicts or fail-safe defaults, prints a prdr-admission verdict; no tracker/network call); yagni [<prdr>] --prd-goal <g> --prd-goals JSON [--proposal admit|reject] [--proposal-reason S] [--serves-goal] [--within-scope] [--challenge survived|overturned] [--challenge-reason S] [--grounding-present] (FAFF-256 UPPER/YAGNI gate: pure two-phase arbitration — deterministic trace-to-goal precondition + methodology proposal (Phase 1) + adversarial challenge (Phase 2) → conservative-reject-on-doubt; prints 255's upper {admit,reason} verdict as a prdr-yagni block; no tracker/network call); coverage --prd-goals JSON [--live-prdrs JSON] [--dod-verdicts JSON] [--container <slug>] (FAFF-257 LOWER/coverage gate + prd-satisfied roll-up: pure — every PRD goal stays covered by a live PRDR (255's lower {covered,uncovered_goals}, fed to admit --lower) AND prd-satisfied ⟺ coverage ∧ every live PRDR's FAFF-34 DoD verdict is met, conservative default unverified⇒not-satisfied; prints a prd-coverage block; no tracker/network call); --selftest runs the table. Reads tracking.prdr_docs_path (default docs/prdr/), prdr.thrash_max, prdr.thrash_window
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table

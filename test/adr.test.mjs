@@ -166,3 +166,113 @@ test("validate: fails on asymmetric and dangling canonical supersession refs", (
 
   for (const root of [asym, dang]) rmSync(root, { recursive: true, force: true });
 });
+
+// FAFF-368 — merge-time collision-repair primitive + sharpened duplicate message
+const renumber = (args, root) => run(["renumber", ...args, "--root", root]);
+
+test("renumber: two-branch same-number collision → renumber incoming, validate exits 0, peer byte-unchanged", () => {
+  // main holds 0003-peer.md; this PR's branch adds 0003-mine.md (same number) — the live incident shape.
+  const root = tmpRepo({
+    "0001-a.md": validAdr("0001", "a"),
+    "0002-b.md": validAdr("0002", "b"),
+    "0003-peer.md": validAdr("0003", "peer"),
+    "0003-mine.md": validAdr("0003", "mine"),
+  });
+  const peerPath = join(root, "docs", "adr", "0003-peer.md");
+  const peerBefore = readFileSync(peerPath, "utf8");
+
+  // pre-state is red (the duplicate), naming both files
+  const pre = run(["validate", "--root", root]);
+  assert.equal(pre.status, 1);
+  assert.match(pre.stdout, /duplicate ADR number 0003 —/);
+
+  const r = renumber(["0003-mine.md", "--to", "next"], root);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /0003-mine\.md -> .*0004-mine\.md/);
+  assert.ok(existsSync(join(root, "docs", "adr", "0004-mine.md")), "incoming moved to 0004");
+  assert.ok(!existsSync(join(root, "docs", "adr", "0003-mine.md")), "old path gone (no partial move)");
+  assert.match(readFileSync(join(root, "docs", "adr", "0004-mine.md"), "utf8"), /# ADR 0004 — mine/);
+
+  assert.equal(run(["validate", "--root", root]).status, 0, "renumbered tree validates clean");
+  assert.equal(readFileSync(peerPath, "utf8"), peerBefore, "the peer's 0003 file is byte-unchanged");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("renumber: --ref-scope bounds the rewrite — in-scope back-ref follows, out-of-scope stays byte-identical", () => {
+  // incoming 0003-new supersedes existing 0001-old; a peer 0003-peer forces the collision; 0002-mid is
+  // an out-of-scope record. Renumber 0003-new→next with ref-scope = {new, old}: 0001-old's back-ref
+  // re-points; 0002-mid is never touched.
+  const root = tmpRepo({
+    "0001-old.md": validAdr("0001", "old", "Superseded by ADR-0003"),
+    "0002-mid.md": validAdr("0002", "mid"),
+    "0003-peer.md": validAdr("0003", "peer"),
+    "0003-new.md": validAdr("0003", "new") + "\n- **Supersedes:** ADR-0001\n",
+  });
+  const midBefore = readFileSync(join(root, "docs", "adr", "0002-mid.md"), "utf8");
+  const r = renumber(["0003-new.md", "--to", "next", "--ref-scope", "0003-new.md,0001-old.md"], root);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(readFileSync(join(root, "docs", "adr", "0001-old.md"), "utf8"), /Superseded by ADR-0004/);
+  assert.equal(readFileSync(join(root, "docs", "adr", "0002-mid.md"), "utf8"), midBefore, "out-of-scope file untouched");
+  assert.equal(run(["validate", "--root", root]).status, 0, "symmetric supersession validates clean");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("renumber: an out-of-scope ref left dangling/asymmetric → step-6 re-validate red → exit 1 (never a silent green)", () => {
+  // 0003-other supersedes 0002-mine (symmetric pre-move); a peer 0002-peer forces the collision.
+  // Renumber 0002-mine→next with ref-scope = {mine} only: 0003-other is not rewritten, so its
+  // "Supersedes: ADR-0002" now points at the untouched peer → asymmetric → the guard must NOT report success.
+  const root = tmpRepo({
+    "0001-a.md": validAdr("0001", "a"),
+    "0002-peer.md": validAdr("0002", "peer"),
+    "0002-mine.md": validAdr("0002", "mine", "Superseded by ADR-0003"),
+    "0003-other.md": validAdr("0003", "other") + "\n- **Supersedes:** ADR-0002\n",
+  });
+  const r = renumber(["0002-mine.md", "--to", "next", "--ref-scope", "0002-mine.md"], root);
+  assert.equal(r.status, 1, "a red re-validate must exit 1");
+  assert.match(r.stderr, /FAIL/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("renumber: refuses an occupied target and an ambiguous bare number, leaving the tree unchanged", () => {
+  const root = tmpRepo({
+    "0001-a.md": validAdr("0001", "a"),
+    "0002-b.md": validAdr("0002", "b"),
+    "0002-dup.md": validAdr("0002", "dup"),
+  });
+  const occ = renumber(["0001-a.md", "--to", "0002"], root);
+  assert.equal(occ.status, 1);
+  assert.match(occ.stderr, /target ADR 0002 is occupied/);
+  assert.ok(existsSync(join(root, "docs", "adr", "0001-a.md")), "no partial move on occupied target");
+
+  const amb = renumber(["0002", "--to", "next"], root);
+  assert.equal(amb.status, 1);
+  assert.match(amb.stderr, /ambiguous.*pass a filename/i);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("renumber: a non-ADR file passed in --ref-scope is never read or rewritten (blast-radius bound)", () => {
+  // even if the stray file carries a canonical "Superseded by ADR-0002" line, it must stay byte-identical:
+  // ref-scope keeps only real ADR filenames, so an arbitrary/traversed entry can neither be corrupted nor escape.
+  const root = tmpRepo({
+    "0001-a.md": validAdr("0001", "a"),
+    "0002-peer.md": validAdr("0002", "peer"),
+    "0002-mine.md": validAdr("0002", "mine"),
+  });
+  const stray = join(root, "docs", "adr", "NOTES.txt");
+  const strayBefore = "arbitrary file — Superseded by ADR-0002 mentioned in prose\n";
+  writeFileSync(stray, strayBefore);
+  const r = renumber(["0002-mine.md", "--to", "next", "--ref-scope", "0002-mine.md,NOTES.txt,../../../etc/passwd"], root);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(readFileSync(stray, "utf8"), strayBefore, "the non-ADR file is byte-identical");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("validate: a duplicate number names EVERY colliding file", () => {
+  const root = tmpRepo({ "0043-foo.md": validAdr("0043", "foo"), "0043-bar.md": validAdr("0043", "bar") });
+  const r = run(["validate", "--root", root]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /duplicate ADR number 0043 —/);
+  assert.match(r.stdout, /0043-foo\.md/);
+  assert.match(r.stdout, /0043-bar\.md/);
+  rmSync(root, { recursive: true, force: true });
+});

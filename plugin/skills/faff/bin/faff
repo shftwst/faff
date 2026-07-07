@@ -5694,6 +5694,7 @@ Subcommands:
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
   review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N]]   FAFF-329: per-issue review checkpoint at \`<run-dir>/<issue>/review-progress.json\` so a re-dispatched build subagent RESUMES the graft review step (skips a completed Phase-1/Phase-2) instead of repeating it. read → ReviewProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --phase1-pass --diff-hash records the passing Phase-1 verdict + the diff hash it was computed against (the diff-identity guard — a resume skips Phase-1 only if the CURRENT diff still matches); write --phase2 <pending|in_flight|complete|skipped_deadline|skipped_unreachable> records Phase-2 progress. PURE JSON (no tracker/network); a HINT never authoritative over git/PR truth; exit 2 usage/bad-status; --selftest runs the fold table
+  build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]   FAFF-402: per-issue build-complete checkpoint at \`<run-dir>/<issue>/build-progress.json\` — written at graft build-complete (Step 8b) AFTER the branch is pushed to origin, so a re-dispatched graft RESUMES at review (recreating the worktree from origin/<branch>, skipping the build) instead of rebuilding. read → BuildProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --build-complete --diff-hash --branch records the remote-three-dot diff hash it was gated at + the pushed branch (the diff-identity guard — a resume skips the build only if the CURRENT remote diff still matches). PURE JSON (no tracker/network/git — the diff hash is computed in graft prose); a HINT never authoritative over git truth; exit 2 usage/missing-flag; --selftest runs the fold table
   effects <declare|observe|check> --run <run-id> [--issue ID] [--step NAME] [--ts ISO] [--json] [--root DIR]   FAFF-106: escaped-side-effect detection via a declared-effects ledger — the PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) consumes. declare/observe read an EffectDescriptor {kind ∈ closed EFFECT_KINDS, target, reversible?} (object or array) on stdin and append a LedgerEntry (CLI fills schema/run_id/seq/ts envelope; kind_of_entry/issue/step required) to .faff/runs/<run-id>/declared-effects.jsonl — a PARALLEL ledger, never an events.jsonl schema bump; exit 0 ok / 1 bad descriptor (unknown kind / missing target) / 2 malformed JSON or missing --run/--issue/--step / 3 run-dir missing. check computes observed-MINUS-declared per (issue, step) using exact-target + "*" matching and emits {escapes:[EscapeSignal{signal:"escaped-side-effect",issue,step,escaped[],event_seq}], any_escape} (--json); a missing ledger file is a clean state ({escapes:[],any_escape:false}, exit 0 — NOT exit 3). Detection only — never aborts (Sentry/FAFF-37's job); the orchestrator bridges any_escape into \`faff sentry check\` via the existing signals.forbidden_side_effect seam. PURE (no tracker/network, writes only under the run dir); --selftest runs the descriptor/matching/escape table
   sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
@@ -9533,6 +9534,90 @@ function reviewProgressSelftest() {
   return fail ? 1 : 0;
 }
 
+// === FAFF-402: build-progress checkpoint =================================
+// A per-issue on-disk record that the build (gates + AC) is COMPLETE for a specific pushed diff, written at
+// build-complete (graft Step 8b) AFTER the branch is pushed to origin, so a re-dispatched graft RESUMES at
+// review — recreating the worktree from origin/<branch> and skipping the build — rather than rebuilding.
+// Lives beside review-progress.json at `<run-dir>/<issue>/build-progress.json`. PURE JSON read/write — no
+// tracker, no network, no git (the CLI determinism invariant); the diff_hash (which needs a git fetch/diff)
+// is computed in graft prose and passed in. It is a HINT the graft flow consults, never authoritative over
+// git truth (the diff-identity guard keeps it honest — the build is skipped only when the recorded diff_hash
+// still matches the remote three-dot diff of the pushed branch).
+
+function buildProgressPath(runDir, issue) {
+  return path.join(runDir, issue, "build-progress.json");
+}
+
+// Pure: fold a build-complete record (the remote-three-dot diff hash it was gated at + the pushed branch).
+// The checkpoint is only ever written AFTER a successful push (Step 8b: push → hash → write), so its
+// existence attests a durable branch on origin. A re-write with a new diff_hash simply replaces the record
+// (a moved branch is a fresh build-complete for a new diff).
+function buildProgressApplyComplete(existing, issue, diffHash, branch, nowIso) {
+  return { issue, build: { status: "complete", diff_hash: String(diffHash), branch: String(branch), pushed_at: nowIso }, updated_at: nowIso };
+}
+
+function cmdBuildProgress(args) {
+  if (args.includes("--selftest")) return buildProgressSelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const positional = args.filter((a) => !a.startsWith("-"));
+  const sub = positional[0];
+  const runDir = positional[1];
+  const issue = positional[2];
+  if ((sub !== "read" && sub !== "write") || !runDir || !issue) {
+    process.stderr.write("usage: faff build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]\n");
+    return 2;
+  }
+  const file = buildProgressPath(runDir, issue);
+  const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+
+  if (sub === "read") {
+    const rec = readExisting();
+    if (!rec) return 3;   // no checkpoint yet — NOT an error ("nothing recorded"), just absent (mirrors review-progress)
+    console.log(JSON.stringify(rec));
+    return 0;
+  }
+
+  // write
+  if (!args.includes("--build-complete")) {
+    process.stderr.write("faff build-progress write: expected --build-complete\n"); return 2;
+  }
+  const diffHash = get("--diff-hash");
+  const branch = get("--branch");
+  // Both are required. The diff_hash is the diff-identity guard a resume re-checks against the pushed branch;
+  // the branch is what a pruned-worktree resume checks out (`git worktree add <path> <branch>`) with no
+  // tracker round-trip. A build-complete with either missing is a coverage lie — reject it.
+  if (!diffHash) { process.stderr.write("faff build-progress write --build-complete requires --diff-hash <h>\n"); return 2; }
+  if (!branch) { process.stderr.write("faff build-progress write --build-complete requires --branch <b>\n"); return 2; }
+  const nowIso = new Date().toISOString();
+  const rec = buildProgressApplyComplete(readExisting(), issue, diffHash, branch, nowIso);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
+  fs.renameSync(tmp, file);
+  console.log(JSON.stringify(rec));
+  return 0;
+}
+
+function buildProgressSelftest() {
+  let fail = 0;
+  const ok = (n, c) => { if (!c) { console.log(`FAIL ${n}`); fail++; } else console.log(`ok   ${n}`); };
+  const NOW = "2026-07-07T00:00:00.000Z";
+  const b = buildProgressApplyComplete(null, "FAFF-402", "abc123", "faff-402-x", NOW);
+  ok("build-complete records status/diff_hash/branch", b.build.status === "complete" && b.build.diff_hash === "abc123" && b.build.branch === "faff-402-x");
+  ok("build-complete stamps pushed_at + updated_at", b.build.pushed_at === NOW && b.updated_at === NOW);
+  ok("build-complete records the issue", b.issue === "FAFF-402");
+  // a re-write with a new diff hash replaces the record (a moved branch = a fresh build-complete)
+  const b2 = buildProgressApplyComplete(b, "FAFF-402", "def456", "faff-402-x", NOW);
+  ok("a re-write records the new diff_hash", b2.build.diff_hash === "def456");
+  // string coercion (the CLI passes strings, but guard non-strings so the store never holds a non-string hash)
+  const b3 = buildProgressApplyComplete(null, "FAFF-402", 123, 456, NOW);
+  ok("diff_hash + branch are coerced to strings", b3.build.diff_hash === "123" && b3.build.branch === "456");
+  // path shape — sibling of review-progress.json
+  ok("checkpoint path is <run-dir>/<issue>/build-progress.json", buildProgressPath("/r/run-1", "FAFF-402") === path.join("/r/run-1", "FAFF-402", "build-progress.json"));
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (build-progress checkpoint, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 function cmdEffects(args) {
   let root = null, run = null, issue = null, step = null, ts = null;
   const rest = [];
@@ -13166,6 +13251,7 @@ const REGION_MAP = {
   "events": "governance",
   "effects": "governance",
   "review-progress": "governance",
+  "build-progress": "governance",
   "budget": "governance",
   "sentry": "governance",
   "audit": "governance",
@@ -13236,6 +13322,7 @@ const REGION_SELFTEST_ARGV = {
   "events": ["events", "--selftest"],
   "effects": ["effects", "--selftest"],
   "review-progress": ["review-progress", "--selftest"],
+  "build-progress": ["build-progress", "--selftest"],
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
   "audit": ["audit", "--selftest"],
@@ -14264,6 +14351,7 @@ const COMMANDS = {
   "events": cmdEvents,
   "effects": cmdEffects,
   "review-progress": cmdReviewProgress,
+  "build-progress": cmdBuildProgress,
   "sentry": cmdSentry,
   "lights-out": cmdLightsOut,
   "audit": cmdAudit,

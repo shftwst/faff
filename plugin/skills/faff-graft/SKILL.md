@@ -68,6 +68,7 @@ Minimum todo set:
 - Step 7: Build
 - Step 7.5: Engineering gate ladder (`faff gates run` → `faff contract quality-gates`)
 - Step 8: AC verification
+- Step 8b: Push branch at build-complete + write the build-progress checkpoint (FAFF-402)
 - Step 9: Review phase (pre-PR — no PR exists yet)
 - Step 9b: Open the PR (only after review returns `pass`; identical interactive + autonomous)
 - Step 10: Merge-confidence gate
@@ -160,6 +161,11 @@ If a worktree already exists:
 - Skip to step 5 (status update). Spec was already committed on first graft.
 
 If no worktree exists:
+
+**Resume-at-review check (FAFF-402 — autonomous L3/L4 only; interactive skips this, like the FAFF-329 review checkpoint).** Before creating a fresh worktree, read the build-complete checkpoint — `faff build-progress read "$run_dir" <ISSUE>`. On **exit 3** (no checkpoint) create a fresh worktree as below. On **exit 0**, `git fetch origin` and recompute `cur = sha256(git diff origin/main...origin/<branch>)`:
+- **`build.diff_hash == cur`** → **RESUME**: recreate the worktree from the pushed branch — `git fetch origin && git worktree add <worktree-path> <branch>` (checkout the existing remote branch, **no `-b`**; run this **directly**, not through the `WorktreeCreate` hook, which only ever creates a new branch off HEAD). Then **skip Steps 4–7** (spec commit / claim / build) and re-run **Steps 7.5 + 8** (gate ladder + AC) in the recreated worktree before entering **Step 9** — the diff is byte-identical to what was gated, so this is a cheap re-confirm and the expensive build is what's skipped. The issue is already `In Progress`/`In Review`, so the Step-5 claim is a no-op (never reverted).
+- **mismatch** (or the branch no longer resolves on origin) → discard the checkpoint (hint-not-authoritative) and create a fresh worktree as below (rebuild).
+
 - Use the `EnterWorktree` tool with the branch name as the worktree name
 - The `WorktreeCreate` hook (`setup-worktree.sh`) will automatically:
   - Create the git worktree
@@ -295,6 +301,16 @@ Tick each box as its verification passes, with a one-line note (test file refere
 
 This step runs in **both** interactive and autonomous modes.
 
+**Step 8b: Push branch at build-complete + build-progress checkpoint (FAFF-402 — both modes)**
+
+The build is complete (gates + AC passed). Make it durable on `origin` **now** — before review — so a review-tail stall (a review-provider outage, a turn boundary) never costs a rebuild, and a re-dispatch resumes at review (Step 3 → _Resume-at-review check_). Gated on `faff config get graft.push_at_build_complete -d true` (default **on**; a repo whose CI fires on *every* branch push sets it off, and the push stays deferred to Step 9b as today). When on, in order:
+
+1. `git push origin <branch>` — the branch is now durable off-machine. **No PR is opened, so no CI fires** (this repo's CI is `on: pull_request` + `push:[main]`). A failed push writes **no** checkpoint (the next run rebuilds — safe); surface the failure.
+2. `git fetch origin`, then `diff_hash = sha256(git diff origin/main...origin/<branch>)` — the remote three-dot diff, reproducible from remote refs alone at resume (no worktree needed). Computed here in prose, never inside the CLI (which stays pure — no git/network).
+3. `faff build-progress write "$run_dir" <ISSUE> --build-complete --diff-hash <diff_hash> --branch <branch>` — push precedes the write, so a checkpoint always implies a pushed, gated branch.
+
+Opens no PR and never merges — `faff merge-gate` does **not** read build-progress (a resume artifact, not a merge-floor assertion).
+
 **Step 9: Review phase (mandatory — interactive and autonomous; runs PRE-PR)**
 
 Runs after AC verification, before the PR is opened (Step 9b) and before the merge-confidence gate. **Review runs pre-PR in both modes — no PR exists yet** (gateway → `faffter-noon-review` "Why pre-PR"): review iterates against the **branch/diff** (`git diff main...HEAD`), and the PR is opened only once review reaches `pass`, so review-fix iterations never burn CI. **This step is non-negotiable and runs in both interactive and autonomous modes.** Do not skip it on the assumption that the user will review manually, or because the build "felt clean", or because tests passed. The review is the senior-engineer stand-in — it catches scope creep, spec misreadings, and human-judgement items that the test suite can't. In interactive mode it also produces the comment the user reads when deciding whether to merge; without it, the user has nothing to decide against. (Step 0 forces this into the todo list; Step 9b only opens the PR on `pass`; Step 10's gate makes merge impossible without a `pass`, and Step 11 verifies it before any merge prompt — so a skipped review can't reach `main`.)
@@ -354,7 +370,7 @@ This step runs in **both** interactive and autonomous modes.
 
 **Step 9b: Open the PR (after review `pass` — identical interactive + autonomous)**
 
-Reached **only** when Step 9 returned `pass`. This is the single PR-creation point, the same in both modes (no mode-specific divergence): push the branch and open the PR as a **regular (non-draft) PR**. Before this point **no PR exists** — review and its findings lived entirely on the branch + the tracker issue, saving CI on every review-fix iteration. The PR body carries the Step 8 AC checklist; CI fires here, for the first time, against a diff review has already passed. Proceed to Step 10.
+Reached **only** when Step 9 returned `pass`. The single PR-creation point, the same in both modes. When `graft.push_at_build_complete` is on the branch was already pushed at **Step 8b**, so this step is **`gh pr create` only** (no push); when off, it pushes **and** opens the PR (today's compound). Either way it opens a **regular (non-draft) PR**, and **CI fires here for the first time** — a no-PR branch push never triggered it, so review-fix iterations (and the Step-8b push) burned no CI. The PR body carries the Step 8 AC checklist. Proceed to Step 10.
 
 ### Discovered scope (record, never file)
 
@@ -472,11 +488,12 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
    - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see the sibling `faff/SKILL.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 2b. After build, run **Step 7.5 (engineering gate ladder)** — `faff gates run` → pipe its `faff-contract:quality-gates` block to `faff contract quality-gates`. At L3 (the autonomous default) declared rungs are **required** and fail-fast: on `fail`, fix the failing rung and re-run (loop until `pass`/`needs-human`), **before** AC verification, review, or any PR/CI spend; on `needs-human` (errored rung, or `discovery: none` under `gates.fallback: fail-closed`), park per the shared protocol with no PR (maps to the `parked` bucket).
 3. After the gate ladder passes, run Step 8 (AC verification) — mandatory; it **consumes** the ladder's UNIT/LINT-rung results (one resolver, one suite run), not a second run.
+3b. Run **Step 8b** (push branch at build-complete + write the build-progress checkpoint — FAFF-402) so the built work is durable on `origin` and a re-dispatch resumes at review instead of rebuilding (Step 3 → _Resume-at-review check_). Gated on `graft.push_at_build_complete` (default on).
 4. Run Step 9 (review phase) — **pre-PR, no PR open yet** (review iterates against the branch/diff; findings → the **tracker issue**, never a PR). The terminal-verdict comment is posted-or-updated by the comment-identity contract — locate by its marker pair, create/update/reconcile per **gateway → Review-findings comment identity** (FAFF-202), the same in autonomous mode. Act on the three-valued signal:
    - `pass` → proceed to Step 9b (open the PR).
    - `fail` → iterate: fix flagged items, re-run tests, re-run review — **still pre-PR, no PR opened**. Loop until `pass` or `needs-human` (cap at 3 iterations; if still `fail` after 3, treat as `needs-human`).
    - `needs-human` → surface on the tracker issue as needs-human and park per the shared protocol **without opening a PR**. Return `needs-human` (a **no-PR** handoff, distinct from `pr-open-for-human` — see Return values).
-5. **Step 9b — open the PR (only reached on review `pass`).** Push the branch and open the PR as a **regular (non-draft) PR**. This is the single PR-creation point, identical to the interactive path; before this point no PR existed, so review-fix iterations never burned CI. Regular PRs are the default; a later post-PR gate decides whether to flip to draft.
+5. **Step 9b — open the PR (only reached on review `pass`).** Open a **regular (non-draft) PR** — `gh pr create` only when `graft.push_at_build_complete` is on (the branch was pushed at Step 8b), or the push+create compound when off. The single PR-creation point; **CI fires here for the first time** (a no-PR branch push never triggered it), so review-fix iterations never burned CI. A later post-PR gate decides whether to flip to draft.
 6. Run Step 10 (merge-confidence gate) automatically:
    - **All applicable conditions hold:** wait for CI to reach a terminal state (`gh pr checks --watch`), classify the result per _Classifying the CI result_; on `ci-green`, **under the L4 lights-out signal run the _Holdout gate_ (condition 4) last** — a holdout-block flips the PR to draft and returns `pr-open-for-human` (bucket `pr-open`) without merging; only on a `meets-spec` pass (or at L1–L3, where the gate does not apply) hand off to the `ship` producer (configured occupant or the default `faffter-noon-ship`) and pipe its `faff-contract:delivery-outcome` block to `faff contract delivery-outcome`, then map the outcome to a caller-facing return: `shipped` → `shipped` (worktree eligible for cleanup, chained issues unblock); `not-ready:<reason>` → park retry-later, return `pr-open-for-human`; `failed:<reason>` (including an unmappable result coerced to `failed`) → one fix attempt if obvious from the error, else park, return `pr-open-for-human`.
    - **CI failed (`ci-red`):** one fix attempt if the failure is obvious from the logs; otherwise flip to draft, park. Return `pr-open-for-human`.

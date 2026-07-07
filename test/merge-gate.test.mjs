@@ -65,6 +65,29 @@ test("merge-gate: a bad --level → exit 2", () => {
   assert.equal(code, 2);
 });
 
+// --- FAFF-375: --admin is off the allowlist; the human-only flags are fenced on a real TTY ---
+// runCli spawns a child with piped stdio (non-TTY by construction), so these exercise the exact
+// autonomous-lane refusal; the fence returns before any gh call, so no network is reached.
+test("merge-gate: --merge-args \"--admin\" → exit 2 naming the rejected token (FAFF-375)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--merge-args", "--admin"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /unrecognised --merge-args/);
+  assert.match(stderr, /--admin/);
+});
+
+test("merge-gate: non-TTY --interactive --human-override → exit 2 naming the TTY fence (FAFF-375)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--human-override"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /--human-override is human-only/);
+  assert.match(stderr, /real terminal/);
+});
+
+test("merge-gate: non-TTY --interactive --allow-no-ci → exit 2 naming the TTY fence (FAFF-375)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--interactive", "--allow-no-ci"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /--allow-no-ci is human-only/);
+});
+
 // --- the sole-sanctioned-path property: graft + default ship carry no raw `gh pr merge` command ---
 test("graft Step 10 + default ship producer contain no direct `gh pr merge` command (routes through merge-gate)", () => {
   const files = [

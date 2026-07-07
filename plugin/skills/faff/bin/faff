@@ -5679,7 +5679,7 @@ Subcommands:
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: the corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface. Under a shared uid faff cannot cryptographically stop a same-uid build lane from forging a corrective artifact / rewriting run-ledger.json (bin/faff:1683), so the probe proves no integrity boundary (asserted:false for ALL inputs; the signal seam is inert until FAFF-325 wires an un-forgeable channel) and the gate DEGRADES — corrective→channel-D (human relay), detection→reconcile-only (ledger content cross-checked vs git), unknown consumer→channel-D. No crypto/secret/signature. Prints {asserted, basis, trusted, disposition}; exit 0 (report/degrade, never a hard refuse) / 2 (unknown --consumer); --selftest runs the table
-  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 .faff/holdout/<ISSUE>.json via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto/--admin), any other token → exit 2. exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs) with no network
+  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 .faff/holdout/<ISSUE>.json via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto — --admin is deliberately NOT allowed: it bypasses the forge branch-protection backstop the floor leans on, so any --merge-args "--admin" → exit 2), any other token → exit 2. FAFF-375: the human-only flags --human-override and --allow-no-ci are FENCED on a genuine interactivity signal (process.stdin.isTTY === true AND --interactive) — a non-TTY (autonomous / agent-driven) invocation passing either → exit 2 fail-loud BEFORE any gh call, naming the run-it-yourself-in-a-real-terminal remedy (sibling argv flags are self-assertable, so they cannot be the fence). exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs + fenceHumanFlags) with no network
   branch-protection-check [--repo owner/repo] [--branch name] [--json]   FAFF-350: assert-don't-enforce probe (mirrors container-check / ADR-0010) — is the target branch protected? Probes gh api repos/{repo}/branches/{branch}/protection; PURE classifier over the probe result. Prints {status ∈ protected|unprotected|indeterminate, required_checks, basis}; exit 0 protected · 1 not-confirmed (unprotected/indeterminate). The autonomous-entry preflight (beep-boop + lights-out) WARNS by default on not-confirmed, BLOCKS under the opt-in autonomous.require_branch_protection knob, never fires interactive; --selftest runs the classifier table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   project-next --current planned|started|completed|cancelled [--kind project|issue] --total N --active N --done N [--has-dod] [--json]   FAFF-248: container (project|parent-issue) state-coherence transition predicate — emit a ContainerTransition JSON {kind,current,desired,action,reason} from a child-issue rollup. PURE (no tracker/network — parity with next/contain): the /faff-tidy orchestrator-lane sweep maps live child statuses to {total,active,done} and applies any advance. Forward-only + monotonic — advance ONLY when rank(desired)>rank(current); never moves a container backward. v1: project→started (first child starts) · parent-issue→started (any child in progress) · project→completed (ALL children done AND no DoD; --has-dod defers to FAFF-259). Parent-issue→Done out of scope. exit 0 (pure compute) / 2 malformed rollup; --selftest runs the transition + monotonicity table
@@ -13828,12 +13828,36 @@ function cmdRegions(args) {
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
 // untrusted free-text reaches the merge shell (the caller is always graft / the default ship
 // producer — never a ticket description). Unrecognised token → the whole call fail-louds.
-const MERGE_FLAG_ALLOW = new Set(["--squash", "--merge", "--rebase", "--delete-branch", "--auto", "--admin"]);
+// `--admin` is deliberately ABSENT (FAFF-375): it tells the forge to bypass branch protection —
+// the forge-side backstop the merge floor itself leans on (and which `faff branch-protection-check`
+// exists to assert) — so faff must never issue one under any lane. `--merge-args "--admin"` now
+// lands in `rejected` → exit 2 via the existing unrecognised-token path. A human who genuinely
+// needs a force-merge does it at the forge, the same loud off-script boundary FAFF-350 accepts.
+const MERGE_FLAG_ALLOW = new Set(["--squash", "--merge", "--rebase", "--delete-branch", "--auto"]);
 function parseMergeArgs(s) {
   const toks = String(s || "").trim().split(/\s+/).filter(Boolean);
   const flags = [], rejected = [];
   for (const t of toks) { if (MERGE_FLAG_ALLOW.has(t)) flags.push(t); else rejected.push(t); }
   return { flags, rejected };
+}
+
+// PURE (FAFF-375): fence the two HUMAN-ONLY flags on a genuine interactivity signal, not sibling
+// argv flags. `--human-override` (replaces the refusal, overriding every blocker at once) and
+// `--allow-no-ci` (opts a change-class past the no-ci-coverage refusal) both weaken the floor, so
+// each may be honoured ONLY when a real human is at the process terminal — signalled by
+// `process.stdin.isTTY === true` (the shell coerces undefined/absent → false, fail-closed) AND the
+// declarative `--interactive` pairing. An autonomous caller cannot mint a TTY by adding a token to
+// its own argv, so the gate's guarantee no longer depends on callers omitting a flag. A violation
+// is a bad invocation → exit 2 fail-loud (never a silent downgrade to the plain exit-1 refusal,
+// which would read as "floor not met" and invite retry-with-different-flags).
+function fenceHumanFlags(i) {
+  const violations = [];
+  const remedy = "run this merge-gate command yourself in a real terminal";
+  if (i.human_override && !i.stdin_is_tty) violations.push(`--human-override is human-only: stdin is not a TTY — ${remedy}`);
+  if (i.allow_no_ci && !i.stdin_is_tty) violations.push(`--allow-no-ci is human-only: stdin is not a TTY — ${remedy}`);
+  if (i.human_override && !i.interactive) violations.push("--human-override requires --interactive");
+  if (i.allow_no_ci && !i.interactive) violations.push("--allow-no-ci requires --interactive");
+  return { ok: violations.length === 0, violations };
 }
 
 // PURE: classify the check set FOR THE HEAD SHA into the FAFF-3 trichotomy (+ indeterminate).
@@ -14013,7 +14037,8 @@ function cmdMergeGate(args) {
   const mode = args.includes("--check-only") ? "check-only" : "execute";
   const interactive = args.includes("--interactive");
   const humanOverride = args.includes("--human-override");
-  const noCiPolicy = args.includes("--allow-no-ci") ? "allow" : "needs-human";
+  const allowNoCi = args.includes("--allow-no-ci");
+  const noCiPolicy = allowNoCi ? "allow" : "needs-human";
   const mergeArgsRaw = adrFlag(args, "--merge-args") || "";
   const repoFlag = adrFlag(args, "--repo");
 
@@ -14022,6 +14047,13 @@ function cmdMergeGate(args) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
   const parsedMerge = parseMergeArgs(mergeArgsRaw);
   if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
+
+  // FAFF-375: fence the human-only flags on a genuine interactivity signal BEFORE any gh call —
+  // a fenced flag from a non-interactive context is a caller bug, surfaced loudly (exit 2) rather
+  // than silently ignored. Pre-network ordering also makes the refusal CLI-boundary-testable with
+  // zero mocking (the spawned test child is non-TTY by construction).
+  const fence = fenceHumanFlags({ human_override: humanOverride, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
+  if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
 
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
@@ -14150,6 +14182,19 @@ function mergeGateSelftest() {
   check("merge-args: allowed pass through", (() => { const p = parseMergeArgs("--squash --delete-branch"); return p.flags.length === 2 && p.rejected.length === 0; })());
   check("merge-args: unknown token rejected", parseMergeArgs("--squash; rm -rf /").rejected.length > 0);
   check("merge-args: empty → nothing", (() => { const p = parseMergeArgs(""); return p.flags.length === 0 && p.rejected.length === 0; })());
+  // FAFF-375: --admin is no longer in the allowlist — it lands in rejected (exit-2 path)
+  check("merge-args: --admin rejected (FAFF-375)", (() => { const p = parseMergeArgs("--admin"); return p.rejected.includes("--admin") && p.flags.length === 0; })());
+  check("merge-args: --squash --admin → --squash passes, --admin rejected", (() => { const p = parseMergeArgs("--squash --admin"); return p.flags.includes("--squash") && p.rejected.includes("--admin"); })());
+  // fenceHumanFlags (FAFF-375): human-only flags fenced on a genuine interactivity signal (TTY + --interactive)
+  const fence = (o) => fenceHumanFlags({ human_override: false, allow_no_ci: false, interactive: false, stdin_is_tty: false, ...o });
+  check("fence: --human-override + non-TTY → violation", !fence({ human_override: true, interactive: true }).ok);
+  check("fence: --human-override + TTY + no --interactive → violation", !fence({ human_override: true, stdin_is_tty: true }).ok);
+  check("fence: --human-override + TTY + --interactive → ok", fence({ human_override: true, interactive: true, stdin_is_tty: true }).ok);
+  check("fence: --allow-no-ci + non-TTY → violation", !fence({ allow_no_ci: true, interactive: true }).ok);
+  check("fence: --allow-no-ci + TTY + no --interactive → violation", !fence({ allow_no_ci: true, stdin_is_tty: true }).ok);
+  check("fence: --allow-no-ci + TTY + --interactive → ok", fence({ allow_no_ci: true, interactive: true, stdin_is_tty: true }).ok);
+  check("fence: neither human-only flag + non-TTY → ok (ordinary autonomous path untouched)", fence({}).ok);
+  check("fence: non-TTY names the real-terminal remedy", /real terminal/.test(fence({ human_override: true, interactive: true }).violations.join(" ")));
   // classifyCiObservation (FAFF-376): primary check-runs signal is required; legacy status is an optional supplement
   check("ci-obs: both APIs down → indeterminate + reason", (() => { const r = classifyCiObservation(false, [], false, null, 0); return r.ci_state === "indeterminate" && !!r.api_degraded_reason; })());
   check("ci-obs: check-runs down + legacy success(n>0) → indeterminate (FAFF-376)", classifyCiObservation(false, [], true, "success", 1).ci_state === "indeterminate");

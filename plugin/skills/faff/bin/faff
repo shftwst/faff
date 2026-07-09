@@ -2620,17 +2620,18 @@ function childOwningSession(file) {
 // FAFF-408: this is the ONE attribution loop — `measureTokens` (the scalar total)
 // derives from it, so the by-class deltas and the budget total share a single
 // child-attribution gate and can never drift (the FAFF-229 over-count guard-rail).
-function measureTokensByClass(opts) {
-  const { cwd, env, runStartMs } = opts;
-  const sid = env.CLAUDE_CODE_SESSION_ID;
-  const base = transcriptBaseDir(cwd, env);
+// The ordered set of transcript files a run OWNS: its `<sid>.jsonl` orchestrator
+// transcript first, then every child `agent-*.jsonl` whose own first-record
+// sessionId === sid (the FAFF-229 attribution gate; mtime is a cheap pre-filter
+// only, NEVER the gate). Returns null — the estimate-degrade signal — when the
+// transcript is unavailable (no sid, dir missing, session file absent). This is
+// the SINGLE file-selection resolver: `measureTokensByClass` (the budget/economics
+// scalar total) and the FAFF-410 `--by` breakdown both walk it, so the breakdown
+// reconciles to the top-line total by construction — never a divergent census.
+function sessionOwnedTranscriptFiles(base, sid, runStartMs) {
   const sessionFile = sid ? path.join(base, `${sid}.jsonl`) : null;
-  // Transcript unavailable (no session id, dir missing, or session file absent —
-  // e.g. CLAUDE_CODE_SKIP_PROMPT_HISTORY) → estimate fallback (caller computes).
-  if (!sid || !fs.existsSync(base) || !sessionFile || !fs.existsSync(sessionFile)) {
-    return { tokens: null, source: "estimate" };
-  }
-  const acc = sumTranscriptFileByClass(sessionFile);
+  if (!sid || !fs.existsSync(base) || !sessionFile || !fs.existsSync(sessionFile)) return null;
+  const files = [sessionFile];
   // Aggregate this run's child subagent transcripts — attributed by their OWNING
   // SESSION (childOwningSession === sid), NOT by mtime. mtime is a wall-clock touch
   // time, not an ownership signal: a prior/parallel run's child touched after this
@@ -2653,6 +2654,21 @@ function measureTokensByClass(opts) {
       if (st.mtimeMs < runStartMs) continue; // cheap pre-filter (NOT the attribution gate)
     }
     if (childOwningSession(f) !== sid) continue; // attribution gate: owned by THIS run only
+    files.push(f);
+  }
+  return files;
+}
+
+function measureTokensByClass(opts) {
+  const { cwd, env, runStartMs } = opts;
+  const sid = env.CLAUDE_CODE_SESSION_ID;
+  const base = transcriptBaseDir(cwd, env);
+  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
+  // Transcript unavailable (no session id, dir missing, or session file absent —
+  // e.g. CLAUDE_CODE_SKIP_PROMPT_HISTORY) → estimate fallback (caller computes).
+  if (!files) return { tokens: null, source: "estimate" };
+  const acc = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  for (const f of files) {
     const c = sumTranscriptFileByClass(f);
     for (const cls of TOKEN_DELTA_CLASSES) acc[cls] += c[cls];
   }
@@ -3004,10 +3020,463 @@ function attributePerIssueCosts(base, sid, ledger, price) {
   }));
 }
 
+// ===========================================================================
+// === region:factory — economics breakdown — FAFF-410: `--by class|model|mcp|day`. ===
+// Additive to FAFF-357 economics: the SAME transcript walk measureTokens sums,
+// PIVOTED into per-class / per-model / per-day / per-MCP-tool buckets and priced
+// per-model × per-class. No `--by` flag → economics is byte-for-byte unchanged.
+//
+// Reuse, not a second census: the record set is EXACTLY measureTokens' selected
+// files (sessionOwnedTranscriptFiles) and the usage rule is sumTranscriptFile's
+// (rec.message.usage ?? rec.usage, ANY record type), so `--by class` reconciles
+// to the top-line total by construction. `--by mcp` reuses FAFF-409's MEASURED
+// per-tool cache-read attribution (lifted from scripts/token-breakdown.mjs) —
+// never a global amplification factor.
+//
+// NON-LEAK INVARIANT (FAFF-407 §5): emits ONLY counts, sizes, names, model-ids
+// and derived costs — never transcript payload content. Payloads are read solely
+// to measure serialized size.
+// ===========================================================================
+
+const BY_AXES = ["class", "model", "mcp", "day"];
+
+// Per-model × per-class USD price per 1M tokens. Built-in default (seeded from the
+// FAFF-407 reference `PRICE_PER_MTOK`). An optional `budget.price_per_mtok_by_model`
+// config map is consulted FIRST (per-model; see resolveEconomicsPriceMap). A model
+// absent from BOTH prices to null (cost:null, kept distinct from $0). A dated
+// model-id suffix (-YYYYMMDD) is stripped before lookup, exactly as the reference.
+const PRICE_PER_MTOK = {
+  "claude-fable-5": { input: 10, output: 50, cache_write: 12.5, cache_read: 1.0 },
+  "claude-opus-4-8": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
+  "claude-opus-4-7": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
+  "claude-opus-4-6": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
+  "claude-opus-4-5": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
+  "claude-sonnet-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
+  "claude-sonnet-4-6": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
+  "claude-sonnet-4-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
+  "claude-haiku-4-5": { input: 1, output: 5, cache_write: 1.25, cache_read: 0.1 },
+};
+
+// Resolve a model's per-class price row, or null when unknown in BOTH the config
+// override and the built-in map (caller renders cost:null). A missing class within
+// a resolved row defaults to 0 (a partial price → $0 for that class).
+function economicsPriceForModel(model, priceMap) {
+  const m = priceMap || PRICE_PER_MTOK;
+  const row = m[model] || m[String(model).replace(/-\d{8}$/, "")];
+  if (!row || typeof row !== "object") return null;
+  return {
+    input: Number(row.input) || 0,
+    output: Number(row.output) || 0,
+    cache_write: Number(row.cache_write) || 0,
+    cache_read: Number(row.cache_read) || 0,
+  };
+}
+
+// Merge an optional `budget.price_per_mtok_by_model` config map OVER the built-in
+// defaults (config wins per-model). Pure; returns the built-in map unchanged when
+// no valid override is present.
+function resolveEconomicsPriceMap(cfg) {
+  const override = dig(cfg, "budget.price_per_mtok_by_model");
+  if (!override || typeof override !== "object" || Array.isArray(override)) return PRICE_PER_MTOK;
+  const merged = { ...PRICE_PER_MTOK };
+  for (const [model, row] of Object.entries(override)) {
+    if (row && typeof row === "object" && !Array.isArray(row)) merged[model] = row;
+  }
+  return merged;
+}
+
+// Usage / model / day selectors — the SAME record rule as sumTranscriptFileByClass
+// (rec.message.usage ?? rec.usage, any record type), so the pivot selects exactly
+// the records the top-line sum does.
+function economicsUsageOf(rec) {
+  if (rec && rec.message && rec.message.usage && typeof rec.message.usage === "object") return rec.message.usage;
+  if (rec && rec.usage && typeof rec.usage === "object") return rec.usage;
+  return null;
+}
+function economicsDayOf(rec) {
+  const ts = rec && rec.timestamp;
+  if (typeof ts !== "string") return "unknown";
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(ts);
+  return m ? m[1] : "unknown";
+}
+
+// The cost of a class-count bucket priced at one model, or null when the model is
+// unpriced (distinct from $0). `counts` carries the four TOKEN_DELTA_CLASSES.
+function economicsRowCost(counts, model, priceMap) {
+  const price = economicsPriceForModel(model, priceMap);
+  if (!price) return null;
+  let c = 0;
+  for (const cls of TOKEN_DELTA_CLASSES) c += ((counts[cls] || 0) / 1e6) * price[cls];
+  return c;
+}
+
+// ---- FAFF-409 MEASURED per-tool MCP cache-read attribution (lifted verbatim in
+// substance from scripts/token-breakdown.mjs; kept self-contained so faff stays a
+// zero-dep single file and never depends on the retirable spike script). Payload
+// is read for SIZE ONLY — the light record retains block sizes/ids/flags, never
+// payload text. ----
+const ECON_B2T = 4;                                  // bytes -> approx tokens (~chars/4)
+const economicsTokFromChars = (chars) => Math.round((chars || 0) / ECON_B2T);
+function econBlockSizeChars(block) {
+  if (!block || typeof block !== "object") return 0;
+  if (block.type === "tool_result") {
+    const c = block.content;
+    try { return typeof c === "string" ? c.length : JSON.stringify(c ?? "").length; } catch { return 0; }
+  }
+  if (block.type === "text") return typeof block.text === "string" ? block.text.length : 0;
+  if (block.type === "thinking") return typeof block.thinking === "string" ? block.thinking.length : 0;
+  try { return JSON.stringify(block).length; } catch { return 0; }
+}
+function econIsCompactBoundary(rec) {
+  if (!rec || typeof rec !== "object") return false;
+  if (rec.isCompactSummary === true) return true;
+  return typeof rec.subtype === "string" && rec.subtype === "compact_boundary";
+}
+function econToLightRecord(rec, idx) {
+  const sessionId = (rec && typeof rec.sessionId === "string" && rec.sessionId) || "unknown-session";
+  const isSidechain = !!(rec && rec.isSidechain);
+  const u = economicsUsageOf(rec);
+  const cacheRead = u && typeof u.cache_read_input_tokens === "number" && Number.isFinite(u.cache_read_input_tokens)
+    ? u.cache_read_input_tokens : 0;
+  const blocks = [];
+  const content = rec && rec.message && rec.message.content;
+  if (Array.isArray(content)) {
+    for (const block of content) {
+      if (!block || typeof block !== "object") continue;
+      const size_tok = economicsTokFromChars(econBlockSizeChars(block));
+      const tool_use_id = block.type === "tool_result" && typeof block.tool_use_id === "string" ? block.tool_use_id : null;
+      blocks.push({ size_tok, tool_use_id, mcp_tool: null });
+    }
+  }
+  return {
+    idx,
+    lineage: sessionId + "::" + (isSidechain ? "side" : "main"),
+    uuid: (rec && typeof rec.uuid === "string" && rec.uuid) || null,
+    parentUuid: (rec && typeof rec.parentUuid === "string" && rec.parentUuid) || null,
+    timestamp: (rec && typeof rec.timestamp === "string" && rec.timestamp) || null,
+    billed: u !== null,
+    cacheRead,
+    isBoundary: econIsCompactBoundary(rec),
+    blocks,
+  };
+}
+function econOrderLineage(recs) {
+  const byUuid = new Map();
+  for (const r of recs) if (r.uuid) byUuid.set(r.uuid, r);
+  const childOf = new Map();
+  const roots = [];
+  for (const r of recs) {
+    if (r.parentUuid && byUuid.has(r.parentUuid) && r.parentUuid !== r.uuid) {
+      if (!childOf.has(r.parentUuid)) childOf.set(r.parentUuid, []);
+      childOf.get(r.parentUuid).push(r);
+    } else { roots.push(r); }
+  }
+  const cmp = (a, b) => {
+    if (a.timestamp && b.timestamp && a.timestamp !== b.timestamp) return a.timestamp < b.timestamp ? -1 : 1;
+    return a.idx - b.idx;
+  };
+  const ordered = [];
+  const seen = new Set();
+  const visit = (r) => {
+    if (seen.has(r)) return;
+    seen.add(r);
+    ordered.push(r);
+    const kids = (childOf.get(r.uuid) || []).slice().sort(cmp);
+    for (const k of kids) visit(k);
+  };
+  roots.sort(cmp);
+  for (const r of roots) visit(r);
+  for (const r of recs) if (!seen.has(r)) ordered.push(r);
+  return ordered;
+}
+// Attribute billed cache_read across resident blocks pro-rata by size, PER LINEAGE,
+// clearing the resident prefix at a detected compaction boundary. `perTool` collects
+// each MCP tool_result block's share → the MEASURED per-tool cache-amplification,
+// reconciling to the billed cache_read total by construction.
+function econAttributeCacheRead(lightRecords) {
+  const byLineage = new Map();
+  for (const r of lightRecords) {
+    if (!byLineage.has(r.lineage)) byLineage.set(r.lineage, []);
+    byLineage.get(r.lineage).push(r);
+  }
+  const perTool = new Map();
+  let billed = 0, mcpShare = 0, nonmcpShare = 0, unattributed = 0;
+  for (const recs of byLineage.values()) {
+    const ordered = econOrderLineage(recs);
+    let resident = [];
+    let residentWeight = 0;
+    for (const rec of ordered) {
+      if (rec.isBoundary) { resident = []; residentWeight = 0; }
+      if (rec.billed && rec.cacheRead > 0) {
+        const cr = rec.cacheRead;
+        billed += cr;
+        if (residentWeight > 0) {
+          for (const b of resident) {
+            const share = cr * (b.size_tok / residentWeight);
+            if (b.mcp_tool) { mcpShare += share; perTool.set(b.mcp_tool, (perTool.get(b.mcp_tool) || 0) + share); }
+            else { nonmcpShare += share; }
+          }
+        } else { unattributed += cr; }
+      }
+      for (const b of rec.blocks) if (b.size_tok > 0) { resident.push(b); residentWeight += b.size_tok; }
+    }
+  }
+  const unattributedInt = Math.round(unattributed);
+  const mcpShareInt = Math.round(mcpShare);
+  const nonmcpShareInt = billed - unattributedInt - mcpShareInt;
+  const perToolInt = new Map();
+  for (const [k, v] of perTool) perToolInt.set(k, Math.round(v));
+  return {
+    perTool: perToolInt,
+    cache_read_total_billed: billed,
+    cache_read_attributed: mcpShareInt + nonmcpShareInt,
+    unattributed: unattributedInt,
+    mcp_share_tok: mcpShareInt,
+    nonmcp_share_tok: nonmcpShareInt,
+    reconciles: (mcpShareInt + nonmcpShareInt + unattributedInt) === billed,
+  };
+}
+
+// PURE breakdown core — no I/O. Pivots pre-parsed transcript records into the
+// requested axis' buckets, prices per-model × per-class, and reconciles to the
+// top-line total (`topLineTotal`, the raw measureTokens sum over the SAME files;
+// null for the estimate path). Selftest-coverable like computeUnitEconomics.
+function economicsBreakdown(records, axis, priceMap, topLineTotal) {
+  const grandTotal = { total: 0 };
+  const byClass = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const byModel = new Map();               // model -> {input,output,cache_write,cache_read,total}
+  const byDay = new Map();                 // day -> Map(model -> {classes,total})
+  const modelTokens = new Map();           // model -> total tokens (dominant-model resolution)
+  const mkc = () => ({ input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 });
+
+  for (const rec of records) {
+    const u = economicsUsageOf(rec);
+    if (!u) continue;
+    const model = (rec.message && typeof rec.message.model === "string" && rec.message.model) || "unknown";
+    const day = economicsDayOf(rec);
+    if (!byModel.has(model)) byModel.set(model, mkc());
+    const mb = byModel.get(model);
+    if (!byDay.has(day)) byDay.set(day, new Map());
+    const dm = byDay.get(day);
+    if (!dm.has(model)) dm.set(model, mkc());
+    const db = dm.get(model);
+    for (const cls of TOKEN_DELTA_CLASSES) {
+      const v = u[TOKEN_CLASS_FROM_USAGE[cls]];
+      if (typeof v === "number" && Number.isFinite(v)) {
+        grandTotal.total += v;
+        byClass[cls] += v;
+        mb[cls] += v; mb.total += v;
+        db[cls] += v; db.total += v;
+        modelTokens.set(model, (modelTokens.get(model) || 0) + v);
+      }
+    }
+  }
+
+  // dominant model = the most-token-bearing model (ties → model-id ascending),
+  // ignoring the "unknown" bucket unless it is the only model present.
+  const dominant = [...modelTokens.entries()].filter(([m]) => m !== "unknown")
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0]
+    || [...modelTokens.keys()][0] || null;
+
+  const mkRow = (key, counts, model) => ({
+    key,
+    input: counts.input, output: counts.output, cache_write: counts.cache_write, cache_read: counts.cache_read,
+    total: counts.total,
+    cost: economicsRowCost(counts, model, priceMap),
+  });
+
+  let rows = [];
+  let pricedAtModel = null;
+
+  if (axis === "class") {
+    // one row per class, fixed order; priced at the run's dominant model, named.
+    pricedAtModel = dominant;
+    const price = dominant ? economicsPriceForModel(dominant, priceMap) : null;
+    rows = TOKEN_DELTA_CLASSES.map((cls) => {
+      const one = { input: 0, output: 0, cache_write: 0, cache_read: 0, total: byClass[cls] };
+      one[cls] = byClass[cls];
+      return { key: cls, ...one, cost: price ? (byClass[cls] / 1e6) * price[cls] : null };
+    });
+  } else if (axis === "model") {
+    rows = [...byModel.entries()].map(([model, b]) => mkRow(model, b, model))
+      .sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
+  } else if (axis === "day") {
+    rows = [...byDay.entries()].map(([day, dm]) => {
+      const agg = mkc();
+      let cost = 0, anyPriced = false;
+      for (const [model, b] of dm) {
+        for (const cls of TOKEN_DELTA_CLASSES) agg[cls] += b[cls];
+        agg.total += b.total;
+        const c = economicsRowCost(b, model, priceMap);
+        if (c != null) { cost += c; anyPriced = true; }
+      }
+      return { key: day, input: agg.input, output: agg.output, cache_write: agg.cache_write, cache_read: agg.cache_read, total: agg.total, cost: anyPriced ? cost : null };
+    }).sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  }
+
+  const grand = rows.reduce((s, r) => s + r.total, 0);
+  const reconciliation = {
+    grand_total: grand,
+    top_line_total: (typeof topLineTotal === "number") ? topLineTotal : null,
+    reconciles: (typeof topLineTotal === "number") ? grand === topLineTotal : false,
+  };
+  const out = { axis, source: "transcript", rows, reconciliation };
+  if (axis === "class") out.priced_at_model = pricedAtModel;
+  return out;
+}
+
+// PURE MCP breakdown core — call_count / request_bytes / response_bytes census
+// (exact) + FAFF-409 MEASURED per-tool cache-read attribution. Priced at the run's
+// dominant model. Ordering: call_count desc, ties tool-name asc. NON-LEAK: only
+// counts, byte-sizes, tool names and derived costs — never payload content.
+function economicsMcpBreakdown(records, priceMap, dominant) {
+  const idToTool = new Map();
+  const mcpTools = new Map();          // bare name -> { call_count, request_bytes, response_bytes }
+  const pendingResults = [];
+  const light = [];
+  let idx = 0;
+  for (const rec of records) {
+    light.push(econToLightRecord(rec, idx++));
+    const content = rec && rec.message && rec.message.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (!block || typeof block !== "object") continue;
+      if (block.type === "tool_use" && typeof block.name === "string" && block.name.startsWith("mcp__")) {
+        const bare = block.name.replace(/^mcp__/, "");
+        if (typeof block.id === "string") idToTool.set(block.id, bare);
+        const t = mcpTools.get(bare) || { call_count: 0, request_bytes: 0, response_bytes: 0 };
+        t.call_count += 1;
+        try { t.request_bytes += JSON.stringify(block.input ?? {}).length; } catch { /* size only */ }
+        mcpTools.set(bare, t);
+      } else if (block.type === "tool_result") {
+        let size = 0;
+        try { size = typeof block.content === "string" ? block.content.length : JSON.stringify(block.content ?? "").length; } catch { size = 0; }
+        pendingResults.push({ id: block.tool_use_id, size });
+      }
+    }
+  }
+  for (const { id, size } of pendingResults) {
+    const bare = idToTool.get(id);
+    if (!bare) continue;
+    const t = mcpTools.get(bare);
+    if (t) t.response_bytes += size;
+  }
+  // resolve each light tool_result block's mcp_tool, then MEASURED attribution
+  for (const r of light) for (const b of r.blocks) if (b.tool_use_id) b.mcp_tool = idToTool.get(b.tool_use_id) || null;
+  const attr = econAttributeCacheRead(light);
+  const price = economicsPriceForModel(dominant, priceMap);
+  const rows = [...mcpTools.entries()].map(([tool, t]) => {
+    const request_tok = economicsTokFromChars(t.request_bytes);
+    const response_tok = economicsTokFromChars(t.response_bytes);
+    const cache_read_measured_tok = attr.perTool.get(tool) || 0;
+    const amplification_ratio = response_tok > 0 ? Number((cache_read_measured_tok / response_tok).toFixed(2)) : 0;
+    const cost = price
+      ? Number((((request_tok + response_tok) * price.input + cache_read_measured_tok * price.cache_read) / 1e6).toFixed(6))
+      : null;
+    return { tool, call_count: t.call_count, request_bytes: t.request_bytes, response_bytes: t.response_bytes,
+      request_tok, response_tok, cache_read_measured_tok, amplification_ratio, cost };
+  }).sort((a, b) => b.call_count - a.call_count || (a.tool < b.tool ? -1 : a.tool > b.tool ? 1 : 0));
+  return {
+    axis: "mcp",
+    source: "transcript",
+    priced_at_model: dominant,
+    rows,
+    reconciliation: {
+      basis: "measured (FAFF-409 per-tool cache-read attribution)",
+      cache_read_total_billed: attr.cache_read_total_billed,
+      cache_read_attributed: attr.cache_read_attributed,
+      mcp_share_tok: attr.mcp_share_tok,
+      nonmcp_share_tok: attr.nonmcp_share_tok,
+      unattributed: attr.unattributed,
+      mcp_share_pct: attr.cache_read_total_billed > 0
+        ? Number((100 * attr.mcp_share_tok / attr.cache_read_total_billed).toFixed(3)) : 0,
+      reconciles: attr.reconciles,
+    },
+  };
+}
+
+// The run's dominant model over the SAME record set (token-bearing, ties asc).
+function economicsDominantModel(records) {
+  const modelTokens = new Map();
+  for (const rec of records) {
+    const u = economicsUsageOf(rec);
+    if (!u) continue;
+    const model = (rec.message && typeof rec.message.model === "string" && rec.message.model) || "unknown";
+    let sum = 0;
+    for (const cls of TOKEN_DELTA_CLASSES) { const v = u[TOKEN_CLASS_FROM_USAGE[cls]]; if (typeof v === "number" && Number.isFinite(v)) sum += v; }
+    modelTokens.set(model, (modelTokens.get(model) || 0) + sum);
+  }
+  return [...modelTokens.entries()].filter(([m]) => m !== "unknown")
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0]
+    || [...modelTokens.keys()][0] || null;
+}
+
+// I/O reader — read the run's session-owned transcript records (the SAME file set
+// measureTokens sums), parse each line into a record, and return them for the pure
+// core. Degrades to source:"estimate" (empty records) exactly as measureTokens does.
+function readRunTranscriptRecords(cwd, env, runStartMs) {
+  const sid = env.CLAUDE_CODE_SESSION_ID;
+  const base = transcriptBaseDir(cwd, env);
+  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
+  if (!files) return { records: [], source: "estimate" };
+  const records = [];
+  for (const f of files) {
+    let text;
+    try { text = fs.readFileSync(f, "utf8"); } catch { continue; }
+    for (const line of text.split("\n")) {
+      const s = line.trim();
+      if (!s) continue;
+      let rec;
+      try { rec = JSON.parse(s); } catch { continue; }
+      records.push(rec);
+    }
+  }
+  return { records, source: "transcript" };
+}
+
+// Render a breakdown as a skimmable text table (the human default for `--by`).
+function renderEconomicsBreakdown(bd) {
+  const M = (n) => (n / 1e6).toFixed(2) + "M";
+  const usd = (n) => (n == null ? "—" : "$" + n.toFixed(4));
+  const lines = [];
+  if (bd.source === "estimate") {
+    lines.push(`# economics --by ${bd.axis}: no resolvable session transcript — source:estimate, no breakdown`);
+    return lines.join("\n");
+  }
+  if (bd.axis === "mcp") {
+    const rc = bd.reconciliation;
+    lines.push(`# economics --by mcp — MEASURED per-tool cache-read attribution (FAFF-409)`);
+    lines.push(`  billed cache_read=${M(rc.cache_read_total_billed)}  attributed=${M(rc.cache_read_attributed)}  unattributed=${M(rc.unattributed)}  reconciles=${rc.reconciles}`);
+    lines.push(`  MCP share of cache_read: ${rc.mcp_share_pct}%  ·  cost priced at ${bd.priced_at_model || "—"}  (~tokens = bytes/4)`);
+    lines.push(`  ${"tool".padEnd(34)} ${"calls".padStart(6)} ${"req~".padStart(9)} ${"resp~".padStart(9)} ${"cache_read~".padStart(11)} ${"amp".padStart(6)} ${"cost".padStart(10)}`);
+    for (const r of bd.rows) {
+      lines.push(`  ${r.tool.slice(0, 34).padEnd(34)} ${String(r.call_count).padStart(6)} ${String(r.request_tok).padStart(9)} ${String(r.response_tok).padStart(9)} ${String(r.cache_read_measured_tok).padStart(11)} ${("×" + r.amplification_ratio).padStart(6)} ${usd(r.cost).padStart(10)}`);
+    }
+    return lines.join("\n");
+  }
+  const rc = bd.reconciliation;
+  const at = bd.axis === "class" && bd.priced_at_model ? `  (priced at ${bd.priced_at_model})` : "";
+  lines.push(`# economics --by ${bd.axis}${at}`);
+  lines.push(`  ${"key".padEnd(22)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
+  for (const r of bd.rows) {
+    lines.push(`  ${String(r.key).slice(0, 22).padEnd(22)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+  }
+  lines.push(`  reconciles=${rc.reconciles}  (grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total})`);
+  return lines.join("\n");
+}
+
 function cmdEconomics(args) {
   if (args.includes("--selftest")) return economicsSelftest();
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const root = get("--root") || findRoot();
+
+  // FAFF-410: optional `--by <axis>` breakdown. Fail-loud on an unrecognised axis
+  // (mirrors validateModelLane) — never a silent default.
+  const byAxis = get("--by");
+  if (byAxis != null && !BY_AXES.includes(byAxis)) {
+    process.stderr.write(`faff economics: --by '${byAxis}' is not one of {${BY_AXES.join(", ")}}\n`);
+    return 2;
+  }
 
   // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest) —
   // the same resolution `budget check` uses.
@@ -3056,7 +3525,35 @@ function cmdEconomics(args) {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
     tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
   });
-  console.log(JSON.stringify(econ));
+
+  // No `--by` → today's behaviour, byte-for-byte (always-JSON UnitEconomics blob).
+  if (byAxis == null) {
+    console.log(JSON.stringify(econ));
+    return 0;
+  }
+
+  // `--by <axis>`: pivot the SAME transcript record set into the requested axis'
+  // buckets. topLineTotal is the RAW measureTokens sum over the same files (never
+  // baseline-subtracted), so `--by class` reconciles by construction.
+  const priceMap = resolveEconomicsPriceMap(cfg);
+  let bd;
+  if (measured.source !== "transcript") {
+    bd = { axis: byAxis, source: "estimate", rows: [],
+      reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
+  } else {
+    const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
+    if (byAxis === "mcp") {
+      bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
+    } else {
+      bd = economicsBreakdown(records, byAxis, priceMap, measured.total);
+    }
+  }
+
+  if (args.includes("--json")) {
+    console.log(JSON.stringify({ ...econ, breakdown: bd }));
+    return 0;
+  }
+  console.log(renderEconomicsBreakdown(bd));
   return 0;
 }
 
@@ -3121,6 +3618,49 @@ function economicsSelftest() {
   ok("skips description with no issue id", economicsAttributeIssue("tidy the backlog", oc) === null);
   ok("skips foreign/stale id not in ledger", economicsAttributeIssue("Build FAFF-999", oc) === null);
   ok("skips non-string description", economicsAttributeIssue(undefined, oc) === null);
+
+  // --- FAFF-410: breakdown pivot (pure cores) ---
+  const recs = [
+    { message: { model: "claude-opus-4-8", usage: { input_tokens: 100, output_tokens: 10, cache_creation_input_tokens: 20, cache_read_input_tokens: 1000 } }, timestamp: "2026-07-01T10:00:00Z" },
+    { message: { model: "claude-sonnet-4-6", usage: { input_tokens: 50, output_tokens: 5, cache_read_input_tokens: 500 } }, timestamp: "2026-07-02T11:00:00Z" },
+  ];
+  const topline = 100 + 10 + 20 + 1000 + 50 + 5 + 500; // 1685
+
+  const bc = economicsBreakdown(recs, "class", PRICE_PER_MTOK, topline);
+  ok("class axis: 4 rows fixed order", bc.rows.length === 4 && bc.rows.map((r) => r.key).join(",") === "input,output,cache_write,cache_read");
+  ok("class axis: reconciles to top-line", bc.reconciliation.reconciles === true && bc.reconciliation.grand_total === topline);
+  ok("class axis: per-class totals", bc.rows[0].total === 150 && bc.rows[3].total === 1500);
+  ok("class axis: priced at dominant model", bc.priced_at_model === "claude-opus-4-8");
+
+  const bm = economicsBreakdown(recs, "model", PRICE_PER_MTOK, topline);
+  ok("model axis: one row per model, desc by total", bm.rows.length === 2 && bm.rows[0].key === "claude-opus-4-8");
+  ok("model axis: rows sum to top-line", bm.reconciliation.grand_total === topline && bm.reconciliation.reconciles === true);
+  ok("model axis: prices each row at its own model", Math.abs(bm.rows[0].cost - ((100 * 5 + 10 * 25 + 20 * 6.25 + 1000 * 0.5) / 1e6)) < 1e-9);
+
+  const bday = economicsBreakdown(recs, "day", PRICE_PER_MTOK, topline);
+  ok("day axis: chronological ascending", bday.rows.map((r) => r.key).join(",") === "2026-07-01,2026-07-02");
+  ok("day axis: reconciles", bday.reconciliation.reconciles === true && bday.reconciliation.grand_total === topline);
+
+  // unpriced model → cost null (distinct from 0); dated-suffix strip; config override
+  const up = economicsBreakdown([{ message: { model: "local-llama", usage: { input_tokens: 100 } } }], "model", PRICE_PER_MTOK, 100);
+  ok("unpriced model → cost null (not 0)", up.rows.length === 1 && up.rows[0].cost === null && up.rows[0].total === 100);
+  ok("dated model-id suffix stripped", JSON.stringify(economicsPriceForModel("claude-opus-4-8-20260101", PRICE_PER_MTOK)) === JSON.stringify(economicsPriceForModel("claude-opus-4-8", PRICE_PER_MTOK)));
+  ok("unknown model → null price row", economicsPriceForModel("mystery-model", PRICE_PER_MTOK) === null);
+  const pm = resolveEconomicsPriceMap({ budget: { price_per_mtok_by_model: { "claude-opus-4-8": { input: 99, output: 99, cache_write: 99, cache_read: 99 } } } });
+  ok("config override wins per-model, built-ins retained", pm["claude-opus-4-8"].input === 99 && pm["claude-sonnet-4-6"].input === 3);
+  ok("no override → built-in map (identity)", resolveEconomicsPriceMap({}) === PRICE_PER_MTOK);
+
+  // mcp axis: MEASURED attribution (FAFF-409) + ordering + non-leak
+  const mrecs = [
+    { message: { model: "claude-opus-4-8", content: [{ type: "tool_use", id: "t1", name: "mcp__linear__get_issue", input: { id: "FAFF-1" } }], usage: { input_tokens: 10 } }, uuid: "u1", timestamp: "2026-07-01T10:00:00Z", sessionId: "s" },
+    { message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "SECRET-PAYLOAD-CONTENT" }] }, uuid: "u2", parentUuid: "u1", timestamp: "2026-07-01T10:00:01Z", sessionId: "s" },
+    { message: { model: "claude-opus-4-8", usage: { cache_read_input_tokens: 1000 } }, uuid: "u3", parentUuid: "u2", timestamp: "2026-07-01T10:00:02Z", sessionId: "s" },
+  ];
+  const bmcp = economicsMcpBreakdown(mrecs, PRICE_PER_MTOK, "claude-opus-4-8");
+  ok("mcp axis: tool row with call_count / bytes", bmcp.rows.length === 1 && bmcp.rows[0].tool === "linear__get_issue" && bmcp.rows[0].call_count === 1 && bmcp.rows[0].response_bytes > 0);
+  ok("mcp axis: measured cache attribution reconciles", bmcp.reconciliation.reconciles === true && bmcp.reconciliation.cache_read_total_billed === 1000);
+  ok("mcp axis: MCP gets a measured cache share", bmcp.rows[0].cache_read_measured_tok > 0 && bmcp.reconciliation.mcp_share_tok > 0);
+  ok("mcp axis: NON-LEAK — no payload content in output", !JSON.stringify(bmcp).includes("SECRET-PAYLOAD-CONTENT"));
 
   console.log(`economics --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
   return fail ? 1 : 0;
@@ -5875,7 +6415,7 @@ Subcommands:
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based fields (spent.elapsed_ms + the resolved --until wall) — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through) (FAFF-302). breached != {} is the terminating signal. --selftest runs the table
-  economics [--run-dir DIR] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. --selftest runs the table
+  economics [--run-dir DIR] [--by class|model|mcp|day] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. FAFF-410: --by class|model|mcp|day pivots the SAME transcript walk into per-class/per-model/per-day/per-MCP-tool buckets priced per-model×per-class (built-in PRICE_PER_MTOK + optional budget.price_per_mtok_by_model override; unknown model→cost:null); class/model/day reconcile to the top-line total, --by mcp reuses FAFF-409's MEASURED per-tool cache-read attribution; --by X --json rides a breakdown object, --by X (no --json) prints a skimmable table, NO --by is byte-for-byte unchanged; unknown axis exits 2 naming {class,model,mcp,day}; non-leak (sizes/counts/names/model-ids/costs only). --selftest runs the table
   run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance

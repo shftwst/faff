@@ -1,12 +1,12 @@
 # Token-usage breakdown (FAFF-407)
 
-> Analysis snapshot — regenerate with `node scripts/token-breakdown.mjs [--json]`. Read-only pivot over the on-disk Claude Code transcript corpus; reconciles to the flat `sumTranscriptFile` total the faff CLI already trusts. Costs use per-model API pricing (see **Pricing**). Emits sizes/counts/names/costs only — never transcript payload content.
+> Analysis snapshot — regenerate with `node scripts/token-breakdown.mjs [--json]`. Read-only pivot over the on-disk Claude Code transcript corpus; the pivot re-implements the CLI's `sumTranscriptFile` record selection and asserts internal consistency (`grand.total == flat_sum`). Costs use per-model API pricing (see **Pricing**). Emits sizes/counts/names/costs only — never transcript payload content.
 
-**Window:** 2026-05-29 → 2026-07-09 (40 active days) · 981 transcript files · 86,065 usage records.
+**Window:** 2026-05-29 → 2026-07-09 (40 active days) · 981 transcript files · 86,072 usage records. (The corpus is *live* — sessions append to it, so re-running shifts absolute figures marginally; percentages and cost shares are stable. Numbers below are from `report.json`.)
 
 ## Headline
 
-- **17,786M tokens (~17.8B) · $16,763** total, reconciled (`grand.total == Σ sumTranscriptFile`).
+- **17,786M tokens (~17.8B) · $16,763** total. **Reconciled** — the pivot's grand total equals the flat four-class sum computed via the *same* record-selection logic as the CLI's `sumTranscriptFile` (`grand.total == flat_sum`, an internal-consistency check; a direct cross-check against `faff budget check` is a fileable follow-up).
 - **`cache_read` is the whole game:** 94.7% of tokens and **52.7% of cost ($8,831)**. This is persistent context (skills prompts, gateway, specs, subagent context) re-read on every turn — *not* primarily MCP.
 - **`cache_write` is the second cost centre: 32.8% ($5,502).** Writing that context into cache.
 - Together, cache traffic = **85.5% of spend**. Model *generation* (`output`) is only 13.3%; fresh `input` is 1.2%.
@@ -88,7 +88,7 @@ The estimate axes exist because faff is blind there today. Each gap + the teleme
 - **Cache-amplification per tool** — currently `response × 19.43` (global factor). *Telemetry:* correlate `cache_read` deltas across the turns following each tool call, or emit a per-tool-call context-cost marker at dispatch. This is what turns MCP's "~1%→ceiling" range into a number.
 - **MCP-vs-model split of cache_read** — the 94.7% cache_read is not decomposed into prompt-context vs MCP-injected content. *Telemetry:* wrap MCP dispatch to record the input/cache delta attributable to each tool_result. Would confirm/refute the "primary lever is context, not MCP" conclusion.
 - **Phase attribution (prep/build/review/orchestrator)** — unresolved this pass. *Telemetry:* token-tag `events.jsonl` (`data.tokens` on prep/build/review/run events) so spend joins cleanly to phase. (Currently OUT OF SCOPE as instrumentation; this register promotes it to a recommendation.)
-- **Missing `message.model`** — a small `unknown` bucket (local qwen / synthetic test records, correctly $0). Immaterial; noted for completeness.
+- **Unpriced-but-named models** — local `qwen3.6:27b-mlx` and `<synthetic>` test records carry model strings but aren't in the API price table, so they price at $0 (correct — they aren't API spend). This is *not* a missing-`message.model` gap: `records_missing_model` is 0. Immaterial to the cost figures; noted for completeness.
 
 ## Recommendation — build a durable `faff tokens` command?
 

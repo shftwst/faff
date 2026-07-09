@@ -70,6 +70,25 @@ test("HARD EXCLUSION: no prep/spec or eval effort lane exists (prep is pinned, n
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("HARD EXCLUSION is fail-loud: a hand-set prep/spec effort key exits 2, never a silent echo", () => {
+  // A user who hand-writes an excluded effort key into .faffrc must be told it is not a tunable
+  // lane — never have the value silently echoed as if it were a live knob no dispatch consumes.
+  for (const [key, body] of [
+    ["effort.spec", "effort:\n  spec: low\n"],
+    ["effort.architecture", "effort:\n  architecture: high\n"],
+    ["effort.eval", "effort:\n  eval: max\n"],
+    ["effort.bogus", "effort:\n  bogus: low\n"],
+  ]) {
+    const dir = fixtureDir(body);
+    try {
+      const r = runCli(["config", "get", key], { cwd: dir });
+      assert.equal(r.code, 2, `${key} must fail loud (exit 2), got exit ${r.code}`);
+      assert.match(r.stderr, /not a tunable effort lane/, `${key} names the exclusion`);
+      assert.equal(r.stdout.trim(), "", `${key} echoes no value`);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }
+});
+
 test("config resolved echoes a non-default effort lane (a pinned effort is visible, never silent)", () => {
   const dir = fixtureDir("effort:\n  build: low\n  methodology: high\n");
   try {

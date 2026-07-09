@@ -384,8 +384,13 @@ const EFFORT_LANE_VOCAB = {
 };
 function validateEffortLane(key, value) {
   const vocab = EFFORT_LANE_VOCAB[key];
-  if (!vocab || vocab.includes(value)) return null;
-  return `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+  if (vocab) return vocab.includes(value) ? null : `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+  // FAFF-416: the prep/spec + eval EXCLUSION is enforced by FAIL-LOUD, not silent tolerance —
+  // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture /
+  // effort.eval, or a typo) fails at read so a hand-set value can never masquerade as a live knob
+  // no dispatch consumes. Non-`effort.*` keys are not this validator's business (returns null).
+  if (/^effort\./.test(key)) return `config get ${key}: "${key}" is not a tunable effort lane — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable (prep/spec + eval are deliberately excluded; FAFF-416)`;
+  return null;
 }
 
 // FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution

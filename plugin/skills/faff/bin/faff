@@ -3290,8 +3290,10 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal) {
 
   if (axis === "class") {
     // one row per class, fixed order; priced at the run's dominant model, named.
-    pricedAtModel = dominant;
-    const price = dominant ? economicsPriceForModel(dominant, priceMap) : null;
+    // "unknown" (no model field on any record) is not a pricing basis — surface it
+    // as null so priced_at_model never misleads (its cost is already null).
+    pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
+    const price = pricedAtModel ? economicsPriceForModel(pricedAtModel, priceMap) : null;
     rows = TOKEN_DELTA_CLASSES.map((cls) => {
       const one = { input: 0, output: 0, cache_write: 0, cache_read: 0, total: byClass[cls] };
       one[cls] = byClass[cls];
@@ -3364,7 +3366,8 @@ function economicsMcpBreakdown(records, priceMap, dominant) {
   // resolve each light tool_result block's mcp_tool, then MEASURED attribution
   for (const r of light) for (const b of r.blocks) if (b.tool_use_id) b.mcp_tool = idToTool.get(b.tool_use_id) || null;
   const attr = econAttributeCacheRead(light);
-  const price = economicsPriceForModel(dominant, priceMap);
+  const pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
+  const price = pricedAtModel ? economicsPriceForModel(pricedAtModel, priceMap) : null;
   const rows = [...mcpTools.entries()].map(([tool, t]) => {
     const request_tok = economicsTokFromChars(t.request_bytes);
     const response_tok = economicsTokFromChars(t.response_bytes);
@@ -3379,7 +3382,7 @@ function economicsMcpBreakdown(records, priceMap, dominant) {
   return {
     axis: "mcp",
     source: "transcript",
-    priced_at_model: dominant,
+    priced_at_model: pricedAtModel,
     rows,
     reconciliation: {
       basis: "measured (FAFF-409 per-tool cache-read attribution)",

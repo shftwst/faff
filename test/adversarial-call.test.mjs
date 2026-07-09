@@ -9,6 +9,7 @@ import {
   buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
   preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
   buildOpenAiPayload, modelServedOpenAi, accumulateSse, isAuthError,
+  buildAnthropicPayload, accumulateAnthropic, ANTHROPIC_VERSION,
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
@@ -135,13 +136,15 @@ test("EXIT codes: not-served, unreachable, default-host-unreachable, auth are di
 
 // --- OpenAI-compatible (/v1) path: NVIDIA NIM, OpenAI, vLLM, OpenRouter, DeepSeek ---
 
-test("providerFamily maps the OpenAI-compatible set to openai, ollama to ollama, else passthrough", () => {
-  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible"]) {
+test("providerFamily maps the OpenAI-compatible set (incl. gemini) to openai, anthropic to its own family, ollama to ollama, else passthrough", () => {
+  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini"]) {
     assert.equal(providerFamily(p), "openai", p);
   }
+  assert.equal(providerFamily("gemini"), "openai", "FAFF-210: gemini rides Google's OpenAI-compat base URL");
+  assert.equal(providerFamily("anthropic"), "anthropic", "FAFF-210: anthropic is a native family");
   assert.equal(providerFamily("ollama"), "ollama");
   assert.equal(providerFamily(undefined), "ollama", "default is ollama (preserves original behaviour)");
-  assert.equal(providerFamily("gemini"), "gemini", "native-format providers pass through → unsupported");
+  assert.equal(providerFamily("cohere"), "cohere", "a genuinely unknown provider still passes through → unsupported");
 });
 
 test("joinUrl appends the endpoint without dropping the base /v1 (the new URL trap)", () => {
@@ -195,11 +198,16 @@ test("accumulateSse: non-streamed fallback (provider ignored stream:true → one
   assert.equal(r.done, true);
 });
 
-test("isAuthError: 401/403 are auth (no retry); 404/timeout are not", () => {
+test("isAuthError: 401/403 are auth (no retry); 404/timeout are not; a marked-400 IS auth (FAFF-210 gemini bad key)", () => {
   assert.equal(isAuthError(new Error("HTTP 401")), true);
   assert.equal(isAuthError(new Error("HTTP 403")), true);
   assert.equal(isAuthError(new Error("HTTP 404")), false);
   assert.equal(isAuthError(new Error("stream timed out")), false);
+  // FAFF-210: Google's OpenAI-compat layer returns 400 API_KEY_INVALID for a bad key — treat as auth so it
+  // routes to needs-human (7), never unreachable/pass+skip (5). The marker gate keeps a generic 400 non-auth.
+  assert.equal(isAuthError(new Error('HTTP 400: {"error":{"code":400,"status":"INVALID_ARGUMENT","message":"API_KEY_INVALID"}}')), true);
+  assert.equal(isAuthError(new Error("HTTP 400: API key not valid. Please pass a valid API key.")), true);
+  assert.equal(isAuthError(new Error("HTTP 400: {\"error\":\"messages: field required\"}")), false, "a generic 400 stays non-auth");
 });
 
 test("preflightOpenAi: served / not-served / unreachable / auth-failed are all distinguished + Bearer sent", async () => {
@@ -270,10 +278,108 @@ test("runReview dispatch → openai: model-not-served maps the same as ollama (�
   assert.deepEqual(r.names, ["present"]);
 });
 
-test("runReview dispatch → unknown provider returns unsupported-provider (loud, not silent-pass)", async () => {
-  const r = await runReview({ provider: "anthropic", host: "https://h", model: "claude", system: "S", user: "U" });
+test("runReview dispatch → genuinely unknown provider returns unsupported-provider (loud, not silent-pass)", async () => {
+  const r = await runReview({ provider: "cohere", host: "https://h", model: "command", system: "S", user: "U" });
   assert.equal(r.status, "unsupported-provider");
   assert.match(r.note, /OpenAI-compatible/);
+});
+
+// --- Anthropic native adaptor (FAFF-210) ---
+
+test("buildAnthropicPayload: top-level system, required max_tokens, NO temperature, throws on missing model", () => {
+  const p = buildAnthropicPayload({ model: "claude-opus-4-8", system: "S", user: "U", maxTokens: 1234 });
+  assert.equal(p.model, "claude-opus-4-8");
+  assert.equal(p.max_tokens, 1234, "max_tokens is required on the wire (= maxTokens)");
+  assert.equal(p.system, "S", "system is a TOP-LEVEL string, not a messages entry");
+  assert.deepEqual(p.messages, [{ role: "user", content: "U" }], "only a user message; system is top-level");
+  assert.equal(p.stream, true);
+  assert.equal("temperature" in p, false, "no temperature — Claude models reject non-default sampling under thinking");
+  assert.equal(buildAnthropicPayload({ model: "m", system: "", user: "" }).max_tokens, DEFAULT_NUM_PREDICT, "defaults to the token budget");
+  assert.throws(() => buildAnthropicPayload({ system: "S", user: "U" }), /requires a model/);
+});
+
+test("accumulateAnthropic: folds text_delta, ignores thinking_delta, flags max_tokens truncation, done on message_delta/stop", () => {
+  const sse = [
+    "event: content_block_delta",
+    `data: ${JSON.stringify({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Hello " } })}`,
+    "event: content_block_delta",
+    `data: ${JSON.stringify({ type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "hmm (ignored)" } })}`,
+    "event: content_block_delta",
+    `data: ${JSON.stringify({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "world" } })}`,
+    "data: not json",
+    "event: message_delta",
+    `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "max_tokens" } })}`,
+    "event: message_stop",
+    `data: ${JSON.stringify({ type: "message_stop" })}`,
+  ].join("\n");
+  const r = accumulateAnthropic(sse);
+  assert.equal(r.content, "Hello world", "only text_delta folded; thinking_delta dropped; bad frame tolerated");
+  assert.equal(r.truncated, true, "stop_reason max_tokens ⇒ truncated");
+  assert.equal(r.done, true);
+});
+
+test("accumulateAnthropic: clean end_turn is not truncated", () => {
+  const sse = [
+    `data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: "x" } })}`,
+    `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "end_turn" } })}`,
+  ].join("\n");
+  const r = accumulateAnthropic(sse);
+  assert.equal(r.content, "x");
+  assert.equal(r.truncated, false);
+  assert.equal(r.done, true);
+});
+
+test("accumulateAnthropic: non-streamed fallback (one Messages object, content blocks concatenated, thinking filtered)", () => {
+  const whole = JSON.stringify({
+    content: [{ type: "thinking", thinking: "ignored" }, { type: "text", text: "single-" }, { type: "text", text: "shot" }],
+    stop_reason: "max_tokens",
+  });
+  const r = accumulateAnthropic(whole);
+  assert.equal(r.content, "single-shot", "text blocks concatenated, non-text filtered");
+  assert.equal(r.truncated, true, "top-level stop_reason max_tokens ⇒ truncated");
+  assert.equal(r.done, true);
+});
+
+test("runReviewAnthropic (via dispatch): ok — x-api-key + anthropic-version sent to /v1/messages, findings returned", async () => {
+  let seenUrl, seenHeaders, seenBody;
+  const streamFn = async (url, body, _timeout, headers) => {
+    seenUrl = url; seenHeaders = headers; seenBody = JSON.parse(body);
+    return [
+      `data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: "no issues found" } })}`,
+      `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "end_turn" } })}`,
+    ].join("\n");
+  };
+  const r = await runReview({
+    provider: "anthropic", host: "https://api.anthropic.com", model: "claude-opus-4-8",
+    system: "S", user: "U", apiKey: "sk-ant-xxx", streamFn,
+  });
+  assert.equal(r.status, "ok");
+  assert.equal(r.content, "no issues found");
+  assert.equal(seenUrl, "https://api.anthropic.com/v1/messages", "native endpoint, no preflight");
+  assert.equal(seenHeaders["x-api-key"], "sk-ant-xxx", "x-api-key (not Bearer)");
+  assert.equal(seenHeaders["anthropic-version"], ANTHROPIC_VERSION);
+  assert.equal(seenBody.system, "S", "top-level system on the wire");
+  assert.equal(mapResultExit(r), EXIT.OK);
+});
+
+test("runReviewAnthropic: a first-stream 404/not_found → model-not-served (exit 4, needs-human), no preflight", async () => {
+  const streamFn = async () => { throw new Error('HTTP 404: {"type":"error","error":{"type":"not_found_error","message":"model: bogus"}}'); };
+  const r = await runReview({
+    provider: "anthropic", host: "https://api.anthropic.com", model: "bogus",
+    system: "S", user: "U", apiKey: "sk-ant-xxx", streamFn,
+  });
+  assert.equal(r.status, "model-not-served");
+  assert.equal(mapResultExit(r), EXIT.NOT_SERVED);
+});
+
+test("runReviewAnthropic: a 401/403 → auth-failed (exit 7, needs-human)", async () => {
+  const streamFn = async () => { throw new Error("HTTP 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\"}}"); };
+  const r = await runReview({
+    provider: "anthropic", host: "https://api.anthropic.com", model: "claude-opus-4-8",
+    system: "S", user: "U", apiKey: "wrong", streamFn,
+  });
+  assert.equal(r.status, "auth-failed");
+  assert.equal(mapResultExit(r), EXIT.AUTH);
 });
 
 test("runReview with no provider still routes to ollama (back-compat — original signature unchanged)", async () => {

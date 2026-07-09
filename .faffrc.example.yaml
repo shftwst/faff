@@ -170,12 +170,15 @@ prdr:
 
 # faffter-dark: LLM provider config for adversarial review.
 # Used by the faffter-dark-adversarial-review skill (when set as the review slot).
-# Two transport families: ollama (/api/chat) and OpenAI-compatible (/v1/chat/completions —
-# covers openai, vllm, openrouter, nvidia, deepseek). gemini/anthropic native formats are NOT
-# wired — point them at an OpenAI-compatible base URL instead.
+# Transport families: ollama (/api/chat), OpenAI-compatible (/v1/chat/completions — covers openai,
+# vllm, openrouter, nvidia, deepseek, AND gemini via Google's OpenAI-compat base URL), and anthropic
+# (native /v1/messages). gemini needs no adaptor — set host to Google's compat URL and it rides the
+# openai path (see the gemini example below). For anthropic, set host: https://api.anthropic.com.
+# INDEPENDENCE: don't set provider: anthropic when Claude wrote/ran the primary review — a same-family
+# reviewer defeats the point (a *different* model family is the value). See the skill's independence note.
 faffter_dark:
   adversarial:
-    provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek
+    provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic
     model: llama3.1:70b # provider-specific model identifier
     host: http://localhost:11434 # ollama/vllm: base host. openai-compatible: base URL incl. /v1
     api_key_env: # env var NAME holding the API key, e.g. NVIDIA_API_KEY (never the key itself)
@@ -212,6 +215,17 @@ faffter_dark:
     #   host: https://integrate.api.nvidia.com/v1
     #   api_key_env: NVIDIA_API_KEY   # export NVIDIA_API_KEY=nvapi-...
     #   reasoning_off: true
+    # Gemini example (rides the openai transport via Google's OpenAI-compat base URL — no adaptor):
+    #   provider: gemini
+    #   model: gemini-2.5-pro
+    #   host: https://generativelanguage.googleapis.com/v1beta/openai   # base URL, no trailing /models
+    #   api_key_env: GEMINI_API_KEY   # sent as Bearer
+    # Anthropic example (native /v1/messages — x-api-key + anthropic-version; NO preflight, no reasoning_off):
+    #   provider: anthropic
+    #   model: claude-opus-4-8
+    #   host: https://api.anthropic.com
+    #   api_key_env: ANTHROPIC_API_KEY
+    #   # ⚠ independence: do NOT use anthropic if Claude wrote/reviewed the code under review.
 
 # (Calibration runs automatically — faff logs autonomous-call outcomes under
 # .faff/calibration/ and surfaces advisory signals when a pattern crosses a

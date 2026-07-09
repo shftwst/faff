@@ -39,14 +39,18 @@ export function unreachableExit({ hostSource } = {}) {
   return hostSource === "default" ? EXIT.DEFAULT_HOST_UNREACHABLE : EXIT.UNREACHABLE;
 }
 
-// Two transport families. ollama speaks /api/tags + /api/chat (NDJSON). openai speaks the
+// Transport families. ollama speaks /api/tags + /api/chat (NDJSON). openai speaks the
 // OpenAI-compatible /v1/models + /v1/chat/completions (SSE) shared by OpenAI, vLLM, OpenRouter,
-// NVIDIA NIM (integrate.api.nvidia.com/v1), DeepSeek, etc. gemini/anthropic have native wire
-// formats and are NOT handled here — point them at an OpenAI-compatible base URL or add an adaptor.
+// NVIDIA NIM (integrate.api.nvidia.com/v1), DeepSeek, etc. gemini rides that same family via Google's
+// documented OpenAI-compatibility base URL (https://generativelanguage.googleapis.com/v1beta/openai),
+// so it needs no adaptor of its own — just the whitelist entry (FAFF-210). anthropic has a native wire
+// format (/v1/messages: top-level system, content blocks, x-api-key + anthropic-version headers,
+// max_tokens required) and gets its own family. An unknown provider still returns "unsupported-provider".
 export function providerFamily(name) {
   const n = String(name || "ollama").toLowerCase();
   if (n === "ollama") return "ollama";
-  if (["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible"].includes(n)) return "openai";
+  if (["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini"].includes(n)) return "openai";
+  if (n === "anthropic") return "anthropic";
   return n; // unknown — runReview returns status "unsupported-provider"
 }
 
@@ -169,9 +173,79 @@ export function accumulateSse(text) {
   return { content, truncated, done };
 }
 
+// --- Anthropic (native /v1/messages) pure functions (FAFF-210) ---
+
+// The anthropic-version header value the Messages API requires. Named constant with a temporal anchor:
+// stable + documented, but re-verify against the Anthropic API docs if the header is ever rejected.
+export const ANTHROPIC_VERSION = "2023-06-01";
+
+// PURE: the /v1/messages payload. Distinct from the OpenAI shape: `system` is a TOP-LEVEL string (not a
+// messages[0] entry), `max_tokens` is REQUIRED by the API (no default on the wire), and NO `temperature`
+// is sent — current Claude reviewer models reject non-default sampling params under extended thinking with
+// a 400 (→ EXIT.OTHER), and the review needs no specific temperature. maxTokens is the analogue of ollama's
+// num_predict / openai's max_tokens.
+export function buildAnthropicPayload({ model, system, user, maxTokens = DEFAULT_NUM_PREDICT }) {
+  if (!model) throw new Error("buildAnthropicPayload requires a model");
+  return {
+    model,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: user }],
+    stream: true,
+  };
+}
+
+// PURE: fold Anthropic's named-event SSE into the assistant text. The stream is `event: <name>\n data:
+// {json}\n\n` frames; we dispatch on each data payload's own `type` (the `event:` lines are redundant and
+// ignored, exactly as accumulateSse ignores non-`data:` lines). Reads only text_delta (a thinking_delta is
+// the model's hidden reasoning — dropped, we want only the answer). stop_reason==="max_tokens" on the late
+// message_delta reports truncation. Tolerant fallback: if the body carries no `data:` frames (a backend
+// that ignored stream:true and returned one Messages object), parse it whole and concatenate its
+// content[] text blocks. Same {content, truncated, done} contract as accumulateNdjson/accumulateSse.
+export function accumulateAnthropic(text) {
+  let content = "";
+  let truncated = false;
+  let done = false;
+  let sawData = false;
+  for (const line of String(text).split("\n")) {
+    const t = line.trim();
+    if (!t.startsWith("data:")) continue;
+    sawData = true;
+    const payload = t.slice(5).trim();
+    let j;
+    try { j = JSON.parse(payload); } catch { continue; }
+    if (j?.type === "content_block_delta" && j?.delta?.type === "text_delta" && typeof j.delta.text === "string") {
+      content += j.delta.text;
+    } else if (j?.type === "message_delta") {
+      done = true;
+      if (j?.delta?.stop_reason === "max_tokens") truncated = true;
+    } else if (j?.type === "message_stop") {
+      done = true;
+    }
+  }
+  if (!sawData) {
+    // non-streamed fallback: a single Messages response { content: [{type:"text", text}], stop_reason }
+    try {
+      const j = JSON.parse(String(text));
+      for (const block of j?.content ?? []) {
+        if (block?.type === "text" && typeof block.text === "string") content += block.text;
+      }
+      if (j?.stop_reason) { done = true; if (j.stop_reason === "max_tokens") truncated = true; }
+    } catch { /* leave content empty — caller treats empty as needs-human */ }
+  }
+  return { content, truncated, done };
+}
+
 // PURE: an HTTP 401/403 from a cloud provider means broken credentials, not infra — needs-human, no retry.
+// FAFF-210: Google's OpenAI-compat layer (the gemini family) returns HTTP 400 API_KEY_INVALID for a
+// malformed key, NOT 401/403 — so a 400 whose body carries an explicit invalid-key marker is also auth.
+// The marker gate keeps this narrow: a generic 400 (bad request shape) has no marker and stays non-auth,
+// so no other openai-family provider is affected. Depends on realGet/realStream carrying the body into
+// the error message (both do). Direction is fail-safe: this only ever routes MORE to needs-human (exit 7),
+// never fewer — it can never turn a real auth fault into a silent pass+skip (the no-silent-weakening invariant).
 export function isAuthError(err) {
-  return /HTTP 40[13]/.test(String(err && err.message));
+  const m = String(err && err.message);
+  return /HTTP 40[13]/.test(m) || (/HTTP 400/.test(m) && /API_KEY_INVALID|api key not valid/i.test(m));
 }
 
 // PURE (FAFF-227; 429 added FAFF-228): is this a *transient* transport fault that should be retried?
@@ -240,7 +314,10 @@ function realGet(url, timeoutMs = 5000, headers = {}) {
       res.on("data", (c) => (data += c));
       res.on("end", () => (res.statusCode >= 200 && res.statusCode < 300
         ? resolve(data)
-        : reject(new Error(`HTTP ${res.statusCode}`))));
+        // FAFF-210: include the body (as realStream already does) so isAuthError can see a gemini
+        // 400 API_KEY_INVALID at the preflight GET — without it that bad-key 400 would misroute to
+        // unreachable/pass+skip and silently disable the gate.
+        : reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 200)}`))));
     });
     r.on("error", reject);
     r.setTimeout(timeoutMs, () => r.destroy(new Error(`preflight timed out after ${timeoutMs}ms`)));
@@ -375,12 +452,57 @@ async function runReviewOpenAi({
   }
 }
 
+async function streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs }) {
+  const headers = { "anthropic-version": ANTHROPIC_VERSION };
+  if (apiKey) headers["x-api-key"] = apiKey;   // absent key ⇒ the API 401s → auth-failed (mirrors openai's Bearer)
+  const body = JSON.stringify(buildAnthropicPayload({ model, system, user, maxTokens: numPredict }));
+  const raw = await streamFn(joinUrl(host, "/v1/messages"), body, timeoutMs, headers);
+  return accumulateAnthropic(raw);
+}
+
+// Anthropic native orchestration (FAFF-210): mirrors the openai path (stream → one 2× truncation retry,
+// wrapped in the same FAFF-227 bounded transport retry) with two differences. (1) NO preflight — Anthropic
+// exposes no model-list endpoint used here, so a bad model id can't be caught up front; it surfaces as a
+// 404/not_found on the first stream call and is classified in the catch → model-not-served (exit 4), the
+// same needs-human class the other families' preflight not-served yields. (2) The catch also maps that 404.
+// Auth (401/403) is terminal via isAuthError (isTransientTransport is FALSE for it, so the wrapper rethrows
+// into this catch); an exhausted transient fault surfaces transport-failed → a documented exit, never EXIT.OTHER.
+async function runReviewAnthropic({
+  host, model, system, user, numPredict = DEFAULT_NUM_PREDICT, apiKey,
+  getFn = realGet, streamFn = realStream, timeoutMs, hardDeadlineMs,
+}) {
+  // FAFF-329: re-clamp every attempt to the remaining total budget when hardDeadlineMs is set (see runReviewOllama).
+  const perAttempt = () => (typeof hardDeadlineMs === "number"
+    ? Math.max(1, Math.min(typeof timeoutMs === "number" ? timeoutMs : hardDeadlineMs - Date.now(), hardDeadlineMs - Date.now()))
+    : timeoutMs);
+  try {
+    const streamCall = async () => {
+      let out = await streamOnceAnthropic({ host, model, system, user, numPredict, apiKey, streamFn, timeoutMs: perAttempt() });
+      if (out.truncated) {
+        out = await streamOnceAnthropic({ host, model, system, user, numPredict: numPredict * 2, apiKey, streamFn, timeoutMs: perAttempt() });
+      }
+      return out;
+    };
+    const deadlineMs = typeof hardDeadlineMs === "number" ? hardDeadlineMs
+      : (typeof timeoutMs === "number" ? Date.now() + timeoutMs : undefined);
+    const r = await streamWithTransportRetry(streamCall, { deadlineMs });
+    if (!r.ok) return { status: "transport-failed", note: r.error && r.error.message };
+    return { status: "ok", content: r.out.content, truncated: r.out.truncated };
+  } catch (e) {
+    if (isAuthError(e)) return { status: "auth-failed", note: e.message };
+    const m = String(e && e.message);
+    if (/HTTP 404/.test(m) || /not_found/i.test(m)) return { status: "model-not-served", note: e.message };
+    throw e;
+  }
+}
+
 // Dispatcher: routes on the configured provider's transport family. Default (no provider) is ollama,
 // preserving the original behaviour and signature.
 export async function runReview(opts = {}) {
   const fam = providerFamily(opts.provider);
   if (fam === "openai") return runReviewOpenAi(opts);
   if (fam === "ollama") return runReviewOllama(opts);
+  if (fam === "anthropic") return runReviewAnthropic(opts);
   return { status: "unsupported-provider", note: `provider '${opts.provider}' has no transport in review-call.mjs (use an OpenAI-compatible base URL, or ollama)` };
 }
 

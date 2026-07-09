@@ -3040,13 +3040,13 @@ function attributePerIssueCosts(base, sid, ledger, price) {
 
 const BY_AXES = ["class", "model", "mcp", "day", "effort"];
 
-// FAFF-415: the closed reasoning-effort vocabulary, single-sourced here for BOTH the
-// events-append validator (data.effort) and the economics effort axis. EFFORT_ORDER
-// is the fixed severity order the `--by effort` table renders in (with a trailing
+// FAFF-415: the effort axis is rendered in fixed severity order (with a trailing
 // "(none)" bucket for token-bearing dispatches that carried no effort tag), so the
-// table reads low→max regardless of which levels a run actually used.
+// table reads low→max regardless of which levels a run actually used. The closed
+// membership set `EFFORT_LEVELS` lives in the events (governance) region — its
+// canonical home — and this factory region reads it across the allowed factory→
+// governance edge (FAFF-359 region direction; governance must never reference back).
 const EFFORT_ORDER = ["low", "medium", "high", "xhigh", "max"];
-const EFFORT_LEVELS = new Set(EFFORT_ORDER);
 const EFFORT_NONE_KEY = "(none)";
 
 // Per-model × per-class USD price per 1M tokens. Built-in default (seeded from the
@@ -10070,11 +10070,13 @@ const EVENT_ISSUE_SCOPED = new Set([
 const EVENT_LEDGER_OUTCOMES = new Set([
   "shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer",
 ]);
-// FAFF-415: a dispatch may tag its phase event with a request-time reasoning-effort
-// label via data.effort — a REQUEST-TIME setting the transcript never records, so it
-// is captured here at dispatch time (riding FAFF-408's token-tag lane), the only place
-// effort is attributable. The closed vocab `EFFORT_LEVELS` is single-sourced with the
-// economics effort axis (see EFFORT_ORDER in the economics-breakdown region).
+// FAFF-415: the closed reasoning-effort vocabulary a dispatch may tag onto its phase
+// event via data.effort. Reasoning-effort is a REQUEST-TIME setting the transcript
+// never records, so it is captured here at dispatch time (riding FAFF-408's token-tag
+// lane) — the only place effort is attributable. Defined in this governance region as
+// its canonical home; the economics effort axis (factory) reads it across the allowed
+// factory→governance edge (FAFF-359). Kept in step with EFFORT_ORDER over there.
+const EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a

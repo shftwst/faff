@@ -311,6 +311,74 @@ test("FAFF-410 INTEGRATION: no --by is byte-for-byte the pre-change UnitEconomic
   } finally { f.cleanup(); }
 });
 
+// FAFF-415: write an events.jsonl under the run dir. `events` is an array of
+// {phase,type,issue?,data?} payloads; the CLI envelope (schema/run_id/seq/ts) is
+// stamped here so `readRunEvents` parses them.
+function withEvents(runDir, runId, events) {
+  const lines = events.map((e, i) => JSON.stringify({ schema: 1, run_id: runId, seq: i, ts: "2026-07-09T10:00:00Z", ...e }));
+  writeFileSync(join(runDir, "events.jsonl"), lines.join("\n"));
+}
+
+test("FAFF-415 INTEGRATION: --by effort buckets events.jsonl dispatches, coverage, non-leak", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-by-effort";
+    // top-line transcript = 1000 tokens, dominant model opus.
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 800, output_tokens: 100, cache_read_input_tokens: 100 } }, timestamp: "2026-07-09T10:00:00Z" },
+      ],
+    });
+    // events cover 400 of the 1000 top-line tokens: high (350) + low (50). A max
+    // dispatch with a null/estimate delta counts but adds 0. Payload must not leak.
+    withEvents(f.runDir, "run-test", [
+      { phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "high", tokens: { input: 100, output: 50, cache_write: 0, cache_read: 200 }, tokens_source: "transcript" } },
+      { phase: "prep", type: "prep-done", issue: "FAFF-1", data: { effort: "low", tokens: { input: 40, output: 10, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+      { phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "max", tokens: null, tokens_source: "estimate" } },
+    ]);
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.axis, "effort");
+    assert.equal(e.breakdown.source, "events");
+    assert.equal(e.breakdown.cost_basis, "estimate");
+    assert.equal(e.breakdown.priced_at_model, "claude-opus-4-8");
+    // severity order low<high<max; each an occurring bucket
+    assert.deepEqual(e.breakdown.rows.map((x) => x.key), ["low", "high", "max"]);
+    const high = e.breakdown.rows.find((x) => x.key === "high");
+    assert.equal(high.count, 1);
+    assert.equal(high.total, 350);
+    assert.equal(high.cache_read, 200);
+    const max = e.breakdown.rows.find((x) => x.key === "max");
+    assert.equal(max.count, 1);
+    assert.equal(max.total, 0); // estimate delta counts the dispatch, adds no tokens
+    // coverage vs top-line, not a false reconciliation
+    assert.equal(e.breakdown.reconciliation.events_token_total, 400);
+    assert.equal(e.breakdown.reconciliation.top_line_total, 1000);
+    assert.equal(e.breakdown.reconciliation.coverage_pct, 40);
+    assert.equal(e.breakdown.reconciliation.reconciles, false);
+    // NON-LEAK: each breakdown row carries only counts/labels — no event payload keys.
+    for (const row of e.breakdown.rows) {
+      assert.deepEqual(Object.keys(row).sort(),
+        ["cache_read", "cache_write", "cost", "count", "input", "key", "output", "total"]);
+    }
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-415 INTEGRATION: --by effort with no events.jsonl → source:estimate, empty rows", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.source, "estimate");
+    assert.deepEqual(e.breakdown.rows, []);
+  } finally { f.cleanup(); }
+});
+
 test("INTEGRATION: empty-outcome ledger renders without erroring (0 counts)", () => {
   const ledger = baseLedger({ admitted: [], outcomes: {} });
   const f = fixture({ rc: null, ledger });

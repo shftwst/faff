@@ -3038,7 +3038,13 @@ function attributePerIssueCosts(base, sid, ledger, price) {
 // to measure serialized size.
 // ===========================================================================
 
-const BY_AXES = ["class", "model", "mcp", "day"];
+const BY_AXES = ["class", "model", "mcp", "day", "effort"];
+
+// FAFF-415: the effort axis is rendered in fixed severity order (with a trailing
+// "(none)" bucket for token-bearing dispatches that carried no effort tag), so the
+// table reads low→max regardless of which levels a run actually used.
+const EFFORT_ORDER = ["low", "medium", "high", "xhigh", "max"];
+const EFFORT_NONE_KEY = "(none)";
 
 // Per-model × per-class USD price per 1M tokens. Built-in default (seeded from the
 // FAFF-407 reference `PRICE_PER_MTOK`). An optional `budget.price_per_mtok_by_model`
@@ -3414,6 +3420,84 @@ function economicsDominantModel(records) {
     || [...modelTokens.keys()][0] || null;
 }
 
+// PURE effort-breakdown core — FAFF-415. Effort is a REQUEST-TIME setting the
+// transcript never records, so this axis (uniquely) pivots the run's events.jsonl,
+// not the transcript walk: it buckets dispatch events by their data.effort tag and
+// sums the FAFF-408 four-class token delta each carries. `events` is the parsed
+// events.jsonl record array; `dominant` is the run's dominant model from the
+// transcript (events carry no model), used to price each bucket — so the cost is an
+// ESTIMATE (a single inferred rate card, not per-record). `topLineTotal` is the raw
+// transcript sum; effort generally does NOT cover the whole run (only tagged
+// windows), so we report coverage_pct rather than forcing a false reconciliation.
+// NON-LEAK: emits only counts, token totals, effort-labels, model-id and derived cost.
+function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal) {
+  const mk = () => ({ count: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 });
+  const buckets = new Map();     // effort-label (or "(none)") -> counts
+  let eventsTokenTotal = 0;
+  for (const ev of events) {
+    const data = ev && ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) ? ev.data : null;
+    if (!data) continue;
+    const effort = typeof data.effort === "string" && EFFORT_LEVELS.has(data.effort) ? data.effort : null;
+    const tok = data.tokens && typeof data.tokens === "object" && !Array.isArray(data.tokens) ? data.tokens : null;
+    // A dispatch counts toward a bucket if it is effort-tagged; an untagged but
+    // token-bearing dispatch rolls into "(none)" so coverage stays honest. An
+    // untagged, token-less event is not a dispatch measurement — skip it.
+    const hasTokens = tok && TOKEN_DELTA_CLASSES.some((c) => Number.isFinite(tok[c]));
+    if (!effort && !hasTokens) continue;
+    const key = effort || EFFORT_NONE_KEY;
+    if (!buckets.has(key)) buckets.set(key, mk());
+    const b = buckets.get(key);
+    b.count += 1;
+    if (hasTokens) {
+      for (const cls of TOKEN_DELTA_CLASSES) {
+        const v = tok[cls];
+        if (Number.isFinite(v)) { b[cls] += v; b.total += v; eventsTokenTotal += v; }
+      }
+    }
+  }
+  const pricedAtModel = dominant && dominant !== "unknown" ? dominant : null;
+  // Fixed severity order, then "(none)" last; only buckets that actually occur.
+  const order = [...EFFORT_ORDER, EFFORT_NONE_KEY];
+  const rows = order.filter((k) => buckets.has(k)).map((k) => {
+    const b = buckets.get(k);
+    return {
+      key: k, count: b.count,
+      input: b.input, output: b.output, cache_write: b.cache_write, cache_read: b.cache_read,
+      total: b.total, cost: economicsRowCost(b, pricedAtModel, priceMap),
+    };
+  });
+  const topLine = (typeof topLineTotal === "number") ? topLineTotal : null;
+  return {
+    axis: "effort",
+    source: "events",
+    priced_at_model: pricedAtModel,
+    cost_basis: "estimate",     // priced at one inferred model; events carry no model
+    rows,
+    reconciliation: {
+      events_token_total: eventsTokenTotal,
+      top_line_total: topLine,
+      coverage_pct: (topLine && topLine > 0) ? Number((100 * eventsTokenTotal / topLine).toFixed(3)) : null,
+      reconciles: topLine != null ? eventsTokenTotal === topLine : false,
+    },
+  };
+}
+
+// I/O reader — read the run's events.jsonl (FAFF-35 lane), one record per line.
+// Absent/empty ⇒ [] (the effort axis then renders source:"estimate"/empty).
+function readRunEvents(runDir) {
+  const p = path.join(runDir, "events.jsonl");
+  if (!fs.existsSync(p)) return [];
+  let raw;
+  try { raw = fs.readFileSync(p, "utf8"); } catch { return []; }
+  const out = [];
+  for (const line of raw.split("\n")) {
+    const s = line.trim();
+    if (!s) continue;
+    try { out.push(JSON.parse(s)); } catch { /* skip malformed line */ }
+  }
+  return out;
+}
+
 // I/O reader — read the run's session-owned transcript records (the SAME file set
 // measureTokens sums), parse each line into a record, and return them for the pure
 // core. Degrades to source:"estimate" (empty records) exactly as measureTokens does.
@@ -3443,7 +3527,20 @@ function renderEconomicsBreakdown(bd) {
   const usd = (n) => (n == null ? "—" : "$" + n.toFixed(4));
   const lines = [];
   if (bd.source === "estimate") {
-    lines.push(`# economics --by ${bd.axis}: no resolvable session transcript — source:estimate, no breakdown`);
+    const why = bd.axis === "effort" ? "no events.jsonl for this run" : "no resolvable session transcript";
+    lines.push(`# economics --by ${bd.axis}: ${why} — source:estimate, no breakdown`);
+    return lines.join("\n");
+  }
+  if (bd.axis === "effort") {
+    const rc = bd.reconciliation;
+    const cov = rc.coverage_pct == null ? "n/a" : `${rc.coverage_pct}%`;
+    lines.push(`# economics --by effort — from events.jsonl (request-time dispatch tags, FAFF-415)`);
+    lines.push(`  cost priced at ${bd.priced_at_model || "—"} (ESTIMATE — events carry no model)  ·  coverage of top-line: ${cov}`);
+    lines.push(`  ${"effort".padEnd(10)} ${"dispatches".padStart(10)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
+    for (const r of bd.rows) {
+      lines.push(`  ${String(r.key).padEnd(10)} ${String(r.count).padStart(10)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+    }
+    lines.push(`  events_token_total=${rc.events_token_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}`);
     return lines.join("\n");
   }
   if (bd.axis === "mcp") {
@@ -3540,7 +3637,25 @@ function cmdEconomics(args) {
   // baseline-subtracted), so `--by class` reconciles by construction.
   const priceMap = resolveEconomicsPriceMap(cfg);
   let bd;
-  if (measured.source !== "transcript") {
+  if (byAxis === "effort") {
+    // FAFF-415: the effort axis reads events.jsonl (the only place request-time
+    // effort is recorded), independent of whether the live transcript is resolvable.
+    // The dominant model + top-line come from the transcript when available (used to
+    // price + report coverage), else null.
+    const events = readRunEvents(runDir);
+    if (events.length === 0) {
+      bd = { axis: "effort", source: "estimate", rows: [],
+        reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: false } };
+    } else {
+      let dominant = null, topLine = null;
+      if (measured.source === "transcript") {
+        const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
+        dominant = economicsDominantModel(records);
+        topLine = measured.total;
+      }
+      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine);
+    }
+  } else if (measured.source !== "transcript") {
     bd = { axis: byAxis, source: "estimate", rows: [],
       reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
   } else {
@@ -3664,6 +3779,30 @@ function economicsSelftest() {
   ok("mcp axis: measured cache attribution reconciles", bmcp.reconciliation.reconciles === true && bmcp.reconciliation.cache_read_total_billed === 1000);
   ok("mcp axis: MCP gets a measured cache share", bmcp.rows[0].cache_read_measured_tok > 0 && bmcp.reconciliation.mcp_share_tok > 0);
   ok("mcp axis: NON-LEAK — no payload content in output", !JSON.stringify(bmcp).includes("SECRET-PAYLOAD-CONTENT"));
+
+  // --- FAFF-415: effort axis (events.jsonl pivot, priced at dominant model) ---
+  const evs = [
+    { data: { effort: "high", tokens: { input: 100, output: 50, cache_write: 0, cache_read: 200 }, tokens_source: "transcript" } },
+    { data: { effort: "high", tokens: { input: 40, output: 10, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    { data: { effort: "low", tokens: { input: 20, output: 5, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    { data: { effort: "max", tokens: null, tokens_source: "estimate" } },                 // counted, 0 tokens
+    { data: { tokens: { input: 30, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }, // no effort → (none)
+    { data: { outcome: "shipped" } },                                                     // no effort, no tokens → skipped
+  ];
+  const eb = economicsEffortBreakdown(evs, PRICE_PER_MTOK, "claude-opus-4-8", 1000);
+  ok("effort axis: source events", eb.source === "events" && eb.axis === "effort");
+  ok("effort axis: severity order low<high<max, (none) last", eb.rows.map((r) => r.key).join(",") === "low,high,max,(none)");
+  ok("effort axis: high bucket aggregates 2 dispatches + tokens", (() => { const h = eb.rows.find((r) => r.key === "high"); return h.count === 2 && h.input === 140 && h.cache_read === 200 && h.total === 400; })());
+  ok("effort axis: estimate-delta dispatch counted, 0 tokens", (() => { const m = eb.rows.find((r) => r.key === "max"); return m.count === 1 && m.total === 0; })());
+  ok("effort axis: untagged token-bearing → (none) bucket", (() => { const n = eb.rows.find((r) => r.key === "(none)"); return n.count === 1 && n.total === 30; })());
+  ok("effort axis: token-less untagged event skipped", eb.rows.reduce((s, r) => s + r.count, 0) === 5);
+  ok("effort axis: priced at dominant model (ESTIMATE)", eb.priced_at_model === "claude-opus-4-8" && eb.cost_basis === "estimate");
+  ok("effort axis: high cost = per-class @ opus", Math.abs(eb.rows.find((r) => r.key === "high").cost - ((140 * 5 + 60 * 25 + 200 * 0.5) / 1e6)) < 1e-9);
+  ok("effort axis: events_token_total + coverage vs top-line", eb.reconciliation.events_token_total === 455 && eb.reconciliation.coverage_pct === 45.5 && eb.reconciliation.reconciles === false);
+  const ebRe = economicsEffortBreakdown([{ data: { effort: "low", tokens: { input: 1000, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, "claude-opus-4-8", 1000);
+  ok("effort axis: reconciles when events cover the whole top-line", ebRe.reconciliation.reconciles === true && ebRe.reconciliation.coverage_pct === 100);
+  const ebNull = economicsEffortBreakdown([{ data: { effort: "high", tokens: { input: 100, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, null, null);
+  ok("effort axis: no dominant model → cost null, coverage null", ebNull.rows[0].cost === null && ebNull.priced_at_model === null && ebNull.reconciliation.coverage_pct === null);
 
   console.log(`economics --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
   return fail ? 1 : 0;
@@ -6418,7 +6557,7 @@ Subcommands:
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based fields (spent.elapsed_ms + the resolved --until wall) — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through) (FAFF-302). breached != {} is the terminating signal. --selftest runs the table
-  economics [--run-dir DIR] [--by class|model|mcp|day] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. FAFF-410: --by class|model|mcp|day pivots the SAME transcript walk into per-class/per-model/per-day/per-MCP-tool buckets priced per-model×per-class (built-in PRICE_PER_MTOK + optional budget.price_per_mtok_by_model override; unknown model→cost:null); class/model/day reconcile to the top-line total, --by mcp reuses FAFF-409's MEASURED per-tool cache-read attribution; --by X --json rides a breakdown object, --by X (no --json) prints a skimmable table, NO --by is byte-for-byte unchanged; unknown axis exits 2 naming {class,model,mcp,day}; non-leak (sizes/counts/names/model-ids/costs only). --selftest runs the table
+  economics [--run-dir DIR] [--by class|model|mcp|day|effort] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. FAFF-410: --by class|model|mcp|day pivots the SAME transcript walk into per-class/per-model/per-day/per-MCP-tool buckets priced per-model×per-class (built-in PRICE_PER_MTOK + optional budget.price_per_mtok_by_model override; unknown model→cost:null); class/model/day reconcile to the top-line total, --by mcp reuses FAFF-409's MEASURED per-tool cache-read attribution; --by X --json rides a breakdown object, --by X (no --json) prints a skimmable table, NO --by is byte-for-byte unchanged; unknown axis exits 2 naming {class,model,mcp,day,effort}; non-leak (sizes/counts/names/model-ids/costs only). FAFF-415: --by effort reads the run's events.jsonl (not the transcript — reasoning-effort is a request-time setting the transcript never records), buckets dispatches by their data.effort tag, prices at the run's dominant model (ESTIMATE — events carry no model) and reports coverage_pct vs the top-line. --selftest runs the table
   run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
@@ -6446,7 +6585,7 @@ Subcommands:
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
-  events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
+  events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. FAFF-408: --tokens (append) injects a four-class token delta + tokens_source into data. FAFF-415: an optional data.effort label (low|medium|high|xhigh|max) records a dispatch's request-time reasoning-effort (validated, additive, non-leak; economics --by effort pivots it). PURE (no tracker/network), single-writer slice; --selftest runs the validator table
   review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N]]   FAFF-329: per-issue review checkpoint at \`<run-dir>/<issue>/review-progress.json\` so a re-dispatched build subagent RESUMES the graft review step (skips a completed Phase-1/Phase-2) instead of repeating it. read → ReviewProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --phase1-pass --diff-hash records the passing Phase-1 verdict + the diff hash it was computed against (the diff-identity guard — a resume skips Phase-1 only if the CURRENT diff still matches); write --phase2 <pending|in_flight|complete|skipped_deadline|skipped_unreachable> records Phase-2 progress. PURE JSON (no tracker/network); a HINT never authoritative over git/PR truth; exit 2 usage/bad-status; --selftest runs the fold table
   build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]   FAFF-402: per-issue build-complete checkpoint at \`<run-dir>/<issue>/build-progress.json\` — written at graft build-complete (Step 8b) AFTER the branch is pushed to origin, so a re-dispatched graft RESUMES at review (recreating the worktree from origin/<branch>, skipping the build) instead of rebuilding. read → BuildProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --build-complete --diff-hash --branch records the remote-three-dot diff hash it was gated at + the pushed branch (the diff-identity guard — a resume skips the build only if the CURRENT remote diff still matches). PURE JSON (no tracker/network/git — the diff hash is computed in graft prose); a HINT never authoritative over git truth; exit 2 usage/missing-flag; --selftest runs the fold table
   effects <declare|observe|check> --run <run-id> [--issue ID] [--step NAME] [--ts ISO] [--json] [--root DIR]   FAFF-106: escaped-side-effect detection via a declared-effects ledger — the PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) consumes. declare/observe read an EffectDescriptor {kind ∈ closed EFFECT_KINDS, target, reversible?} (object or array) on stdin and append a LedgerEntry (CLI fills schema/run_id/seq/ts envelope; kind_of_entry/issue/step required) to .faff/runs/<run-id>/declared-effects.jsonl — a PARALLEL ledger, never an events.jsonl schema bump; exit 0 ok / 1 bad descriptor (unknown kind / missing target) / 2 malformed JSON or missing --run/--issue/--step / 3 run-dir missing. check computes observed-MINUS-declared per (issue, step) using exact-target + "*" matching and emits {escapes:[EscapeSignal{signal:"escaped-side-effect",issue,step,escaped[],event_seq}], any_escape} (--json); a missing ledger file is a clean state ({escapes:[],any_escape:false}, exit 0 — NOT exit 3). Detection only — never aborts (Sentry/FAFF-37's job); the orchestrator bridges any_escape into \`faff sentry check\` via the existing signals.forbidden_side_effect seam. PURE (no tracker/network, writes only under the run dir); --selftest runs the descriptor/matching/escape table
@@ -9914,6 +10053,11 @@ const EVENT_ISSUE_SCOPED = new Set([
 const EVENT_LEDGER_OUTCOMES = new Set([
   "shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer",
 ]);
+// FAFF-415: the closed reasoning-effort vocabulary a dispatch may tag onto its
+// phase event via data.effort. Reasoning-effort is a REQUEST-TIME setting the
+// transcript never records, so it is captured here at dispatch time (riding
+// FAFF-408's token-tag lane) — the only place effort is attributable.
+const EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
@@ -9964,6 +10108,14 @@ function eventViolations(obj, requireEnvelope) {
       if (src !== "transcript") v.push(`data.tokens is a delta object but data.tokens_source '${src}' != 'transcript'`);
     } else {
       v.push(`data.tokens must be null or a {${TOKEN_DELTA_CLASSES.join(", ")}} object`);
+    }
+  }
+  // FAFF-415: optional reasoning-effort tag under data (additive; schema stays 1).
+  // When present it must be a single closed-vocab label — never payload content
+  // (non-leak). Absent ⇒ record unchanged.
+  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) && "effort" in obj.data) {
+    if (!EFFORT_LEVELS.has(obj.data.effort)) {
+      v.push(`data.effort '${obj.data.effort}' not in EffortLevel {${[...EFFORT_LEVELS].join(", ")}}`);
     }
   }
   return v;
@@ -10165,6 +10317,11 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1.5, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }, 1, "non-integer class rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4, prompt: "secret" }, tokens_source: "transcript" } }, 1, "extra field rejected (non-leak)"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write: 3 }, tokens_source: "transcript" } }, 1, "missing class rejected"],
+    // FAFF-415 — reasoning-effort tag under data.effort (additive; schema stays 1).
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "high" } }, 0, "valid effort label"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "max" } }, 0, "valid effort label (max)"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "extreme" } }, 1, "effort not in vocabulary rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { effort: "medium", tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4 }, tokens_source: "transcript" } }, 0, "effort alongside a valid token delta"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {

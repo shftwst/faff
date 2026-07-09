@@ -2,12 +2,13 @@
 
 > Analysis snapshot — regenerate with `node scripts/token-breakdown.mjs [--json]`. Read-only pivot over the on-disk Claude Code transcript corpus; the pivot re-implements the CLI's `sumTranscriptFile` record selection and asserts internal consistency (`grand.total == flat_sum`). Costs use per-model API pricing (see **Pricing**). Emits sizes/counts/names/costs only — never transcript payload content.
 
-**Window:** 2026-05-29 → 2026-07-09 (40 active days) · 981 transcript files · 86,072 usage records. (The corpus is *live* — sessions append to it, so re-running shifts absolute figures marginally; percentages and cost shares are stable. Numbers below are from `report.json`.)
+**Window:** 2026-05-29 → 2026-07-09 (40 active days) · 982 transcript files · 86,337 usage records. Regenerated 2026-07-09 with the **FAFF-409** measured per-tool cache-amplification pass. (The corpus is *live* — sessions append to it, so re-running shifts absolute figures marginally; percentages and cost shares are stable. Numbers below are from `report.json`.)
 
 ## Headline
 
 - **17,786M tokens (~17.8B) · $16,763** total. **Reconciled** — the pivot's grand total equals the flat four-class sum computed via the *same* record-selection logic as the CLI's `sumTranscriptFile` (`grand.total == flat_sum`, an internal-consistency check; a direct cross-check against `faff budget check` is a fileable follow-up).
 - **`cache_read` is the whole game:** 94.7% of tokens and **52.7% of cost ($8,831)**. This is persistent context (skills prompts, gateway, specs, subagent context) re-read on every turn — *not* primarily MCP.
+- **MCP's amplified share of `cache_read` is now measured, not a range (FAFF-409): 15.2%** (2.57B of 16.93B tokens; boundary-sensitivity range 15.2–16.2%). The remaining **84.8% is non-MCP context/model.** This *confirms* "the primary lever is context, not MCP" — but MCP is a bigger secondary lever than the ~1% payload floor suggested: ~$1.3K of measured cache cost. See **Axis 4**.
 - **`cache_write` is the second cost centre: 32.8% ($5,502).** Writing that context into cache.
 - Together, cache traffic = **85.5% of spend**. Model *generation* (`output`) is only 13.3%; fresh `input` is 1.2%.
 
@@ -44,27 +45,31 @@
 
 **Phase attribution: not resolved in this pass.** The corpus-wide pivot has no phase tags; `events.jsonl` carries phase windows but no token data, and orchestrator-inline records span phases. Coarse phase attribution (events.jsonl timestamp-join) is deferred — see **Telemetry gaps**. What *is* attributable: model-vs-MCP, below.
 
-### MCP per-tool cost (surgical remediation target)
+### MCP per-tool cache-amplification (MEASURED — FAFF-409)
 
-Census over the corpus. **`request`** = tool_use params sent; **`response`** = tool_result payload (chars/4, same proxy as FAFF-175); **`cache~`** = the response's persistence estimate (`response × 19.43` amplification factor — a LOWER-BOUND estimate, see gaps); **`cost~`** priced at the dominant model (opus-4-8). Ranked by total weight.
+FAFF-407 could only price MCP's *one-time payload* and estimated its persistence with a single global `response × 19.42` factor. FAFF-409 **measures** it: a read-only pass reconstructs each context lineage's resident prefix turn-by-turn and splits every billed turn's actual `cache_read_input_tokens` across the blocks resident at that turn, pro-rata by size. MCP `tool_result` blocks collect their shares → the measured per-tool amplification, which **reconciles to the billed `cache_read` total by construction** (`mcp_share + nonmcp_share + unattributed == billed cache_read`, `reconciles: true` in `report.json` → `mcp.reconciliation`).
 
-| Tool | Calls | request~ | cache~ (est) | response~ | cost~ (est) |
-|---|--:|--:|--:|--:|--:|
-| Linear.list_comments | 1,211 | 7,872 | 44.96M | 2.31M | $34.09 |
-| Linear.get_issue | 1,836 | 14,527 | 40.87M | 2.10M | $31.02 |
-| Linear.save_comment | 817 | **1.87M** | 37.84M | 1.95M | $38.01 |
-| Linear.list_issues | 638 | 10,682 | 36.59M | 1.88M | $27.76 |
-| Linear.save_issue | 1,463 | **251K** | 27.57M | 1.42M | $22.13 |
-| Linear.list_projects | 66 | 687 | 7.26M | 374K | $5.50 |
-| Linear.list_initiatives | 28 | 250 | 2.69M | 138K | $2.04 |
-| _(15 more tools, each <$0.50)_ | | | | | |
+**`request`** / **`response`** = one-time tool_use params / tool_result payload (chars/4). **`cache_read~`** = the MEASURED summed pro-rata share of billed `cache_read` (replaces the old global-factor estimate). **`amp`** = `cache_read~ / response` — the *per-tool* amplification (the old global factor was a flat ×19.42 for every tool). **`cost~`** = request+response at the input rate + measured `cache_read` at the cache_read rate, priced at opus-4-8. Ranked by measured `cache_read`.
 
-**23 tools, 6,281 calls, census floor ≈ $162.**
+| Tool | Calls | request~ | response~ | **cache_read~ (measured)** | amp | cost~ |
+|---|--:|--:|--:|--:|--:|--:|
+| Linear.save_comment | 821 | **1.88M** | 1.96M | **607.8M** | ×311 | $323.09 |
+| Linear.list_comments | 1,212 | 7.9K | 2.31M | **478.5M** | ×207 | $250.87 |
+| Linear.save_issue | 1,471 | **252K** | 1.43M | **458.0M** | ×321 | $237.39 |
+| Linear.get_issue | 1,838 | 14.5K | 2.11M | **416.6M** | ×198 | $218.91 |
+| Linear.list_issues | 638 | 10.7K | 1.88M | **394.9M** | ×210 | $206.91 |
+| Linear.list_projects | 66 | 687 | 374K | **137.1M** | ×367 | $70.43 |
+| Linear.list_initiatives | 28 | 250 | 138K | **46.9M** | ×339 | $24.12 |
+| _(16 more tools, each <$5)_ | | | | | | |
 
-**Read (the fix differs by column):**
-- **Reads are fat-response** (`list_comments`, `get_issue`, `list_issues`): request ~10K, response ~2M. Fix = field projection / a terse CLI (FAFF-177).
-- **Writes are fat-request** (`save_comment` 1.87M req, `save_issue` 251K req): the body being written *is* the cost. Fix = don't round-trip large bodies you already hold.
-- **Top-3 surgical targets:** `save_comment` (fat-request), `list_comments` + `get_issue` (fat-response).
+**23 tools, 6,296 calls · MCP measured `cache_read` = 2.57B tokens (15.2% of all `cache_read`) ≈ $1,348.** Attribution reconciles to the billed total exactly (unattributed = 0.01%).
+
+**Read:**
+- **The old global factor understated per-tool amplification ~10–20×.** Measured per-tool amplification runs ×198–×452 (each response token is re-read hundreds of times across a long orchestrator lineage), versus the flat ×19.42 estimate. The old estimate was arbitrary; this figure is distributed from numbers the API actually charged.
+- **Reads are fat-response, writes are fat-request** (unchanged from FAFF-407): `list_comments`/`get_issue`/`list_issues` carry ~2M response; `save_comment` (1.90M) / `save_issue` (265K) carry the body as request. But the *dominant* cost is now visible: it is the **amplified `cache_read`**, not the one-time payload — a fat result that rides in orchestrator context for hundreds of turns costs far more than its single round-trip.
+- **Top surgical targets:** `save_comment`, `list_comments`, `save_issue`, `get_issue`, `list_issues` — the top-5 are 98%+ of measured MCP cache cost. A terse, field-projecting Linear CLI (FAFF-177) shrinks the result that then rides in cache_read on every subsequent turn.
+
+**Boundary-sensitivity (honest residual).** The transcript does not record which blocks were resident in each request's cached prefix; the pass reconstructs it, clearing on a detected `compact_boundary`. Re-running with a lenient rule (never clear) and an aggressive rule (clear on a >50% `cache_read` drop) moves MCP's share only **15.2% → 16.2%** — a tight range, so the point figure is trustworthy. See `mcp.reconciliation.boundary_modes`.
 
 ## Cross-reference vs FAFF-175 (the prior committed census)
 
@@ -72,7 +77,7 @@ Census over the corpus. **`request`** = tool_use params sent; **`response`** = t
 
 - **Heavy-tool set matches exactly.** FAFF-175 top-4 (`get_issue`, `save_issue`, `list_comments`, `save_comment`) = this pass's top-5 (+`list_issues`). Two independent windows, same targets → high confidence.
 - **Response-is-the-driver confirmed + refined.** FAFF-175: result payload 4.4× arg cost. This pass's request/response split shows *why*: reads are fat-response, `save_*` writes are fat-request (FAFF-175 recorded save_comment arg 555K / save_issue arg 123K — this pass's 1.87M / 251K request columns over 5.7× the window).
-- **The "~39% of a week's tokens" claim is not substantiated by the committed artifact.** FAFF-175's report records *absolute* payload tokens (3.1M result tokens/week), never a 39%-of-total figure. This pass's *measured* MCP payload share is ~1% of total cost. The 39% is either from a much narrower interactive-only denominator, or counts cache-amplification the census can't measure. **MCP's true cost is a range: ~1% (measured floor) → unmeasured ceiling.** Closing that gap needs telemetry (below). The durable takeaway: **MCP is a secondary lever; the primary lever is cache_read volume.**
+- **The "~39% of a week's tokens" claim is not substantiated by the committed artifact.** FAFF-175's report records *absolute* payload tokens (3.1M result tokens/week), never a 39%-of-total figure. This pass's *measured* MCP payload share is ~1% of total cost. The 39% is either from a much narrower interactive-only denominator, or counts cache-amplification the census could not measure. **FAFF-409 has now closed that range: MCP's amplified cost is a measured 15.2% of `cache_read` (14.4% of all tokens), not the old ~1%→ceiling range.** So the "~39%" was an over-estimate, but the true figure (15%) is well above the ~1% payload floor. The durable takeaway is **confirmed and sharpened**: MCP is a secondary lever (15%); the primary lever is non-MCP `cache_read` volume (85%).
 
 ## Ranked optimisation opportunities (fileable follow-ups)
 
@@ -85,8 +90,8 @@ Census over the corpus. **`request`** = tool_use params sent; **`response`** = t
 
 The estimate axes exist because faff is blind there today. Each gap + the telemetry to close it (fileable):
 
-- **Cache-amplification per tool** — currently `response × 19.43` (global factor). *Telemetry:* correlate `cache_read` deltas across the turns following each tool call, or emit a per-tool-call context-cost marker at dispatch. This is what turns MCP's "~1%→ceiling" range into a number.
-- **MCP-vs-model split of cache_read** — the 94.7% cache_read is not decomposed into prompt-context vs MCP-injected content. *Telemetry:* wrap MCP dispatch to record the input/cache delta attributable to each tool_result. Would confirm/refute the "primary lever is context, not MCP" conclusion.
+- **Cache-amplification per tool** — ✅ **CLOSED by FAFF-409.** Was `response × 19.42` (global factor); now a measured per-tool figure (×198–×452 amplification per tool) derived from the billed `cache_read`, reconciling to the total. The post-hoc transcript-correlation approach won (a dispatch-time marker was rejected — faff does not own the MCP transport, so it is not read-only-implementable).
+- **MCP-vs-model split of cache_read** — ✅ **CLOSED by FAFF-409.** The 94.7% `cache_read` is now decomposed: **MCP 15.2%, non-MCP context/model 84.8%** (unattributed 0.01%). This *confirms* "the primary lever is context, not MCP".
 - **Phase attribution (prep/build/review/orchestrator)** — unresolved this pass. *Telemetry:* token-tag `events.jsonl` (`data.tokens` on prep/build/review/run events) so spend joins cleanly to phase. (Currently OUT OF SCOPE as instrumentation; this register promotes it to a recommendation.)
 - **Unpriced-but-named models** — local `qwen3.6:27b-mlx` and `<synthetic>` test records carry model strings but aren't in the API price table, so they price at $0 (correct — they aren't API spend). This is *not* a missing-`message.model` gap: `records_missing_model` is 0. Immaterial to the cost figures; noted for completeness.
 

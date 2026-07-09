@@ -164,6 +164,153 @@ test("INTEGRATION: per-issue attribution via meta.json (owned only; non-issue su
   } finally { f.cleanup(); }
 });
 
+// FAFF-410: write full transcript records (model / timestamp / content blocks) —
+// withTranscripts only carries usage. `filesRecords` maps a filename to an array of
+// record objects; each is stamped with sessionId (defaults to `sid`) and written as
+// one JSON line.
+function withRecords(root, cwd, sid, filesRecords) {
+  const enc = String(cwd).replace(/\//g, "-");
+  const projdir = join(root, "cfg", "projects", enc);
+  mkdirSync(projdir, { recursive: true });
+  for (const [name, recs] of Object.entries(filesRecords)) {
+    const lines = recs.map((r) => JSON.stringify({ sessionId: sid, ...r }));
+    writeFileSync(join(projdir, name), lines.join("\n"));
+  }
+  return join(root, "cfg");
+}
+
+test("FAFF-410 INTEGRATION: --by class --json reconciles to the top-line total", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-by-class";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 100, output_tokens: 10, cache_creation_input_tokens: 20, cache_read_input_tokens: 1000 } }, timestamp: "2026-07-01T10:00:00Z" },
+        { message: { model: "claude-sonnet-4-6", usage: { input_tokens: 50, output_tokens: 5, cache_read_input_tokens: 500 } }, timestamp: "2026-07-02T11:00:00Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "class", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.axis, "class");
+    assert.equal(e.breakdown.source, "transcript");
+    assert.deepEqual(e.breakdown.rows.map((x) => x.key), ["input", "output", "cache_write", "cache_read"]);
+    assert.equal(e.breakdown.reconciliation.reconciles, true);
+    assert.equal(e.breakdown.reconciliation.grand_total, 1685);
+    assert.equal(e.breakdown.reconciliation.top_line_total, 1685);
+    assert.equal(e.breakdown.priced_at_model, "claude-opus-4-8");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-410 INTEGRATION: --by model --json — one row per model, rows sum to top-line", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-by-model";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 1000, cache_read_input_tokens: 130 } }, timestamp: "2026-07-01T10:00:00Z" },
+        { message: { model: "claude-sonnet-4-6", usage: { input_tokens: 500 } }, timestamp: "2026-07-01T11:00:00Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.rows.length, 2);
+    assert.equal(e.breakdown.rows[0].key, "claude-opus-4-8"); // 1130 > 500, desc by total
+    assert.equal(e.breakdown.reconciliation.grand_total, 1630);
+    assert.equal(e.breakdown.reconciliation.reconciles, true);
+    // opus priced at its own per-class rate: input 1000@$5/M + cache_read 130@$0.5/M
+    assert.ok(Math.abs(e.breakdown.rows[0].cost - ((1000 * 5 + 130 * 0.5) / 1e6)) < 1e-9);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-410 INTEGRATION: --by mcp --json — tool row present, non-leak (no payload string)", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-by-mcp";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", content: [{ type: "tool_use", id: "t1", name: "mcp__linear__get_issue", input: { id: "FAFF-1" } }], usage: { input_tokens: 10 } }, uuid: "u1", timestamp: "2026-07-01T10:00:00Z" },
+        { message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "SECRET-PAYLOAD-XYZ" }] }, uuid: "u2", parentUuid: "u1", timestamp: "2026-07-01T10:00:01Z" },
+        { message: { model: "claude-opus-4-8", usage: { cache_read_input_tokens: 1000 } }, uuid: "u3", parentUuid: "u2", timestamp: "2026-07-01T10:00:02Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "mcp", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.axis, "mcp");
+    const tool = e.breakdown.rows.find((x) => x.tool === "linear__get_issue");
+    assert.ok(tool, "linear__get_issue row present");
+    assert.equal(tool.call_count, 1);
+    assert.ok(tool.request_bytes > 0 && tool.response_bytes > 0);
+    assert.equal(e.breakdown.reconciliation.reconciles, true);
+    // NON-LEAK: no transcript payload content anywhere in the output.
+    assert.ok(!r.out.includes("SECRET-PAYLOAD-XYZ"), "no payload string leaked");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-410 INTEGRATION: --by day (no --json) renders a text table, not JSON", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-by-day";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-02T10:00:00Z" },
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 200 } }, timestamp: "2026-07-01T10:00:00Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /economics --by day/);
+    assert.throws(() => JSON.parse(r.out), "table output is not JSON");
+    // chronological ascending: 07-01 appears before 07-02
+    assert.ok(r.out.indexOf("2026-07-01") < r.out.indexOf("2026-07-02"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-410 INTEGRATION: --by with an unrecognised axis exits non-zero naming the legal set", () => {
+  const ledger = baseLedger();
+  const f = fixture({ rc: null, ledger });
+  try {
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "bogus", "--json"]);
+    assert.notEqual(r.code, 0);
+    assert.match(r.err, /class, model, mcp, day/);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-410 INTEGRATION: no session id + --by → source:estimate, empty rows, exit 0", () => {
+  const ledger = baseLedger();
+  const f = fixture({ rc: null, ledger });
+  try {
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "class", "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.source, "estimate");
+    assert.deepEqual(e.breakdown.rows, []);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-410 INTEGRATION: no --by is byte-for-byte the pre-change UnitEconomics output", () => {
+  const ledger = baseLedger({ outcomes: { "FAFF-1": "shipped", "FAFF-2": "parked" } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const args = ["economics", "--run-dir", f.runDir, "--root", f.root, "--json"];
+    const a = run(args);
+    const e = JSON.parse(a.out);
+    // no `breakdown` field leaks into the default path
+    assert.equal(Object.prototype.hasOwnProperty.call(e, "breakdown"), false);
+    assert.equal(e.shipped_count, 1);
+  } finally { f.cleanup(); }
+});
+
 test("INTEGRATION: empty-outcome ledger renders without erroring (0 counts)", () => {
   const ledger = baseLedger({ admitted: [], outcomes: {} });
   const f = fixture({ rc: null, ledger });

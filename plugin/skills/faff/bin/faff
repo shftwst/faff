@@ -2468,6 +2468,16 @@ const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate"]);
 const BUDGET_TOKEN_USAGE_KEYS = [
   "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
 ];
+// FAFF-408: the four token-delta CLASSES (pivot-friendly names) and their mapping
+// onto the raw transcript usage keys above. `sumTranscriptFileByClass` splits by
+// these; the sum of the four equals `sumTranscriptFile` on the same file (parity).
+const TOKEN_DELTA_CLASSES = ["input", "output", "cache_write", "cache_read"];
+const TOKEN_CLASS_FROM_USAGE = {
+  input: "input_tokens",
+  output: "output_tokens",
+  cache_write: "cache_creation_input_tokens",
+  cache_read: "cache_read_input_tokens",
+};
 
 // `--until HH:MM` → an absolute epoch-ms relative to `nowMs`, next-day if already past
 // (mirrors beep-boop's `--until` semantic: `--until 06:00` at 23:00 means 06:00 tomorrow).
@@ -2545,13 +2555,16 @@ function transcriptBaseDir(cwd, env) {
   return path.join(configDir, "projects", encoded);
 }
 
-// Sum usage tokens across a single transcript .jsonl file. Each line is a JSON
-// record; assistant messages carry message.usage. Malformed lines are skipped
-// (a partial/in-flight transcript must never crash the budget check).
-function sumTranscriptFile(file) {
-  let total = 0;
+// Sum usage tokens across a single transcript .jsonl file, SPLIT BY CLASS. Each
+// line is a JSON record; assistant messages carry message.usage. Malformed lines
+// are skipped (a partial/in-flight transcript must never crash the budget check).
+// FAFF-408: this is the single read/parse loop; `sumTranscriptFile` derives its
+// scalar total by summing the four classes, so there is exactly ONE token
+// attribution path (never a divergent private recount — the FAFF-229 guard-rail).
+function sumTranscriptFileByClass(file) {
+  const acc = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
   let text;
-  try { text = fs.readFileSync(file, "utf8"); } catch { return 0; }
+  try { text = fs.readFileSync(file, "utf8"); } catch { return acc; }
   for (const line of text.split("\n")) {
     const s = line.trim();
     if (!s) continue;
@@ -2560,12 +2573,20 @@ function sumTranscriptFile(file) {
     const usage = rec && rec.message && rec.message.usage ? rec.message.usage
       : (rec && rec.usage ? rec.usage : null);
     if (!usage || typeof usage !== "object") continue;
-    for (const k of BUDGET_TOKEN_USAGE_KEYS) {
-      const v = usage[k];
-      if (typeof v === "number" && Number.isFinite(v)) total += v;
+    for (const cls of TOKEN_DELTA_CLASSES) {
+      const v = usage[TOKEN_CLASS_FROM_USAGE[cls]];
+      if (typeof v === "number" && Number.isFinite(v)) acc[cls] += v;
     }
   }
-  return total;
+  return acc;
+}
+
+// Scalar total for a single transcript file — the sum of the four classes on the
+// same file (parity holds by construction, since the class keys are exactly
+// BUDGET_TOKEN_USAGE_KEYS mapped 1:1).
+function sumTranscriptFile(file) {
+  const c = sumTranscriptFileByClass(file);
+  return c.input + c.output + c.cache_write + c.cache_read;
 }
 
 // The owning session of a child agent-*.jsonl transcript: the top-level
@@ -2589,13 +2610,17 @@ function childOwningSession(file) {
   return null;
 }
 
-// Measure this-run token spend: the orchestrator transcript (keyed off
-// $CLAUDE_CODE_SESSION_ID — NEVER mtime-newest, which can be a different session)
-// + every child agent-*.jsonl whose own records carry that same session id
-// (subagent grafts dominate run spend and live in separate files, not sidechain
-// entries). Returns { total, source }: source 'transcript' when the session file
-// was read, 'estimate' when no transcript is available (caller supplies the estimate).
-function measureTokens(opts) {
+// Measure this-run token spend SPLIT BY CLASS: the orchestrator transcript (keyed
+// off $CLAUDE_CODE_SESSION_ID — NEVER mtime-newest, which can be a different
+// session) + every child agent-*.jsonl whose own records carry that same session
+// id (subagent grafts dominate run spend and live in separate files, not sidechain
+// entries). Returns { tokens, source }: source 'transcript' with the four-class
+// object when the session file was read, 'estimate' with tokens:null when no
+// transcript is available (caller supplies the estimate).
+// FAFF-408: this is the ONE attribution loop — `measureTokens` (the scalar total)
+// derives from it, so the by-class deltas and the budget total share a single
+// child-attribution gate and can never drift (the FAFF-229 over-count guard-rail).
+function measureTokensByClass(opts) {
   const { cwd, env, runStartMs } = opts;
   const sid = env.CLAUDE_CODE_SESSION_ID;
   const base = transcriptBaseDir(cwd, env);
@@ -2603,9 +2628,9 @@ function measureTokens(opts) {
   // Transcript unavailable (no session id, dir missing, or session file absent —
   // e.g. CLAUDE_CODE_SKIP_PROMPT_HISTORY) → estimate fallback (caller computes).
   if (!sid || !fs.existsSync(base) || !sessionFile || !fs.existsSync(sessionFile)) {
-    return { total: null, source: "estimate" };
+    return { tokens: null, source: "estimate" };
   }
-  let total = sumTranscriptFile(sessionFile);
+  const acc = sumTranscriptFileByClass(sessionFile);
   // Aggregate this run's child subagent transcripts — attributed by their OWNING
   // SESSION (childOwningSession === sid), NOT by mtime. mtime is a wall-clock touch
   // time, not an ownership signal: a prior/parallel run's child touched after this
@@ -2628,9 +2653,20 @@ function measureTokens(opts) {
       if (st.mtimeMs < runStartMs) continue; // cheap pre-filter (NOT the attribution gate)
     }
     if (childOwningSession(f) !== sid) continue; // attribution gate: owned by THIS run only
-    total += sumTranscriptFile(f);
+    const c = sumTranscriptFileByClass(f);
+    for (const cls of TOKEN_DELTA_CLASSES) acc[cls] += c[cls];
   }
-  return { total, source: "transcript" };
+  return { tokens: acc, source: "transcript" };
+}
+
+// Scalar this-run total: the sum of the four classes measureTokensByClass returns
+// (same session file + same child-attribution gate). Returns { total, source }:
+// 'transcript' + summed total, or 'estimate' + null (caller supplies the estimate).
+function measureTokens(opts) {
+  const m = measureTokensByClass(opts);
+  if (m.source !== "transcript") return { total: null, source: "estimate" };
+  const t = m.tokens;
+  return { total: t.input + t.output + t.cache_write + t.cache_read, source: "transcript" };
 }
 
 // Count build attempts from the ledger: every issue with a recorded terminal
@@ -9366,6 +9402,27 @@ function eventViolations(obj, requireEnvelope) {
       v.push(`issue-outcome.data.outcome '${outcome}' not in ledger outcome vocabulary {${[...EVENT_LEDGER_OUTCOMES].join(", ")}}`);
     }
   }
+  // FAFF-408: optional token-tag telemetry under data (additive; schema stays 1).
+  // When data.tokens is present it is either null (⇒ tokens_source "estimate") or a
+  // counts-ONLY four-class object (⇒ tokens_source "transcript"). No other field may
+  // appear under data.tokens — the non-leak invariant (no prompt/response payload).
+  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) && "tokens" in obj.data) {
+    const tok = obj.data.tokens;
+    const src = obj.data.tokens_source;
+    if (tok === null) {
+      if (src !== "estimate") v.push(`data.tokens is null but data.tokens_source '${src}' != 'estimate'`);
+    } else if (tok && typeof tok === "object" && !Array.isArray(tok)) {
+      const extra = Object.keys(tok).filter((k) => !TOKEN_DELTA_CLASSES.includes(k));
+      if (extra.length) v.push(`data.tokens has unexpected field(s) {${extra.join(", ")}} — counts-only {${TOKEN_DELTA_CLASSES.join(", ")}}`);
+      for (const cls of TOKEN_DELTA_CLASSES) {
+        const n = tok[cls];
+        if (!Number.isInteger(n) || n < 0) v.push(`data.tokens.${cls} must be a non-negative integer (got ${JSON.stringify(n)})`);
+      }
+      if (src !== "transcript") v.push(`data.tokens is a delta object but data.tokens_source '${src}' != 'transcript'`);
+    } else {
+      v.push(`data.tokens must be null or a {${TOKEN_DELTA_CLASSES.join(", ")}} object`);
+    }
+  }
   return v;
 }
 
@@ -9378,13 +9435,14 @@ function eventLineCount(filePath) {
 }
 
 function cmdEvents(args) {
-  let root = null, run = null, ts = null, file = null;
+  let root = null, run = null, ts = null, file = null, tokensFlag = false;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--root") root = args[++i];
     else if (args[i] === "--run") run = args[++i];
     else if (args[i] === "--ts") ts = args[++i];
     else if (args[i] === "--file") file = args[++i];
+    else if (args[i] === "--tokens") tokensFlag = true;
     else rest.push(args[i]);
   }
   if (rest.includes("--selftest")) return eventsSelftest();
@@ -9418,7 +9476,57 @@ function cmdEvents(args) {
     const seq = eventLineCount(eventsPath);
     const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
     if (payload.issue !== undefined) record.issue = payload.issue;
-    if (payload.data !== undefined) record.data = payload.data;
+    let data = payload.data;
+    // FAFF-408: opt-in token-tagging. Absent --tokens ⇒ NO measurement, NO ledger
+    // read, and `data` is exactly payload.data — the record is byte-identical to the
+    // pre-change CLI (backward-compat). With --tokens, the CLI (which owns the
+    // envelope) also owns the measurement: it computes the four-class delta since the
+    // run's last checkpoint, injects {tokens, tokens_source} into data, and advances
+    // the ledger checkpoint. schema stays 1 (additive under the free-form data field).
+    if (tokensFlag) {
+      const ledgerPath = path.join(dir, "run-ledger.json");
+      let ledger = null;
+      try { ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch { ledger = null; }
+      const ownerStart = ledger && ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
+      const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
+      const measured = measureTokensByClass({ cwd: root, env: process.env, runStartMs });
+      const base = { ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}) };
+      if (measured.source === "transcript") {
+        // Checkpoint: the advancing four-class field (FAFF-408), seeded from the
+        // run-start by-class baseline, then zeros as a last resort. Delta is measured
+        // against a freshly-measured cumulative, so it never drifts.
+        const budget = ledger && ledger.budget && typeof ledger.budget === "object" ? ledger.budget : null;
+        const checkpoint = (budget && budget.tokens_at_last_event && typeof budget.tokens_at_last_event === "object")
+          ? budget.tokens_at_last_event
+          : (budget && budget.tokens_at_start_by_class && typeof budget.tokens_at_start_by_class === "object")
+            ? budget.tokens_at_start_by_class
+            : { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+        const delta = {};
+        for (const cls of TOKEN_DELTA_CLASSES) {
+          delta[cls] = Math.max(0, (measured.tokens[cls] || 0) - (checkpoint[cls] || 0));
+        }
+        base.tokens = delta;
+        base.tokens_source = "transcript";
+        // Advance the checkpoint to the fresh cumulative (only when a ledger exists —
+        // the single-writer orchestrator owns both this event log and the ledger, so
+        // this read+write is race-free; we never fabricate a ledger).
+        if (ledger) {
+          ledger.budget = ledger.budget && typeof ledger.budget === "object" ? ledger.budget : {};
+          ledger.budget.tokens_at_last_event = {
+            input: measured.tokens.input, output: measured.tokens.output,
+            cache_write: measured.tokens.cache_write, cache_read: measured.tokens.cache_read,
+          };
+          try { atomicWriteLedger(dir, ledger); } catch { /* best-effort; the event still writes */ }
+        }
+      } else {
+        // No transcript readable ⇒ honest null delta, estimate source, and DO NOT
+        // advance the checkpoint (the next transcript append's delta spans the gap).
+        base.tokens = null;
+        base.tokens_source = "estimate";
+      }
+      data = base;
+    }
+    if (data !== undefined) record.data = data;
     fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
     console.log(JSON.stringify(record));
     return 0;
@@ -9491,6 +9599,15 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start" }, 1, "issue-scoped type missing issue"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "bogus" } }, 1, "outcome not in ledger vocab"],
     [[], 1, "not an object"],
+    // FAFF-408 — token-tag telemetry under data.tokens (additive; schema stays 1).
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 100, output: 20, cache_write: 5, cache_read: 0 }, tokens_source: "transcript" } }, 0, "valid 4-class transcript delta"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: null, tokens_source: "estimate" } }, 0, "valid null estimate delta"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4 }, tokens_source: "estimate" } }, 1, "4-class delta but source estimate (mismatch)"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: null, tokens_source: "transcript" } }, 1, "null delta but source transcript (mismatch)"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: -1, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }, 1, "negative class rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1.5, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }, 1, "non-integer class rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4, prompt: "secret" }, tokens_source: "transcript" } }, 1, "extra field rejected (non-leak)"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { tokens: { input: 1, output: 2, cache_write: 3 }, tokens_source: "transcript" } }, 1, "missing class rejected"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {

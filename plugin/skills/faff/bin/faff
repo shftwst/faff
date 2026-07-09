@@ -9485,42 +9485,56 @@ function cmdEvents(args) {
     // the ledger checkpoint. schema stays 1 (additive under the free-form data field).
     if (tokensFlag) {
       const ledgerPath = path.join(dir, "run-ledger.json");
-      let ledger = null;
-      try { ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch { ledger = null; }
-      const ownerStart = ledger && ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
+      // A first read is only for the runStartMs mtime pre-filter (best-effort — a
+      // null value just disables the pre-filter, never changes the total).
+      let ledger0 = null;
+      try { ledger0 = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch { ledger0 = null; }
+      const ownerStart = ledger0 && ledger0.owner && ledger0.owner.started_at ? Date.parse(ledger0.owner.started_at) : null;
       const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
       const measured = measureTokensByClass({ cwd: root, env: process.env, runStartMs });
       const base = { ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}) };
+      // A transcript delta is emitted ONLY if the advancing checkpoint is durably
+      // persisted in the same step — persist-then-emit, atomic in effect. Otherwise
+      // (no readable ledger, or the write fails) we degrade to a null `estimate`:
+      // emitting a delta whose checkpoint did NOT advance would make the NEXT append
+      // re-measure against the stale checkpoint and double-count this window (an
+      // un-advanced transcript delta is worse than an honest gap).
+      let emitted = false;
       if (measured.source === "transcript") {
-        // Checkpoint: the advancing four-class field (FAFF-408), seeded from the
-        // run-start by-class baseline, then zeros as a last resort. Delta is measured
-        // against a freshly-measured cumulative, so it never drifts.
-        const budget = ledger && ledger.budget && typeof ledger.budget === "object" ? ledger.budget : null;
-        const checkpoint = (budget && budget.tokens_at_last_event && typeof budget.tokens_at_last_event === "object")
-          ? budget.tokens_at_last_event
-          : (budget && budget.tokens_at_start_by_class && typeof budget.tokens_at_start_by_class === "object")
-            ? budget.tokens_at_start_by_class
-            : { input: 0, output: 0, cache_write: 0, cache_read: 0 };
-        const delta = {};
-        for (const cls of TOKEN_DELTA_CLASSES) {
-          delta[cls] = Math.max(0, (measured.tokens[cls] || 0) - (checkpoint[cls] || 0));
-        }
-        base.tokens = delta;
-        base.tokens_source = "transcript";
-        // Advance the checkpoint to the fresh cumulative (only when a ledger exists —
-        // the single-writer orchestrator owns both this event log and the ledger, so
-        // this read+write is race-free; we never fabricate a ledger).
-        if (ledger) {
-          ledger.budget = ledger.budget && typeof ledger.budget === "object" ? ledger.budget : {};
-          ledger.budget.tokens_at_last_event = {
+        try {
+          // Re-read the ledger FRESH immediately before writing and merge ONLY the
+          // checkpoint field, so a concurrent `faff heartbeat` write (owner.last_heartbeat,
+          // fired from a build subagent) is preserved rather than clobbered by a stale
+          // whole-object rewrite (the FAFF-205 false-stale hazard). The checkpoint the
+          // delta baselines against is read from this SAME fresh object, so the two are
+          // consistent. The orchestrator is the single writer of the budget block, so no
+          // concurrent writer touches tokens_at_last_event between this read and write.
+          const fresh = JSON.parse(fs.readFileSync(ledgerPath, "utf8"));
+          const b = fresh.budget && typeof fresh.budget === "object" ? fresh.budget : {};
+          const checkpoint = (b.tokens_at_last_event && typeof b.tokens_at_last_event === "object")
+            ? b.tokens_at_last_event
+            : (b.tokens_at_start_by_class && typeof b.tokens_at_start_by_class === "object")
+              ? b.tokens_at_start_by_class
+              : { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+          const delta = {};
+          for (const cls of TOKEN_DELTA_CLASSES) {
+            delta[cls] = Math.max(0, (measured.tokens[cls] || 0) - (checkpoint[cls] || 0));
+          }
+          fresh.budget = b;
+          fresh.budget.tokens_at_last_event = {
             input: measured.tokens.input, output: measured.tokens.output,
             cache_write: measured.tokens.cache_write, cache_read: measured.tokens.cache_read,
           };
-          try { atomicWriteLedger(dir, ledger); } catch { /* best-effort; the event still writes */ }
-        }
-      } else {
-        // No transcript readable ⇒ honest null delta, estimate source, and DO NOT
-        // advance the checkpoint (the next transcript append's delta spans the gap).
+          atomicWriteLedger(dir, fresh); // if this throws, the catch degrades to estimate
+          base.tokens = delta;
+          base.tokens_source = "transcript";
+          emitted = true;
+        } catch { /* unreadable/unwritable ledger → estimate below (no fabricated delta) */ }
+      }
+      if (!emitted) {
+        // No transcript readable, OR no durable checkpoint could be maintained ⇒ honest
+        // null delta, estimate source, checkpoint NOT advanced (the next transcript
+        // append's delta spans the gap once — no tokens lost, no double-count).
         base.tokens = null;
         base.tokens_source = "estimate";
       }

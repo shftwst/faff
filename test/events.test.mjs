@@ -320,10 +320,30 @@ test("append --tokens with NO transcript → null delta, estimate source, checkp
       { CLAUDE_CONFIG_DIR: join(dir, "cfg") });
     assert.equal(r.code, 0, r.err);
     const ev = lines(dir, "R");
+    assert.equal(ev.length, 1); // the event is still written (degradation-safe, never skipped)
     assert.equal(ev[0].data.tokens, null);
     assert.equal(ev[0].data.tokens_source, "estimate");
     // NOT advanced — the prior checkpoint is untouched
     assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 7, output: 0, cache_write: 0, cache_read: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append --tokens with a transcript but NO ledger → degrades to estimate (no fabricated delta), event still writes", () => {
+  const dir = tmp(); mkRun(dir, "R"); // run dir exists, but no run-ledger.json
+  try {
+    const sid = "sess-noledger";
+    const cfg = withTranscripts(dir, dir, sid, { [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20 }] });
+    const r = run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const ev = lines(dir, "R");
+    assert.equal(ev.length, 1);
+    // no durable checkpoint could be maintained ⇒ honest estimate, never an un-advanced
+    // transcript delta (which would double-count the window on the next append)
+    assert.equal(ev[0].data.tokens, null);
+    assert.equal(ev[0].data.tokens_source, "estimate");
+    assert.equal(existsSync(ledgerPath(dir, "R")), false); // never fabricates a ledger
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

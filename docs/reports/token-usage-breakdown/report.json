@@ -1,0 +1,735 @@
+{
+  "corpus": {
+    "base": "/Users/shftwst/.claude/projects/-Users-shftwst-workspace-shftwst-faff",
+    "files_read": 981,
+    "records_with_usage": 86072,
+    "records_missing_model": 0
+  },
+  "pricing": {
+    "source": "claude-api skill (cached 2026-06-24); cache_write=1.25x input, cache_read=0.1x input",
+    "per_mtok": {
+      "claude-fable-5": {
+        "input": 10,
+        "output": 50,
+        "cache_write": 12.5,
+        "cache_read": 1
+      },
+      "claude-opus-4-8": {
+        "input": 5,
+        "output": 25,
+        "cache_write": 6.25,
+        "cache_read": 0.5
+      },
+      "claude-opus-4-7": {
+        "input": 5,
+        "output": 25,
+        "cache_write": 6.25,
+        "cache_read": 0.5
+      },
+      "claude-opus-4-6": {
+        "input": 5,
+        "output": 25,
+        "cache_write": 6.25,
+        "cache_read": 0.5
+      },
+      "claude-opus-4-5": {
+        "input": 5,
+        "output": 25,
+        "cache_write": 6.25,
+        "cache_read": 0.5
+      },
+      "claude-sonnet-5": {
+        "input": 3,
+        "output": 15,
+        "cache_write": 3.75,
+        "cache_read": 0.3
+      },
+      "claude-sonnet-4-6": {
+        "input": 3,
+        "output": 15,
+        "cache_write": 3.75,
+        "cache_read": 0.3
+      },
+      "claude-sonnet-4-5": {
+        "input": 3,
+        "output": 15,
+        "cache_write": 3.75,
+        "cache_read": 0.3
+      },
+      "claude-haiku-4-5": {
+        "input": 1,
+        "output": 5,
+        "cache_write": 1.25,
+        "cache_read": 0.1
+      }
+    }
+  },
+  "reconciliation": {
+    "grand_total": 17786085406,
+    "flat_sum": 17786085406,
+    "reconciles": true
+  },
+  "grand": {
+    "input": 39570658,
+    "output": 82936377,
+    "cache_write": 826918284,
+    "cache_read": 16836660087,
+    "total": 17786085406,
+    "cost": 16762.731201885512
+  },
+  "by_class": {
+    "input": 39570658,
+    "output": 82936377,
+    "cache_write": 826918284,
+    "cache_read": 16836660087,
+    "cost": {
+      "input": 204.04362000011517,
+      "output": 2225.479635000595,
+      "cache_write": 5501.782422499941,
+      "cache_read": 8831.425524399912
+    }
+  },
+  "by_model": [
+    {
+      "model": "claude-opus-4-8",
+      "input": 30670379,
+      "output": 73364345,
+      "cache_write": 682751563,
+      "cache_read": 15077394703,
+      "total": 15864180990,
+      "cost": 13793.35514023743
+    },
+    {
+      "model": "claude-fable-5",
+      "input": 5004700,
+      "output": 7333957,
+      "cache_write": 87288620,
+      "cache_read": 1147389089,
+      "total": 1247016366,
+      "cost": 2655.241688999861
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "input": 110826,
+      "output": 880096,
+      "cache_write": 22624711,
+      "cache_read": 183105542,
+      "total": 206721175,
+      "cost": 153.3082468500055
+    },
+    {
+      "model": "claude-opus-4-6",
+      "input": 11626,
+      "output": 235828,
+      "cache_write": 3163600,
+      "cache_read": 118825865,
+      "total": 122236919,
+      "cost": 85.13926250000102
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "input": 254117,
+      "output": 1115204,
+      "cache_write": 31089790,
+      "cache_read": 309944888,
+      "total": 342403999,
+      "cost": 75.68686330000378
+    },
+    {
+      "model": "<synthetic>",
+      "input": 0,
+      "output": 0,
+      "cache_write": 0,
+      "cache_read": 0,
+      "total": 0,
+      "cost": 0
+    },
+    {
+      "model": "qwen3.6:27b-mlx",
+      "input": 3519010,
+      "output": 6947,
+      "cache_write": 0,
+      "cache_read": 0,
+      "total": 3525957,
+      "cost": 0
+    }
+  ],
+  "by_day": [
+    {
+      "day": "2026-05-29",
+      "input": 23200,
+      "output": 47366,
+      "cache_write": 343254,
+      "cache_read": 7285705,
+      "total": 7699525,
+      "cost": 4.6100069999999995
+    },
+    {
+      "day": "2026-05-30",
+      "input": 63931,
+      "output": 135007,
+      "cache_write": 1848225,
+      "cache_read": 26031279,
+      "total": 28078442,
+      "cost": 23.53209835000008
+    },
+    {
+      "day": "2026-05-31",
+      "input": 276,
+      "output": 49604,
+      "cache_write": 838714,
+      "cache_read": 28607392,
+      "total": 29495986,
+      "cost": 20.787138500000083
+    },
+    {
+      "day": "2026-06-01",
+      "input": 118776,
+      "output": 883662,
+      "cache_write": 8502759,
+      "cache_read": 274644720,
+      "total": 284149917,
+      "cost": 197.91874915000685
+    },
+    {
+      "day": "2026-06-02",
+      "input": 614902,
+      "output": 2417136,
+      "cache_write": 8921689,
+      "cache_read": 515731433,
+      "total": 527685160,
+      "cost": 371.46297414999185
+    },
+    {
+      "day": "2026-06-03",
+      "input": 583698,
+      "output": 1166090,
+      "cache_write": 9220540,
+      "cache_read": 302321830,
+      "total": 313292158,
+      "cost": 238.61892900000066
+    },
+    {
+      "day": "2026-06-04",
+      "input": 97179,
+      "output": 982396,
+      "cache_write": 11922005,
+      "cache_read": 152792137,
+      "total": 165793717,
+      "cost": 167.1751863499995
+    },
+    {
+      "day": "2026-06-05",
+      "input": 297718,
+      "output": 1164234,
+      "cache_write": 5563278,
+      "cache_read": 101572014,
+      "total": 108597244,
+      "cost": 115.19070570000144
+    },
+    {
+      "day": "2026-06-06",
+      "input": 672215,
+      "output": 1256096,
+      "cache_write": 14593895,
+      "cache_read": 405322890,
+      "total": 421845096,
+      "cost": 324.30089554998193
+    },
+    {
+      "day": "2026-06-07",
+      "input": 12,
+      "output": 976,
+      "cache_write": 22230,
+      "cache_read": 135660,
+      "total": 158878,
+      "cost": 0.23122750000000006
+    },
+    {
+      "day": "2026-06-08",
+      "input": 152,
+      "output": 14838,
+      "cache_write": 222123,
+      "cache_read": 2212998,
+      "total": 2450111,
+      "cost": 2.866477750000002
+    },
+    {
+      "day": "2026-06-09",
+      "input": 1048143,
+      "output": 2720001,
+      "cache_write": 14311974,
+      "cache_read": 534174443,
+      "total": 552254561,
+      "cost": 417.5260223999711
+    },
+    {
+      "day": "2026-06-10",
+      "input": 1202498,
+      "output": 3881970,
+      "cache_write": 37749695,
+      "cache_read": 814470563,
+      "total": 857304726,
+      "cost": 784.1793737999577
+    },
+    {
+      "day": "2026-06-11",
+      "input": 614133,
+      "output": 2169158,
+      "cache_write": 23097052,
+      "cache_read": 320352767,
+      "total": 346233110,
+      "cost": 360.1233292499959
+    },
+    {
+      "day": "2026-06-12",
+      "input": 622382,
+      "output": 2723710,
+      "cache_write": 16602222,
+      "cache_read": 391147607,
+      "total": 411095921,
+      "cost": 361.6145577999937
+    },
+    {
+      "day": "2026-06-13",
+      "input": 285296,
+      "output": 333822,
+      "cache_write": 3413800,
+      "cache_read": 17889449,
+      "total": 21922367,
+      "cost": 38.45938670000011
+    },
+    {
+      "day": "2026-06-14",
+      "input": 141331,
+      "output": 952339,
+      "cache_write": 8726794,
+      "cache_read": 177312599,
+      "total": 187133063,
+      "cost": 165.17046559999926
+    },
+    {
+      "day": "2026-06-15",
+      "input": 655322,
+      "output": 2413111,
+      "cache_write": 15778005,
+      "cache_read": 402912438,
+      "total": 421758876,
+      "cost": 356.0859618499894
+    },
+    {
+      "day": "2026-06-16",
+      "input": 1006225,
+      "output": 3499370,
+      "cache_write": 35372504,
+      "cache_read": 859131226,
+      "total": 899009325,
+      "cost": 726.2906575999665
+    },
+    {
+      "day": "2026-06-17",
+      "input": 283958,
+      "output": 974735,
+      "cache_write": 7845899,
+      "cache_read": 132142077,
+      "total": 141246669,
+      "cost": 140.89607225000086
+    },
+    {
+      "day": "2026-06-18",
+      "input": 101656,
+      "output": 295876,
+      "cache_write": 3269623,
+      "cache_read": 30011538,
+      "total": 33678693,
+      "cost": 43.34609275000004
+    },
+    {
+      "day": "2026-06-19",
+      "input": 214707,
+      "output": 3152897,
+      "cache_write": 31456945,
+      "cache_read": 862947224,
+      "total": 897771773,
+      "cost": 698.5520780499809
+    },
+    {
+      "day": "2026-06-20",
+      "input": 248891,
+      "output": 756041,
+      "cache_write": 13196864,
+      "cache_read": 150956425,
+      "total": 165158221,
+      "cost": 178.10409250000225
+    },
+    {
+      "day": "2026-06-21",
+      "input": 1114556,
+      "output": 2963971,
+      "cache_write": 35654167,
+      "cache_read": 655555764,
+      "total": 695288458,
+      "cost": 621.0874597499546
+    },
+    {
+      "day": "2026-06-22",
+      "input": 1837089,
+      "output": 3791020,
+      "cache_write": 30464311,
+      "cache_read": 682950742,
+      "total": 719043162,
+      "cost": 617.964904949923
+    },
+    {
+      "day": "2026-06-23",
+      "input": 1419240,
+      "output": 2685451,
+      "cache_write": 24048924,
+      "cache_read": 425115864,
+      "total": 453269479,
+      "cost": 414.20721459996116
+    },
+    {
+      "day": "2026-06-26",
+      "input": 2633607,
+      "output": 6093492,
+      "cache_write": 60957376,
+      "cache_read": 1162399941,
+      "total": 1232084416,
+      "cost": 1087.9494262998853
+    },
+    {
+      "day": "2026-06-27",
+      "input": 2008607,
+      "output": 4326008,
+      "cache_write": 36823185,
+      "cache_read": 947476265,
+      "total": 990634065,
+      "cost": 805.1366379499243
+    },
+    {
+      "day": "2026-06-28",
+      "input": 2597987,
+      "output": 3623866,
+      "cache_write": 36690874,
+      "cache_read": 747436147,
+      "total": 790348874,
+      "cost": 687.0102207999647
+    },
+    {
+      "day": "2026-06-29",
+      "input": 2606639,
+      "output": 3808910,
+      "cache_write": 63046155,
+      "cache_read": 1020945340,
+      "total": 1090407044,
+      "cost": 1000.7330857498987
+    },
+    {
+      "day": "2026-06-30",
+      "input": 1171244,
+      "output": 1806239,
+      "cache_write": 19430869,
+      "cache_read": 375078817,
+      "total": 397487169,
+      "cost": 359.9945347499763
+    },
+    {
+      "day": "2026-07-01",
+      "input": 1485340,
+      "output": 1510009,
+      "cache_write": 23657994,
+      "cache_read": 349728496,
+      "total": 376381839,
+      "cost": 367.90363549998295
+    },
+    {
+      "day": "2026-07-02",
+      "input": 806642,
+      "output": 1358690,
+      "cache_write": 17241438,
+      "cache_read": 318862702,
+      "total": 338269472,
+      "cost": 305.19079849998957
+    },
+    {
+      "day": "2026-07-03",
+      "input": 4215257,
+      "output": 2063955,
+      "cache_write": 20705219,
+      "cache_read": 293299253,
+      "total": 320283684,
+      "cost": 365.72949029998404
+    },
+    {
+      "day": "2026-07-04",
+      "input": 954913,
+      "output": 2855416,
+      "cache_write": 31384673,
+      "cache_read": 669967931,
+      "total": 705162933,
+      "cost": 838.4029325999675
+    },
+    {
+      "day": "2026-07-05",
+      "input": 3285497,
+      "output": 7765666,
+      "cache_write": 67872697,
+      "cache_read": 1566083330,
+      "total": 1645007190,
+      "cost": 1802.568921699986
+    },
+    {
+      "day": "2026-07-06",
+      "input": 478572,
+      "output": 950732,
+      "cache_write": 12414957,
+      "cache_read": 125115468,
+      "total": 138959729,
+      "cost": 241.2506848000024
+    },
+    {
+      "day": "2026-07-07",
+      "input": 3294504,
+      "output": 4413470,
+      "cache_write": 57272758,
+      "cache_read": 832318585,
+      "total": 897299317,
+      "cost": 1165.6062304499233
+    },
+    {
+      "day": "2026-07-08",
+      "input": 706019,
+      "output": 580300,
+      "cache_write": 14441611,
+      "cache_read": 117033148,
+      "total": 132761078,
+      "cost": 305.8172564000033
+    },
+    {
+      "day": "2026-07-09",
+      "input": 58344,
+      "output": 348747,
+      "cache_write": 1990987,
+      "cache_read": 37185880,
+      "total": 39583958,
+      "cost": 39.13528725
+    }
+  ],
+  "mcp": {
+    "cache_amp_factor": 19.43,
+    "priced_at_model": "claude-opus-4-8",
+    "tools_invoked": 23,
+    "total_calls": 6281,
+    "total_cost_est_usd": 161.77,
+    "per_tool": [
+      {
+        "tool": "claude_ai_Linear__list_comments",
+        "call_count": 1211,
+        "request_tok": 7872,
+        "cache_est_tok": 44956632,
+        "response_tok": 2313667,
+        "total_tok": 47278171,
+        "cost_est_usd": 34.086
+      },
+      {
+        "tool": "claude_ai_Linear__get_issue",
+        "call_count": 1836,
+        "request_tok": 14527,
+        "cache_est_tok": 40866292,
+        "response_tok": 2103160,
+        "total_tok": 42983979,
+        "cost_est_usd": 31.0216
+      },
+      {
+        "tool": "claude_ai_Linear__save_comment",
+        "call_count": 817,
+        "request_tok": 1871165,
+        "cache_est_tok": 37838200,
+        "response_tok": 1947321,
+        "total_tok": 41656686,
+        "cost_est_usd": 38.0115
+      },
+      {
+        "tool": "claude_ai_Linear__list_issues",
+        "call_count": 638,
+        "request_tok": 10682,
+        "cache_est_tok": 36591358,
+        "response_tok": 1883153,
+        "total_tok": 38485193,
+        "cost_est_usd": 27.7649
+      },
+      {
+        "tool": "claude_ai_Linear__save_issue",
+        "call_count": 1463,
+        "request_tok": 250764,
+        "cache_est_tok": 27565141,
+        "response_tok": 1418624,
+        "total_tok": 29234529,
+        "cost_est_usd": 22.1295
+      },
+      {
+        "tool": "claude_ai_Linear__list_projects",
+        "call_count": 66,
+        "request_tok": 687,
+        "cache_est_tok": 7259676,
+        "response_tok": 373615,
+        "total_tok": 7633978,
+        "cost_est_usd": 5.5013
+      },
+      {
+        "tool": "claude_ai_Linear__list_initiatives",
+        "call_count": 28,
+        "request_tok": 250,
+        "cache_est_tok": 2687876,
+        "response_tok": 138330,
+        "total_tok": 2826456,
+        "cost_est_usd": 2.0368
+      },
+      {
+        "tool": "claude_ai_Linear__save_project",
+        "call_count": 66,
+        "request_tok": 11358,
+        "cache_est_tok": 505067,
+        "response_tok": 25993,
+        "total_tok": 542418,
+        "cost_est_usd": 0.4393
+      },
+      {
+        "tool": "claude_ai_Linear__get_initiative",
+        "call_count": 25,
+        "request_tok": 386,
+        "cache_est_tok": 320124,
+        "response_tok": 16475,
+        "total_tok": 336985,
+        "cost_est_usd": 0.2444
+      },
+      {
+        "tool": "claude_ai_Linear__list_issue_labels",
+        "call_count": 48,
+        "request_tok": 402,
+        "cache_est_tok": 301334,
+        "response_tok": 15508,
+        "total_tok": 317244,
+        "cost_est_usd": 0.2302
+      },
+      {
+        "tool": "claude_ai_Linear__get_project",
+        "call_count": 9,
+        "request_tok": 115,
+        "cache_est_tok": 153815,
+        "response_tok": 7916,
+        "total_tok": 161846,
+        "cost_est_usd": 0.1171
+      },
+      {
+        "tool": "claude_ai_Linear__list_issue_statuses",
+        "call_count": 33,
+        "request_tok": 165,
+        "cache_est_tok": 104422,
+        "response_tok": 5374,
+        "total_tok": 109961,
+        "cost_est_usd": 0.0799
+      },
+      {
+        "tool": "claude_ai_Linear__save_status_update",
+        "call_count": 6,
+        "request_tok": 1952,
+        "cache_est_tok": 54426,
+        "response_tok": 2801,
+        "total_tok": 59179,
+        "cost_est_usd": 0.051
+      },
+      {
+        "tool": "claude_ai_Linear__save_initiative",
+        "call_count": 4,
+        "request_tok": 1481,
+        "cache_est_tok": 23628,
+        "response_tok": 1216,
+        "total_tok": 26325,
+        "cost_est_usd": 0.0253
+      },
+      {
+        "tool": "claude_ai_Linear__list_teams",
+        "call_count": 12,
+        "request_tok": 46,
+        "cache_est_tok": 18693,
+        "response_tok": 962,
+        "total_tok": 19701,
+        "cost_est_usd": 0.0144
+      },
+      {
+        "tool": "claude_ai_Linear__create_issue_label",
+        "call_count": 3,
+        "request_tok": 124,
+        "cache_est_tok": 4042,
+        "response_tok": 208,
+        "total_tok": 4374,
+        "cost_est_usd": 0.0037
+      },
+      {
+        "tool": "claude_ai_Linear__get_user",
+        "call_count": 1,
+        "request_tok": 4,
+        "cache_est_tok": 3614,
+        "response_tok": 186,
+        "total_tok": 3804,
+        "cost_est_usd": 0.0028
+      },
+      {
+        "tool": "claude_ai_Linear__list_users",
+        "call_count": 1,
+        "request_tok": 4,
+        "cache_est_tok": 1924,
+        "response_tok": 99,
+        "total_tok": 2027,
+        "cost_est_usd": 0.0015
+      },
+      {
+        "tool": "claude_ai_Linear__list_milestones",
+        "call_count": 8,
+        "request_tok": 96,
+        "cache_est_tok": 1788,
+        "response_tok": 92,
+        "total_tok": 1976,
+        "cost_est_usd": 0.0018
+      },
+      {
+        "tool": "claude_ai_Linear__create_issue",
+        "call_count": 1,
+        "request_tok": 1127,
+        "cache_est_tok": 486,
+        "response_tok": 25,
+        "total_tok": 1638,
+        "cost_est_usd": 0.006
+      },
+      {
+        "tool": "claude_ai_Linear__create_comment",
+        "call_count": 1,
+        "request_tok": 593,
+        "cache_est_tok": 486,
+        "response_tok": 25,
+        "total_tok": 1104,
+        "cost_est_usd": 0.0033
+      },
+      {
+        "tool": "claude_ai_Linear__delete_comment",
+        "call_count": 3,
+        "request_tok": 34,
+        "cache_est_tok": 661,
+        "response_tok": 34,
+        "total_tok": 729,
+        "cost_est_usd": 0.0007
+      },
+      {
+        "tool": "claude_ai_Linear__list_documents",
+        "call_count": 1,
+        "request_tok": 7,
+        "cache_est_tok": 330,
+        "response_tok": 17,
+        "total_tok": 354,
+        "cost_est_usd": 0.0003
+      }
+    ]
+  }
+}

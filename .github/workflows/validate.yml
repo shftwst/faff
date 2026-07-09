@@ -154,6 +154,9 @@ jobs:
       - name: Validate run-done terminating-condition predicate table (FAFF-38)
         run: node plugin/skills/faff/bin/faff run-done --selftest
 
+      - name: Validate economics unit-economics + --by breakdown table (FAFF-357/410)
+        run: node plugin/skills/faff/bin/faff economics --selftest
+
       - name: Validate sentry derailment-detection + kill-switch table (FAFF-49)
         run: node plugin/skills/faff/bin/faff sentry --selftest
 

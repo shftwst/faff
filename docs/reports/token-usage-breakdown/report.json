@@ -1,9 +1,11 @@
 {
   "corpus": {
+    "records_with_usage": 86337,
+    "records_missing_model": 0,
     "base": "/Users/shftwst/.claude/projects/-Users-shftwst-workspace-shftwst-faff",
-    "files_read": 981,
-    "records_with_usage": 86072,
-    "records_missing_model": 0
+    "files_read": 982,
+    "files_unreadable": 0,
+    "parse_errors": 19
   },
   "pricing": {
     "source": "claude-api skill (cached 2026-06-24); cache_write=1.25x input, cache_read=0.1x input",
@@ -65,39 +67,39 @@
     }
   },
   "reconciliation": {
-    "grand_total": 17786085406,
-    "flat_sum": 17786085406,
+    "grand_total": 17889448960,
+    "flat_sum": 17889448960,
     "reconciles": true
   },
   "grand": {
-    "input": 39570658,
-    "output": 82936377,
-    "cache_write": 826918284,
-    "cache_read": 16836660087,
-    "total": 17786085406,
-    "cost": 16762.731201885512
+    "input": 39630215,
+    "output": 83340421,
+    "cache_write": 832319849,
+    "cache_read": 16934158475,
+    "total": 17889448960,
+    "cost": 16855.63906213551
   },
   "by_class": {
-    "input": 39570658,
-    "output": 82936377,
-    "cache_write": 826918284,
-    "cache_read": 16836660087,
+    "input": 39630215,
+    "output": 83340421,
+    "cache_write": 832319849,
+    "cache_read": 16934158475,
     "cost": {
-      "input": 204.04362000011517,
-      "output": 2225.479635000595,
-      "cache_write": 5501.782422499941,
-      "cache_read": 8831.425524399912
+      "input": 204.34140500011551,
+      "output": 2235.5807350005985,
+      "cache_write": 5535.54220374989,
+      "cache_read": 8880.17471839989
     }
   },
   "by_model": [
     {
       "model": "claude-opus-4-8",
-      "input": 30670379,
-      "output": 73364345,
-      "cache_write": 682751563,
-      "cache_read": 15077394703,
-      "total": 15864180990,
-      "cost": 13793.35514023743
+      "input": 30729936,
+      "output": 73768389,
+      "cache_write": 688153128,
+      "cache_read": 15174893091,
+      "total": 15967544544,
+      "cost": 13886.263000487454
     },
     {
       "model": "claude-fable-5",
@@ -508,227 +510,300 @@
     },
     {
       "day": "2026-07-09",
-      "input": 58344,
-      "output": 348747,
-      "cache_write": 1990987,
-      "cache_read": 37185880,
-      "total": 39583958,
-      "cost": 39.13528725
+      "input": 117901,
+      "output": 752791,
+      "cache_write": 7392552,
+      "cache_read": 134684268,
+      "total": 142947512,
+      "cost": 132.0431475000007
     }
   ],
   "mcp": {
-    "cache_amp_factor": 19.43,
+    "superseded_global_cache_amp_factor": 19.42,
     "priced_at_model": "claude-opus-4-8",
     "tools_invoked": 23,
-    "total_calls": 6281,
-    "total_cost_est_usd": 161.77,
+    "total_calls": 6296,
+    "total_cost_est_usd": 1347.85,
+    "reconciliation": {
+      "cache_read_total_billed": 16934158475,
+      "cache_read_attributed": 16931904436,
+      "unattributed": 2254039,
+      "mcp_share_tok": 2571135642,
+      "nonmcp_share_tok": 14360768794,
+      "reconciles": true,
+      "mcp_share_pct": 15.183,
+      "mcp_share_range_pct": {
+        "lo": 15.183,
+        "hi": 16.233
+      },
+      "boundary_modes": {
+        "detect": {
+          "mcp_share_tok": 2571135642,
+          "unattributed": 2254039
+        },
+        "lenient": {
+          "mcp_share_tok": 2592244726,
+          "unattributed": 1485235
+        },
+        "aggressive": {
+          "mcp_share_tok": 2748862538,
+          "unattributed": 27621948
+        }
+      }
+    },
     "per_tool": [
       {
+        "tool": "claude_ai_Linear__save_comment",
+        "call_count": 821,
+        "request_tok": 1879215,
+        "response_tok": 1955829,
+        "cache_read_measured_tok": 607837646,
+        "amplification_ratio": 310.78,
+        "cache_est_global_tok": 37984192,
+        "total_tok": 611672690,
+        "cost_est_usd": 323.094
+      },
+      {
         "tool": "claude_ai_Linear__list_comments",
-        "call_count": 1211,
-        "request_tok": 7872,
-        "cache_est_tok": 44956632,
-        "response_tok": 2313667,
-        "total_tok": 47278171,
-        "cost_est_usd": 34.086
+        "call_count": 1212,
+        "request_tok": 7886,
+        "response_tok": 2313684,
+        "cache_read_measured_tok": 478533961,
+        "amplification_ratio": 206.83,
+        "cache_est_global_tok": 44934100,
+        "total_tok": 480855531,
+        "cost_est_usd": 250.8748
+      },
+      {
+        "tool": "claude_ai_Linear__save_issue",
+        "call_count": 1471,
+        "request_tok": 251794,
+        "response_tok": 1425751,
+        "cache_read_measured_tok": 457997016,
+        "amplification_ratio": 321.23,
+        "cache_est_global_tok": 27689537,
+        "total_tok": 459674561,
+        "cost_est_usd": 237.3862
       },
       {
         "tool": "claude_ai_Linear__get_issue",
-        "call_count": 1836,
-        "request_tok": 14527,
-        "cache_est_tok": 40866292,
-        "response_tok": 2103160,
-        "total_tok": 42983979,
-        "cost_est_usd": 31.0216
-      },
-      {
-        "tool": "claude_ai_Linear__save_comment",
-        "call_count": 817,
-        "request_tok": 1871165,
-        "cache_est_tok": 37838200,
-        "response_tok": 1947321,
-        "total_tok": 41656686,
-        "cost_est_usd": 38.0115
+        "call_count": 1838,
+        "request_tok": 14541,
+        "response_tok": 2105392,
+        "cache_read_measured_tok": 416622554,
+        "amplification_ratio": 197.88,
+        "cache_est_global_tok": 40888857,
+        "total_tok": 418742487,
+        "cost_est_usd": 218.9109
       },
       {
         "tool": "claude_ai_Linear__list_issues",
         "call_count": 638,
         "request_tok": 10682,
-        "cache_est_tok": 36591358,
         "response_tok": 1883153,
-        "total_tok": 38485193,
-        "cost_est_usd": 27.7649
-      },
-      {
-        "tool": "claude_ai_Linear__save_issue",
-        "call_count": 1463,
-        "request_tok": 250764,
-        "cache_est_tok": 27565141,
-        "response_tok": 1418624,
-        "total_tok": 29234529,
-        "cost_est_usd": 22.1295
+        "cache_read_measured_tok": 394874883,
+        "amplification_ratio": 209.69,
+        "cache_est_global_tok": 36572750,
+        "total_tok": 396768718,
+        "cost_est_usd": 206.9066
       },
       {
         "tool": "claude_ai_Linear__list_projects",
         "call_count": 66,
         "request_tok": 687,
-        "cache_est_tok": 7259676,
         "response_tok": 373615,
-        "total_tok": 7633978,
-        "cost_est_usd": 5.5013
+        "cache_read_measured_tok": 137126159,
+        "amplification_ratio": 367.03,
+        "cache_est_global_tok": 7255984,
+        "total_tok": 137500461,
+        "cost_est_usd": 70.4346
       },
       {
         "tool": "claude_ai_Linear__list_initiatives",
         "call_count": 28,
         "request_tok": 250,
-        "cache_est_tok": 2687876,
         "response_tok": 138330,
-        "total_tok": 2826456,
-        "cost_est_usd": 2.0368
+        "cache_read_measured_tok": 46854257,
+        "amplification_ratio": 338.71,
+        "cache_est_global_tok": 2686510,
+        "total_tok": 46992837,
+        "cost_est_usd": 24.12
       },
       {
         "tool": "claude_ai_Linear__save_project",
         "call_count": 66,
         "request_tok": 11358,
-        "cache_est_tok": 505067,
         "response_tok": 25993,
-        "total_tok": 542418,
-        "cost_est_usd": 0.4393
+        "cache_read_measured_tok": 9165785,
+        "amplification_ratio": 352.63,
+        "cache_est_global_tok": 504811,
+        "total_tok": 9203136,
+        "cost_est_usd": 4.7696
       },
       {
         "tool": "claude_ai_Linear__get_initiative",
         "call_count": 25,
         "request_tok": 386,
-        "cache_est_tok": 320124,
         "response_tok": 16475,
-        "total_tok": 336985,
-        "cost_est_usd": 0.2444
+        "cache_read_measured_tok": 7181493,
+        "amplification_ratio": 435.9,
+        "cache_est_global_tok": 319961,
+        "total_tok": 7198354,
+        "cost_est_usd": 3.6751
       },
       {
         "tool": "claude_ai_Linear__list_issue_labels",
         "call_count": 48,
         "request_tok": 402,
-        "cache_est_tok": 301334,
         "response_tok": 15508,
-        "total_tok": 317244,
-        "cost_est_usd": 0.2302
+        "cache_read_measured_tok": 7008775,
+        "amplification_ratio": 451.95,
+        "cache_est_global_tok": 301181,
+        "total_tok": 7024685,
+        "cost_est_usd": 3.5839
       },
       {
         "tool": "claude_ai_Linear__get_project",
         "call_count": 9,
         "request_tok": 115,
-        "cache_est_tok": 153815,
         "response_tok": 7916,
-        "total_tok": 161846,
-        "cost_est_usd": 0.1171
-      },
-      {
-        "tool": "claude_ai_Linear__list_issue_statuses",
-        "call_count": 33,
-        "request_tok": 165,
-        "cache_est_tok": 104422,
-        "response_tok": 5374,
-        "total_tok": 109961,
-        "cost_est_usd": 0.0799
+        "cache_read_measured_tok": 3772424,
+        "amplification_ratio": 476.56,
+        "cache_est_global_tok": 153737,
+        "total_tok": 3780455,
+        "cost_est_usd": 1.9264
       },
       {
         "tool": "claude_ai_Linear__save_status_update",
         "call_count": 6,
         "request_tok": 1952,
-        "cache_est_tok": 54426,
         "response_tok": 2801,
-        "total_tok": 59179,
-        "cost_est_usd": 0.051
+        "cache_read_measured_tok": 1454009,
+        "amplification_ratio": 519.1,
+        "cache_est_global_tok": 54398,
+        "total_tok": 1458762,
+        "cost_est_usd": 0.7508
+      },
+      {
+        "tool": "claude_ai_Linear__list_issue_statuses",
+        "call_count": 33,
+        "request_tok": 165,
+        "response_tok": 5374,
+        "cache_read_measured_tok": 986966,
+        "amplification_ratio": 183.66,
+        "cache_est_global_tok": 104369,
+        "total_tok": 992505,
+        "cost_est_usd": 0.5212
       },
       {
         "tool": "claude_ai_Linear__save_initiative",
         "call_count": 4,
         "request_tok": 1481,
-        "cache_est_tok": 23628,
         "response_tok": 1216,
-        "total_tok": 26325,
-        "cost_est_usd": 0.0253
+        "cache_read_measured_tok": 837673,
+        "amplification_ratio": 688.88,
+        "cache_est_global_tok": 23616,
+        "total_tok": 840370,
+        "cost_est_usd": 0.4323
       },
       {
         "tool": "claude_ai_Linear__list_teams",
         "call_count": 12,
         "request_tok": 46,
-        "cache_est_tok": 18693,
         "response_tok": 962,
-        "total_tok": 19701,
-        "cost_est_usd": 0.0144
-      },
-      {
-        "tool": "claude_ai_Linear__create_issue_label",
-        "call_count": 3,
-        "request_tok": 124,
-        "cache_est_tok": 4042,
-        "response_tok": 208,
-        "total_tok": 4374,
-        "cost_est_usd": 0.0037
-      },
-      {
-        "tool": "claude_ai_Linear__get_user",
-        "call_count": 1,
-        "request_tok": 4,
-        "cache_est_tok": 3614,
-        "response_tok": 186,
-        "total_tok": 3804,
-        "cost_est_usd": 0.0028
-      },
-      {
-        "tool": "claude_ai_Linear__list_users",
-        "call_count": 1,
-        "request_tok": 4,
-        "cache_est_tok": 1924,
-        "response_tok": 99,
-        "total_tok": 2027,
-        "cost_est_usd": 0.0015
+        "cache_read_measured_tok": 738375,
+        "amplification_ratio": 767.54,
+        "cache_est_global_tok": 18683,
+        "total_tok": 739383,
+        "cost_est_usd": 0.3742
       },
       {
         "tool": "claude_ai_Linear__list_milestones",
         "call_count": 8,
         "request_tok": 96,
-        "cache_est_tok": 1788,
         "response_tok": 92,
-        "total_tok": 1976,
-        "cost_est_usd": 0.0018
+        "cache_read_measured_tok": 59394,
+        "amplification_ratio": 645.59,
+        "cache_est_global_tok": 1787,
+        "total_tok": 59582,
+        "cost_est_usd": 0.0306
       },
       {
-        "tool": "claude_ai_Linear__create_issue",
+        "tool": "claude_ai_Linear__get_user",
         "call_count": 1,
-        "request_tok": 1127,
-        "cache_est_tok": 486,
-        "response_tok": 25,
-        "total_tok": 1638,
-        "cost_est_usd": 0.006
+        "request_tok": 4,
+        "response_tok": 186,
+        "cache_read_measured_tok": 39864,
+        "amplification_ratio": 214.32,
+        "cache_est_global_tok": 3612,
+        "total_tok": 40054,
+        "cost_est_usd": 0.0209
       },
       {
-        "tool": "claude_ai_Linear__create_comment",
-        "call_count": 1,
-        "request_tok": 593,
-        "cache_est_tok": 486,
-        "response_tok": 25,
-        "total_tok": 1104,
-        "cost_est_usd": 0.0033
+        "tool": "claude_ai_Linear__create_issue_label",
+        "call_count": 3,
+        "request_tok": 124,
+        "response_tok": 208,
+        "cache_read_measured_tok": 30007,
+        "amplification_ratio": 144.26,
+        "cache_est_global_tok": 4040,
+        "total_tok": 30339,
+        "cost_est_usd": 0.0167
       },
       {
         "tool": "claude_ai_Linear__delete_comment",
         "call_count": 3,
         "request_tok": 34,
-        "cache_est_tok": 661,
         "response_tok": 34,
-        "total_tok": 729,
-        "cost_est_usd": 0.0007
+        "cache_read_measured_tok": 9125,
+        "amplification_ratio": 268.38,
+        "cache_est_global_tok": 660,
+        "total_tok": 9193,
+        "cost_est_usd": 0.0049
+      },
+      {
+        "tool": "claude_ai_Linear__create_issue",
+        "call_count": 1,
+        "request_tok": 1127,
+        "response_tok": 25,
+        "cache_read_measured_tok": 5030,
+        "amplification_ratio": 201.2,
+        "cache_est_global_tok": 486,
+        "total_tok": 6182,
+        "cost_est_usd": 0.0083
+      },
+      {
+        "tool": "claude_ai_Linear__create_comment",
+        "call_count": 1,
+        "request_tok": 593,
+        "response_tok": 25,
+        "cache_read_measured_tok": 203,
+        "amplification_ratio": 8.12,
+        "cache_est_global_tok": 486,
+        "total_tok": 821,
+        "cost_est_usd": 0.0032
       },
       {
         "tool": "claude_ai_Linear__list_documents",
         "call_count": 1,
         "request_tok": 7,
-        "cache_est_tok": 330,
         "response_tok": 17,
-        "total_tok": 354,
-        "cost_est_usd": 0.0003
+        "cache_read_measured_tok": 43,
+        "amplification_ratio": 2.53,
+        "cache_est_global_tok": 330,
+        "total_tok": 67,
+        "cost_est_usd": 0.0001
+      },
+      {
+        "tool": "claude_ai_Linear__list_users",
+        "call_count": 1,
+        "request_tok": 4,
+        "response_tok": 99,
+        "cache_read_measured_tok": 0,
+        "amplification_ratio": 0,
+        "cache_est_global_tok": 1923,
+        "total_tok": 103,
+        "cost_est_usd": 0.0005
       }
     ]
   }

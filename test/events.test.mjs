@@ -12,10 +12,15 @@ import { fileURLToPath } from "node:url";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
-// run the CLI in `cwd`; `input` is fed to stdin. returns { code, out, err }
-function run(cwd, args, input) {
+// run the CLI in `cwd`; `input` is fed to stdin. returns { code, out, err }.
+// When `env` is supplied, run from a CLEAN base (HOME/PATH + overrides) so an
+// inherited $CLAUDE_CODE_SESSION_ID can't leak into the token-measurement path;
+// omitting `env` keeps the original inherit-everything behaviour (unchanged).
+function run(cwd, args, input, env) {
+  const opts = { cwd, encoding: "utf8", input: input ?? "" };
+  if (env) opts.env = { HOME: process.env.HOME, PATH: process.env.PATH, ...env };
   try {
-    const out = execFileSync("node", [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "" });
+    const out = execFileSync("node", [CLI, ...args], opts);
     return { code: 0, out: out.trim(), err: "" };
   } catch (e) {
     return { code: e.status ?? 1, out: (e.stdout ?? "").toString().trim(), err: (e.stderr ?? "").toString().trim() };
@@ -28,6 +33,24 @@ function logPath(dir, runId) { return join(dir, ".faff", "runs", runId, "events.
 function lines(dir, runId) {
   return readFileSync(logPath(dir, runId), "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
 }
+
+// FAFF-408 token-tag helpers ------------------------------------------------
+// Write a transcript project dir under a fake $CLAUDE_CONFIG_DIR for `cwd`, each
+// record stamped with `sid` as its owning sessionId (the FAFF-229 attribution key).
+// Mirrors budget.test.mjs's withTranscripts. Returns the CLAUDE_CONFIG_DIR to pass.
+function withTranscripts(root, cwd, sid, files) {
+  const enc = String(cwd).replace(/\//g, "-");
+  const projdir = join(root, "cfg", "projects", enc);
+  mkdirSync(projdir, { recursive: true });
+  for (const [name, usages] of Object.entries(files)) {
+    const recs = usages.map((u) => JSON.stringify({ type: "assistant", sessionId: sid, message: { usage: u } }));
+    writeFileSync(join(projdir, name), recs.join("\n"));
+  }
+  return join(root, "cfg");
+}
+function ledgerPath(dir, runId) { return join(dir, ".faff", "runs", runId, "run-ledger.json"); }
+function writeLedger(dir, runId, ledger) { writeFileSync(ledgerPath(dir, runId), JSON.stringify(ledger)); }
+function readLedger(dir, runId) { return JSON.parse(readFileSync(ledgerPath(dir, runId), "utf8")); }
 
 // --- selftest -------------------------------------------------------------
 
@@ -230,5 +253,158 @@ test("ordering is by seq, independent of ts (out-of-order ts keeps ascending seq
     run(dir, ["events", "append", "--run", "run-X", "--ts", "2026-01-01T00:00:00Z"], JSON.stringify({ phase: "run", type: "run-end" }));
     const ev = lines(dir, "run-X");
     assert.deepEqual(ev.map((e) => e.seq), [0, 1]); // append order, regardless of ts going backwards
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// --- FAFF-408: token-tag (--tokens) ---------------------------------------
+
+const ZERO_BY_CLASS = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+
+test("append --tokens: four-class delta from transcript; checkpoint advances", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const sid = "sess-1";
+    const cfg = withTranscripts(dir, dir, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20, cache_creation_input_tokens: 5, cache_read_input_tokens: 0 }],
+    });
+    writeLedger(dir, "R", { run_id: "R", owner: { started_at: "2020-01-01T00:00:00Z" }, budget: { tokens_at_start_by_class: { ...ZERO_BY_CLASS } } });
+    const r = run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const ev = lines(dir, "R");
+    assert.equal(ev.length, 1);
+    assert.deepEqual(ev[0].data.tokens, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
+    assert.equal(ev[0].data.tokens_source, "transcript");
+    // checkpoint advanced to the fresh cumulative
+    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append --tokens twice: second delta is baselined against the first (checkpoint advance)", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const sid = "sess-2";
+    // first: cumulative {100,20,5,0}
+    let cfg = withTranscripts(dir, dir, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20, cache_creation_input_tokens: 5, cache_read_input_tokens: 0 }],
+    });
+    writeLedger(dir, "R", { run_id: "R", owner: { started_at: "2020-01-01T00:00:00Z" }, budget: { tokens_at_start_by_class: { ...ZERO_BY_CLASS } } });
+    run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    // transcript grows to cumulative {150,30,5,0}
+    cfg = withTranscripts(dir, dir, sid, {
+      [`${sid}.jsonl`]: [
+        { input_tokens: 100, output_tokens: 20, cache_creation_input_tokens: 5, cache_read_input_tokens: 0 },
+        { input_tokens: 50, output_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+      ],
+    });
+    run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "build", type: "issue-outcome", issue: "X-1", data: { outcome: "shipped" } }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const ev = lines(dir, "R");
+    assert.deepEqual(ev[1].data.tokens, { input: 50, output: 10, cache_write: 0, cache_read: 0 });
+    assert.equal(ev[1].data.outcome, "shipped"); // pre-existing data preserved
+    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 150, output: 30, cache_write: 5, cache_read: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append --tokens with NO transcript → null delta, estimate source, checkpoint NOT advanced", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    writeLedger(dir, "R", { run_id: "R", budget: { tokens_at_last_event: { input: 7, output: 0, cache_write: 0, cache_read: 0 } } });
+    // env with a CLAUDE_CONFIG_DIR but NO CLAUDE_CODE_SESSION_ID → measure returns estimate
+    const r = run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "run", type: "run-end" }),
+      { CLAUDE_CONFIG_DIR: join(dir, "cfg") });
+    assert.equal(r.code, 0, r.err);
+    const ev = lines(dir, "R");
+    assert.equal(ev.length, 1); // the event is still written (degradation-safe, never skipped)
+    assert.equal(ev[0].data.tokens, null);
+    assert.equal(ev[0].data.tokens_source, "estimate");
+    // NOT advanced — the prior checkpoint is untouched
+    assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 7, output: 0, cache_write: 0, cache_read: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append --tokens with a transcript but NO ledger → degrades to estimate (no fabricated delta), event still writes", () => {
+  const dir = tmp(); mkRun(dir, "R"); // run dir exists, but no run-ledger.json
+  try {
+    const sid = "sess-noledger";
+    const cfg = withTranscripts(dir, dir, sid, { [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20 }] });
+    const r = run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const ev = lines(dir, "R");
+    assert.equal(ev.length, 1);
+    // no durable checkpoint could be maintained ⇒ honest estimate, never an un-advanced
+    // transcript delta (which would double-count the window on the next append)
+    assert.equal(ev[0].data.tokens, null);
+    assert.equal(ev[0].data.tokens_source, "estimate");
+    assert.equal(existsSync(ledgerPath(dir, "R")), false); // never fabricates a ledger
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append WITHOUT --tokens: no data.tokens, ledger untouched (byte-identical path)", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const sid = "sess-3";
+    const cfg = withTranscripts(dir, dir, sid, { [`${sid}.jsonl`]: [{ input_tokens: 999, output_tokens: 1 }] });
+    const ledger = { run_id: "R", budget: { tokens_at_last_event: { input: 1, output: 2, cache_write: 3, cache_read: 4 } } };
+    writeLedger(dir, "R", ledger);
+    const r = run(dir, ["events", "append", "--run", "R", "--root", dir],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const ev = lines(dir, "R");
+    assert.ok(!("data" in ev[0]), "no data field injected without --tokens");
+    assert.deepEqual(readLedger(dir, "R"), ledger); // ledger byte-identical (no read/write)
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append: a malformed data.tokens payload is rejected (exit 1)", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const r = run(dir, ["events", "append", "--run", "R"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1", data: { tokens: { input: -1, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }));
+    assert.equal(r.code, 1);
+    assert.match(r.err, /data\.tokens\.input/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("non-leak: a tagged event line carries no prompt/response payload, only the 4 classes", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const sid = "sess-4";
+    const cfg = withTranscripts(dir, dir, sid, { [`${sid}.jsonl`]: [{ input_tokens: 10, output_tokens: 2 }] });
+    writeLedger(dir, "R", { run_id: "R", budget: { tokens_at_start_by_class: { ...ZERO_BY_CLASS } } });
+    run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const rawLine = readFileSync(logPath(dir, "R"), "utf8");
+    const tok = JSON.parse(rawLine.trim()).data.tokens;
+    assert.deepEqual(Object.keys(tok).sort(), ["cache_read", "cache_write", "input", "output"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("parity: the --tokens delta sum equals budget check's total on the same transcript", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const sid = "sess-5";
+    const usage = { input_tokens: 123, output_tokens: 45, cache_creation_input_tokens: 6, cache_read_input_tokens: 7 };
+    const cfg = withTranscripts(dir, dir, sid, { [`${sid}.jsonl`]: [usage] });
+    writeLedger(dir, "R", { run_id: "R", owner: { started_at: "2020-01-01T00:00:00Z" }, budget: { tokens_at_start: 0, tokens_at_start_by_class: { ...ZERO_BY_CLASS } } });
+    run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const delta = lines(dir, "R")[0].data.tokens;
+    const deltaSum = delta.input + delta.output + delta.cache_write + delta.cache_read;
+    const b = run(dir, ["budget", "check", "--run-dir", join(dir, ".faff", "runs", "R"), "--root", dir], undefined,
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const budgetTokens = JSON.parse(b.out).spent.tokens;
+    assert.equal(deltaSum, budgetTokens); // one attribution gate → by-class sum == scalar total
+    assert.equal(deltaSum, 181);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

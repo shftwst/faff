@@ -3872,6 +3872,242 @@ function economicsSelftest() {
 }
 
 // ===========================================================================
+// === region:factory — quality — FAFF-418: per-run quality/outcome telemetry (the mirror of economics). ===
+// The quality half of the cost/quality loop. economics answers "what did this run
+// cost?"; quality answers "how well did it go?" — park rate, rework rate, and the
+// distribution of which gate caught a defect. PURE, read-only (parity with economics /
+// budget check / runcheck): no tracker, no network, no LLM. It COMPOSES data faff
+// already produces — the run ledger's terminal outcomes (authoritative) and the FAFF-35
+// events.jsonl issue-outcome events' FAFF-418 gate/rework tags — into a QualityReport.
+//
+// PAIRS WITH economics BY CONSTRUCTION (ADR-0051): quality and economics are separate
+// commands sharing the same run ledger, run_id, and the EXACT shipped/attempt
+// denominators (ECONOMICS_BUCKET_ORDER + BUDGET_NON_ATTEMPT_OUTCOMES), so a `$/quality`
+// read = economics.cost_per_shipped beside quality.park_rate on one run, and the two can
+// never drift on how many builds a run attempted. No cost is duplicated into quality.
+//
+// NON-LEAK (parity with economics): outcome-names, gate-names, counts and rates only —
+// never any finding, spec, or transcript payload.
+// ===========================================================================
+
+// Fixed render order for the gate-catch distribution (kept in step with the
+// QUALITY_GATE_CATCHES validator vocab in the governance region).
+const QUALITY_GATE_ORDER = ["structural", "adversarial", "holdout", "ci"];
+
+// PURE QualityReport core — no I/O. Given the run ledger (authoritative terminal
+// outcomes) and the parsed events.jsonl record array (gate/rework detail), derive the
+// full QualityReport. Run-level rates use attempt_count (dispatched builds — the same
+// exclusion economics' cost_per_attempt uses) as the denominator so the two reconcile;
+// a 0 denominator yields null (never 0/0). gate_catch + rework derive from issue-outcome
+// events and degrade cleanly to []/null when no events.jsonl exists.
+function computeQualityReport(ledger, events, opts) {
+  opts = opts || {};
+  const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
+  const evs = Array.isArray(events) ? events : [];
+
+  // Outcome buckets — ledger-authoritative, ECONOMICS_BUCKET_ORDER (shared with
+  // economics so both agree on bucket ordering + which outcomes exist).
+  const counts = new Map();
+  for (const k of Object.keys(outcomes)) counts.set(outcomes[k], (counts.get(outcomes[k]) || 0) + 1);
+  const ordered = ECONOMICS_BUCKET_ORDER.filter((b) => counts.has(b))
+    .concat([...counts.keys()].filter((b) => !ECONOMICS_BUCKET_ORDER.includes(b)).sort());
+  const buckets = ordered.map((b) => ({ bucket: b, count: counts.get(b) }));
+
+  const shipped_count = counts.get("shipped") || 0;
+  const parked_count = counts.get("parked") || 0;
+  // attempt_count: dispatched builds — every recorded outcome EXCEPT the never-dispatched
+  // ones (identical to economics' derivation, BUDGET_NON_ATTEMPT_OUTCOMES).
+  let attempt_count = 0;
+  for (const k of Object.keys(outcomes)) if (!BUDGET_NON_ATTEMPT_OUTCOMES.has(outcomes[k])) attempt_count++;
+  const rate = (num) => attempt_count > 0 ? Number((num / attempt_count).toFixed(4)) : null;
+
+  // Latest issue-outcome event per issue carries the FAFF-418 gate/rework tags.
+  const latestByIssue = new Map();
+  for (const ev of evs) {
+    if (!ev || ev.type !== "issue-outcome" || ev.issue === undefined || ev.issue === null || ev.issue === "") continue;
+    const prev = latestByIssue.get(ev.issue);
+    // seq is the authoritative monotonic order; keep the highest-seq event for the issue.
+    if (!prev || (Number.isInteger(ev.seq) && (!Number.isInteger(prev.seq) || ev.seq >= prev.seq))) {
+      latestByIssue.set(ev.issue, ev);
+    }
+  }
+  const hasEvents = evs.length > 0;
+
+  // gate-catch distribution — count issue-outcome events carrying a valid data.gate.
+  const gateCounts = new Map();
+  for (const ev of latestByIssue.values()) {
+    const g = ev.data && typeof ev.data === "object" ? ev.data.gate : undefined;
+    if (typeof g === "string" && QUALITY_GATE_ORDER.includes(g)) gateCounts.set(g, (gateCounts.get(g) || 0) + 1);
+  }
+  const gateOrdered = QUALITY_GATE_ORDER.filter((g) => gateCounts.has(g))
+    .concat([...gateCounts.keys()].filter((g) => !QUALITY_GATE_ORDER.includes(g)).sort());
+  const gate_catch = gateOrdered.map((g) => ({ gate: g, count: gateCounts.get(g) }));
+
+  // rework rollup — over issue-outcome events carrying a data.rework_turns integer.
+  let total_turns = 0, reworked_attempts = 0, tagged_attempts = 0;
+  for (const ev of latestByIssue.values()) {
+    const rt = ev.data && typeof ev.data === "object" ? ev.data.rework_turns : undefined;
+    if (!Number.isInteger(rt) || rt < 0) continue;
+    tagged_attempts++;
+    total_turns += rt;
+    if (rt > 0) reworked_attempts++;
+  }
+  const rework = hasEvents ? {
+    total_turns,
+    reworked_attempts,
+    tagged_attempts,
+    // Rates over attempt_count (matching park_rate) so quality figures share one
+    // denominator; null when no build was dispatched.
+    rework_rate: rate(reworked_attempts),
+    mean_turns: attempt_count > 0 ? Number((total_turns / attempt_count).toFixed(4)) : null,
+  } : { total_turns: null, reworked_attempts: null, tagged_attempts: 0, rework_rate: null, mean_turns: null };
+
+  // per_issue — ledger-authoritative outcome, enriched with the event's gate/rework.
+  const per_issue = Object.keys(outcomes).sort().map((issue) => {
+    const row = { issue, outcome: outcomes[issue] };
+    const ev = latestByIssue.get(issue);
+    const d = ev && ev.data && typeof ev.data === "object" ? ev.data : null;
+    if (d && typeof d.gate === "string" && QUALITY_GATE_ORDER.includes(d.gate)) row.gate = d.gate;
+    if (d && Number.isInteger(d.rework_turns) && d.rework_turns >= 0) row.rework_turns = d.rework_turns;
+    return row;
+  });
+
+  const warnings = [];
+  if (shipped_count === 0 && attempt_count > 0) warnings.push("zero shipped across " + attempt_count + " attempt(s)");
+
+  return {
+    run_id: (ledger && typeof ledger.run_id === "string" && ledger.run_id) || opts.run_id || null,
+    outcomes: buckets,
+    shipped_count,
+    attempt_count,
+    parked_count,
+    park_rate: rate(parked_count),
+    rework,
+    gate_catch,
+    per_issue,
+    source: hasEvents ? "ledger+events" : "ledger",
+    warnings,
+  };
+}
+
+// Render a QualityReport as a skimmable text table (the human default; --json emits
+// the object). Rates print as percentages; null (no dispatched builds / no events)
+// prints as an em dash so "couldn't compute" is never mistaken for 0%.
+function renderQualityReport(q) {
+  const pct = (r) => (r == null ? "—" : (r * 100).toFixed(1) + "%");
+  const lines = [];
+  lines.push(`# quality ${q.run_id || ""}  (source: ${q.source})`);
+  lines.push(`  shipped=${q.shipped_count}  attempts=${q.attempt_count}  parked=${q.parked_count}  park_rate=${pct(q.park_rate)}`);
+  const rw = q.rework;
+  if (rw.total_turns == null) {
+    lines.push(`  rework: — (no events.jsonl for this run)`);
+  } else {
+    lines.push(`  rework: turns=${rw.total_turns}  reworked=${rw.reworked_attempts}/${rw.tagged_attempts}  rework_rate=${pct(rw.rework_rate)}  mean_turns=${rw.mean_turns == null ? "—" : rw.mean_turns}`);
+  }
+  lines.push(`  outcomes: ${q.outcomes.length ? q.outcomes.map((b) => `${b.bucket}=${b.count}`).join("  ") : "(none)"}`);
+  lines.push(`  gate-catch: ${q.gate_catch.length ? q.gate_catch.map((g) => `${g.gate}=${g.count}`).join("  ") : "(none)"}`);
+  for (const w of q.warnings) lines.push(`  ! ${w}`);
+  return lines.join("\n");
+}
+
+function cmdQuality(args) {
+  if (args.includes("--selftest")) return qualitySelftest();
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+
+  // Resolve the run dir exactly as economics/budget check do.
+  let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
+  if (!runDir) runDir = latestRunDir(root);
+  if (!runDir) { process.stderr.write("faff quality: no run dir (pass --run-dir DIR)\n"); return 2; }
+
+  let ledger;
+  try { ledger = readLedger(runDir); }
+  catch { process.stderr.write(`faff quality: cannot read ${path.join(runDir, "run-ledger.json")}\n`); return 2; }
+
+  const { events } = readRunEvents(runDir);
+  const q = computeQualityReport(ledger, events, { run_id: path.basename(runDir) });
+
+  if (args.includes("--json")) { console.log(JSON.stringify(q)); return 0; }
+  console.log(renderQualityReport(q));
+  return 0;
+}
+
+// Selftest — drives the pure core (computeQualityReport) over in-memory ledgers +
+// event arrays; no filesystem, no tracker. Covers: attempt/shipped/park derivation
+// shared with economics, the attempt_count exclusion, park/rework rates + null on a
+// zero-attempt run, gate-catch distribution, ledger-only degradation, and per_issue
+// enrichment.
+function qualitySelftest() {
+  let fail = 0;
+  const ok = (label, cond) => { if (!cond) { fail++; process.stderr.write(`quality --selftest FAIL: ${label}\n`); } };
+
+  const ledger = {
+    run_id: "r1",
+    outcomes: {
+      "FAFF-1": "shipped", "FAFF-2": "shipped", "FAFF-3": "parked",
+      "FAFF-4": "errored", "FAFF-5": "routed-out", "FAFF-6": "unreached-budget",
+    },
+  };
+  const events = [
+    { type: "issue-outcome", issue: "FAFF-1", seq: 5, data: { outcome: "shipped", rework_turns: 0 } },
+    { type: "issue-outcome", issue: "FAFF-2", seq: 6, data: { outcome: "shipped", rework_turns: 2 } },
+    { type: "issue-outcome", issue: "FAFF-3", seq: 7, data: { outcome: "parked", gate: "adversarial", rework_turns: 1 } },
+    { type: "issue-outcome", issue: "FAFF-4", seq: 8, data: { outcome: "errored", gate: "ci" } },
+    { type: "build-start", issue: "FAFF-1", seq: 1, data: {} }, // non-outcome events ignored
+  ];
+  const q = computeQualityReport(ledger, events, { run_id: "r1" });
+
+  ok("run_id from ledger", q.run_id === "r1");
+  ok("shipped_count", q.shipped_count === 2);
+  // 6 outcomes minus routed-out + unreached-budget (2 non-attempts) = 4 attempts.
+  ok("attempt_count excludes routed-out/unreached-budget", q.attempt_count === 4);
+  ok("parked_count", q.parked_count === 1);
+  ok("park_rate = 1/4", q.park_rate === 0.25);
+  ok("source ledger+events", q.source === "ledger+events");
+  ok("rework total_turns (0+2+1)", q.rework.total_turns === 3);
+  ok("reworked_attempts (turns>0: FAFF-2, FAFF-3)", q.rework.reworked_attempts === 2);
+  ok("rework_rate = 2/4", q.rework.rework_rate === 0.5);
+  ok("mean_turns = 3/4", q.rework.mean_turns === 0.75);
+  ok("gate_catch fixed order (adversarial before ci)",
+    q.gate_catch.length === 2 && q.gate_catch[0].gate === "adversarial" && q.gate_catch[1].gate === "ci");
+  ok("outcomes bucket count matches ledger",
+    q.outcomes.find((b) => b.bucket === "shipped").count === 2 && q.outcomes.find((b) => b.bucket === "parked").count === 1);
+  const pi3 = q.per_issue.find((r) => r.issue === "FAFF-3");
+  ok("per_issue enriched with gate + rework", pi3 && pi3.outcome === "parked" && pi3.gate === "adversarial" && pi3.rework_turns === 1);
+  const pi5 = q.per_issue.find((r) => r.issue === "FAFF-5");
+  ok("per_issue includes a never-dispatched outcome, unenriched", pi5 && pi5.outcome === "routed-out" && pi5.gate === undefined);
+  ok("zero-ship warning absent when something shipped", q.warnings.length === 0);
+
+  // Ledger-only degradation (no events) — outcome buckets still render, gate/rework null.
+  const qLedger = computeQualityReport(ledger, [], { run_id: "r1" });
+  ok("ledger-only source", qLedger.source === "ledger");
+  ok("ledger-only gate_catch empty", qLedger.gate_catch.length === 0);
+  ok("ledger-only rework nulled", qLedger.rework.total_turns === null && qLedger.rework.rework_rate === null);
+  ok("ledger-only still has outcome buckets + attempt_count", qLedger.attempt_count === 4 && qLedger.outcomes.length > 0);
+
+  // Zero-attempt run (only never-dispatched outcomes) → rates null, not 0/0.
+  const qZero = computeQualityReport({ run_id: "r0", outcomes: { "FAFF-9": "routed-out" } }, []);
+  ok("zero-attempt park_rate null", qZero.park_rate === null && qZero.attempt_count === 0);
+  ok("zero-attempt rework rates null", qZero.rework.rework_rate === null && qZero.rework.mean_turns === null);
+
+  // Empty ledger → all-empty, no crash.
+  const qEmpty = computeQualityReport({}, []);
+  ok("empty ledger clean", qEmpty.attempt_count === 0 && qEmpty.outcomes.length === 0 && qEmpty.warnings.length === 0);
+
+  // zero-ship-but-attempted warning fires.
+  const qNoShip = computeQualityReport({ run_id: "r", outcomes: { "FAFF-1": "parked", "FAFF-2": "errored" } }, []);
+  ok("zero-ship warning fires on attempted-but-none-shipped", qNoShip.warnings.length === 1 && qNoShip.shipped_count === 0);
+
+  // Render smoke — must not throw and must name the run.
+  const rendered = renderQualityReport(q);
+  ok("render names run + park_rate", rendered.includes("quality r1") && rendered.includes("park_rate=25.0%"));
+
+  console.log(`quality --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
 // === region:factory — run-done — FAFF-38: the terminating-condition predicate. ===
 // `faff run-done` is a PURE CLI (parity with `faff next` / `faff budget check` /
 // `faff prdr coverage`): no tracker, no network, no disk beyond its args, and it
@@ -6621,6 +6857,7 @@ Subcommands:
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
   budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based fields (spent.elapsed_ms + the resolved --until wall) — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through) (FAFF-302). breached != {} is the terminating signal. --selftest runs the table
   economics [--run-dir DIR] [--by class|model|mcp|day|effort] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. FAFF-410: --by class|model|mcp|day pivots the SAME transcript walk into per-class/per-model/per-day/per-MCP-tool buckets priced per-model×per-class (built-in PRICE_PER_MTOK + optional budget.price_per_mtok_by_model override; unknown model→cost:null); class/model/day reconcile to the top-line total, --by mcp reuses FAFF-409's MEASURED per-tool cache-read attribution; --by X --json rides a breakdown object, --by X (no --json) prints a skimmable table, NO --by is byte-for-byte unchanged; unknown axis exits 2 naming {class,model,mcp,day,effort}; non-leak (sizes/counts/names/model-ids/costs only). FAFF-415: --by effort reads the run's events.jsonl (not the transcript — reasoning-effort is a request-time setting the transcript never records), buckets dispatches by their data.effort tag, prices at the run's dominant model (ESTIMATE — events carry no model) and reports coverage_pct vs the top-line. --selftest runs the table
+  quality [--run-dir DIR] [--json]   FAFF-418: per-run QUALITY/outcome telemetry — the quality mirror of economics. Emit a QualityReport JSON {run_id,outcomes,shipped_count,attempt_count,parked_count,park_rate,rework{total_turns,reworked_attempts,tagged_attempts,rework_rate,mean_turns},gate_catch,per_issue,source,warnings} from the run-ledger terminal outcomes (authoritative) + the events.jsonl issue-outcome events' FAFF-418 gate/rework tags. PURE, read-only (no tracker/network/LLM — parity with economics/budget check/runcheck). Pairs with economics by SHARING run_id + the exact shipped/attempt denominators (ECONOMICS_BUCKET_ORDER + routed-out/unreached-budget exclusion), so $/quality = economics.cost_per_shipped beside quality.park_rate on one run; no cost duplicated into quality. park_rate/rework_rate are over attempt_count (dispatched builds), null on a zero-attempt run (never 0/0); gate_catch is the distribution of which quality gate {structural,adversarial,holdout,ci} caught a non-shipped build; source=ledger+events (or ledger, gate/rework null, when no events.jsonl). --json emits the report, no flag prints a skimmable table; missing run dir exits 2; non-leak (outcome/gate-names/counts/rates only). --selftest runs the pure-core table
   run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
   hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
@@ -6648,7 +6885,7 @@ Subcommands:
   contract <name> [--in FILE]                   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
-  events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. FAFF-408: --tokens (append) injects a four-class token delta + tokens_source into data. FAFF-415: an optional data.effort label (low|medium|high|xhigh|max) records a dispatch's request-time reasoning-effort (validated, additive, non-leak; economics --by effort pivots it). PURE (no tracker/network), single-writer slice; --selftest runs the validator table
+  events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. FAFF-408: --tokens (append) injects a four-class token delta + tokens_source into data. FAFF-415: an optional data.effort label (low|medium|high|xhigh|max) records a dispatch's request-time reasoning-effort (validated, additive, non-leak; economics --by effort pivots it). FAFF-418: an issue-outcome event may also carry an optional data.gate (which quality gate {structural|adversarial|holdout|ci} caught a non-shipped build) + data.rework_turns (non-negative integer fix-loop count) — validated, additive, non-leak; faff quality pivots them. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
   review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N]]   FAFF-329: per-issue review checkpoint at \`<run-dir>/<issue>/review-progress.json\` so a re-dispatched build subagent RESUMES the graft review step (skips a completed Phase-1/Phase-2) instead of repeating it. read → ReviewProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --phase1-pass --diff-hash records the passing Phase-1 verdict + the diff hash it was computed against (the diff-identity guard — a resume skips Phase-1 only if the CURRENT diff still matches); write --phase2 <pending|in_flight|complete|skipped_deadline|skipped_unreachable> records Phase-2 progress. PURE JSON (no tracker/network); a HINT never authoritative over git/PR truth; exit 2 usage/bad-status; --selftest runs the fold table
   build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]   FAFF-402: per-issue build-complete checkpoint at \`<run-dir>/<issue>/build-progress.json\` — written at graft build-complete (Step 8b) AFTER the branch is pushed to origin, so a re-dispatched graft RESUMES at review (recreating the worktree from origin/<branch>, skipping the build) instead of rebuilding. read → BuildProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --build-complete --diff-hash --branch records the remote-three-dot diff hash it was gated at + the pushed branch (the diff-identity guard — a resume skips the build only if the CURRENT remote diff still matches). PURE JSON (no tracker/network/git — the diff hash is computed in graft prose); a HINT never authoritative over git truth; exit 2 usage/missing-flag; --selftest runs the fold table
   effects <declare|observe|check> --run <run-id> [--issue ID] [--step NAME] [--ts ISO] [--json] [--root DIR]   FAFF-106: escaped-side-effect detection via a declared-effects ledger — the PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) consumes. declare/observe read an EffectDescriptor {kind ∈ closed EFFECT_KINDS, target, reversible?} (object or array) on stdin and append a LedgerEntry (CLI fills schema/run_id/seq/ts envelope; kind_of_entry/issue/step required) to .faff/runs/<run-id>/declared-effects.jsonl — a PARALLEL ledger, never an events.jsonl schema bump; exit 0 ok / 1 bad descriptor (unknown kind / missing target) / 2 malformed JSON or missing --run/--issue/--step / 3 run-dir missing. check computes observed-MINUS-declared per (issue, step) using exact-target + "*" matching and emits {escapes:[EscapeSignal{signal:"escaped-side-effect",issue,step,escaped[],event_seq}], any_escape} (--json); a missing ledger file is a clean state ({escapes:[],any_escape:false}, exit 0 — NOT exit 3). Detection only — never aborts (Sentry/FAFF-37's job); the orchestrator bridges any_escape into \`faff sentry check\` via the existing signals.forbidden_side_effect seam. PURE (no tracker/network, writes only under the run dir); --selftest runs the descriptor/matching/escape table
@@ -10124,6 +10361,16 @@ const EVENT_LEDGER_OUTCOMES = new Set([
 // factory→governance edge (FAFF-359). Kept in step with EFFORT_ORDER over there.
 const EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
+// FAFF-418: the closed vocabulary of QUALITY gates a non-shipped build may have been
+// caught by, tagged onto its issue-outcome event via data.gate. The quality mirror of
+// the token/effort tags above (FAFF-408/415): a single closed-vocab label the
+// orchestrator projects from the build's authoritative gate artifacts
+// (review-verdict.json / ac-checklist.json / holdout verdict) onto the one terminal
+// event, so `faff quality` can query gate-catch distribution without scraping them.
+// Non-leak: a gate NAME only, never a finding or payload. Kept in step with
+// QUALITY_GATE_ORDER (factory) which the report renders in.
+const QUALITY_GATE_CATCHES = new Set(["structural", "adversarial", "holdout", "ci"]);
+
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
 // full record read back off disk (validate: the envelope must be present + well-formed).
@@ -10185,6 +10432,22 @@ function eventViolations(obj, requireEnvelope) {
     // would otherwise stringify into a misleading "'high' not in ..." message).
     if (typeof eff !== "string" || !EFFORT_LEVELS.has(eff)) {
       v.push(`data.effort ${JSON.stringify(eff)} not in EffortLevel {${[...EFFORT_LEVELS].join(", ")}}`);
+    }
+  }
+  // FAFF-418: optional quality-outcome telemetry under data (additive; schema stays 1).
+  // gate = the closed-vocab quality gate that caught a non-shipped build; rework_turns
+  // = a non-negative integer count of gate-driven fix-and-re-run loops (clean pass = 0).
+  // Both are single scalars — never payload (non-leak). Absent ⇒ record unchanged.
+  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) && "gate" in obj.data) {
+    const g = obj.data.gate;
+    if (typeof g !== "string" || !QUALITY_GATE_CATCHES.has(g)) {
+      v.push(`data.gate ${JSON.stringify(g)} not in QualityGate {${[...QUALITY_GATE_CATCHES].join(", ")}}`);
+    }
+  }
+  if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) && "rework_turns" in obj.data) {
+    const rt = obj.data.rework_turns;
+    if (!Number.isInteger(rt) || rt < 0) {
+      v.push(`data.rework_turns must be a non-negative integer (got ${JSON.stringify(rt)})`);
     }
   }
   return v;
@@ -10393,6 +10656,13 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: 5 } }, 1, "non-string effort (number) rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: ["high"] } }, 1, "non-string effort (array) rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { effort: "medium", tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4 }, tokens_source: "transcript" } }, 0, "effort alongside a valid token delta"],
+    // FAFF-418 — quality-outcome tags under data.gate / data.rework_turns (additive; schema stays 1).
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "parked", gate: "adversarial", rework_turns: 2 } }, 0, "valid gate + rework_turns"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped", rework_turns: 0 } }, 0, "clean ship, zero rework, no gate"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "parked", gate: "bogus" } }, 1, "gate not in vocabulary rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "parked", gate: 5 } }, 1, "non-string gate rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped", rework_turns: -1 } }, 1, "negative rework_turns rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped", rework_turns: 1.5 } }, 1, "non-integer rework_turns rejected"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {
@@ -14436,6 +14706,9 @@ const REGION_MAP = {
   // ledger + reuses measureTokens/attemptsFromLedger), not part of the
   // extractable flight-recorder layer → factory (FAFF-357).
   "economics": "factory",
+  // quality — the reporting mirror of economics: reads the run ledger + events.jsonl
+  // into a QualityReport, touches no producer → factory (FAFF-418).
+  "quality": "factory",
   "run-done": "factory",
   "hooks-ensure": "factory",
   "validate-adapters": "factory",
@@ -14505,6 +14778,7 @@ const REGION_SELFTEST_ARGV = {
   "intake-record": ["intake-record", "--selftest"],
   "contain": ["contain", "--selftest"],
   "economics": ["economics", "--selftest"],
+  "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
   "validate-adapters": null,
@@ -15495,6 +15769,7 @@ const COMMANDS = {
   "contain": cmdContain,
   "budget": cmdBudget,
   "economics": cmdEconomics,
+  "quality": cmdQuality,
   "run-done": cmdRunDone,
   "hooks-ensure": cmdHooksEnsure,
   "validate-adapters": cmdValidateAdapters,

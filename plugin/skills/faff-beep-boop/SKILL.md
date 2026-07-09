@@ -339,13 +339,15 @@ Alongside the terminal run-ledger, the orchestrator appends an **ordered timelin
 | Issue admitted to the build queue (step 4) | `run` / `issue-admitted` (issue) | no |
 | Prep of an issue start/finish (step 3) | `prep` / `prep-start` · `prep-done` (issue) | done: **yes**; start: no |
 | Graft subagent dispatched (step 6) | `build` / `build-start` (issue) | no |
-| Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`) | **yes** |
+| Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`, + `data.gate`/`data.rework_turns` on a non-clean build) | **yes** |
 | Discovered-scope ticket filed (step 10) | `run` / `discovered-scope-filed` | no |
 | Budget checkpoint | `run` / `budget-checkpoint` (`data` = `BudgetState`) | **yes** |
 | An issue is parked | `prep`\|`build` / `park` (issue) | **yes** |
 | Orchestrator exit (any path) | `run` / `run-end` | **yes** |
 
 **Token-tagging the phase-closers (FAFF-408).** Pass `--tokens` on the **phase-closing** emissions above (the `--tokens`? column) — `echo '<payload>' | faff events append --run <run-id> --tokens`. The CLI then injects `data.tokens` (the four-class delta `{input, output, cache_write, cache_read}` consumed since the run's last checkpoint) and `data.tokens_source` (`transcript` when metered, `estimate` — with `tokens: null` — when no transcript is readable) into the event, and advances the ledger checkpoint. Counts-only (never prompt/response payload); `schema` stays `1` (additive under the free-form `data`). This is what lets a token-usage pivot attribute spend to a phase **by event** (prep spend = `prep-done`'s delta; build+review = `issue-outcome`'s; tidy = `tidy-done`'s; residual orchestrator = `budget-checkpoint`/`run-end`) rather than guessing from a `ts` window. Do **not** tag the phase-*opening* events — their delta is ~0 and the transcript read is pure cost.
+
+**Quality-tagging the issue-outcome (FAFF-418).** On the `issue-outcome` emission, also carry two optional `data` fields so `faff quality` can report park/rework/gate-catch: `data.gate` — the quality gate that caught a **non-shipped** build (`structural` | `adversarial` | `holdout` | `ci`, read from the build's return token / `review-verdict.json` / holdout verdict), omitted on a clean ship or a non-gate park; and `data.rework_turns` — the build's count of gate-driven fix-and-re-run loops (a clean first pass is `0`). Both are single scalars (non-leak), additive under the free-form `data`; `schema` stays `1`.
 
 ## Explicit-list mode
 

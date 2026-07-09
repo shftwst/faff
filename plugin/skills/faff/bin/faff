@@ -3040,10 +3040,13 @@ function attributePerIssueCosts(base, sid, ledger, price) {
 
 const BY_AXES = ["class", "model", "mcp", "day", "effort"];
 
-// FAFF-415: the effort axis is rendered in fixed severity order (with a trailing
+// FAFF-415: the closed reasoning-effort vocabulary, single-sourced here for BOTH the
+// events-append validator (data.effort) and the economics effort axis. EFFORT_ORDER
+// is the fixed severity order the `--by effort` table renders in (with a trailing
 // "(none)" bucket for token-bearing dispatches that carried no effort tag), so the
 // table reads low→max regardless of which levels a run actually used.
 const EFFORT_ORDER = ["low", "medium", "high", "xhigh", "max"];
+const EFFORT_LEVELS = new Set(EFFORT_ORDER);
 const EFFORT_NONE_KEY = "(none)";
 
 // Per-model × per-class USD price per 1M tokens. Built-in default (seeded from the
@@ -3430,7 +3433,7 @@ function economicsDominantModel(records) {
 // transcript sum; effort generally does NOT cover the whole run (only tagged
 // windows), so we report coverage_pct rather than forcing a false reconciliation.
 // NON-LEAK: emits only counts, token totals, effort-labels, model-id and derived cost.
-function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal) {
+function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal, malformedLines) {
   const mk = () => ({ count: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, total: 0 });
   const buckets = new Map();     // effort-label (or "(none)") -> counts
   let eventsTokenTotal = 0;
@@ -3476,26 +3479,35 @@ function economicsEffortBreakdown(events, priceMap, dominant, topLineTotal) {
     reconciliation: {
       events_token_total: eventsTokenTotal,
       top_line_total: topLine,
+      // null (not false) when there is no top-line to check against — matching
+      // coverage_pct's "unknown", never conflating "couldn't check" with "checked
+      // and differs". malformed_lines surfaces parse-skipped events so a low
+      // coverage_pct is attributable to a corrupt log, not silently to untagged work.
       coverage_pct: (topLine && topLine > 0) ? Number((100 * eventsTokenTotal / topLine).toFixed(3)) : null,
-      reconciles: topLine != null ? eventsTokenTotal === topLine : false,
+      reconciles: topLine != null ? eventsTokenTotal === topLine : null,
+      malformed_lines: malformedLines || 0,
     },
   };
 }
 
 // I/O reader — read the run's events.jsonl (FAFF-35 lane), one record per line.
-// Absent/empty ⇒ [] (the effort axis then renders source:"estimate"/empty).
+// Returns { events, malformed }: a malformed line is skipped BUT counted, so the
+// effort axis can surface it (a silently-dropped event would make coverage_pct read
+// low without any signal that a parse failure — not just untagged windows — caused
+// the gap). Absent/empty file ⇒ { events: [], malformed: 0 }.
 function readRunEvents(runDir) {
   const p = path.join(runDir, "events.jsonl");
-  if (!fs.existsSync(p)) return [];
+  if (!fs.existsSync(p)) return { events: [], malformed: 0 };
   let raw;
-  try { raw = fs.readFileSync(p, "utf8"); } catch { return []; }
-  const out = [];
+  try { raw = fs.readFileSync(p, "utf8"); } catch { return { events: [], malformed: 0 }; }
+  const events = [];
+  let malformed = 0;
   for (const line of raw.split("\n")) {
     const s = line.trim();
     if (!s) continue;
-    try { out.push(JSON.parse(s)); } catch { /* skip malformed line */ }
+    try { events.push(JSON.parse(s)); } catch { malformed++; }
   }
-  return out;
+  return { events, malformed };
 }
 
 // I/O reader — read the run's session-owned transcript records (the SAME file set
@@ -3540,7 +3552,8 @@ function renderEconomicsBreakdown(bd) {
     for (const r of bd.rows) {
       lines.push(`  ${String(r.key).padEnd(10)} ${String(r.count).padStart(10)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M(r.cache_write).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
     }
-    lines.push(`  events_token_total=${rc.events_token_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}`);
+    const mal = rc.malformed_lines ? `  malformed_lines=${rc.malformed_lines}` : "";
+    lines.push(`  events_token_total=${rc.events_token_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);
     return lines.join("\n");
   }
   if (bd.axis === "mcp") {
@@ -3642,10 +3655,10 @@ function cmdEconomics(args) {
     // effort is recorded), independent of whether the live transcript is resolvable.
     // The dominant model + top-line come from the transcript when available (used to
     // price + report coverage), else null.
-    const events = readRunEvents(runDir);
+    const { events, malformed } = readRunEvents(runDir);
     if (events.length === 0) {
       bd = { axis: "effort", source: "estimate", rows: [],
-        reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: false } };
+        reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: null, malformed_lines: malformed } };
     } else {
       let dominant = null, topLine = null;
       if (measured.source === "transcript") {
@@ -3653,7 +3666,7 @@ function cmdEconomics(args) {
         dominant = economicsDominantModel(records);
         topLine = measured.total;
       }
-      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine);
+      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed);
     }
   } else if (measured.source !== "transcript") {
     bd = { axis: byAxis, source: "estimate", rows: [],
@@ -3784,12 +3797,12 @@ function economicsSelftest() {
   const evs = [
     { data: { effort: "high", tokens: { input: 100, output: 50, cache_write: 0, cache_read: 200 }, tokens_source: "transcript" } },
     { data: { effort: "high", tokens: { input: 40, output: 10, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
-    { data: { effort: "low", tokens: { input: 20, output: 5, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    { data: { effort: "low", tokens: { input: 20, output: 5, cache_write: 0, cache_read: 0 }, tokens_source: "transcript", prompt: "SECRET-EFFORT-PAYLOAD" } }, // stray field must not leak
     { data: { effort: "max", tokens: null, tokens_source: "estimate" } },                 // counted, 0 tokens
     { data: { tokens: { input: 30, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }, // no effort → (none)
     { data: { outcome: "shipped" } },                                                     // no effort, no tokens → skipped
   ];
-  const eb = economicsEffortBreakdown(evs, PRICE_PER_MTOK, "claude-opus-4-8", 1000);
+  const eb = economicsEffortBreakdown(evs, PRICE_PER_MTOK, "claude-opus-4-8", 1000, 0);
   ok("effort axis: source events", eb.source === "events" && eb.axis === "effort");
   ok("effort axis: severity order low<high<max, (none) last", eb.rows.map((r) => r.key).join(",") === "low,high,max,(none)");
   ok("effort axis: high bucket aggregates 2 dispatches + tokens", (() => { const h = eb.rows.find((r) => r.key === "high"); return h.count === 2 && h.input === 140 && h.cache_read === 200 && h.total === 400; })());
@@ -3799,10 +3812,14 @@ function economicsSelftest() {
   ok("effort axis: priced at dominant model (ESTIMATE)", eb.priced_at_model === "claude-opus-4-8" && eb.cost_basis === "estimate");
   ok("effort axis: high cost = per-class @ opus", Math.abs(eb.rows.find((r) => r.key === "high").cost - ((140 * 5 + 60 * 25 + 200 * 0.5) / 1e6)) < 1e-9);
   ok("effort axis: events_token_total + coverage vs top-line", eb.reconciliation.events_token_total === 455 && eb.reconciliation.coverage_pct === 45.5 && eb.reconciliation.reconciles === false);
-  const ebRe = economicsEffortBreakdown([{ data: { effort: "low", tokens: { input: 1000, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, "claude-opus-4-8", 1000);
+  ok("effort axis: NON-LEAK — stray data field never in output", !JSON.stringify(eb).includes("SECRET-EFFORT-PAYLOAD"));
+  const ebRe = economicsEffortBreakdown([{ data: { effort: "low", tokens: { input: 1000, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, "claude-opus-4-8", 1000, 0);
   ok("effort axis: reconciles when events cover the whole top-line", ebRe.reconciliation.reconciles === true && ebRe.reconciliation.coverage_pct === 100);
-  const ebNull = economicsEffortBreakdown([{ data: { effort: "high", tokens: { input: 100, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, null, null);
-  ok("effort axis: no dominant model → cost null, coverage null", ebNull.rows[0].cost === null && ebNull.priced_at_model === null && ebNull.reconciliation.coverage_pct === null);
+  const ebNull = economicsEffortBreakdown([{ data: { effort: "high", tokens: { input: 100, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, null, null, 0);
+  ok("effort axis: no dominant/top-line → cost null, coverage null, reconciles null (not false)",
+    ebNull.rows[0].cost === null && ebNull.priced_at_model === null && ebNull.reconciliation.coverage_pct === null && ebNull.reconciliation.reconciles === null);
+  const ebMal = economicsEffortBreakdown([{ data: { effort: "high", tokens: { input: 400, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }], PRICE_PER_MTOK, "claude-opus-4-8", 1000, 2);
+  ok("effort axis: malformed_lines surfaced so low coverage is attributable", ebMal.reconciliation.malformed_lines === 2 && ebMal.reconciliation.coverage_pct === 40);
 
   console.log(`economics --selftest: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
   return fail ? 1 : 0;
@@ -10053,11 +10070,11 @@ const EVENT_ISSUE_SCOPED = new Set([
 const EVENT_LEDGER_OUTCOMES = new Set([
   "shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer",
 ]);
-// FAFF-415: the closed reasoning-effort vocabulary a dispatch may tag onto its
-// phase event via data.effort. Reasoning-effort is a REQUEST-TIME setting the
-// transcript never records, so it is captured here at dispatch time (riding
-// FAFF-408's token-tag lane) — the only place effort is attributable.
-const EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
+// FAFF-415: a dispatch may tag its phase event with a request-time reasoning-effort
+// label via data.effort — a REQUEST-TIME setting the transcript never records, so it
+// is captured here at dispatch time (riding FAFF-408's token-tag lane), the only place
+// effort is attributable. The closed vocab `EFFORT_LEVELS` is single-sourced with the
+// economics effort axis (see EFFORT_ORDER in the economics-breakdown region).
 
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
@@ -10114,8 +10131,12 @@ function eventViolations(obj, requireEnvelope) {
   // When present it must be a single closed-vocab label — never payload content
   // (non-leak). Absent ⇒ record unchanged.
   if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) && "effort" in obj.data) {
-    if (!EFFORT_LEVELS.has(obj.data.effort)) {
-      v.push(`data.effort '${obj.data.effort}' not in EffortLevel {${[...EFFORT_LEVELS].join(", ")}}`);
+    const eff = obj.data.effort;
+    // Require a STRING member of the closed vocab. Guarding on typeof first keeps the
+    // rejection message honest for non-string input (e.g. a number or ["high"] array
+    // would otherwise stringify into a misleading "'high' not in ..." message).
+    if (typeof eff !== "string" || !EFFORT_LEVELS.has(eff)) {
+      v.push(`data.effort ${JSON.stringify(eff)} not in EffortLevel {${[...EFFORT_LEVELS].join(", ")}}`);
     }
   }
   return v;
@@ -10321,6 +10342,8 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "high" } }, 0, "valid effort label"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "max" } }, 0, "valid effort label (max)"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "extreme" } }, 1, "effort not in vocabulary rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: 5 } }, 1, "non-string effort (number) rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: ["high"] } }, 1, "non-string effort (array) rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "prep", type: "prep-done", issue: "FAFF-1", data: { effort: "medium", tokens: { input: 1, output: 2, cache_write: 3, cache_read: 4 }, tokens_source: "transcript" } }, 0, "effort alongside a valid token delta"],
   ];
   let failed = 0;

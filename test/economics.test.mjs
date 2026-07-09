@@ -379,6 +379,31 @@ test("FAFF-415 INTEGRATION: --by effort with no events.jsonl → source:estimate
   } finally { f.cleanup(); }
 });
 
+test("FAFF-415 INTEGRATION: --by effort surfaces malformed_lines (honest coverage)", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-effort-malformed";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 1000 } }, timestamp: "2026-07-09T10:00:00Z" },
+      ],
+    });
+    // One good effort-tagged event + one corrupt (truncated) JSON line: the corrupt
+    // line's tokens vanish from coverage, so it must be counted, not silently dropped.
+    writeFileSync(join(f.runDir, "events.jsonl"),
+      JSON.stringify({ schema: 1, run_id: "run-test", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "high", tokens: { input: 100, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }) +
+      "\n{ this is not valid json\n");
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.reconciliation.malformed_lines, 1);
+    assert.equal(e.breakdown.reconciliation.events_token_total, 100);
+    assert.equal(e.breakdown.reconciliation.coverage_pct, 10); // 100 of 1000
+  } finally { f.cleanup(); }
+});
+
 test("INTEGRATION: empty-outcome ledger renders without erroring (0 counts)", () => {
   const ledger = baseLedger({ admitted: [], outcomes: {} });
   const f = fixture({ rc: null, ledger });

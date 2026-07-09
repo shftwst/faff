@@ -172,6 +172,18 @@ If no worktree exists:
   - Copy gitignored config files (.env, etc.)
   - Run the project's setup command if one exists
 
+**Worktree-root assert (FAFF-382 — both modes; runs after the worktree is entered, before Step 4).** The FAFF-379 preflight verifies the *configured* isolation root is sane; this assert makes that verified property **bind** — a build whose worktree landed *outside* the resolved root is caught rather than built. After `EnterWorktree` returns (fresh-create or the resume path above), the session cwd is the new worktree; assert it is under the resolved root via the single canonical resolver (the same one the hook and the preflight call, so a normal placement always passes):
+
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+actual=$(git rev-parse --show-toplevel)
+"$faff" worktree-root --assert "$actual"   # exit 0 = under the resolved root; exit 1 = outside
+```
+
+- **exit 0** → proceed to Step 4.
+- **exit 1** (worktree outside the resolved root) → **autonomous:** REFUSE fail-closed, pre-build — do not commit the spec (Step 4 never runs), log the resolved root + actual path to `.faff/runs/<run-id>/ISSUE-XX/graft.md`, return the **`parked`** disposition. **Interactive:** WARN with the same message and continue (parity with the eligibility WARN — the human absorbs it).
+- **`faff` unresolvable, or `git rev-parse --show-toplevel` fails** → skip the assert (log the skip); never hard-fail graft on the assert's own tooling. The assert is a fail-closed backstop, not a new hard dependency.
+
 **Step 4: Commit spec to feature branch**
 
 Pull the spec content from wherever Step 2's **Spec discovery** found it — a tracker comment, the committed docs path, or (git-only mode, no tracker MCP) the `.faff/specs/<issue-id>.md` store faff-prep wrote — and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes. (In git-only mode the `.faff/specs/` file is the source; committing it here is what moves the spec into the repo, so the "ships with the PR" property holds with or without a tracker. Note `.faff/specs/` lives in the **main checkout**, not this worktree — so capture the spec content back at Step 2, before the worktree exists, and write that captured content here rather than re-reading the file from inside the worktree.)

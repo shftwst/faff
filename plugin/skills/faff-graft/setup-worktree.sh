@@ -16,14 +16,19 @@ fi
 REPO_NAME=$(basename "$CWD")
 SAFE_NAME=$(echo "$NAME" | tr '/' '-')
 
-# Resolve the worktree root (see gateway -> Worktree policy), in precedence order:
-#   1. FAFF_WORKTREE_ROOT env override
-#   2. .faffrc `worktree_root` key (used as-is — .faffrc is per-repo)
-#   3. default ~/.faff/worktrees/<repo>  (writable on host and in repo-only mounts;
-#      outside the repo, so it keeps holdout/evaluator work isolated from the build)
-WT_ROOT="${FAFF_WORKTREE_ROOT:-}"
-if [ -z "$WT_ROOT" ] && [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff" ]; then
-  WT_ROOT=$( (cd "$CWD" && "${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff" config get worktree_root -d "") 2>/dev/null || true )
+# Resolve the worktree root via the single canonical resolver (FAFF-382). `faff worktree-root`
+# owns the precedence (FAFF_WORKTREE_ROOT env -> .faffrc worktree_root -> ~/.faff/worktrees/<repo>;
+# gateway -> Worktree policy), so this hook, the lights-out preflight, and the graft Step-3
+# assert never drift. Fall back to the literal default if the binary is unresolvable.
+FAFF_BIN=""
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -x "${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff" ]; then
+  FAFF_BIN="${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff"
+elif command -v faff >/dev/null 2>&1; then
+  FAFF_BIN="$(command -v faff)"
+fi
+WT_ROOT=""
+if [ -n "$FAFF_BIN" ]; then
+  WT_ROOT=$( (cd "$CWD" && "$FAFF_BIN" worktree-root --root "$CWD") 2>/dev/null || true )
 fi
 [ -z "$WT_ROOT" ] && WT_ROOT="$HOME/.faff/worktrees/${REPO_NAME}"
 WORKTREE_PATH="$WT_ROOT/${SAFE_NAME}"

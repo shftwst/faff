@@ -337,6 +337,16 @@ const DEFAULTS = {
   // architecture step) — same closed Agent-token set as the sibling producer lanes.
   "models.architecture": "inherit",
   "models.eval": "claude-sonnet-4-6",
+  // FAFF-416: per-lane reasoning-EFFORT selection — the effort counterpart to the FAFF-315
+  // model lanes. Only the non-prep, subagent-dispatched lanes are tunable: build (concurrency
+  // executors' build subagents), methodology + intake (producer-subagent dispatches). "inherit"
+  // = omit the effort arg = today's dispatch, byte-for-byte. HARD EXCLUSION: prep/spec lanes
+  // (spec / spec_review / prep_explore / architecture) and eval get NO effort lane — prep runs
+  // once and gates the whole pipeline, so it stays pinned; the adversarial judge's effort tuning
+  // lives in its own faffter_dark.adversarial engine block (compose-not-subsume). See ADR.
+  "effort.build": "inherit",
+  "effort.methodology": "inherit",
+  "effort.intake": "inherit",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -361,6 +371,21 @@ function validateModelLane(key, value) {
   if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
   if (!vocab || vocab.includes(value)) return null;
   return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+}
+
+// FAFF-416: closed value vocabulary for the per-lane reasoning-EFFORT lanes — the FAFF-415
+// EFFORT_LEVELS (low|medium|high|xhigh|max) plus "inherit" (omit the effort arg, byte-for-byte
+// today). Mirrors validateModelLane: a configured off-vocabulary value fails LOUD at read
+// (config get exit 2, names the value + legal set), never a silent inherit at the dispatch site.
+const EFFORT_LANE_VOCAB = {
+  "effort.build": ["inherit", "low", "medium", "high", "xhigh", "max"],
+  "effort.methodology": ["inherit", "low", "medium", "high", "xhigh", "max"],
+  "effort.intake": ["inherit", "low", "medium", "high", "xhigh", "max"],
+};
+function validateEffortLane(key, value) {
+  const vocab = EFFORT_LANE_VOCAB[key];
+  if (!vocab || vocab.includes(value)) return null;
+  return `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
 }
 
 // FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution
@@ -842,7 +867,7 @@ function cmdConfig(args) {
       }
       // FAFF-315: Agent-token model lanes have a closed vocabulary — an invalid configured
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
-      const laneErr = validateModelLane(key, fmt(value));
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
       console.log(wantJson ? JSON.stringify(value) : fmt(value));
       return 0;
@@ -860,6 +885,8 @@ function cmdConfig(args) {
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
           "models.architecture",
           "models.eval",
+          // FAFF-416: per-lane effort lanes (non-prep, subagent-dispatched only).
+          "effort.build", "effort.methodology", "effort.intake",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -880,7 +907,14 @@ function cmdConfig(args) {
           (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
           // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
           validateModelLane("models.build_by_confidence.high", "sonnet") ||
-          (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token");
+          (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
+          // FAFF-416: the effort-lane vocab must accept every effort lane's default (inherit) + a
+          // real effort level, and reject an off-vocabulary token (the fail-loud path is load-bearing).
+          validateEffortLane("effort.build", DEFAULTS["effort.build"]) ||
+          validateEffortLane("effort.methodology", "low") ||
+          validateEffortLane("effort.intake", "max") ||
+          (validateEffortLane("effort.build", "sonnet") ? null : "effort lane vocab failed to reject a model token") ||
+          (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token");
         if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
         console.log("config defaults --selftest: ok");
         return 0;
@@ -949,6 +983,13 @@ function cmdConfig(args) {
       for (const conf of ["default", "high", "medium"]) {
         const v = byConf[conf];
         if (v !== null && v !== undefined && v !== "") console.log(`model build_by_confidence.${conf}: ${v}`);
+      }
+      // FAFF-416: surface non-default per-lane effort in the run banner — a pinned effort must be
+      // visible, not silent (the same FAFF-50 intent as the slot + model echoes above).
+      const effort = (data.effort && typeof data.effort === "object" && !Array.isArray(data.effort)) ? data.effort : {};
+      for (const lane of ["build", "methodology", "intake"]) {
+        const v = effort[lane];
+        if (v !== null && v !== undefined && v !== "") console.log(`effort ${lane}: ${v}`);
       }
       return 0;
     }

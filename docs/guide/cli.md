@@ -10,7 +10,7 @@ Most subcommands also accept `--selftest` (runs an in-memory test table) and `--
 
 | Subcommand | What it does |
 |---|---|
-| `config <path\|get\|spec-docs-path\|dump\|resolved> …` | Resolve / read `.faffrc.yaml` — the only sanctioned config-read path. `get <dotted.key>` reads a scalar; `get --json <dotted.key>` returns structured values (objects, and native arrays from YAML block sequences); `resolved` echoes non-default slots for a run banner. |
+| `config <path\|get\|spec-docs-path\|dump\|resolved> …` | Resolve / read `.faffrc.yaml` — the only sanctioned config-read path. `get <dotted.key>` reads a scalar; `get --json <dotted.key>` returns structured values (objects, and native arrays from YAML block sequences); `resolved` echoes non-default slots, per-lane models (`models.<lane>`), and per-lane efforts (`effort.build\|methodology\|intake`) for a run banner. A per-lane `models.<lane>` / `effort.<lane>` value outside its closed Agent-token / effort vocabulary fails loud at `get` (exit 2, names value + legal set) — never a silent inherit at the dispatch site. |
 | `config init --set k=v [--set …] [--force] [--dry-run]` | Write/merge a `tracking:` block into `.faffrc.yaml`. |
 | `hooks-ensure [--dry-run]` | Idempotently register faff's Stop-hook set (`runcheck` + `prepcheck --hook`) in `.claude/settings.json`. |
 | `gitignore-ensure [--json]` | Idempotently, non-destructively add faff's local artifacts (`.faffrc` forms + `.faff/`) to `.gitignore`. |

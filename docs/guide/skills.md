@@ -46,7 +46,7 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 | `faffter-dark-concurrency-parallel` | `concurrency` | Concurrent build-pass executor — runs independents in parallel, each in its own worktree, capped at `concurrency_max`, with rebase-before-merge so a moving `main` can't merge stale-green. Replaces the sequential default for speed. |
 | `faffter-dark-authoring-adaptors` | — (tooling) | Author/validate skill for slot occupants. Scaffolds a new adaptor/producer/methodology with the correct refer-back prose + contract mapping, and validates that an existing slot skill conforms. A development-time tool, not a pipeline slot. |
 
-Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc.yaml`. Two transport families are supported: `ollama` and any OpenAI-compatible `/v1` endpoint (`openai`, `vllm`, `openrouter`, `nvidia`, `deepseek`):
+Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc.yaml`. Transport families supported: `ollama`, any OpenAI-compatible `/v1` endpoint (`openai`, `vllm`, `openrouter`, `nvidia`, `deepseek`, and `gemini` via Google's OpenAI-compat base URL), and `anthropic` (native `/v1/messages`):
 
 ```yaml
 faffter_dark:
@@ -58,7 +58,7 @@ faffter_dark:
     reasoning_off: true                         # reasoning models: disable the hidden think-block
 ```
 
-`gemini`/`anthropic` native formats aren't wired — point them at an OpenAI-compatible base URL. The core principle is **independence** — use a different model from whatever wrote the code. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
+`gemini` rides the OpenAI-compat family (set `host` to Google's compat base URL — no adaptor needed); `anthropic` has a native `/v1/messages` transport. The core principle is **independence** — use a different model family from whatever wrote the code, so **don't set `provider: anthropic` when Claude authored/reviewed the diff**. A mediocre reviewer with different biases catches things an excellent reviewer with the same biases won't.
 
 ## The naming convention
 

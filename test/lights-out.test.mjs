@@ -402,3 +402,48 @@ test("lights-out: minted run is consumed cleanly by events/runcheck/budget", () 
   assert.equal(state.outcome, "none"); // a fresh run has breached nothing
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+// FAFF-364 — a malformed budget.until must never mint a run carrying a vacuous
+// until ceiling (a value that parses to null and can therefore never breach).
+// Fires even alongside a clean, well-formed budget.tokens ceiling.
+test("lights-out: malformed budget.until refuses, names the raw value, mints nothing", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  until: \"25:00\"\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  const bui = out.refusals.find((r) => r.gate === "budget-until-invalid");
+  assert.ok(bui, "names the budget-until-invalid gate");
+  assert.match(bui.detail, /25:00/);
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on a malformed until");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-364 — a malformed until AS THE ONLY ceiling refuses on BOTH gates: it can
+// never satisfy budget-ceiling (until resolves to null) AND it independently names
+// budget-until-invalid — each refusal points at its own remedy.
+test("lights-out: malformed until as the only ceiling → both budget-ceiling and budget-until-invalid fire", () => {
+  const root = tmpRoot({ budget: "budget:\n  until: \"garbage\"\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.ok(out.refusals.some((r) => r.gate === "budget-ceiling"), "budget-ceiling also fires (until resolved to null)");
+  assert.ok(out.refusals.some((r) => r.gate === "budget-until-invalid"), "budget-until-invalid names the malformed value");
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-364 — a valid --until flag overriding a malformed config value proceeds
+// clean: no refusal, no warning, and the minted envelope carries the flag's value.
+test("lights-out: valid --until flag over malformed config proceeds clean", () => {
+  const root = tmpRoot({ budget: "budget:\n  until: \"25:00\"\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--until", "06:00", "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.ok(!out.refusals, "no refusals key on a proceeding run");
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.budget.envelope.ceilings.until, "06:00", "the valid flag value wins and is minted");
+  assert.equal(ledger.budget.envelope.until_invalid ?? null, null, "no until_invalid on a clean resolution");
+  fs.rmSync(root, { recursive: true, force: true });
+});

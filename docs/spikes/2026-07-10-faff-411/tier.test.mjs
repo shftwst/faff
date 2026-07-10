@@ -18,13 +18,13 @@ test('tier is deterministic with a param override too', () => {
 
 test('a tiny single-file high-confidence change is mechanical', () => {
   const f = { file_count: 1, lines_changed: 20, modules: 1, dep_count: 0, confidence: 'high' };
-  // score = 1*1 + 20*0.01 + 1*2 + 0 + confidence(0) = 3.2 <= 6
+  // score = 1*1 + 20*0.01 + 1*2 + 0 + confidence(0) = 3.2 <= 8 (mechanical cut)
   assert.equal(tier(f), 'mechanical');
 });
 
 test('a mid-size medium-confidence change is standard', () => {
   const f = { file_count: 4, lines_changed: 300, modules: 1, dep_count: 0, confidence: 'medium' };
-  // 4 + 3 + 2 + 0 + medium(3) = 12 -> between 6 and 16 -> standard
+  // 4 + 3 + 2 + 0 + medium(3) = 12 -> between 8 and 14 -> standard
   const s = tierScore(f);
   assert.ok(s > DEFAULT_PARAMS.cut.mechanical && s <= DEFAULT_PARAMS.cut.standard);
   assert.equal(tier(f), 'standard');

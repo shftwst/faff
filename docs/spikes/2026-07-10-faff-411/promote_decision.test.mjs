@@ -69,12 +69,16 @@ test('gate_regime mismatch vetoes in veto mode (not comparable) -> hold', () => 
 
 test('score mode ignores hard veto and decides on the weighted sum', () => {
   const params = { promote_model: { ...DEFAULT_PROMOTE_MODEL, mode: 'score' } };
-  // big cost win, small park regression: weighted sum should still favour promote
+  // Sonnet is clearly better: 50% cheaper per attempt (+0.5), only a 0.02 park
+  // regression (−0.04 at weight 2.0). Weighted sum = 0.46 > 0 -> promote.
+  // A sign-flipped score would land <= 0 and fail this, unlike a bare "is one of
+  // {promote,hold}" check.
   const r = promote_decision(
     arm(),
     arm({ cost_per_attempted: 5_000_000, park_rate: 0.12 }),
     params,
   );
-  assert.ok(['promote', 'hold'].includes(r.verdict));
   assert.equal(typeof r.score, 'number');
+  assert.ok(r.score > 0, `expected positive score, got ${r.score}`);
+  assert.equal(r.verdict, 'promote');
 });

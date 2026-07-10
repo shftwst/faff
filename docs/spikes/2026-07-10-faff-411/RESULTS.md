@@ -8,7 +8,7 @@
 
 ## Headline
 
-Self-rated **confidence does *not* usefully predict build shape** in this corpus — not because the signal is wrong-signed, but because it is a **near-constant**: 128 of 148 rated specs say `high`, 6 say `medium`, **0 say `low`**. A near-constant carries almost no information, so `confidence → lines_changed` lands at r = **−0.15** (correct direction — more confident, smaller diff — but negligible magnitude). The **single best retrospective predictor of diff size is the committed spec's own length** (`spec_lines → lines_changed`, r = **0.557**), with `done_items` (r = 0.35) and `scenario_count` (r = 0.34) close behind. **All three mechanical spec-structural signals beat the judgement self-rating.** Determinism verdict: for *coarse* build-shape tiering, mechanical features are sufficient and confidence adds nothing — but r ≈ 0.56 is moderate, so keep it to three buckets, not a precise oracle.
+Self-rated **confidence does *not* usefully predict build shape** in this corpus — not because the signal is wrong-signed, but because it is a **near-constant**: of the **134 parseable-confidence specs**, 128 say `high`, 6 say `medium`, **0 say `low`** (a further **17 of the 151 built issues** carry no parseable confidence line at all). A near-constant carries almost no information, so `confidence → lines_changed` lands at r = **−0.15** (correct direction — more confident, smaller diff — but negligible magnitude). The **single best retrospective predictor of diff size is the committed spec's own length** (`spec_lines → lines_changed`, r = **0.557**), with `done_items` (r = 0.35) and `scenario_count` (r = 0.34) close behind. **All three mechanical spec-structural signals beat the judgement self-rating.** Determinism verdict: for *coarse* build-shape tiering, mechanical features are sufficient and confidence adds nothing — but r ≈ 0.56 is moderate, so keep it to three buckets, not a precise oracle.
 
 ---
 
@@ -54,20 +54,23 @@ Pearson r, |r| descending. Sign: + = signal up ⇒ outcome up. This is the **see
 | confidence_num | files_changed | 134 | 0.016 |
 | spec_lines | token_proxy | 124 | 0.011 |
 | scenario_count | files_changed | 148 | 0.003 |
-| confidence_num | findings_* | 11 | n/a (n<3) |
+| confidence_num | findings_total/major | 11 | n/a (constant — all 11 review-covered issues are `high`) |
 
 **Reading it.**
 - **Diff *magnitude* (lines_changed) is the only outcome that any prep-time signal predicts with useful strength**, and spec length wins by a clear margin (explains ~31% of variance; r² = 0.31).
 - **Diff *breadth* (files_changed) is essentially unpredictable** from any spec signal (all |r| < 0.09) — how many files a change touches is not legible from the spec.
 - **`confidence` ranks near the bottom on every outcome.** Its `→lines_changed` r=−0.15 has the intuitive sign (see the group means below) but is swamped by the degenerate distribution.
+- **The `token_proxy` rows are a run-averaged proxy, not per-issue** — every issue in a run shares one averaged cost value (see the Cost section), so their near-zero |r| is structural, not evidence of no relationship.
 
 ### Confidence's real predictive value (guarding the defaults-to-`high` read)
 
-| confidence | n | mean lines_changed |
-|---|---|---|
-| high | 128 | 329 |
-| medium | 6 | 507 |
-| (missing) | 14 | 250 |
+| confidence | n specs | n with diff | mean lines_changed |
+|---|---|---|---|
+| high | 128 | 128 | 329 |
+| medium | 6 | 6 | 507 |
+| (missing) | 17 | 14 | 250 |
+
+*`n specs` is the confidence-distribution count (128 + 6 + 17 = 151 built issues); the mean is over the rows that also have git-diff actuals — all 128 high and 6 medium, but only 14 of the 17 missing-confidence issues.*
 
 Direction is *right* — medium-confidence specs did produce larger diffs than high — but with **only 6 medium and 0 low specs**, the rating has no dynamic range to discriminate with. The analysis-side confidence read is guarded (unparseable → treated as MISSING, never silently promoted to `high`; `analyze.mjs::extractConfidence`), so this skew is real, not an artifact of lenient parsing. **Practical conclusion: confidence as authored today is a routing input with almost no information content — a classifier keyed on it would behave like "always Opus/Sonnet-by-default."**
 
@@ -110,6 +113,8 @@ There **is** a usable spec-time signal, but the gap is real: the best proxy expl
 - **Weights** (`DEFAULT_PARAMS.w`): file_count 1.0 · lines_changed 0.01 · modules 2.0 · dep_count 3.0 · test_coverage_gap 4.0 · gate_history 5.0.
 - **Confidence prior** (`confidence_adj`): high 0 · medium +3 · low +8 · unknown +3 (treated as medium-risk — never as `high`, per the read-safety footnote in spec §3).
 - **Cut points** (`DEFAULT_PARAMS.cut`): mechanical ≤ **8**, standard ≤ **14**, else complex — **calibrated to the corpus tertiles** of the real built-issue diff distribution (n=148): p33 ≈ 4 files / 180 lines, p66 ≈ 6 files / 380 lines (p25/p50/p75 files = 3/5/7, lines = 137/273/480). Assumes the full feature set is populated at extraction time.
+
+**Calibration provenance — only two of the six weights (and the cut points) are data-driven.** The cut points, together with the `file_count` (1.0) and `lines_changed` (0.01) weights, are fit to the corpus diff tertiles above — those are the only signals the corpus actually measures. The remaining four weights — `modules` (2.0), `dep_count` (3.0), `test_coverage_gap` (4.0), `gate_history` (5.0) — are **judgement priors, not calibrated**: the corpus carries no per-issue module / dependency / coverage / gate-history telemetry to fit them against. So the tertile calibration only holds while `file_count`/`lines_changed` dominate the score. **FAFF-413/417 must treat those four as un-tuned starting guesses, not corpus-derived** — do not read "calibrated seed" as "all six weights are data-backed."
 
 These are a **seed**, not a finished controller. FAFF-413/417 own re-tuning them against live outcomes; `tier()` is the fixed, pure action surface they tune.
 

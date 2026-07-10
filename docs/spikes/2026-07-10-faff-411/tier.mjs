@@ -27,13 +27,19 @@
 
 export const DEFAULT_PARAMS = Object.freeze({
   // Per-feature weights. A weighted linear score, then two cut points bucket it.
+  // CALIBRATION PROVENANCE: only file_count / lines_changed are data-driven — their
+  // relative scale is fixed by the corpus diff tertiles (see the cut points below).
+  // modules / dep_count / test_coverage_gap / gate_history are JUDGEMENT PRIORS, not
+  // fit to data: the corpus carries no per-issue module / dep / coverage / gate-history
+  // telemetry to calibrate against. FAFF-413/417 must treat these four as un-tuned
+  // starting guesses, NOT corpus-derived, when they re-tune.
   w: Object.freeze({
-    file_count: 1.0,
-    lines_changed: 0.01, // ~100 lines == 1 file of pressure
-    modules: 2.0, // crossing module boundaries is disproportionately complex
-    dep_count: 3.0, // a new dependency is a strong complexity signal
-    test_coverage_gap: 4.0, // (1 - coverage) * this; untested surface adds risk
-    gate_history: 5.0, // each prior gate failure is a strong "not mechanical" bump
+    file_count: 1.0, // calibrated (corpus diff tertiles)
+    lines_changed: 0.01, // calibrated — ~100 lines == 1 file of pressure
+    modules: 2.0, // JUDGEMENT PRIOR — crossing module boundaries reads as complex
+    dep_count: 3.0, // JUDGEMENT PRIOR — a new dependency reads as a complexity signal
+    test_coverage_gap: 4.0, // JUDGEMENT PRIOR — (1 - coverage) * this; untested = risk
+    gate_history: 5.0, // JUDGEMENT PRIOR — each prior gate failure bumps off "mechanical"
   }),
   // Confidence acts as an additive prior on the score (low confidence => push up).
   confidence_adj: Object.freeze({
@@ -44,10 +50,12 @@ export const DEFAULT_PARAMS = Object.freeze({
   }),
   // Cut points on the total score. score <= mechanical => mechanical;
   // score <= standard => standard; else complex.
-  // CALIBRATED SEED (FAFF-411 Phase 1): tuned to the corpus tertiles of the actual
-  // built-issue diff distribution (n=148) — p33 ≈ 4 files / 180 lines, p66 ≈ 6 files /
-  // 380 lines — assuming the full feature set (file_count, lines_changed, modules) is
-  // populated. See RESULTS.md. FAFF-413/417 own re-tuning against live outcomes.
+  // CALIBRATED SEED (FAFF-411 Phase 1): these cut points — together with the
+  // file_count / lines_changed weights above — are tuned to the corpus tertiles of the
+  // actual built-issue diff distribution (n=148): p33 ≈ 4 files / 180 lines, p66 ≈ 6
+  // files / 380 lines. The other four weights are judgement priors (see above), so this
+  // calibration only holds while file_count/lines_changed dominate the score. See
+  // RESULTS.md. FAFF-413/417 own re-tuning against live outcomes.
   cut: Object.freeze({
     mechanical: 8,
     standard: 14,

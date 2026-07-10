@@ -7,7 +7,8 @@
 //   runcheck [--hook] [--recover] [--json] [--selftest] [RUN_DIR]   audit a /faff-beep-boop run ledger; --hook applies the ownership+liveness gate — silent for a foreign HELD run (FAFF-205, heartbeat-only liveness FAFF-233), and a foreign not-held run only WARNs, never hard-blocks (FAFF-235); only an OWNING session or --recover (deliberate human recovery) hard-blocks; --selftest runs the gate table
 //   prepcheck [--hook] [--json] [--root DIR]      audit faff-prep attach-state markers; --selftest (FAFF-178)
 //   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219: subtree-of-mandate containment primitive — walk the agent-supplied parentId chain from <parent> up to <mandate>; contained (exit 0) / outward (exit 3, fail-closed on --root/unknown/cycle/out-of-subtree) / usage (exit 2); PURE (no tracker call); v1 issue-level mandates only; --selftest
-//   hooks-ensure [--root DIR] [--json] [--dry-run]   idempotently register faff's Stop-hook set in .claude/settings.json; --selftest (FAFF-192)
+//   hooks-ensure [--root DIR] [--json] [--dry-run]   idempotently register faff's Stop-hook set + the PreToolUse merge-fence in .claude/settings.json; --selftest (FAFF-192/434)
+//   merge-fence --hook [--root DIR]                FAFF-434: PreToolUse fence — denies a raw `gh pr merge` Bash call, naming faff merge-gate as the remedy; --hook reads the event on stdin (malformed/absent → exit 0, never block); --selftest runs the matcher table
 //   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
 //   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
 //   labels [--names]                              print the canonical faff control-label manifest
@@ -4618,9 +4619,20 @@ function runDoneSelftest() {
 // for the per-install manual settings edit. Sibling of gitignore-ensure:
 // non-destructive, byte-stable no-op when present, fail-loud (exit 2) on
 // malformed JSON. Never registers a hook the resolved bin can't serve — a Stop
-// command that exits 2 blocks every session end.
+// command that exits 2 blocks every session end. FAFF-434 extends the same
+// registrar to a SECOND hook event (PreToolUse, the merge-fence) alongside the
+// Stop set — see FAFF_PRE_TOOL_USE_HOOKS below.
 // ===========================================================================
 const FAFF_STOP_HOOKS = ["runcheck", "prepcheck"];
+// FAFF-434: the PreToolUse hook set — currently just the raw-gh-pr-merge fence.
+// A distinct list from FAFF_STOP_HOOKS because it registers under a different
+// settings.json event array (hooks.PreToolUse, matcher-scoped to Bash) with a
+// different group shape ({matcher, hooks}, not the Stop set's bare {hooks}).
+const FAFF_PRE_TOOL_USE_HOOKS = ["merge-fence"];
+// The full served-probe set resolveHookBin/probeServes must clear together — a
+// resolved bin that can't serve every hook (Stop OR PreToolUse) is not fit to
+// register any of them under the single canonical bin path.
+const FAFF_ALL_HOOKS = [...FAFF_STOP_HOOKS, ...FAFF_PRE_TOOL_USE_HOOKS];
 
 // Token identity: a Stop command "invokes faff's <sub> --hook" if, split on
 // whitespace, some token's basename is `faff`, the subcommand token is present,
@@ -4645,8 +4657,26 @@ function stopCommands(settings) {
   return out;
 }
 
+// FAFF-434: sibling of stopCommands for the PreToolUse event array — same
+// defensive shape-drift handling, different settings.json key.
+function preToolUseCommands(settings) {
+  const pre = settings && settings.hooks && settings.hooks.PreToolUse;
+  if (!Array.isArray(pre)) return [];
+  const out = [];
+  for (const group of pre) {
+    const hooks = group && group.hooks;
+    if (!Array.isArray(hooks)) continue;
+    for (const h of hooks) if (h && typeof h.command === "string") out.push(h.command);
+  }
+  return out;
+}
+
+// Dispatches to whichever event's command array the given sub registers under —
+// FAFF_PRE_TOOL_USE_HOOKS members read PreToolUse, everything else (the Stop set)
+// reads Stop. commandInvokesFaffHook itself stays event-agnostic (token identity only).
 function isPresent(sub, settings) {
-  return stopCommands(settings).some((c) => commandInvokesFaffHook(c, sub));
+  const cmds = FAFF_PRE_TOOL_USE_HOOKS.includes(sub) ? preToolUseCommands(settings) : stopCommands(settings);
+  return cmds.some((c) => commandInvokesFaffHook(c, sub));
 }
 
 // Pure planner — no I/O. present/served are subcommand-name lists; binInvocation(sub)
@@ -4689,6 +4719,40 @@ function planStopHooks(settings, present, served, binInvocation) {
   return { added, already, skipped_stale, normalized, nextSettings: next };
 }
 
+// FAFF-434: sibling of planStopHooks for the PreToolUse event — same idempotent
+// add/normalize shape, targeting hooks.PreToolUse instead of hooks.Stop. The
+// PreToolUse group carries a matcher ("Bash" — the fence only ever needs to see
+// Bash tool_input), unlike the matcher-less Stop groups.
+function planPreToolUseHooks(settings, present, served, binInvocation) {
+  const P = new Set(present), S = new Set(served);
+  const added = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => !P.has(s) && S.has(s));
+  const already = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => P.has(s));
+  const skipped_stale = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => !P.has(s) && !S.has(s));
+  const next = JSON.parse(JSON.stringify(settings ?? {}));
+  if (added.length) {
+    if (!next.hooks || typeof next.hooks !== "object") next.hooks = {};
+    if (!Array.isArray(next.hooks.PreToolUse)) next.hooks.PreToolUse = [];
+    let group = next.hooks.PreToolUse.find((g) => g && g.matcher === "Bash" && Array.isArray(g.hooks));
+    if (!group) { group = { matcher: "Bash", hooks: [] }; next.hooks.PreToolUse.push(group); }
+    for (const s of added) group.hooks.push({ type: "command", command: binInvocation(s) });
+  }
+  const normalized = [];
+  const pre = next.hooks && Array.isArray(next.hooks.PreToolUse) ? next.hooks.PreToolUse : [];
+  for (const group of pre) {
+    const hooks = group && Array.isArray(group.hooks) ? group.hooks : [];
+    for (const h of hooks) {
+      if (!h || typeof h.command !== "string") continue;
+      for (const s of FAFF_PRE_TOOL_USE_HOOKS) {
+        if (commandInvokesFaffHook(h.command, s) && h.command.trim() !== binInvocation(s)) {
+          h.command = binInvocation(s);
+          if (!normalized.includes(s)) normalized.push(s);
+        }
+      }
+    }
+  }
+  return { added, already, skipped_stale, normalized, nextSettings: next };
+}
+
 function readJsonOrEmpty(p) {
   if (!fs.existsSync(p)) return {};
   return JSON.parse(fs.readFileSync(p, "utf8")); // throws on malformed → caller maps to exit 2
@@ -4707,9 +4771,14 @@ function whichFaff() {
 // Does `bin` serve `<sub>`? Probe `<bin> <sub> --hook` against an empty throwaway
 // root (read-only, no side effects). An un-served subcommand hits main()'s
 // "unknown subcommand" path → exit 2; anything else (incl. a clean 0) counts served.
+// input:"" pins stdin to an immediately-closed empty pipe — harmless for the
+// positional-arg hooks (runcheck/prepcheck never read stdin) and load-bearing for
+// merge-fence (FAFF-434), whose --hook reads stdin: without it, an unspecified
+// stdio pipe with nothing written can leave a synchronous stdin read hanging for
+// the full probe timeout instead of resolving to the empty-stdin exit-0 case.
 function probeServes(bin, sub, probeRoot) {
   try {
-    const r = spawnSync(bin, [sub, "--hook", "--root", probeRoot], { encoding: "utf8", timeout: 5000 });
+    const r = spawnSync(bin, [sub, "--hook", "--root", probeRoot], { encoding: "utf8", timeout: 5000, input: "" });
     if (r.error) return false; // couldn't even run the bin (missing / not executable)
     // The ONLY "not served" signal is main()'s unknown-subcommand path (exit 2 + that message).
     // Anything else — including a clean exit 0 — means the bin recognises the subcommand.
@@ -4724,14 +4793,16 @@ function probeServes(bin, sub, probeRoot) {
 //      or `~/.claude/skills/faff/bin/faff` (dev-linked symlink) — when it exists and serves
 //      the set (this path tracks the install, not the checkout, so it outlives a repo move);
 //   3. the running binary's own real path (last resort; serves the set by construction).
+// FAFF-434: "the set" is FAFF_ALL_HOOKS (Stop + PreToolUse combined) — a bin that can
+// serve runcheck/prepcheck but not merge-fence is not fit to be the one canonical bin.
 function resolveHookBin(probeRoot) {
   const onPath = whichFaff();
-  if (onPath && FAFF_STOP_HOOKS.every((s) => probeServes(onPath, s, probeRoot))) return onPath;
+  if (onPath && FAFF_ALL_HOOKS.every((s) => probeServes(onPath, s, probeRoot))) return onPath;
   const installed = process.env.CLAUDE_PLUGIN_ROOT
     ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "skills", "faff", "bin", "faff")
     : path.join(process.env.HOME || "", ".claude", "skills", "faff", "bin", "faff");
   try {
-    if (fs.existsSync(installed) && FAFF_STOP_HOOKS.every((s) => probeServes(installed, s, probeRoot))) return installed;
+    if (fs.existsSync(installed) && FAFF_ALL_HOOKS.every((s) => probeServes(installed, s, probeRoot))) return installed;
   } catch { /* fall through to the running binary */ }
   try { return fs.realpathSync(process.argv[1]); } catch { return process.argv[1]; }
 }
@@ -4756,37 +4827,47 @@ function cmdHooksEnsure(args) {
   let bin, served;
   try {
     bin = resolveHookBin(probeRoot);
-    served = FAFF_STOP_HOOKS.filter((s) => probeServes(bin, s, probeRoot));
+    served = FAFF_ALL_HOOKS.filter((s) => probeServes(bin, s, probeRoot));
   } finally {
     try { fs.rmSync(probeRoot, { recursive: true, force: true }); } catch { /* best-effort */ }
   }
 
-  const present = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
-  const plan = planStopHooks(targetObj, present, served, (s) => `${bin} ${s} --hook`);
+  // FAFF-434: two independent event arrays (Stop, PreToolUse), planned in sequence —
+  // the PreToolUse plan is composed on TOP OF the Stop plan's nextSettings (not the
+  // original targetObj), so a single write carries both sets of changes atomically.
+  const stopPresent = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
+  const preToolUsePresent = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
+  const stopPlan = planStopHooks(targetObj, stopPresent, served, (s) => `${bin} ${s} --hook`);
+  const preToolUsePlan = planPreToolUseHooks(stopPlan.nextSettings, preToolUsePresent, served, (s) => `${bin} ${s} --hook`);
 
-  const willWrite = !dryRun && (plan.added.length > 0 || plan.normalized.length > 0);
+  const added = [...stopPlan.added, ...preToolUsePlan.added];
+  const already = [...stopPlan.already, ...preToolUsePlan.already];
+  const normalized = [...stopPlan.normalized, ...preToolUsePlan.normalized];
+  const skipped_stale = [...stopPlan.skipped_stale, ...preToolUsePlan.skipped_stale];
+
+  const willWrite = !dryRun && (added.length > 0 || normalized.length > 0);
   if (willWrite) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, JSON.stringify(plan.nextSettings, null, 2) + "\n");
+    fs.writeFileSync(target, JSON.stringify(preToolUsePlan.nextSettings, null, 2) + "\n");
   }
 
-  for (const s of plan.skipped_stale) {
+  for (const s of skipped_stale) {
     process.stderr.write(
       `faff hooks-ensure: WARNING — resolved faff (${bin}) does not serve '${s}'; skipped to avoid a ` +
       `session-blocking hook. Fix the install, then re-run: bash scripts/link-skills.sh --global --replace\n`);
   }
 
-  const result = { path: target, created: willWrite && !existed, bin, added: plan.added, already: plan.already, normalized: plan.normalized, skipped_stale: plan.skipped_stale };
+  const result = { path: target, created: willWrite && !existed, bin, added, already, normalized, skipped_stale };
   if (asJson) {
     console.log(JSON.stringify(result, null, 2));
-  } else if (plan.added.length || plan.normalized.length) {
+  } else if (added.length || normalized.length) {
     const parts = [];
-    if (plan.added.length) parts.push(`${dryRun ? "would add" : "added"} ${plan.added.join(", ")}`);
-    if (plan.normalized.length) parts.push(`${dryRun ? "would normalize" : "normalized"} ${plan.normalized.join(", ")}`);
+    if (added.length) parts.push(`${dryRun ? "would add" : "added"} ${added.join(", ")}`);
+    if (normalized.length) parts.push(`${dryRun ? "would normalize" : "normalized"} ${normalized.join(", ")}`);
     console.log(`${dryRun ? "[dry-run] " : ""}${parts.join("; ")} → ${target}`);
   } else {
-    const note = plan.already.length ? `already present (${plan.already.join(", ")})` : "nothing to add";
-    console.log(`${target} — faff Stop hooks ${note}; no change`);
+    const note = already.length ? `already present (${already.join(", ")})` : "nothing to add";
+    console.log(`${target} — faff hooks ${note}; no change`);
   }
   return 0;
 }
@@ -4809,6 +4890,20 @@ const HOOKS_ENSURE_SELFTEST_CASES = [
     ["prepcheck"], ["runcheck", "prepcheck"], ["runcheck"], ["prepcheck"], [], ["prepcheck"]],
 ];
 
+// FAFF-434: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
+// planPreToolUseHooks instead of planStopHooks — same [label, settings, present,
+// served, +added, =already, skip, ~normalized] shape.
+const HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES = [
+  ["empty + served → added", {}, [], ["merge-fence"], ["merge-fence"], [], [], []],
+  ["present, canonical → no-op",
+    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] } },
+    ["merge-fence"], ["merge-fence"], [], ["merge-fence"], [], []],
+  ["present, divergent path → normalized",
+    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "/abs/repo/path/faff merge-fence --hook" }] }] } },
+    ["merge-fence"], ["merge-fence"], [], ["merge-fence"], [], ["merge-fence"]],
+  ["stale bin serves nothing → skipped", {}, [], [], [], [], ["merge-fence"], []],
+];
+
 function hooksEnsureSelftest() {
   let fail = 0;
   const inv = (s) => `faff ${s} --hook`;
@@ -4821,25 +4916,186 @@ function hooksEnsureSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} ~${JSON.stringify(p.normalized)} skip${JSON.stringify(p.skipped_stale)}`);
   }
+  for (const [label, settings, present, served, wAdded, wAlready, wSkip, wNorm] of HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES) {
+    const p = planPreToolUseHooks(settings, present, served, inv);
+    const ok = JSON.stringify(p.added) === JSON.stringify(wAdded)
+      && JSON.stringify(p.already) === JSON.stringify(wAlready)
+      && JSON.stringify(p.skipped_stale) === JSON.stringify(wSkip)
+      && JSON.stringify(p.normalized) === JSON.stringify(wNorm ?? []);
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} PreToolUse: ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} ~${JSON.stringify(p.normalized)} skip${JSON.stringify(p.skipped_stale)}`);
+  }
   // structural: adding into {} builds one Stop group carrying the two command hooks
   const built = planStopHooks({}, [], ["runcheck", "prepcheck"], inv).nextSettings;
   const cmds = (((built.hooks || {}).Stop || [])[0] || {}).hooks || [];
   const structOk = cmds.length === 2 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck) --hook/.test(h.command));
   if (!structOk) fail++;
   console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 2 command hooks`);
+  // structural: adding into {} builds one Bash-matcher PreToolUse group carrying the fence
+  const builtPre = planPreToolUseHooks({}, [], ["merge-fence"], inv).nextSettings;
+  const preCmds = (((builtPre.hooks || {}).PreToolUse || [])[0] || {}).hooks || [];
+  const preGroup = ((builtPre.hooks || {}).PreToolUse || [])[0] || {};
+  const structPreOk = preGroup.matcher === "Bash" && preCmds.length === 1 && preCmds[0].type === "command" && /faff merge-fence --hook/.test(preCmds[0].command);
+  if (!structPreOk) fail++;
+  console.log(`${structPreOk ? "ok  " : "FAIL"} structural: {} → Bash-matcher PreToolUse group carrying merge-fence`);
   // identity: token match ignores path / env prefix, requires --hook
   const idCases = [
     ["/abs/faff prepcheck --hook", "prepcheck", true],
     ["FOO=1 /x/faff prepcheck --hook", "prepcheck", true],
     ["faff prepcheck", "prepcheck", false],
     ["faff runcheck --hook", "prepcheck", false],
+    ["faff merge-fence --hook", "merge-fence", true],
+    ["/abs/faff merge-fence --hook", "merge-fence", true],
+    ["faff merge-fence", "merge-fence", false],
   ];
   for (const [cmd, sub, want] of idCases) {
     const got = commandInvokesFaffHook(cmd, sub);
     if (got !== want) fail++;
     console.log(`${got === want ? "ok  " : "FAIL"} identity '${cmd}' ~ ${sub} → ${got} (want ${want})`);
   }
-  const total = HOOKS_ENSURE_SELFTEST_CASES.length + 1 + idCases.length;
+  const total = HOOKS_ENSURE_SELFTEST_CASES.length + HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES.length + 2 + idCases.length;
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+// ===========================================================================
+// === region:factory — merge-fence — FAFF-434: the PreToolUse fence on raw `gh pr merge`. ===
+// The mechanical, testable replacement for a hand-added inline settings.json
+// stopgap: a PreToolUse hook that DENIES any Bash tool call whose command
+// matches a raw `gh pr merge` invocation, naming `faff merge-gate` — the sole
+// sanctioned merge path (FAFF-350) — as the remedy. Shaped exactly like
+// runcheck/prepcheck's --hook/--selftest split: a pure matcher over
+// (tool_name, command), plus a thin stdin shell. merge-gate's own merge is a
+// spawnSync CHILD PROCESS, never a Bash tool call, so the fence never sees it
+// (the tool_name==="Bash" scoping is the whole interlock — no allowlist needed).
+// ===========================================================================
+
+// PURE: does this (tool_name, command) pair invoke a raw `gh pr merge`? A `gh`
+// token — allowing a leading path prefix (`/usr/bin/gh`) or a leading env-var
+// prefix (`FOO=1 gh`), since either still resolves to the same binary — followed
+// by `pr`, then `merge`, with any whitespace between; trailing flags are free.
+// Deliberately narrow: `git merge` (no `pr`), `gh pr view`, `gh pr checkout` (no
+// `merge`) all fall through un-denied. Left boundary excludes only a preceding
+// WORD character (so "ghost" — no whitespace between "gh" and "ost" — never
+// matches the required `\s+` after "gh" anyway; the boundary's real job is
+// rejecting a "gh" that is itself part of a longer identifier, e.g. "xgh"), and
+// deliberately permits "/", ".", "-" immediately before "gh" — a path prefix
+// (`/usr/bin/gh`) is exactly the case this fence must still catch.
+//
+// LIMITATION (by design): a token-sequence regex, not a shell parser — a command
+// that BREAKS the `gh`·`pr`·`merge` run with quoting/splicing/variable/substitution
+// (`gh pr "merge"`, `gh pr $MERGE`) is NOT matched. This is the OUTERMOST guard-rail
+// against the naive/literal form, never the merge-security boundary (that is
+// merge-gate-as-sole-path + forge branch-protection, ADR 0043). The selftest pins
+// this boundary explicitly with LIMITATION allow-cases; a shell-aware matcher is
+// deliberately out of scope for this fence (chasing every spelling would only give a
+// false sense of a guarantee a regex cannot provide).
+function matchesRawGhMerge(toolName, command) {
+  if (toolName !== "Bash") return false;
+  if (typeof command !== "string" || command.length === 0) return false;
+  return /(^|[^\w])gh\s+pr\s+merge(\s|$)/.test(command);
+}
+
+// The single-line stderr deny message — names `faff merge-gate` as the sanctioned
+// remedy (never just "denied"), plus the human-operator escape hatch (run
+// merge-gate yourself in a real terminal, mirroring merge-gate's own human-only
+// flag fencing, FAFF-375).
+const MERGE_FENCE_DENY_MESSAGE =
+  "faff merge-fence: raw gh pr merge is not the sanctioned merge path — route this merge through " +
+  "`faff merge-gate` (the sole sanctioned path). If you are a human operator, run merge-gate yourself " +
+  "in a real terminal.\n";
+
+// PURE: fold a parsed PreToolUse event down to the matcher's two inputs. A
+// non-object event, or one missing tool_input, resolves to a definite non-match
+// rather than throwing — the --hook shell's JSON.parse already fail-safes a
+// malformed event to exit 0 before this is ever called with a non-null event.
+function mergeFenceDecision(event) {
+  if (event === null || typeof event !== "object") return false;
+  const toolInput = event.tool_input;
+  const command = toolInput && typeof toolInput === "object" ? toolInput.command : undefined;
+  return matchesRawGhMerge(event.tool_name, command);
+}
+
+function cmdMergeFence(args) {
+  if (args.includes("--selftest")) return mergeFenceSelftest();
+  if (!args.includes("--hook")) {
+    process.stderr.write("faff merge-fence: use --hook (reads a PreToolUse JSON event on stdin) or --selftest\n");
+    return 2;
+  }
+  // --root DIR is accepted-and-ignored: the fence is a pure stdin-in decision, no
+  // filesystem read — but hooks-ensure's probeServes always invokes `<sub> --hook
+  // --root <probeRoot>`, so an unrecognised --root must never become a usage error
+  // (that would make probeServes misclassify a perfectly-served bin as unserved).
+  let raw;
+  try { raw = fs.readFileSync(0, "utf8"); } catch { return 0; } // no/closed stdin → never block
+  if (!raw || !raw.trim()) return 0; // empty stdin → never block
+  let event;
+  try { event = JSON.parse(raw); } catch { return 0; } // malformed JSON → never block
+  if (!mergeFenceDecision(event)) return 0;
+  process.stderr.write(MERGE_FENCE_DENY_MESSAGE);
+  return 2;
+}
+
+// [label, tool_name, command, wantMatch] — drives the pure matcher directly (no
+// filesystem, no stdin): deny cases (the three `gh pr merge` prefix shapes plus
+// the bare no-trailing-flags form) and allow cases (sibling `gh pr` subcommands,
+// `git merge`, a non-Bash tool, a lookalike token, and the malformed-input shapes
+// the --hook shell degrades before ever reaching the matcher).
+const MERGE_FENCE_SELFTEST_CASES = [
+  ["Bash gh pr merge + flags → deny", "Bash", "gh pr merge 123 --squash", true],
+  ["Bash gh pr merge, path-prefixed gh → deny", "Bash", "/usr/bin/gh pr merge 123", true],
+  ["Bash gh pr merge, env-prefixed gh → deny", "Bash", "FOO=1 gh pr merge 5 --squash", true],
+  ["Bash bare gh pr merge (no trailing flags) → deny", "Bash", "gh pr merge", true],
+  ["Bash extra whitespace between tokens → deny", "Bash", "gh   pr   merge  5", true],
+  ["Bash gh pr view → allow (no merge)", "Bash", "gh pr view 123", false],
+  ["Bash gh pr checkout → allow (no merge)", "Bash", "gh pr checkout 123", false],
+  ["Bash git merge (no pr) → allow", "Bash", "git merge main", false],
+  ["Bash lookalike token (ghost) → allow (no word-boundary gh)", "Bash", "ghost pr merge", false],
+  ["non-Bash tool_name → allow regardless of command", "Read", "gh pr merge 123", false],
+  ["absent command → allow", "Bash", undefined, false],
+  ["non-string command → allow", "Bash", 123, false],
+  ["absent tool_name → allow", undefined, "gh pr merge 123", false],
+  // DOCUMENTED LIMITATION (recorded, not a defect): this is a REGEX token-sequence
+  // matcher, not a shell parser, so a command that BREAKS the `gh`·`pr`·`merge`
+  // token run with quoting, string-splicing, variable expansion, or command
+  // substitution is NOT caught. That is deliberate and matches the accepted inline
+  // stopgap this replaces: the fence is the OUTERMOST guard-rail against the naive/
+  // literal form, NOT the merge-security boundary — that boundary is `faff merge-gate`
+  // as the sole sanctioned path (its own merge is a spawnSync child, invisible here)
+  // plus the forge branch-protection backstop (ADR 0043). These allow-cases pin the
+  // boundary HONESTLY (so the table never reads as full-coverage of every raw-merge
+  // spelling); a hardened shell-aware matcher is tracked as post-merge scope.
+  ["LIMITATION: quoted merge arg → NOT caught (regex, not a shell parser)", "Bash", 'gh pr "merge" 123', false],
+  ["LIMITATION: string-spliced merge → NOT caught", "Bash", 'gh pr m"er"ge 123', false],
+  ["LIMITATION: variable-expanded subcommand → NOT caught", "Bash", "gh pr $MERGE 123", false],
+  ["LIMITATION: command-substituted subcommand → NOT caught", "Bash", "gh pr $(echo merge) 123", false],
+];
+
+function mergeFenceSelftest() {
+  let fail = 0;
+  for (const [label, toolName, command, want] of MERGE_FENCE_SELFTEST_CASES) {
+    const got = matchesRawGhMerge(toolName, command);
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${label} → ${got} (want ${want})`);
+  }
+  // mergeFenceDecision folds a full event object the same way — a couple of
+  // end-to-end cases over the event shape (incl. the malformed/absent tool_input
+  // shapes the --hook shell can hand it) round out the matcher-only table above.
+  const eventCases = [
+    ["well-formed deny event", { tool_name: "Bash", tool_input: { command: "gh pr merge 1 --squash" } }, true],
+    ["well-formed allow event (gh pr view)", { tool_name: "Bash", tool_input: { command: "gh pr view 1" } }, false],
+    ["tool_input missing → allow", { tool_name: "Bash" }, false],
+    ["tool_input non-object → allow", { tool_name: "Bash", tool_input: "gh pr merge 1" }, false],
+    ["null event → allow", null, false],
+  ];
+  for (const [label, event, want] of eventCases) {
+    const got = mergeFenceDecision(event);
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} event: ${label} → ${got} (want ${want})`);
+  }
+  const total = MERGE_FENCE_SELFTEST_CASES.length + eventCases.length;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -7115,7 +7371,8 @@ Subcommands:
   economics [--run-dir DIR] [--by class|model|mcp|day|effort] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. FAFF-410: --by class|model|mcp|day pivots the SAME transcript walk into per-class/per-model/per-day/per-MCP-tool buckets priced per-model×per-class (built-in PRICE_PER_MTOK + optional budget.price_per_mtok_by_model override; unknown model→cost:null); class/model/day reconcile to the top-line total, --by mcp reuses FAFF-409's MEASURED per-tool cache-read attribution; --by X --json rides a breakdown object, --by X (no --json) prints a skimmable table, NO --by is byte-for-byte unchanged; unknown axis exits 2 naming {class,model,mcp,day,effort}; non-leak (sizes/counts/names/model-ids/costs only). FAFF-415: --by effort reads the run's events.jsonl (not the transcript — reasoning-effort is a request-time setting the transcript never records), buckets dispatches by their data.effort tag, prices at the run's dominant model (ESTIMATE — events carry no model) and reports coverage_pct vs the top-line. --selftest runs the table
   quality [--run-dir DIR] [--json]   FAFF-418: per-run QUALITY/outcome telemetry — the quality mirror of economics. Emit a QualityReport JSON {run_id,outcomes,shipped_count,attempt_count,parked_count,park_rate,rework{total_turns,reworked_attempts,tagged_attempts,rework_rate,mean_turns},gate_catch,per_issue,source,warnings} from the run-ledger terminal outcomes (authoritative) + the events.jsonl issue-outcome events' FAFF-418 gate/rework tags. PURE, read-only (no tracker/network/LLM — parity with economics/budget check/runcheck). Pairs with economics by SHARING run_id + the exact shipped/attempt denominators (ECONOMICS_BUCKET_ORDER + routed-out/unreached-budget exclusion), so $/quality = economics.cost_per_shipped beside quality.park_rate on one run; no cost duplicated into quality. park_rate/rework_rate are over attempt_count (dispatched builds), null on a zero-attempt run (never 0/0); mean_turns is over tagged_attempts, and a warning flags rework_rate as a lower bound when tags don't cover every attempt; gate_catch is the distribution of which quality gate {structural,adversarial,holdout,ci} caught a non-shipped build; source=ledger+events (or ledger, gate/rework null, when no events.jsonl). --json emits the report, no flag prints a skimmable table; missing run dir exits 2; non-leak (outcome/gate-names/counts/rates only). --selftest runs the pure-core table
   run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
-  hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) in .claude/settings.json AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
+  hooks-ensure [--root DIR] [--json] [--dry-run]   FAFF-192/200/434: idempotently register faff's Stop-hook command set (runcheck + prepcheck --hook) AND the PreToolUse merge-fence (merge-fence --hook) in .claude/settings.json, AND normalize a present hook whose command path diverged from the canonical form — non-destructive, byte-stable no-op when present+canonical, skips a subcommand the resolved faff can't serve; exit 2 on malformed settings; --selftest runs the table
+  merge-fence --hook [--root DIR] [--selftest]   FAFF-434: the outermost mechanical wall against a raw gh pr merge Bash call — a PreToolUse hook (registered by hooks-ensure) shaped like runcheck/prepcheck's --hook/--selftest split. --hook reads a PreToolUse JSON event on stdin ({tool_name, tool_input:{command}}); a match on the pure matcher matchesRawGhMerge (a gh token — path/env-prefix tolerant — followed by pr then merge, any whitespace between) writes a single deny line to stderr naming faff merge-gate as the sanctioned remedy and exits 2; anything else — non-Bash tool, absent/non-string command, malformed/empty stdin — exits 0 silently, never blocking. faff merge-gate's own merge is a spawnSync child process, not a Bash tool call, so it is invisible to this fence by construction (no allowlist needed). --root DIR is accepted-and-ignored (present only so hooks-ensure's probeServes, which always passes it, never misclassifies a serving bin as unserved); --selftest drives the pure matcher + event-decision tables
   validate-adapters [--skills-dir DIR]          lint shipped slot-skill conformance
   validate-adapters --configured [--root DIR]   pre-flight a user's configured (swapped-in) slot occupants
   labels [--names]                              print the canonical faff control-label manifest (JSON; --names for bare names)
@@ -7148,7 +7405,7 @@ Subcommands:
   sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). FAFF-425: check's OWN inability to read the run's ledger (explicitly-named and absent, or present-but-corrupt) — or a budget consult that hit the same fault reading its ledger — is a distinct own-fault, never folded into "no derailment": {indeterminate:true,reason,verdicts:[],intervention:"continue",tripped:false}, exit 3; a legitimately empty surface (no run requested, none found) is unaffected, unchanged all-clear at exit 0. abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
   lights-out [--check] [--until HH:MM] [--max N] [--slot-unreachable review|spec_review ...] [--id RUN-ID] [--json] [--root DIR]   FAFF-225: the L4 lights-out entry point / runner — "leave the building" as one enforced action. Runs a fail-closed BASIC preflight over v1's launch preconditions (container-check contained — WARN→BLOCK on this path only; review + spec_review slots reachable, unreachable==absent; a budget ceiling set; a malformed budget.until/--until (not valid HH:MM) REFUSES on its own gate budget-until-invalid naming the raw value — regardless of any other ceiling set, since a run must never mint a ledger carrying malformed until (FAFF-364); when malformed until is the ONLY ceiling, budget-ceiling ALSO fires alongside it; all 8 shipped guardrail contracts — admissible / spec-review-verdict / run-done / budget / events / sentry / holdout|prdr-coverage / container — reachable by a genuine --selftest probe, NOT config presence; FAFF-68 no-execute + worktree isolation + Autonomous Mode Contract floor assertions hold), then on pass MINTS a strict-defaults L4 run-ledger carrying armed:Map<Guardrail,State ∈ {live|degraded|absent}> + a banner derivable 1:1 from armed (persisted, not just printed) + a run-start event; on ANY miss REFUSES (mints nothing, emits no work). Composes the contracts, re-implements none; never self-grants --dangerously-skip-permissions (the cage is the container's job). v1 does basic preflight only (rich dial-coherence + the adversarial advisory→gating promotion are separate follow-ons). --check runs preflight without minting; exit 0 armed/minted · 1 refused; --selftest runs the proceed/refuse + armed-derivation + banner table
-  doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
+  doctor [--target DIR] [--root DIR]             FAFF-190/434: install health — each faff skill symlink (live) vs copy (stale) under --target (default the skills install dir), PLUS the merge-fence PreToolUse registration under <--root or findRoot()>/.claude/settings.json (absent/malformed → MISSING, never a crash); exit 1 if any skill is a copy/dangling OR the fence is missing, naming faff hooks-ensure as the fence fix
   sync [--dry-run] [--json] [--script PATH]      FAFF-200/204: repair a stale copy-install — re-link faff skills + the CLI to the repo via scripts/link-skills.sh --global --replace; resolves the script from the cwd/repo anchor (then a self-walk fallback), or --script to override; --dry-run mutates nothing; exit 2 (naming every path tried) if none is readable
   worktree-prune [--own PATH ...] [--branch B] [--issue ID] [--dry-run] [--json] [--root DIR]   FAFF-126: scoped, fail-safe worktree prune — removes ONLY this run's OWN dangling worktree admin dirs (matched by --own path / --branch / --issue), never the repo-wide \`git worktree prune\` that clobbers a live peer; a live peer is protected, a dangling entry of unproven ownership is fail-safe SKIPPED; --selftest runs the table
   worktree-root [--assert PATH] [--root DIR] [--json] [--selftest]   FAFF-382: the single canonical worktree-root resolver + containment assert. With no --assert, prints the resolved root (precedence FAFF_WORKTREE_ROOT → .faffrc worktree_root → ~/.faff/worktrees/<basename(repoRoot)>; env/config verbatim, only the default appends <repo>). --assert PATH exits 0 iff PATH is strictly UNDER the resolved root (segment-aware, the same predicate as checkWorktreeIsolation), else exit 1 naming PATH + the root. The one source the setup-worktree hook, the lights-out preflight, and the graft Step-3 assert all call so they never drift. --json emits {root,source[,asserted_path,under_root]}; --selftest runs the precedence + containment table
@@ -8792,13 +9049,29 @@ function gatesSelftest() {
 // marketplace install) rather than symlinks to the repo — in which case shipped repo changes don't
 // go live until `link-skills.sh --global --replace`. This reads the FILESYSTEM (is <dir> a symlink?),
 // so it reports correctly even when run from a stale installed bin/faff — it is not circular.
+// FAFF-434: is the merge-fence PreToolUse hook registered under <root>/.claude/settings.json?
+// Independent of the --target skills-dir scan (a different install-health axis entirely) —
+// absent/malformed settings.json degrades to "missing", never a crash (a repo with no
+// .claude/settings.json yet is the common pre-hooks-ensure state, not a doctor fault).
+function mergeFencePresentAt(root) {
+  let settings;
+  try { settings = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.json"), "utf8")); }
+  catch { return false; }
+  return preToolUseCommands(settings).some((c) => commandInvokesFaffHook(c, "merge-fence"));
+}
+
 function cmdDoctor(args) {
   let target = null;
-  for (let i = 0; i < args.length; i++) if (args[i] === "--target") target = args[++i];
+  let root = null;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--target") target = args[++i];
+    else if (args[i] === "--root") root = args[++i];
+  }
   if (!target) {
     const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
     target = pluginRoot ? path.join(pluginRoot, "skills") : path.join(process.env.HOME || "", ".claude", "skills");
   }
+  root = root || findRoot();
   const isFaffSkill = (n) => n === "faff" || n.startsWith("faff-") || n.startsWith("faffter-") || n.startsWith("faffidavit-");
   let entries;
   try { entries = fs.readdirSync(target).filter(isFaffSkill).sort(); }
@@ -8833,9 +9106,23 @@ function cmdDoctor(args) {
     console.log(`  ${bst.isSymbolicLink() ? "✓" : "•"} bin/faff  ${bst.isSymbolicLink() ? "symlink (live)" : "real file (copy)"}`);
   } catch { /* bin link optional */ }
 
-  if (copies > 0 || dangling > 0) {
-    console.log(`\nRESULT: ${copies} copy / ${dangling} dangling skill link(s) — install is not clean.`);
-    console.log(`Fix: bash scripts/link-skills.sh --global --replace --prune`);
+  // FAFF-434: the merge-fence PreToolUse registration — a distinct install-health axis
+  // from the skill-link scan above (reads <root>/.claude/settings.json, not the --target
+  // skills dir), reported alongside it and folded into the same non-clean exit.
+  const fenceOk = mergeFencePresentAt(root);
+  console.log(fenceOk
+    ? `  ✓ merge-fence PreToolUse fence present`
+    : `  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
+
+  if (copies > 0 || dangling > 0 || !fenceOk) {
+    const problems = [];
+    if (copies > 0 || dangling > 0) problems.push(`${copies} copy / ${dangling} dangling skill link(s)`);
+    if (!fenceOk) problems.push("merge-fence PreToolUse fence missing");
+    console.log(`\nRESULT: ${problems.join(" + ")} — install is not clean.`);
+    const fixes = [];
+    if (copies > 0 || dangling > 0) fixes.push("bash scripts/link-skills.sh --global --replace --prune");
+    if (!fenceOk) fixes.push("faff hooks-ensure");
+    console.log(`Fix: ${fixes.join(" && ")}`);
     return 1;
   }
   console.log(`\nRESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
@@ -15129,6 +15416,7 @@ const REGION_MAP = {
   "quality": "factory",
   "run-done": "factory",
   "hooks-ensure": "factory",
+  "merge-fence": "factory",
   "validate-adapters": "factory",
   "labels": "factory",
   "label": "factory",
@@ -15199,6 +15487,7 @@ const REGION_SELFTEST_ARGV = {
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
+  "merge-fence": ["merge-fence", "--selftest"],
   "validate-adapters": null,
   "labels": null,
   "label": ["label", "--selftest"],
@@ -16299,6 +16588,7 @@ const COMMANDS = {
   "quality": cmdQuality,
   "run-done": cmdRunDone,
   "hooks-ensure": cmdHooksEnsure,
+  "merge-fence": cmdMergeFence,
   "validate-adapters": cmdValidateAdapters,
   "labels": cmdLabels,
   "label": cmdLabel,

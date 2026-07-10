@@ -142,8 +142,11 @@ jobs:
       - name: Validate intake-record via/initiated table
         run: node plugin/skills/faff/bin/faff intake-record --selftest
 
-      - name: Validate hooks-ensure Stop-hook registration table
+      - name: Validate hooks-ensure Stop-hook + PreToolUse registration table
         run: node plugin/skills/faff/bin/faff hooks-ensure --selftest
+
+      - name: Validate merge-fence PreToolUse matcher table (FAFF-434)
+        run: node plugin/skills/faff/bin/faff merge-fence --selftest
 
       - name: Validate contain subtree-of-mandate containment table
         run: node plugin/skills/faff/bin/faff contain --selftest

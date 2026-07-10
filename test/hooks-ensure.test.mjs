@@ -4,6 +4,10 @@
 // stale-bin logic are covered by `hooks-ensure --selftest`; these tests drive the
 // real CLI against the filesystem (the I/O shell). The running faff bin serves
 // both subcommands, so `skipped_stale` is exercised by the selftest, not here.
+// FAFF-434 extended the same registrar to a SECOND event array — hooks.PreToolUse,
+// carrying the merge-fence Bash-matcher hook — registered alongside the Stop set
+// in the same call/write; every "creates from empty" / "idempotent" assertion
+// below now expects merge-fence in the mix too.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -22,16 +26,21 @@ function mkroot() { return mkdtempSync(join(tmpdir(), "hooks-ensure-")); }
 function settingsPath(root) { return join(root, ".claude", "settings.json"); }
 function readSettings(root) { return JSON.parse(readFileSync(settingsPath(root), "utf8")); }
 function stopCmds(s) { return (s.hooks?.Stop ?? []).flatMap((g) => (g.hooks ?? []).map((h) => h.command)); }
+function preToolUseCmds(s) { return (s.hooks?.PreToolUse ?? []).flatMap((g) => (g.hooks ?? []).map((h) => h.command)); }
 
-test("creates settings.json with both faff Stop hooks when absent", () => {
+test("creates settings.json with both faff Stop hooks + the PreToolUse merge-fence when absent", () => {
   const root = mkroot();
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
     assert.equal(r.created, true);
-    assert.deepEqual(r.added, ["runcheck", "prepcheck"]);
-    const cmds = stopCmds(readSettings(root));
+    assert.deepEqual(r.added, ["runcheck", "prepcheck", "merge-fence"]);
+    const s = readSettings(root);
+    const cmds = stopCmds(s);
     assert.ok(cmds.some((c) => /faff runcheck --hook/.test(c)));
     assert.ok(cmds.some((c) => /faff prepcheck --hook/.test(c)));
+    const preCmds = preToolUseCmds(s);
+    assert.ok(preCmds.some((c) => /faff merge-fence --hook/.test(c)));
+    assert.equal(s.hooks.PreToolUse[0].matcher, "Bash", "merge-fence registers under a Bash-matcher group");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -43,13 +52,13 @@ test("idempotent: a second run adds nothing and does not rewrite the file (byte-
     const mtimeBefore = statSync(settingsPath(root)).mtimeMs;
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
     assert.deepEqual(r.added, []);
-    assert.deepEqual(r.already, ["runcheck", "prepcheck"]);
+    assert.deepEqual(r.already, ["runcheck", "prepcheck", "merge-fence"]);
     assert.deepEqual(readFileSync(settingsPath(root)), before, "content unchanged");
     assert.equal(statSync(settingsPath(root)).mtimeMs, mtimeBefore, "not rewritten");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("adds the missing command, normalizes a present-but-divergent path, preserves other settings + hooks (FAFF-200)", () => {
+test("adds the missing commands, normalizes a present-but-divergent path, preserves other settings + hooks (FAFF-200/434)", () => {
   const root = mkroot();
   mkdirSync(join(root, ".claude"), { recursive: true });
   writeFileSync(settingsPath(root), JSON.stringify({
@@ -61,12 +70,14 @@ test("adds the missing command, normalizes a present-but-divergent path, preserv
   }, null, 2) + "\n");
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
-    assert.deepEqual(r.added, ["prepcheck"]);
+    assert.deepEqual(r.added, ["prepcheck", "merge-fence"]);
     assert.deepEqual(r.already, ["runcheck"]);
     assert.deepEqual(r.normalized, ["runcheck"], "the divergent-path runcheck command is normalized to canonical");
     const s = readSettings(root);
     assert.deepEqual(s.permissions, { allow: ["Bash(git status:*)"] }, "unrelated settings preserved");
-    assert.deepEqual(s.hooks.PreToolUse, [{ matcher: "Bash", hooks: [{ type: "command", command: "echo hi" }] }], "other hook types preserved");
+    assert.equal(s.hooks.PreToolUse.length, 1, "merge-fence joins the EXISTING Bash-matcher group, not a new one");
+    assert.deepEqual(s.hooks.PreToolUse[0].hooks[0], { type: "command", command: "echo hi" }, "the pre-existing PreToolUse hook is preserved, not clobbered");
+    assert.ok(preToolUseCmds(s).some((c) => /faff merge-fence --hook/.test(c)), "merge-fence appended alongside it");
     const cmds = stopCmds(s);
     assert.ok(!cmds.includes("/some/path/faff runcheck --hook"), "divergent runcheck path rewritten, not left in place");
     assert.equal(cmds.filter((c) => /faff runcheck --hook/.test(c)).length, 1, "no duplicate runcheck");
@@ -84,7 +95,7 @@ test("normalizes drift then no-ops: corrupt a canonical command's path, re-run n
     const s = readSettings(root);
     for (const g of s.hooks.Stop) for (const h of g.hooks) if (/prepcheck/.test(h.command)) h.command = "/divergent/repo/path/faff prepcheck --hook";
     writeFileSync(settingsPath(root), JSON.stringify(s, null, 2) + "\n");
-    // Re-run heals the drift, adds nothing.
+    // Re-run heals the drift, adds nothing (merge-fence already registered+canonical from `first`).
     const r2 = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
     assert.deepEqual(r2.added, []);
     assert.deepEqual(r2.normalized, ["prepcheck"]);
@@ -100,7 +111,7 @@ test("normalizes drift then no-ops: corrupt a canonical command's path, re-run n
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("--dry-run reports a normalization but writes nothing (FAFF-200)", () => {
+test("--dry-run reports a normalization (Stop) and an addition (PreToolUse merge-fence) but writes nothing (FAFF-200)", () => {
   const root = mkroot();
   mkdirSync(join(root, ".claude"), { recursive: true });
   writeFileSync(settingsPath(root), JSON.stringify({
@@ -112,7 +123,7 @@ test("--dry-run reports a normalization but writes nothing (FAFF-200)", () => {
   const before = readFileSync(settingsPath(root));
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--dry-run", "--json"]).out);
-    assert.deepEqual(r.added, []);
+    assert.deepEqual(r.added, ["merge-fence"], "no PreToolUse block yet → merge-fence is a fresh add, not a normalize");
     assert.deepEqual(r.normalized, ["runcheck", "prepcheck"]);
     assert.deepEqual(readFileSync(settingsPath(root)), before, "dry-run wrote nothing");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -122,15 +133,18 @@ test("treats a command present only in settings.local.json as present (no settin
   const root = mkroot();
   mkdirSync(join(root, ".claude"), { recursive: true });
   writeFileSync(join(root, ".claude", "settings.local.json"), JSON.stringify({
-    hooks: { Stop: [{ hooks: [
-      { type: "command", command: "faff runcheck --hook" },
-      { type: "command", command: "faff prepcheck --hook" },
-    ] }] },
+    hooks: {
+      Stop: [{ hooks: [
+        { type: "command", command: "faff runcheck --hook" },
+        { type: "command", command: "faff prepcheck --hook" },
+      ] }],
+      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }],
+    },
   }, null, 2) + "\n");
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
-    assert.deepEqual(r.added, [], "both present via local file → nothing to add (no double-registration)");
-    assert.deepEqual(r.already, ["runcheck", "prepcheck"]);
+    assert.deepEqual(r.added, [], "all three present via local file → nothing to add (no double-registration)");
+    assert.deepEqual(r.already, ["runcheck", "prepcheck", "merge-fence"]);
     assert.equal(existsSync(settingsPath(root)), false, "settings.json not created when nothing to add");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -139,7 +153,7 @@ test("--dry-run reports the plan but writes nothing", () => {
   const root = mkroot();
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--dry-run", "--json"]).out);
-    assert.deepEqual(r.added, ["runcheck", "prepcheck"]);
+    assert.deepEqual(r.added, ["runcheck", "prepcheck", "merge-fence"]);
     assert.equal(r.created, false, "dry-run never reports a creation");
     assert.equal(existsSync(settingsPath(root)), false, "no file written on dry-run");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -161,4 +175,35 @@ test("hooks-ensure --selftest passes", () => {
   const r = run(["hooks-ensure", "--selftest"]);
   assert.equal(r.code, 0);
   assert.match(r.out, /RESULT: PASS/);
+});
+
+// FAFF-434 — dedicated PreToolUse merge-fence coverage mirroring the Stop-set tests above.
+test("normalizes a divergent merge-fence path, preserves an unrelated PreToolUse group", () => {
+  const root = mkroot();
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  writeFileSync(settingsPath(root), JSON.stringify({
+    hooks: {
+      Stop: [{ hooks: [
+        { type: "command", command: "faff runcheck --hook" },
+        { type: "command", command: "faff prepcheck --hook" },
+      ] }],
+      PreToolUse: [
+        { matcher: "Read", hooks: [{ type: "command", command: "echo unrelated" }] },
+        { matcher: "Bash", hooks: [{ type: "command", command: "/divergent/path/faff merge-fence --hook" }] },
+      ],
+    },
+  }, null, 2) + "\n");
+  try {
+    const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
+    assert.deepEqual(r.added, []);
+    // the fixture's Stop commands are the bare "faff <sub> --hook" form, which the resolved
+    // (absolute-path) bin also normalizes — this test's focus is the PreToolUse behaviour,
+    // asserted below via preCmds, so the full normalized set (not just merge-fence) is expected.
+    assert.deepEqual(r.normalized, ["runcheck", "prepcheck", "merge-fence"]);
+    const s = readSettings(root);
+    assert.deepEqual(s.hooks.PreToolUse[0], { matcher: "Read", hooks: [{ type: "command", command: "echo unrelated" }] }, "unrelated matcher group untouched");
+    const preCmds = preToolUseCmds(s);
+    assert.ok(!preCmds.includes("/divergent/path/faff merge-fence --hook"));
+    assert.ok(preCmds.some((c) => /faff merge-fence --hook/.test(c) && c === `${r.bin} merge-fence --hook`));
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

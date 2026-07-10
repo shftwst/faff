@@ -67,6 +67,29 @@ test("flags a retrospective war-story phrase", () => {
   assert.notEqual(r.status, 0);
 });
 
+// FAFF-337 — a literal minted canonical run-id (8 digits, 6 digits, launcher word) pasted
+// into prose is exactly the transcript-breadcrumb idiom this lint targets; the
+// letter-template shape used to DOCUMENT the format (`YYYY-MM-DD`/`HHMMSS` placeholders,
+// no real digits) must NOT trip it.
+test("flags a literal canonical run-id (beepboop)", () => {
+  const r = runOne("Calibrated against .faff/runs/run-20260707-130600-beepboop-full/summary.md.\n");
+  assert.ok(has(r, "stray marker"));
+  assert.match(r.stdout, /transcript run-id/);
+  assert.notEqual(r.status, 0);
+});
+
+test("flags a literal canonical run-id (lights-out)", () => {
+  const r = runOne("The run-20260707-130600-lights-out ledger recorded the outcome.\n");
+  assert.ok(has(r, "stray marker"));
+  assert.match(r.stdout, /transcript run-id/);
+  assert.notEqual(r.status, 0);
+});
+
+test("FP-guard: the letter-template canonical run-id shape (documentation, no real digits) is NOT a stray marker", () => {
+  const r = runOne("Mint the run directory as `run-YYYYMMDD-HHMMSS-beepboop-<mode>`.\n");
+  assert.equal(has(r, "stray marker"), false, "a placeholder template must not read as a pasted transcript id");
+});
+
 test("FP-guard: a load-bearing FAFF-NN reference is NOT a stray marker", () => {
   const r = runOne("The producer emits its contract block (FAFF-109); see gateway → Contract loading.\n");
   assert.equal(has(r, "stray marker"), false, "issue-tag anchors are load-bearing, not war-stories");

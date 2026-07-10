@@ -54,6 +54,22 @@ function findRoot(start = process.cwd()) {
   }
 }
 
+// Shared mtime-DESC ordering for `.faff/runs/<run-id>` directories (FAFF-337). Three
+// run-id mint formats coexist (dash-prefixed date, compact `run-`, and legacy bare
+// stamps) with no shared lexical shape, so sorting by NAME is format-dependent and can
+// resolve a stale ledger. Ordering by directory mtime is format-independent; the name
+// tie-break only disambiguates dirs that share a millisecond (never load-bearing).
+function sortRunDirsByMtimeDesc(dirs) {
+  return dirs
+    .map((p) => {
+      let mtimeMs;
+      try { mtimeMs = fs.statSync(p).mtimeMs; } catch { mtimeMs = -Infinity; }
+      return { p, mtimeMs };
+    })
+    .sort((a, b) => (b.mtimeMs - a.mtimeMs) || (a.p < b.p ? 1 : a.p > b.p ? -1 : 0))
+    .map((x) => x.p);
+}
+
 function latestRunDir(root) {
   const runs = path.join(root, ".faff", "runs");
   if (!fs.existsSync(runs)) return null;
@@ -61,7 +77,7 @@ function latestRunDir(root) {
     .map((name) => path.join(runs, name))
     .filter((p) => fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, "run-ledger.json")));
   if (!cands.length) return null;
-  return cands.sort()[cands.length - 1]; // run-ids are date-prefixed → lexical == chronological
+  return sortRunDirsByMtimeDesc(cands)[0];
 }
 
 // Shared ledger reader (FAFF-65): parse a run's run-ledger.json into its object.
@@ -4869,7 +4885,7 @@ const DUP_SIG_MINLEN = 25;                          // a "significant" line for 
 // Stray non-load-bearing markers: transcript run-ids and retrospective war-story idioms that belong in
 // git history / ADRs / design notes, not the runtime prompt. Load-bearing FAFF-NN refs (contract anchors,
 // section pointers) are intentionally NOT matched — the rule targets idioms, not issue-tags.
-const STRAY_TRANSCRIPT = /\brun \d{4}-\d{2}-\d{2}\b|\bbeep-boop-\d{4,}\b/i;
+const STRAY_TRANSCRIPT = /\brun \d{4}-\d{2}-\d{2}\b|\bbeep-boop-\d{4,}\b|\brun-\d{8}-\d{6}-(?:beepboop|lights-out)\b/i;
 const STRAY_RETRO = /\bfixes a real (?:failure|bug|mistake)\b|\bthe exact (?:failure|bug|mistake) this guards against\b|\bbit (?:us|me) (?:twice|once)\b|\brecurred (?:twice|\d+ times)\b/i;
 // A prose line for the paragraph + dedup rules: not blank, not a list item / heading / table / fence / quote.
 function isProseLine(line) {
@@ -6163,17 +6179,17 @@ function resolveSpec(root, issue) {
   return ["high", picked];
 }
 
-// runDirsNewestFirst — every .faff/runs/<run-id> directory, sorted DESC. Run-ids are
-// date-prefixed, so lexical sort == chronological (same invariant latestRunDir relies on).
+// runDirsNewestFirst — every .faff/runs/<run-id> directory, ordered DESC by directory
+// mtime (same sortRunDirsByMtimeDesc latestRunDir uses) — format-independent, so
+// `latestRunDir(root) === runDirsNewestFirst(root)[0]` holds across a mixed population.
 function runDirsNewestFirst(root) {
   const runs = path.join(root, ".faff", "runs");
   let names;
   try { names = fs.readdirSync(runs); } catch { return []; }
-  return names
+  const dirs = names
     .map((name) => path.join(runs, name))
-    .filter((p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } })
-    .sort()
-    .reverse();
+    .filter((p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } });
+  return sortRunDirsByMtimeDesc(dirs);
 }
 
 // resolveParked — parked iff the newest run dir with a <run-id>/<ISSUE>/park.md has one.
@@ -14709,7 +14725,7 @@ function cmdLightsOut(args) {
   envelope.at_ceiling = mintAtCeiling(cfg);
   const nowIso = new Date().toISOString();
   const stamp = nowIso.replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-"); // YYYYMMDD-HHMMSS
-  const runId = get("--id") || `${stamp}-lights-out`;
+  const runId = get("--id") || `run-${stamp}-lights-out`;
   const runDir = path.join(root, ".faff", "runs", runId);
   fs.mkdirSync(runDir, { recursive: true });
 

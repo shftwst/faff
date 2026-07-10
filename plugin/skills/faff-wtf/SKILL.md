@@ -57,7 +57,7 @@ Surface every issue faff has parked — whether by an overnight `/faff-beep-boop
 **The `faff-parked` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `faff-parked` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
 
 - **Tracker query for issues tagged `faff-parked`** (or the tracker's equivalent label) — the authoritative source; covers interactive *and* autonomous parks.
-- Most recent `.faff/runs/*-beep-boop-*/summary.md` (if any beep-boop run logs exist) — used only to enrich autonomous parks with a log path. Use `Bash(ls "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers). A missing or unreadable run-log directory **never** suppresses this section — the label query still runs.
+- The most-recently-modified `.faff/runs/*/summary.md` (if any run logs exist) — used only to enrich autonomous parks with a log path. Pick by mtime, not name — run-id mint formats vary and are not load-bearing here. Use `Bash(ls -t "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers). A missing or unreadable run-log directory **never** suppresses this section — the label query still runs.
 
 For each parked issue, surface:
 - Issue id and title

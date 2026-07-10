@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -417,4 +417,74 @@ test("INTEGRATION: empty-outcome ledger renders without erroring (0 counts)", ()
     assert.equal(e.cost_per_shipped, null);
     assert.equal(e.cost_per_attempt, null);
   } finally { f.cleanup(); }
+});
+
+// FAFF-337 — `latestRunDir` used to resolve the newest run dir by NAKED LEXICAL sort,
+// which is format-dependent: a dash-prefixed legacy id (`YYYY-MM-DD-...`) sorts BEFORE
+// a compact `run-...` id regardless of which is actually newer, so a stale ledger could
+// win. The fix orders by directory mtime instead — format-independent. These drive the
+// real resolver end-to-end through `faff economics --root` (no --run-dir), whose output
+// embeds `run_id: path.basename(runDir)` so the resolved directory is directly observable.
+function runIdFixture(root, dirName, ledger) {
+  const runDir = join(root, ".faff", "runs", dirName);
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify(ledger));
+  return runDir;
+}
+
+test("FAFF-337: latestRunDir resolves by mtime, not name — a lexically-earlier legacy dir with a NEWER mtime wins over a lexically-later run-* dir", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-econ-runid-"));
+  try {
+    // No `run_id` field in either ledger, so economics' `run_id: path.basename(runDir)`
+    // fallback (computeUnitEconomics prefers ledger.run_id when present) surfaces which
+    // DIRECTORY latestRunDir actually picked.
+    const bareLedger = { admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } };
+    const legacy = runIdFixture(root, "2026-01-01-beep-boop-00-00-00", bareLedger);
+    const canonical = runIdFixture(root, "run-20260701-120000-beepboop-full", bareLedger);
+    const past = new Date(Date.now() - 60000);
+    utimesSync(legacy, past, past);
+    utimesSync(canonical, past, past);
+
+    // canonical dir touched most recently → it wins despite sorting lexically before "2026-01-01-...".
+    utimesSync(canonical, new Date(), new Date());
+    const r1 = run(["economics", "--root", root, "--json"]);
+    assert.equal(r1.code, 0, r1.err);
+    assert.equal(JSON.parse(r1.out).run_id, "run-20260701-120000-beepboop-full");
+
+    // Bump the legacy dir's mtime past the canonical one → resolution flips (mtime governs, never the name).
+    utimesSync(legacy, new Date(Date.now() + 60000), new Date(Date.now() + 60000));
+    const r2 = run(["economics", "--root", root, "--json"]);
+    assert.equal(r2.code, 0, r2.err);
+    assert.equal(JSON.parse(r2.out).run_id, "2026-01-01-beep-boop-00-00-00");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// Exercises `resolveLedgerOutcome`, which walks `runDirsNewestFirst` and returns the
+// FIRST (i.e. newest) dir's outcome for the issue — this is the invariant
+// `latestRunDir(root) === runDirsNewestFirst(root)[0]` proven through a real CLI seam
+// (`faff state`), not just latestRunDir alone.
+test("FAFF-337: runDirsNewestFirst orders by mtime — faff state resolves the issue's outcome from the mtime-newest dir regardless of lexical name", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-econ-runid-"));
+  try {
+    const olderDir = runIdFixture(root, "run-20260701-120000-beepboop-full", { run_id: "newer-name-older-mtime", outcomes: { "FAFF-1": "parked" } });
+    const newerDir = runIdFixture(root, "2026-01-01-beep-boop-00-00-00", { run_id: "older-name-newer-mtime", outcomes: { "FAFF-1": "shipped" } });
+    utimesSync(olderDir, new Date(Date.now() - 120000), new Date(Date.now() - 120000));
+    utimesSync(newerDir, new Date(), new Date());
+
+    // The lexically-EARLIER-named dir has the NEWEST mtime → its outcome must win.
+    const s1 = run(["state", "FAFF-1", "--root", root, "--json"]);
+    assert.equal(s1.code, 0, s1.err);
+    const j1 = JSON.parse(s1.out);
+    assert.equal(j1.ledger_outcome, "shipped");
+    assert.equal(j1.ledger_run, "older-name-newer-mtime");
+
+    // Flip the mtimes → resolution flips too (mtime governs, never the name).
+    utimesSync(olderDir, new Date(), new Date());
+    utimesSync(newerDir, new Date(Date.now() - 120000), new Date(Date.now() - 120000));
+    const s2 = run(["state", "FAFF-1", "--root", root, "--json"]);
+    assert.equal(s2.code, 0, s2.err);
+    const j2 = JSON.parse(s2.out);
+    assert.equal(j2.ledger_outcome, "parked");
+    assert.equal(j2.ledger_run, "newer-name-older-mtime");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

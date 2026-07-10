@@ -173,3 +173,79 @@ test("--human-override WITHOUT --interactive (non-TTY) → exit 2, NO override f
   assert.match(stderr, /--human-override/);
   assert.equal(existsSync(overrideFile(runDir)), false);
 });
+
+// --- FAFF-424: merge-gate derives its level from the run-ledger, refusing a contradicting --level ---
+
+const argsNoLevel = (runDir, extra = []) =>
+  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--repo", REPO, "--json", ...extra];
+
+function writeLedger(runDir, level) {
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "test-run", level }));
+}
+
+test("L4 ledger + no --level + no holdout artifact → exit 1, refuse names the L4 holdout (level derived, not defaulted)", () => {
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; only the (absent) holdout artifact should block
+  writeLedger(runDir, "L4");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "refuse must name the L4 holdout leg");
+  assert.equal(existsSync(sentinel), false, "a derived-L4 refuse must never reach gh pr merge");
+});
+
+test("L4 ledger + --level L3 → exit 2, mismatch error names both levels and the ledger path, no gh call", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeLedger(runDir, "L4");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir), { env }); // baseArgs passes --level L3
+  assert.equal(code, 2);
+  assert.match(stderr, /--level "L3" contradicts run-ledger level "L4"/);
+  assert.match(stderr, /run-ledger\.json/);
+  assert.equal(existsSync(sentinel), false, "a mismatch must be refused before any gh call");
+});
+
+test("L4 ledger + --level L4 (agreement) → proceeds at L4, refuse still names the L4 holdout (no coercion to L3)", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeLedger(runDir, "L4");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(argsNoLevel(runDir, ["--level", "L4"]), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)));
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("no ledger present + --level L3 → unchanged behaviour (flag/default governs, merge-ok floor merges)", () => {
+  const runDir = seedRunDir("merge-ok"); // no run-ledger.json written
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(existsSync(sentinel), true, "no ledger → today's flag-governed path merges exactly as before");
+});
+
+test("ledger present with no level field + --level L3 → unchanged behaviour (ledgerLevel normalises to null)", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "test-run" })); // no `level` key
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  assert.equal(code, 0);
+  assert.equal(JSON.parse(stdout).verdict, "merge-ok");
+  assert.equal(existsSync(sentinel), true);
+});
+
+// Adversarial review (FAFF-424): the mismatch check must fire even under --check-only — it is
+// malformed input, not a floor verdict the --check-only short-circuit should ever paper over.
+test("L4 ledger + --level L3 + --check-only → still exit 2 mismatch (fires before the check-only short-circuit)", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeLedger(runDir, "L4");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /--level "L3" contradicts run-ledger level "L4"/);
+  assert.equal(existsSync(sentinel), false);
+});

@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.9.0](https://github.com/shftwst/faff/compare/faff--v0.8.0...faff--v0.9.0) (2026-07-10)
+
+
+### Features
+
+* **FAFF-210:** native gemini / anthropic adaptors for the adversarial-review backend ([#294](https://github.com/shftwst/faff/issues/294)) ([7c56dca](https://github.com/shftwst/faff/commit/7c56dca018b78ea438884633111a87fa488aa0a6))
+* **FAFF-260:** PRD-admissibility LLM validator — slot-skill, gateway entry, L4 run-start wiring ([#274](https://github.com/shftwst/faff/issues/274)) ([e52c9ae](https://github.com/shftwst/faff/commit/e52c9aee5d1f8fdf992f805074af73d6018bb267))
+* **FAFF-312:** L4 run governance — run-done terminates, Sentry interrupts, budget backstops (count-caps banned) ([#265](https://github.com/shftwst/faff/issues/265)) ([02df7d0](https://github.com/shftwst/faff/commit/02df7d0740a48fbac43ce5005f34815781d3754d))
+* **FAFF-329:** prevent + cheaply recover the graft mid-review stall ([#273](https://github.com/shftwst/faff/issues/273)) ([d4e80b5](https://github.com/shftwst/faff/commit/d4e80b5d5420ea849619204264582563c382fe4a))
+* **FAFF-334:** per-issue build-model routing by spec confidence ([#268](https://github.com/shftwst/faff/issues/268)) ([4b364e7](https://github.com/shftwst/faff/commit/4b364e793ba17ec567aaa85f1764ac0e419d9169))
+* **FAFF-346:** wire the architecture slot call-site (prep-time proposal, holdout consumption) ([#283](https://github.com/shftwst/faff/issues/283)) ([ae2cc9c](https://github.com/shftwst/faff/commit/ae2cc9c1ec7087a18015d63f698110c09ed09c9b))
+* **FAFF-350:** faff merge-gate — mechanical merge floor + branch-protection preflight ([#264](https://github.com/shftwst/faff/issues/264)) ([3f82c02](https://github.com/shftwst/faff/commit/3f82c02284ee0d5531691cf45ff0f49776933a76))
+* **FAFF-353:** escalate Phase-2 adversarial criticals on any autonomous run + annotate full-chain outage ([#271](https://github.com/shftwst/faff/issues/271)) ([04eb5c4](https://github.com/shftwst/faff/commit/04eb5c4db2efc1fb2a87c92383617a9db253dde4))
+* **FAFF-356:** optional (decides: &lt;owner&gt;) tag on Punt markers + per-owner routing ([#270](https://github.com/shftwst/faff/issues/270)) ([d843871](https://github.com/shftwst/faff/commit/d84387154153f5e219bc7ab6ea3db65100b4081f))
+* **FAFF-357:** faff economics — per-run unit economics (cost-per-shipped-issue) ([#269](https://github.com/shftwst/faff/issues/269)) ([0770de5](https://github.com/shftwst/faff/commit/0770de59177cda1b49c7f7c73db98fe808500260))
+* **FAFF-365:** merge-gate re-checks PR state on a non-zero forge-merge exit ([#302](https://github.com/shftwst/faff/issues/302)) ([511070e](https://github.com/shftwst/faff/commit/511070e09e988aa8902e5fc8c4725938af853828))
+* **FAFF-368:** re-validate ADR numbering at the merge gate, renumber on collision ([#288](https://github.com/shftwst/faff/issues/288)) ([a42614b](https://github.com/shftwst/faff/commit/a42614b9a09b5b48a3a7c6a49f4133900ee29d5b))
+* **FAFF-371:** validate + harden the env lane against a bounded rootless engine ([#278](https://github.com/shftwst/faff/issues/278)) ([abbfff9](https://github.com/shftwst/faff/commit/abbfff9a4a1a22048bf759d5f87aca37bdcc7172))
+* **FAFF-372:** dispatch interactive L2 producers as Agent subagents + per-producer model lanes ([#276](https://github.com/shftwst/faff/issues/276)) ([6e6fa4e](https://github.com/shftwst/faff/commit/6e6fa4e1ff8321e4ffa53d6d85142b3e3f8c85e4))
+* **FAFF-373:** corrective-integrity fail-safe gate (probe + degrade-to-Channel-D) ([#277](https://github.com/shftwst/faff/issues/277)) ([833350c](https://github.com/shftwst/faff/commit/833350cce8cf782801ee4831e7b12b3cd4e15322))
+* **FAFF-376:** pin observed head sha through merge-gate + fail-closed on partial gh API ([#281](https://github.com/shftwst/faff/issues/281)) ([5dc0366](https://github.com/shftwst/faff/commit/5dc03661c820dbabe8f01ac6e5fa2cd91536eb8b))
+* **FAFF-379:** make the L4 lights-out floor:worktree_isolation a real check ([#280](https://github.com/shftwst/faff/issues/280)) ([2bcbfe9](https://github.com/shftwst/faff/commit/2bcbfe924f149243905f243761dee04922ed7335))
+* **FAFF-382:** single-source the worktree-root resolver + make the checked isolation root bind ([#289](https://github.com/shftwst/faff/issues/289)) ([7cf1cc5](https://github.com/shftwst/faff/commit/7cf1cc5daad4652ab08b485f099e52f2e6c8027c))
+* **FAFF-398:** fail-closed on mandatory review-chain exhaustion ([#284](https://github.com/shftwst/faff/issues/284)) ([ca03cb9](https://github.com/shftwst/faff/commit/ca03cb929e88990cb383f86124785e051ee101f7))
+* **FAFF-401:** derive mandatory review from the run ledger, not a prose flag hop ([#308](https://github.com/shftwst/faff/issues/308)) ([aa22c93](https://github.com/shftwst/faff/commit/aa22c932ecd8f7537186d1e6f2cd1eb97a9e1e5c))
+* **FAFF-402:** build-complete checkpoint + push-at-build-complete resumability ([#287](https://github.com/shftwst/faff/issues/287)) ([dc2d402](https://github.com/shftwst/faff/commit/dc2d40225f5b8b8a66e10c884828fcf712457036))
+* **FAFF-407:** token-usage breakdown spike — analysis + report ([#290](https://github.com/shftwst/faff/issues/290)) ([1f2414c](https://github.com/shftwst/faff/commit/1f2414cd8543d69af5b899ebcade5195503369f2))
+* **FAFF-408:** add opt-in --tokens flag to events append for per-phase token attribution ([#291](https://github.com/shftwst/faff/issues/291)) ([bd2e309](https://github.com/shftwst/faff/commit/bd2e3097f85483be57c49b695568e1b1e6464bd4))
+* **FAFF-409:** measure per-tool MCP cache-amplification via reconciling cache_read attribution ([#292](https://github.com/shftwst/faff/issues/292)) ([d055a56](https://github.com/shftwst/faff/commit/d055a56d5ea2d7e400a8c7da046ca1c453191a8d))
+* **FAFF-410:** faff economics --by class|model|mcp|day breakdown ([#293](https://github.com/shftwst/faff/issues/293)) ([10748a0](https://github.com/shftwst/faff/commit/10748a08be97f15a1a81637020b1ade420b44ff4))
+* **FAFF-411:** build-model downgrade calibration spike — Phase 1 retrospective predictor ([#299](https://github.com/shftwst/faff/issues/299)) ([5995146](https://github.com/shftwst/faff/commit/5995146e0ab218b1e5114cca422dbc78498d0aab))
+* **FAFF-415:** record reasoning-effort per dispatch, surface via economics --by effort ([#296](https://github.com/shftwst/faff/issues/296)) ([3bc020c](https://github.com/shftwst/faff/commit/3bc020c008f99c1bd42f6d173206c307d3c18515))
+* **FAFF-416:** per-slot {model, effort} routing — the effort lever ([#297](https://github.com/shftwst/faff/issues/297)) ([9bf87c1](https://github.com/shftwst/faff/commit/9bf87c135702b11e9f2d19d0621c630c2d7d38aa))
+* **FAFF-418:** quality/outcome telemetry — faff quality + issue-outcome gate/rework tags ([#298](https://github.com/shftwst/faff/issues/298)) ([48db49e](https://github.com/shftwst/faff/commit/48db49e72b052f24d874a57af5ba25fa78715374))
+* **FAFF-424:** derive merge-gate level from the run ledger; refuse a contradicting --level ([#300](https://github.com/shftwst/faff/issues/300)) ([dad4ea9](https://github.com/shftwst/faff/commit/dad4ea9d04091a740cd642ab968f83904c962c7a))
+* **FAFF-434:** hooks-ensure owns a PreToolUse fence on raw gh pr merge ([#307](https://github.com/shftwst/faff/issues/307)) ([fd91a30](https://github.com/shftwst/faff/commit/fd91a308844ddb23590ba1f838c9cd2867d44dc5))
+
+
+### Bug Fixes
+
+* **FAFF-337:** pin the canonical beep-boop run-id format everywhere ([#306](https://github.com/shftwst/faff/issues/306)) ([0a3d0f5](https://github.com/shftwst/faff/commit/0a3d0f5d7540778ecc67280dbf8e550239cd5d0c))
+* **FAFF-364:** reject a malformed budget.until / --until at resolution and the lights-out preflight ([#304](https://github.com/shftwst/faff/issues/304)) ([8ea221c](https://github.com/shftwst/faff/commit/8ea221cf4ace682adfc3c16d861d351e75965796))
+* **FAFF-369:** correct merge-gate CI classification on Actions-only repos (+ FAFF-366) ([#272](https://github.com/shftwst/faff/issues/272)) ([ce85976](https://github.com/shftwst/faff/commit/ce85976d922cf74b5832a44166dab89e25c1e157))
+* **FAFF-375:** harden merge-gate flag surface — drop --admin, fence --human-override/--allow-no-ci on a real TTY ([#285](https://github.com/shftwst/faff/issues/285)) ([955d5b2](https://github.com/shftwst/faff/commit/955d5b26f8b0b0b6701931135bfccb54ae2802df))
+* **FAFF-377:** close the unbacked-recipe L4 dial-coherence bypass ([#303](https://github.com/shftwst/faff/issues/303)) ([6371aa2](https://github.com/shftwst/faff/commit/6371aa2315530ba8b5febd0bc9e0f4bd5e3f9bd6))
+* **FAFF-378:** gate the L4 appetite pin on run liveness (runIsHeld) ([#279](https://github.com/shftwst/faff/issues/279)) ([cadb4a8](https://github.com/shftwst/faff/commit/cadb4a88987bcebb17402d2763bff1f2db132723))
+* **FAFF-420:** bind readHoldout to the run-dir and freshness-check it ([#301](https://github.com/shftwst/faff/issues/301)) ([d3c16c9](https://github.com/shftwst/faff/commit/d3c16c91d8c7c5058f643ba65b0f11e6ec85111e))
+* **FAFF-425:** governance CLIs fail closed on their own read faults ([#305](https://github.com/shftwst/faff/issues/305)) ([036b05a](https://github.com/shftwst/faff/commit/036b05aa73bb7fea24546efb5dd0db361f87291c))
+* **FAFF-439:** pin a turn-safe build-dispatch posture across the concurrency executors ([#310](https://github.com/shftwst/faff/issues/310)) ([eadd68a](https://github.com/shftwst/faff/commit/eadd68ad454a07227708f8e6fd9e33d5ffd57b66))
+* **FAFF-442:** worktree-safe parity harness — materialise the baseline via git archive ([#311](https://github.com/shftwst/faff/issues/311)) ([c95329a](https://github.com/shftwst/faff/commit/c95329aedec205883e618be617ed4b3132f458f0))
+
 ## [0.8.0](https://github.com/shftwst/faff/compare/faff--v0.7.0...faff--v0.8.0) (2026-07-04)
 
 

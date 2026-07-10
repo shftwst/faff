@@ -262,6 +262,76 @@ test("AC5: no CLI input the build subagent controls can flip a trip — the kill
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// --- FAFF-425: check's own ledger-read fault is a loud "indeterminate", never a --
+// --- silent "no derailment" ------------------------------------------------------
+
+test("FAFF-425: a present-but-corrupt ledger at the resolved run dir → exit 3, indeterminate, never 'no derailment'", () => {
+  const dir = tmp();
+  try {
+    const rd = join(dir, ".faff", "runs", "bad");
+    mkdirSync(rd, { recursive: true });
+    writeFileSync(join(rd, "run-ledger.json"), "{ not json");
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json"]);
+    assert.equal(r.code, 3, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.indeterminate, true);
+    assert.equal(out.tripped, false);
+    assert.equal(out.intervention, "continue");
+    assert.deepEqual(out.verdicts, []);
+    assert.match(out.reason, /ledger unreadable/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-425: an explicit --run-dir naming an absent ledger → exit 3, indeterminate, NEVER falls back to a real latest run", () => {
+  const dir = tmp();
+  try {
+    // A real, healthy run exists as `latest` — proving the resolver does not
+    // quietly fall back to it when the EXPLICIT --run-dir's ledger is missing.
+    mkRun(dir, "good", { run_id: "good", admitted: [], outcomes: {}, owner: { status: "done" } });
+    const missing = join(dir, ".faff", "runs", "does-not-exist");
+    const r = run(dir, ["sentry", "check", "--run-dir", missing, "--json"]);
+    assert.equal(r.code, 3, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.indeterminate, true);
+    assert.match(out.reason, /explicit run named but its ledger is absent/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-425: no run at all in the repo → exit 0, all-clear, unchanged (legitimately empty, not a fault)", () => {
+  const dir = tmp();
+  try {
+    const r = run(dir, ["sentry", "check", "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.run_dir, null);
+    assert.deepEqual(out.verdicts, []);
+    assert.equal(out.intervention, "continue");
+    assert.equal(out.tripped, false);
+    assert.notEqual(out.indeterminate, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-425: a budget consult that hits the same own-fault (indeterminate) propagates through sentry check as its own indeterminate, not a trip", () => {
+  const dir = tmp();
+  try {
+    const ledger = {
+      run_id: "r", admitted: ["A"], outcomes: {},
+      owner: { status: "running", started_at: "2026-06-29T00:00:00Z", last_heartbeat: "2026-06-29T00:00:00Z" },
+    };
+    const rd = mkRun(dir, "r", ledger);
+    // hermetic injection hook: simulate sentryReadBudget having consumed an
+    // indeterminate budget child (rather than spinning up a real corrupt-ledger
+    // child process for this unit).
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--budget-json", JSON.stringify({ breached: [], outcome: "indeterminate" })]);
+    assert.equal(r.code, 3, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.indeterminate, true);
+    assert.equal(out.tripped, false);
+    assert.equal(out.intervention, "continue");
+    assert.match(out.reason, /budget consult indeterminate/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- AC6: corrective-redirect / fleet / who-watches-the-watcher are NOT here -------
 
 test("AC6: the v1 intervention ladder stops at abort — `correct` is deferred, not present", () => {

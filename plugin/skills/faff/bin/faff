@@ -72,6 +72,40 @@ function readLedger(runDir) {
   return JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
 }
 
+// Shared run-dir + ledger resolver (FAFF-425) — used by BOTH `budget check` and
+// `sentry check`. Key invariant: own-fault ≠ empty. A run whose ledger can't be
+// read (explicitly named and absent, or present-but-corrupt) is a FAULT — the
+// caller must surface it loudly (indeterminate), never coerce it into the
+// all-clear/unbreached reading a swallowed exception used to produce. A
+// legitimately empty surface (no run requested AND no run under the root at
+// all) is NOT a fault — it stays the byte-for-byte all-clear path.
+//
+// Deliberately does NOT fall back to latestRunDir after an explicit
+// --run-dir/$FAFF_RUN_DIR whose ledger is gone — that silent fallback is the
+// "quietly blind" failure this exists to close.
+//
+// Returns one of:
+//   { fault: string }                 — explicit run named, ledger absent
+//   { runDir, fault: string }         — a resolved run dir whose ledger throws on read
+//   { runDir: null, empty: true }     — no run requested, none found (legitimate)
+//   { runDir, ledger }                — the happy path
+function resolveLedgerOrFault(get, root) {
+  const requested = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  if (requested && !fs.existsSync(path.join(requested, "run-ledger.json"))) {
+    return { fault: `explicit run named but its ledger is absent: ${requested}` };
+  }
+  let runDir = requested || null;
+  if (!runDir) runDir = latestRunDir(root);
+  if (!runDir) return { runDir: null, empty: true };
+  let ledger;
+  try {
+    ledger = readLedger(runDir);
+  } catch (e) {
+    return { runDir, fault: `ledger unreadable: ${path.join(runDir, "run-ledger.json")} (${e.message})` };
+  }
+  return { runDir, ledger };
+}
+
 function stripInlineComment(s) {
   const out = [];
   let quote = null;
@@ -2484,6 +2518,16 @@ function containSelftest() {
 // for `sentryReadBudget`/`run-done --budget`, which degrade any non-zero child
 // exit to the unbreached default). The `lights-out` L4 preflight is the loud,
 // gating counterpart — it refuses to mint a run carrying malformed `until` at all.
+//
+// FAFF-425: `BudgetState.outcome` gains an `"indeterminate"` member (plus
+// additive `indeterminate?:bool` + `reason?:string`) for a DIFFERENT failure
+// class than FAFF-364's malformed-until warning: the run's own ledger being
+// unreadable (present-but-corrupt, or an explicitly-named run whose ledger is
+// gone) rather than a bad config value. That is an own-FAULT, never a legitimate
+// unbreached reading — it surfaces via `resolveLedgerOrFault` as a distinct exit
+// 3, never silently coerced to `outcome:"none"`. A legitimately empty surface
+// (no run requested, none found) is unaffected and stays `outcome:"none"` at
+// exit 0, byte-for-byte as before.
 // ===========================================================================
 
 // Governance-region config read: resolves ONLY the governance keys (`budget.*`,
@@ -2823,13 +2867,31 @@ function cmdBudget(args) {
   const flags = { until: get("--until"), max_attempts: get("--max") };
   const root = get("--root") || findRoot();
 
-  // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest).
-  let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
-  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
-  if (!runDir) runDir = latestRunDir(root);
+  // --now-ms/--now is a usage error (exit 2) — resolved BEFORE ledger evaluation,
+  // same as before FAFF-425 (distinct from the ledger-fault exit 3 below).
+  const nowRes = resolveBudgetNow(get); // hermetic test-only clock seam (FAFF-302)
+  if (nowRes.error) { process.stderr.write(`faff budget check: ${nowRes.error}\n`); return 2; }
+  const nowMs = nowRes.now_ms;
 
-  let ledger = {};
-  if (runDir) { try { ledger = readLedger(runDir); } catch { ledger = {}; } }
+  // FAFF-425: the run's own inability to read its ledger is a distinct, loud
+  // "indeterminate" fault (exit 3) — never silently coerced into the all-clear/
+  // unbreached JSON a swallowed exception used to produce here. A legitimately
+  // empty surface (no run requested, none found) is NOT a fault and keeps the
+  // unchanged byte-for-byte all-clear path below.
+  const resolved = resolveLedgerOrFault(get, root);
+  if (resolved.fault) {
+    console.log(JSON.stringify({
+      spent: { elapsed_ms: null, attempts: 0, tokens: 0, cost: null },
+      tokens_source: null,
+      breached: [],
+      outcome: "indeterminate",
+      indeterminate: true,
+      reason: resolved.fault,
+    }));
+    return 3;
+  }
+  const runDir = resolved.empty ? null : resolved.runDir;
+  const ledger = resolved.empty ? {} : resolved.ledger;
 
   const cfg = readGovernanceConfig(root);
   // A ledger may carry a pre-resolved envelope (recorded at run start by the
@@ -2837,9 +2899,6 @@ function cmdBudget(args) {
   const ledgerEnv = (ledger.budget && typeof ledger.budget === "object" && ledger.budget.envelope) || null;
   const env = ledgerEnv ? envelopeFromLedger(ledgerEnv, flags, cfg) : envelopeFrom(cfg, flags);
 
-  const nowRes = resolveBudgetNow(get); // hermetic test-only clock seam (FAFF-302)
-  if (nowRes.error) { process.stderr.write(`faff budget check: ${nowRes.error}\n`); return 2; }
-  const nowMs = nowRes.now_ms;
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
   const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
@@ -3034,7 +3093,42 @@ function budgetSelftest() {
   ok("resolveBudgetNow unparseable --now-ms → error (no silent fall-through)", !!resolveBudgetNow(mkGet({ "--now-ms": "nope" })).error);
   ok("resolveBudgetNow unparseable --now → error", !!resolveBudgetNow(mkGet({ "--now": "not-a-date" })).error);
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${32} checks, ${fail} failed)`);
+  // --- resolveLedgerOrFault: own-fault ≠ legitimately empty (FAFF-425) — guards
+  // over-firing: a run genuinely absent must NOT be classed as a fault, and a run
+  // present-but-unreadable (or explicitly named and gone) must NEVER be silently
+  // coerced into that same empty/all-clear reading. ---
+  const lfRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-ledgerfault-"));
+  try {
+    // legitimately empty: nothing requested, no runs at all under root.
+    const lfEmpty = resolveLedgerOrFault(mkGet({}), lfRoot);
+    ok("resolveLedgerOrFault: no run requested + none found → empty, not a fault", lfEmpty.empty === true && !lfEmpty.fault);
+
+    // explicit --run-dir named but its ledger is absent → own-fault, NEVER falls
+    // back to latestRunDir (the "quietly blind" failure this closes).
+    const lfMissing = path.join(lfRoot, "does-not-exist");
+    const lfMissingRes = resolveLedgerOrFault(mkGet({ "--run-dir": lfMissing }), lfRoot);
+    ok("resolveLedgerOrFault: explicit --run-dir with absent ledger → fault (no fallback)",
+      !!lfMissingRes.fault && !lfMissingRes.empty && /explicit run named but its ledger is absent/.test(lfMissingRes.fault));
+
+    // present-but-corrupt ledger → own-fault, names the path + parse error.
+    const lfCorrupt = path.join(lfRoot, ".faff", "runs", "run-corrupt");
+    fs.mkdirSync(lfCorrupt, { recursive: true });
+    fs.writeFileSync(path.join(lfCorrupt, "run-ledger.json"), "{ not json");
+    const lfCorruptRes = resolveLedgerOrFault(mkGet({ "--run-dir": lfCorrupt }), lfRoot);
+    ok("resolveLedgerOrFault: present-but-corrupt ledger → fault, names the run dir",
+      !!lfCorruptRes.fault && lfCorruptRes.runDir === lfCorrupt && /ledger unreadable/.test(lfCorruptRes.fault));
+
+    // a clean, readable ledger at the latest run → the happy path, distinct from fault/empty.
+    const lfGoodDir = path.join(lfRoot, ".faff", "runs", "run-good");
+    fs.mkdirSync(lfGoodDir, { recursive: true });
+    fs.writeFileSync(path.join(lfGoodDir, "run-ledger.json"), JSON.stringify({ run_id: "run-good" }));
+    fs.rmSync(lfCorrupt, { recursive: true, force: true }); // remove the corrupt dir so latestRunDir picks the clean one
+    const lfGoodRes = resolveLedgerOrFault(mkGet({}), lfRoot);
+    ok("resolveLedgerOrFault: readable latest ledger → happy path, not fault/empty",
+      !lfGoodRes.fault && !lfGoodRes.empty && lfGoodRes.ledger.run_id === "run-good");
+  } finally { fs.rmSync(lfRoot, { recursive: true, force: true }); }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${36} checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -6994,7 +7088,7 @@ Subcommands:
   intakecheck <issue> [--labels csv] [--interactive] [--json] [--root DIR]   FAFF-212/223: intake-provenance guard — verify a ticket entered through a sanctioned front door (CLI-written .faff/provenance/<ISSUE>.json marker; the spoofable faff-jot-intake label is a grandfather bridge; a human-set faff-automate is admitted as the eligibility-gesture basis — write-abstained ⇒ human-set by construction, FAFF-218); PURE (no tracker call — labels passed via --labels); exit 0 satisfied · 3 unsatisfied under intake_gate=block ONLY (warn never blocks, off always 0) · 2 usage; --interactive makes a block-mode miss exit 0 with a [warn] (human-at-keyboard is the sanction — autonomous OMITS it); malformed marker → absent + warn, never crash; --selftest runs the bases + bypass table. NOT a Stop-hook (would reintroduce FAFF-205)
   intake-record <issue> --via jot|backfill|fast-track [--reason "<text>"] [--initiated interactive|autonomous] [--json] [--root DIR]   FAFF-212/220: write/update the provenance marker (schema 2) and emit a faff-contract:intake-record descriptor (jot Step 4 calls --via jot). MIGRATION / agent-orchestrator tool — NOT the human steady-state remedy (a human just sets faff-automate in the tracker, FAFF-223): --via backfill is for bulk legacy backfill, --via fast-track REQUIRES --reason (recorded override) or exits 2 writing nothing; --initiated stamps the audit-only initiation mode (invalid → exit 2; absent → key omitted, merge-preserved); --selftest runs the via + initiated tables
   contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]   FAFF-219 (Split A of FAFF-217): subtree-of-mandate containment primitive — answers \`parent ∈ subtree(mandate)\` by walking the AGENT-SUPPLIED parentId chain (--ancestry, a JSON array of {id, parentId}) from <parent> up to <mandate>; reaching the mandate = contained, exhausting to a different root / unknown link / cycle = outward. PURE (no tracker call — parity with eligible/next/intakecheck). exit 0 contained · 3 outward (FAIL-CLOSED: --root, unknown/absent parentId, cycle, or out-of-subtree) · 2 usage/malformed-args. Base case mandate==parent → contained. v1 ISSUE-LEVEL mandates only (sub-issue parentId chain); container/initiative mandates deferred (FAFF-222). --selftest runs the contained/outward/fail-closed table
-  budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome,warnings?} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. A malformed budget.until/--until (not valid HH:MM) never becomes a vacuous ceiling that silently never breaches — it degrades to warnings (present only when non-empty, mirrored to stderr) naming the raw value, breached never contains "until" for it, and exit stays 0 (FAFF-364: a non-zero exit here would fail-OPEN the whole budget signal for sentryReadBudget/run-done --budget, which degrade any non-zero child to the unbreached default). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based fields (spent.elapsed_ms + the resolved --until wall) — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through) (FAFF-302). breached != {} is the terminating signal. --selftest runs the table
+  budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]   FAFF-36: run cost / compute budgeting — emit a BudgetState JSON {spent,tokens_source,breached,outcome,warnings?} from the run-ledger + config budget: block + the run's local transcripts. PURE (no tracker/network — parity with next/eligible): tokens summed from the $CLAUDE_CODE_SESSION_ID transcript + child agent-*.jsonl whose own sessionId == this run's (mtime is a cheap pre-filter only, NOT the attribution gate — FAFF-229), baselined at run start; estimate fallback (attempts x est) when the transcript is unavailable, labelled tokens_source=estimate. Dimensions until·max_attempts·tokens·cost (unset = unbounded); at_ceiling stop|narrow|escalate (default stop). --until/--max override config. A malformed budget.until/--until (not valid HH:MM) never becomes a vacuous ceiling that silently never breaches — it degrades to warnings (present only when non-empty, mirrored to stderr) naming the raw value, breached never contains "until" for it, and exit stays 0 (FAFF-364: a non-zero exit here would fail-OPEN the whole budget signal for sentryReadBudget/run-done --budget, which degrade any non-zero child to the unbreached default). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based fields (spent.elapsed_ms + the resolved --until wall) — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through) (FAFF-302). breached != {} is the terminating signal. FAFF-425: the run's OWN ledger being unreadable (explicitly-named and absent, or present-but-corrupt) is a distinct own-fault — never coerced into an all-clear reading — emitting {outcome:"indeterminate",indeterminate:true,reason} and exiting 3; a legitimately empty surface (no run requested, none found) is unaffected, unchanged outcome:"none" at exit 0. --selftest runs the table
   economics [--run-dir DIR] [--by class|model|mcp|day|effort] [--json]   FAFF-357: per-run unit economics — emit a UnitEconomics JSON {run_id,tokens_total,tokens_source,price_per_mtok,cost_total,buckets,shipped_count,attempt_count,cost_per_shipped,cost_per_attempt,per_issue,zero_ship,warnings} deriving cost-per-shipped-issue + cost-per-attempt from the run-ledger outcomes + budget check's transcript-summed this-run tokens. PURE, RENDERING-ONLY (no tracker/network/LLM — parity with budget check/runcheck): reuses budget's exact token path (measureTokens baselined at run start; estimate fallback labelled tokens_source=estimate) and DOES NOT touch any producer (ledger/budget/events unchanged). cost_* null + no dollar column when price_per_mtok=0; zero_ship (0 shipped, >0 tokens) flagged loud; attempt_count excludes routed-out/unreached-budget; per_issue is best-effort meta.json attribution (session-owned agent-*.jsonl, [A-Z]+-\d+ in description matched to a ledger outcome), run-level figures never depend on it. beep-boop's Reporting step renders the block. FAFF-410: --by class|model|mcp|day pivots the SAME transcript walk into per-class/per-model/per-day/per-MCP-tool buckets priced per-model×per-class (built-in PRICE_PER_MTOK + optional budget.price_per_mtok_by_model override; unknown model→cost:null); class/model/day reconcile to the top-line total, --by mcp reuses FAFF-409's MEASURED per-tool cache-read attribution; --by X --json rides a breakdown object, --by X (no --json) prints a skimmable table, NO --by is byte-for-byte unchanged; unknown axis exits 2 naming {class,model,mcp,day,effort}; non-leak (sizes/counts/names/model-ids/costs only). FAFF-415: --by effort reads the run's events.jsonl (not the transcript — reasoning-effort is a request-time setting the transcript never records), buckets dispatches by their data.effort tag, prices at the run's dominant model (ESTIMATE — events carry no model) and reports coverage_pct vs the top-line. --selftest runs the table
   quality [--run-dir DIR] [--json]   FAFF-418: per-run QUALITY/outcome telemetry — the quality mirror of economics. Emit a QualityReport JSON {run_id,outcomes,shipped_count,attempt_count,parked_count,park_rate,rework{total_turns,reworked_attempts,tagged_attempts,rework_rate,mean_turns},gate_catch,per_issue,source,warnings} from the run-ledger terminal outcomes (authoritative) + the events.jsonl issue-outcome events' FAFF-418 gate/rework tags. PURE, read-only (no tracker/network/LLM — parity with economics/budget check/runcheck). Pairs with economics by SHARING run_id + the exact shipped/attempt denominators (ECONOMICS_BUCKET_ORDER + routed-out/unreached-budget exclusion), so $/quality = economics.cost_per_shipped beside quality.park_rate on one run; no cost duplicated into quality. park_rate/rework_rate are over attempt_count (dispatched builds), null on a zero-attempt run (never 0/0); mean_turns is over tagged_attempts, and a warning flags rework_rate as a lower bound when tags don't cover every attempt; gate_catch is the distribution of which quality gate {structural,adversarial,holdout,ci} caught a non-shipped build; source=ledger+events (or ledger, gate/rework null, when no events.jsonl). --json emits the report, no flag prints a skimmable table; missing run dir exits 2; non-leak (outcome/gate-names/counts/rates only). --selftest runs the pure-core table
   run-done [--queue-empty] [--all-parked] [--ledger-clean] [--budget JSON] [--prd-coverage JSON | --no-prd] [--inflection reached|none] [--non-convergence] [--policy JSON] [--json]   FAFF-38: the terminating-condition predicate — compose faff's shipped run signals into the one decision that ends a /faff-beep-boop run (run-complete | continue | escalate). PURE (no tracker/network/disk beyond args; NEVER calls the methodology — the orchestrator resolves the policy and passes --policy). Reimplements no signal: reads queue state + runcheck's .clean (--ledger-clean) + budget check's {breached,outcome} (--budget) + prdr coverage's prd-satisfied (--prd-coverage → .satisfied; --no-prd for no PRD in scope). FIXED safety floor (no --policy may weaken it): budget-escalate → escalate · unclean ledger at drain → continue/undispatched-ledger · prd_satisfied==false → escalate/product-incomplete. POLICY-WEIGHTED rungs (the structural-default ladder, overridable by the methodology's run-termination-policy via --policy): non-convergence→escalate · budget-narrow→continue · budget-stop→complete · value-inflection→complete · work-remaining→continue · drained|all-parked→complete. Emits a RunDoneVerdict {verdict,reason,signals,policy_source,conformant,violations}, schemaCheck'd against run-termination belt-and-braces; malformed JSON → exit 2; report-only exit 0 (the verdict is in the payload). --selftest runs the table
@@ -7028,7 +7122,7 @@ Subcommands:
   review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N]]   FAFF-329: per-issue review checkpoint at \`<run-dir>/<issue>/review-progress.json\` so a re-dispatched build subagent RESUMES the graft review step (skips a completed Phase-1/Phase-2) instead of repeating it. read → ReviewProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --phase1-pass --diff-hash records the passing Phase-1 verdict + the diff hash it was computed against (the diff-identity guard — a resume skips Phase-1 only if the CURRENT diff still matches); write --phase2 <pending|in_flight|complete|skipped_deadline|skipped_unreachable> records Phase-2 progress. PURE JSON (no tracker/network); a HINT never authoritative over git/PR truth; exit 2 usage/bad-status; --selftest runs the fold table
   build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]   FAFF-402: per-issue build-complete checkpoint at \`<run-dir>/<issue>/build-progress.json\` — written at graft build-complete (Step 8b) AFTER the branch is pushed to origin, so a re-dispatched graft RESUMES at review (recreating the worktree from origin/<branch>, skipping the build) instead of rebuilding. read → BuildProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --build-complete --diff-hash --branch records the remote-three-dot diff hash it was gated at + the pushed branch (the diff-identity guard — a resume skips the build only if the CURRENT remote diff still matches). PURE JSON (no tracker/network/git — the diff hash is computed in graft prose); a HINT never authoritative over git truth; exit 2 usage/missing-flag; --selftest runs the fold table
   effects <declare|observe|check> --run <run-id> [--issue ID] [--step NAME] [--ts ISO] [--json] [--root DIR]   FAFF-106: escaped-side-effect detection via a declared-effects ledger — the PRODUCER of the escaped-side-effect signal Sentry (FAFF-49) consumes. declare/observe read an EffectDescriptor {kind ∈ closed EFFECT_KINDS, target, reversible?} (object or array) on stdin and append a LedgerEntry (CLI fills schema/run_id/seq/ts envelope; kind_of_entry/issue/step required) to .faff/runs/<run-id>/declared-effects.jsonl — a PARALLEL ledger, never an events.jsonl schema bump; exit 0 ok / 1 bad descriptor (unknown kind / missing target) / 2 malformed JSON or missing --run/--issue/--step / 3 run-dir missing. check computes observed-MINUS-declared per (issue, step) using exact-target + "*" matching and emits {escapes:[EscapeSignal{signal:"escaped-side-effect",issue,step,escaped[],event_seq}], any_escape} (--json); a missing ledger file is a clean state ({escapes:[],any_escape:false}, exit 0 — NOT exit 3). Detection only — never aborts (Sentry/FAFF-37's job); the orchestrator bridges any_escape into \`faff sentry check\` via the existing signals.forbidden_side_effect seam. PURE (no tracker/network, writes only under the run dir); --selftest runs the descriptor/matching/escape table
-  sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
+  sentry <check|abort> [--run-dir DIR] [--budget-json JSON] [--now-ms MS | --now ISO] [--issue ID] [--signal NAME] [--worktree PATH] [--json] [--root DIR]   FAFF-49: live-run derailment detection + hard kill-switch (the L4 supervisory lane). check READS a live run's append-only surface (events.jsonl + run-ledger.json + owner.last_heartbeat + a CONSUMED \`faff budget check\` child call) WITHOUT mutating it, and emits DerailmentVerdicts {signal,severity,evidence} + the chosen v1 intervention (continue|pause|abort — never \`correct\`); exit 0 (report-only). --now-ms <epoch-ms> / --now <ISO> is a HERMETIC test/diagnostic-only clock override for the time-based wall-clock signal — explicit flag only (no ambient/env form), precedence --now-ms > --now > Date.now() (the production default; no production caller passes it); an unparseable injected value exits 2 (never a silent fall-through). FAFF-425: check's OWN inability to read the run's ledger (explicitly-named and absent, or present-but-corrupt) — or a budget consult that hit the same fault reading its ledger — is a distinct own-fault, never folded into "no derailment": {indeterminate:true,reason,verdicts:[],intervention:"continue",tripped:false}, exit 3; a legitimately empty surface (no run requested, none found) is unaffected, unchanged all-clear at exit 0. abort leaves RESUMABLE state — commits in-flight --worktree WIP to its branch (park-protocol shape, never force-reset), marks the ledger aborted-resumable; exit 0 / 2 malformed ledger / 3 no run dir. PURE evaluator (reads only the orchestrator surface — un-subvertable by construction); --selftest runs the table
   audit <run-id> [--root DIR] [--issue ISSUE] [--json]   FAFF-289: read-only run-reconstruction forensics view — join the three substrates a finished run leaves on disk (events.jsonl timeline + run-ledger.json final state + .faff/provenance/<ISSUE>.json intake proofs) into one who/what/why reconstruction: per-run lifecycle (started/ended/duration/complete/phases/owner), one rollup per admitted-or-evented issue (provenance via/initiated + its events in seq order + ledger outcome + park cause), a budget summary (ledger envelope + tokens_at_start + budget-checkpoint events — NEVER live recompute), and a coherence block (reuses auditLedger for undispatched/invalid + adds events<->ledger mismatches + missing substrates). PURE (no tracker/network/LLM); degrade-don't-crash (reconstructs from whatever exists, reports gaps); coherence is REPORTED never gated (a readable run exits 0 even when incoherent). exit 0 readable / 2 no run-id / 3 no run dir, both core files missing, or --issue not in run. --json emits the Reconstruction object; --selftest runs the join table
   lights-out [--check] [--until HH:MM] [--max N] [--slot-unreachable review|spec_review ...] [--id RUN-ID] [--json] [--root DIR]   FAFF-225: the L4 lights-out entry point / runner — "leave the building" as one enforced action. Runs a fail-closed BASIC preflight over v1's launch preconditions (container-check contained — WARN→BLOCK on this path only; review + spec_review slots reachable, unreachable==absent; a budget ceiling set; a malformed budget.until/--until (not valid HH:MM) REFUSES on its own gate budget-until-invalid naming the raw value — regardless of any other ceiling set, since a run must never mint a ledger carrying malformed until (FAFF-364); when malformed until is the ONLY ceiling, budget-ceiling ALSO fires alongside it; all 8 shipped guardrail contracts — admissible / spec-review-verdict / run-done / budget / events / sentry / holdout|prdr-coverage / container — reachable by a genuine --selftest probe, NOT config presence; FAFF-68 no-execute + worktree isolation + Autonomous Mode Contract floor assertions hold), then on pass MINTS a strict-defaults L4 run-ledger carrying armed:Map<Guardrail,State ∈ {live|degraded|absent}> + a banner derivable 1:1 from armed (persisted, not just printed) + a run-start event; on ANY miss REFUSES (mints nothing, emits no work). Composes the contracts, re-implements none; never self-grants --dangerously-skip-permissions (the cage is the container's job). v1 does basic preflight only (rich dial-coherence + the adversarial advisory→gating promotion are separate follow-ons). --check runs preflight without minting; exit 0 armed/minted · 1 refused; --selftest runs the proceed/refuse + armed-derivation + banner table
   doctor [--target DIR]                          FAFF-190: install health — each faff skill symlink (live) vs copy (stale); exit 1 if any is a copy not dev-linked
@@ -11300,6 +11394,15 @@ function effectsSelftest() {
 // run is re-enterable (no corrupt half-state; the in-flight issue stays undispatched
 // in the ledger so re-entry resumes it). Pure cores + a thin I/O wrapper + --selftest,
 // mirroring budget / heartbeat / events.
+//
+// FAFF-425: `SentryCheck` gains optional `indeterminate?:bool` + `reason?:string`.
+// `check`'s OWN inability to read the run's ledger (explicitly-named and absent, or
+// present-but-corrupt) — or a budget consult that hit the same fault reading ITS
+// ledger — is a distinct exit-3 own-fault, never coerced into "no derailment"
+// (`verdicts:[]`, `intervention:"continue"`, `tripped:false` at exit 0). Resolved via
+// the shared `resolveLedgerOrFault` (also used by `budget check`); a legitimately
+// empty surface (no run requested, none found) is unaffected and stays the unchanged
+// all-clear at exit 0.
 // ===========================================================================
 
 const DERAILMENT_SIGNALS = new Set([
@@ -11536,16 +11639,22 @@ function sentryReadEvents(runDir) {
 }
 
 // CONSUME `faff budget check --json` via a CHILD invocation of THIS bin — FAFF-36 owns
-// the math; Sentry never re-derives a counter. Any failure ⇒ the unbreached default.
+// the math; Sentry never re-derives a counter. FAFF-425: a fault reading the child's
+// OWN ledger must never be read as "no breach" — a clean parse carrying
+// outcome:"indeterminate" propagates as-is, and any non-zero exit / unparseable
+// stdout (the child crashed, or couldn't even get as far as its own JSON) is ITSELF
+// a read fault and degrades to indeterminate too (was the unbreached default before
+// FAFF-425 — that swallow is exactly the "quietly blind" failure this closes).
 function sentryReadBudget(runDir) {
   try {
     const r = spawnSync(process.execPath, [__filename, "budget", "check", "--json", "--run-dir", runDir], { encoding: "utf8" });
     if (r.status === 0 && r.stdout) {
       const j = JSON.parse(r.stdout.trim());
+      if (j.outcome === "indeterminate") return { breached: [], outcome: "indeterminate" };
       return { breached: Array.isArray(j.breached) ? j.breached : [], outcome: typeof j.outcome === "string" ? j.outcome : "none" };
     }
-  } catch { /* fall through to the unbreached default */ }
-  return { breached: [], outcome: "none" };
+  } catch { /* fall through to the indeterminate default below */ }
+  return { breached: [], outcome: "indeterminate" };
 }
 
 // Hermetic, TEST-ONLY clock seam for `sentry check` (FAFF-301). Resolves the
@@ -11579,6 +11688,20 @@ function resolveSentryNow(get) {
   return { now_ms: Date.now() }; // unchanged production default
 }
 
+// FAFF-425: the loud, fail-closed reply for `sentry check`'s own-fault path — the
+// run's ledger could not be read at all (explicitly-named and absent, or
+// present-but-corrupt), OR the budget consult it depends on hit the same fault.
+// NEVER folds into the unbreached/no-derailment default; a distinct exit 3,
+// mirroring `faff budget check`'s own-fault reply and the existing `effects check`
+// exit-3 convention ("run-dir/ledger missing"). `intervention` stays "continue" and
+// `tripped` stays false — indeterminate is its OWN state, not a synthesized trip.
+function sentryIndeterminate(reason, asJson, runDir = null) {
+  const payload = { run_dir: runDir, verdicts: [], intervention: "continue", tripped: false, indeterminate: true, reason };
+  if (asJson) console.log(JSON.stringify(payload));
+  else process.stderr.write(`sentry: INDETERMINATE — ${reason} (fail closed)\n`);
+  return 3;
+}
+
 function cmdSentry(args) {
   if (args.includes("--selftest")) return sentrySelftest();
   const sub = args.find((a) => !a.startsWith("-"));
@@ -11593,19 +11716,34 @@ function cmdSentry(args) {
   if (sub === "check") {
     const cfg = readGovernanceConfig(root);
     const th = sentryThresholds(cfg);
-    const nowRes = resolveSentryNow(get); // hermetic test-only clock seam (FAFF-301)
+    const nowRes = resolveSentryNow(get); // hermetic test-only clock seam (FAFF-301) — checked before ledger resolution
     if (nowRes.error) { process.stderr.write(`faff sentry check: ${nowRes.error}\n`); return 2; }
+
+    // FAFF-425: the run's own inability to read its ledger is a distinct, loud
+    // "indeterminate" fault — never silently coerced into "no derailment". A
+    // legitimately empty surface (no run requested, none found) is unaffected.
+    const resolved = resolveLedgerOrFault(get, root);
+    if (resolved.fault) return sentryIndeterminate(resolved.fault, asJson, resolved.runDir || null);
+
     let ledger = {}, events = [], budget = { breached: [], outcome: "none" };
-    if (runDir) {
-      try { ledger = readLedger(runDir); } catch { ledger = {}; }
-      events = sentryReadEvents(runDir);
+    if (!resolved.empty) {
+      ledger = resolved.ledger;
+      events = sentryReadEvents(resolved.runDir);
       const injected = get("--budget-json"); // hermetic-test hook; default CONSUMES the CLI
       budget = injected
         ? (() => { try { return JSON.parse(injected); } catch { return { breached: [], outcome: "none" }; } })()
-        : sentryReadBudget(runDir);
+        : sentryReadBudget(resolved.runDir);
+      // FAFF-425: a budget consult that couldn't read ITS ledger is an own-fault too
+      // — handled here, not routed through evalBudgetBreach (breached stays [] for
+      // "indeterminate", so that predicate would just null out, silently losing the
+      // fault rather than surfacing it).
+      if (budget.outcome === "indeterminate") {
+        return sentryIndeterminate("budget consult indeterminate (ledger unreadable)", asJson, resolved.runDir);
+      }
     }
+    const checkedRunDir = resolved.empty ? null : resolved.runDir;
     const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms }, th);
-    const payload = { run_dir: runDir || null, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th };
+    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
     else {
@@ -11736,6 +11874,46 @@ function sentrySelftest() {
 
   // --- `correct` is intentionally NOT in the v1 ladder (deferred to Sentry-2) ---
   ok("ladder stops at abort (no `correct`)", !SENTRY_INTERVENTIONS.includes("correct") && SENTRY_INTERVENTIONS[SENTRY_INTERVENTIONS.length - 1] === "abort");
+
+  // --- FAFF-425: an own-fault reading the run's ledger is INDETERMINATE, never a
+  // silent "no derailment" — covered here at the pure-core level; the full
+  // resolveLedgerOrFault + sentryReadBudget child-process propagation is exercised
+  // end-to-end in test/sentry.test.mjs (this selftest stays filesystem/child-process
+  // free, per the region's contract). ---
+
+  // normalizeSentrySignals passes budget.outcome through as an ARBITRARY string —
+  // no closed-set coercion between sentryReadBudget's "indeterminate" and the
+  // predicate that consumes it (confirms the FAFF-425 no-regression constraint).
+  ok("normalizeSentrySignals passes budget.outcome=\"indeterminate\" through untouched",
+    normalizeSentrySignals({ budget: { breached: [], outcome: "indeterminate" } }).budget.outcome === "indeterminate");
+
+  // evalBudgetBreach must NOT be the path that surfaces an indeterminate budget —
+  // by contract breached stays [] for it, so this predicate correctly nulls out
+  // (cmdSentry intercepts budget.outcome==="indeterminate" BEFORE calling it).
+  ok("evalBudgetBreach on an indeterminate budget (breached:[]) → null, never a trip via this path",
+    evalBudgetBreach({ breached: [], outcome: "indeterminate" }) === null);
+
+  // sentryIndeterminate: the loud, fail-closed payload shape — no verdicts, not
+  // tripped, intervention stays "continue" (indeterminate is its OWN state).
+  const siCaptured = { json: null, err: "" };
+  const origLog = console.log, origErrWrite = process.stderr.write;
+  console.log = (s) => { siCaptured.json = s; };
+  process.stderr.write = (s) => { siCaptured.err += s; return true; };
+  let siExit;
+  try { siExit = sentryIndeterminate("test-reason", true, "/some/run/dir"); }
+  finally { console.log = origLog; process.stderr.write = origErrWrite; }
+  const siPayload = JSON.parse(siCaptured.json);
+  ok("sentryIndeterminate: exit 3, JSON payload carries indeterminate+reason, no verdicts, continue/not-tripped",
+    siExit === 3 && siPayload.run_dir === "/some/run/dir" && Array.isArray(siPayload.verdicts) && siPayload.verdicts.length === 0 &&
+    siPayload.intervention === "continue" && siPayload.tripped === false && siPayload.indeterminate === true && siPayload.reason === "test-reason");
+
+  console.log = (s) => { siCaptured.json = s; }; // re-stub for the non-JSON (stderr) branch
+  process.stderr.write = (s) => { siCaptured.err = s; return true; };
+  let siExit2;
+  try { siExit2 = sentryIndeterminate("other-reason", false, null); }
+  finally { console.log = origLog; process.stderr.write = origErrWrite; }
+  ok("sentryIndeterminate: non-JSON mode writes a fail-closed stderr line, still exit 3",
+    siExit2 === 3 && /INDETERMINATE — other-reason \(fail closed\)/.test(siCaptured.err));
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (sentry --selftest, ${fail} failed)`);
   return fail ? 1 : 0;

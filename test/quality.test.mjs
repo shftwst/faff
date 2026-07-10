@@ -64,6 +64,10 @@ test("quality --json: ledger+events derives park/rework/gate distribution", () =
     assert.equal(q.park_rate, Number((1 / 3).toFixed(4)));
     assert.equal(q.rework.total_turns, 3);
     assert.equal(q.rework.reworked_attempts, 2);
+    // mean_turns averages over tagged_attempts (3/3 here); full coverage ⇒ no warning.
+    assert.equal(q.rework.tagged_attempts, 3);
+    assert.equal(q.rework.mean_turns, 1);
+    assert.equal(q.warnings.length, 0);
     assert.deepEqual(q.gate_catch, [{ gate: "adversarial", count: 1 }]);
     const pi3 = q.per_issue.find((p) => p.issue === "FAFF-3");
     assert.equal(pi3.gate, "adversarial");

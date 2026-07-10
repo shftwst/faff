@@ -90,10 +90,16 @@ Non-leak parity with economics: outcomes / gate-names / counts only, never paylo
 }
 ```
 
-- Rates use `attempt_count` (dispatched builds — outcomes minus
-  `BUDGET_NON_ATTEMPT_OUTCOMES`) as the denominator, matching `economics`'
-  `cost_per_attempt` so the two reconcile by construction. `attempt_count == 0` →
-  rates `null` (never `0/0`).
+- Rates (`park_rate`, `rework_rate`) use `attempt_count` (dispatched builds —
+  outcomes minus `BUDGET_NON_ATTEMPT_OUTCOMES`) as the denominator, matching
+  `economics`' `cost_per_attempt` so the two reconcile by construction.
+  `attempt_count == 0` → rates `null` (never `0/0`). `mean_turns` averages over
+  `tagged_attempts` — the population whose size the report states — so
+  `mean_turns * tagged_attempts` reconstructs `total_turns`; `null` when no attempt
+  carried a rework tag. Because `rework_rate`'s numerator is event-derived while its
+  denominator is ledger-derived, the report emits a coverage warning
+  (`rework tags cover X of Y attempt(s) — rework_rate is a lower bound`) whenever
+  tags don't cover every attempt.
 - `gate_catch` / `rework` derive from `issue-outcome` events; on a run with no
   `events.jsonl` (`source: "ledger"`) they degrade to `gate_catch: []` and
   `rework.*: null` — the outcome buckets (from the ledger) still render.

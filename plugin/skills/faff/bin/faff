@@ -15549,7 +15549,9 @@ function classifyMergeFailure(stderr, observedSha) {
 // it once state is readable, so nothing is lost by refusing now rather than guessing merged.
 function classifyPostMerge({ merge_ok, post_state, merge_stderr }) {
   if (merge_ok) return { merged: true, outcome: "merged", warning: null, blocker: null };
-  const stderrText = merge_stderr || "non-zero exit";
+  // Collapse embedded newlines before interpolation — a multi-line `gh` stderr would otherwise make
+  // the rendered warning/blocker line wrap unprefixed in `emit`'s `  ⚠ `/`  ✗ ` single-line format.
+  const stderrText = String(merge_stderr || "non-zero exit").replace(/[\r\n]+/g, " ").trim() || "non-zero exit";
   if (post_state === "MERGED") {
     return {
       merged: true,
@@ -15558,7 +15560,10 @@ function classifyPostMerge({ merge_ok, post_state, merge_stderr }) {
       blocker: null,
     };
   }
-  if (post_state == null) {
+  // Strict null check (matches the "unreadable re-read" contract exactly): the caller only ever
+  // passes `null` (unreadable) or a state string, never `undefined` — kept strict for symmetry with
+  // the `=== "MERGED"` check above rather than the looser `== null`.
+  if (post_state === null) {
     return { merged: false, outcome: "refuse", warning: null, blocker: `gh pr merge rejected: ${stderrText} (post-merge state re-read failed)` };
   }
   return { merged: false, outcome: "refuse", warning: null, blocker: `gh pr merge rejected: ${stderrText}` };
@@ -15903,6 +15908,8 @@ function mergeGateSelftest() {
   check("post-merge: non-zero exit + re-read OPEN → refuse, no warning", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "OPEN", merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse" && r.warning === null && /some error/.test(r.blocker); })());
   check("post-merge: non-zero exit + re-read CLOSED → refuse", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "CLOSED", merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse"; })());
   check("post-merge: non-zero exit + unreadable re-read (null) → refuse (fail-closed), blocker notes the re-read failure", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: null, merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse" && /post-merge state re-read failed/.test(r.blocker); })());
+  check("post-merge: multi-line stderr collapses to one line in the warning (adversarial review finding)", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "MERGED", merge_stderr: "line one\nline two\r\nline three" }); return !/[\r\n]/.test(r.warning) && r.warning.includes("line one line two line three"); })());
+  check("post-merge: post_state=undefined is NOT treated as unreadable (strict === null, not == null)", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: undefined, merge_stderr: "some error" }); return r.outcome === "refuse" && !/post-merge state re-read failed/.test(r.blocker); })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }

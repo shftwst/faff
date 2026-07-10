@@ -5295,6 +5295,13 @@ function checksFor(meta, t) {
       out.push([has("Mechanism slots") || has("slot contract"), "refers back to the gateway mechanism-slot contract"]);
       out.push([has("merge gate"), "states it never weakens the merge gate"]);
       out.push([has("ledger"), "records terminal outcomes to the run ledger"]);
+      // FAFF-439: a concurrency executor must declare a turn-safe dispatch posture — the Agent tool
+      // backgrounds by default, so an omitted posture lets the orchestrator end its turn with a build
+      // still in flight (idle-reaped mid-work). Two valid arms: foreground dispatch (sequential's
+      // `run_in_background: false`) OR a background dispatch covered by a "never end a turn" await-all
+      // gate (parallel's). Substring-only: this asserts the instruction is PRESENT, not runtime-obeyed.
+      out.push([t.toLowerCase().includes("run_in_background: false") || t.toLowerCase().includes("never end a turn"),
+                'declares a turn-safe dispatch posture ("run_in_background: false", or a "never end a turn" await-all gate)']);
       break;
     case "producer-spec":
       // FAFF-109: conformance is artifact-emission (the spec_adaptor was retired) — the

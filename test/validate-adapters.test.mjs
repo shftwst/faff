@@ -161,6 +161,52 @@ test("FAFF-112 positive control: a conformant slot-named skill passes (exit 0)",
     "the conformant fixture must be reported as a producer-spec pass");
 });
 
+// FAFF-439 — a concurrency executor (REGISTRY `type: "mechanism"`) must declare a turn-safe
+// dispatch posture: the Agent tool backgrounds by default, so an omitted posture lets the
+// orchestrator end its turn with a build still in flight (idle-reaped mid-work). Two valid arms:
+// foreground `run_in_background: false` (sequential) OR a "never end a turn" await-all gate
+// (parallel). The check is one two-arm case-insensitive substring lint in the mechanism case;
+// `SLOT_TYPES.concurrency` routes third-party occupants through the same check. Fixtures are named
+// after the REGISTRY concurrency entries so the mechanism type-checks fire; MECH_BASE carries the
+// other required mechanism phrases so the turn-safe line is the only posture check in play.
+// Assertions key on the specific failure LABEL, not overall exit, to stay robust to unrelated checks.
+const MECH_BASE = [
+  "---",
+  "user-invocable: false",
+  "judgement_seam: none",
+  "---",
+  "# mechanism fixture",
+  "",
+  "Refers back to the gateway Mechanism slots / slot contract; never weakens the merge gate;",
+  "records every terminal outcome to the run ledger.",
+  "",
+].join("\n");
+const POSTURE = /turn-safe dispatch posture/;
+
+test("FAFF-439: a concurrency executor missing both posture phrases fails the turn-safe check", () => {
+  const r = runOnFixtures({ "faffter-noon-concurrency-sequential": MECH_BASE + "\n" });
+  assert.match(r.stdout, POSTURE, "the turn-safe posture failure must be reported");
+  assert.notEqual(r.status, 0);
+});
+
+test("FAFF-439: `run_in_background: false` satisfies the turn-safe check (foreground arm)", () => {
+  const body = MECH_BASE + "\nDispatch the build subagent with run_in_background: false.\n";
+  const r = runOnFixtures({ "faffter-noon-concurrency-sequential": body });
+  assert.doesNotMatch(r.stdout, POSTURE, "the foreground pin must pass the posture check");
+});
+
+test("FAFF-439: `never end a turn` satisfies the turn-safe check (await-all arm)", () => {
+  const body = MECH_BASE + "\nThe await-all gate: never end a turn with builds in flight.\n";
+  const r = runOnFixtures({ "faffter-dark-concurrency-parallel": body });
+  assert.doesNotMatch(r.stdout, POSTURE, "the await-all gate phrase must pass the posture check");
+});
+
+test("FAFF-439: the turn-safe check is case-insensitive (`Never end a turn`)", () => {
+  const body = MECH_BASE + "\nThe await-all gate: Never end a turn with builds in flight.\n";
+  const r = runOnFixtures({ "faffter-dark-concurrency-parallel": body });
+  assert.doesNotMatch(r.stdout, POSTURE, "capitalised `Never end a turn` must still pass");
+});
+
 test("regression guard: the real shipped tree passes every charter rule clean", () => {
   const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { cwd: REPO, encoding: "utf8" });
   for (const cat of ["line cap", "paragraph", "stray marker", "duplicated block"]) {

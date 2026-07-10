@@ -2965,9 +2965,10 @@ function budgetSelftest() {
   ok("parseHHMM '' rejected", parseHHMM("") === null);
   ok("parseHHMM null → null", parseHHMM(null) === null);
 
-  // --- FAFF-364: a malformed until never satisfies the L4 spend/time governor ---
-  ok("spendTimeCeilingSet(envelopeFrom({}, {until:'garbage'})) === false",
-    spendTimeCeilingSet(envelopeFrom({}, { until: "garbage" })) === false);
+  // --- FAFF-364: a malformed until resolves to a null ceiling + until_invalid ---
+  // (the L4 spend/time-governor consequence — spendTimeCeilingSet lives in the
+  // factory/lights-out region and is exercised there, in lightsOutSelftest, per
+  // the governance→factory direction invariant this region must not cross).
   const eBadUntil = envelopeFrom({}, { until: "garbage" });
   ok("malformed --until → ceilings.until null, until_invalid names the raw value",
     eBadUntil.ceilings.until === null && eBadUntil.until_invalid === "garbage");
@@ -14695,6 +14696,11 @@ function lightsOutSelftest() {
     spendTimeCeilingSet(envelopeFrom({ budget: { cost: 5, price_per_mtok: 0 } }, {})) === false);
   check("spend/time (real envelope): --until flag proceeds",
     spendTimeCeilingSet(envelopeFrom({}, { until: "07:00" })) === true);
+  // FAFF-364 — a malformed --until never satisfies the spend/time governor: it
+  // resolves to a null ceiling (until_invalid set instead), the exact case the
+  // budget-until-invalid preflight gate exists to catch on its own.
+  check("spend/time (real envelope): malformed --until does NOT satisfy the governor",
+    spendTimeCeilingSet(envelopeFrom({}, { until: "garbage" })) === false);
 
   // FAFF-312 — mint-time at_ceiling default: escalate-when-unset, explicit honoured.
   check("mint at_ceiling: unset → escalate (L4 default)", mintAtCeiling({}) === "escalate");

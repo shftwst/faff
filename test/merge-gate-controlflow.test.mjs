@@ -17,7 +17,7 @@
 
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, existsSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -247,5 +247,87 @@ test("L4 ledger + --level L3 + --check-only → still exit 2 mismatch (fires bef
   const { code, stderr } = runCli(baseArgs(runDir, ["--check-only"]), { env });
   assert.equal(code, 2);
   assert.match(stderr, /--level "L3" contradicts run-ledger level "L4"/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+// --- FAFF-420: readHoldout is run-dir-relative + freshness-checked (the L4 fourth floor leg) ---
+//
+// AC + review already pass (seedRunDir("merge-ok")), so each case below isolates the holdout leg: a
+// merge-ok overall verdict here means the holdout floor itself passed, not that other legs are lax.
+
+const argsL4 = (runDir, extra = []) =>
+  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L4", "--repo", REPO, "--json", ...extra];
+
+const MEETS_SPEC_BLOCK = JSON.stringify({
+  aggregate: "meets-spec",
+  code_blind: true,
+  criteria: [{ class: "assertion", verdict: "met", evidence_present: true }],
+  violations: [],
+});
+
+function writeCheckpoint(runDir, isoTime) {
+  const dir = join(runDir, ISSUE);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "build-progress.json"), JSON.stringify({ issue: ISSUE, build: { status: "complete", pushed_at: isoTime }, updated_at: isoTime }));
+}
+
+function writeHoldout(runDir, mtimeDate) {
+  const dir = join(runDir, ISSUE);
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "holdout.json");
+  writeFileSync(file, MEETS_SPEC_BLOCK);
+  utimesSync(file, mtimeDate, mtimeDate);
+}
+
+test("FAFF-420: no holdout artifact under the run-dir (foreign/absent) → refuse, blocker names L4 holdout missing", () => {
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout.json anywhere under this run-dir
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(argsL4(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /L4 holdout: missing/.test(b)), "an absent/foreign holdout must read as missing, never meets-spec");
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("FAFF-420: holdout mtime predates the build-complete checkpoint (stale) → refuse, blocked (not missing)", () => {
+  const runDir = seedRunDir("merge-ok");
+  const checkpointTime = new Date("2026-07-10T12:00:00.000Z");
+  const staleHoldoutTime = new Date("2026-07-10T11:00:00.000Z"); // before the checkpoint
+  writeCheckpoint(runDir, checkpointTime.toISOString());
+  writeHoldout(runDir, staleHoldoutTime);
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(argsL4(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /L4 holdout: blocked/.test(b)), "a stale verdict must read as blocked, distinct from missing");
+  assert.equal(existsSync(sentinel), false, "a stale holdout must never satisfy the L4 floor");
+});
+
+test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) → the holdout floor passes (merge-ok)", () => {
+  const runDir = seedRunDir("merge-ok");
+  const checkpointTime = new Date("2026-07-10T12:00:00.000Z");
+  const freshHoldoutTime = new Date("2026-07-10T13:00:00.000Z"); // after the checkpoint
+  writeCheckpoint(runDir, checkpointTime.toISOString());
+  writeHoldout(runDir, freshHoldoutTime);
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(argsL4(runDir), { env });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(existsSync(sentinel), true, "a fresh, run-scoped meets-spec verdict must satisfy the L4 floor (happy path)");
+});
+
+test("FAFF-420: holdout present but no build-complete checkpoint under the run-dir → refuse, blocked (freshness unprovable)", () => {
+  const runDir = seedRunDir("merge-ok"); // no build-progress.json written
+  writeHoldout(runDir, new Date("2026-07-10T13:00:00.000Z"));
+  const { env, sentinel } = stubGhEnv();
+  const { code, stdout } = runCli(argsL4(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /L4 holdout: blocked/.test(b)), "an unprovable freshness must refuse (blocked), never a silent pass");
   assert.equal(existsSync(sentinel), false);
 });

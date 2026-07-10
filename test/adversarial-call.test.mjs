@@ -13,6 +13,7 @@ import {
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
+  ledgerMandatory,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -1005,4 +1006,119 @@ test("FAFF-398 main: --lights-out + a config fault (AUTH) → that class UNCHANG
     { runReviewFn: scriptedRunReview({ "http://x:1": { status: "auth-failed" } }) },
   );
   assert.equal(code, EXIT.AUTH, "a config fault dominates — the remap only touches 5/8");
+});
+
+// ── FAFF-401: mandatory-ness is DERIVED from the run ledger (level:"L4"), not translated by an LLM ──
+// The prose→flag hop in front of the FAFF-398 seam is removed: review-call.mjs reads run-ledger.json itself
+// via --run-dir / FAFF_RUN_DIR. --lights-out is retained as an explicit OR-composed override. Fail-safe:
+// any resolution miss (absent run-dir, missing/garbled ledger, non-L4 level) ⇒ advisory, never throws.
+
+function ledgerDir(ledger) {
+  const dir = mkdtempSync(join(tmpdir(), "faff401-"));
+  if (ledger !== undefined) writeFileSync(join(dir, "run-ledger.json"), typeof ledger === "string" ? ledger : JSON.stringify(ledger));
+  return dir;
+}
+
+test("FAFF-401 parseArgs: --run-dir is collected; absent ⇒ runDir undefined", () => {
+  assert.equal(parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d", "--run-dir", "/r"]).runDir, "/r");
+  assert.equal(parseArgs(["--host", "h", "--model", "m", "--system", "s", "--diff", "d"]).runDir, undefined);
+});
+
+test("FAFF-401 ledgerMandatory: true iff <runDir>/run-ledger.json parses with level==='L4'; never throws", () => {
+  assert.equal(ledgerMandatory(ledgerDir({ run_id: "t", level: "L4" })), true, "L4 ledger ⇒ mandatory");
+  assert.equal(ledgerMandatory(ledgerDir({ run_id: "t", level: "L3" })), false, "L3 ledger ⇒ advisory");
+  assert.equal(ledgerMandatory(ledgerDir({ run_id: "t" })), false, "no level key ⇒ advisory");
+  assert.equal(ledgerMandatory(ledgerDir("{not json")), false, "garbled JSON ⇒ advisory (caught)");
+  assert.equal(ledgerMandatory(ledgerDir(undefined)), false, "missing run-ledger.json ⇒ advisory");
+  assert.equal(ledgerMandatory(mkdtempSync(join(tmpdir(), "faff401-none-"))), false, "empty dir, no file ⇒ advisory");
+  assert.equal(ledgerMandatory(undefined), false, "absent runDir ⇒ advisory");
+  assert.equal(ledgerMandatory(""), false, "empty runDir ⇒ advisory");
+});
+
+test("FAFF-401 main: --run-dir at an L4 ledger + all-unreachable, NO --lights-out → MANDATORY_OUTAGE (9)", async () => {
+  const { sys, dif } = specFiles398();
+  const rd = ledgerDir({ run_id: "t", level: "L4" });
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--run-dir", rd],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+  );
+  assert.equal(code, EXIT.MANDATORY_OUTAGE, "the ledger alone activates the fail-closed remap — no --lights-out, no model decision");
+});
+
+test("FAFF-401 main: --run-dir at a NON-L4 ledger + all-unreachable → UNREACHABLE (5, advisory unchanged)", async () => {
+  const { sys, dif } = specFiles398();
+  const rd = ledgerDir({ run_id: "t", level: "L3" });
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--run-dir", rd],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+  );
+  assert.equal(code, EXIT.UNREACHABLE, "an L3 ledger keeps today's pass+skip");
+});
+
+test("FAFF-401 main: FAFF_RUN_DIR env alone (no flag) at an L4 ledger → MANDATORY_OUTAGE (9)", async () => {
+  const { sys, dif } = specFiles398();
+  const rd = ledgerDir({ run_id: "t", level: "L4" });
+  const prev = process.env.FAFF_RUN_DIR;
+  process.env.FAFF_RUN_DIR = rd;
+  try {
+    const code = await main(
+      ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif],
+      { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+    );
+    assert.equal(code, EXIT.MANDATORY_OUTAGE, "the env fallback alone activates the mandatory remap");
+  } finally {
+    if (prev === undefined) delete process.env.FAFF_RUN_DIR; else process.env.FAFF_RUN_DIR = prev;
+  }
+});
+
+test("FAFF-401 main: explicit --run-dir WINS over a disagreeing FAFF_RUN_DIR (flag L4 beats env L3)", async () => {
+  const { sys, dif } = specFiles398();
+  const flagRd = ledgerDir({ run_id: "flag", level: "L4" });
+  const envRd = ledgerDir({ run_id: "env", level: "L3" });
+  const prev = process.env.FAFF_RUN_DIR;
+  process.env.FAFF_RUN_DIR = envRd;
+  try {
+    const code = await main(
+      ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--run-dir", flagRd],
+      { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+    );
+    assert.equal(code, EXIT.MANDATORY_OUTAGE, "the explicitly-handed run-dir beats the ambient env");
+  } finally {
+    if (prev === undefined) delete process.env.FAFF_RUN_DIR; else process.env.FAFF_RUN_DIR = prev;
+  }
+});
+
+test("FAFF-401 main: no --run-dir, no FAFF_RUN_DIR, no --lights-out → byte-for-byte today (UNREACHABLE 5)", async () => {
+  const { sys, dif } = specFiles398();
+  const prev = process.env.FAFF_RUN_DIR;
+  delete process.env.FAFF_RUN_DIR;
+  try {
+    const code = await main(
+      ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif],
+      { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+    );
+    assert.equal(code, EXIT.UNREACHABLE, "unresolved ⇒ advisory");
+  } finally {
+    if (prev !== undefined) process.env.FAFF_RUN_DIR = prev;
+  }
+});
+
+test("FAFF-401 main: --lights-out still forces mandatory even when the ledger is NON-L4 (OR, never AND)", async () => {
+  const { sys, dif } = specFiles398();
+  const rd = ledgerDir({ run_id: "t", level: "L3" });
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--run-dir", rd, "--lights-out"],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "unreachable" } }) },
+  );
+  assert.equal(code, EXIT.MANDATORY_OUTAGE, "the explicit override forces mandatory regardless of the ledger");
+});
+
+test("FAFF-401 main: config-fault dominance untouched — L4 ledger + AUTH still returns AUTH (7), not 9", async () => {
+  const { sys, dif } = specFiles398();
+  const rd = ledgerDir({ run_id: "t", level: "L4" });
+  const code = await main(
+    ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--run-dir", rd],
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "auth-failed" } }) },
+  );
+  assert.equal(code, EXIT.AUTH, "a config fault dominates the ledger-derived mandatory remap, unchanged");
 });

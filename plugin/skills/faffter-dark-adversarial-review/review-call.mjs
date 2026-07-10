@@ -14,6 +14,7 @@
 import http from "node:http";
 import https from "node:https";
 import { readFileSync } from "node:fs";
+import { join as pathJoin } from "node:path";
 
 // Exit codes the skill maps to a verdict: 0 ok · 4 model-not-served (→ needs-human) ·
 // 5 provider-unreachable, explicitly-configured host (→ pass+skip) ·
@@ -528,8 +529,28 @@ export function parseArgs(argv) {
     else if (k === "--reasoning-off") a.reasoningOff = true;
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
+    else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
   }
   return a;
+}
+
+// PURE-ISH (FAFF-401): derive "is this review MANDATORY?" mechanically from the run ledger, so no LLM step
+// sits between the resolved L4 level and the flag. Mirrors bin/faff's appetite resolver ("ledger brace":
+// FAFF_RUN_DIR → run-ledger.json → level === "L4") — the same machine-written state, read a second time by
+// deterministic code. Fail-safe direction: ANY resolution miss (absent runDir, missing/unreadable/garbled
+// ledger, or a non-L4 level) returns false ⇒ advisory, byte-for-byte today's behaviour. It only ever ADDS
+// mandatory-ness on positive L4 evidence; it never blocks an L1–L3 flow, and it never throws.
+//
+// Deliberately NO liveness/heartbeat check (unlike the appetite resolver's runIsHeld brace): here the derived
+// direction REDUCES agency (mandatory ⇒ fail-closed ⇒ needs-human park), so a stale L4 ledger can only cause a
+// visible false park, never a false merge — the staleness confound inverts, and replicating heartbeat math into
+// a second file would add drift risk for no directional safety (spec §6).
+export function ledgerMandatory(runDir) {
+  if (!runDir) return false;
+  let ledger;
+  try { ledger = JSON.parse(readFileSync(pathJoin(runDir, "run-ledger.json"), "utf8")); }
+  catch { return false; }   // missing file, unreadable, or garbled JSON — advisory
+  return !!(ledger && ledger.level === "L4");
 }
 
 // PURE (FAFF-232): map a runReview() result + host provenance to the documented exit class for ONE backend.
@@ -723,6 +744,12 @@ export async function main(argv, { runReviewFn = runReview } = {}) {
   const diff = readFileSync(a.diff, "utf8");
   const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
   const user = assembleUserMessage({ contextFiles, diff });
+
+  // FAFF-401: derive mandatory-ness mechanically from the run ledger BEFORE the mandatoryRemap chokepoint,
+  // so no model step sits between the resolved L4 level and the flag. The explicit --lights-out flag still
+  // FORCES mandatory (OR, never AND — a caller that resolved L4-ness itself is trusted); the explicit
+  // --run-dir wins over the ambient FAFF_RUN_DIR env on conflict (mirrors the appetite resolver).
+  a.mandatory = a.mandatory || ledgerMandatory(a.runDir ?? process.env.FAFF_RUN_DIR);
 
   const res = await runReviewChain(chain, { system, user, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs });
 

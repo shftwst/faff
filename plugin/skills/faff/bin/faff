@@ -6916,7 +6916,7 @@ Subcommands:
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: the corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface. Under a shared uid faff cannot cryptographically stop a same-uid build lane from forging a corrective artifact / rewriting run-ledger.json (bin/faff:1683), so the probe proves no integrity boundary (asserted:false for ALL inputs; the signal seam is inert until FAFF-325 wires an un-forgeable channel) and the gate DEGRADES — corrective→channel-D (human relay), detection→reconcile-only (ledger content cross-checked vs git), unknown consumer→channel-D. No crypto/secret/signature. Prints {asserted, basis, trusted, disposition}; exit 0 (report/degrade, never a hard refuse) / 2 (unknown --consumer); --selftest runs the table
-  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 .faff/holdout/<ISSUE>.json via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto — --admin is deliberately NOT allowed: it bypasses the forge branch-protection backstop the floor leans on, so any --merge-args "--admin" → exit 2), any other token → exit 2. FAFF-375: the human-only flags --human-override and --allow-no-ci are FENCED on a genuine interactivity signal (process.stdin.isTTY === true AND --interactive) — a non-TTY (autonomous / agent-driven) invocation passing either → exit 2 fail-loud BEFORE any gh call, naming the run-it-yourself-in-a-real-terminal remedy (sibling argv flags are self-assertable, so they cannot be the fence). exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs + fenceHumanFlags) with no network
+  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 <run-dir>/<ISSUE>/holdout.json, run-dir-relative and freshness-checked against <run-dir>/<ISSUE>/build-progress.json — FAFF-420 — via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto — --admin is deliberately NOT allowed: it bypasses the forge branch-protection backstop the floor leans on, so any --merge-args "--admin" → exit 2), any other token → exit 2. FAFF-375: the human-only flags --human-override and --allow-no-ci are FENCED on a genuine interactivity signal (process.stdin.isTTY === true AND --interactive) — a non-TTY (autonomous / agent-driven) invocation passing either → exit 2 fail-loud BEFORE any gh call, naming the run-it-yourself-in-a-real-terminal remedy (sibling argv flags are self-assertable, so they cannot be the fence). exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs + fenceHumanFlags) with no network
   branch-protection-check [--repo owner/repo] [--branch name] [--json]   FAFF-350: assert-don't-enforce probe (mirrors container-check / ADR-0010) — is the target branch protected? Probes gh api repos/{repo}/branches/{branch}/protection; PURE classifier over the probe result. Prints {status ∈ protected|unprotected|indeterminate, required_checks, basis}; exit 0 protected · 1 not-confirmed (unprotected/indeterminate). The autonomous-entry preflight (beep-boop + lights-out) WARNS by default on not-confirmed, BLOCKS under the opt-in autonomous.require_branch_protection knob, never fires interactive; --selftest runs the classifier table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   project-next --current planned|started|completed|cancelled [--kind project|issue] --total N --active N --done N [--has-dod] [--json]   FAFF-248: container (project|parent-issue) state-coherence transition predicate — emit a ContainerTransition JSON {kind,current,desired,action,reason} from a child-issue rollup. PURE (no tracker/network — parity with next/contain): the /faff-tidy orchestrator-lane sweep maps live child statuses to {total,active,done} and applies any advance. Forward-only + monotonic — advance ONLY when rank(desired)>rank(current); never moves a container backward. v1: project→started (first child starts) · parent-issue→started (any child in progress) · project→completed (ALL children done AND no DoD; --has-dod defers to FAFF-259). Parent-issue→Done out of scope. exit 0 (pure compute) / 2 malformed rollup; --selftest runs the transition + monotonicity table
@@ -15608,12 +15608,39 @@ function readReviewVerdict(runDir, issue) {
   return contractData.signal;
 }
 
-// Read the per-issue holdout verdict via the SAME holdoutGateResult gate (never forked).
-// pass → meets-spec; a "missing" block → missing; any other block → blocked.
-function readHoldout(issue, dir) {
-  let block;
-  try { block = JSON.parse(fs.readFileSync(path.join(dir || ".faff/holdout", `${issue}.json`), "utf8")); }
-  catch (e) { return "missing"; }
+// FAFF-420: pure freshness check — the holdout verdict must STRICTLY postdate the build-complete
+// checkpoint it's being read for, so a verdict produced before this build (stale, or left over from a
+// prior build of the same issue) can never satisfy the gate. Both timestamps must be finite; a
+// non-finite either side is never "fresh" (fail-closed, mirrors the mtime-floor precedent in prepIsHeld).
+function holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs) {
+  return Number.isFinite(holdoutMtimeMs) && Number.isFinite(checkpointTimeMs) && holdoutMtimeMs > checkpointTimeMs;
+}
+
+// FAFF-420: read the per-issue holdout verdict RUN-DIR-RELATIVE (never CWD-relative — the CWD-relative
+// default was the bug: a stale or foreign verdict sitting in the working directory could vacuously
+// satisfy the gate). Mirrors readAcComplete/readReviewVerdict's convention exactly: the artifact lives
+// at <run-dir>/<issue>/holdout.json, so a verdict from a different run is structurally unreadable here.
+// On top of the structural binding, the verdict must be FRESH — its mtime must postdate the
+// build-complete checkpoint (<run-dir>/<issue>/build-progress.json) — so a same-run-dir but
+// pre-this-build verdict is refused too. Reduces through the SAME holdoutGateResult gate (never forked).
+// pass → meets-spec; a "missing" block or an absent/foreign holdout file → missing; anything else
+// (including unprovable/failed freshness) → blocked.
+function readHoldout(runDir, issue) {
+  if (!runDir) return "missing"; // no run to bind to => fail-closed, never fall back to CWD-relative
+  const holdoutPath = path.join(runDir, issue, "holdout.json");
+  let block, holdoutMtimeMs;
+  try {
+    block = JSON.parse(fs.readFileSync(holdoutPath, "utf8"));
+    holdoutMtimeMs = fs.statSync(holdoutPath).mtimeMs;
+  } catch (e) { return "missing"; } // absent/unreadable/malformed/foreign => missing (existing posture)
+
+  let checkpointTimeMs = NaN;
+  try {
+    const checkpoint = JSON.parse(fs.readFileSync(buildProgressPath(runDir, issue), "utf8"));
+    checkpointTimeMs = Date.parse(checkpoint.updated_at ?? checkpoint.build?.pushed_at);
+  } catch (e) { /* leave checkpointTimeMs NaN => not fresh below */ }
+  if (!holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs)) return "blocked"; // stale, or freshness unprovable => refuse (never "missing")
+
   const res = holdoutGateResult(block);
   if (res.gate === "pass") return "meets-spec";
   return res.reason === "missing" ? "missing" : "blocked";
@@ -15681,7 +15708,7 @@ function cmdMergeGate(args) {
     ci_state: ci.ci_state,
     head_sha_matches: ci.head_sha_matches,
     level,
-    holdout: level === "L4" ? readHoldout(issue) : "not-applicable",
+    holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
     no_ci_policy: noCiPolicy,
   };
   const { verdict, blockers } = decideFloor(floor);
@@ -15763,6 +15790,13 @@ function mergeGateSelftest() {
   check("L4 holdout meets-spec → merge-ok", F({ level: "L4", holdout: "meets-spec" }).verdict === "merge-ok");
   check("L4 holdout missing → refuse", F({ level: "L4", holdout: "missing" }).verdict === "refuse");
   check("L4 holdout blocked → refuse", F({ level: "L4", holdout: "blocked" }).verdict === "refuse");
+  // holdoutIsFresh (FAFF-420): pure freshness comparator readHoldout wraps around the run-scoped read
+  check("holdoutIsFresh: fresh (holdout after checkpoint) → true", holdoutIsFresh(200, 100) === true);
+  check("holdoutIsFresh: stale (holdout before checkpoint) → false", holdoutIsFresh(50, 100) === false);
+  check("holdoutIsFresh: equal timestamps (not strictly after) → false", holdoutIsFresh(100, 100) === false);
+  check("holdoutIsFresh: non-finite holdout mtime → false", holdoutIsFresh(NaN, 100) === false);
+  check("holdoutIsFresh: non-finite checkpoint time → false", holdoutIsFresh(200, NaN) === false);
+  check("holdoutIsFresh: both non-finite → false", holdoutIsFresh(NaN, NaN) === false);
   check("multi-blocker names all legs", F({ ac_complete: false, review_verdict: "fail" }).blockers.length === 2);
   // resolveGateLevel (FAFF-424): ledger governs when present; flag/default path unchanged when absent
   check("resolveGateLevel: L4 ledger, no flag → L4/no-mismatch", (() => { const r = resolveGateLevel("L4", null); return r.level === "L4" && r.mismatch === false; })());

@@ -2,7 +2,8 @@
 // FAFF-440 — byte-identical verification harness for the bin/faff module split (FAFF-441).
 //
 // A one-time MIGRATION GATE, not a regression suite. It runs a fixed argv matrix against a
-// pre-split binary (a git ref, materialised in a temp worktree) and a post-split binary (the
+// pre-split binary (a git ref, materialised via `git archive` — NO worktree-registry writes, so the
+// harness is safe to run from ANY checkout including inside a linked worktree; FAFF-442) and a post-split binary (the
 // working tree) under IDENTICAL conditions — same install path, same sandbox HOME, same fixture
 // bytes, same scrubbed env — and demands byte-identical stdout, stderr, and exit code per
 // invocation. Any surviving difference is attributable to the split and nothing else.
@@ -26,15 +27,40 @@
 // Zero-dependency: node:* builtins + the repo's own test/helpers/seed-repo.mjs (ADR 0002).
 
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync, readFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { seedRepo } from "../test/helpers/seed-repo.mjs";
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SELF_PATH = fileURLToPath(import.meta.url);
+const SCRIPT_DIR = path.dirname(SELF_PATH);
+// REPO_ROOT stays SCRIPT_DIR-lexical (not resolved via --git-common-dir): FAFF-442 removed every
+// worktree-registry WRITE, so the harness only ever issues git READS (rev-parse, archive) against
+// this root — those are correct from any checkout (main or a linked worktree). No registry op means
+// no reason to canonicalise the root. (--git-common-dir was measured a no-op for the old churn.)
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
 const FAFF_REL = path.join("plugin", "skills", "faff"); // the skill tree the split reorganises
+// Explicit — Node's spawnSync default maxBuffer is 1 MiB, but the plugin/skills/faff tar stream is
+// already ~1.4 MiB, so the default would silently truncate the baseline tree (FAFF-442 D5).
+const ARCHIVE_MAXBUF = 64 * 1024 * 1024;
+
+// Materialise a ref's plugin/skills/faff subtree as a plain file tree via `git archive | tar -x` —
+// which the harness consumes exactly as `worktree add` used to (cpSync input + subprocess entrypoint),
+// but with ZERO writes to the shared .git/worktrees/ registry (the FAFF-442 fix). Safe from any
+// checkout, main or linked. Every step fails closed → SetupFault → exit 2 (never a truncated tree).
+function materialiseRef(repoRoot, ref, destDir, refLabel) {
+  let r = spawnSync("git", ["-C", repoRoot, "rev-parse", "--verify", `${ref}^{commit}`], { encoding: "utf8" });
+  if (r.status !== 0) throw new SetupFault(`${refLabel} '${ref}' does not resolve to a commit`);
+  r = spawnSync("git", ["-C", repoRoot, "archive", ref, "--", "plugin/skills/faff"], { maxBuffer: ARCHIVE_MAXBUF });
+  if (r.error || r.status !== 0) throw new SetupFault(`${refLabel} '${ref}' git archive failed: ${r.error?.message ?? (r.stderr ?? Buffer.alloc(0)).toString()}`);
+  mkdirSync(destDir, { recursive: true });
+  // -p preserves the archived mode bits exactly (git 0644/0755), umask-independent — the harness
+  // spawns bin/faff directly and FAFF-441's gate demands byte-identity incl. mode (FAFF-442 review).
+  const x = spawnSync("tar", ["-x", "-p", "-C", destDir], { input: r.stdout });
+  if (x.error || x.status !== 0) throw new SetupFault(`${refLabel} '${ref}' tar extract failed: ${x.error?.message ?? (x.stderr ?? Buffer.alloc(0)).toString()}`);
+  return path.join(destDir, "plugin", "skills", "faff");
+}
 
 // A setup fault is anything that stops us building "identical conditions" — always exit 2, never a
 // silent PASS. A real mismatch is exit 1.
@@ -283,23 +309,15 @@ function readCandidateHelp(candidateSrc) {
 
 function gate({ baselineRef, candidateRef, keep }) {
   const scratch = mkdtempSync(path.join(tmpdir(), "faff-parity-"));
-  let baselineWorktree = null;
   try {
-    // Materialise the baseline in a detached temp worktree.
-    baselineWorktree = path.join(scratch, "baseline");
-    let r = spawnSync("git", ["-C", REPO_ROOT, "rev-parse", "--verify", `${baselineRef}^{commit}`], { encoding: "utf8" });
-    if (r.status !== 0) throw new SetupFault(`--baseline-ref '${baselineRef}' does not resolve to a commit`);
-    r = spawnSync("git", ["-C", REPO_ROOT, "worktree", "add", "--detach", baselineWorktree, baselineRef], { encoding: "utf8" });
-    if (r.status !== 0) throw new SetupFault(`git worktree add failed: ${r.stderr}`);
-    const baselineSrc = path.join(baselineWorktree, FAFF_REL);
+    // Materialise the baseline as a plain file tree via git archive — ZERO registry writes, so this
+    // is safe from any checkout, main or linked (FAFF-442).
+    const baselineSrc = materialiseRef(REPO_ROOT, baselineRef, path.join(scratch, "baseline"), "--baseline-ref");
 
-    // Candidate = the working tree (default) or a second detached worktree at --candidate-ref.
+    // Candidate = the working tree (default) or a materialised --candidate-ref (also archive-based).
     let candidateSrc = path.join(REPO_ROOT, FAFF_REL);
     if (candidateRef) {
-      const cw = path.join(scratch, "candidate");
-      r = spawnSync("git", ["-C", REPO_ROOT, "worktree", "add", "--detach", cw, candidateRef], { encoding: "utf8" });
-      if (r.status !== 0) throw new SetupFault(`git worktree add (candidate) failed: ${r.stderr}`);
-      candidateSrc = path.join(cw, FAFF_REL);
+      candidateSrc = materialiseRef(REPO_ROOT, candidateRef, path.join(scratch, "candidate"), "--candidate-ref");
     }
 
     // Drift-proof coverage totality BEFORE any run.
@@ -317,9 +335,8 @@ function gate({ baselineRef, candidateRef, keep }) {
     if (keep) console.log(`scratch retained: ${scratch}`);
     return pass ? 0 : 1;
   } finally {
-    // Cleanup on EVERY exit path (trap/finally) — never strand a registered worktree.
-    if (baselineWorktree) spawnSync("git", ["-C", REPO_ROOT, "worktree", "remove", "--force", baselineWorktree]);
-    if (candidateRef) spawnSync("git", ["-C", REPO_ROOT, "worktree", "remove", "--force", path.join(scratch, "candidate")]);
+    // Cleanup is a plain scratch removal — materialisation registered no worktree, so there is
+    // nothing to unregister and nothing to strand even on an abnormal exit (FAFF-442).
     if (!keep) rmSync(scratch, { recursive: true, force: true });
   }
 }
@@ -347,6 +364,14 @@ function selftest() {
   catch (e) { drift = e; }
   ok(drift instanceof SetupFault && /ghostsub/.test(drift.message), "coverage-drift kill: must SetupFault naming the uncovered subcommand");
 
+  // 5. Worktree-verb invariant (D8) — the harness must never regain a `git worktree` write. Read our
+  //    own source and fail on the exact quoted argv literal for the git subcommand. The needle is
+  //    BUILT BY CONCATENATION so this assertion line can never match itself; the MATRIX rows
+  //    "worktree-prune"/"worktree-root" and the D6 fs literal "worktrees" are different strings.
+  const worktreeNeedle = '"work' + 'tree"';
+  ok(!readFileSync(SELF_PATH, "utf8").includes(worktreeNeedle),
+    `worktree-verb invariant: the harness source must contain zero occurrences of the ${worktreeNeedle} git argv literal (a git worktree call was reintroduced)`);
+
   // Prepare a scratch for the two live sub-runs (self-parity + mutation kill).
   const scratch = mkdtempSync(path.join(tmpdir(), "faff-parity-st-"));
   try {
@@ -371,6 +396,20 @@ function selftest() {
     const mk = runParity({ baselineSrc: cur, candidateSrc: mutantTree, matrix: REDUCED, scratch: path.join(scratch, "mk") });
     ok(mk.mismatches.length >= 1, "mutation kill: expected >=1 mismatch, got 0 (gate cannot detect a deviation!)");
     ok(mk.mismatches.some((m) => m.args.includes("--help") || m.args.includes("help") || m.args.length === 0 || m.args[0]?.startsWith("__")), "mutation kill: mismatch did not name a dispatch/usage row");
+
+    // 6. Registry-invariance (D4) — materialiseRef must leave the shared worktree registry untouched.
+    //    Snapshot the registry dir (resolved via --git-common-dir, made absolute against REPO_ROOT;
+    //    absent-dir → empty set) as sorted entry names, before and after materialising HEAD.
+    const gcd = spawnSync("git", ["-C", REPO_ROOT, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
+    const commonDir = gcd.status === 0 ? path.resolve(REPO_ROOT, gcd.stdout.trim()) : null;
+    const regDir = commonDir ? path.join(commonDir, "worktrees") : null;
+    const snapReg = () => { try { return readdirSync(regDir).sort().join("\n"); } catch { return ""; } };
+    const before = regDir ? snapReg() : null;
+    const matDest = path.join(scratch, "mat");
+    const faffDir = materialiseRef(REPO_ROOT, "HEAD", matDest, "--baseline-ref");
+    if (regDir) ok(before === snapReg(), "registry-invariance: materialiseRef changed the shared worktree registry (must be byte-identical)");
+    const matBin = path.join(faffDir, "bin", "faff");
+    ok((statSync(matBin).mode & 0o111) !== 0, "registry-invariance: materialised bin/faff must exist and be executable");
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
@@ -380,7 +419,7 @@ function selftest() {
     for (const f of fails) console.log(`  - ${f}`);
     return 1;
   }
-  console.log("verify-split-parity --selftest: PASS (comparator + coverage-drift kill + self-parity + mutation kill)");
+  console.log("verify-split-parity --selftest: PASS (comparator + coverage-drift kill + self-parity + mutation kill + worktree-verb invariant + registry-invariance)");
   return 0;
 }
 

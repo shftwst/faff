@@ -237,3 +237,15 @@ test("ledger present with no level field + --level L3 → unchanged behaviour (l
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
   assert.equal(existsSync(sentinel), true);
 });
+
+// Adversarial review (FAFF-424): the mismatch check must fire even under --check-only — it is
+// malformed input, not a floor verdict the --check-only short-circuit should ever paper over.
+test("L4 ledger + --level L3 + --check-only → still exit 2 mismatch (fires before the check-only short-circuit)", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeLedger(runDir, "L4");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir, ["--check-only"]), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /--level "L3" contradicts run-ledger level "L4"/);
+  assert.equal(existsSync(sentinel), false);
+});

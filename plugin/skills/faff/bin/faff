@@ -6916,7 +6916,7 @@ Subcommands:
   admissible --spec <path|-> [--lights-out] [--json]   FAFF-224: lights-out quality-IN gate — pure structural check over a spec's machine-verifiable DoD (## Scenarios + ### N. DONE). Gating R1 (>=1 born-verifiable scenario) / R2a (non-empty DONE) / R2b (no banned-vague DONE item); advisory R3 (runnable-check command -> warnings, never gates) / advisory R4 (FAFF-306: SCENARIOS and DONE headings at different levels -> warnings, never gates — the historical over-capture smell). NO LLM, never re-invokes the producer; reads spec via file or stdin, zero tracker/network. Fail-safe: ambiguous/unparseable/absent DoD -> inadmissible; --lights-out absent -> admissible no-op (L1-L3 unchanged). Emits AdmissibilityVerdict {admissible,reasons,checks,warnings}; exit 0 admissible / 1 inadmissible / 2 usage; --selftest runs the verdict table
   container-check [--json]                    FAFF-42: assert the ADR-0010 blast-radius boundary — is this run inside a host-isolated container? Reads ONLY standard runtime signals (k8s KUBERNETES_SERVICE_HOST, Docker /.dockerenv, Podman /run/.containerenv, systemd container= on PID 1, truthy env container), faff invents no marker and NEVER parses /proc/1/cgroup; PURE (no tracker/network). exit 0 contained · 1 not_confirmed; prints {result, basis}. The autonomous-entry preflight WARNS (never blocks) on not_confirmed by default; --selftest runs the table
   corrective-integrity [--consumer corrective|detection] [--json]   FAFF-373: the corrective-integrity fail-safe gate — distrust-by-default over the FAFF-278 forge surface. Under a shared uid faff cannot cryptographically stop a same-uid build lane from forging a corrective artifact / rewriting run-ledger.json (bin/faff:1683), so the probe proves no integrity boundary (asserted:false for ALL inputs; the signal seam is inert until FAFF-325 wires an un-forgeable channel) and the gate DEGRADES — corrective→channel-D (human relay), detection→reconcile-only (ledger content cross-checked vs git), unknown consumer→channel-D. No crypto/secret/signature. Prints {asserted, basis, trusted, disposition}; exit 0 (report/degrade, never a hard refuse) / 2 (unknown --consumer); --selftest runs the table
-  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 <run-dir>/<ISSUE>/holdout.json, run-dir-relative and freshness-checked against <run-dir>/<ISSUE>/build-progress.json — FAFF-420 — via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto — --admin is deliberately NOT allowed: it bypasses the forge branch-protection backstop the floor leans on, so any --merge-args "--admin" → exit 2), any other token → exit 2. FAFF-375: the human-only flags --human-override and --allow-no-ci are FENCED on a genuine interactivity signal (process.stdin.isTTY === true AND --interactive) — a non-TTY (autonomous / agent-driven) invocation passing either → exit 2 fail-loud BEFORE any gh call, naming the run-it-yourself-in-a-real-terminal remedy (sibling argv flags are self-assertable, so they cannot be the fence). exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs + fenceHumanFlags) with no network
+  merge-gate --pr N --issue ID --run-dir DIR --level L1|L2|L3|L4 [--merge-args "flags"] [--execute|--check-only] [--interactive] [--human-override] [--allow-no-ci] [--repo owner/repo] [--json]   FAFF-350: the SOLE sanctioned gh pr merge path — pure decideFloor core (registered as CONTRACTS[integrity-floor], --selftest-covered) + a thin impure gh/git shell that OBSERVES CI itself on the resolved PR head sha (never accepts a caller CI verdict), RE-READS the persisted floor artifacts from the run-dir (<run-dir>/<ISSUE>/ac-checklist.json + review-verdict.json, re-validated via computeReviewVerdict; under L4 <run-dir>/<ISSUE>/holdout.json, run-dir-relative and freshness-checked against <run-dir>/<ISSUE>/build-progress.json — FAFF-420 — via holdoutGateResult), decides, and executes gh pr merge only on merge-ok. Fail-closed: missing/unreadable artifact, indeterminate CI, no-ci-coverage (default; --allow-no-ci opts in), head-sha mismatch (stale green), review!=pass, or an L4 holdout!=meets-spec all REFUSE. --check-only computes the verdict without merging; --interactive --human-override records an override to the run-dir and REPLACES the refusal; an already-merged PR is an idempotent no-op. --merge-args validated against the closed gh pr merge flag allowlist (--squash/--merge/--rebase/--delete-branch/--auto — --admin is deliberately NOT allowed: it bypasses the forge branch-protection backstop the floor leans on, so any --merge-args "--admin" → exit 2), any other token → exit 2. FAFF-375: the human-only flags --human-override and --allow-no-ci are FENCED on a genuine interactivity signal (process.stdin.isTTY === true AND --interactive) — a non-TTY (autonomous / agent-driven) invocation passing either → exit 2 fail-loud BEFORE any gh call, naming the run-it-yourself-in-a-real-terminal remedy (sibling argv flags are self-assertable, so they cannot be the fence). exit 0 merge-ok · 1 refuse · 2 fail-loud (bad inputs / cannot establish PR identity); FAFF-365: on a non-zero gh pr merge exit (a merge that landed but whose POST-merge step — e.g. --delete-branch — failed), RE-READS PR state and reports merge-ok (merged) with a non-fatal warning rather than a bare refuse — PR state is authoritative over the gh exit code, never a fabricated merged on an unreadable re-read (fail-closed to refuse); --selftest drives the pure cores (decideFloor + classifyHeadShaChecks + parseMergeArgs + fenceHumanFlags + classifyPostMerge) with no network
   branch-protection-check [--repo owner/repo] [--branch name] [--json]   FAFF-350: assert-don't-enforce probe (mirrors container-check / ADR-0010) — is the target branch protected? Probes gh api repos/{repo}/branches/{branch}/protection; PURE classifier over the probe result. Prints {status ∈ protected|unprotected|indeterminate, required_checks, basis}; exit 0 protected · 1 not-confirmed (unprotected/indeterminate). The autonomous-entry preflight (beep-boop + lights-out) WARNS by default on not-confirmed, BLOCKS under the opt-in autonomous.require_branch_protection knob, never fires interactive; --selftest runs the classifier table
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   project-next --current planned|started|completed|cancelled [--kind project|issue] --total N --active N --done N [--has-dod] [--json]   FAFF-248: container (project|parent-issue) state-coherence transition predicate — emit a ContainerTransition JSON {kind,current,desired,action,reason} from a child-issue rollup. PURE (no tracker/network — parity with next/contain): the /faff-tidy orchestrator-lane sweep maps live child statuses to {total,active,done} and applies any advance. Forward-only + monotonic — advance ONLY when rank(desired)>rank(current); never moves a container backward. v1: project→started (first child starts) · parent-issue→started (any child in progress) · project→completed (ALL children done AND no DoD; --has-dod defers to FAFF-259). Parent-issue→Done out of scope. exit 0 (pure compute) / 2 malformed rollup; --selftest runs the transition + monotonicity table
@@ -15537,6 +15537,33 @@ function classifyMergeFailure(stderr, observedSha) {
   return { kind: "generic", blocker: `gh pr merge rejected: ${s || "non-zero exit"}` };
 }
 
+// FAFF-365: PURE post-merge classifier. `gh pr merge` conflates two things in one exit code — the
+// merge itself, and optional POST-merge steps (--delete-branch, --auto bookkeeping). A non-zero exit
+// does not mean "the merge failed"; it can equally mean "the merge landed and a follow-up step
+// failed." PR state (a re-read `gh pr view --json state`) is authoritative over the CLI exit code —
+// the exit code only ever TRIGGERS this re-check, it never decides merged-vs-refuse by itself.
+// merge_ok=true short-circuits (mirrors the caller's own zero-exit path; never reached in practice
+// since cmdMergeGate only calls this on a non-zero exit, but keeps the function total).
+// post_state===null means the re-read itself failed (gh unreachable) — fails CLOSED to refuse: we
+// cannot prove the PR merged, and a later re-run's idempotent top-of-function MERGED check recovers
+// it once state is readable, so nothing is lost by refusing now rather than guessing merged.
+function classifyPostMerge({ merge_ok, post_state, merge_stderr }) {
+  if (merge_ok) return { merged: true, outcome: "merged", warning: null, blocker: null };
+  const stderrText = merge_stderr || "non-zero exit";
+  if (post_state === "MERGED") {
+    return {
+      merged: true,
+      outcome: "merged",
+      warning: `gh pr merge exited non-zero after the merge landed (post-merge step failed): ${stderrText}`,
+      blocker: null,
+    };
+  }
+  if (post_state == null) {
+    return { merged: false, outcome: "refuse", warning: null, blocker: `gh pr merge rejected: ${stderrText} (post-merge state re-read failed)` };
+  }
+  return { merged: false, outcome: "refuse", warning: null, blocker: `gh pr merge rejected: ${stderrText}` };
+}
+
 // PURE: the gh-api probe result → BranchProtectionState. Reachable+protected → protected;
 // reachable+404 → unprotected; unreachable/forbidden → indeterminate (fail-closed, warns).
 function classifyBranchProtection(probe) {
@@ -15689,6 +15716,7 @@ function cmdMergeGate(args) {
     else {
       console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}`);
       for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
+      for (const w of (res.warnings || [])) console.log(`  ⚠ ${w}`);
     }
     return status;
   };
@@ -15734,7 +15762,23 @@ function cmdMergeGate(args) {
   // the already-MERGED no-op never reach this spawn.
   const m = spawnSync("gh", ["pr", "merge", String(pr), ...parsedMerge.flags, "--match-head-commit", headSha], { encoding: "utf8", timeout: 120000 });
   if (m.status !== 0) {
-    const cls = classifyMergeFailure((m.stderr || "").trim(), headSha);
+    const mergeStderr = (m.stderr || "").trim();
+    // FAFF-365: a non-zero `gh pr merge` exit does not by itself mean the merge failed — it can mean
+    // the merge landed and a POST-merge step failed (e.g. --delete-branch). Re-read PR state (the
+    // authoritative source) before concluding refuse; classifyPostMerge is the pure merged-vs-refuse
+    // decision over (merge exit, re-read state).
+    const sv = ghJson(["pr", "view", String(pr), "--json", "state"]);
+    const postState = (sv.ok && sv.data) ? sv.data.state : null;
+    const pm = classifyPostMerge({ merge_ok: false, post_state: postState, merge_stderr: mergeStderr });
+    if (pm.outcome === "merged") {
+      result.merged = true;
+      result.verdict = "merge-ok";
+      result.warnings = [...(result.warnings || []), pm.warning];
+      return emit(result, 0);
+    }
+    // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
+    // owns the blocker's specific wording (head-drift / pin-unsupported / generic).
+    const cls = classifyMergeFailure(mergeStderr, headSha);
     result.verdict = "refuse";
     result.blockers = [...blockers, cls.blocker];
     return emit(result, 1);
@@ -15852,6 +15896,13 @@ function mergeGateSelftest() {
   check("merge-fail: unknown flag → pin-unsupported says upgrade gh", (() => { const r = classifyMergeFailure("unknown flag: --match-head-commit", "abc1234"); return r.kind === "pin-unsupported" && /upgrade gh/i.test(r.blocker); })());
   check("merge-fail: unrelated stderr → generic embeds it verbatim", (() => { const r = classifyMergeFailure("failed to merge: merge conflict between base and head", "abc1234"); return r.kind === "generic" && r.blocker.includes("merge conflict between base and head"); })());
   check("merge-fail: empty stderr → generic 'non-zero exit'", (() => { const r = classifyMergeFailure("", "abc1234"); return r.kind === "generic" && /non-zero exit/.test(r.blocker); })());
+  // classifyPostMerge (FAFF-365): the merged-vs-refuse decision on a NON-ZERO gh pr merge exit is a
+  // pure function of (merge exit, re-read PR state) — PR state is authoritative over the exit code.
+  check("post-merge: merge_ok=true → merged, no warning/blocker", (() => { const r = classifyPostMerge({ merge_ok: true, post_state: null, merge_stderr: "" }); return r.merged === true && r.outcome === "merged" && r.warning === null && r.blocker === null; })());
+  check("post-merge: non-zero exit + re-read MERGED → merged with a warning, no blocker", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "MERGED", merge_stderr: "fatal: 'main' is already checked out" }); return r.merged === true && r.outcome === "merged" && r.blocker === null && /post-merge step failed/.test(r.warning) && r.warning.includes("already checked out"); })());
+  check("post-merge: non-zero exit + re-read OPEN → refuse, no warning", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "OPEN", merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse" && r.warning === null && /some error/.test(r.blocker); })());
+  check("post-merge: non-zero exit + re-read CLOSED → refuse", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "CLOSED", merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse"; })());
+  check("post-merge: non-zero exit + unreadable re-read (null) → refuse (fail-closed), blocker notes the re-read failure", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: null, merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse" && /post-merge state re-read failed/.test(r.blocker); })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }

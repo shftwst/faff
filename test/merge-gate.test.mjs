@@ -11,7 +11,7 @@ import path from "node:path";
 import { runCli, repoRoot } from "./helpers/run-cli.mjs";
 
 // --- pure --selftest tables (no network) ---
-test("merge-gate --selftest: the pure cores pass (decideFloor + classify + parseMergeArgs)", () => {
+test("merge-gate --selftest: the pure cores pass (decideFloor + classify + parseMergeArgs + classifyPostMerge FAFF-365)", () => {
   const { code } = runCli(["merge-gate", "--selftest"]);
   assert.equal(code, 0);
 });

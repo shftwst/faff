@@ -7503,6 +7503,21 @@ function decideFloor(f) {
   return { verdict: blockers.length === 0 ? "merge-ok" : "refuse", blockers };
 }
 
+// PURE: (ledgerLevel, flagLevel) -> { level, mismatch } (FAFF-424). The run-ledger's `level` field
+// (minted by `faff lights-out`) is the run's authoritative autonomy level; a caller-asserted --level
+// is droppable (prose-resolved fail-safe-off through graft) and must never silently downgrade it.
+// When a ledger level is present it always governs; an explicit flag may only agree (fine) or
+// disagree (mismatch, surfaced by the caller as a fail-loud exit 2 — never silently coerced). When
+// no ledger level is present (absent/unreadable/out-of-enum ledger, both already normalised to null
+// by the caller before this is invoked), today's flag/default behaviour is unchanged and mismatch is
+// never signalled — there is nothing to contradict.
+function resolveGateLevel(ledgerLevel, flagLevel) {
+  if (ledgerLevel != null) {
+    return { level: ledgerLevel, mismatch: flagLevel != null && flagLevel !== ledgerLevel };
+  }
+  return { level: flagLevel || "L3", mismatch: false };
+}
+
 function computeIntegrityFloor(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
@@ -15064,7 +15079,7 @@ function cmdMergeGate(args) {
   const pr = adrFlag(args, "--pr");
   const issue = adrFlag(args, "--issue");
   const runDir = adrFlag(args, "--run-dir");
-  const level = adrFlag(args, "--level") || "L3";
+  const flagLevel = adrFlag(args, "--level");
   const mode = args.includes("--check-only") ? "check-only" : "execute";
   const interactive = args.includes("--interactive");
   const humanOverride = args.includes("--human-override");
@@ -15074,8 +15089,18 @@ function cmdMergeGate(args) {
   const repoFlag = adrFlag(args, "--repo");
 
   if (!pr || !issue || !runDir) { process.stderr.write("faff merge-gate: --pr, --issue and --run-dir are required\n"); return 2; }
-  if (!FLOOR_LEVELS.includes(level)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(level)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
+  if (flagLevel != null && !FLOOR_LEVELS.includes(flagLevel)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
+  // FAFF-424: the run-ledger's `level` (minted by `faff lights-out`) governs when present — an
+  // explicit --level may only agree or trigger a fail-loud mismatch refusal, never silently
+  // downgrade it. Absent/unreadable/out-of-enum ledger level leaves the flag/default path unchanged.
+  const ledger = tryReadLedger(runDir);
+  const ledgerLevel = (ledger && FLOOR_LEVELS.includes(ledger.level)) ? ledger.level : null;
+  const { level, mismatch } = resolveGateLevel(ledgerLevel, flagLevel);
+  if (mismatch) {
+    process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} contradicts run-ledger level ${JSON.stringify(ledgerLevel)} (${path.join(runDir, "run-ledger.json")}); the ledger level governs — drop --level or pass --level ${ledgerLevel}\n`);
+    return 2;
+  }
   const parsedMerge = parseMergeArgs(mergeArgsRaw);
   if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
 
@@ -15193,6 +15218,13 @@ function mergeGateSelftest() {
   check("L4 holdout missing → refuse", F({ level: "L4", holdout: "missing" }).verdict === "refuse");
   check("L4 holdout blocked → refuse", F({ level: "L4", holdout: "blocked" }).verdict === "refuse");
   check("multi-blocker names all legs", F({ ac_complete: false, review_verdict: "fail" }).blockers.length === 2);
+  // resolveGateLevel (FAFF-424): ledger governs when present; flag/default path unchanged when absent
+  check("resolveGateLevel: L4 ledger, no flag → L4/no-mismatch", (() => { const r = resolveGateLevel("L4", null); return r.level === "L4" && r.mismatch === false; })());
+  check("resolveGateLevel: L4 ledger, L3 flag → mismatch", (() => { const r = resolveGateLevel("L4", "L3"); return r.level === "L4" && r.mismatch === true; })());
+  check("resolveGateLevel: L4 ledger, L4 flag → L4/no-mismatch", (() => { const r = resolveGateLevel("L4", "L4"); return r.level === "L4" && r.mismatch === false; })());
+  check("resolveGateLevel: no ledger, L3 flag → L3/no-mismatch", (() => { const r = resolveGateLevel(null, "L3"); return r.level === "L3" && r.mismatch === false; })());
+  check("resolveGateLevel: no ledger, no flag → L3 default", (() => { const r = resolveGateLevel(null, null); return r.level === "L3" && r.mismatch === false; })());
+  check("resolveGateLevel: out-of-enum ledger level (pre-normalised null), L4 flag → L4", (() => { const r = resolveGateLevel(null, "L4"); return r.level === "L4" && r.mismatch === false; })());
   // classifyHeadShaChecks
   check("head checks: empty → no-ci-coverage", classifyHeadShaChecks([], null, 0) === "no-ci-coverage");
   check("head checks: all success → ci-green", classifyHeadShaChecks([{ status: "completed", conclusion: "success" }], "success", 1) === "ci-green");

@@ -91,6 +91,13 @@ function readLedger(runDir) {
 //   { runDir, ledger }                — the happy path
 function resolveLedgerOrFault(get, root) {
   const requested = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  // NOTE (adversarial-review follow-up): existsSync here vs. readLedger's own try/catch
+  // below is a benign TOCTOU — if the ledger is deleted in the gap, the explicit-run
+  // branch reports "absent" for a file that was actually removed a moment later. Either
+  // message still lands on the correct outcome (a fault, exit 3); this only affects
+  // WHICH of the two fault strings is chosen, never fault-vs-not. The distinct wording
+  // exists purely so an operator can tell "never had a ledger" from "ledger vanished/
+  // corrupted after being read once" — not a correctness boundary.
   if (requested && !fs.existsSync(path.join(requested, "run-ledger.json"))) {
     return { fault: `explicit run named but its ledger is absent: ${requested}` };
   }
@@ -11653,8 +11660,17 @@ function sentryReadBudget(runDir) {
       if (j.outcome === "indeterminate") return { breached: [], outcome: "indeterminate" };
       return { breached: Array.isArray(j.breached) ? j.breached : [], outcome: typeof j.outcome === "string" ? j.outcome : "none" };
     }
-  } catch { /* fall through to the indeterminate default below */ }
-  return { breached: [], outcome: "indeterminate" };
+    // FAFF-425 (adversarial-review follow-up): the child itself faulted — exit 3
+    // (its OWN ledger fault) lands here (status!==0), as does exit 2/any other
+    // non-zero and a zero-status-but-empty-stdout. EXPLICIT, not a fall-through
+    // relying on the catch below's default: a non-OK child is itself a read
+    // fault and must never be read as "no breach".
+    return { breached: [], outcome: "indeterminate" };
+  } catch {
+    // spawnSync/JSON.parse threw outright (e.g. the child binary itself is
+    // unreachable) — same own-fault classification as above.
+    return { breached: [], outcome: "indeterminate" };
+  }
 }
 
 // Hermetic, TEST-ONLY clock seam for `sentry check` (FAFF-301). Resolves the
@@ -11730,8 +11746,12 @@ function cmdSentry(args) {
       ledger = resolved.ledger;
       events = sentryReadEvents(resolved.runDir);
       const injected = get("--budget-json"); // hermetic-test hook; default CONSUMES the CLI
+      // FAFF-425 (adversarial-review follow-up): unparseable injected JSON is itself an
+      // own-fault — it must NOT fall back to "none" (that is exactly the "quietly blind"
+      // swallow this ticket closes, just relocated to the test-hook seam instead of the
+      // real sentryReadBudget path).
       budget = injected
-        ? (() => { try { return JSON.parse(injected); } catch { return { breached: [], outcome: "none" }; } })()
+        ? (() => { try { return JSON.parse(injected); } catch { return { breached: [], outcome: "indeterminate" }; } })()
         : sentryReadBudget(resolved.runDir);
       // FAFF-425: a budget consult that couldn't read ITS ledger is an own-fault too
       // — handled here, not routed through evalBudgetBreach (breached stays [] for
@@ -11895,25 +11915,31 @@ function sentrySelftest() {
 
   // sentryIndeterminate: the loud, fail-closed payload shape — no verdicts, not
   // tripped, intervention stays "continue" (indeterminate is its OWN state).
-  const siCaptured = { json: null, err: "" };
+  // Capture arrays (not a single overwritten slot) so the assertion checks BEHAVIOUR
+  // (exactly one console.log call, its content) rather than assuming it — a future
+  // multi-line emission would show up as an extra captured entry, not a silently
+  // overwritten one.
+  const siLogCalls = [], siErrCalls = [];
   const origLog = console.log, origErrWrite = process.stderr.write;
-  console.log = (s) => { siCaptured.json = s; };
-  process.stderr.write = (s) => { siCaptured.err += s; return true; };
+  console.log = (s) => { siLogCalls.push(s); };
+  process.stderr.write = (s) => { siErrCalls.push(s); return true; };
   let siExit;
   try { siExit = sentryIndeterminate("test-reason", true, "/some/run/dir"); }
   finally { console.log = origLog; process.stderr.write = origErrWrite; }
-  const siPayload = JSON.parse(siCaptured.json);
-  ok("sentryIndeterminate: exit 3, JSON payload carries indeterminate+reason, no verdicts, continue/not-tripped",
-    siExit === 3 && siPayload.run_dir === "/some/run/dir" && Array.isArray(siPayload.verdicts) && siPayload.verdicts.length === 0 &&
+  const siPayload = siLogCalls.length === 1 ? JSON.parse(siLogCalls[0]) : null;
+  ok("sentryIndeterminate: exit 3, exactly one console.log call, JSON payload carries indeterminate+reason, no verdicts, continue/not-tripped",
+    siExit === 3 && siLogCalls.length === 1 && siErrCalls.length === 0 && siPayload &&
+    siPayload.run_dir === "/some/run/dir" && Array.isArray(siPayload.verdicts) && siPayload.verdicts.length === 0 &&
     siPayload.intervention === "continue" && siPayload.tripped === false && siPayload.indeterminate === true && siPayload.reason === "test-reason");
 
-  console.log = (s) => { siCaptured.json = s; }; // re-stub for the non-JSON (stderr) branch
-  process.stderr.write = (s) => { siCaptured.err = s; return true; };
+  siLogCalls.length = 0; siErrCalls.length = 0;
+  console.log = (s) => { siLogCalls.push(s); };
+  process.stderr.write = (s) => { siErrCalls.push(s); return true; };
   let siExit2;
   try { siExit2 = sentryIndeterminate("other-reason", false, null); }
   finally { console.log = origLog; process.stderr.write = origErrWrite; }
-  ok("sentryIndeterminate: non-JSON mode writes a fail-closed stderr line, still exit 3",
-    siExit2 === 3 && /INDETERMINATE — other-reason \(fail closed\)/.test(siCaptured.err));
+  ok("sentryIndeterminate: non-JSON mode writes exactly one fail-closed stderr line (no console.log), still exit 3",
+    siExit2 === 3 && siLogCalls.length === 0 && siErrCalls.length === 1 && /INDETERMINATE — other-reason \(fail closed\)/.test(siErrCalls[0]));
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (sentry --selftest, ${fail} failed)`);
   return fail ? 1 : 0;

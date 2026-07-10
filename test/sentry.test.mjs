@@ -311,6 +311,24 @@ test("FAFF-425: no run at all in the repo → exit 0, all-clear, unchanged (legi
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("FAFF-425 (adversarial-review follow-up): an UNPARSEABLE --budget-json is itself an own-fault → indeterminate, never the pre-fix 'none' swallow", () => {
+  const dir = tmp();
+  try {
+    const ledger = {
+      run_id: "r", admitted: ["A"], outcomes: {},
+      owner: { status: "running", started_at: "2026-06-29T00:00:00Z", last_heartbeat: "2026-06-29T00:00:00Z" },
+    };
+    const rd = mkRun(dir, "r", ledger);
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--budget-json", "{ not json"]);
+    assert.equal(r.code, 3, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.indeterminate, true);
+    assert.equal(out.tripped, false);
+    assert.equal(out.intervention, "continue");
+    assert.match(out.reason, /budget consult indeterminate/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("FAFF-425: a budget consult that hits the same own-fault (indeterminate) propagates through sentry check as its own indeterminate, not a trip", () => {
   const dir = tmp();
   try {

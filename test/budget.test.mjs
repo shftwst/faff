@@ -255,6 +255,67 @@ test("unset dimensions are unbounded → never breach (empty budget block)", () 
     const s = JSON.parse(r.out);
     assert.deepEqual(s.breached, []);
     assert.equal(s.outcome, "none");
+    assert.ok(!("warnings" in s), "no warnings key on a clean envelope — byte-identical to before FAFF-364");
+  } finally { f.cleanup(); }
+});
+
+// FAFF-364 — a malformed budget.until degrades to a WARNING, never a hard exit: a
+// non-zero exit here would fail-OPEN the whole budget signal for
+// sentryReadBudget/run-done --budget (which degrade any non-zero child to the
+// unbreached default), masking a real live tokens/cost breach.
+test("FAFF-364: malformed budget.until → exit 0, warnings names the raw value, breached excludes until", () => {
+  const f = fixture({ rc: "budget:\n  until: \"25:00\"\n  max_attempts: 5\n", ledger: baseLedger() });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.ok(Array.isArray(s.warnings) && s.warnings.length === 1, "warnings carries exactly one entry");
+    assert.match(s.warnings[0], /25:00/);
+    assert.match(s.warnings[0], /until ceiling ignored/);
+    assert.ok(!s.breached.includes("until"), "breached never contains until for a malformed value");
+    assert.match(r.err, /faff budget check: budget\.until '25:00' is not a valid HH:MM/, "mirrors to stderr, prefixed");
+  } finally { f.cleanup(); }
+});
+
+// FAFF-364 — a malformed --until flag (overriding a clean config value) is classified
+// identically to a malformed config value — the flag-over-config precedence is
+// unchanged, only the WINNING raw value is validated.
+test("FAFF-364: malformed --until flag warns; a well-formed config value it overrides is not consulted", () => {
+  const f = fixture({ rc: "budget:\n  until: \"06:00\"\n", ledger: baseLedger() });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--until", "not-a-time"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.match(s.warnings[0], /not-a-time/);
+    assert.ok(!s.breached.includes("until"));
+  } finally { f.cleanup(); }
+});
+
+// FAFF-364 — a well-formed --until flag proceeds clean: no warnings key at all.
+test("FAFF-364: well-formed --until flag → clean, no warnings key", () => {
+  const f = fixture({ rc: "budget:\n  until: \"25:00\"\n", ledger: baseLedger() });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--until", "06:00"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.ok(!("warnings" in s), "the flag's clean value wins; no warning surfaces");
+  } finally { f.cleanup(); }
+});
+
+// FAFF-364 — a legacy ledger-recorded envelope carrying malformed until garbage
+// (minted before this validation existed) surfaces until_invalid on READ too, via
+// envelopeFromLedger.
+test("FAFF-364: a ledger recording a legacy malformed until surfaces the warning on read", () => {
+  const f = fixture({
+    rc: "",
+    ledger: baseLedger({ budget: { envelope: { ceilings: { until: "garbage", max_attempts: null, tokens: null, cost: null }, at_ceiling: "stop", price_per_mtok: 0 } } }),
+  });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.match(s.warnings[0], /garbage/);
+    assert.ok(!s.breached.includes("until"));
   } finally { f.cleanup(); }
 });
 

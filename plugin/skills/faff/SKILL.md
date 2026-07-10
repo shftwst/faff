@@ -93,7 +93,7 @@ All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at t
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
-**Resolver.** The bundled `faff` CLI — a single dependency-free Node script run directly via its shebang — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
+**Resolver.** The bundled `faff` CLI — a dependency-free Node CLI (a thin shebang entrypoint plus modules under `bin/lib/`) run directly via its shebang — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
 
 - `faff config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
 - `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.

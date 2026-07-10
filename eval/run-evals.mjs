@@ -390,7 +390,7 @@ export function resolveGateDriver(argv) {
 // A pure skill-prose diff (only *.md) is `prose`. Empty list → `prose` (nothing code-bearing to judge).
 export function classifyDiffSurface(files) {
   const substantive = (files ?? []).some((f) =>
-    /(^|\/)contracts\//.test(f) || /\/bin\/faff$/.test(f) || /eval\/grader\.mjs$/.test(f) || /\.mjs$/.test(f));
+    /(^|\/)contracts\//.test(f) || /\/faff\/bin\//.test(f) || /eval\/grader\.mjs$/.test(f) || /\.mjs$/.test(f));
   return substantive ? "substantive" : "prose";
 }
 

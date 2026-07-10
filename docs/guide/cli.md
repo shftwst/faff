@@ -1,6 +1,6 @@
 # The `faff` CLI
 
-A small command-line tool ships **inside the faff plugin** — `faff`, a single dependency-free Node script (no `npm install`, no `node_modules`, no build — just `node`). It's the **deterministic-tools-over-prose** half of the suite: every mechanical, contractual, reproducible operation lives here so the skills don't hand-parse YAML, eyeball ledgers, or re-derive transition rules. Same input → same output, every run.
+A small command-line tool ships **inside the faff plugin** — `faff`, a dependency-free Node CLI: a thin entrypoint (`bin/faff`) plus modules under `bin/lib/` (no `npm install`, no `node_modules`, no build — just `node`). It's the **deterministic-tools-over-prose** half of the suite: every mechanical, contractual, reproducible operation lives here so the skills don't hand-parse YAML, eyeball ledgers, or re-derive transition rules. Same input → same output, every run.
 
 The skills and hooks invoke it for themselves — each resolves it as `command -v faff` if it's on `PATH`, otherwise from its own install location (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff` when running as a plugin, or the sibling `faff/bin/faff` when dev-linked) — so **normal use needs no setup**.
 

@@ -14021,12 +14021,16 @@ function worktreeRootSelftest() {
 // false, so a null/unknown occupant refuses fail-closed rather than slipping through.
 const ADVERSARIAL_REVIEW_OCCUPANTS = new Set(["faffter-dark-adversarial-review"]);
 const ADVERSARIAL_SPEC_REVIEW_OCCUPANTS = new Set(["faffter-dark-spec-review"]);
-// Vetted-by-construction recipe names — the FAFF-18 forward-compat seam. A non-null
-// recipe in this set short-circuits dialCoherence to coherent (human-ratified); a
-// non-vetted recipe string falls THROUGH to the standalone rules (never an auto-pass).
-// No `recipe` config key exists yet, so nothing can supply one today; `mature-prod`
-// is FAFF-18's worked example, pre-seeded here so the seam is exercised and inert.
-const VETTED_RECIPES = new Set(["mature-prod"]);
+// Vetted-by-construction recipe names — the FAFF-18 forward-compat seam. `recipe` IS
+// live-readable from user config today (cmdLightsOut reads `dig(cfg, "recipe")` and
+// feeds it straight into this dial) — it is NOT inert. The set is intentionally EMPTY
+// pending FAFF-18: a non-null recipe not in this set falls THROUGH to Rules A+B below
+// (never an auto-pass), so today every recipe name is adjudicated on its own dial, not
+// vetted by name. Re-populate an entry ONLY once the FAFF-377 contract is satisfied —
+// either the name corresponds to a schema that guarantees-by-construction it sets
+// adversarial review + fail-closed gates, or this seam is upgraded to verify-not-trust.
+// A bare name added here without that would bypass the L4 second-opinion gate.
+const VETTED_RECIPES = new Set();
 
 // Pure: is `occupant` a known adversarial occupant of `kindSet`? Fail-closed on
 // null/unknown (returns false) — the caller treats that as a refusal.
@@ -14694,17 +14698,22 @@ function lightsOutSelftest() {
   check("isAdversarial(unknown) is false", isAdversarial("nope", ADVERSARIAL_REVIEW_OCCUPANTS) === false);
   check("isAdversarial(allowlisted) is true", isAdversarial("faffter-dark-adversarial-review", ADVERSARIAL_REVIEW_OCCUPANTS) === true);
 
-  // Vetted recipe short-circuits: even an otherwise-reckless dial yields no refusals.
-  check("vetted recipe short-circuits to no refusals",
-    dialCoherence({ recipe: "mature-prod", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" }).length === 0);
+  // FAFF-377: VETTED_RECIPES is empty, so a recipe name alone never short-circuits —
+  // an otherwise-reckless dial still yields refusals even with a recognised recipe name.
+  check("named recipe does NOT short-circuit a reckless dial",
+    dialCoherence({ recipe: "mature-prod", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" }).length > 0);
   const vettedProceed = lightsOutPreflight(armedProbes({
-    dial: { level: "L4", recipe: "mature-prod", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" },
+    dial: { level: "L4", recipe: "mature-prod", slots: { review: "faffter-dark-adversarial-review", spec_review: "faffter-dark-spec-review" }, gates_fallback: "fail-closed" },
   }));
-  check("vetted recipe proceeds through the preflight", vettedProceed.proceed === true);
+  check("recipe name + a coherent dial proceeds (via Rules A+B, not the name)", vettedProceed.proceed === true);
 
   // Edge: a non-vetted recipe string falls THROUGH to the standalone rules (no auto-pass).
   check("non-vetted recipe falls through to the standalone rules",
     dialCoherence({ recipe: "made-up-recipe", slots: { review: "faffter-noon-review", spec_review: "faffter-noon-spec-review" }, gates_fallback: "advisory" }).length > 0);
+
+  // FAFF-377 trip-wire: VETTED_RECIPES must stay empty until FAFF-18 satisfies the
+  // re-population contract (schema guarantees-by-construction, or verify-not-trust).
+  check("VETTED_RECIPES empty until FAFF-18", VETTED_RECIPES.size === 0);
 
   // Assertion: every coherence refusal carries a `dial-coherence:` gate and a non-empty detail.
   const allCoherenceRefusals = [...reckReview.refusals, ...reckSpecReview.refusals, ...reckGates.refusals]

@@ -29,9 +29,10 @@ function tmpRoot(dial = {}) {
   // supplies an explicit `budget:` block (the count-cap / explicit-at_ceiling fixtures).
   const budgetBlock = dial.budget === null ? ""
     : (typeof dial.budget === "string" ? dial.budget : "budget:\n  tokens: 50000000\n");
+  const recipeLine = dial.recipe ? `recipe: ${dial.recipe}\n` : "";
   fs.writeFileSync(
     path.join(dir, ".faffrc.yaml"),
-    `slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n${budgetBlock}`);
+    `${recipeLine}slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n${budgetBlock}`);
   return dir;
 }
 const CONTAINED = { ...process.env, KUBERNETES_SERVICE_HOST: "10.0.0.1" };
@@ -355,6 +356,28 @@ test("lights-out: reckless dial combination refuses (non-adversarial review + ad
     assert.ok(typeof r.detail === "string" && r.detail.length > 0, `${r.gate} has a detail`);
   }
   assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on a reckless dial");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// FAFF-377 — a named recipe does NOT bypass dial-coherence: VETTED_RECIPES is empty,
+// so `recipe: mature-prod` paired with an otherwise-reckless dial (non-adversarial
+// review + spec_review, advisory gates) still refuses on the named dial-coherence
+// gates, exactly as an un-named reckless dial would.
+test("lights-out: named recipe + reckless dial still refuses (no name-based bypass)", () => {
+  const root = tmpRoot({
+    recipe: "mature-prod",
+    review: "faffter-noon-review",
+    spec_review: "faffter-noon-spec-review",
+    gates_fallback: "advisory",
+  });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--max", "5", "--json"], { env: CONTAINED });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  const coherenceRefusals = out.refusals.filter((r) => r.gate.startsWith("dial-coherence:"));
+  assert.ok(coherenceRefusals.length >= 1, "at least one dial-coherence refusal fires");
+  assert.ok(out.refusals.some((r) => r.gate === "dial-coherence:adversarial-review"), "names the non-adversarial review gate");
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted — a recipe name never auto-passes");
   fs.rmSync(root, { recursive: true, force: true });
 });
 

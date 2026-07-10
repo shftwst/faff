@@ -319,6 +319,58 @@ test("FAFF-364: a ledger recording a legacy malformed until surfaces the warning
   } finally { f.cleanup(); }
 });
 
+// FAFF-364 (adversarial-review follow-up) — a ledger recording `until_invalid`
+// DIRECTLY (ceilings.until already null, not raw garbage) round-trips the warning
+// too, rather than silently dropping a recorded invalidity that re-derivation from
+// a null ceilings.until can't reconstruct on its own.
+test("FAFF-364: a ledger recording until_invalid directly (ceilings.until already null) round-trips the warning", () => {
+  const f = fixture({
+    rc: "",
+    ledger: baseLedger({
+      budget: {
+        envelope: {
+          ceilings: { until: null, max_attempts: null, tokens: null, cost: null },
+          until_invalid: "recorded-garbage",
+          at_ceiling: "stop",
+          price_per_mtok: 0,
+        },
+      },
+    }),
+  });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.match(s.warnings[0], /recorded-garbage/);
+    assert.ok(!s.breached.includes("until"));
+  } finally { f.cleanup(); }
+});
+
+// FAFF-364 — a --until flag override still wins even when the ledger recorded an
+// until_invalid: the flag's own resolution is authoritative, the recorded
+// until_invalid must NOT leak through when a fresh flag is in play.
+test("FAFF-364: a --until flag overriding a ledger with a recorded until_invalid is authoritative (no leak-through)", () => {
+  const f = fixture({
+    rc: "",
+    ledger: baseLedger({
+      budget: {
+        envelope: {
+          ceilings: { until: null, max_attempts: null, tokens: null, cost: null },
+          until_invalid: "recorded-garbage",
+          at_ceiling: "stop",
+          price_per_mtok: 0,
+        },
+      },
+    }),
+  });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--until", "06:00"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.ok(!("warnings" in s), "the flag's clean value wins; the ledger's recorded until_invalid must not leak through");
+  } finally { f.cleanup(); }
+});
+
 // FAFF-302: hermetic, explicit-flag-only clock seam (--now-ms / --now), the twin of
 // the FAFF-301 sentry seam. baseLedger's `started_at` is a fixed absolute instant
 // (2026-06-23T15:00:00Z) evaluated against `Date.now()`, so before the seam the

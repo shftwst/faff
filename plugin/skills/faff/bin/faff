@@ -2898,9 +2898,20 @@ function envelopeFromLedger(rec, flags, cfg) {
   if (!AT_CEILING_OUTCOMES.has(atCeiling)) atCeiling = "stop";
   // FAFF-364: flags.until still wins over the recorded ceiling; either source is
   // reclassified through resolveUntil so a legacy ledger carrying malformed garbage
-  // (minted before this validation existed) surfaces until_invalid on read too.
-  const rawUntil = flags && flags.until != null ? flags.until : (recCeil.until ?? null);
-  const { until, until_invalid } = resolveUntil(rawUntil);
+  // directly in ceilings.until (minted before this validation existed) surfaces
+  // until_invalid on read too. Defence-in-depth: when NOT overridden by a flag and
+  // re-derivation finds nothing wrong with ceilings.until (typically because it is
+  // null), a record that ALREADY carries an explicit until_invalid is honoured
+  // rather than silently dropped — a ledger shape this envelope's own mint path
+  // never produces today (cmdLightsOut refuses to mint whenever until_invalid is
+  // set), but the read path must not assume it is the only writer forever.
+  const usingFlag = !!(flags && flags.until != null);
+  const rawUntil = usingFlag ? flags.until : (recCeil.until ?? null);
+  const derived = resolveUntil(rawUntil);
+  const until = derived.until;
+  const until_invalid = !usingFlag && derived.until_invalid == null && rec.until_invalid != null
+    ? String(rec.until_invalid)
+    : derived.until_invalid;
   return {
     ceilings: {
       until,

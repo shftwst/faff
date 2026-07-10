@@ -89,7 +89,7 @@ test("FAFF-443: --global from a linked worktree sources the MAIN checkout (not t
   try {
     const r = linkSh(wt, home, "--global");
     assert.equal(r.code, 0, r.err);
-    assert.match(r.out, /worktree detected — sourcing global links from the main checkout/);
+    assert.match(r.err, /worktree detected — sourcing global links from the main checkout/); // notice on stderr (stays loud under >/dev/null)
     const demoLink = join(home, ".claude", "skills", "demo-skill");
     assert.ok(existsSync(demoLink), "demo-skill link should exist");
     assert.equal(realpathSync(demoLink), realpathSync(join(main, "plugin", "skills", "demo-skill")),
@@ -135,6 +135,23 @@ test("FAFF-443 regression: local (non --global) mode from a worktree links the w
     assert.doesNotMatch(r.out, /worktree detected/, "local mode never retargets");
     assert.equal(realpathSync(join(wt, ".claude", "skills", "demo-skill")),
       realpathSync(join(wt, "plugin", "skills", "demo-skill")), "local links point at the worktree's own skills");
+  } finally { clean([main, wt, home]); }
+});
+
+test("FAFF-443: --global --unlink from a worktree does NOT retarget (documented pre-worktree-remove cleanup operates on the worktree's own links)", () => {
+  const main = mkMainRepo();
+  const wt = addWorktree(main);
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    // simulate a pre-fix worktree-SOURCED global install (links → the worktree's plugin/skills)
+    mkdirSync(join(home, ".claude", "skills"), { recursive: true });
+    execFileSync("ln", ["-s", join(wt, "plugin", "skills", "demo-skill"), join(home, ".claude", "skills", "demo-skill")]);
+    const r = linkSh(wt, home, "--global", "--unlink");
+    assert.equal(r.code, 0, r.err);
+    assert.doesNotMatch(r.err, /worktree detected/, "--unlink must not retarget");
+    // the worktree-sourced link is the one --unlink cleans (retarget would have missed it)
+    assert.equal(existsSync(join(home, ".claude", "skills", "demo-skill")), false,
+      "the worktree-sourced link should have been unlinked");
   } finally { clean([main, wt, home]); }
 });
 

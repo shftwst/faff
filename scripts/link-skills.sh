@@ -85,7 +85,12 @@ fi
 # mainWorktreeRoot() predicate (the Node helper is unreachable from bash) and fails safe to
 # today's SCRIPT_DIR-derived source on the main checkout / a bare repo / a non-repo / no git.
 SRC_ROOT="$REPO_ROOT"
-if [ "$GLOBAL" -eq 1 ]; then
+# Only the LINK-CREATING flow retargets. --unlink and --status inspect/remove links AT the
+# invocation context and must operate on the worktree they were called from (FAFF-443 review):
+# `--global --unlink` from a worktree is the documented pre-worktree-remove cleanup and must match
+# that worktree's OWN links, not main's — retargeting it would leave a worktree-sourced install
+# (a pre-fix migration case) uncleaned. (--prune rides the create flow below and keeps the retarget.)
+if [ "$GLOBAL" -eq 1 ] && [ "$UNLINK" -eq 0 ] && [ "$STATUS" -eq 0 ]; then
   common_dir="$(git -C "$REPO_ROOT" rev-parse --git-common-dir 2>/dev/null || true)"
   if [ -n "$common_dir" ]; then
     case "$common_dir" in
@@ -102,8 +107,8 @@ if [ "$GLOBAL" -eq 1 ]; then
           exit 1
         fi
         SRC_ROOT="$main_root"
-        echo "⚠  worktree detected — sourcing global links from the main checkout: $main_root"
-        echo
+        # Diagnostic on stderr so it stays "loud" even for callers that redirect stdout (FAFF-443 review).
+        echo "⚠  worktree detected — sourcing global links from the main checkout: $main_root" >&2
       fi
     fi
   fi

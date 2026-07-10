@@ -276,6 +276,8 @@ faff runcheck   # audits the latest .faff/runs/* ledger
 
 beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 11) and the Stop hook (below) rather than resting on prose alone:
 
+**Mint the run directory as `run-YYYYMMDD-HHMMSS-beepboop-<mode>`** (UTC; `beepboop` one word; `<mode>` the run mode, e.g. `full`/`list`). This is the canonical run-id — the gateway `.faff/` layout, wtf's enrichment, and the CLI's `latestRunDir`/`STRAY_TRANSCRIPT` all key off it. Legacy dirs coexist and are tolerated by mtime-ordered resolution; never rename them.
+
 ```json
 { "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
   "discovered_scope_filed": 0,

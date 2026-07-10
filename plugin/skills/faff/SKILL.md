@@ -524,7 +524,7 @@ Every faff skill invocation writes a structured markdown log to the repo-local `
       HHMMSS-<skill>[-<context>].md         # one file per skill invocation
       HHMMSS-tidy-verdicts.md               # standalone-tidy automation verdict cache
   runs/
-    YYYY-MM-DD-beep-boop-HH-MM-SS/          # grouped per beep-boop run
+    run-YYYYMMDD-HHMMSS-beepboop-<mode>/    # grouped per beep-boop run (canonical mint — legacy dirs coexist, tolerated by mtime-ordered resolution)
       summary.md
       run-ledger.json                       # admitted issues + terminal outcomes (audited by runcheck)
       slot-validation.md                    # cached per-occupant conformance verdicts (non-default occupants)

@@ -9067,6 +9067,28 @@ function mergeFencePresentAt(root) {
   return preToolUseCommands(settings).some((c) => commandInvokesFaffHook(c, "merge-fence"));
 }
 
+// FAFF-443: classify a live global skill/CLI symlink by WHERE it resolves. A global install
+// is machine-wide, so a link resolving into a linked worktree is "live but fragile" — it will
+// dangle when that worktree is removed. The target sits in a LINKED worktree iff that checkout's
+// own top-level differs from the repo's main checkout: `mainWorktreeRoot(dir)` is the parent of
+// the shared git-common-dir (the MAIN checkout — the SAME value from the main checkout AND from
+// any linked worktree, since they share the common dir), while `git rev-parse --show-toplevel`
+// is THIS checkout's root — they diverge only inside a linked worktree. (`git -C` resolves from
+// any path within a checkout, so the target's containing dir is a sufficient probe.) Returns
+// "dangling" (target gone / realpath race), "intoWorktree" (fragile), or "live".
+function classifyGlobalLink(full) {
+  if (!fs.existsSync(full)) return "dangling";       // symlink target gone
+  let real;
+  try { real = fs.realpathSync(full); }
+  catch { return "dangling"; }                        // TOCTOU: raced removal mid-classify
+  const dir = path.dirname(real);
+  const mainRoot = mainWorktreeRoot(dir);            // main checkout (common-dir parent), or null
+  if (!mainRoot) return "live";                       // bare / non-repo / no git → not fragile
+  const top = spawnSync("git", ["-C", dir, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
+  if (top.status !== 0 || !(top.stdout || "").trim()) return "live";
+  return path.resolve(mainRoot) !== path.resolve(top.stdout.trim()) ? "intoWorktree" : "live";
+}
+
 function cmdDoctor(args) {
   let target = null;
   let root = null;
@@ -9088,6 +9110,7 @@ function cmdDoctor(args) {
   console.log(`faff doctor — install health (${target})`);
   let copies = 0;
   let dangling = 0;
+  let intoWorktree = 0;
   for (const name of entries) {
     const full = path.join(target, name);
     let st;
@@ -9096,8 +9119,13 @@ function cmdDoctor(args) {
       // A symlink is healthy only if its target resolves. lstat answers "is-a-symlink"
       // without following the link, so a dangling link (a rename-orphan, FAFF-296) reads
       // as healthy. existsSync follows the link — false ⇒ target gone ⇒ dangling. (FAFF-299)
-      if (fs.existsSync(full)) {
+      // FAFF-443: a live link may still be FRAGILE if it resolves into a linked worktree.
+      const state = classifyGlobalLink(full);
+      if (state === "live") {
         console.log(`  ✓ ${name}  symlink (live → repo)`);
+      } else if (state === "intoWorktree") {
+        intoWorktree++;
+        console.log(`  ⚠ ${name}  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
       } else {
         dangling++;
         console.log(`  ✗ ${name}  symlink-dangling (target gone — stale orphan)`);
@@ -9110,7 +9138,17 @@ function cmdDoctor(args) {
   const bin = path.join(process.env.HOME || "", ".local", "bin", "faff");
   try {
     const bst = fs.lstatSync(bin);
-    console.log(`  ${bst.isSymbolicLink() ? "✓" : "•"} bin/faff  ${bst.isSymbolicLink() ? "symlink (live)" : "real file (copy)"}`);
+    if (bst.isSymbolicLink()) {
+      // FAFF-443: same fragility check for the CLI link — a worktree-sourced bin/faff dangles too.
+      if (classifyGlobalLink(bin) === "intoWorktree") {
+        intoWorktree++;
+        console.log(`  ⚠ bin/faff  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
+      } else {
+        console.log(`  ✓ bin/faff  symlink (live)`);
+      }
+    } else {
+      console.log(`  • bin/faff  real file (copy)`);
+    }
   } catch { /* bin link optional */ }
 
   // FAFF-434: the merge-fence PreToolUse registration — a distinct install-health axis
@@ -9121,13 +9159,14 @@ function cmdDoctor(args) {
     ? `  ✓ merge-fence PreToolUse fence present`
     : `  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
 
-  if (copies > 0 || dangling > 0 || !fenceOk) {
+  if (copies > 0 || dangling > 0 || intoWorktree > 0 || !fenceOk) {
     const problems = [];
     if (copies > 0 || dangling > 0) problems.push(`${copies} copy / ${dangling} dangling skill link(s)`);
+    if (intoWorktree > 0) problems.push(`${intoWorktree} worktree-sourced link(s) (fragile — will dangle on worktree removal)`);
     if (!fenceOk) problems.push("merge-fence PreToolUse fence missing");
     console.log(`\nRESULT: ${problems.join(" + ")} — install is not clean.`);
     const fixes = [];
-    if (copies > 0 || dangling > 0) fixes.push("bash scripts/link-skills.sh --global --replace --prune");
+    if (copies > 0 || dangling > 0 || intoWorktree > 0) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
     if (!fenceOk) fixes.push("faff hooks-ensure");
     console.log(`Fix: ${fixes.join(" && ")}`);
     return 1;

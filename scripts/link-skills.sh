@@ -42,10 +42,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SKILLS_ROOT="$REPO_ROOT/plugin/skills"
-SRC_DIR="$SKILLS_ROOT"
-BIN_SRC="$SRC_DIR/faff/bin/faff"     # the bundled faff CLI executable
 BIN_DST="${HOME}/.local/bin/faff"    # symlinked here so `faff …` works on PATH
+# SRC_DIR / SKILLS_ROOT / BIN_SRC are derived AFTER arg-parse (below the --global block):
+# --global from a linked worktree retargets the source to the main checkout (FAFF-443),
+# so they can't be fixed here before GLOBAL is known.
 
 DRY_RUN=0
 PRUNE=0
@@ -77,6 +77,40 @@ if [ "$GLOBAL" -eq 1 ]; then
 else
   TARGET_DIR="${REPO_ROOT}/.claude/skills"
 fi
+
+# FAFF-443: a --global install is machine-wide and long-lived, so it must be sourced from
+# the stable main checkout, never an ephemeral linked worktree — otherwise the global links
+# dangle when that worktree is removed. Only --global is affected; repo-local mode correctly
+# links a worktree's OWN skills into its own .claude/skills. This mirrors bin/faff's
+# mainWorktreeRoot() predicate (the Node helper is unreachable from bash) and fails safe to
+# today's SCRIPT_DIR-derived source on the main checkout / a bare repo / a non-repo / no git.
+SRC_ROOT="$REPO_ROOT"
+if [ "$GLOBAL" -eq 1 ]; then
+  common_dir="$(git -C "$REPO_ROOT" rev-parse --git-common-dir 2>/dev/null || true)"
+  if [ -n "$common_dir" ]; then
+    case "$common_dir" in
+      /*) ;;                                       # already absolute
+      *)  common_dir="$REPO_ROOT/$common_dir" ;;   # resolve relative to REPO_ROOT
+    esac
+    # `<main>/.git` for a linked worktree; the main checkout is its parent. Bail on bare/odd layouts.
+    if [ "$(basename "$common_dir")" = ".git" ]; then
+      main_root="$(cd "$(dirname "$common_dir")" 2>/dev/null && pwd || true)"
+      if [ -n "$main_root" ] && [ "$main_root" != "$REPO_ROOT" ]; then
+        # REPO_ROOT is a linked worktree — source the durable global install from main.
+        if [ ! -d "$main_root/plugin/skills" ]; then
+          echo "✗ --global from a linked worktree, but the main checkout has no plugin/skills at $main_root/plugin/skills — refusing (a retarget would dangle immediately)." >&2
+          exit 1
+        fi
+        SRC_ROOT="$main_root"
+        echo "⚠  worktree detected — sourcing global links from the main checkout: $main_root"
+        echo
+      fi
+    fi
+  fi
+fi
+SKILLS_ROOT="$SRC_ROOT/plugin/skills"
+SRC_DIR="$SKILLS_ROOT"
+BIN_SRC="$SRC_DIR/faff/bin/faff"     # the bundled faff CLI executable (re-derived post-retarget)
 
 # Discover skills by SKILL.md presence, excluding the scripts dir.
 shopt -s nullglob

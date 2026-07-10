@@ -426,6 +426,56 @@ test("FAFF-302: an unparseable injected clock exits 2 with a stderr reason (neve
   } finally { f.cleanup(); }
 });
 
+// FAFF-425 — the run's own inability to read its ledger is a loud, distinct
+// "indeterminate" fault (exit 3), never silently coerced into the all-clear
+// outcome:"none" reading a swallowed exception used to produce.
+
+test("FAFF-425: own-fault — a present-but-corrupt ledger at the resolved run dir → exit 3, indeterminate JSON naming the ledger path", () => {
+  const f = fixture({ rc: "budget:\n  max_attempts: 1\n", ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "run-ledger.json"), "{ not json");
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 3, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.outcome, "indeterminate");
+    assert.equal(s.indeterminate, true);
+    assert.match(s.reason, /ledger unreadable/);
+    assert.match(s.reason, /run-ledger\.json/);
+    assert.deepEqual(s.spent, { elapsed_ms: null, attempts: 0, tokens: 0, cost: null });
+    assert.equal(s.tokens_source, null);
+    assert.deepEqual(s.breached, []);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-425: own-fault — an explicit --run-dir naming an absent ledger → exit 3, indeterminate, NEVER falls back to latestRunDir", () => {
+  const f = fixture({ rc: "budget:\n  max_attempts: 1\n", ledger: baseLedger() });
+  try {
+    // A real, healthy run exists as `latest` — proving the resolver does not
+    // quietly fall back to it when the EXPLICIT --run-dir's ledger is missing.
+    const missing = join(f.root, ".faff", "runs", "does-not-exist");
+    const r = run(["budget", "check", "--run-dir", missing, "--root", f.root]);
+    assert.equal(r.code, 3, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.outcome, "indeterminate");
+    assert.equal(s.indeterminate, true);
+    assert.match(s.reason, /explicit run named but its ledger is absent/);
+    assert.match(s.reason, /does-not-exist/);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-425: legitimately empty — no run at all under the root → exit 0, all-clear, byte-identical outcome:none (not a fault)", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-budget-empty-"));
+  try {
+    const r = run(["budget", "check", "--root", root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.outcome, "none");
+    assert.ok(!("indeterminate" in s), "empty is not a fault — no indeterminate key");
+    assert.ok(!("reason" in s), "empty is not a fault — no reason key");
+    assert.deepEqual(s.breached, []);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("FAFF-302: production default unchanged — no clock flag uses real Date.now() (elapsed_ms tracks the wall clock)", () => {
   // started_at is ~now, so real elapsed is a small non-negative number near 0 — the
   // unpinned production path is untouched by the seam.

@@ -46,6 +46,10 @@ const REGION_MAP = {
   "budget": "governance",
   "sentry": "governance",
   "audit": "governance",
+  // reconcile — FAFF-397: the run-end GROUND-TRUTH gate, part of the same flight-recorder
+  // family as runcheck (completeness) / effects (declared-vs-observed) / audit (forensics) —
+  // a pure core with NO factory-identifier references, so it belongs in governance too.
+  "reconcile": "governance",
   // factory — everything else (faff-the-factory's domain)
   "config": "factory",
   "sync": "factory",
@@ -125,6 +129,7 @@ const REGION_SELFTEST_ARGV = {
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
   "audit": ["audit", "--selftest"],
+  "reconcile": ["reconcile", "--selftest"],
   // factory — argv per member; null = deliberately no standalone selftest
   "config": ["config", "init", "--selftest"],
   "sync": null,

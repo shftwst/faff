@@ -163,6 +163,8 @@ Do not require a repo-side spec file at this stage — faff-graft commits the sp
 
 **Record to the run ledger.** Append every admitted issue to `admitted`, and write each routed-out issue's `routed-out` outcome immediately, in `.faff/runs/<run-id>/run-ledger.json` (see _Run ledger_). The ledger is what step 11's `runcheck` audits — keep it current as the queue is assembled and drained.
 
+**Run-start sibling snapshot (FAFF-397 — feeds step 11.5's reconcile gate).** Each admitted candidate's spec is already read here for the routing-verdict gate above — reuse that read (no extra fetch). Extract every referenced issue id it names (`<issue id=…>` embeds and bare `FAFF-NN`-shaped mentions) that is **not** itself in `admitted`, and for each one record its **current** state-category (terminal — Done/Cancelled — or not) to `<run-dir>/sibling-baseline.json` (`{issue, start_state_terminal}[]`). This is the bounded, deterministic set step 11.5 re-reads live at run-end to catch a non-admitted sibling that flipped terminal mid-run — not an unbounded whole-tracker scan. A sibling later admitted in a subsequent wave (chain-unlock) is simply excluded from the reconcile input by virtue of being in `admitted` by then (see step 11.5).
+
 Exclude anything parked during the prep queue (no valid spec or flagged for human attention). Also exclude anything **not automation-eligible** (gateway → **Automation eligibility**) — though by construction a not-eligible item can't reach here (prep/tidy never promoted it to Todo); this is the defence-in-depth early-exit.
 
 ### 5. Conflict analysis
@@ -271,6 +273,19 @@ faff runcheck   # audits the latest .faff/runs/* ledger
 - **Exit 0 (clean)** — every admitted issue reached a terminal outcome. Proceed to reporting.
 - **Exit 3 (undispatched)** — one or more admitted issues never reached a terminal state. The run is **not complete**: return to step 8 and dispatch them, or genuinely park them under a valid category, then re-run runcheck. **Do not** write a "complete" summary while runcheck fails — that is the deferred-queue anti-pattern (gateway → Autonomous Mode Contract), now caught mechanically rather than left to prose compliance.
 - **Exit 2 (no/malformed ledger)** — the ledger wasn't maintained; treat as a run-integrity error, reconstruct it from the per-issue dirs + verdict cache, then re-check.
+
+### 11.5. Run-end ground-truth reconcile (FAFF-397 — blocking at L4, warn at ≤L3)
+
+Runs immediately **after** step 11's `runcheck` (completeness) and **before** writing the run summary — a **separate** gate for a **separate** property. `runcheck` proves the ledger is internally complete (`admitted − outcomes = ∅`); this gate confronts each ledger claim with **live** reality (git/forge + tracker), so a phantom merge or a wrongly-mutated sibling doesn't survive to a "complete" run report uncaught. `faff reconcile`'s assertion core is pure (no model judgement in the gate itself) — this step is the orchestrator's impure evidence-gathering half, mirroring the `merge-gate` split.
+
+1. **Assemble `ReconcileInput`.** For every ledger outcome `== "shipped"`, read `<run-dir>/<issue>/merge-record.json` (written by `merge-gate` on the merge-ok path) as `recorded`, and observe the **live** forge (`gh pr view <pr> --json state,headRefOid`) for `observed: {pr_merged: state == "MERGED", merged_head_sha: headRefOid}`. **Observe `headRefOid`, NOT `mergeCommit`** — `recorded.head_sha` is the PR **head** sha `merge-gate` pinned with `--match-head-commit` (the same `headRefOid`); comparing it against the squash/merge **commit** sha would false-positive a `phantom-merge` on every clean squash merge (the forge always mints a new commit sha for a squash), so the comparison must be head-against-head. An unreadable/missing record is passed through as `recorded: null` — never silently dropped or assumed-fine (the reconcile core fails it closed to a divergence). For siblings, re-read step 4's `<run-dir>/sibling-baseline.json` entries **live** (their current state-category) into `end_state_terminal`, carrying `admitted` as membership in the run's final `admitted[]` (so a later-wave chain-unlock is excluded).
+2. **Pipe to the pure gate:** `faff reconcile --run-dir "$run_dir" --level <L1..L4> --json` (stdin = the assembled `ReconcileInput`; the CLI stamps its own `level` from the flag). Heartbeat `faff heartbeat "$run_dir"` before/after — this step touches the forge and can be the longest quiet sub-step at run-end.
+3. **Route on `disposition`:**
+   - **`pass`** (exit 0, `consistent:true`) — proceed to the run summary unchanged.
+   - **`warn`** (exit 1, ≤L3) — **non-blocking**: surface every `Divergence` in the run summary's `## Ground-truth divergences` section (see _Reporting_) and continue to a normal "complete" report. A human reviews it at the next `/faff-wtf`, but the run itself is not held open on it.
+   - **`needs-human`** (exit 1, L4 lights-out only) — **blocking**: the run **escalates** rather than reporting a clean complete (composes with `faff run-done` → `escalate`, the same channel the holdout roll-up uses) — never a silent green. Surface every `Divergence` (with any `rollback_proposal`) in the run summary; the divergent issue(s) are flagged for human resolution, not auto-reverted (this gate detects and escalates, it never performs recovery — FAFF-37's charter).
+
+`runcheck` itself is **unmodified** by this step (purity preserved, FAFF-205/233/235) — `reconcile` is wired in fully alongside it, never folded into it.
 
 ## Run ledger (mechanical completeness)
 
@@ -521,6 +536,11 @@ repeat-parked ⚠ (N)
 ## Product-incomplete (holdout escalation): rendered only when the L4 holdout phase ran
 - The per-run holdout verdict rolled up `fails`/`gaps`/`needs-human` → run escalated, PRD-done not claimed: [aggregate] (holdout: `.faff/holdout/<run-id>.json`)
 
+## Ground-truth divergences: N (rendered only when step 11.5 found ≥1): warn (≤L3) / ESCALATED (L4)
+- [phantom-merge] ISSUE-XX: shipped on abc123 but forge merged def456 (rollback: `git revert def456`)
+- [claimed-shipped-unmerged] ISSUE-YY: shipped claim with no merge on record/forge
+- [unowned-sibling-mutation] ISSUE-ZZ: non-admitted spec-referenced sibling moved to a terminal state during the run
+
 ## Inferred build-order deps: N (run-local — no tracker write)
 - ISSUE-E ← ISSUE-D (consumer ← producer; firm, paraphrase): serialised D-before-E — E **Assumes:** a rate limiter; D produces module `rate_limiter`
 - Surfaced, not serialised (ambiguous): N
@@ -596,6 +616,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 - **Never aborts the run on a single failure.** Park that issue, log, continue with the next unit of work.
 - **Never auto-splits tickets** or restructures the backlog beyond what tidy's autonomous defaults allow.
 - **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-graft Step 10).
+- **Never reports a clean run without confronting the ledger against ground truth** (FAFF-397, step 11.5). A `shipped` outcome with no matching merge, or a non-admitted sibling that flipped terminal mid-run, is never silently accepted — L4 lights-out escalates rather than reporting complete; ≤L3 surfaces it in the run summary as a warning.
 - **Never parks work on "scope" or "capacity" grounds.** Every ready-with-spec issue gets attempted. "Too many to do in one session" is explicitly forbidden (see the gateway contract). The run ends when the queue drains or everything remaining is genuinely parked by the three valid categories — not by the orchestrator deciding to do fewer.
 - **Never "defers" a queue to the next run.** Identifying a build queue (independents + collision groups, waves mapped) and then ending the run with that queue undispatched is **the same failure as parking it**, regardless of the wording in the summary. Phrases like "12-issue build queue not dispatched this conversation", "queue unblocked, ready for next pass", "deferred to next /faff-beep-boop", "single-conversation context budget" are all banned summaries — they describe a run that bailed on the build pass after doing the analysis. If conflict analysis surfaced a non-empty build queue, the build pass **must** be entered; the run is not complete until the queue drains, every remaining issue is in one of the three valid park categories, or the harness terminates the session externally. Compaction mid-build is a resume from `.faff/runs/<run-id>/`, not a reason to stop short.
 - **User-set budgets are the one legitimate stop-short.** If `--until HH:MM` or `--max N` fires, the run stops with any unreached build-queue issues reported under `## Unreached (budget hit)` in the summary, and the `Stop reason` line names the flag that fired. This is **not** a deferral by the orchestrator — the user chose the budget. Unreached issues are not parked; they stay in Todo with their specs, ready for the next run or human attention. See `## Budget flags` for full mechanics.

@@ -27,6 +27,7 @@
 // below, so pre-upgrade ledgers keep working with zero migration.
 // ===========================================================================
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
@@ -80,9 +81,19 @@ function readHeartbeatFile(runDir) {
 // Impure write seam: atomic tmp+rename of the dedicated single-value file — the
 // SAME atomicity idiom as atomicWriteLedger below, so a concurrent reader never
 // observes a torn/partial heartbeat. Content is exactly one ISO timestamp + newline.
+//
+// The tmp name is PER-CALL-UNIQUE (pid + a random suffix), not a fixed sibling path —
+// this is the one place FAFF-355 has N *concurrent* writers by design (every build
+// subagent ticks the same file at once), unlike atomicWriteLedger's single-active-
+// writer callers below. A shared fixed tmp name lets two concurrent ticks interleave
+// on the SAME tmp file: A writes, B overwrites the same tmp path, A renames it away,
+// then B's rename of the now-vanished tmp throws ENOENT — an uncaught crash that
+// would violate "every heartbeat tick exits 0" (Scenario 1) under real concurrency.
+// A unique tmp name per call means each process only ever renames a file it alone
+// created, so no rename can race another rename.
 function writeHeartbeatFile(runDir, nowIso) {
   const target = path.join(runDir, "heartbeat");
-  const tmp = target + ".tmp";
+  const tmp = `${target}.tmp.${process.pid}.${crypto.randomBytes(6).toString("hex")}`;
   fs.writeFileSync(tmp, nowIso + "\n");
   fs.renameSync(tmp, target);
 }

@@ -15,6 +15,8 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 **Ordering is delegated.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), it renders the order the configured `methodology` slot's `pick-ordering` returns (gateway → **Ordering & judgement delegation**). `/faff-wtf` states no ordering of its own; the thematic default supplies priority + chainable unlock value when no methodology is set.
 
+**Methodology transport.** Each `methodology` output `/faff-wtf` requests (`pick-ordering`, `standup-digest`, `crank-up-set`, and `backlog-diagnostics` when no tidy ran this pass) is dispatched as a **producer subagent** (gateway → **Sibling-skill invocation → Producer dispatch**) with `models.methodology` and `effort.methodology` resolved via `faff config get` (`inherit` omits them). Per gateway → **The `methodology` slot → Transport** they share **one batched dispatch per render pass**; if `/faff-wtf` is ever itself a subagent, the call runs **in-context** (single-level nesting).
+
 **Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues are flagged as *just-realised* potential (annotated "just unlocked by …") so the human/automation notices them — where they land in "Coming Up" / "Today's Focus" / "Ready to pick up" is the methodology's `pick-ordering` call, not wtf's.
 
 ## Always pull fresh
@@ -114,7 +116,7 @@ Render the head issue (the one to build now), an arrow, then the transitive depe
 
 ### 5c. Structural diagnostics (always render — at least the status line)
 
-Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics` findings. If no tidy ran this pass, request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-thematic`). Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings in the format that output defines.
+Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics` findings. If no tidy ran this pass, request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-thematic`) — when it fires it joins the pass's batched methodology dispatch (**Methodology transport** above). Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings in the format that output defines.
 
 Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type — sub-ticket / upstream / downstream / peer) additionally surface in `### Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump. Chain gaps are first-class Heads-up material: when a ticket's spec references work no ticket tracks, picking up the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next. Tag each Heads-up chain-gap entry with the sub-type so the human can scan-read.
 

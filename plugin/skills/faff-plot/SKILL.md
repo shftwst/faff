@@ -14,6 +14,8 @@ plot is jot's recursion applied to jot's discovery. They share the same `ticket-
 
 **Load the gateway first.** Entered directly or chained from `/faff-jot`; if `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. plot leans on **Agent Lanes**, the `methodology` `ticket-shaping` contract (the `shape-level` input), and the `appetite` dial; its `intake` / `methodology` slots inherit the gateway ambiently.
 
+**Methodology transport.** plot's `methodology` calls — `ticket-shaping` down the altitudes and `prdr-author` per project — are **producer dispatches** (gateway → **Sibling-skill invocation → Producer dispatch**) with `models.methodology` and `effort.methodology` resolved via `faff config get` (`inherit` omits the arg). Grain per gateway → **The `methodology` slot → Transport**: `ticket-shaping` batches **per altitude** (all confirmed nodes of a level in one dispatch; an `edit` → a follow-up node-scoped dispatch), `prdr-author` dispatches **per project**; a plot run nested in a subagent falls back **in-context** (single-level nesting).
+
 ## Rendering
 
 All human-facing output this skill emits — roadmap container and epic **descriptions**, plus any terminal summaries — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). In particular, enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule), so descriptions and comments are as skimmable as terminal output. Carve-outs (skill source files, `.faff/` logs) are exempt.
@@ -40,12 +42,12 @@ If the brief is too thin to plan a coherent roadmap (one vague capability, no st
 
 ### 2. Recurse top-down
 
-Descend the altitudes **outcome → initiatives → projects → first-slice epics**. At each node, invoke the configured `methodology` skill's **`ticket-shaping`** output (default `faffter-noon-methodology-thematic`) with:
+Descend the altitudes **outcome → initiatives → projects → first-slice epics**, **one level at a time**. At each level, collect every confirmed node at that altitude and invoke the configured `methodology` skill's **`ticket-shaping`** output (default `faffter-noon-methodology-thematic`) **once for the whole level** (the batch-per-altitude grain — **Methodology transport** above; a level's confirmed children feed the next level's sub-briefs, so levels are sequential but nodes within one level shape independently) with:
 
 - `shape-level` = the current altitude (`initiative` / `project` / `epic`), and
-- a **node-scoped sub-brief** — the slice of the parent brief relevant to this node (the capability or project being decomposed), plus the live tracker graph.
+- each confirmed node's **node-scoped sub-brief** — the slice of the parent brief relevant to that node (the capability or project being decomposed), plus the live tracker graph.
 
-The methodology returns that node's children *at that altitude*, shaped through its lens (the recursion logic lives in `ticket-shaping`, not here — plot drives the descent; the methodology shapes each level). plot owns the loop, the stop rule, the gating, and the writes.
+The methodology returns each node's children *at that altitude*, shaped through its lens (the recursion logic lives in `ticket-shaping`, not here — plot drives the descent; the methodology shapes each level). plot gates the returned shapes **node by node** (Step 4); an `edit` re-shapes that node via a **follow-up node-scoped dispatch**. plot owns the loop, the stop rule, the gating, and the writes.
 
 ### 3. The stop rule (critical — this is what stops a fantasy tree)
 

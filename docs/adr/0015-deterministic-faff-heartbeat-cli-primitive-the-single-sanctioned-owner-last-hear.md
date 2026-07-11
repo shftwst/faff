@@ -1,6 +1,6 @@
 # ADR 0015 — Deterministic faff heartbeat CLI primitive — the single sanctioned owner.last_heartbeat write path
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0055
 - **Date:** 2026-06-26
 - **Issue:** FAFF-234
 

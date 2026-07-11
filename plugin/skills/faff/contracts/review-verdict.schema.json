@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": ["signal", "findings", "conformant", "violations"],
   "properties": {
-    "signal": { "type": "string", "enum": ["pass", "fail", "needs-human"] },
+    "signal": { "type": "string", "enum": ["pass", "fail", "needs-human", "unavailable"] },
     "findings": {
       "type": "array",
       "items": {

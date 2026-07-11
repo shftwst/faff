@@ -256,7 +256,8 @@ function readAcComplete(runDir, issue) {
 
 // Read + RE-VALIDATE the review-verdict block graft persists at <run-dir>/<ISSUE>/review-verdict.json
 // through the SAME computeReviewVerdict rule (never a forked check). Missing/unreadable/fail-loud →
-// "missing" (fail-closed). A conformant block yields its own signal (pass|fail|needs-human).
+// "missing" (fail-closed). A conformant block yields its own signal (pass|fail|needs-human|unavailable —
+// FAFF-405; decideFloor's `!== "pass"` check already blocks the new value with no change here).
 function readReviewVerdict(runDir, issue) {
   let block;
   try { block = JSON.parse(fs.readFileSync(path.join(runDir, issue, "review-verdict.json"), "utf8")); }
@@ -467,6 +468,7 @@ function mergeGateSelftest() {
   check("head-sha-mismatch → refuse", F({ head_sha_matches: false }).verdict === "refuse");
   check("indeterminate → refuse", F({ ci_state: "indeterminate" }).verdict === "refuse");
   check("absent review block → refuse", F({ review_verdict: "missing" }).verdict === "refuse");
+  check("unavailable review verdict → refuse, never merge-ok (FAFF-405)", F({ review_verdict: "unavailable" }).verdict === "refuse");
   check("L4 holdout meets-spec → merge-ok", F({ level: "L4", holdout: "meets-spec" }).verdict === "merge-ok");
   check("L4 holdout missing → refuse", F({ level: "L4", holdout: "missing" }).verdict === "refuse");
   check("L4 holdout blocked → refuse", F({ level: "L4", holdout: "blocked" }).verdict === "refuse");

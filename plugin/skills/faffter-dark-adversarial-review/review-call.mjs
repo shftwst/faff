@@ -584,8 +584,8 @@ export function chainTerminalExit(failureClasses = []) {
 // adversarial occupant) whose chain exhausted with only a "no-opinion" class — UNREACHABLE(5, all
 // configured hosts down) or DEADLINE(8, budget hit before any findings) — must FAIL CLOSED: no second
 // opinion was obtained and no human is watching, so map to MANDATORY_OUTAGE(9), which the skill reads as
-// needs-human (park the PR). Config-fault classes (2/4/6/7) already map to needs-human and pass through
-// UNCHANGED — the remap must not upgrade or MASK a specific cause. Advisory reviews (mandatory=false,
+// unavailable (FAFF-405 — park the PR). Config-fault classes (2/4/6/7) already map to needs-human and pass
+// through UNCHANGED — the remap must not upgrade or MASK a specific cause. Advisory reviews (mandatory=false,
 // L1–L3) are byte-for-byte unchanged. Applied ONCE at main()'s single caller boundary on runReviewChain's
 // terminal exit, so every exhaustion path (all three deadline returns + the chain-exhausted return) is
 // covered by construction — runReviewChain itself never learns "mandatory" (stays level-agnostic).

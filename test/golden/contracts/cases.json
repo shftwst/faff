@@ -47,8 +47,35 @@
       "findings": [],
       "conformant": false,
       "violations": [
-        "signal undefined not in {pass,fail,needs-human} — coerced to needs-human",
+        "signal undefined not in {pass,fail,needs-human,unavailable} — coerced to needs-human",
         "needs-human carries no findings"
+      ]
+    }
+  },
+  {
+    "contract": "review-verdict",
+    "name": "unavailable-bare-conformant",
+    "input": "{\"signal\":\"unavailable\",\"findings\":[]}",
+    "expectExit": 0,
+    "expectStdout": {
+      "signal": "unavailable",
+      "findings": [],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "integrity-floor",
+    "name": "review-unavailable-refuses",
+    "input": "{\"ac_complete\":true,\"review_verdict\":\"unavailable\",\"ci_state\":\"ci-green\",\"head_sha_matches\":true,\"level\":\"L3\",\"holdout\":\"not-applicable\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "refuse",
+      "ci_state": "ci-green",
+      "level": "L3",
+      "conformant": false,
+      "violations": [
+        "review verdict is unavailable (need pass)"
       ]
     }
   },

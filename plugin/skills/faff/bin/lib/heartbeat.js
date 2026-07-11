@@ -47,8 +47,13 @@ function effectiveHeartbeatIso(fileIso, fieldIso) {
   return ft >= gt ? fileIso : fieldIso; // max-by-epoch; a tie arbitrarily prefers the file
 }
 
-// overlayHeartbeat: sets ledger.owner.last_heartbeat to the effective heartbeat and
-// reports which source won ("heartbeat-file" | "owner.last_heartbeat" | null when
+// overlayHeartbeat: MUTATES the passed ledger's owner.last_heartbeat in place to the
+// effective heartbeat (adversarial-review note: every call site passes a ledger it
+// just freshly read via readLedger/tryReadLedger for this one call — never a shared
+// or cached reference reused across two overlay calls — so the in-place write is
+// safe today; a future caller that aliases a ledger across two overlay calls would
+// need to clone first, as runcheckSelftest already does for its shared fixture array).
+// Reports which source won ("heartbeat-file" | "owner.last_heartbeat" | null when
 // both are absent). No-op on an ownerless ledger (nothing to overlay onto). Every
 // read seam calls this once, before handing the ledger to a pure predicate — the
 // predicates themselves (runIsHeld, evalWallClock, ...) stay filesystem-free.
@@ -91,11 +96,23 @@ function readHeartbeatFile(runDir) {
 // would violate "every heartbeat tick exits 0" (Scenario 1) under real concurrency.
 // A unique tmp name per call means each process only ever renames a file it alone
 // created, so no rename can race another rename.
+//
+// Adversarial-review fix: a write/rename fault (run dir removed mid-tick, disk full,
+// a permissions error) must never leave an orphaned tmp file OR throw uncaught —
+// cmdHeartbeat's caller must still get a clean exit 0, never a crash, from a single
+// liveness tick. On failure this best-effort unlinks the tmp file (never masking the
+// original error if the unlink itself fails) then RE-THROWS — cmdHeartbeat is the one
+// place that decides how a failed tick degrades (soft no-op, not a crash).
 function writeHeartbeatFile(runDir, nowIso) {
   const target = path.join(runDir, "heartbeat");
   const tmp = `${target}.tmp.${process.pid}.${crypto.randomBytes(6).toString("hex")}`;
-  fs.writeFileSync(tmp, nowIso + "\n");
-  fs.renameSync(tmp, target);
+  try {
+    fs.writeFileSync(tmp, nowIso + "\n");
+    fs.renameSync(tmp, target);
+  } catch (e) {
+    try { fs.unlinkSync(tmp); } catch { /* best-effort — tmp may never have been created, or is already gone */ }
+    throw e;
+  }
 }
 
 // Atomic ledger write: serialize to a sibling .tmp then rename over the target, so a
@@ -151,7 +168,17 @@ function cmdHeartbeat(args) {
   }
 
   const nowIso = new Date().toISOString();
-  writeHeartbeatFile(runDir, nowIso); // the ONLY write this tick performs
+  try {
+    writeHeartbeatFile(runDir, nowIso); // the ONLY write this tick performs
+  } catch (e) {
+    // Adversarial-review fix: a transient fs fault (run dir removed mid-tick, disk
+    // full, a permissions error) degrades to a soft no-op — never an uncaught crash.
+    // A single failed liveness tick is not fatal; the caller (or the next tick) tries
+    // again. Loud on stderr so a persistent fault is still visible, but exit 0.
+    process.stderr.write(`heartbeat: could not write the heartbeat file in ${runDir}: ${e.message}\n`);
+    const last = effectiveHeartbeatIso(readHeartbeatFile(runDir), owner.last_heartbeat ?? null);
+    return emit(runDir, last, false);
+  }
   return emit(runDir, nowIso, true);
 }
 

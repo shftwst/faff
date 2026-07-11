@@ -12,7 +12,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -167,5 +167,26 @@ test("a malformed ledger → exit 2, loud on stderr (never silently swallowed)",
     const r = run(["heartbeat", runDir]);
     assert.equal(r.code, 2);
     assert.match(r.err, /malformed ledger/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// Adversarial-review fix: a write/rename fault must degrade to a soft no-op, never
+// an uncaught crash — a single failed liveness tick is not fatal. Force the fault by
+// pre-creating "heartbeat" as a DIRECTORY, so renameSync(tmp-file, heartbeat-dir)
+// throws EISDIR — the same catch path a real fs fault (disk full, run dir removed
+// mid-tick, permissions) would hit.
+test("a write/rename fault degrades to a soft no-op (exit 0, written:false) — never an uncaught crash", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  mkdirSync(join(runDir, "heartbeat")); // an existing directory where the file should go
+  try {
+    const r = run(["heartbeat", runDir, "--json"]);
+    assert.equal(r.code, 0, "a write fault never crashes the tick");
+    assert.equal(JSON.parse(r.out).written, false);
+    assert.match(r.err, /could not write the heartbeat file/, "the fault is still surfaced loudly on stderr");
+    // No orphaned tmp file left behind by the failed write.
+    const leftover = readdirSync(runDir).filter((n) => n.startsWith("heartbeat.tmp."));
+    assert.deepEqual(leftover, [], "the tmp file is cleaned up on failure, not orphaned");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

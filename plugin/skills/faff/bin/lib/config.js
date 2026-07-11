@@ -170,7 +170,13 @@ function resolveEngineForLane(cfg, lane) {
     return { error: `effort.${lane} is "${effort}" but ${key} is an engine value — Agent-tool reasoning-effort does not map onto a local engine; set effort.${lane} to inherit and tune the engine in engines.<name> (reasoning_off, timeout)` };
   }
   const name = value.slice("engine:".length).trim();
-  const entry = dig(cfg, "engines")[name];
+  // validateEngineRef above already proved engines.<name> exists with provider/model/host,
+  // so this re-dig is non-null today; guard it anyway (parity with validateEngineRef) so a
+  // future change loosening that guarantee fails loud, never with a bare TypeError.
+  const enginesRaw = dig(cfg, "engines");
+  const engines = (enginesRaw && typeof enginesRaw === "object" && !Array.isArray(enginesRaw)) ? enginesRaw : {};
+  const entry = engines[name];
+  if (!entry || typeof entry !== "object") return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
   const provider = String(entry.provider).toLowerCase();
   return {
     name, provider,

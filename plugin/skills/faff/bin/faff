@@ -222,9 +222,14 @@ function main(argv) {
 if (require.main === module) {
   // FAFF-422: `engine call` is the first async handler (network one-shot) — a returned
   // Promise resolves to the exit code; every other handler stays a plain synchronous int.
+  // The rejection arm is belt-and-braces: cmdEngine maps every internal error to an exit
+  // code, so the promise resolves in practice — but an unforeseen reject (e.g. an EPIPE
+  // from a broken stdout pipe) must still fail loud with a non-zero exit, never a silent 0.
   const r = main(process.argv.slice(2));
-  if (r && typeof r.then === "function") r.then((code) => { process.exitCode = code; });
-  else process.exitCode = r;
+  if (r && typeof r.then === "function") {
+    r.then((code) => { process.exitCode = code; },
+           (e) => { process.stderr.write(`faff: unhandled error — ${(e && e.message) || e}\n`); process.exitCode = 2; });
+  } else process.exitCode = r;
 }
 
 // Exported pure functions (FAFF-373). Extensionless CJS imported from ESM exposes

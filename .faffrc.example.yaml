@@ -45,18 +45,45 @@ slots:
   routing_adaptor: # assigns + displays the automation-routing verdict; the six verdicts + admission rule are fixed in the gateway (default: faffidavit-routing)
   rendering_adaptor: # pure adaptor, no internal contract — house output style: visual vs prose, table-vs-list, density caps, issue-gloss humanisation (default: faffidavit-rendering)
 
-# Per-lane model selection (FAFF-315). Optional; every key optional. Unset ⇒ each
+# Per-lane model selection (FAFF-315/372). Optional; every key optional. Unset ⇒ each
 # dispatch inherits the session/account model exactly as today (byte-for-byte).
 # Only dispatch points that can actually consume a model appear here — a slot invoked
 # inline via the Skill tool inherits the session model and cannot take a per-slot model.
-# build / prep_explore take the CLOSED Agent-token set (sonnet | opus | haiku | fable,
+# All lanes except eval take the CLOSED Agent-token set (sonnet | opus | haiku | fable,
 # plus inherit); an off-vocabulary value FAILS LOUD at read (never a silent inherit).
-# eval is the eval frontier driver's model — a pinned default (never the account
-# default), overridable per run with `run-evals --model <id>`.
+# methodology / intake may ALSO take engine:<name> (FAFF-422 — the v1 pure-data-in
+# allowlist), resolving the top-level engines: map below and dispatching via
+# `faff engine call` instead of an Agent-tool subagent; any other lane given an
+# engine: value fails loud at read naming the allowlist. eval is the eval frontier
+# driver's model — a pinned default (never the account default), overridable per run
+# with `run-evals --model <id>`.
 models:
   build: # Agent-token — the concurrency executors' build subagents (default: inherit)
   prep_explore: # Agent-token — faff-prep's explore + clean-context verify subagents (default: inherit)
+  spec: # Agent-token — the spec producer subagent (default: inherit)
+  spec_review: # Agent-token — the spec-review producer subagent (default: inherit)
+  architecture: # Agent-token — the architecture proposer subagent (default: inherit)
+  methodology: # Agent-token or engine:<name> — the methodology producer dispatches (default: inherit)
+  intake: # Agent-token or engine:<name> — the intake producer dispatch (default: inherit)
   eval: # model id for the eval frontier driver's `claude -p --model` (default: claude-sonnet-4-6)
+
+# Named local/self-hosted engines (FAFF-422). Referenced by an engine:<name> lane value
+# above (v1: models.methodology / models.intake only). One definition serves many lanes.
+# provider families: ollama, or the openai-compatible aliases (openai | vllm | openrouter |
+# nvidia | deepseek | openai-compatible | gemini) — provider: anthropic is REFUSED (Anthropic
+# models are what the Agent-token vocabulary is for). Dispatch is ONE non-streaming
+# completion, fail-loud, no fallback chain: an invalid/unreachable engine is a named
+# dispatch failure, never a silent session-model fallback. Secrets via api_key_env
+# indirection (the env var NAME, never the key). Same flat-object idiom as the
+# faffter_dark.adversarial block below — separate block, compose-not-subsume.
+# engines:
+#   studio:
+#     provider: ollama          # ollama | openai-compatible aliases; anthropic refused
+#     model: qwen3-next:80b     # engine-specific model identifier
+#     host: http://studio.example.ts.net:11434   # ollama: base host; openai-compatible: base URL incl. /v1
+#     api_key_env:              # env var NAME holding the API key; optional (LAN ollama needs none)
+#     reasoning_off: false      # true → disable reasoning-model think blocks (ollama think:false / openai chat_template_kwargs)
+#     timeout: 120              # seconds — bounds the ONE completion attempt (default 120)
 
 # Max concurrent builds for faffter-dark-concurrency-parallel. Ignored by the
 # sequential default. Bounds worktree count, disk, and branches racing main.

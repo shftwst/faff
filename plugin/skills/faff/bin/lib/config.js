@@ -82,6 +82,16 @@ const MODEL_LANE_VOCAB = {
   "models.architecture": ["inherit", "sonnet", "opus", "haiku", "fable"],
 };
 function validateModelLane(key, value) {
+  // FAFF-422: an `engine:<name>` lane value selects the out-of-session one-shot transport
+  // (`faff engine call`), legal ONLY on the v1 pure-data-in allowlist. Every other models.*
+  // key — the tool-needing/prep lanes, the matcher leaves, AND the open-vocabulary eval lane —
+  // rejects it at read, naming the allowlist (the read-time half of the capability-mismatch
+  // guard; `faff engine call --lane` is the dispatch-time half). Name existence is checked at
+  // resolution (validateEngineRef), not here — the shape is what the vocabulary admits.
+  if (/^models\./.test(key) && /^engine:/.test(String(value))) {
+    return ENGINE_LANE_KEYS.includes(key) ? null
+      : `config get ${key}: engine values are only legal on ${ENGINE_LANE_KEYS.join(" | ")} (FAFF-422 v1 allowlist — a tool-needing lane can never reach a tool-incapable transport)`;
+  }
   let vocab = MODEL_LANE_VOCAB[key];
   // FAFF-334: the per-issue build-model matcher leaves (`models.build_by_confidence.<leaf>`) reuse
   // the build lane's closed Agent-token set, so an invalid token in the matcher fails loud at
@@ -89,6 +99,94 @@ function validateModelLane(key, value) {
   if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
   if (!vocab || vocab.includes(value)) return null;
   return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+}
+
+// FAFF-422: local-engine lane values. The v1 allowlist is exactly the pure-data-in producer
+// lanes (their SKILL.md + payload is self-sufficient — no tool use, no repo access), enforced
+// at read (validateModelLane above) AND at dispatch (`faff engine call --lane`). Engines live
+// in a top-level name-keyed `engines:` map so one definition serves many lanes; the lane value
+// stays a scalar (`engine:<name>`) so the closed-vocab machinery extends rather than forks.
+const ENGINE_CALL_LANES = ["methodology", "intake"];
+const ENGINE_LANE_KEYS = ENGINE_CALL_LANES.map((l) => `models.${l}`);
+// Provider families reuse review-call.mjs's whitelist semantics: ollama has its own wire
+// format; the rest ride the openai-compatible /v1 shape. `anthropic` is refused at resolution
+// (Anthropic engines are what the Agent-token vocabulary is for — two spellings of the same
+// dispatch with different transports would be a trap), and an unknown provider fails loud.
+const ENGINE_PROVIDER_FAMILY = {
+  ollama: "ollama",
+  openai: "openai", vllm: "openai", openrouter: "openai", nvidia: "openai",
+  deepseek: "openai", "openai-compatible": "openai", gemini: "openai",
+};
+
+// PURE: validate an `engine:<name>` value's reference against the `engines:` map — the
+// resolution-time half of the FAFF-422 fail-loud surface. Returns null | a named error.
+function validateEngineRef(cfg, value) {
+  const name = String(value).slice("engine:".length).trim();
+  if (!name) return `engine value "${value}": missing engine name (expected engine:<name>)`;
+  const enginesRaw = dig(cfg, "engines");
+  const engines = (enginesRaw && typeof enginesRaw === "object" && !Array.isArray(enginesRaw)) ? enginesRaw : {};
+  const entry = engines[name];
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    const configured = Object.keys(engines);
+    return `unknown engine "${name}" — configured engines: ${configured.length ? configured.join(", ") : "(none — add a top-level engines: block)"}`;
+  }
+  for (const field of ["provider", "model", "host"]) {
+    const v = entry[field];
+    if (v === null || v === undefined || v === "") return `engines.${name}: missing required field "${field}" (an engine needs provider, model, host)`;
+  }
+  const provider = String(entry.provider).toLowerCase();
+  if (provider === "anthropic") {
+    return `engines.${name}: provider "anthropic" is refused — Anthropic models are what the Agent-token vocabulary is for (set models.<lane> to sonnet | opus | haiku | fable instead)`;
+  }
+  if (!ENGINE_PROVIDER_FAMILY[provider]) {
+    return `engines.${name}: unknown provider "${entry.provider}" — legal providers: ${Object.keys(ENGINE_PROVIDER_FAMILY).join(" | ")}`;
+  }
+  return null;
+}
+
+// PURE: resolve an allowlisted lane to its configured engine for dispatch (`faff engine call`).
+// Fail-loud at every step — allowlist, engine: shape, engines.<name> reference, and the
+// effort×engine conflict (an `effort.<lane>` that isn't inherit is refused, not silently
+// dropped: Agent-tool reasoning-effort doesn't map onto a local engine; per-engine tuning
+// belongs in the engine object). Returns { name, provider, family, model, host, apiKeyEnv,
+// reasoningOff, timeoutMs } or { error }.
+function resolveEngineForLane(cfg, lane) {
+  if (!ENGINE_CALL_LANES.includes(lane)) {
+    return { error: `lane "${lane}" is not engine-dispatchable — v1 allowlist: ${ENGINE_CALL_LANES.join(" | ")} (FAFF-422)` };
+  }
+  const key = `models.${lane}`;
+  const raw = dig(cfg, key);
+  const value = (raw === null || raw === undefined || raw === "") ? DEFAULTS[key] : String(raw).trim();
+  const laneErr = validateModelLane(key, value);
+  if (laneErr) return { error: laneErr };
+  if (!/^engine:/.test(value)) {
+    return { error: `${key} is "${value}", not an engine:<name> value — faff engine call serves only engine-valued lanes (an Anthropic token keeps the Agent-tool dispatch)` };
+  }
+  const refErr = validateEngineRef(cfg, value);
+  if (refErr) return { error: `${key}: ${refErr}` };
+  const effortRaw = dig(cfg, `effort.${lane}`);
+  const effort = (effortRaw === null || effortRaw === undefined || effortRaw === "") ? "inherit" : String(effortRaw).trim();
+  if (effort !== "inherit") {
+    return { error: `effort.${lane} is "${effort}" but ${key} is an engine value — Agent-tool reasoning-effort does not map onto a local engine; set effort.${lane} to inherit and tune the engine in engines.<name> (reasoning_off, timeout)` };
+  }
+  const name = value.slice("engine:".length).trim();
+  // validateEngineRef above already proved engines.<name> exists with provider/model/host,
+  // so this re-dig is non-null today; guard it anyway (parity with validateEngineRef) so a
+  // future change loosening that guarantee fails loud, never with a bare TypeError.
+  const enginesRaw = dig(cfg, "engines");
+  const engines = (enginesRaw && typeof enginesRaw === "object" && !Array.isArray(enginesRaw)) ? enginesRaw : {};
+  const entry = engines[name];
+  if (!entry || typeof entry !== "object") return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
+  const provider = String(entry.provider).toLowerCase();
+  return {
+    name, provider,
+    family: ENGINE_PROVIDER_FAMILY[provider],
+    model: String(entry.model),
+    host: String(entry.host),
+    apiKeyEnv: (entry.api_key_env === null || entry.api_key_env === undefined || entry.api_key_env === "") ? null : String(entry.api_key_env),
+    reasoningOff: entry.reasoning_off === true,
+    timeoutMs: (entry.timeout !== null && entry.timeout !== undefined && entry.timeout !== "") ? Number(entry.timeout) * 1000 : 120000,
+  };
 }
 
 // FAFF-416: closed value vocabulary for the per-lane reasoning-EFFORT lanes — the FAFF-415
@@ -592,6 +690,13 @@ function cmdConfig(args) {
       // value fails loud here (exit 2), never a silent inherit at the dispatch site.
       const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value));
       if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
+      // FAFF-422: an allowlisted engine value also resolves its engines.<name> reference at
+      // read — a dangling name / missing field / illegal provider fails loud HERE, not at
+      // the first dispatch that happens to touch the lane.
+      if (/^models\./.test(key) && /^engine:/.test(fmt(value))) {
+        const refErr = validateEngineRef(data, fmt(value));
+        if (refErr) { process.stderr.write(`config get ${key}: ${refErr}\n`); return 2; }
+      }
       console.log(wantJson ? JSON.stringify(value) : fmt(value));
       return 0;
     }
@@ -637,7 +742,16 @@ function cmdConfig(args) {
           validateEffortLane("effort.methodology", "low") ||
           validateEffortLane("effort.intake", "max") ||
           (validateEffortLane("effort.build", "sonnet") ? null : "effort lane vocab failed to reject a model token") ||
-          (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token");
+          (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token") ||
+          // FAFF-422: engine values are legal on exactly the pure-data-in allowlist — the two
+          // allowlisted lanes accept the SHAPE, every other models.* key (incl. the open-vocabulary
+          // eval lane and the matcher leaves) rejects it naming the allowlist.
+          validateModelLane("models.methodology", "engine:studio") ||
+          validateModelLane("models.intake", "engine:studio") ||
+          (validateModelLane("models.build", "engine:studio") ? null : "build lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateModelLane("models.spec", "engine:studio") ? null : "spec lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateModelLane("models.eval", "engine:studio") ? null : "eval lane failed to reject an engine value (FAFF-422 allowlist)") ||
+          (validateModelLane("models.build_by_confidence.high", "engine:studio") ? null : "matcher leaf failed to reject an engine value (FAFF-422 allowlist)");
         if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
         console.log("config defaults --selftest: ok");
         return 0;
@@ -830,4 +944,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigInit, cmdModels, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, resolveAppetite, resolveBuildModel, resolveDocsPath, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, validateEffortLane, validateModelLane };
+module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigInit, cmdModels, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, resolveAppetite, resolveBuildModel, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, validateEffortLane, validateEngineRef, validateModelLane };

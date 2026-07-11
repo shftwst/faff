@@ -134,7 +134,25 @@ test("AC3: wall-clock-runaway trips when heartbeat staleness exceeds the configu
     const wc = out.verdicts.find((v) => v.signal === "wall-clock-runaway");
     assert.ok(wc && wc.severity === "trip");
     assert.equal(wc.evidence.tripped_on, "heartbeat-staleness");
-    assert.equal(wc.evidence.ledger_field, "owner.last_heartbeat");
+    // FAFF-355: no heartbeat FILE exists in this fixture, so the overlay falls back
+    // to the ledger field — evidence names that true source, not a hardcoded string.
+    assert.equal(wc.evidence.heartbeat_source, "owner.last_heartbeat");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-355: a fresh heartbeat FILE overrides a stale ledger field — no wall-clock-runaway trip; evidence names heartbeat_source", () => {
+  const dir = tmp();
+  try {
+    const staleField = new Date(Date.now() - 2_000_000).toISOString(); // well past the 900s default window
+    const recentStart = new Date(Date.now() - 60_000).toISOString(); // 1 min — well under the 4h run-elapsed ceiling
+    const rd = mkRun(dir, "r", {
+      run_id: "r", admitted: [], outcomes: {},
+      owner: { status: "running", started_at: recentStart, last_heartbeat: staleField },
+    });
+    writeFileSync(join(rd, "heartbeat"), new Date().toISOString() + "\n");
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.verdicts.find((v) => v.signal === "wall-clock-runaway"), undefined,
+      "the fresher heartbeat-file overlay prevents a false trip on a stale legacy field");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

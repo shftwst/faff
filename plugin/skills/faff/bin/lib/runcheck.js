@@ -12,6 +12,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
 const TERMINAL_STATES = new Set(["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"]);
@@ -156,6 +157,10 @@ function cmdRuncheck(args) {
     if (!runDir) return 0;
     let ledger;
     try { ledger = readLedger(runDir); } catch { return 0; } // parse error → silent (unchanged)
+    // FAFF-355: overlay the dedicated heartbeat file over owner.last_heartbeat BEFORE
+    // the pure decision runs — the decision fn (runcheckHookDecision → runIsHeld)
+    // stays filesystem-free; this is the one read of the file for this seam.
+    overlayHeartbeat(ledger, readHeartbeatFile(runDir));
     const recover = args.includes("--recover");
     const decision = runcheckHookDecision(ledger, runDir, Date.now(), process.env, { recover });
     if (decision.block) console.log(JSON.stringify({ decision: "block", reason: decision.reason }));
@@ -201,10 +206,14 @@ const RUNCHECK_NOW = Date.parse("2026-06-22T16:00:00Z");
 const RUNCHECK_RUN_DIR = "/runs/RUN-LIVE";
 function hbAgo(secs) { return new Date(RUNCHECK_NOW - secs * 1000).toISOString(); }
 
-// [name, ledger, env, wantBlock, wantWarn, opts?]
+// [name, ledger, env, wantBlock, wantWarn, opts?, heartbeatFile?]
 // FAFF-235 contract change: foreign (not-owned) + not-held + undispatched is now a
 // non-blocking WARN, not a block. Only OWNED or --recover hard-blocks. FAFF-233:
 // liveness is heartbeat-only, so a fresh heartbeat is held even with a dead recorded pid.
+// FAFF-355: an optional trailing `heartbeatFile` column (ISO string | undefined) is
+// overlaid onto a CLONE of the fixture ledger before the decision runs — undefined on
+// every pre-existing case preserves ledger-field-only behaviour byte-for-byte; the
+// new cases below exercise the file/field interaction the overlay is for.
 const RUNCHECK_SELFTEST_CASES = [
   ["owned + undispatched → block (backstop preserved)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
@@ -245,12 +254,28 @@ const RUNCHECK_SELFTEST_CASES = [
   ["FAFF-235: --recover + clean queue → silent (nothing to recover)",
     { run_id: "R", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "done", last_heartbeat: hbAgo(1000) } },
     {}, false, false, { recover: true }],
+  ["FAFF-355: not-owned + fresh heartbeat FILE (stale field) + undispatched → held/silent (file wins)",
+    { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(1000) } },
+    {}, false, false, undefined, hbAgo(10)],
+  ["FAFF-355: not-owned + no file + fresh field + undispatched → held/silent (ledger-field fallback)",
+    { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    {}, false, false, undefined, null],
+  ["FAFF-355: not-owned + both file and field stale + undispatched → WARN, not block",
+    { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(1000) } },
+    {}, false, true, undefined, hbAgo(1000)],
+  ["FAFF-355: not-owned + unparseable file + fresh field + undispatched → held/silent (field fallback)",
+    { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    {}, false, false, undefined, "not-a-date"],
 ];
 
 function runcheckSelftest() {
   let fail = 0;
-  for (const [name, ledger, env, wantBlock, wantWarn, opts] of RUNCHECK_SELFTEST_CASES) {
-    const d = runcheckHookDecision(ledger, RUNCHECK_RUN_DIR, RUNCHECK_NOW, env, opts);
+  for (const [name, ledger, env, wantBlock, wantWarn, opts, heartbeatFile] of RUNCHECK_SELFTEST_CASES) {
+    // Clone before overlay — these fixtures are shared array literals and overlayHeartbeat
+    // mutates owner.last_heartbeat in place; a clone keeps each case isolated + rerunnable.
+    const cloned = JSON.parse(JSON.stringify(ledger));
+    overlayHeartbeat(cloned, heartbeatFile === undefined ? null : heartbeatFile);
+    const d = runcheckHookDecision(cloned, RUNCHECK_RUN_DIR, RUNCHECK_NOW, env, opts);
     const ok = d.block === wantBlock && (d.warn || false) === (wantWarn || false);
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} ${name} → block=${d.block} warn=${d.warn || false} (want block=${wantBlock} warn=${wantWarn || false})`);

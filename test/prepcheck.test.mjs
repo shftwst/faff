@@ -162,6 +162,25 @@ test("FAFF-250: --hook is SILENT for a foreign marker its run ledger still HOLDS
   } finally { rmSync(root, { recursive: true, force: true }); rmSync(more, { recursive: true, force: true }); }
 });
 
+test("FAFF-355: --hook is SILENT for a foreign marker whose run ledger has a STALE field but a FRESH heartbeat file (tier-a reads the file)", () => {
+  const root = rootWith({});
+  const runDir = ledgerDir(root, "RUN-LIVE", {
+    run_id: "RUN-LIVE", admitted: ["FAFF-224"], outcomes: {},
+    owner: { status: "running", last_heartbeat: isoAgo(1000) },
+  });
+  writeFileSync(join(runDir, "heartbeat"), isoAgo(10) + "\n");
+  // marker mtime is STALE so tier-(b) cannot hold it — only the fresh heartbeat FILE
+  // (via tier-a's overlay onto the stale ledger field) can.
+  const more = rootWith({
+    "FAFF-224": { issue: "FAFF-224", spec_produced: true, attached: false, owner: { run_dir: runDir }, __mtimeAgoSecs: 1000 },
+  });
+  try {
+    const r = run(["prepcheck", "--hook", "--root", more]);
+    assert.equal(r.out.trim(), "", "a fresh heartbeat FILE holds tier-a even though the ledger field is stale");
+    assert.equal(r.err.trim(), "", "held → fully silent");
+  } finally { rmSync(root, { recursive: true, force: true }); rmSync(more, { recursive: true, force: true }); }
+});
+
 test("FAFF-233: --hook stays SILENT for a foreign marker with a fresh ledger heartbeat but a DEAD recorded pid (pid not consulted)", () => {
   const root = rootWith({});
   const runDir = ledgerDir(root, "RUN-LIVE", {

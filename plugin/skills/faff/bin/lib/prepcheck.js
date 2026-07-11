@@ -14,6 +14,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { findRoot, readLedger } = require("./shared-infra");
 
@@ -127,7 +128,13 @@ function prepIsHeld(marker, markerMtimeMs, nowMs, env) {
   const owner = marker && marker.owner;
   if (owner && owner.run_dir) {
     const ledger = tryReadLedger(owner.run_dir);
-    if (ledger && runIsHeld(ledger, nowMs, env)) return true; // tier (a)
+    if (ledger) {
+      // FAFF-355: overlay the delegated run's dedicated heartbeat file over its ledger
+      // field before the (unchanged) runIsHeld predicate runs — tier (a) inherits
+      // file-first liveness for free, same as runcheck --hook and the appetite pin.
+      overlayHeartbeat(ledger, readHeartbeatFile(owner.run_dir));
+      if (runIsHeld(ledger, nowMs, env)) return true; // tier (a)
+    }
   }
   if (Number.isFinite(markerMtimeMs) && (nowMs - markerMtimeMs) / 1000 <= prepMarkerStaleSecs(env)) return true; // tier (b)
   return false;

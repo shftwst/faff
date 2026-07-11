@@ -9,6 +9,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readLedger, scalar, stripInlineComment } = require("./shared-infra");
 
@@ -239,6 +240,9 @@ function resolveAppetite(cfg, env = process.env) {
       // window. A done/abandoned/stale L4 ledger falls through to config — the level alone
       // must not escalate agency in a later session that never armed `full`.
       const ledger = readLedger(runDir);
+      // FAFF-355: overlay the dedicated heartbeat file over owner.last_heartbeat before
+      // the (unchanged) runIsHeld predicate runs — same file-first liveness every seam gets.
+      if (ledger) overlayHeartbeat(ledger, readHeartbeatFile(runDir));
       if (ledger && ledger.level === "L4" && runIsHeld(ledger, Date.now(), env)) return "full";
     }
     catch { /* unreadable / absent ledger → fall through (never fabricate `full`) */ }

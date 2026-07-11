@@ -38,7 +38,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { readGovernanceConfig } = require("./budget");
-const { atomicWriteLedger } = require("./heartbeat");
+const { atomicWriteLedger, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./runcheck");
 const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 
@@ -99,6 +99,10 @@ function normalizeSentrySignals(raw) {
     // Advisory hints the ORCHESTRATOR (never the build subagent) may set; default off.
     scope_drift: r.scope_drift === true,
     forbidden_side_effect: r.forbidden_side_effect === true,
+    // FAFF-355: which liveness source the caller's overlayHeartbeat call reported
+    // ("heartbeat-file" | "owner.last_heartbeat" | null) — threaded through to
+    // evalWallClock's evidence so it never names a source it no longer reads.
+    heartbeat_source: typeof r.heartbeat_source === "string" ? r.heartbeat_source : null,
   };
 }
 
@@ -130,7 +134,10 @@ function evalBudgetBreach(budget) {
 
 // wall-clock-runaway — heartbeat staleness beyond the window OR run-elapsed beyond the
 // ceiling. Only a RUNNING owner can run away (a done/unowned run never trips).
-function evalWallClock(ledger, nowMs, th) {
+// `heartbeatSource` (FAFF-355) names WHICH liveness source produced ledger.owner.
+// last_heartbeat — the caller overlays the dedicated heartbeat file before calling in,
+// so evidence never claims a source ("owner.last_heartbeat") it no longer reads.
+function evalWallClock(ledger, nowMs, th, heartbeatSource) {
   const owner = ledger && ledger.owner;
   if (!owner || owner.status !== "running") return null;
   const age = sentryHeartbeatAgeSecs(ledger, nowMs);
@@ -141,7 +148,7 @@ function evalWallClock(ledger, nowMs, th) {
   return {
     signal: "wall-clock-runaway", severity: "trip",
     evidence: {
-      ledger_field: "owner.last_heartbeat",
+      heartbeat_source: heartbeatSource ?? null,
       heartbeat_age_secs: age != null ? Math.round(age) : null,
       run_elapsed_secs: elapsed != null ? Math.round(elapsed) : null,
       tripped_on: staleTrip ? "heartbeat-staleness" : "run-elapsed",
@@ -231,7 +238,7 @@ function evaluateDerailment(rawSignals, thresholds) {
   const verdicts = [];
   const push = (v) => { if (v && DERAILMENT_SIGNALS.has(v.signal) && (v.severity === "warn" || v.severity === "trip")) verdicts.push(v); };
   push(evalBudgetBreach(s.budget));
-  push(evalWallClock(s.ledger, s.now_ms, th));
+  push(evalWallClock(s.ledger, s.now_ms, th, s.heartbeat_source));
   push(evalThrash(s.events, th));
   push(evalRepeatedFailure(s.events, th));
   push(evalScopeDrift(s));
@@ -371,9 +378,13 @@ function cmdSentry(args) {
     const resolved = resolveLedgerOrFault(get, root);
     if (resolved.fault) return sentryIndeterminate(resolved.fault, asJson, resolved.runDir || null);
 
-    let ledger = {}, events = [], budget = { breached: [], outcome: "none" };
+    let ledger = {}, events = [], budget = { breached: [], outcome: "none" }, heartbeatSource = null;
     if (!resolved.empty) {
       ledger = resolved.ledger;
+      // FAFF-355: overlay the dedicated heartbeat file over owner.last_heartbeat ONCE,
+      // here, where the ledger is loaded — evalWallClock stays filesystem-free and
+      // its evidence carries whichever source the overlay reports.
+      heartbeatSource = overlayHeartbeat(ledger, readHeartbeatFile(resolved.runDir)).source;
       events = sentryReadEvents(resolved.runDir);
       const injected = get("--budget-json"); // hermetic-test hook; default CONSUMES the CLI
       // FAFF-425 (adversarial-review follow-up): unparseable injected JSON is itself an
@@ -392,7 +403,7 @@ function cmdSentry(args) {
       }
     }
     const checkedRunDir = resolved.empty ? null : resolved.runDir;
-    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms }, th);
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource }, th);
     const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
@@ -461,6 +472,12 @@ function sentrySelftest() {
   const stale = { owner: { status: "running", last_heartbeat: ago(TH.stall_window_secs + 60), started_at: ago(100) } };
   const w1 = evalWallClock(stale, NOW, TH);
   ok("stale heartbeat → trip (AC3)", w1 && w1.severity === "trip" && w1.evidence.tripped_on === "heartbeat-staleness");
+  // FAFF-355: evidence names the true liveness source (heartbeat_source), never a
+  // hardcoded "ledger_field" — a null caller-supplied source still surfaces as null.
+  ok("evidence carries a caller-supplied heartbeat_source, never a hardcoded field name",
+    evalWallClock(stale, NOW, TH, "heartbeat-file").evidence.heartbeat_source === "heartbeat-file" &&
+    evalWallClock(stale, NOW, TH, "owner.last_heartbeat").evidence.heartbeat_source === "owner.last_heartbeat" &&
+    w1.evidence.heartbeat_source === null);
   ok("fresh heartbeat → null", evalWallClock({ owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } }, NOW, TH) === null);
   const longrun = { owner: { status: "running", last_heartbeat: ago(10), started_at: ago(TH.run_elapsed_ceiling_secs + 60) } };
   ok("run-elapsed over ceiling → trip", evalWallClock(longrun, NOW, TH).evidence.tripped_on === "run-elapsed");
@@ -510,7 +527,7 @@ function sentrySelftest() {
   };
   const hv = evaluateDerailment(hostile, TH);
   ok("AC5 hostile injected fields ignored — still aborts", hv.intervention === "abort" && hv.tripped === true);
-  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,ledger,now_ms,scope_drift");
+  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,heartbeat_source,ledger,now_ms,scope_drift");
 
   // --- abort marker: resumable, outcomes preserved, owner flipped, no force-reset (AC4) ---
   const led = { admitted: ["Z"], outcomes: {}, owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } };

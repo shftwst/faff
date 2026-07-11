@@ -42,6 +42,34 @@ test("reconcile: non-object stdin → exit 2 malformed ReconcileInput", () => {
   assert.match(stderr, /malformed ReconcileInput/);
 });
 
+test("reconcile: a shipped entry with no `issue` → exit 2 (no degenerate issue:undefined divergence)", () => {
+  const input = JSON.stringify({ shipped: [{ recorded: null, observed: { pr_merged: false } }] });
+  const { code, stderr } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4"], { input });
+  assert.equal(code, 2);
+  assert.match(stderr, /shipped\[0\] must be an object with a non-empty string "issue"/);
+});
+
+test("reconcile: a shipped entry MISSING `recorded` is the fail-closed path, not rejected → exit 1 divergence", () => {
+  const input = JSON.stringify({ shipped: [{ issue: "FAFF-A", observed: { pr_merged: false, merged_head_sha: null } }] });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
+  assert.equal(code, 1);
+  assert.equal(JSON.parse(stdout).divergences[0].class, "claimed-shipped-unmerged");
+});
+
+test("reconcile: a stdin `level` contradicting --level → exit 2 fail-loud (no silent fail-open)", () => {
+  const input = JSON.stringify({ level: "L3", shipped: [] });
+  const { code, stderr } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4"], { input });
+  assert.equal(code, 2);
+  assert.match(stderr, /contradicts --level/);
+});
+
+test("reconcile: a stdin `level` AGREEING with --level → accepted", () => {
+  const input = JSON.stringify({ level: "L4", shipped: [] });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
+  assert.equal(code, 0);
+  assert.equal(JSON.parse(stdout).consistent, true);
+});
+
 test("reconcile: empty input → consistent, exit 0, disposition pass", () => {
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input: "{}" });
   assert.equal(code, 0);

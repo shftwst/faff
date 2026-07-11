@@ -94,13 +94,24 @@ function reconcileExitFor(result) {
 }
 
 // PURE: validate a ReconcileInput's SHAPE before it is trusted. A caller-supplied malformed
-// stdin (not an object, bad/missing level, non-array shipped/siblings) is exit-2 fail-loud —
-// never silently coerced into an empty (vacuously-consistent) input.
+// stdin (not an object, bad/missing level, non-array shipped/siblings, or an ELEMENT that isn't an
+// object carrying a non-empty string `issue`) is exit-2 fail-loud — never silently coerced into an
+// empty (vacuously-consistent) input, and never a degenerate `issue: undefined` divergence
+// (FAFF-397 review). Deliberately does NOT require `recorded`/`observed`/state flags on the
+// elements: a missing `recorded` is the spec's fail-CLOSED path (→ claimed-shipped-unmerged
+// divergence, HOW edge case), so it must reach the core, not be rejected here.
 function validateReconcileInput(input) {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return "input must be a JSON object";
   if (!LEVELS.includes(input.level)) return `level ${JSON.stringify(input.level)} not in {${LEVELS.join(",")}}`;
   if (input.shipped !== undefined && !Array.isArray(input.shipped)) return "shipped must be an array";
   if (input.siblings !== undefined && !Array.isArray(input.siblings)) return "siblings must be an array";
+  const isNamedEntry = (e) => e !== null && typeof e === "object" && !Array.isArray(e) && typeof e.issue === "string" && e.issue !== "";
+  for (const [i, s] of (Array.isArray(input.shipped) ? input.shipped : []).entries()) {
+    if (!isNamedEntry(s)) return `shipped[${i}] must be an object with a non-empty string "issue"`;
+  }
+  for (const [i, sib] of (Array.isArray(input.siblings) ? input.siblings : []).entries()) {
+    if (!isNamedEntry(sib)) return `siblings[${i}] must be an object with a non-empty string "issue"`;
+  }
   return null;
 }
 
@@ -124,9 +135,19 @@ function cmdReconcile(args) {
   let input;
   try { input = JSON.parse(raw); }
   catch (e) { process.stderr.write(`faff reconcile: stdin is not valid JSON: ${e.message}\n`); return 2; }
-  // --level governs when the input omits its own `level` — the CLI flag is the single source of
-  // truth for the run's level (parity with merge-gate's --level), never re-derived from stdin alone.
-  if (input && typeof input === "object" && !Array.isArray(input)) input.level = flagLevel;
+  // --level governs the run's level (parity with merge-gate's --level). When stdin omits `level`,
+  // the flag supplies it. When stdin CARRIES a `level` that CONTRADICTS the flag, that is a caller
+  // bug → fail-loud (exit 2), never a silent overwrite — a looser stdin level silently winning
+  // would flip the level-gating (needs-human vs warn) fail-OPEN, the exact direction the spec's
+  // "fail-closed, never a silent green" principle forbids (mirrors merge-gate's resolveGateLevel
+  // mismatch refusal, FAFF-397 review). A stdin level that AGREES, or is absent, is fine.
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    if (input.level !== undefined && input.level !== flagLevel) {
+      process.stderr.write(`faff reconcile: stdin level ${JSON.stringify(input.level)} contradicts --level ${JSON.stringify(flagLevel)} — drop the stdin level or pass --level ${JSON.stringify(input.level)}\n`);
+      return 2;
+    }
+    input.level = flagLevel;
+  }
 
   const err = validateReconcileInput(input);
   if (err) { process.stderr.write(`faff reconcile: malformed ReconcileInput: ${err}\n`); return 2; }
@@ -216,8 +237,17 @@ function reconcileSelftest() {
   check("validate: siblings not an array → error", !!validateReconcileInput({ level: "L3", siblings: "nope" }));
   check("validate: well-formed → no error", validateReconcileInput({ level: "L3", shipped: [], siblings: [] }) === null);
   check("validate: level-only well-formed (shipped/siblings optional) → no error", validateReconcileInput({ level: "L3" }) === null);
+  // Element-shape validation (FAFF-397 review — no degenerate issue:undefined divergence).
+  check("validate: shipped[null] → error", !!validateReconcileInput({ level: "L3", shipped: [null] }));
+  check("validate: shipped entry with no issue → error", !!validateReconcileInput({ level: "L3", shipped: [{ recorded: null, observed: {} }] }));
+  check("validate: shipped entry with empty issue → error", !!validateReconcileInput({ level: "L3", shipped: [{ issue: "" }] }));
+  check("validate: shipped entry that is a string → error", !!validateReconcileInput({ level: "L3", shipped: ["FAFF-A"] }));
+  check("validate: sibling entry with no issue → error", !!validateReconcileInput({ level: "L3", siblings: [{ start_state_terminal: false, end_state_terminal: true, admitted: false }] }));
+  // A well-formed shipped entry missing `recorded` is NOT rejected — it is the spec's fail-closed
+  // path (→ claimed-shipped-unmerged divergence), so validation must let it reach the core.
+  check("validate: shipped entry missing recorded (fail-closed path) → no error", validateReconcileInput({ level: "L3", shipped: [{ issue: "FAFF-A", observed: { pr_merged: false } }] }) === null);
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${RECONCILE_SELFTEST_CASES.length + 10} cases, ${fail} failed)`);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${RECONCILE_SELFTEST_CASES.length + 16} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 

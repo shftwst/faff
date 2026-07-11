@@ -24,6 +24,8 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 **Methodology lens.** Phase 1 (Now/Next/Later) sequences inside each horizon via the configured `methodology` slot's `pick-ordering` (gateway → **Ordering & judgement delegation**) — map states no ordering of its own; the thematic default supplies priority + chainable unlock value, and an opinionated lens (e.g. `faffter-dark-methodology-agile-delivery`) supplies value × risk × dep-aware order. When an opinionated lens is configured (gateway → **The `methodology` slot**, display convention), Phase 7 (Risks) also gains its findings alongside the structural risks.
 
+**Methodology transport.** Map's `methodology` requests (`pick-ordering`, `horizon-assignment`, `backlog-diagnostics`) go through **producer dispatch** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving `models.methodology` and `effort.methodology` via `faff config get` (`inherit` omits the arg). They ride **one batched dispatch per map pass** per gateway → **The `methodology` slot → Transport**; a map running inside a subagent falls back **in-context** (single-level nesting).
+
 ## What it does
 
 **Always pull the whole roadmap fresh** per the shared **Always pull fresh** rule (gateway): every invocation re-fetches every initiative, every project under it, every issue, every blocker link and status field. A roadmap that mixes fresh and stale pieces is silently wrong, and the chain analysis (Phase 4) and gate analysis (Phase 5) then produce confidently incorrect findings on a document the reader trusts as one coherent snapshot. If the fetch budget is too high, scope to a single initiative, never to partial freshness.

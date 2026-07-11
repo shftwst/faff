@@ -57,6 +57,8 @@ If the configured intake skill returns something that isn't a conformant discove
 
 ### 3. Shape into tickets — apply the `methodology` slot
 
+**Methodology transport.** jot's `methodology` calls — `ticket-shaping` for the brief and `prdr-author` for a new project — are **producer dispatches** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving `models.methodology` and `effort.methodology` via `faff config get` (`inherit` omits the arg). Per gateway → **The `methodology` slot → Transport**, `ticket-shaping` is a **single dispatch per pass** and `prdr-author` dispatches **per project**; jot running inside a subagent falls back **in-context** (single-level nesting).
+
 Hand the discovery brief to the configured `methodology` skill's **`ticket-shaping`** output (default `faffter-noon-methodology-thematic`; see that skill). The methodology decides the structure — workstreams/containers, ticket boundaries, sequencing, dependency links — from the brief plus the live tracker graph. This is where "a sensible set of tickets" is actually formed, and it follows whatever methodology the project has configured: the thematic default shapes purely from the brief + graph; an opinionated methodology (`faffter-dark-methodology-agile-delivery`) additionally right-sizes, outcome-names workstreams, and sequences by value × risk.
 
 `/faff-jot` does not invent its own ticket structure — it asks the methodology for one. That's what keeps shaping consistent with how the same project's backlog is groomed and sequenced everywhere else.

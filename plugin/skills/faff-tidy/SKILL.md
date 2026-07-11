@@ -82,6 +82,8 @@ An issue is ready when:
 
 **Decide readiness via `faff next`, not by re-checking these criteria by hand** (gateway → **Next-step transition**): map each issue's fetched state to the flags and consult `faff next` — `graft` ⇒ ready (promote candidate), `prep` ⇒ "Almost ready" (needs `/faff-prep`), `skip-ineligible` ⇒ the **On hold** section, `needs-human`/`blocked` ⇒ not ready. The bullets above are the human-readable shape of that transition. The labels + status mapped to those flags are **sourced from the live backlog re-fetch this pass took** (gateway → **Always pull fresh** + **Re-ground before gate**) — the promote gate reads eligibility at the gate, never from a stale snapshot, so an issue a human cranked up just before this run promotes on its live labels.
 
+**Methodology transport.** Every `methodology` named-output this pass requests — `pick-ordering`, `backlog-diagnostics`, `promotion-readiness`, `crank-up-set`, `prdr-author` — is a **producer dispatch** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving `models.methodology` and `effort.methodology` via `faff config get` (`inherit` omits the arg). Grain follows gateway → **The `methodology` slot → Transport**: tidy's read outputs ride **one batched dispatch per pass**, `prdr-author` dispatches per project; when tidy itself runs inside a subagent (a beep-boop pass), the invocation falls back **in-context** (single-level nesting).
+
 **Order ready issues via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) — tidy states no ordering of its own; it renders the order the methodology returns (the thematic default supplies priority + chainable unlock value when no methodology is set). Present ready issues in that order so the human (or `/faff-beep-boop`) picks up the right thing first.
 
 ### 3. Almost ready (flag)
@@ -114,7 +116,7 @@ tidy's crank-up and `/faff-jot ISSUE-XX`'s crank up/crank down are **complementa
 
 ### 5. Structural diagnostics
 
-A separate pass that examines the **shape of the backlog itself**, not individual issues. Request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-thematic`) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Automation-routing verdict (fixed)** (the root-cause class enum) for the shared park-classification taxonomy it uses.
+A separate pass that examines the **shape of the backlog itself**, not individual issues. This consumes the pass's single `backlog-diagnostics` result — requested **once** via the batched methodology dispatch (**Methodology transport** above; default `faffter-noon-methodology-thematic`), and shared with the surface-only pass (2a) below (one request, two consumers) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Automation-routing verdict (fixed)** (the root-cause class enum) for the shared park-classification taxonomy it uses.
 
 Categories detected:
 
@@ -183,7 +185,7 @@ Signals are **advisory only**. Tidy never auto-applies rule changes based on cal
 
 ### 7. Methodology findings (rendered only when a `methodology` skill is configured)
 
-Request the `backlog-diagnostics` output from the configured methodology skill, passing the backlog state. The methodology decides which categories to detect and how; faff-tidy renders the findings it returns. Surface-only in 2a — no mechanical fixes auto-applied; every finding is surfaced for human action.
+Consume the **same** pass `backlog-diagnostics` result — the single batched request (**Methodology transport** above), not a second dispatch — passing the backlog state. The methodology decides which categories to detect and how; faff-tidy renders the findings it returns. Surface-only in 2a — no mechanical fixes auto-applied; every finding is surfaced for human action.
 
 Each finding renders its full diagnosis (what's there / why it's a problem / what to do) as the methodology returns it. The 2b spec adds mechanical fixes (auto-rename, auto-split, auto-regroup, file gap issues).
 

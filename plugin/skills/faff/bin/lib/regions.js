@@ -84,6 +84,9 @@ const REGION_MAP = {
   "profile": "factory",
   "fixtures": "factory",
   "env": "factory",
+  // engine — the FAFF-422 one-shot local-engine transport for engine-valued producer
+  // lanes; part of the dispatch machinery, not the flight recorder → factory.
+  "engine": "factory",
   "lights-out": "factory",
   "gates": "factory",
   "contract": "factory",
@@ -155,6 +158,7 @@ const REGION_SELFTEST_ARGV = {
   "profile": ["profile", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
+  "engine": ["engine", "--selftest"],
   "lights-out": ["lights-out", "--selftest"],
   "gates": ["gates", "--selftest"],
   "contract": ["contract", "--selftest"],

@@ -1,0 +1,107 @@
+// ===========================================================================
+// === region:factory — container-check — FAFF-42: assert the ADR-0010 blast-radius boundary. ===
+// faff owns NO sandbox (ADR 0010); the boundary for an autonomous run is a
+// host-isolated CONTAINER, not faff. This is the thin ASSERTION layer — detect
+// whether that container is present and say so; it never enforces. PURE given
+// (env, fsq) readings: no tracker, no network — parity with next/eligible.
+// Reads ONLY standard runtime signals (Docker/Podman marker files, the k8s
+// service-host var, the systemd `container=` convention); faff invents no
+// marker and requires no container cooperation. NEVER parses /proc/1/cgroup
+// (empty `0::/` under cgroup v2 — no container hint). The autonomous-entry
+// preflight (gateway → Autonomous Mode Contract) calls this and WARNS by
+// default — never blocks — escalating to abort only under the opt-in
+// autonomous.require_container=block knob.
+// ===========================================================================
+
+// Truthy in the shell-env sense: present and not one of the falsey tokens.
+
+const fs = require("node:fs");
+
+function envTruthy(v) {
+  if (v === undefined || v === null) return false;
+  const s = String(v).trim().toLowerCase();
+  return s !== "" && s !== "0" && s !== "false" && s !== "no";
+}
+
+// Pure detection. `env` is a KEY→VALUE map; `fsq` is an injectable reader
+//   { exists(path)->bool, readEnviron(path)->string }.
+// Precedence: the first decisive signal wins. Returns { result, basis }; result
+// is "contained" | "not_confirmed", basis names which rule fired (honest message).
+function containerCheck(env, fsq) {
+  env = env || {};
+  if (env.KUBERNETES_SERVICE_HOST !== undefined && String(env.KUBERNETES_SERVICE_HOST) !== "") {
+    return { result: "contained", basis: "k8s" };
+  }
+  if (fsq.exists("/.dockerenv")) return { result: "contained", basis: "dockerenv" };
+  if (fsq.exists("/run/.containerenv")) return { result: "contained", basis: "containerenv" };
+  // /proc/1/environ is NUL-separated KEY=VALUE; the adapter returns "" on any read error.
+  const pid1 = fsq.readEnviron("/proc/1/environ") || "";
+  const kv = pid1.split("\0").find((t) => t.startsWith("container="));
+  if (kv) return { result: "contained", basis: "pid1-container=" + (kv.slice("container=".length) || "?") };
+  if (envTruthy(env.container)) return { result: "contained", basis: "env-container" };
+  return { result: "not_confirmed", basis: "no-signal" };
+}
+
+// The real-fs adapter the CLI uses (the selftest injects a synthetic one). This
+// is where the "never throws on read errors" guarantee lives: a missing path or a
+// permission error becomes a no-signal, never an exception.
+function realFsq() {
+  return {
+    exists: (p) => { try { return fs.existsSync(p); } catch { return false; } },
+    readEnviron: (p) => { try { return fs.readFileSync(p, "utf8"); } catch { return ""; } },
+    // FAFF-379: additive wrappers the worktree-isolation floor probe reuses — a
+    // failed stat/access becomes a no-signal (false), never an exception. Harmless
+    // to existing callers (containerCheck reads only exists/readEnviron).
+    isDirectory: (p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } },
+    writable: (p) => { try { fs.accessSync(p, fs.constants.W_OK); return true; } catch { return false; } },
+  };
+}
+
+function cmdContainerCheck(args) {
+  if (args.includes("--selftest")) return containerCheckSelftest();
+  const json = args.includes("--json");
+  const { result, basis } = containerCheck(process.env, realFsq());
+  if (json) console.log(JSON.stringify({ result, basis }));
+  else console.log(`${result} (basis: ${basis})`);
+  return result === "contained" ? 0 : 1;
+}
+
+// In-memory selftest over synthetic (env, fsq) fixtures — mirrors the eligible /
+// next selftest shape (per-case ok/FAIL + a RESULT line, non-zero on any fail).
+function containerCheckSelftest() {
+  const mkFsq = (present, environ) => ({
+    exists: (p) => present.has(p),
+    readEnviron: () => environ || "",
+  });
+  const CASES = [
+    // [env, present-paths, environ, want-result, want-basis, label]
+    [{ KUBERNETES_SERVICE_HOST: "10.0.0.1" }, [], "", "contained", "k8s", "k8s in-pod"],
+    [{}, ["/.dockerenv"], "", "contained", "dockerenv", "docker marker (claude-box)"],
+    [{}, ["/run/.containerenv"], "", "contained", "containerenv", "podman marker"],
+    [{}, [], "HOME=/root\0container=systemd-nspawn", "contained", "pid1-container=systemd-nspawn", "pid1 container= convention"],
+    [{ container: "lxc" }, [], "", "contained", "env-container", "truthy env container"],
+    [{}, [], "", "not_confirmed", "no-signal", "bare host (no signal)"],
+    [{ KUBERNETES_SERVICE_HOST: "x" }, ["/.dockerenv"], "", "contained", "k8s", "k8s precedence over docker"],
+    [{ KUBERNETES_SERVICE_HOST: "" }, [], "", "not_confirmed", "no-signal", "empty k8s var is no signal"],
+    [{ container: "false" }, [], "", "not_confirmed", "no-signal", "falsey env container ignored"],
+    [{ container: "0" }, [], "", "not_confirmed", "no-signal", "zero env container ignored"],
+  ];
+  let fail = 0;
+  for (const [env, present, environ, wantR, wantB, label] of CASES) {
+    const { result, basis } = containerCheck(env, mkFsq(new Set(present), environ));
+    const ok = result === wantR && basis === wantB;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${label} → ${result}/${basis} (want ${wantR}/${wantB})`);
+  }
+  // never-throws (real adapter): reads of absent paths return falsey, no exception.
+  try {
+    const rf = realFsq();
+    if (rf.exists("/no/such/marker/xyz") !== false) { console.log("FAIL real exists(absent) ≠ false"); fail++; }
+    if (rf.readEnviron("/no/such/environ/xyz") !== "") { console.log("FAIL real readEnviron(absent) ≠ \"\""); fail++; }
+  } catch { console.log("FAIL real adapter threw on an absent path"); fail++; }
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length} cases + never-throws, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+
+module.exports = { cmdContainerCheck, containerCheck, containerCheckSelftest, envTruthy, realFsq };

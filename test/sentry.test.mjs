@@ -12,6 +12,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
+// FAFF-441: the sentry implementation now lives in its own module; source-structure
+// assertions read it there rather than the thin entrypoint.
+const SENTRY_SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "lib", "sentry.js");
 
 // run the CLI in `cwd`; returns { code, out, err }
 function run(cwd, args, input) {
@@ -112,12 +115,12 @@ test("AC2: budget-breach mirrors `faff budget check` exactly (Sentry consumes th
 });
 
 test("AC2: the sentry source carries no token/cost counter — it shells `budget check`", () => {
-  const src = readFileSync(CLI, "utf8");
+  const src = readFileSync(SENTRY_SRC, "utf8");
   const start = src.indexOf("function cmdSentry");
   const end = src.indexOf("function sentrySelftest");
   // Anchor on the section-name fragment, agnostic of the banner's region-tag framing.
   const region = src.slice(src.indexOf("sentry — FAFF-49"), end > start ? end : undefined);
-  assert.ok(/\[__filename, "budget", "check"/.test(region), "consumes `faff budget check` via a child invocation");
+  assert.ok(/\[ENTRYPOINT, "budget", "check"/.test(region), "consumes `faff budget check` via a child invocation");
   assert.ok(!/measureTokens|tokens_at_start|price_per_mtok|est_tokens_per_attempt/.test(region), "no budget math re-implemented in sentry");
 });
 
@@ -356,7 +359,7 @@ test("AC6: the v1 intervention ladder stops at abort — `correct` is deferred, 
   const dir = tmp();
   try {
     // No reachable code path or output ever yields `correct`; the ladder is continue|pause|abort.
-    const src = readFileSync(CLI, "utf8");
+    const src = readFileSync(SENTRY_SRC, "utf8");
     assert.ok(/const SENTRY_INTERVENTIONS = \["continue", "pause", "abort"\]/.test(src), "ladder is exactly continue|pause|abort");
     // exercised live: the worst aggregate Sentry can route to is abort.
     const ledger = {

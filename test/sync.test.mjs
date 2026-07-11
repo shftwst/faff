@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, chmodSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, cpSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -128,7 +128,9 @@ test("sync: no readable candidate → exit 2, stderr names every path tried (no 
   const cliDir = mkdtempSync(join(tmpdir(), "sync-cli-"));
   const cwdDir = mkdtempSync(join(tmpdir(), "sync-noanchor-"));
   const cliCopy = join(cliDir, "faff");
-  copyFileSync(CLI, cliCopy);
+  // FAFF-441: the CLI is now an entrypoint + sibling bin/lib modules, so an isolated
+  // copy must bring the whole bin/ tree (a lone-file copy can't require its modules).
+  cpSync(dirname(CLI), cliDir, { recursive: true });
   try {
     const r = (() => {
       try { return { code: 0, out: execFileSync("node", [cliCopy, "sync"], { encoding: "utf8", cwd: cwdDir }) }; }

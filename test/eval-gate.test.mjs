@@ -29,7 +29,8 @@ test("classifyDiffSurface: prose-only is `prose`, any code/contract/CLI/grader i
   assert.equal(classifyDiffSurface(["plugin/skills/faff/SKILL.md", "docs/x.md"]), "prose");
   assert.equal(classifyDiffSurface([]), "prose");
   assert.equal(classifyDiffSurface(["eval/run-evals.mjs"]), "substantive");      // code
-  assert.equal(classifyDiffSurface(["plugin/skills/faff/bin/faff"]), "substantive"); // CLI
+  assert.equal(classifyDiffSurface(["plugin/skills/faff/bin/faff"]), "substantive"); // CLI entrypoint
+  assert.equal(classifyDiffSurface(["plugin/skills/faff/bin/lib/config.js"]), "substantive"); // CLI module (FAFF-441)
   assert.equal(classifyDiffSurface(["plugin/skills/faff/contracts/x.mjs"]), "substantive");
   assert.equal(classifyDiffSurface(["eval/grader.mjs"]), "substantive");
   assert.equal(classifyDiffSurface(["a.md", "b.mjs"]), "substantive");           // mixed → substantive

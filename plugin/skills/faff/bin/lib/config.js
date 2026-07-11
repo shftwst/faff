@@ -1,0 +1,833 @@
+// ===========================================================================
+// === region:factory — config — resolve / read .faffrc (YAML subset, no deps) ===
+// ===========================================================================
+// FAFF-182: the single source of truth for config defaults, keyed by dotted config path.
+// `config get <key>` applies these so no caller (skill prose) ever supplies a default via `-d` —
+// a prose-supplied default can be forgotten/mistyped/shortcut (the slot-dispatch bug). Slots are
+// entries here too (slots are just config-path keys). Computed defaults (spec-docs-path, eligible,
+// next, worktree_root) keep their own resolvers — this registry is for simple-scalar + slot defaults.
+
+const fs = require("node:fs");
+const path = require("node:path");
+const { runIsHeld } = require("./runcheck");
+const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readLedger, scalar, stripInlineComment } = require("./shared-infra");
+
+const DEFAULTS = {
+  "slots.intake": "faffter-noon-intake",
+  "slots.spec": "faffter-noon-spec",
+  "slots.spec_review": "faffter-noon-spec-review",
+  "slots.adr": "faffter-noon-adr",
+  "slots.architecture": "faffter-noon-architecture",
+  "slots.env": "faffter-noon-env-compose",
+  "slots.evaluator": "faffter-noon-evaluate",
+  "slots.review": "faffter-noon-review",
+  "slots.ship": "faffter-noon-ship",
+  "slots.concurrency": "faffter-noon-concurrency-sequential",
+  "slots.methodology": "faffter-noon-methodology-thematic",
+  "slots.routing_adaptor": "faffidavit-routing",
+  "slots.rendering_adaptor": "faffidavit-rendering",
+  "logging": "full",
+  "concurrency_max": "4",
+  "automation_default": "opt-in",
+  "appetite": "high",
+  "adr.mode": "offer",
+  "intake_gate": "warn",
+  "gates.fallback": "advisory",
+  "budget.at_ceiling": "stop",
+  "budget.price_per_mtok": "0",
+  // FAFF-255: PRDR thrash-ratchet bounds. thrash_max = supersessions a single lineage may accrue
+  // within thrash_window (days) before `prdr admit` escalates (ratchet.breached). Conservative defaults.
+  "prdr.thrash_max": "3",
+  "prdr.thrash_window": "21",
+  // FAFF-315: per-lane model selection. build/prep_explore take the closed Agent-tool token set
+  // (MODEL_LANE_VOCAB below); "inherit" = dispatch with no model param (byte-for-byte today).
+  // models.eval is the eval frontier driver's pinned default — NEVER the account default (budget guard).
+  "models.build": "inherit",
+  "models.prep_explore": "inherit",
+  // FAFF-372: per-producer model lanes for the migrated interactive prep/jot producer subagents
+  // (spec / methodology / spec_review / intake). Same closed Agent-token set as build; "inherit"
+  // omits the model param (byte-for-byte today until a repo pins one).
+  "models.spec": "inherit",
+  "models.spec_review": "inherit",
+  "models.methodology": "inherit",
+  "models.intake": "inherit",
+  // The architecture proposer's producer-subagent dispatch lane (faff-prep's conditional
+  // architecture step) — same closed Agent-token set as the sibling producer lanes.
+  "models.architecture": "inherit",
+  "models.eval": "claude-sonnet-4-6",
+  // FAFF-416: per-lane reasoning-EFFORT selection — the effort counterpart to the FAFF-315
+  // model lanes. Only the non-prep, subagent-dispatched lanes are tunable: build (concurrency
+  // executors' build subagents), methodology + intake (producer-subagent dispatches). "inherit"
+  // = omit the effort arg = today's dispatch, byte-for-byte. HARD EXCLUSION: prep/spec lanes
+  // (spec / spec_review / prep_explore / architecture) and eval get NO effort lane — prep runs
+  // once and gates the whole pipeline, so it stays pinned; the adversarial judge's effort tuning
+  // lives in its own faffter_dark.adversarial engine block (compose-not-subsume). See ADR.
+  "effort.build": "inherit",
+  "effort.methodology": "inherit",
+  "effort.intake": "inherit",
+};
+
+// FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
+// the set fails LOUD at read (exit 2, names the value + legal set) — a misconfigured model must
+// never silently fall back to the session default (the FAFF-50 dropped-slot failure mode).
+// models.eval is deliberately absent (open vocabulary — `claude -p` validates the id itself).
+const MODEL_LANE_VOCAB = {
+  "models.build": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.prep_explore": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  // FAFF-372: migrated interactive producer lanes reuse the build lane's closed Agent-token set.
+  "models.spec": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.spec_review": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.methodology": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.intake": ["inherit", "sonnet", "opus", "haiku", "fable"],
+  "models.architecture": ["inherit", "sonnet", "opus", "haiku", "fable"],
+};
+function validateModelLane(key, value) {
+  let vocab = MODEL_LANE_VOCAB[key];
+  // FAFF-334: the per-issue build-model matcher leaves (`models.build_by_confidence.<leaf>`) reuse
+  // the build lane's closed Agent-token set, so an invalid token in the matcher fails loud at
+  // `config get` read time too — never a silent inherit at the per-issue dispatch site.
+  if (!vocab && /^models\.build_by_confidence\./.test(key)) vocab = MODEL_LANE_VOCAB["models.build"];
+  if (!vocab || vocab.includes(value)) return null;
+  return `config get ${key}: invalid model token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+}
+
+// FAFF-416: closed value vocabulary for the per-lane reasoning-EFFORT lanes — the FAFF-415
+// EFFORT_LEVELS (low|medium|high|xhigh|max) plus "inherit" (omit the effort arg, byte-for-byte
+// today). Mirrors validateModelLane: a configured off-vocabulary value fails LOUD at read
+// (config get exit 2, names the value + legal set), never a silent inherit at the dispatch site.
+const EFFORT_LANE_VOCAB = {
+  "effort.build": ["inherit", "low", "medium", "high", "xhigh", "max"],
+  "effort.methodology": ["inherit", "low", "medium", "high", "xhigh", "max"],
+  "effort.intake": ["inherit", "low", "medium", "high", "xhigh", "max"],
+};
+function validateEffortLane(key, value) {
+  const vocab = EFFORT_LANE_VOCAB[key];
+  if (vocab) return vocab.includes(value) ? null : `config get ${key}: invalid effort token "${value}" — legal set: ${vocab.join(" | ")} (fail-loud, no silent inherit)`;
+  // FAFF-416: the prep/spec + eval EXCLUSION is enforced by FAIL-LOUD, not silent tolerance —
+  // any `effort.<lane>` key that is not a tunable lane (e.g. effort.spec / effort.architecture /
+  // effort.eval, or a typo) fails at read so a hand-set value can never masquerade as a live knob
+  // no dispatch consumes. Non-`effort.*` keys are not this validator's business (returns null).
+  if (/^effort\./.test(key)) return `config get ${key}: "${key}" is not a tunable effort lane — only ${Object.keys(EFFORT_LANE_VOCAB).join(" | ")} are tunable (prep/spec + eval are deliberately excluded; FAFF-416)`;
+  return null;
+}
+
+// FAFF-308: appetite is level-scoped. `resolveAppetite` is the SINGLE appetite-resolution
+// channel — under an active L4 lights-out run appetite resolves to `full` unconditionally
+// and config `appetite` is ignored; config stays authoritative for L1–L3. The pin bites
+// HERE (behind `faff config get appetite`) so every consumer inherits the L4 guarantee with
+// zero per-call-site edits. The hard floor (destructive/irreversible always parks) is
+// unchanged and still wins at `full` — "L4 = full" is never "L4 = reckless".
+// Precedence: env FAFF_APPETITE (valid token) > LIVE-L4 ledger (FAFF_RUN_DIR, level:"L4" AND
+//             the run is live per `runIsHeld` — running owner + fresh heartbeat) > config
+// `appetite` > baked default. A missing/unreadable/non-L4 ledger, a DONE/ABANDONED/stale L4
+// ledger (FAFF-378 — the level alone never pins; a dead run's ledger falls through), and an
+// invalid FAFF_APPETITE token all fail safe to config — the override never fabricates `full`
+// nor lowers safety. Staleness can only de-escalate agency here, never escalate it.
+const VALID_APPETITES = new Set(["low", "medium", "high", "full"]);
+
+function resolveAppetite(cfg, env = process.env) {
+  // 1. env belt — the runner-exported fast-path (greppable in a process; may not cross every
+  //    subagent shell, which is why the ledger brace below exists).
+  const envApp = env.FAFF_APPETITE;
+  if (envApp && VALID_APPETITES.has(String(envApp).toLowerCase())) return String(envApp).toLowerCase();
+  // 2. ledger brace — authoritative + subagent-safe (FAFF_RUN_DIR is inherited by beep-boop
+  //    subagents, as budget-check/runcheck already rely on). Reads the EXPLICITLY-handed run
+  //    dir, never a globally-sorted latest (dodges the latestRunDir lexical-sort hazard).
+  const runDir = env.FAFF_RUN_DIR;
+  if (runDir) {
+    try {
+      // FAFF-378: pin only for a LIVE run. `runIsHeld` is the canonical liveness predicate
+      // (parity with runcheck/sentry): running owner + heartbeat fresher than the staleness
+      // window. A done/abandoned/stale L4 ledger falls through to config — the level alone
+      // must not escalate agency in a later session that never armed `full`.
+      const ledger = readLedger(runDir);
+      if (ledger && ledger.level === "L4" && runIsHeld(ledger, Date.now(), env)) return "full";
+    }
+    catch { /* unreadable / absent ledger → fall through (never fabricate `full`) */ }
+  }
+  // 3. config → baked default — the unchanged L1–L3 path.
+  const v = dig(cfg, "appetite");
+  return (v === null || v === undefined) ? DEFAULTS["appetite"] : v;
+}
+
+function fmt(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return String(value);
+}
+
+function loadConfig(root) {
+  const p = findConfig(root);
+  if (p === null) return [{}, null];
+  const data = parseYamlSubset(fs.readFileSync(p, "utf8"));
+  return [(data && typeof data === "object" && !Array.isArray(data)) ? data : {}, p];
+}
+
+// One docs-path resolver for the spec / PRD / PRDR axes (FAFF-252, FAFF-245).
+// `configKey` is the tracking.* override; `subdir` is the leaf under docs/ (or
+// doc/ when only doc/ exists). An explicit override wins; otherwise prefer an
+// existing docs/, then doc/, defaulting to docs/<subdir>.
+function resolveDocsPath(root, data, create, configKey, subdir) {
+  let rel;
+  const val = dig(data, configKey);
+  if (val) rel = String(val).trim().replace(/\/+$/, "");
+  else if (fs.existsSync(path.join(root, "docs"))) rel = "docs/" + subdir;
+  else if (fs.existsSync(path.join(root, "doc"))) rel = "doc/" + subdir;
+  else rel = "docs/" + subdir;
+  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
+  return rel;
+}
+const resolveSpecDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.spec_docs_path", "specs");
+const resolvePrdDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prd_docs_path", "prd");
+const resolvePrdrDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prdr_docs_path", "prdr");
+
+// ---------------------------------------------------------------------------
+// config init — FAFF-5: the deterministic WRITE half of the config surface.
+// Writes/merges a `tracking` block into `.faffrc.yaml`. Pure-functional except
+// the final fs.writeFileSync. NO MCP, NO env reads, NO value discovery — it
+// only persists values handed to it on the CLI (lane split; that is FAFF-6's
+// job). The write must round-trip: a file the existing parseYamlSubset/scalar
+// reads back to the values written. The merge is a SURGICAL raw-text edit —
+// never parse-then-reserialise (the parser is lossy and would destroy a user's
+// slots:/appetite:/comments).
+// ---------------------------------------------------------------------------
+const TRACKING_KEYS = [
+  "tracking.tracker",
+  "tracking.team_key",
+  "tracking.repo",
+  "tracking.git_host",
+  "tracking.spec_docs_path",
+  "tracking.prd_docs_path",
+  "tracking.prdr_docs_path",
+];
+const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
+
+// The missing inverse of scalar(): produce YAML scalar text for a string value
+// such that scalar() reads it back to that exact string. Bare when safe, else
+// double-quoted (the parser does NOT process single-quote `''` escaping, so we
+// only emit double-quotes, escaping `\` and `"`).
+function emitScalar(value) {
+  const INDICATORS = new Set(['"', "'", "[", "]", "{", "}", "&", "*", "!", "|",
+    ">", "@", "%", "`", ",", ":", "#", " "]);
+  const firstNonSpace = value.replace(/^\s+/, "")[0];
+  const needsQuote =
+    value === "" ||                       // empty → "" so it's not parsed as null
+    /^\s|\s$/.test(value) ||              // leading/trailing whitespace
+    value.includes(" #") ||              // space-hash → stripped as inline comment
+    (firstNonSpace !== undefined && INDICATORS.has(firstNonSpace)) ||
+    scalar(value) !== value;             // bare token would coerce to bool/num/null
+  if (needsQuote) {
+    return '"' + value.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+  }
+  return value;
+}
+
+// Emit a fresh, minimal `tracking:` block (create-from-scratch path only).
+// `sets` is a map leafKey → rawValue. Keys are emitted in canonical TRACKING_KEYS
+// order, restricted to the keys present in `sets`.
+function emitTrackingBlock(sets) {
+  let out = "tracking:\n";
+  for (const fq of TRACKING_KEYS) {
+    const leaf = fq.slice("tracking.".length);
+    if (leaf in sets) out += "  " + leaf + ": " + emitScalar(sets[leaf]) + "\n";
+  }
+  return out;
+}
+
+// Surgical merge: edit the raw file text in place so only the targeted
+// `tracking:` keys change; every other byte (other blocks, comments, ordering,
+// trailing newline) survives. Returns { text, conflicts, changed }.
+function mergeTrackingBlock(rawText, sets, force) {
+  const indentOf = (line) => line.length - line.replace(/^ +/, "").length;
+  const lines = rawText.split("\n");
+  const conflicts = [];
+  let changed = false;
+
+  // Locate the top-level `tracking:` key (indent 0).
+  let trackIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (indentOf(lines[i]) === 0 && lines[i].trim() === "tracking:") { trackIdx = i; break; }
+  }
+
+  if (trackIdx === -1) {
+    // Block absent → append a fresh block. Ensure one blank line separates it
+    // from prior non-empty content; preserve the original trailing-newline state.
+    const hadTrailingNewline = rawText.endsWith("\n");
+    let text = rawText;
+    if (text.length > 0) {
+      text = text.replace(/\n+$/, "");          // trim trailing blank lines
+      if (text.length > 0) text += "\n\n";     // one blank-line separator
+    }
+    text += emitTrackingBlock(sets);            // emitTrackingBlock ends in \n
+    if (!hadTrailingNewline) text = text.replace(/\n$/, "");
+    return { text, conflicts, changed: true };
+  }
+
+  // Block present: its body is the run of subsequent lines at indent > 0, up to
+  // the next indent-0 line (or EOF). Blank/comment lines inside stay in the run.
+  let bodyEnd = trackIdx + 1;
+  while (bodyEnd < lines.length) {
+    const line = lines[bodyEnd];
+    if (line.trim() === "") { bodyEnd++; continue; }          // blank — tentatively in body
+    if (indentOf(line) > 0) { bodyEnd++; continue; }          // indented child — in body
+    break;                                                     // next top-level key
+  }
+  // bodyEnd is the index of the first line NOT in the body (or lines.length).
+  // Trim trailing blank lines back out of the body so inserts land before them.
+  let insertAt = bodyEnd;
+  while (insertAt > trackIdx + 1 && lines[insertAt - 1].trim() === "") insertAt--;
+
+  for (const fq of TRACKING_KEYS) {
+    const leaf = fq.slice("tracking.".length);
+    if (!(leaf in sets)) continue;
+    const rawValue = sets[leaf];
+    const keyRe = new RegExp("^(\\s+)" + leaf.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:");
+    let foundIdx = -1;
+    for (let i = trackIdx + 1; i < bodyEnd; i++) {
+      if (keyRe.test(lines[i])) { foundIdx = i; break; }
+    }
+    if (foundIdx !== -1) {
+      const colon = lines[foundIdx].indexOf(":");
+      const existingRaw = stripInlineComment(lines[foundIdx].slice(colon + 1)).trim();
+      const existingVal = scalar(existingRaw);
+      // emitScalar guarantees the reader reads rawValue back AS the string rawValue,
+      // so the desired post-write parsed value is the raw string itself — never
+      // scalar(rawValue) (which would coerce "123" → 123 and mis-detect conflicts).
+      const desiredVal = rawValue;
+      if (existingVal === desiredVal) continue;              // no-op for this key
+      if (!force) { conflicts.push({ key: leaf, existing: existingVal, desired: desiredVal }); continue; }
+      const indent = lines[foundIdx].slice(0, indentOf(lines[foundIdx]));
+      lines[foundIdx] = indent + leaf + ": " + emitScalar(rawValue);  // drops inline comment (force)
+      changed = true;
+    } else {
+      // Insert a new child line at the end of the block body.
+      lines.splice(insertAt, 0, "  " + leaf + ": " + emitScalar(rawValue));
+      insertAt++;
+      bodyEnd++;
+      changed = true;
+    }
+  }
+  return { text: lines.join("\n"), conflicts, changed };
+}
+
+function cmdConfigInit(args, root) {
+  // 1. Parse args.
+  const sets = {};            // leafKey → rawValue
+  const seen = {};            // leafKey → first rawValue seen (dup-with-conflict guard)
+  const force = args.includes("--force");
+  const dryRun = args.includes("--dry-run");
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] !== "--set") continue;
+    const token = args[++i];
+    if (token === undefined) {
+      process.stderr.write("faff config init: --set requires KEY=VALUE\n");
+      return 2;
+    }
+    const eq = token.indexOf("=");
+    if (eq === -1) {
+      process.stderr.write(`faff config init: malformed --set '${token}' (expected KEY=VALUE)\n`);
+      return 2;
+    }
+    const rawKey = token.slice(0, eq);
+    const value = token.slice(eq + 1);          // empty value is allowed
+    const fq = rawKey.startsWith("tracking.") ? rawKey : "tracking." + rawKey;
+    if (!TRACKING_KEYS.includes(fq)) {
+      process.stderr.write(`faff config init: unknown key '${rawKey}'. Accepted keys: ${TRACKING_KEYS.join(", ")} (bare leaf keys accepted too).\n`);
+      return 2;
+    }
+    const leaf = fq.slice("tracking.".length);
+    if (leaf in seen && seen[leaf] !== value) {
+      process.stderr.write(`faff config init: key '${leaf}' set twice with different values ('${seen[leaf]}' vs '${value}') — ambiguous.\n`);
+      return 2;
+    }
+    seen[leaf] = value;
+    sets[leaf] = value;
+  }
+  if (Object.keys(sets).length === 0) {
+    process.stderr.write("faff config init: nothing to set (pass --set KEY=VALUE).\n");
+    return 2;
+  }
+
+  // 2. Resolve target file. findConfig throws legacy-config-name → propagates to
+  //    cmdConfig's catch (the refuse-second-file guarantee). Do NOT catch here.
+  const existingPath = findConfig(root);          // may throw; intentional
+  const canonicalPath = path.join(root, CANONICAL_CONFIG);
+
+  // 3. Compute merged text (surgical; never reserialise).
+  let newText, conflicts = [], changed;
+  if (existingPath === null) {
+    newText = INIT_HEADER + emitTrackingBlock(sets);
+    changed = true;
+  } else {
+    const rawText = fs.readFileSync(existingPath, "utf8");
+    ({ text: newText, conflicts, changed } = mergeTrackingBlock(rawText, sets, force));
+    if (conflicts.length && !force) {
+      process.stderr.write("faff config init: refusing to overwrite differing value(s) without --force:\n");
+      for (const c of conflicts) {
+        process.stderr.write(`  tracking.${c.key} is '${fmt(c.existing)}' in the file; --set passed '${fmt(c.desired)}'.\n`);
+      }
+      process.stderr.write("Re-run with --force to overwrite, or change the value.\n");
+      return 2;
+    }
+    if (!changed) {
+      console.log("config init: no changes (all values already set).");
+      return 0;
+    }
+  }
+
+  // 4. Round-trip self-verify against the real reader before committing the write.
+  const parsed = parseYamlSubset(newText);
+  for (const [leaf, rawValue] of Object.entries(sets)) {
+    const got = dig(parsed, "tracking." + leaf);
+    // emitScalar is the inverse of scalar(): the reader must return the raw string
+    // we were handed (quoting coerces "123"/"true"/"~" back to those strings).
+    const want = rawValue;
+    if (got !== want) {
+      process.stderr.write(`faff config init: internal error — written text does not round-trip (tracking.${leaf}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}); aborting to avoid a corrupt config.\n`);
+      return 2;
+    }
+  }
+
+  // 5. Output.
+  if (dryRun) {
+    process.stdout.write(newText.endsWith("\n") ? newText : newText + "\n");
+    return 0;
+  }
+  fs.writeFileSync(canonicalPath, newText);
+  const n = Object.keys(sets).length;
+  console.log(existingPath === null
+    ? `config init: created ${CANONICAL_CONFIG} with ${n} key(s).`
+    : `config init: wrote ${n} key(s) to ${CANONICAL_CONFIG}.`);
+  return 0;
+}
+
+// In-memory self-test for cmdConfigInit's pure helpers + the round-trip contract.
+// Mirrors `next --selftest`: per-case ok/FAIL + a RESULT line, non-zero on any fail.
+function configInitSelftest() {
+  let fail = 0;
+  const check = (label, cond) => {
+    if (!cond) fail++;
+    console.log(`${cond ? "ok  " : "FAIL"} ${label}`);
+  };
+  const reads = (text, leaf) => dig(parseYamlSubset(text), "tracking." + leaf);
+
+  // create-fresh: header + canonical-order block, round-trips.
+  {
+    const text = INIT_HEADER + emitTrackingBlock({ team_key: "FAFF", tracker: "linear" });
+    check("create-fresh: canonical order (tracker before team_key)",
+      text.indexOf("tracker:") < text.indexOf("team_key:"));
+    check("create-fresh: has header", text.startsWith(INIT_HEADER));
+    check("create-fresh: round-trips team_key", reads(text, "team_key") === "FAFF");
+    check("create-fresh: round-trips tracker", reads(text, "tracker") === "linear");
+  }
+
+  // merge-add-key into an existing tracking block, other keys + inline comments intact.
+  {
+    const orig = "tracking:\n  tracker: linear  # the tracker\n";
+    const { text, changed, conflicts } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("merge-add-key: changed", changed === true && conflicts.length === 0);
+    check("merge-add-key: existing key + inline comment intact", text.includes("tracker: linear  # the tracker"));
+    check("merge-add-key: new key inserted", reads(text, "team_key") === "FAFF");
+    check("merge-add-key: original tracker reads back", reads(text, "tracker") === "linear");
+  }
+
+  // comment / other-block preservation: non-tracking bytes untouched.
+  {
+    const orig = "# my config\nslots:\n  spec: gstack:autoplan  # custom\nappetite: full\n\ntracking:\n  repo: a/b\n";
+    const { text } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("preserve: slots block byte-intact", text.includes("slots:\n  spec: gstack:autoplan  # custom"));
+    check("preserve: appetite intact", text.includes("appetite: full"));
+    check("preserve: leading comment intact", text.startsWith("# my config\n"));
+    check("preserve: new tracking key present", reads(text, "team_key") === "FAFF");
+    check("preserve: existing tracking key present", reads(text, "repo") === "a/b");
+  }
+
+  // append-block to a file that has none.
+  {
+    const orig = "slots:\n  spec: x\n";
+    const { text, changed } = mergeTrackingBlock(orig, { repo: "a/b" }, false);
+    check("append-block: changed", changed === true);
+    check("append-block: slots intact", text.includes("slots:\n  spec: x"));
+    check("append-block: tracking appended", reads(text, "repo") === "a/b");
+  }
+
+  // idempotent no-op: identical value, changed=false, no conflict.
+  {
+    const orig = "tracking:\n  team_key: FAFF\n";
+    const { changed, conflicts } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("idempotent: no change", changed === false && conflicts.length === 0);
+  }
+
+  // conflict-refused-without-force.
+  {
+    const orig = "tracking:\n  team_key: FAFF\n";
+    const { changed, conflicts } = mergeTrackingBlock(orig, { team_key: "OTHER" }, false);
+    check("conflict-refused: reported, not written",
+      changed === false && conflicts.length === 1 && conflicts[0].existing === "FAFF" && conflicts[0].desired === "OTHER");
+  }
+
+  // conflict-overwritten-with-force: only that line changes.
+  {
+    const orig = "tracking:\n  team_key: FAFF\n  repo: a/b\n";
+    const { text, changed, conflicts } = mergeTrackingBlock(orig, { team_key: "OTHER" }, true);
+    check("conflict-forced: overwrote", changed === true && conflicts.length === 0 && reads(text, "team_key") === "OTHER");
+    check("conflict-forced: other line untouched", reads(text, "repo") === "a/b");
+  }
+
+  // quoted/bare emit round-trip (truth table from the spec).
+  {
+    const cases = [
+      ["linear", "linear"], ["FAFF", "FAFF"], ["shftwst/faff", "shftwst/faff"],
+      ["docs/specs/", "docs/specs/"], ["true", '"true"'], ["123", '"123"'],
+      ["~", '"~"'], ["", '""'], ["a #b", '"a #b"'], ["[x]", '"[x]"'],
+      [" lead", '" lead"'], ["trail ", '"trail "'], ["1.5", '"1.5"'], ["false", '"false"'],
+    ];
+    let ok = true, badEmit = "";
+    for (const [input, expectEmit] of cases) {
+      const emitted = emitScalar(input);
+      if (emitted !== expectEmit) { ok = false; badEmit = `${JSON.stringify(input)}→${JSON.stringify(emitted)} (want ${JSON.stringify(expectEmit)})`; break; }
+      // and it must round-trip back to the original string.
+      if (scalar(emitted) !== input) { ok = false; badEmit = `${JSON.stringify(input)} does not round-trip`; break; }
+    }
+    check("emit: quoting truth table + round-trip" + (ok ? "" : " — " + badEmit), ok);
+  }
+
+  // unknown-key rejection is enforced in cmdConfigInit (arg parse) — assert the allowlist shape here.
+  check("allowlist: known key normalises", TRACKING_KEYS.includes("tracking.team_key"));
+  check("allowlist: unknown key absent", !TRACKING_KEYS.includes("tracking.slug"));
+
+  // empty tracking block (key with null body): inserts children.
+  {
+    const orig = "tracking:\nslots:\n  spec: x\n";
+    const { text, changed } = mergeTrackingBlock(orig, { repo: "a/b" }, false);
+    check("empty-block: inserts child", changed === true && reads(text, "repo") === "a/b");
+    check("empty-block: slots untouched", text.includes("slots:\n  spec: x"));
+  }
+
+  // FAFF-262: block-sequence parsing (arrays of maps + arrays of scalars).
+  {
+    const text = "faffter_dark:\n  adversarial:\n    backends:\n      - provider: nvidia\n        model: nemotron\n      - provider: ollama\n        model: qwen3\n";
+    const arr = dig(parseYamlSubset(text), "faffter_dark.adversarial.backends");
+    check("seq: array of maps is an Array of length 2", Array.isArray(arr) && arr.length === 2);
+    check("seq: map item 1 multi-key intact", arr && arr[0] && arr[0].provider === "nvidia" && arr[0].model === "nemotron");
+    check("seq: map item 2 multi-key intact", arr && arr[1] && arr[1].provider === "ollama" && arr[1].model === "qwen3");
+  }
+  {
+    const arr = dig(parseYamlSubset("hosts:\n  - alpha\n  - beta\n"), "hosts");
+    check("seq: array of scalars", Array.isArray(arr) && arr.length === 2 && arr[0] === "alpha" && arr[1] === "beta");
+  }
+  {
+    // scalar coercion of sequence items (numbers/booleans via scalar()).
+    const arr = dig(parseYamlSubset("nums:\n  - 1\n  - 2\n  - true\n"), "nums");
+    check("seq: scalar coercion of items", Array.isArray(arr) && arr[0] === 1 && arr[1] === 2 && arr[2] === true);
+  }
+  {
+    // nested map inside a sequence item.
+    const arr = dig(parseYamlSubset("items:\n  - name: a\n    opts:\n      x: 1\n"), "items");
+    check("seq: nested map inside item", Array.isArray(arr) && arr[0].name === "a" && arr[0].opts && arr[0].opts.x === 1);
+  }
+  {
+    // regression guard: scalars + nested maps + block scalar + JSON-string scalar parse unchanged.
+    const text = "tracking:\n  team_key: SHF\n  spec_docs_path: docs/specs/\nnote: |\n  line one\n  line two\nfallbacks: '[{\"provider\":\"x\"}]'\n";
+    const d = parseYamlSubset(text);
+    check("seq regression: scalar unchanged", dig(d, "tracking.team_key") === "SHF");
+    check("seq regression: nested map unchanged", dig(d, "tracking.spec_docs_path") === "docs/specs/");
+    check("seq regression: block scalar unchanged", dig(d, "note") === "line one\nline two\n");
+    check("seq regression: JSON-string scalar stays a string", dig(d, "fallbacks") === '[{"provider":"x"}]');
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+function cmdConfig(args) {
+  let root = null;
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--root") root = args[++i];
+    else rest.push(args[i]);
+  }
+  root = root || findRoot();
+  const cmd = rest[0];
+  try {
+    if (cmd === "path") {
+      const p = findConfig(root);
+      if (p === null) return 3;
+      console.log(p);
+      return 0;
+    }
+    if (cmd === "get") {
+      // FAFF-26: --json prints the value as JSON (structured: lists/objects survive instead of
+      // being stringified to "[object Object]"). Key is the first positional that isn't a flag
+      // or a flag's value, so `config get --json infra` and `config get infra` both resolve `infra`.
+      const wantJson = rest.includes("--json");
+      let def = null, key = null;
+      for (let i = 1; i < rest.length; i++) {
+        const a = rest[i];
+        if (a === "-d" || a === "--default") { def = rest[++i] ?? null; continue; }
+        if (a === "--json") continue;
+        if (key === null) key = a;
+      }
+      const [data] = loadConfig(root);
+      // FAFF-308: appetite is the one level-scoped dial — route it through the sole appetite
+      // resolver so an active L4 run forces `full`. Guarded to the `appetite` key ONLY; every
+      // other key's resolution below is byte-for-byte unchanged.
+      if (key === "appetite") {
+        const app = resolveAppetite(data, process.env);
+        console.log(wantJson ? JSON.stringify(app) : app);
+        return 0;
+      }
+      const value = dig(data, key);
+      if (value === null || value === undefined) {
+        // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
+        if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) {
+          console.log(wantJson ? JSON.stringify(DEFAULTS[key]) : DEFAULTS[key]);
+          return 0;
+        }
+        if (def !== null) console.log(wantJson ? JSON.stringify(def) : def);
+        else if (wantJson) console.log("null");
+        return 3;
+      }
+      // FAFF-315: Agent-token model lanes have a closed vocabulary — an invalid configured
+      // value fails loud here (exit 2), never a silent inherit at the dispatch site.
+      const laneErr = validateModelLane(key, fmt(value)) || validateEffortLane(key, fmt(value));
+      if (laneErr) { process.stderr.write(laneErr + "\n"); return 2; }
+      console.log(wantJson ? JSON.stringify(value) : fmt(value));
+      return 0;
+    }
+    if (cmd === "defaults") {
+      // FAFF-182: print the registry; --selftest asserts it covers the expected slots + scalars.
+      if (rest.includes("--selftest")) {
+        const expected = [
+          "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
+          "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
+          "slots.env",
+          "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
+          "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
+          "models.build", "models.prep_explore",
+          "models.spec", "models.spec_review", "models.methodology", "models.intake",
+          "models.architecture",
+          "models.eval",
+          // FAFF-416: per-lane effort lanes (non-prep, subagent-dispatched only).
+          "effort.build", "effort.methodology", "effort.intake",
+        ];
+        const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
+        if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
+        // FAFF-315: the model-lane vocab table must cover every Agent-token lane, accept its own
+        // defaults, and reject an off-vocabulary token (the fail-loud path is load-bearing).
+        const vocabFail =
+          validateModelLane("models.build", DEFAULTS["models.build"]) ||
+          validateModelLane("models.prep_explore", DEFAULTS["models.prep_explore"]) ||
+          // FAFF-372: the migrated producer lanes accept their own defaults and reject off-vocabulary tokens.
+          validateModelLane("models.spec", DEFAULTS["models.spec"]) ||
+          validateModelLane("models.spec_review", DEFAULTS["models.spec_review"]) ||
+          validateModelLane("models.methodology", DEFAULTS["models.methodology"]) ||
+          validateModelLane("models.intake", DEFAULTS["models.intake"]) ||
+          validateModelLane("models.architecture", DEFAULTS["models.architecture"]) ||
+          (validateModelLane("models.architecture", "gpt-5") ? null : "architecture lane vocab failed to reject an invalid token") ||
+          (validateModelLane("models.spec", "gpt-5") ? null : "producer lane vocab failed to reject an invalid token") ||
+          (validateModelLane("models.build", "gpt-5") ? null : "vocab table failed to reject an invalid token") ||
+          (validateModelLane("models.eval", "any-id-is-fine") ? "models.eval must be open-vocabulary" : null) ||
+          // FAFF-334: the per-issue matcher leaves must reuse the build vocab — accept a valid token, reject an invalid one.
+          validateModelLane("models.build_by_confidence.high", "sonnet") ||
+          (validateModelLane("models.build_by_confidence.high", "gpt-5") ? null : "matcher leaf failed to reject an invalid token") ||
+          // FAFF-416: the effort-lane vocab must accept every effort lane's default (inherit) + a
+          // real effort level, and reject an off-vocabulary token (the fail-loud path is load-bearing).
+          validateEffortLane("effort.build", DEFAULTS["effort.build"]) ||
+          validateEffortLane("effort.methodology", "low") ||
+          validateEffortLane("effort.intake", "max") ||
+          (validateEffortLane("effort.build", "sonnet") ? null : "effort lane vocab failed to reject a model token") ||
+          (validateEffortLane("effort.build", "ultra") ? null : "effort lane vocab failed to reject an invalid effort token");
+        if (vocabFail) { process.stderr.write(`config defaults --selftest: ${vocabFail}\n`); return 1; }
+        console.log("config defaults --selftest: ok");
+        return 0;
+      }
+      console.log(JSON.stringify(DEFAULTS, null, 2));
+      return 0;
+    }
+    if (cmd === "spec-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolveSpecDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
+    if (cmd === "prd-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolvePrdDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
+    if (cmd === "dump") {
+      const [data] = loadConfig(root);
+      console.log(JSON.stringify(data, null, 2));
+      return 0;
+    }
+    if (cmd === "init") {
+      if (rest.includes("--selftest")) return configInitSelftest();
+      return cmdConfigInit(rest.slice(1), root);
+    }
+    if (cmd === "resolved") {
+      // FAFF-50: loud, human-readable echo of the resolved NON-default config — what a run
+      // actually uses that overrides a built-in default. Print it in run banners so a dropped
+      // slot is visible, not silent.
+      const [data, p] = loadConfig(root);
+      const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
+      const SLOTS = ["intake", "spec", "spec_review", "architecture", "env", "review", "ship", "concurrency", "methodology",
+        "routing_adaptor", "rendering_adaptor"];
+      console.log(`config:   ${p || "(none — all defaults)"}`);
+      console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
+      // FAFF-212 review F3: surface a non-default intake_gate so a typo'd/overridden
+      // value is visible in the run banner, not silently coerced behind the user's back.
+      const gate = dig(data, "intake_gate");
+      if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
+      // FAFF-42/350: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection) so an opt-in `block` is visible in the run banner, never silent.
+      for (const knob of ["require_container", "require_branch_protection"]) {
+        const v = dig(data, `autonomous.${knob}`);
+        if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
+      }
+      let any = false;
+      for (const s of SLOTS) {
+        const v = slots[s];
+        if (v !== null && v !== undefined && v !== "") { console.log(`slot ${s}: ${v}`); any = true; }
+      }
+      if (!any) console.log("slots:    (all defaults)");
+      // FAFF-315: surface non-default per-lane models in the run banner — a pinned model must be
+      // visible, not silent (the same FAFF-50 intent as the slot echo above).
+      const models = (data.models && typeof data.models === "object" && !Array.isArray(data.models)) ? data.models : {};
+      for (const lane of ["build", "prep_explore", "spec", "spec_review", "methodology", "intake", "architecture", "eval"]) {
+        const v = models[lane];
+        if (v !== null && v !== undefined && v !== "") console.log(`model ${lane}: ${v}`);
+      }
+      // FAFF-334: surface the per-issue build-model matcher when set — a routing config that flips
+      // build-model resolution from per-run to per-issue must be visible in the run banner, not silent.
+      const byConf = (models.build_by_confidence && typeof models.build_by_confidence === "object" && !Array.isArray(models.build_by_confidence)) ? models.build_by_confidence : {};
+      // Only the buckets that actually route are echoed (default/high/medium) — a `low` leaf is inert
+      // (a low-confidence spec parks at prep, never builds), so echoing it would imply a live routing
+      // config that does nothing and mislead the reader about what the run will do.
+      for (const conf of ["default", "high", "medium"]) {
+        const v = byConf[conf];
+        if (v !== null && v !== undefined && v !== "") console.log(`model build_by_confidence.${conf}: ${v}`);
+      }
+      // FAFF-416: surface non-default per-lane effort in the run banner — a pinned effort must be
+      // visible, not silent (the same FAFF-50 intent as the slot + model echoes above).
+      const effort = (data.effort && typeof data.effort === "object" && !Array.isArray(data.effort)) ? data.effort : {};
+      for (const lane of ["build", "methodology", "intake"]) {
+        const v = effort[lane];
+        if (v !== null && v !== undefined && v !== "") console.log(`effort ${lane}: ${v}`);
+      }
+      return 0;
+    }
+  } catch (e) {
+    if (e.message === "legacy-config-name") {
+      const names = e.legacy.join(", ");
+      process.stderr.write(`faff config: legacy config filename found (${names}). faff uses only \`${CANONICAL_CONFIG}\` — rename it to \`${CANONICAL_CONFIG}\`. (FAFF-50: single canonical config name; never a silent default.)\n`);
+      return 2;
+    }
+    if (e.message === "multiple-config") {
+      const names = e.files.map((f) => path.basename(f)).join(", ");
+      process.stderr.write(`faff config: multiple config files at the repo root (${names}); keep only one.\n`);
+      return 2;
+    }
+    throw e;
+  }
+  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved|init\n");
+  return 2;
+}
+
+// FAFF-334: per-issue build-model routing. `models.build` (FAFF-315) is a single per-run scalar;
+// this resolver keys the build model off an issue's retained spec confidence via the OPTIONAL sibling
+// matcher `models.build_by_confidence` (a `default` + confidence-keyed leaves), so a mixed-confidence
+// build queue picks the safe model per issue with no rc churn. PURE — the confidence is passed in, no
+// tracker call (the orchestrator already holds it at assembly). Fallback chain, in order:
+//   models.build_by_confidence.<conf> → models.build_by_confidence.default → models.build (scalar) → "inherit".
+// The resolved token is validated against the closed build Agent-token set (fail-loud, never a silent
+// inherit — FAFF-315/FAFF-50). An absent/unknown `conf` routes to the `default` bucket (never guesses
+// `high`), mirroring the "no confidence line" tolerance the routing gate already applies. Matcher
+// ABSENT ⇒ the scalar path, byte-for-byte FAFF-315.
+function resolveBuildModel(cfg, conf) {
+  const byConf = dig(cfg, "models.build_by_confidence");
+  const rawMap = (byConf && typeof byConf === "object" && !Array.isArray(byConf)) ? byConf : null;
+  // Normalise leaf keys to lowercase once — a capitalised YAML key (`High:`) must not silently miss
+  // and route to the default bucket; the confidence tokens themselves are lowercase (high|medium|low).
+  const map = {};
+  if (rawMap) for (const k of Object.keys(rawMap)) {
+    const v = rawMap[k];
+    if (v !== null && v !== undefined && v !== "") map[String(k).trim().toLowerCase()] = String(v).trim();
+  }
+  // Validate EVERY configured leaf up-front — not just the resolved token. The spec's guarantee is
+  // "an invalid Agent-token ANYWHERE in the matcher ⇒ fail-loud at read", so a typo in a not-yet-
+  // dispatched leaf is caught at the first resolution, never left dormant until its bucket happens to build.
+  for (const k of Object.keys(map)) {
+    if (validateModelLane("models.build_by_confidence." + k, map[k])) {
+      return { error: `faff models build-for: invalid model token "${map[k]}" in models.build_by_confidence.${k} — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+    }
+  }
+  const pick = (k) => (k != null && Object.prototype.hasOwnProperty.call(map, k)) ? map[k] : null;
+  const key = conf != null ? String(conf).trim().toLowerCase() : null;
+  let token = pick(key) ?? pick("default");
+  if (token == null) {
+    const scalar = dig(cfg, "models.build");
+    token = (scalar === null || scalar === undefined || scalar === "") ? DEFAULTS["models.build"] : String(scalar).trim();
+  }
+  if (validateModelLane("models.build", token)) {
+    return { error: `faff models build-for: resolved token "${token}" is not a legal build model — legal set: ${MODEL_LANE_VOCAB["models.build"].join(" | ")} (fail-loud, no silent inherit)` };
+  }
+  return { token };
+}
+
+// `faff models build-for <confidence>` — print the per-issue build model token (or "inherit", which
+// the caller maps to "omit the Agent-tool model param"). Pure; exit 0 token / 2 usage or invalid token.
+function cmdModels(args) {
+  if (args.includes("--selftest")) return modelsSelftest();
+  const sub = args.find((a) => !a.startsWith("-"));
+  if (sub !== "build-for") {
+    process.stderr.write("usage: faff models build-for <confidence> [--root DIR]\n");
+    return 2;
+  }
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const bfIdx = args.indexOf("build-for");
+  const confArg = (bfIdx !== -1 && args[bfIdx + 1] && !args[bfIdx + 1].startsWith("-")) ? args[bfIdx + 1] : null;
+  const [cfg] = loadConfig(root);
+  const res = resolveBuildModel(cfg, confArg);
+  if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
+  console.log(res.token);
+  return 0;
+}
+
+// Selftest — drives the pure resolver over the fallback chain + the read-time matcher-leaf validation.
+function modelsSelftest() {
+  let fail = 0;
+  const ok = (name, cond) => { if (!cond) { console.log(`FAIL ${name}`); fail++; } else console.log(`ok   ${name}`); };
+  const full = { models: { build: "opus", build_by_confidence: { default: "opus", high: "sonnet", medium: "opus" } } };
+  ok("build-for high → matcher leaf sonnet", resolveBuildModel(full, "high").token === "sonnet");
+  ok("build-for medium → matcher leaf opus", resolveBuildModel(full, "medium").token === "opus");
+  ok("build-for HIGH (case-insensitive) → sonnet", resolveBuildModel(full, "HIGH").token === "sonnet");
+  ok("unknown conf → default bucket (opus)", resolveBuildModel(full, "zzz").token === "opus");
+  ok("null conf → default bucket (opus)", resolveBuildModel(full, null).token === "opus");
+  // fallback precedence: leaf absent → default → scalar → inherit
+  ok("no leaf, has default → default", resolveBuildModel({ models: { build: "haiku", build_by_confidence: { default: "fable", high: "sonnet" } } }, "medium").token === "fable");
+  ok("no leaf, no default → scalar models.build", resolveBuildModel({ models: { build: "haiku", build_by_confidence: { high: "sonnet" } } }, "medium").token === "haiku");
+  ok("no matcher, has scalar → scalar (per-run FAFF-315 path)", resolveBuildModel({ models: { build: "fable" } }, "high").token === "fable");
+  ok("no matcher, no scalar → inherit", resolveBuildModel({ models: {} }, "high").token === "inherit");
+  ok("empty cfg → inherit", resolveBuildModel({}, "high").token === "inherit");
+  // fail-loud on an invalid resolved token — never a silent inherit
+  ok("invalid matcher leaf token fails loud", !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5" } } }, "high").error);
+  ok("invalid scalar fallback fails loud", !!resolveBuildModel({ models: { build: "gpt-5" } }, "zzz").error);
+  ok("low leaf tolerated (inert but valid token)", resolveBuildModel({ models: { build_by_confidence: { low: "haiku", default: "opus" } } }, "low").token === "haiku");
+  // fail-loud ANYWHERE — an invalid token in a NOT-dispatched leaf is caught, never left dormant
+  ok("invalid UNUSED leaf fails loud (validate anywhere, not just resolved)",
+    !!resolveBuildModel({ models: { build_by_confidence: { high: "gpt-5", default: "opus" } } }, "medium").error);
+  // case-insensitive YAML leaf key — a capitalised `High:` must not silently miss → default
+  ok("capitalised YAML leaf key (High:) resolves case-insensitively",
+    resolveBuildModel({ models: { build_by_confidence: { High: "sonnet", default: "opus" } } }, "high").token === "sonnet");
+  // read-time matcher-leaf validation (validateModelLane extension)
+  ok("validateModelLane accepts a valid matcher leaf", validateModelLane("models.build_by_confidence.high", "sonnet") === null);
+  ok("validateModelLane rejects an invalid matcher leaf", validateModelLane("models.build_by_confidence.high", "gpt-5") !== null);
+  ok("validateModelLane accepts the default leaf", validateModelLane("models.build_by_confidence.default", "opus") === null);
+  ok("validateModelLane leaves models.build scalar unchanged", validateModelLane("models.build", "sonnet") === null && validateModelLane("models.build", "gpt-5") !== null);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (models build-for resolver, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+
+module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigInit, cmdModels, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, resolveAppetite, resolveBuildModel, resolveDocsPath, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, validateEffortLane, validateModelLane };

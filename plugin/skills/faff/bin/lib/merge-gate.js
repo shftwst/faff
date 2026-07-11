@@ -11,6 +11,7 @@
 // ===========================================================================
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { adrFlag } = require("./adr");
@@ -220,6 +221,30 @@ function observeCi(repo, pr, headSha) {
   return { ci_state: "no-ci-coverage", head_sha_matches: true, detail: "no checks on head sha and none on the PR" };
 }
 
+// FAFF-397: the per-issue merge-record path — the additive floor artifact `faff reconcile`
+// re-reads at run-end to confront a ledger `shipped` claim with the ACTUAL merged head sha.
+// Mirrors ac-checklist.json/review-verdict.json's <run-dir>/<issue>/<file> convention exactly.
+function mergeRecordPath(runDir, issue) {
+  return path.join(runDir, issue, "merge-record.json");
+}
+
+// Write the merge record on every merge-ok path (idempotent already-merged, the normal
+// successful merge, and the FAFF-365 post-merge-success re-read) — the sha it already resolved
+// for --match-head-commit, so no second observation. Best-effort: a write failure is surfaced
+// but never un-does an already-landed merge (the merge itself is the load-bearing event; a
+// missing record just means `faff reconcile` will (correctly) flag this issue as unproven at
+// run-end, fail-closed — never silently drop the merge).
+function writeMergeRecord(runDir, issue, pr, headSha) {
+  try {
+    const dir = path.join(runDir, issue);
+    fs.mkdirSync(dir, { recursive: true });
+    const record = { pr: Number(pr), head_sha: headSha, merged: true, merged_at: new Date().toISOString() };
+    fs.writeFileSync(mergeRecordPath(runDir, issue), JSON.stringify(record, null, 2) + "\n");
+  } catch (e) {
+    process.stderr.write(`faff merge-gate: warning — could not write merge-record.json: ${e.message}\n`);
+  }
+}
+
 // Read the AC-checklist artifact graft persists at <run-dir>/<ISSUE>/ac-checklist.json.
 // Missing/unreadable/malformed → false (fail-closed: an unverifiable AC leg never passes).
 function readAcComplete(runDir, issue) {
@@ -333,7 +358,10 @@ function cmdMergeGate(args) {
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
   const headSha = hv.data.headRefOid;
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status monotonicity).
-  if (hv.data.state === "MERGED") return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headSha, note: "already merged" }, 0);
+  if (hv.data.state === "MERGED") {
+    writeMergeRecord(runDir, issue, pr, headSha); // FAFF-397: ensure the record exists even on the idempotent no-op path
+    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headSha, note: "already merged" }, 0);
+  }
 
   const ci = observeCi(repo, pr, headSha);
   const floor = {
@@ -380,6 +408,7 @@ function cmdMergeGate(args) {
       result.merged = true;
       result.verdict = "merge-ok";
       result.warnings = [...(result.warnings || []), pm.warning];
+      writeMergeRecord(runDir, issue, pr, headSha); // FAFF-397
       return emit(result, 0);
     }
     // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
@@ -391,6 +420,7 @@ function cmdMergeGate(args) {
   }
   result.merged = true;
   result.verdict = "merge-ok";
+  writeMergeRecord(runDir, issue, pr, headSha); // FAFF-397
   return emit(result, 0);
 }
 
@@ -511,6 +541,17 @@ function mergeGateSelftest() {
   check("post-merge: non-zero exit + unreadable re-read (null) → refuse (fail-closed), blocker notes the re-read failure", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: null, merge_stderr: "some error" }); return r.merged === false && r.outcome === "refuse" && /post-merge state re-read failed/.test(r.blocker); })());
   check("post-merge: multi-line stderr collapses to one line in the warning (adversarial review finding)", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: "MERGED", merge_stderr: "line one\nline two\r\nline three" }); return !/[\r\n]/.test(r.warning) && r.warning.includes("line one line two line three"); })());
   check("post-merge: post_state=undefined is NOT treated as unreadable (strict === null, not == null)", (() => { const r = classifyPostMerge({ merge_ok: false, post_state: undefined, merge_stderr: "some error" }); return r.outcome === "refuse" && !/post-merge state re-read failed/.test(r.blocker); })());
+  // writeMergeRecord / mergeRecordPath (FAFF-397): the additive floor artifact `faff reconcile`
+  // re-reads at run-end — written under <run-dir>/<issue>/merge-record.json on every merge-ok path.
+  check("mergeRecordPath: <run-dir>/<issue>/merge-record.json", mergeRecordPath("/r/run-1", "FAFF-397") === path.join("/r/run-1", "FAFF-397", "merge-record.json"));
+  check("writeMergeRecord: writes {pr,head_sha,merged,merged_at} to the resolved path", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-record-"));
+    try {
+      writeMergeRecord(tmp, "FAFF-397", 42, "abc123");
+      const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-397"), "utf8"));
+      return record.pr === 42 && record.head_sha === "abc123" && record.merged === true && typeof record.merged_at === "string";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -527,4 +568,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeGateSelftest, observeCi, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict };
+module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeGateSelftest, mergeRecordPath, observeCi, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, writeMergeRecord };

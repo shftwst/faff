@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/lane-boundary",
+  "title": "lane-boundary contract data",
+  "description": "Reference schema (FAFF-276). The SHAPE of the versioned lane-boundary intent the orchestrator authors (intent-out) declaring what physical boundary a lane needs — the assert-in half is `faff evaluator-preflight`. A DECLARATION of intent, never a trust source: the preflight's refuse decision rests on a physical fsq probe, never on this artifact's claim. Shape is normative here; the enums for lane/container/accesses.* are enforced in the compute fn via violations (the env-handle/holdout-verdict precedent — an echoed out-of-enum value is exit 1, not a spurious schemaCheck fail-loud), and fail-loud/exit-2 is reserved for the structural-malformation case (a non-object input). version is a plain integer here: its `>= 1` constraint is a compute-fn violation. host_socket + integrity_signal are carried from v1 but NOT asserted by this slice's preflight (declaration-only until FAFF-333/FAFF-325 wire their assertions).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "lane", "container", "accesses", "integrity_signal", "violations"],
+  "properties": {
+    "version": { "type": "integer" },
+    "lane": { "type": "string" },
+    "container": { "type": "string" },
+    "accesses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "host_socket"],
+      "properties": {
+        "repo": { "type": "string" },
+        "host_socket": { "type": "string" }
+      }
+    },
+    "integrity_signal": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

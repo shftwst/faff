@@ -76,6 +76,9 @@ const REGION_MAP = {
   "holdout": "factory",
   "spec-review-lenses": "factory",
   "container-check": "factory",
+  // evaluator-preflight — FAFF-276: the ADR-0041 rung-2 assert-in probe; reuses
+  // containerCheck/realFsq (factory) → factory, like its container-check sibling.
+  "evaluator-preflight": "factory",
   "corrective-integrity": "factory",
   // FAFF-326: corrective requires corrective-integrity (factory) directly and
   // sentry.js's sentryThresholds (governance) — factory→governance is legal (ADR
@@ -156,6 +159,7 @@ const REGION_SELFTEST_ARGV = {
   "holdout": ["holdout", "--selftest"],
   "spec-review-lenses": ["spec-review-lenses", "--selftest"],
   "container-check": ["container-check", "--selftest"],
+  "evaluator-preflight": ["evaluator-preflight", "--selftest"],
   "corrective-integrity": ["corrective-integrity", "--selftest"],
   "corrective": ["corrective", "--selftest"],
   "next": ["next", "--selftest"],

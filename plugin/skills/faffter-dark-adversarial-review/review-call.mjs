@@ -15,6 +15,7 @@ import http from "node:http";
 import https from "node:https";
 import { readFileSync } from "node:fs";
 import { join as pathJoin } from "node:path";
+import { spawnSync } from "node:child_process";
 
 // Exit codes the skill maps to a verdict: 0 ok · 4 model-not-served (→ needs-human) ·
 // 5 provider-unreachable, explicitly-configured host (→ pass+skip) ·
@@ -22,7 +23,10 @@ import { join as pathJoin } from "node:path";
 // 7 auth-failed (cloud creds / unset key env, → needs-human, FAFF-209) · 2 usage · 1 other ·
 // 9 mandatory-chain-outage — a MANDATORY (L4 --lights-out) review's chain exhausted with no opinion
 //   obtained (all UNREACHABLE/5 or DEADLINE/8), which fails CLOSED → needs-human (FAFF-398).
-export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9 };
+// 10 malformed (FAFF-194) — a reachable+served backend's OK content is not findings-shaped (empty,
+//   header-only, or no recognised `### <severity>:` section) — a model-quality fault, per-backend,
+//   member of CHAIN_NEEDS_HUMAN (never masked by an otherwise-available chain).
+export const EXIT = { OK: 0, OTHER: 1, USAGE: 2, NOT_SERVED: 4, UNREACHABLE: 5, DEFAULT_HOST_UNREACHABLE: 6, AUTH: 7, DEADLINE: 8, MANDATORY_OUTAGE: 9, MALFORMED: 10 };
 // FAFF-329: DEADLINE(8) — the Phase-2 total wall-clock budget (--deadline) was hit before any backend
 // produced findings. Distinct from UNREACHABLE(5) so a deadline-skip is observable, but the caller routes
 // it IDENTICALLY: pass + skip the second opinion, logged loudly (a bounded turn beats an unbounded stall;
@@ -108,6 +112,155 @@ export function assembleUserMessage({ contextFiles = [], diff = "" }) {
   for (const f of contextFiles) s += `<file path="${f.path}">\n${f.text}\n</file>\n\n`;
   s += `DIFF UNDER REVIEW:\n\n${diff}`;
   return s;
+}
+
+// --- FAFF-194: deterministic guards for machine-checkable findings + output-format enforcement ---
+//
+// The adversarial reviewer's findings are hypotheses from a deliberately fallible LLM; two things the
+// harness should settle itself rather than trust to the model: whether a "this is a syntax error" claim
+// is true (node --check answers that), and whether the raw output is findings-shaped at ALL (main() used
+// to print whatever a backend streamed, even empty, as exit 0). Both move into this pure-function layer
+// + one injectable check runner, so the LLM is spent only on judgement a tool can't verify.
+
+// PURE: tolerant split of reviewer output into a preamble (everything before the first `### ` heading —
+// e.g. the `## Adversarial findings — provider/model` header line) and an ordered list of finding
+// sections. Each section spans from its `### ` heading line to (exclusive) the next one, or EOF. Severity
+// is parsed from the heading; a heading with no recognised severity word still yields a section (raw
+// findings-shape validation only cares that >=1 section has severity != null).
+const SEVERITY_HEADING_RE = /^###\s*\[?(critical|major|minor|observation)\]?\s*[:—-]\s*(.*)$/i;
+
+export function splitFindings(content) {
+  const text = String(content == null ? "" : content);
+  const lines = text.split("\n");
+  const headingIdxs = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^###\s/.test(lines[i])) headingIdxs.push(i);
+  }
+  if (headingIdxs.length === 0) return { preamble: text, sections: [] };
+  const preamble = lines.slice(0, headingIdxs[0]).join("\n");
+  const sections = [];
+  for (let i = 0; i < headingIdxs.length; i++) {
+    const start = headingIdxs[i];
+    const end = i + 1 < headingIdxs.length ? headingIdxs[i + 1] : lines.length;
+    const heading = lines[start];
+    const body = lines.slice(start + 1, end).join("\n");
+    const raw = lines.slice(start, end).join("\n");
+    const m = heading.match(SEVERITY_HEADING_RE);
+    const severity = m ? m[1].toLowerCase() : null;
+    const title = m ? m[2] : heading.replace(/^###\s*/, "");
+    sections.push({ heading, severity, title, body, raw });
+  }
+  return { preamble, sections };
+}
+
+// PURE: is this content findings-shaped? Non-empty AND at least one `### <severity>: ...` section with a
+// severity in the closed set. Empty/whitespace-only content, or prose with no recognised finding section
+// (a refusal, rambling, or a headerless essay), is malformed — the exit-10 class (FAFF-194).
+export function validateFindingsShape(content) {
+  const trimmed = String(content == null ? "" : content).trim();
+  if (!trimmed) return { ok: false, reason: "empty content" };
+  const { sections } = splitFindings(content);
+  if (!sections.some((s) => s.severity != null)) {
+    return { ok: false, reason: "no recognised finding section (### <severity>: ...)" };
+  }
+  return { ok: true };
+}
+
+// PURE: the canonical, harness-authored findings header — provenance is harness data, never demanded
+// from the fallible model (FAFF-194 design decision: normalise/prepend rather than park on a missing one).
+export function canonicalHeader(provider, model) {
+  return `## Adversarial findings — ${provider}/${model}`;
+}
+
+const HEADER_LINE_RE = /^##[ \t]*Adversarial findings.*$/mi;
+
+// PURE: replace an existing (possibly model-echoed, possibly wrong) header line with the canonical one, or
+// prepend it when absent. A no-op (byte-identical) when the existing header already matches canonical.
+export function ensureHeader(content, provider, model) {
+  const header = canonicalHeader(provider, model);
+  const text = String(content == null ? "" : content);
+  if (HEADER_LINE_RE.test(text)) return text.replace(HEADER_LINE_RE, header);
+  return `${header}\n\n${text}`;
+}
+
+// PURE: recall-tuned WITHIN the syntax/parse claim class only (v1 scope) — a finding asserting code
+// "won't parse" / "is invalid syntax" / "fails to parse", etc. Crash/test-failure claims are OUT OF SCOPE
+// (a green suite doesn't refute an uncovered-path claim); this regex intentionally never matches those.
+const SYNTAX_CLAIM_RE = /syntax error|SyntaxError|won'?t parse|will not parse|fails? to parse|invalid (javascript|js|syntax)|not (valid|parseable|parsable)/i;
+
+export function findSyntaxClaims(sectionText) {
+  return SYNTAX_CLAIM_RE.test(String(sectionText == null ? "" : sectionText));
+}
+
+const JS_FAMILY_RE = /\.(m|c)?js$/i;
+function isJsFamily(p) { return JS_FAMILY_RE.test(String(p == null ? "" : p)); }
+
+// PURE: which context paths does this finding's text name, filtered to JS-family (.js/.mjs/.cjs) — the
+// only family `node --check` can settle. A path is "named" by simple substring match against the section
+// text (heading + body), matching how the reviewer's own context files are fenced (assembleUserMessage).
+export function claimTargets(sectionText, contextPaths) {
+  const text = String(sectionText == null ? "" : sectionText);
+  return (contextPaths || []).filter((p) => text.includes(p) && isJsFamily(p));
+}
+
+// The injectable check runner (the only new I/O) — real spawnSync("node", ["--check", path]); ok iff
+// exit 0. Injectable exactly as getFn/streamFn are, so CI spawns nothing unless a test opts in.
+export function realCheck(path) {
+  const r = spawnSync("node", ["--check", path], { encoding: "utf8" });
+  const ok = !r.error && r.status === 0;
+  const output = String((r.stderr || r.stdout || (r.error && r.error.message) || "")).trim();
+  return { ok, output };
+}
+
+// PURE-ISH (checkFn is the one injected side-effect): downgrade-only refutation pass over machine-checkable
+// syntax claims. Precision over recall — a finding is downgraded ONLY when every file the claim can be tied
+// to positively passes the check; any inability to tie the claim to a checkable file, or any check
+// failure, leaves it untouched (a wrongly-downgraded true finding is the expensive error; a surviving false
+// finding merely costs the implementor the status-quo disproof cycle). Never drops a finding — downgrades
+// severity to `observation`, prefixes the title `[auto-refuted]`, and appends an evidence line, so the
+// audit trail (what the reviewer got wrong) survives.
+//
+// Target resolution (contextPaths is the FULL context list, unfiltered — mirrors what the reviewer was
+// actually shown): claimTargets() already filters matches to JS-family. When a section names NO context
+// path at all (JS or otherwise), fall back to every JS-family context path (a generic "this code has a
+// syntax error" claim, uncommitted to one file) — but a claim that names ONLY a non-JS-family file (e.g.
+// SKILL.md) stays untouched: it named something, just nothing this pass can settle (precision bias).
+export function refuteFindings(content, contextPaths, { checkFn = realCheck } = {}) {
+  const paths = contextPaths || [];
+  const jsPaths = paths.filter(isJsFamily);
+  const { preamble, sections } = splitFindings(content);
+  const refutations = [];
+  let changed = false;
+
+  const newSections = sections.map((s) => {
+    if (s.severity == null) return s;
+    if (!findSyntaxClaims(s.raw)) return s;
+
+    let targets = claimTargets(s.raw, paths);
+    if (targets.length === 0) {
+      const namedAnyContextPath = paths.some((p) => s.raw.includes(p));
+      if (!namedAnyContextPath) targets = jsPaths;   // generic claim, no file named — check every JS file
+    }
+    if (targets.length === 0) return s;   // cannot tie the claim to a checkable file — untouched
+
+    const results = targets.map((t) => checkFn(t));
+    if (!results.every((r) => r && r.ok)) return s;   // any check failure — the reviewer may be right
+
+    changed = true;
+    refutations.push({ title: s.title, files: targets, from: s.severity });
+    const files = targets.join(", ");
+    const newTitle = `[auto-refuted] ${s.title}`;
+    const newHeading = `### observation: ${newTitle}`;
+    const evidence = `> auto-refuted: node --check passed on ${files} — syntax claim mechanically disproved (was ${s.severity})`;
+    const newRaw = s.body ? `${newHeading}\n${s.body}\n${evidence}` : `${newHeading}\n${evidence}`;
+    return { ...s, severity: "observation", title: newTitle, heading: newHeading, raw: newRaw };
+  });
+
+  if (!changed) return { content, refutations: [] };
+
+  const sectionsText = newSections.map((s) => s.raw).join("\n");
+  const rebuilt = preamble ? `${preamble}\n${sectionsText}` : sectionsText;
+  return { content: rebuilt, refutations };
 }
 
 // --- OpenAI-compatible (/v1) pure functions ---
@@ -568,13 +721,13 @@ export function mapResultExit(result, hostSource) {
 }
 
 // PURE (FAFF-232): the terminal exit of an EXHAUSTED chain (no backend produced findings). A config-fault
-// class — USAGE(2)/NOT_SERVED(4)/DEFAULT_HOST_UNREACHABLE(6)/AUTH(7), all of which the skill maps to
-// needs-human — DOMINATES the availability class UNREACHABLE(5 → pass+skip). So a chain of purely
-// configured-host availability failures still pass+skips exactly as a lone configured backend does today,
-// but a config fault ANYWHERE in a fully-failed chain surfaces needs-human (never masked by "all down" —
-// the FAFF-213/228 no-silent-weakening invariant). Returns the FIRST needs-human class in chain order;
-// else UNREACHABLE(5). Empty list → 5 (no faults to surface).
-export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH]);
+// class — USAGE(2)/NOT_SERVED(4)/DEFAULT_HOST_UNREACHABLE(6)/AUTH(7)/MALFORMED(10, FAFF-194), all of which
+// the skill maps to needs-human — DOMINATES the availability class UNREACHABLE(5 → pass+skip). So a chain
+// of purely configured-host availability failures still pass+skips exactly as a lone configured backend
+// does today, but a config/model-quality fault ANYWHERE in a fully-failed chain surfaces needs-human
+// (never masked by "all down" — the FAFF-213/228 no-silent-weakening invariant). Returns the FIRST
+// needs-human class in chain order; else UNREACHABLE(5). Empty list → 5 (no faults to surface).
+export const CHAIN_NEEDS_HUMAN = new Set([EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MALFORMED]);
 export function chainTerminalExit(failureClasses = []) {
   for (const c of failureClasses) if (CHAIN_NEEDS_HUMAN.has(c)) return c;
   return EXIT.UNREACHABLE;
@@ -677,6 +830,15 @@ export async function runReviewChain(chain = [], shared = {}) {
     }
     const exit = mapResultExit(result, b.hostSource);
     if (exit === EXIT.OK) {
+      // FAFF-194: per-backend shape validation — a malformed OK result (empty, or no recognised
+      // `### <severity>:` section) advances to the next backend rather than short-circuiting the whole
+      // chain, so a healthy fallback still gets a chance (mirrors every other per-backend fault class).
+      const shape = validateFindingsShape(result.content || "");
+      if (!shape.ok) {
+        failureClasses.push(EXIT.MALFORMED);
+        log(`${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${EXIT.MALFORMED})`);
+        continue;
+      }
       if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);
       return { exit: EXIT.OK, content: result.content || "", truncated: !!result.truncated, winner: b, failureClasses };
     }
@@ -689,7 +851,9 @@ export async function runReviewChain(chain = [], shared = {}) {
 
 // `runReviewFn` is injectable so the CLI exit-mapping (notably the FAFF-227 transport-failed → 5/6 path)
 // is unit-testable with a stubbed orchestration result; it defaults to the real runReview for the CLI.
-export async function main(argv, { runReviewFn = runReview } = {}) {
+// `checkFn` (FAFF-194) is injectable exactly the same way for the refutation pass's node --check calls,
+// so CI spawns nothing unless a test opts in; it defaults to the real realCheck for the CLI.
+export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
     process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
@@ -755,7 +919,18 @@ export async function main(argv, { runReviewFn = runReview } = {}) {
 
   if (res.exit === EXIT.OK) {
     if (res.truncated) process.stderr.write("[note] response truncated at token budget even after retry; findings may be partial\n");
-    process.stdout.write((res.content || "").trim() + "\n");
+    // FAFF-194: refutation pass (machine-checkable syntax claims, downgrade-only) then header
+    // normalisation (harness-authored provenance), in that order — both run on the winning content only.
+    const { content: refuted, refutations } = refuteFindings(res.content || "", a.context, { checkFn });
+    for (const r of refutations) {
+      process.stderr.write(`refuted: "${r.title}" — node --check clean on ${r.files.join(", ")}; ${r.from} → observation\n`);
+    }
+    const hadHeader = HEADER_LINE_RE.test(refuted);
+    const winnerProvider = (res.winner && res.winner.provider) || "ollama";
+    const winnerModel = res.winner && res.winner.model;
+    const finalContent = ensureHeader(refuted, winnerProvider, winnerModel);
+    if (!hadHeader) process.stderr.write("normalized: findings header missing — prepended canonical provenance\n");
+    process.stdout.write((finalContent || "").trim() + "\n");
     return EXIT.OK;
   }
   // FAFF-398: single-chokepoint mandatory remap. On a MANDATORY review (L4 --lights-out), an exhausted chain

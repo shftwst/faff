@@ -57,6 +57,12 @@ Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial
 
 Severities: `critical`, `major`, `minor`, `observation` — but these are the adversarial reviewer's assessment, not a gate decision.
 
+**When there are no findings, emit exactly one section: `### observation: no findings`** (FAFF-194). A clean review that emits nothing findings-shaped is indistinguishable from a malformed one — see **Output-format enforcement** below — so a well-behaved model with nothing to report still produces a recognised section, not empty/prose-only output.
+
+**The header is harness-authored, not model prose (FAFF-194).** `review-call.mjs` normalises the `## Adversarial findings — <provider>/<model>` line itself from the winning backend's own provenance — prepending it when absent, replacing it (never trusting a model-echoed, possibly-wrong tag) when present. Don't rely on the model getting the header right; it never has to.
+
+**Refuted findings arrive pre-downgraded (FAFF-194).** Before this output reaches the implementor, `review-call.mjs` runs a deterministic refutation pass over machine-checkable syntax/parse claims (v1 scope): a `critical`/`major`/`minor` finding claiming a context file "won't parse" is downgraded to `severity: observation` with an `[auto-refuted]` title prefix and a `node --check` evidence line, **iff** every file the claim ties to positively passes the check. A refuted finding is never dropped — the downgrade + evidence line is the audit trail of what the reviewer got wrong.
+
 ## How findings are handled
 
 The adversarial findings are raised back to the **implementor** (the build agent). The implementor must:
@@ -100,6 +106,8 @@ This is NOT a repeat of the primary review. The adversarial reviewer looks for t
 - Shared mutable state without synchronisation
 - Time-of-check to time-of-use gaps
 - Event ordering assumptions in async flows
+
+**When this lens finds nothing** — this text is the `--system` prompt (below); the reviewer MUST still emit exactly one recognised finding section, `### observation: no findings`, rather than empty or free-form prose (FAFF-194). `review-call.mjs` mechanically enforces findings-shaped output — see **Output-format enforcement** and exit `10` below — so a clean review that doesn't emit this marker is indistinguishable from a malformed one.
 
 ## LLM provider integration
 
@@ -178,10 +186,11 @@ node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" --deadl
 | `7` | **auth failed** (cloud `401`/`403`, or the `api_key_env` var is unset) | **`needs-human`** — don't retry with broken credentials. | same |
 | `8` | **deadline exceeded** (FAFF-329) — the total `--deadline` wall-clock budget was hit before any backend produced findings (a *slow-but-healthy* Phase-2, not a config fault) | `pass` + skip the second opinion, **logged loudly** (`phase2: skipped-deadline`) so a mis-tuned budget is visible, never silent. | same — `pass` + skip, logged loudly. **Distinct from the exit-5 outage annotation** (a deadline is a slow-but-healthy backend, not an availability outage) — no `chain-outage-skipped` field. A needs-human-class fault seen on an earlier backend still dominates (the helper returns that code, not `8`). Advisory only — on a **mandatory** chain a deadline exhaustion is remapped to exit `9` (fail-closed), see below. |
 | `9` | **mandatory chain-outage** (FAFF-398) — a **MANDATORY** (L4 lights-out) review's chain exhausted with only *no-opinion* classes (all-unreachable `5` *or* deadline `8`), no config fault present. Only produced when the review resolved **mandatory** — ledger-derived from an L4 `--run-dir`/`FAFF_RUN_DIR` (FAFF-401), or forced by an explicit `--lights-out` (see **MANDATORY chain-outage** below) | *not reachable* — mandatory-ness only resolves true on an L4 run | **`unavailable`** (FAFF-405) — park the PR; author `adversarial_outcome:"mandatory-chain-outage"` (retained forensics-only, no longer load-bearing). No second opinion was obtainable and no human is watching, so the mandatory gate **fails closed** (never pass+skip) — an availability failure, not a `needs-human` verdict. |
+| `10` | **malformed** (FAFF-194) — the winning backend's output is not findings-shaped: empty/whitespace, or prose with no recognised `### <severity>:` finding section. A model-quality fault, checked **per-backend** inside the fallback chain (a malformed primary still advances to a healthy fallback), so a fully-exhausted chain containing this class terminates at exit `10`, never `5`. | **`needs-human`**, naming the malformed output. **Never** silent `pass` — the mechanically-enforced form of the malformed-output rule below. | same |
 
 A **transient transport fault during streaming** (HTTP 5xx, a dropped socket — `ECONNRESET`/`ETIMEDOUT`/`EPIPE`/"socket hang up", a stream timeout, or an **HTTP 429 rate-limit** — FAFF-228) is **retried** a bounded number of times with exponential backoff before it counts as a failure; only a **persistent** one lands on exit `5`/`6` above (FAFF-227/228). `--timeout` bounds **each individual stream attempt and the inter-retry sleeps** — *not* the total wall-clock: worst-case per-backend wall-clock is **~6× `--timeout`** (3 attempts × 2 `streamOnce`) under stream + truncation + transport-retry composition (FAFF-228 doc correction), and across a fallback chain that composes further. **`--deadline` (FAFF-329) is the cap on that composed total** — the helper never starts a new backend past the budget and re-clamps every attempt to what remains, so the whole chain fits one subagent turn (exit `8` when it binds). **`OTHER` (exit `1`) is reserved for genuine programmer error — no transport/infra condition (now including a rate-limit or a deadline) exits `1`**, so every exit the helper returns is covered by this table.
 
-Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides).
+Malformed/empty content from a reachable+served model → `needs-human` with the raw output (a human decides). **Mechanically enforced (FAFF-194):** `review-call.mjs` validates the winning backend's output shape itself (`validateFindingsShape` — non-empty AND >=1 recognised `### <severity>:` section) and exits `10` on a miss; this is no longer prose-only — a header-skipping or content-free response can no longer silently pass as exit `0`.
 
 ### Full-chain outage annotation (autonomous exit 5)
 

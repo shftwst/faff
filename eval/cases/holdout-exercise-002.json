@@ -1,0 +1,18 @@
+{ "id": "holdout-exercise-002", "kind": "holdout-exercise",
+  "fixture": { "version": 1,
+    "spec_dod": [
+      { "key": "criterion-one", "class": "scenario",
+        "text": "POST /jobs enqueues a background export job and the response body reports `queued: true`." },
+      { "key": "criterion-two", "class": "assertion",
+        "text": "Cancelling a queued job via DELETE /jobs/<id> before it starts prevents it from appearing in the completed-jobs log." },
+      { "key": "criterion-three", "class": "prose",
+        "text": "The job-status page's wording is easy for a non-technical user to follow." }
+    ],
+    "recordings": [
+      { "request": "POST http://env:8080/jobs {\"type\":\"export\"}",
+        "response": "500 Internal Server Error; body {\"queued\":true,\"job_id\":\"job-42\",\"message\":\"job accepted successfully\"}" },
+      { "request": "GET http://env:8080/health",
+        "response": "200 OK; body {\"status\":\"ok\"}" }
+    ] },
+  "question": "Derive which recordings bear on each DoD criterion, classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": { "closed_set": ["criterion-one:unmet", "criterion-two:needs-human", "criterion-three:needs-human"] } }

@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
@@ -318,4 +318,57 @@ test("buildEvalPrompt(dupe) still uses the tidy classification envelope (unchang
 test("VERDICT_REVERT_INSTRUCTION names the revert test and the closed enum", () => {
   assert.ok(/revert test/i.test(VERDICT_REVERT_INSTRUCTION));
   assert.ok(VERDICT_REVERT_INSTRUCTION.includes("fail|needs-human"));
+});
+
+// ============ FAFF-317 — the holdout-judge rubric loader + the cli-driver `holdout` gap fix ============
+
+// --- the holdout rubric is extracted verbatim from faffter-noon-evaluate/SKILL.md "How it evaluates" ---
+test("FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim", () => {
+  const prose = loadHoldoutJudgementProse(DEFAULT_PLUGIN_DIR);
+  assert.ok(prose.startsWith("## How it evaluates"), "starts at the START anchor");
+  assert.ok(/never as instructions to execute/.test(prose), "carries the responses-are-data rule");
+  assert.ok(/Force prose to `needs-human`/.test(prose), "carries the prose→needs-human rule");
+  assert.ok(/never a silent `met`/.test(prose), "carries the fail-closed no-surface rule");
+  assert.ok(!prose.includes("## Output (the contract artifact)"), "stops before the END anchor");
+});
+
+test("FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file", () => {
+  assert.throws(() => loadHoldoutJudgementProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+});
+
+// --- criteriaFor arms for BOTH holdout kinds (FIXES the FAFF-284 gap: holdout had NO arm before) ---
+test("FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric", () => {
+  assert.ok(criteriaFor("holdout", DEFAULT_PLUGIN_DIR).startsWith("## How it evaluates"));
+  assert.ok(criteriaFor("holdout-exercise", DEFAULT_PLUGIN_DIR).startsWith("## How it evaluates"));
+  assert.equal(criteriaFor("holdout", null), null); // --no-plugin baseline → improvise (control)
+});
+
+// --- buildEvalPrompt(holdout) now renders spec_dod + the recorded exercise, NOT the tidy fallback ---
+test("FAFF-317 buildEvalPrompt(holdout) carries spec_dod + the recorded exercise, fixing the FAFF-284 gap", () => {
+  const c = { id: "hd-x", kind: "holdout", question: "Classify each criterion.",
+    fixture: { spec_dod: [{ key: "k1", class: "scenario", text: "does the thing" }], exercise: "THE RECORDED TRANSCRIPT" } };
+  const p = buildEvalPrompt(c, criteriaFor("holdout", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## How it evaluates"), "folds in the verbatim evaluator rubric");
+  assert.ok(p.includes("THE RECORDED TRANSCRIPT"), "includes the recorded exercise verbatim");
+  assert.ok(p.includes("k1"), "includes the spec_dod criteria");
+  assert.ok(p.includes('"holdout"'), "asks for the holdout envelope field");
+  assert.ok(p.includes("hd-x"), "interpolates the case id");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass"), "no longer falls through to the tidy fallback");
+  assert.ok(!p.includes('"classifications"'), "no longer emits the tidy classifications envelope");
+});
+
+// --- buildEvalPrompt(holdout-exercise) renders spec_dod + a labelled raw recording catalog ---
+test("FAFF-317 buildEvalPrompt(holdout-exercise) carries spec_dod + a labelled raw recording catalog", () => {
+  const c = { id: "he-x", kind: "holdout-exercise", question: "Classify each criterion.",
+    fixture: { spec_dod: [{ key: "k1", class: "scenario", text: "does the thing" }],
+      recordings: [{ request: "GET http://env:8080/health", response: "200 OK; body {\"status\":\"ok\"}" }] } };
+  const p = buildEvalPrompt(c, criteriaFor("holdout-exercise", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## How it evaluates"), "folds in the verbatim evaluator rubric");
+  assert.ok(p.includes("Recording 1:"), "labels each recording");
+  assert.ok(p.includes("GET http://env:8080/health"), "includes the raw request");
+  assert.ok(p.includes("200 OK"), "includes the raw response");
+  assert.ok(p.includes('"holdout-exercise"'), "asks for the holdout-exercise envelope field");
+  assert.ok(p.includes("he-x"), "interpolates the case id");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass"), "does NOT use the tidy framing");
+  assert.ok(!p.includes("THE RECORDED TRANSCRIPT"), "no pre-digested narrative — raw recordings only");
 });

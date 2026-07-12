@@ -1,0 +1,28 @@
+{ "id": "holdout-exercise-001", "kind": "holdout-exercise",
+  "fixture": { "version": 1,
+    "spec_dod": [
+      { "key": "criterion-alpha", "class": "scenario",
+        "text": "POST /orders with a valid payload returns HTTP 201 and an order id in the response body." },
+      { "key": "criterion-beta", "class": "assertion",
+        "text": "A request missing the required `email` field is rejected with HTTP 422 and an error body naming the missing field." },
+      { "key": "criterion-gamma", "class": "assertion",
+        "text": "Once an order is placed, GET /orders/<id> returns the same order id and a status field of `pending`." },
+      { "key": "criterion-epsilon", "class": "scenario",
+        "text": "DELETE /orders/<id> for an order id that does not exist returns HTTP 404." },
+      { "key": "criterion-delta", "class": "prose",
+        "text": "The order confirmation email copy feels reassuring and on-brand." }
+    ],
+    "recordings": [
+      { "request": "POST http://env:8080/orders {\"email\":\"a@x.io\",\"item\":\"widget-1\"}",
+        "response": "201 Created; body {\"id\":\"ord-771\",\"status\":\"pending\"}" },
+      { "request": "POST http://env:8080/orders {\"item\":\"widget-1\"}",
+        "response": "422 Unprocessable Entity; body {\"error\":\"missing_field\",\"field\":\"email\"}" },
+      { "request": "GET http://env:8080/orders/ord-771",
+        "response": "200 OK; body {\"id\":\"ord-771\",\"status\":\"pending\"}" },
+      { "request": "GET http://env:8080/metrics",
+        "response": "200 OK; body {\"uptime_seconds\":48213,\"requests_total\":9027}" },
+      { "request": "DELETE http://env:8080/orders/ord-999",
+        "response": "500 Internal Server Error; body {\"error\":\"internal\"}" }
+    ] },
+  "question": "Derive which recordings bear on each DoD criterion, classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": { "closed_set": ["criterion-alpha:met", "criterion-beta:met", "criterion-gamma:met", "criterion-epsilon:unmet", "criterion-delta:needs-human"] } }

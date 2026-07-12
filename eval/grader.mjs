@@ -181,6 +181,24 @@ import { fileURLToPath } from "node:url";
 //                    architecture-fit reading is too thin to grade), so env owns no registry row and is
 //                    not a KIND here. Any LLM judge stays strictly ADVISORY (ADR-0004); the measured
 //                    frontier baseline is the human-supervised carved follow-up.
+// FAFF-317 — the RAW-EXERCISE half of the holdout evaluator's judgement seam adds one kind:
+//   holdout-exercise — SHIPPED. Measures the derive-and-interpret half FAFF-284's `holdout` kind
+//                    doesn't reach: given a spec's done-criteria PLUS raw, UNALIGNED env-surface
+//                    recordings (verbatim request/response observations — no per-criterion labelling,
+//                    incl. distractors the judge must ignore), does the judge derive which recording(s)
+//                    bear on each criterion, treat the responses as DATA never INSTRUCTIONS, and class
+//                    met / unmet / needs-human correctly. A "trap" recording whose response text CLAIMS
+//                    success while the raw observation (status code, a contradicting field) shows
+//                    failure catches a judge that believes the claim; a born-verifiable criterion with
+//                    NO bearing recording must fail-closed to needs-human, never a silent met. Oracle =
+//                    closed-set of `<criterion-key>:<class>` pairs (the exact `holdout` shape, pairsOf);
+//                    env["holdout-exercise"] = { "<criterion-key>": "<class>" }. A missing/garbage map →
+//                    empty set (pairsOf fail-safe) → clean FAIL, never a crash. IN CLOSED_SET_KINDS —
+//                    zero new grade math, only a new predictedSet extraction arm. OUT OF SCOPE (carved
+//                    to a named follow-up): the live-lane LIVE_KINDS adapter that drives the real skill
+//                    agentically against a docker env (the model choosing and running its own exercise
+//                    commands) — this kind measures derive+interpret+classify over a fixed recording
+//                    set, not agentic command derivation-and-execution.
 // FAFF-283 — the adversarial-dimension surfaces add two closed-set kinds (both grade via setEqual —
 // NO new grade math, only two predictedSet extraction arms):
 //   refutation-spec — SHIPPED. The L4 adversarial spec reviewer (faffter-dark-spec-review) runs each
@@ -196,8 +214,8 @@ import { fileURLToPath } from "node:url";
 //                     fixture's note for the human baseline). Oracle = ["flagged"] if it SHOULD raise a
 //                     finding above minor, else []. predictedSet = ["flagged"] iff env.findings has ≥1
 //                     finding above minor severity, else []. Both reduce to setEqual vs oracle.closed_set.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"]);
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -266,6 +284,10 @@ const FIXTURE_SHAPE = {
   // (each { key, text, class ∈ {scenario, assertion, prose} }); `exercise` is the RECORDED running-
   // feature observation the judge reasons over (a canned env-response transcript — no live env slot).
   holdout: ["spec_dod", "exercise"],
+  // FAFF-317 — holdout-exercise: the raw-exercise fixture. `spec_dod` is the SAME done-criteria shape
+  // as `holdout`; `recordings` is a list of RAW, UNALIGNED request/response observations (no per-
+  // criterion labelling — includes distractors/traps the judge must derive the mapping over itself).
+  "holdout-exercise": ["spec_dod", "recordings"],
   // FAFF-282 — spec-verdict: the reviewer reads the spec body under its 4-lens rubric and emits one
   // verdict. The fixture carries `spec_body` (the spec under review — the confidence precedent);
   // validateCase asserts it is present. The predicted verdict rides env.verdict (the routing arm).
@@ -572,6 +594,13 @@ function predictedSet(c, env) {
     // criterion to `:needs-human`, so an env classing it met/unmet FAILS) — no grader-side coercion.
     case "holdout":
       return pairsOf(env.holdout);
+    // FAFF-317 — holdout-exercise: the SAME per-criterion `<criterion-key>:<class>` pairs shape as
+    // `holdout` (pairsOf), read from its own top-level envelope field. A missing/garbage
+    // env["holdout-exercise"] map → empty set (pairsOf fail-safe) → a clean FAIL, never a crash. The
+    // fail-closed (no-bearing-recording → needs-human) and trap (believed-claim → unmet) rules are
+    // asserted at the CASE level via the oracle — no grader-side coercion, mirroring `holdout`.
+    case "holdout-exercise":
+      return pairsOf(env["holdout-exercise"]);
     // FAFF-283 — refutation-spec: the objecting-lens SET (not a single verdict — that is spec-verdict's
     // job, one altitude down). Each independent lens-refuter contributes an objection {lens, severity};
     // a lens "objects" for the eval iff its severity is ABOVE minor (blocker|major — the

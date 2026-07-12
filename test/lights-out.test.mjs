@@ -483,11 +483,16 @@ test("lights-out: valid --until flag over malformed config proceeds clean", () =
 // ~/.claude/projects/<encoded> directory, so `measureTokensByClass` resolves
 // estimate-only regardless of whether CLAUDE_CODE_SESSION_ID happens to be set in
 // the ambient test-running environment — these fixtures explicitly strip it too, so
-// the estimate-only path is unambiguous and never accidentally measurable.
-// ===========================================================================
+// the estimate-only path is unambiguous and never accidentally measurable. Also pin
+// CLAUDE_CONFIG_DIR to a fresh, guaranteed-empty tmpdir (adversarial review finding,
+// FAFF-428) — the "no transcript" property must be STRUCTURAL (no project dir can
+// possibly exist there), not merely incidental on the deleted session id; a future
+// edit that reintroduces CLAUDE_CODE_SESSION_ID here must not silently flip these
+// fixtures to "measurable" via a stray real ~/.claude/projects/ entry.
 const CONTAINED_NO_TRANSCRIPT = (() => {
   const env = { ...CONTAINED };
   delete env.CLAUDE_CODE_SESSION_ID;
+  env.CLAUDE_CONFIG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-no-transcript-cfg-"));
   return env;
 })();
 

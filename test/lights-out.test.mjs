@@ -10,6 +10,71 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
+import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
+import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
+import { LIGHTS_OUT_GUARDRAIL_IDS, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
+import { eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
+
+// FAFF-325: this test host carries no genuine FAFF_INTEGRITY_BOUNDARY pid-1 declaration (nothing
+// short of actual container tooling can fake /proc/1/environ for a really-spawned child), so
+// `faff lights-out` now correctly refuses admission on EVERY real invocation here — exactly the
+// shipped, spec-mandated behaviour (an L4 run without the outer-layer launch declaration SHOULD
+// refuse at rung-0; the mount+declaration mechanism is explicitly out of THIS ticket's scope,
+// assert-don't-implement). Tests below whose actual subject is a DIFFERENT gate now assert via the
+// refusals/banner shape (which the real CLI still emits, on the refuse path too) rather than a
+// false `proceed:true`. Tests whose subject is genuinely POST-ADMISSION content (a minted ledger's
+// envelope/metering/armed/banner, consumed by budget/events/runcheck) can no longer reach that
+// state through the real, now-gated CLI — this helper reproduces the SAME mint cmdLightsOut
+// performs, calling the identical exported, unmodified-by-FAFF-325 primitives (`envelopeFrom`,
+// `mintAtCeiling`, `lightsOutPreflight` + `renderLightsOutBanner` via it, `atomicWriteLedger`,
+// `eventLineCount`) with a synthetic `correctiveIntegrityBasis: "asserted"` probe — the ONE input
+// this ticket added — so every OTHER field (armed/enforced/banner/floor) is the real, un-mocked
+// computation, and only the un-fakeable pid-1 trust signal is synthesised, in test code, never in
+// the shipped CLI.
+function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}) {
+  const [cfg] = loadConfig(root);
+  const envelope = envelopeFrom(cfg, { until: untilFlag ?? null, max_attempts: maxAttempts ?? null });
+  envelope.at_ceiling = mintAtCeiling(cfg);
+  const meteringEnv = env || process.env;
+  const metering = measureTokensByClass({ cwd: root, env: meteringEnv, runStartMs: null });
+  const meteringMeasurable = metering.source === "transcript";
+  const onEstimateOnlyPosture = estimateOnlyPosture(cfg);
+  const tokenDependentCeiling = tokenDependentCeilingArmed(envelope);
+  const allReach = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) allReach[id] = true;
+  const floor = { no_execute: true, worktree_isolation: true, autonomous_contract: true };
+  const pf = lightsOutPreflight({
+    container: "contained", reachable: allReach, reviewReachable: true, specReviewSlot: true,
+    budgetCeilingSet: true, floor, dial: { level: "L4", slots: { review: "faffter-dark-adversarial-review", spec_review: "faffter-dark-spec-review" }, gates_fallback: "fail-closed", recipe: null },
+    meteringMeasurable, estimateOnlyPosture: onEstimateOnlyPosture, tokenDependentCeiling,
+    correctiveIntegrityBasis: "asserted",
+  });
+  const nowIso = new Date().toISOString();
+  const stamp = nowIso.replace(/[-:]/g, "").replace(/\..+$/, "").replace("T", "-");
+  const runId = `run-${stamp}-lights-out-fixture`;
+  const runDir = path.join(root, ".faff", "runs", runId);
+  fs.mkdirSync(runDir, { recursive: true });
+  const degraded = pf.degrades.some((d) => d.gate === "budget-metering");
+  const ledger = {
+    run_id: runId,
+    level: "L4",
+    armed: pf.armed, enforced: pf.enforced, banner: pf.banner,
+    budget: { envelope, metering: { source_at_mint: metering.source, degraded } },
+    budget_ceiling: envelope.ceilings,
+    dial_profile: { appetite: "full", slots: {}, gates: null },
+    prd_creative_licence: null,
+    corrective_authority: "available",
+    container: "contained",
+    floor,
+    admitted: [], outcomes: {},
+    owner: { status: "running", session_id: sessionId || null, pid: process.pid, started_at: nowIso, last_heartbeat: nowIso },
+  };
+  atomicWriteLedger(runDir, ledger);
+  const eventsPath = path.join(runDir, "events.jsonl");
+  const seq = eventLineCount(eventsPath);
+  fs.appendFileSync(eventsPath, JSON.stringify({ schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-start" }) + "\n");
+  return { runDir, runId, ledger, pf };
+}
 
 // A throwaway repo root with a .git marker so findRoot anchors there, and a forced
 // container signal so container-check resolves `contained` regardless of the host.
@@ -111,17 +176,21 @@ test("lights-out: count-cap-only (max_attempts) ceiling refuses — not an L4 go
 // "unpriced cost ceiling refuses (vacuous)" behaviour — a flat-scalar dead zone
 // that no longer exists now the map prices by default (see budget.test.mjs /
 // lights-out --selftest for the still-live legacy-flat-zero-price refusal case).
-test("lights-out: budget.cost alone (no price_per_mtok) PROCEEDS — the default map-priced dollar ceiling (AC 2)", () => {
+test("lights-out: budget.cost alone (no price_per_mtok) satisfies budget-ceiling — the default map-priced dollar ceiling (AC 2)", () => {
   // FAFF-428: on_estimate_only: warn — this fixture has no real transcript, so the
   // cost-armed ceiling would otherwise refuse on estimate-only metering (a different
   // gate than the one under test here).
   const root = tmpRoot({ budget: "budget:\n  cost: 25\n  on_estimate_only: warn\n" }); // no price_per_mtok ⇒ map pricing, always priceable
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  assert.ok(!out.refusals || !out.refusals.some((r) => r.gate === "budget-ceiling"), "no budget-ceiling refusal");
-  assert.ok(fs.existsSync(path.join(root, ".faff")), "a run WAS minted — the dollar ceiling alone satisfied the gate");
+  // FAFF-325: this host asserts no genuine FAFF_INTEGRITY_BOUNDARY, so overall admission now
+  // correctly refuses (defence-in-depth) — the thing under test here is that budget-ceiling
+  // specifically does NOT ALSO fire (the dollar ceiling alone satisfies its own gate).
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  assert.ok(!out.refusals.some((r) => r.gate === "budget-ceiling"), "no budget-ceiling refusal");
+  assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity"), "the only refusal is the (unrelated) FAFF-325 admission gate");
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted — corrective-integrity refuses admission");
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -135,14 +204,19 @@ test("lights-out: budget.cost alone (no price_per_mtok) PROCEEDS — the default
 
 // FAFF-312 — a spend/time (tokens) ceiling proceeds, and the minted ledger envelope
 // carries the level-scoped mint-time default at_ceiling: "escalate" (config unset).
-test("lights-out: tokens ceiling proceeds; minted envelope defaults at_ceiling escalate", () => {
-  // FAFF-428: on_estimate_only: warn — no real transcript in this fixture.
+// FAFF-325: this real CLI invocation now correctly refuses admission (no genuine pid-1
+// declaration on this host), so the mint itself is exercised via mintFixtureLedger — the
+// SAME exported, unmodified-by-FAFF-325 primitives cmdLightsOut calls (envelopeFrom +
+// mintAtCeiling), not a corrective-integrity bypass. The refusal itself is asserted first.
+test("lights-out: tokens ceiling — real CLI now refuses on corrective-integrity, NOT budget-ceiling; minted envelope (via the same primitives) defaults at_ceiling escalate", () => {
   const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(code, 1, stdout);
+  assert.ok(!out.refusals.some((r) => r.gate === "budget-ceiling"), "the tokens ceiling itself is not the reason for refusal");
+  assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity"));
+  const { runDir } = mintFixtureLedger(root);
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.envelope.at_ceiling, "escalate", "L4 mint-time default when config unset");
   assert.equal(ledger.budget.envelope.ceilings.tokens, 50000000);
   assert.equal(ledger.budget.envelope.ceilings.max_attempts, null);
@@ -152,12 +226,9 @@ test("lights-out: tokens ceiling proceeds; minted envelope defaults at_ceiling e
 // FAFF-312 — an explicit budget.at_ceiling: stop is minted verbatim (human-explicit
 // config outranks the level default; the operator asked for a quiet stop at ceiling).
 test("lights-out: explicit budget.at_ceiling stop is minted verbatim", () => {
-  // FAFF-428: on_estimate_only: warn — no real transcript in this fixture.
   const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  at_ceiling: stop\n  on_estimate_only: warn\n" });
-  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
-  const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  const { runDir } = mintFixtureLedger(root);
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.envelope.at_ceiling, "stop", "explicit stop honoured, not overridden to escalate");
   fs.rmSync(root, { recursive: true, force: true });
 });
@@ -166,11 +237,11 @@ test("lights-out: explicit budget.at_ceiling stop is minted verbatim", () => {
 // reports on breach: tokens satisfies the precondition, max_attempts:1 rides as an
 // extra backstop, and a forced 2-outcome breach yields outcome "escalate" (→ Sentry's
 // budget-breach signal + run-done's fixed-floor escalation, never a silent stop).
+// `faff budget check` is a DIFFERENT subcommand, ungated by corrective-integrity — only
+// the mint itself (lights-out admission) needed the fixture helper.
 test("lights-out: budget check --run-dir reflects the minted escalate at_ceiling on breach", () => {
-  // FAFF-428: on_estimate_only: warn — no real transcript in this fixture.
   const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  max_attempts: 1\n  on_estimate_only: warn\n" });
-  const mint = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
-  const { run_dir } = JSON.parse(mint.stdout);
+  const { runDir: run_dir } = mintFixtureLedger(root);
   const lp = path.join(run_dir, "run-ledger.json");
   const ledger = JSON.parse(fs.readFileSync(lp, "utf8"));
   // Pin the mechanism, not just the consequence: the minted ledger envelope itself carries
@@ -215,13 +286,16 @@ test("lights-out: down spec_review slot → degraded + refuse", () => {
 });
 
 // --check: would-proceed but mints NOTHING (a side-effect-free preflight probe).
-test("lights-out --check: passes preflight without minting a run", () => {
+// FAFF-325: --check still runs the FULL preflight (including the new corrective-integrity
+// gate), so on this real, undeclared host it now correctly reports proceed:false too — the
+// point of THIS test (mints nothing either way) still holds on both branches.
+test("lights-out --check: never mints a run, on proceed OR refuse", () => {
   const root = tmpRoot();
   const { stdout, code } = runCli(["lights-out", "--root", root, "--max", "5", "--check", "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  assert.equal(out.checked, true);
+  assert.ok(code === 0 || code === 1, stdout);
+  if (code === 0) { assert.equal(out.proceed, true); assert.equal(out.checked, true); }
+  else { assert.equal(out.proceed, false); assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity")); }
   assert.ok(!fs.existsSync(path.join(root, ".faff")), "--check mints nothing");
   fs.rmSync(root, { recursive: true, force: true });
 });
@@ -258,16 +332,19 @@ test("lights-out: default worktree root inside the repo (HOME=repo) refuses", ()
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-// FAFF-379 — a worktree root OUTSIDE the repo (fresh tmpdir) proceeds, and the banner
-// carries the per-entry checked/static mode tokens.
-test("lights-out --check: FAFF_WORKTREE_ROOT outside the repo proceeds; banner carries mode tokens", () => {
+// FAFF-379 — a worktree root OUTSIDE the repo (fresh tmpdir) satisfies floor:worktree_isolation
+// on its own (never fires that gate), and the banner carries the per-entry checked/static mode
+// tokens — the banner is computed + emitted on the refuse path too (FAFF-325's unrelated
+// corrective-integrity refusal on this undeclared host doesn't suppress it).
+test("lights-out --check: FAFF_WORKTREE_ROOT outside the repo satisfies worktree_isolation; banner carries mode tokens", () => {
   const root = tmpRoot();
   const wt = fs.mkdtempSync(path.join(os.tmpdir(), "faff-wt-"));
   const env = { ...CONTAINED, FAFF_WORKTREE_ROOT: path.join(wt, "roots") };
   const { stdout, code } = runCli(["lights-out", "--root", root, "--check", "--json"], { env });
   const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
+  assert.equal(code, 1, stdout);
+  assert.ok(!out.refusals.some((r) => r.gate === "floor:worktree_isolation"), "a worktree root outside the repo never fires this gate");
+  assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity"), "the only refusal is the unrelated FAFF-325 admission gate");
   assert.match(out.banner, /worktree-isolation ✓ checked/);
   assert.match(out.banner, /no-execute ✓ static/);
   assert.match(out.banner, /autonomous-contract ✓ static/);
@@ -296,26 +373,40 @@ test("lights-out: worktree root under a non-writable ancestor refuses",
     fs.rmSync(base, { recursive: true, force: true });
   });
 
-// Proceed path: mint a strict-defaults L4 run-ledger (armed:Map<Guardrail,State>),
-// persist the banner derivable 1:1 from armed, and emit a run-start event.
-test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", () => {
+// Real-CLI admission: on this host (no genuine declaration) the FAFF-325 gate is the ONLY
+// refusal — every OTHER guardrail is live, proving the pre-existing 8-guardrail reachability
+// logic is untouched by this ticket.
+test("lights-out: real CLI — every pre-existing guardrail is live; corrective-integrity is the ONLY refusal on this host", () => {
   const root = tmpRoot();
   const { stdout, code } = runCli(
     ["lights-out", "--root", root, "--max", "5", "--json"],
     { env: { ...CONTAINED, FAFF_SESSION_ID: "test-lo" } });
-  assert.equal(code, 0, stdout);
+  assert.equal(code, 1, stdout);
   const out = JSON.parse(stdout);
-  assert.equal(out.proceed, true);
+  assert.equal(out.proceed, false);
   assert.equal(out.level, "L4");
   assert.equal(out.container, "contained");
-  // all 8 guardrails live, armed covers exactly the 8.
   assert.equal(Object.keys(out.armed).length, 8);
-  assert.ok(Object.values(out.armed).every((s) => s === "live"));
+  assert.ok(Object.values(out.armed).every((s) => s === "live"), "every pre-existing guardrail is live");
+  assert.deepEqual(out.refusals.map((r) => r.gate), ["corrective-integrity"], "the ONLY refusal on this host");
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted");
+  fs.rmSync(root, { recursive: true, force: true });
+});
 
-  const ledgerPath = path.join(out.run_dir, "run-ledger.json");
+// Proceed path (via mintFixtureLedger — see its header comment): mint a strict-defaults L4
+// run-ledger (armed:Map<Guardrail,State>), persist the banner derivable 1:1 from armed, and
+// emit a run-start event.
+test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", () => {
+  const root = tmpRoot();
+  const { runDir, runId, ledger: minted } = mintFixtureLedger(root, { maxAttempts: 5, sessionId: "test-lo" });
+  // all 8 guardrails live, armed covers exactly the 8.
+  assert.equal(Object.keys(minted.armed).length, 8);
+  assert.ok(Object.values(minted.armed).every((s) => s === "live"));
+
+  const ledgerPath = path.join(runDir, "run-ledger.json");
   const ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8"));
   assert.equal(ledger.level, "L4");
-  assert.deepEqual(ledger.armed, out.armed);
+  assert.deepEqual(ledger.armed, minted.armed);
   assert.equal(ledger.owner.status, "running");
   assert.equal(ledger.owner.session_id, "test-lo");
   assert.deepEqual(ledger.admitted, []);
@@ -327,45 +418,42 @@ test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", ()
   assert.deepEqual(ledger.floor, { no_execute: true, worktree_isolation: true, autonomous_contract: true });
   for (const k of Object.keys(ledger.floor)) assert.equal(typeof ledger.floor[k], "boolean", `floor.${k} is a boolean`);
   // banner persisted (not just printed) and derivable 1:1 from armed.
-  assert.equal(ledger.banner, out.banner);
-  for (const id of Object.keys(out.armed)) assert.ok(ledger.banner.includes(id), `banner names ${id}`);
+  assert.equal(ledger.banner, minted.banner);
+  for (const id of Object.keys(minted.armed)) assert.ok(ledger.banner.includes(id), `banner names ${id}`);
 
   // run-start event emitted onto the observability timeline.
-  const events = fs.readFileSync(path.join(out.run_dir, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const events = fs.readFileSync(path.join(runDir, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
   assert.equal(events.length, 1);
   assert.equal(events[0].type, "run-start");
   assert.equal(events[0].phase, "run");
-  assert.equal(events[0].run_id, out.run_id);
+  assert.equal(events[0].run_id, runId);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-// FAFF-305/FAFF-309 — banner honesty: the proceed path reports each guardrail's
-// enforcement state (reachable vs enforced), distinct from armed reachability. Once
+// FAFF-305/FAFF-309 — banner honesty (via mintFixtureLedger): the proceed path reports each
+// guardrail's enforcement state (reachable vs enforced), distinct from armed reachability. Once
 // the per-run holdout phase invokes the env→evaluate chain (FAFF-309), `holdout` is
 // enforced too, so all 8 count and the status line reads 8/8 — while `proceed` is
 // unchanged (banner honesty only, never gated on enforcement).
 test("lights-out: proceed reports enforced map (8/8) + ledger carries it", () => {
   const root = tmpRoot();
-  const { stdout, code } = runCli(["lights-out", "--root", root, "--max", "5", "--json"], { env: CONTAINED });
-  assert.equal(code, 0, stdout);
-  const out = JSON.parse(stdout);
-  assert.equal(out.proceed, true); // enforcement does not gate — identical to pre-change
+  const { runDir, ledger: minted } = mintFixtureLedger(root, { maxAttempts: 5 });
   // enforced map: exactly the 8 ids, all true (holdout now enforced by the per-run phase).
-  assert.equal(Object.keys(out.enforced).length, 8);
-  assert.equal(out.enforced.holdout, true);
-  assert.equal(Object.values(out.enforced).filter((v) => v === true).length, 8);
+  assert.equal(Object.keys(minted.enforced).length, 8);
+  assert.equal(minted.enforced.holdout, true);
+  assert.equal(Object.values(minted.enforced).filter((v) => v === true).length, 8);
   // status line states 8/8 enforced with no trailing reachable-but-not-enforced clause.
-  assert.match(out.banner, /ARMED — 8\/8 enforced/);
-  assert.ok(!out.banner.includes("reachable-but-not-enforced"));
+  assert.match(minted.banner, /ARMED — 8\/8 enforced/);
+  assert.ok(!minted.banner.includes("reachable-but-not-enforced"));
   // no guardrail line shows a bare "live" without an enforcement token.
-  const guardrailLines = out.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l));
+  const guardrailLines = minted.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l));
   assert.equal(guardrailLines.length, 8);
   assert.ok(guardrailLines.every((l) => /\b(enforced|reachable-only)\b/.test(l)), "every line has an enforcement token");
   assert.ok(guardrailLines.some((l) => /\bholdout\b/.test(l) && /reachable:live/.test(l) && /\benforced\b/.test(l)));
-  // ledger persists enforced alongside armed, matching the JSON.
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
-  assert.deepEqual(ledger.enforced, out.enforced);
-  assert.equal(ledger.banner, out.banner);
+  // ledger persists enforced alongside armed, matching the mint.
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+  assert.deepEqual(ledger.enforced, minted.enforced);
+  assert.equal(ledger.banner, minted.banner);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -415,8 +503,7 @@ test("lights-out: named recipe + reckless dial still refuses (no name-based bypa
 // (honours the recorded envelope). "If this connects, the plumbing is wired."
 test("lights-out: minted run is consumed cleanly by events/runcheck/budget", () => {
   const root = tmpRoot();
-  const mint = runCli(["lights-out", "--root", root, "--max", "5", "--json"], { env: CONTAINED });
-  const { run_dir } = JSON.parse(mint.stdout);
+  const { runDir: run_dir } = mintFixtureLedger(root, { maxAttempts: 5 });
 
   const ev = runCli(["events", "validate", "--file", path.join(run_dir, "events.jsonl")]);
   assert.equal(ev.code, 0, ev.stdout + ev.stderr);
@@ -464,14 +551,14 @@ test("lights-out: malformed until as the only ceiling → both budget-ceiling an
 
 // FAFF-364 — a valid --until flag overriding a malformed config value proceeds
 // clean: no refusal, no warning, and the minted envelope carries the flag's value.
-test("lights-out: valid --until flag over malformed config proceeds clean", () => {
+test("lights-out: valid --until flag over malformed config resolves clean (no budget-until-invalid)", () => {
   const root = tmpRoot({ budget: "budget:\n  until: \"25:00\"\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--until", "06:00", "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  assert.ok(!out.refusals, "no refusals key on a proceeding run");
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(code, 1, stdout); // FAFF-325: corrective-integrity refuses on this undeclared host
+  assert.ok(!out.refusals.some((r) => r.gate === "budget-until-invalid"), "the valid --until flag resolves clean (unrelated to the FAFF-325 refusal)");
+  const { runDir } = mintFixtureLedger(root, { untilFlag: "06:00" });
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.envelope.ceilings.until, "06:00", "the valid flag value wins and is minted");
   assert.equal(ledger.budget.envelope.until_invalid ?? null, null, "no until_invalid on a clean resolution");
   fs.rmSync(root, { recursive: true, force: true });
@@ -518,14 +605,11 @@ test("lights-out: estimate-only metering + a tokens ceiling refuses by default (
 // budget.metering = { source_at_mint: "estimate", degraded: true }.
 test("lights-out: budget.on_estimate_only warn proceeds; ledger records the metering degrade", () => {
   const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
-  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED_NO_TRANSCRIPT });
-  const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  assert.ok(Array.isArray(out.degrades) && out.degrades.some((d) => d.gate === "budget-metering"), JSON.stringify(out.degrades));
-  assert.match(out.banner, /degraded \(proceeding\)/);
-  assert.match(out.banner, /budget-metering/);
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  const { runDir, pf } = mintFixtureLedger(root, { env: CONTAINED_NO_TRANSCRIPT });
+  assert.ok(Array.isArray(pf.degrades) && pf.degrades.some((d) => d.gate === "budget-metering"), JSON.stringify(pf.degrades));
+  assert.match(pf.banner, /degraded \(proceeding\)/);
+  assert.match(pf.banner, /budget-metering/);
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.deepEqual(ledger.budget.metering, { source_at_mint: "estimate", degraded: true });
   fs.rmSync(root, { recursive: true, force: true });
 });
@@ -535,13 +619,9 @@ test("lights-out: budget.on_estimate_only warn proceeds; ledger records the mete
 // needs no token meter.
 test("lights-out: until-only ceiling + estimate-only metering never fires budget-metering", () => {
   const root = tmpRoot({ budget: "budget:\n  until: \"23:59\"\n" }); // no tokens/cost — until only
-  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED_NO_TRANSCRIPT });
-  const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  assert.ok(!out.refusals, "no refusals key on a proceeding run");
-  assert.ok(!out.degrades || out.degrades.length === 0, "an until-only ceiling never degrades on metering either");
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  const { runDir, pf } = mintFixtureLedger(root, { untilFlag: "23:59", env: CONTAINED_NO_TRANSCRIPT });
+  assert.ok(!pf.degrades || pf.degrades.length === 0, "an until-only ceiling never degrades on metering either");
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.metering.source_at_mint, "estimate", "the mint still HONESTLY records the sampled source");
   assert.equal(ledger.budget.metering.degraded, false, "not a degrade — the gate never fired for an until-only governor");
   fs.rmSync(root, { recursive: true, force: true });
@@ -557,12 +637,9 @@ test("lights-out: a measurable meter (real transcript) mints degraded:false, no 
   fs.writeFileSync(path.join(projdir, `${sid}.jsonl`),
     JSON.stringify({ sessionId: sid, message: { usage: { input_tokens: 10, output_tokens: 5 } } }));
   const env = { ...CONTAINED_NO_TRANSCRIPT, CLAUDE_CONFIG_DIR: path.join(root, "cfg"), CLAUDE_CODE_SESSION_ID: sid };
-  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env });
-  const out = JSON.parse(stdout);
-  assert.equal(code, 0, stdout);
-  assert.equal(out.proceed, true);
-  assert.ok(!out.degrades || out.degrades.length === 0, JSON.stringify(out.degrades));
-  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  const { runDir, pf } = mintFixtureLedger(root, { env });
+  assert.ok(!pf.degrades || pf.degrades.length === 0, JSON.stringify(pf.degrades));
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.deepEqual(ledger.budget.metering, { source_at_mint: "transcript", degraded: false });
   fs.rmSync(root, { recursive: true, force: true });
 });

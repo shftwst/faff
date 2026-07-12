@@ -16,6 +16,8 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { adrFlag } = require("./adr");
 const { FLOOR_LEVELS, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
+const { realFsq } = require("./container-check");
+const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
 const { buildProgressPath } = require("./effects");
 const { tryReadLedger } = require("./prepcheck");
 
@@ -234,15 +236,43 @@ function mergeRecordPath(runDir, issue) {
 // but never un-does an already-landed merge (the merge itself is the load-bearing event; a
 // missing record just means `faff reconcile` will (correctly) flag this issue as unproven at
 // run-end, fail-closed — never silently drop the merge).
-function writeMergeRecord(runDir, issue, pr, headSha) {
+// `integrity` (FAFF-325, optional): the corrective-integrity annotation ("asserted" |
+// "unasserted" | "violated") — ALWAYS supplied by cmdMergeGate on every call site, so the merge
+// record carries the attestation basis it was decided under, never silently omitted.
+function writeMergeRecord(runDir, issue, pr, headSha, integrity) {
   try {
     const dir = path.join(runDir, issue);
     fs.mkdirSync(dir, { recursive: true });
-    const record = { pr: Number(pr), head_sha: headSha, merged: true, merged_at: new Date().toISOString() };
+    const record = { pr: Number(pr), head_sha: headSha, merged: true, merged_at: new Date().toISOString(), integrity: integrity || "unasserted" };
     fs.writeFileSync(mergeRecordPath(runDir, issue), JSON.stringify(record, null, 2) + "\n");
   } catch (e) {
     process.stderr.write(`faff merge-gate: warning — could not write merge-record.json: ${e.message}\n`);
   }
+}
+
+// FAFF-325: derive the corrective-integrity annotation for THIS merge decision.
+//   probe    := correctiveIntegrityProbe(process.env, realFsq(), correctiveIntegrityDirs(runDir, issue))
+//   gate     := integrityGate(probe, "merge-floor")  — trusted | refuse (violation) | unasserted
+// The L4 defence-in-depth branch (unasserted -> refuse) is keyed on `level` — the SAME
+// ledger-reconciled value the holdout leg already uses (resolveGateLevel's mismatch check, above
+// in cmdMergeGate, already fail-LOUDS — exit 2 — the instant an explicit --level disagrees with
+// run-ledger.json's level; it is never silently resolved in the ledger's favour). Re-deriving a
+// SEPARATE, flag-only level source for this one leg would not close any gap the mismatch check
+// doesn't already close when a level IS asserted at invocation, and would REGRESS a genuine L4
+// run whose caller (legitimately) leans on the ledger-resolved level without repeating --level —
+// so this leg rides the same reconciled `level`, exactly like holdout.
+// Returns { state, display } — `state` (4-valued) is what decideFloor's blocker logic keys on;
+// `display` (3-valued: asserted|unasserted|violated) is what the merge record / banner annotate.
+function resolveIntegrity(runDir, issue, level) {
+  const dirs = correctiveIntegrityDirs(runDir, issue);
+  const probe = correctiveIntegrityProbe(process.env, realFsq(), dirs);
+  const gate = integrityGate(probe, "merge-floor");
+  let state;
+  if (gate.disposition === "trusted") state = "asserted";
+  else if (gate.disposition === "refuse") state = "violated";
+  else state = level === "L4" ? "unasserted-refuse" : "unasserted-ok";
+  const display = state === "asserted" ? "asserted" : state === "violated" ? "violated" : "unasserted";
+  return { state, display, basis: probe.basis };
 }
 
 // Read the AC-checklist artifact graft persists at <run-dir>/<ISSUE>/ac-checklist.json.
@@ -346,12 +376,16 @@ function cmdMergeGate(args) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
     else {
-      console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}`);
+      console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}, integrity ${res.integrity || "unasserted"}`);
       for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
       for (const w of (res.warnings || [])) console.log(`  ⚠ ${w}`);
     }
     return status;
   };
+
+  // FAFF-325: computed once, reused on EVERY path below (idempotent no-op, refuse, merge-ok) —
+  // "the merge record + ledger banner ALWAYS annotate the integrity basis, on every decision path".
+  const integrity = resolveIntegrity(runDir, issue, level);
 
   const repo = ghRepoSlug(repoFlag);
   if (!repo) { process.stderr.write("faff merge-gate: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
@@ -360,8 +394,8 @@ function cmdMergeGate(args) {
   const headSha = hv.data.headRefOid;
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status monotonicity).
   if (hv.data.state === "MERGED") {
-    writeMergeRecord(runDir, issue, pr, headSha); // FAFF-397: ensure the record exists even on the idempotent no-op path
-    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headSha, note: "already merged" }, 0);
+    writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397: ensure the record exists even on the idempotent no-op path
+    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headSha, integrity: integrity.display, note: "already merged" }, 0);
   }
 
   const ci = observeCi(repo, pr, headSha);
@@ -373,9 +407,10 @@ function cmdMergeGate(args) {
     level,
     holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
     no_ci_policy: noCiPolicy,
+    integrity: integrity.state,
   };
   const { verdict, blockers } = decideFloor(floor);
-  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail };
+  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display };
 
   if (verdict === "refuse") {
     if (interactive && humanOverride) {
@@ -409,7 +444,7 @@ function cmdMergeGate(args) {
       result.merged = true;
       result.verdict = "merge-ok";
       result.warnings = [...(result.warnings || []), pm.warning];
-      writeMergeRecord(runDir, issue, pr, headSha); // FAFF-397
+      writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
       return emit(result, 0);
     }
     // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
@@ -421,7 +456,7 @@ function cmdMergeGate(args) {
   }
   result.merged = true;
   result.verdict = "merge-ok";
-  writeMergeRecord(runDir, issue, pr, headSha); // FAFF-397
+  writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
   return emit(result, 0);
 }
 
@@ -480,6 +515,34 @@ function mergeGateSelftest() {
   check("holdoutIsFresh: non-finite checkpoint time → false", holdoutIsFresh(200, NaN) === false);
   check("holdoutIsFresh: both non-finite → false", holdoutIsFresh(NaN, NaN) === false);
   check("multi-blocker names all legs", F({ ac_complete: false, review_verdict: "fail" }).blockers.length === 2);
+  // decideFloor integrity leg (FAFF-325): undefined (every pre-existing fixture above) is a no-op;
+  // "violated" refuses at EVERY level, never level-graded; "unasserted-refuse" (the L4
+  // defence-in-depth branch) refuses; "asserted"/"unasserted-ok" never block.
+  check("integrity: undefined (unset) → no-op, all-green still merge-ok", F({}).verdict === "merge-ok");
+  check("integrity: asserted → merge-ok", F({ integrity: "asserted" }).verdict === "merge-ok");
+  check("integrity: unasserted-ok (L1-L3, no declaration) → merge-ok", F({ integrity: "unasserted-ok" }).verdict === "merge-ok");
+  check("integrity: unasserted-refuse (L4 defence-in-depth) → refuse", F({ level: "L4", holdout: "meets-spec", integrity: "unasserted-refuse" }).verdict === "refuse");
+  check("integrity: violated at L3 → refuse (violation is never level-graded)", F({ integrity: "violated" }).verdict === "refuse");
+  check("integrity: violated at L4 → refuse too", F({ level: "L4", holdout: "meets-spec", integrity: "violated" }).verdict === "refuse");
+  check("integrity: violated names the FAFF-325 blocker", /corrective-artifact integrity violated/.test(F({ integrity: "violated" }).blockers.join(" ")));
+  check("integrity: unasserted-refuse names the FAFF-325 blocker", /unasserted at L4/.test(F({ level: "L4", holdout: "meets-spec", integrity: "unasserted-refuse" }).blockers.join(" ")));
+  // resolveIntegrity (FAFF-325): pure-enough to drive with a synthetic fsq (no real /proc/1/environ
+  // dependency) — proves the L4 branch is keyed on the SAME reconciled `level` as holdout, never a
+  // second, divergent source, and that a violation basis always yields "violated" regardless of level.
+  check("resolveIntegrity: no-declaration + L3 → unasserted-ok/unasserted", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L3");
+      return r.state === "unasserted-ok" && r.display === "unasserted";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("resolveIntegrity: no-declaration + L4 → unasserted-refuse/unasserted (defence-in-depth)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-integrity-"));
+    try {
+      const r = resolveIntegrity(tmp, "FAFF-1", "L4");
+      return r.state === "unasserted-refuse" && r.display === "unasserted";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
   // resolveGateLevel (FAFF-424): ledger governs when present; flag/default path unchanged when absent
   check("resolveGateLevel: L4 ledger, no flag → L4/no-mismatch", (() => { const r = resolveGateLevel("L4", null); return r.level === "L4" && r.mismatch === false; })());
   check("resolveGateLevel: L4 ledger, L3 flag → mismatch", (() => { const r = resolveGateLevel("L4", "L3"); return r.level === "L4" && r.mismatch === true; })());
@@ -554,6 +617,25 @@ function mergeGateSelftest() {
       return record.pr === 42 && record.head_sha === "abc123" && record.merged === true && typeof record.merged_at === "string";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
+  // writeMergeRecord (FAFF-325): the merge record ALWAYS carries the integrity annotation — an
+  // omitted `integrity` arg defaults to "unasserted" (never silently absent), and an explicit
+  // value is persisted verbatim.
+  check("writeMergeRecord: integrity defaults to 'unasserted' when omitted", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-record-"));
+    try {
+      writeMergeRecord(tmp, "FAFF-1", 1, "abc");
+      const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-1"), "utf8"));
+      return record.integrity === "unasserted";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("writeMergeRecord: an explicit integrity value is persisted verbatim", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-record-"));
+    try {
+      writeMergeRecord(tmp, "FAFF-1", 1, "abc", "violated");
+      const record = JSON.parse(fs.readFileSync(mergeRecordPath(tmp, "FAFF-1"), "utf8"));
+      return record.integrity === "violated";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -570,4 +652,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeGateSelftest, mergeRecordPath, observeCi, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeGateSelftest, mergeRecordPath, observeCi, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, writeMergeRecord };

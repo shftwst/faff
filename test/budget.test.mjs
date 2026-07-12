@@ -487,3 +487,160 @@ test("FAFF-302: production default unchanged — no clock flag uses real Date.no
     assert.ok(s.spent.elapsed_ms >= 0 && s.spent.elapsed_ms < 60_000, `real-clock elapsed_ms in range: ${s.spent.elapsed_ms}`);
   } finally { f.cleanup(); }
 });
+
+// ===========================================================================
+// FAFF-427: the ADR-0048 per-model x per-class price map wired into
+// `budget.cost`. `withModelTranscripts` mirrors `withTranscripts` above but
+// stamps a `message.model` on each usage record — the map-pricing rule prices
+// per model, so these fixtures need a model id, unlike the class-only fixtures.
+// ===========================================================================
+function withModelTranscripts(root, cwd, sid, files) {
+  const enc = String(cwd).replace(/\//g, "-");
+  const projdir = join(root, "cfg", "projects", enc);
+  mkdirSync(projdir, { recursive: true });
+  for (const [name, entries] of Object.entries(files)) {
+    // entries: [{ model, usage }] — sessionId defaults to `sid` (the owned case).
+    const lines = entries.map((e) => JSON.stringify({
+      sessionId: sid, message: { model: e.model, usage: e.usage },
+    }));
+    writeFileSync(join(projdir, name), lines.join("\n"));
+  }
+  return join(root, "cfg");
+}
+
+test("FAFF-427: budget.cost with NO price_per_mtok configured (map pricing default) breaches at the map-priced blended dollar figure", () => {
+  // Scenario 1 from the spec: budget.cost set, price_per_mtok NOT set.
+  const f = fixture({
+    rc: "budget:\n  cost: 0.01\n  at_ceiling: stop\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-map-cost";
+    // claude-opus-4-8: cache_read $0.5/MTok. 50,000 cache_read tokens → $0.025 ≥ $0.01.
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { cache_read_input_tokens: 50000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.deepEqual(s.breached, ["cost"]);
+    assert.ok(Math.abs(s.spent.cost - 0.025) < 1e-9, `spent.cost=${s.spent.cost}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: explicit budget.price_per_mtok > 0 keeps byte-for-byte flat-scalar cost + a deprecation warning naming the map", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 4\n  price_per_mtok: 100\n  at_ceiling: stop\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-flat-deprecated";
+    // Same fixture shape as the pre-FAFF-427 "cost dimension" test: 50k tokens @ $100/Mtok = $5.
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 50000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.spent.cost, 5, "flat-scalar figure unchanged, byte-for-byte");
+    assert.deepEqual(s.breached, ["cost"]);
+    assert.ok(Array.isArray(s.warnings) && s.warnings.some((w) => /deprecated/.test(w) && /price_per_mtok_by_model/.test(w)),
+      `expected a deprecation warning naming the map override key: ${JSON.stringify(s.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: a model absent from the resolved map prices at the costliest known per-class rate and is named in a warning", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 0.000001\n  at_ceiling: escalate\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-unpriced";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "some-unknown-model-xyz", usage: { input_tokens: 1000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    // priced at the conservative (costliest) row — input $10/Mtok (claude-fable-5) — never $0.
+    assert.ok(Math.abs(s.spent.cost - (1000 / 1e6) * 10) < 1e-9, `spent.cost=${s.spent.cost}`);
+    assert.deepEqual(s.breached, ["cost"]);
+    assert.ok(s.warnings.some((w) => /unpriced/.test(w) && /some-unknown-model-xyz/.test(w)),
+      `expected an unpriced-model warning naming it: ${JSON.stringify(s.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: estimate-only (no transcript) + map pricing + a configured cost ceiling → cost null, loud warning (never a silent flat-scalar estimate)", () => {
+  const f = fixture({ rc: "budget:\n  cost: 1\n", ledger: baseLedger({ budget: { tokens_at_start: 0 } }) });
+  try {
+    // No CLAUDE_CODE_SESSION_ID → estimate path, no per-model data.
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.equal(s.spent.cost, null);
+    assert.deepEqual(s.breached, [], "a null cost can never breach");
+    assert.ok(s.warnings.some((w) => /not meterable from estimates/.test(w)), JSON.stringify(s.warnings));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: NO cost ceiling configured → map pricing computes cost silently, zero warnings (an unconfigured dimension stays quiet)", () => {
+  const f = fixture({ rc: "budget:\n  tokens: 999999999\n", ledger: baseLedger({ budget: { tokens_at_start: 0 } }) });
+  try {
+    const sid = "sess-quiet";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "some-other-unknown-model", usage: { input_tokens: 1000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.ok(!("warnings" in s), `no budget.cost configured — must stay silent even with an unpriced model: ${JSON.stringify(s)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: a fresh per-model baseline (tokens_at_start_by_model_class) subtracts cleanly, no pro-rata warning", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 0.01\n",
+    ledger: baseLedger({
+      budget: {
+        tokens_at_start: 20000,
+        tokens_at_start_by_model_class: { "claude-opus-4-8": { input: 0, output: 0, cache_write: 0, cache_read: 20000 } },
+      },
+    }),
+  });
+  try {
+    const sid = "sess-baseline";
+    // Whole-session cache_read = 70000; baseline 20000 → this-run delta 50000 → $0.025.
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { cache_read_input_tokens: 70000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.ok(Math.abs(s.spent.cost - 0.025) < 1e-9, `spent.cost=${s.spent.cost}`);
+    assert.ok(!s.warnings || !s.warnings.some((w) => /pro-rated/.test(w)), "a real baseline must not trigger the pro-rata warning");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: a pre-change ledger (no per-model baseline) pro-rates the per-model deltas and warns", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 0.000001\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 50000 } }), // scalar baseline present, NO tokens_at_start_by_model_class
+  });
+  try {
+    const sid = "sess-prorata";
+    // whole-session cache_read = 100000; scalar this-run delta = 100000-50000 = 50000 → scale 0.5.
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { cache_read_input_tokens: 100000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    // pro-rated delta = 100000 * 0.5 = 50000 cache_read tokens @ $0.5/Mtok = $0.025.
+    assert.ok(Math.abs(s.spent.cost - 0.025) < 1e-9, `spent.cost=${s.spent.cost}`);
+    assert.ok(s.warnings.some((w) => /pro-rated/.test(w)), JSON.stringify(s.warnings));
+  } finally { f.cleanup(); }
+});

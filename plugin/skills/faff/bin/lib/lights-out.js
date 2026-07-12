@@ -34,7 +34,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { AT_CEILING_OUTCOMES, envelopeFrom } = require("./budget");
+const { AT_CEILING_OUTCOMES, envelopeFrom, measureTokensByModelClass } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
@@ -317,7 +317,7 @@ function lightsOutPreflight(probes) {
   if (!probes.specReviewSlot)
     refusals.push({ gate: "spec_review-slot", detail: "spec_review slot not configured + reachable — spec admission gating would be skipped" });
   if (!probes.budgetCeilingSet)
-    refusals.push({ gate: "budget-ceiling", detail: "count-cap only (or no ceiling) — a count is not an L4 governor; set a spend/time ceiling: budget.tokens, budget.until / --until, or budget.cost with price_per_mtok > 0. max_attempts may stay as an extra backstop." });
+    refusals.push({ gate: "budget-ceiling", detail: "count-cap only (or no ceiling) — a count is not an L4 governor; set a spend ceiling: budget.cost (dollars — priced per-model x per-class from the ADR-0048 map by default, the recommended L4 governor), or budget.tokens / budget.until. max_attempts may stay as an extra backstop." });
   // FAFF-364 — a malformed budget.until / --until must never mint a ledger carrying
   // it: fires REGARDLESS of other ceilings (a clean budget.tokens ceiling does NOT
   // excuse garbage until). When malformed until is the run's ONLY ceiling, the
@@ -412,19 +412,30 @@ function resolveSlotOccupant(cfg, name) {
 
 // FAFF-312 — L4 run-governance helpers (pure). ----------------------------------
 // Pure: does the envelope carry a SPEND/TIME ceiling — the only dimension that can
-// govern an UNBOUNDED L4 run? `tokens` and `until` always count; `cost` only when
-// priced (`price_per_mtok > 0`), because an unpriced cost ceiling never breaches
-// (envelopeFrom already nulls it) and a vacuous ceiling must not satisfy a
-// fail-closed precondition. `max_attempts` (a count) is DELIBERATELY excluded: a
-// tally is an L3 cost idiom, uncorrelated with project size or doneness, and
-// stalling a healthy run at attempt N defeats the point of L4 — so it is legal as
-// an extra backstop but never sufficient as the sole L4 ceiling. Replaces the old
-// any-dimension `Object.values(ceilings).some(v != null)`.
+// govern an UNBOUNDED L4 run? `tokens` and `until` always count. `cost` counts
+// when it is PRICEABLE — and FAFF-427 makes a dollar ceiling priceable by
+// default: under `pricing:"map"` the ADR-0048 map (built-in, plus the
+// costliest-known-rate fallback for an unpriced model) always has SOME price to
+// apply, so `budget.cost` alone (no `price_per_mtok` needed) is now a sufficient
+// L4 governor — the recommended one. Under `pricing:"flat"` the legacy rule
+// still applies (`price_per_mtok > 0` required). A raw/synthetic envelope that
+// carries no `pricing` field at all (this function's own selftest constructs a
+// few by hand, and a future caller may too) falls back to the pre-FAFF-427 rule
+// (price_per_mtok > 0) — so a caller not yet updated to stamp `pricing` degrades
+// to old, still-correct-if-conservative behaviour rather than a false positive.
+// `max_attempts` (a count) is DELIBERATELY excluded: a tally is an L3 cost idiom,
+// uncorrelated with project size or doneness, and stalling a healthy run at
+// attempt N defeats the point of L4 — so it is legal as an extra backstop but
+// never sufficient as the sole L4 ceiling. Replaces the old any-dimension
+// `Object.values(ceilings).some(v != null)`.
 function spendTimeCeilingSet(envelope) {
   const c = (envelope && envelope.ceilings) || {};
-  return c.tokens != null
-      || c.until != null
-      || (c.cost != null && envelope && envelope.price_per_mtok > 0);
+  if (c.tokens != null || c.until != null) return true;
+  if (c.cost == null) return false;
+  const pricing = envelope && envelope.pricing;
+  if (pricing === "map") return true;                              // the map always has SOME price
+  if (pricing === "flat") return envelope.price_per_mtok > 0;       // legacy rule, explicit
+  return !!(envelope && envelope.price_per_mtok > 0);               // no `pricing` field — pre-FAFF-427 fallback
 }
 
 // Pure: the MINT-TIME at_ceiling default for a lights-out (L4) run — `escalate`
@@ -598,13 +609,25 @@ function cmdLightsOut(args) {
   const runDir = path.join(root, ".faff", "runs", runId);
   fs.mkdirSync(runDir, { recursive: true });
 
+  // FAFF-427: best-effort per-model baseline snapshot, additive alongside the
+  // envelope — the `budget.cost` map-pricing rule subtracts THIS from later
+  // per-model totals to get the run's own delta, exactly as the scalar
+  // baseline does for `budget.tokens`. Absent/estimate-degraded (no resolvable
+  // transcript at mint time) simply omits the field — `budget check` falls back
+  // to its pro-rata degrade, never a crash or a fabricated baseline.
+  const modelBaseline = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs: null });
+  const budgetBlock = { envelope };
+  if (modelBaseline.source === "transcript") {
+    budgetBlock.tokens_at_start_by_model_class = Object.fromEntries(modelBaseline.by_model);
+  }
+
   const ledger = {
     run_id: runId,
     level: "L4",
     armed: pf.armed,
     enforced: pf.enforced,
     banner: pf.banner,
-    budget: { envelope },
+    budget: budgetBlock,
     budget_ceiling: envelope.ceilings,
     dial_profile,
     prd_creative_licence: prdLicence.value,
@@ -737,8 +760,12 @@ function lightsOutSelftest() {
   // No budget ceiling → refuse (no unbounded lights-out run).
   const noBudget = lightsOutPreflight(armedProbes({ budgetCeilingSet: false }));
   check("no budget ceiling refuses", noBudget.proceed === false && noBudget.refusals.some((r) => r.gate === "budget-ceiling"));
-  check("budget-ceiling refusal names the spend/time remedy",
-    noBudget.refusals.find((r) => r.gate === "budget-ceiling").detail.includes("spend/time") &&
+  // FAFF-427: the remedy now LEADS with budget.cost (dollars, the recommended
+  // default L4 governor — priced from the ADR-0048 map with no price_per_mtok
+  // needed), naming budget.tokens/budget.until as the alternatives.
+  check("budget-ceiling refusal names the spend remedy, leading with budget.cost",
+    noBudget.refusals.find((r) => r.gate === "budget-ceiling").detail.includes("spend ceiling") &&
+    /budget\.cost/.test(noBudget.refusals.find((r) => r.gate === "budget-ceiling").detail) &&
     /budget\.tokens|budget\.until/.test(noBudget.refusals.find((r) => r.gate === "budget-ceiling").detail));
 
   // FAFF-364 — a malformed budget.until/--until refuses REGARDLESS of other ceilings:
@@ -771,18 +798,30 @@ function lightsOutSelftest() {
     spendTimeCeilingSet({ ceilings: { until: "07:00", tokens: null, max_attempts: null, cost: null }, price_per_mtok: 0 }) === true);
   check("spend/time: max_attempts-only is NOT a ceiling",
     spendTimeCeilingSet({ ceilings: { max_attempts: 40, tokens: null, until: null, cost: null }, price_per_mtok: 0 }) === false);
-  check("spend/time: priced cost is a ceiling",
-    spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 3 }) === true);
-  check("spend/time: unpriced cost is NOT a ceiling (vacuous)",
+  check("spend/time: pricing:flat + priced cost is a ceiling",
+    spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 3, pricing: "flat" }) === true);
+  check("spend/time: pricing:flat + unpriced cost is NOT a ceiling (vacuous — the legacy dead zone, only under explicit flat pricing)",
+    spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 0, pricing: "flat" }) === false);
+  check("spend/time: NO `pricing` field at all (hand-built envelope) falls back to the pre-FAFF-427 rule — unpriced cost refuses",
     spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 0 }) === false);
+  check("spend/time: pricing:map + a cost ceiling IS a ceiling even with price_per_mtok:0 (FAFF-427 — the map always has SOME price)",
+    spendTimeCeilingSet({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, price_per_mtok: 0, pricing: "map" }) === true);
+  check("spend/time: pricing:map + NO cost ceiling configured is still NOT a ceiling",
+    spendTimeCeilingSet({ ceilings: { cost: null, tokens: null, until: null, max_attempts: null }, price_per_mtok: 0, pricing: "map" }) === false);
   check("spend/time: max_attempts alongside tokens IS a ceiling",
     spendTimeCeilingSet({ ceilings: { max_attempts: 40, tokens: 100, until: null, cost: null }, price_per_mtok: 0 }) === true);
   check("spend/time (real envelope): count-only refuses",
     spendTimeCeilingSet(envelopeFrom({ budget: { max_attempts: 40 } }, {})) === false);
   check("spend/time (real envelope): tokens proceeds",
     spendTimeCeilingSet(envelopeFrom({ budget: { tokens: 5_000_000 } }, {})) === true);
-  check("spend/time (real envelope): unpriced cost refuses",
-    spendTimeCeilingSet(envelopeFrom({ budget: { cost: 5, price_per_mtok: 0 } }, {})) === false);
+  // FAFF-427: `envelopeFrom` now stamps `pricing:"map"` when no explicit
+  // price_per_mtok is set, and the map ALWAYS has some price to apply — so a
+  // real envelope with `budget.cost` set and no `price_per_mtok` now PROCEEDS
+  // (the ADR-0048 map-priced dollar ceiling is the new default, recommended L4
+  // governor). The old "unpriced cost refuses" case only survives for the
+  // explicit-flat-zero-price hand-built shape above.
+  check("spend/time (real envelope): budget.cost alone (no price_per_mtok) now PROCEEDS — the default map-priced dollar ceiling",
+    spendTimeCeilingSet(envelopeFrom({ budget: { cost: 5, price_per_mtok: 0 } }, {})) === true);
   check("spend/time (real envelope): --until flag proceeds",
     spendTimeCeilingSet(envelopeFrom({}, { until: "07:00" })) === true);
   // FAFF-364 — a malformed --until never satisfies the spend/time governor: it

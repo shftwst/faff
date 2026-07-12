@@ -1,4 +1,4 @@
-# ADR 0065 — Holdout visibility model — one language, two visibilities
+# ADR 0066 — Holdout visibility model — one language, two visibilities
 
 - **Status:** Accepted
 - **Date:** 2026-07-12

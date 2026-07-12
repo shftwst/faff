@@ -53,6 +53,31 @@ test("unset graft.review_outage_retry_limit resolves to its baked default \"3\",
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-333: the lights-out host-socket boundedness attestation — default false (refuse
+// on positive evidence), read via `faff config get` per its own DONE item.
+test("unset autonomous.engine_bounded resolves to its baked default \"false\", exit 0", () => {
+  const dir = withConfig(null);
+  try { assert.deepEqual(run(dir, "config", "get", "autonomous.engine_bounded"), { code: 0, out: "false" }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("configured autonomous.engine_bounded: true wins over the registry default", () => {
+  const dir = withConfig("autonomous:\n  engine_bounded: true\n");
+  try { assert.deepEqual(run(dir, "config", "get", "autonomous.engine_bounded"), { code: 0, out: "true" }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// FAFF-42/350/333: `config resolved` surfaces a non-default engine_bounded, alongside its
+// sibling preflight knobs, so it's visible in the run banner rather than silent.
+test("config resolved surfaces a non-default autonomous.engine_bounded", () => {
+  const dir = withConfig("autonomous:\n  engine_bounded: true\n");
+  try {
+    const r = run(dir, "config", "resolved");
+    assert.equal(r.code, 0);
+    assert.match(r.out, /autonomous\.engine_bounded: true/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("a configured value wins over the registry default (the bug this fixes)", () => {
   const dir = withConfig("slots:\n  review: faffter-dark-adversarial-review\n");
   try { assert.deepEqual(run(dir, "config", "get", "slots.review"), { code: 0, out: "faffter-dark-adversarial-review" }); }

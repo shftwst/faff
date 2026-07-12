@@ -12,7 +12,8 @@ import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
 import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
-import { LIGHTS_OUT_GUARDRAIL_IDS, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { LIGHTS_OUT_GUARDRAIL_IDS, engineBoundedFromConfig, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
 
@@ -100,9 +101,19 @@ function tmpRoot(dial = {}) {
   const budgetBlock = dial.budget === null ? ""
     : (typeof dial.budget === "string" ? dial.budget : "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n");
   const recipeLine = dial.recipe ? `recipe: ${dial.recipe}\n` : "";
+  // FAFF-333: unlike containerCheck (env-injectable via KUBERNETES_SERVICE_HOST, so the
+  // CONTAINED fixture below can force `contained` deterministically), hostSocketProbe reads
+  // the REAL filesystem — a test-runner host with Docker actually installed (GitHub Actions'
+  // own `ubuntu-latest` runners, or any dev laptop with Docker Desktop) genuinely has
+  // /var/run/docker.sock present, independent of whether this test cares about that axis.
+  // Attest engine_bounded:true by default so every proceed-path / other-gate fixture here is
+  // immune to that ambient host state (exact parity with the budget block's role above —
+  // neutralize axes this fixture isn't testing); `dial.engine_bounded: false` opts a specific
+  // test OUT when it wants the attestation absent.
+  const engineBoundedLine = dial.engine_bounded === false ? "" : "autonomous:\n  engine_bounded: true\n";
   fs.writeFileSync(
     path.join(dir, ".faffrc.yaml"),
-    `${recipeLine}slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n${budgetBlock}`);
+    `${recipeLine}slots:\n  review: ${review}\n  spec_review: ${specReview}\ngates:\n  fallback: ${gatesFallback}\n${budgetBlock}${engineBoundedLine}`);
   return dir;
 }
 const CONTAINED = { ...process.env, KUBERNETES_SERVICE_HOST: "10.0.0.1" };
@@ -113,6 +124,67 @@ test("lights-out --selftest: the preflight table passes (exit 0)", () => {
   const { stdout, code } = runCli(["lights-out", "--selftest"]);
   assert.equal(code, 0, stdout);
   assert.match(stdout, /lights-out --selftest: ok/);
+});
+
+// FAFF-333 — host-socket boundedness (ADR-0041 decision 3), driven directly through the
+// pure lightsOutPreflight() core (mirrors mintFixtureLedger's clean, all-green probes
+// fixture below, plus the new hostSocketPresent/hostSocketPath/engineBounded fields).
+function cleanProbes(over = {}) {
+  const allReach = {}; for (const id of LIGHTS_OUT_GUARDRAIL_IDS) allReach[id] = true;
+  return {
+    container: "contained", reachable: allReach, reviewReachable: true, specReviewSlot: true,
+    budgetCeilingSet: true, floor: { no_execute: true, worktree_isolation: true, autonomous_contract: true },
+    dial: { level: "L4", slots: { review: "faffter-dark-adversarial-review", spec_review: "faffter-dark-spec-review" }, gates_fallback: "fail-closed", recipe: null },
+    meteringMeasurable: true, correctiveIntegrityBasis: "asserted",
+    ...over,
+  };
+}
+
+test("lightsOutPreflight: a present, unattested host socket REFUSES even on an otherwise clean fixture", () => {
+  const pf = lightsOutPreflight(cleanProbes({ hostSocketPresent: true, hostSocketPath: "/var/run/docker.sock" }));
+  assert.equal(pf.proceed, false);
+  const r = pf.refusals.find((x) => x.gate === "host-socket");
+  assert.ok(r, "expected a host-socket refusal");
+  assert.match(r.detail, /\/var\/run\/docker\.sock/);
+  assert.match(r.detail, /ADR-0041/);
+});
+
+test("lightsOutPreflight: autonomous.engine_bounded:true downgrades the socket refuse to a warn and proceeds", () => {
+  const pf = lightsOutPreflight(cleanProbes({ hostSocketPresent: true, hostSocketPath: "/var/run/docker.sock", engineBounded: true }));
+  assert.equal(pf.proceed, true);
+  assert.ok(!pf.refusals.some((x) => x.gate === "host-socket"), "attested-bounded must not refuse");
+  assert.ok(pf.degrades.some((x) => x.gate === "host-socket"), "attested-bounded still surfaces a warn via degrades[]");
+});
+
+test("lightsOutPreflight: socket absent (the default — no hostSocketPresent key at all) is byte-for-byte unchanged", () => {
+  const pf = lightsOutPreflight(cleanProbes());
+  assert.equal(pf.proceed, true);
+  assert.ok(!pf.refusals.some((x) => x.gate === "host-socket"));
+  assert.ok(!pf.degrades.some((x) => x.gate === "host-socket"));
+});
+
+// FAFF-333 — engineBoundedFromConfig resolves the attestation FAIL-CLOSED from a REALLY-parsed
+// config (the config-resolution seam cmdLightsOut uses in production, so a coercion regression is
+// caught here). The load-bearing case: a QUOTED `engine_bounded: "true"` — which the hand-rolled
+// YAML parser returns as the STRING "true", not a boolean — must still attest, or an operator who
+// quoted the value gets a silent refuse despite doing what the docs said.
+test("engineBoundedFromConfig: bare `true` attests (boolean, the documented form)", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: true\n")), true);
+});
+test("engineBoundedFromConfig: QUOTED `\"true\"` attests too (the YAML-quoting footgun)", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: \"true\"\n")), true);
+});
+test("engineBoundedFromConfig: `True` (case variant) attests", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: True\n")), true);
+});
+test("engineBoundedFromConfig is FAIL-CLOSED on every non-affirmative (false/\"false\"/yes/unset)", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: false\n")), false);
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: \"false\"\n")), false);
+  // `yes` is NOT a documented affirmative — fail-closed keeps it refusing (safe direction).
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: yes\n")), false);
+  // unset ⇒ the default posture (refuse), regardless of the DEFAULTS registry display value.
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("slots:\n  review: x\n")), false);
+  assert.equal(engineBoundedFromConfig({}), false);
 });
 
 // Bare host (container-check not_confirmed) → refuse, no run minted, exit 1. The

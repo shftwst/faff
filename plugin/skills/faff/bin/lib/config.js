@@ -71,6 +71,18 @@ const DEFAULTS = {
   // faffter_dark.adversarial.* configures the engine call, not loop policy). After this many held
   // drains still unavailable, the arm escalates to the standard needs-human park (never silent-forever).
   "graft.review_outage_retry_limit": "3",
+  // FAFF-333: the lights-out host-socket boundedness ATTESTATION (ADR-0041 decision 3) — default
+  // false (refuse on positive evidence of a mounted host socket). true is the operator taking
+  // responsibility that a same-path socket is a BOUNDED nested engine, not the host daemon;
+  // it downgrades the lights-out refuse to a warn without waiving container-check's own
+  // containment requirement. This registry entry drives `config get`'s DISPLAY value (so it
+  // returns "false" instead of exit-3, and shows in `config defaults`); it does NOT drive the
+  // gate. The gate resolves the attestation fail-closed in lights-out.js's engineBoundedFromConfig
+  // (only an explicit affirmative attests — unset/unrecognised always refuses), independent of
+  // this value, so flipping it here changes the display, never the safety default. Unlike the
+  // sibling require_container/require_branch_protection warn|block enums (resolved by SKILL.md
+  // prose), this is a boolean.
+  "autonomous.engine_bounded": "false",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -726,6 +738,8 @@ function cmdConfig(args) {
           "effort.build", "effort.methodology", "effort.intake",
           // FAFF-403: graft's outage-retry-later bound (graft.* namespace — graft owns the loop).
           "graft.review_outage_retry_limit",
+          // FAFF-333: the lights-out host-socket boundedness attestation (default false).
+          "autonomous.engine_bounded",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -803,9 +817,10 @@ function cmdConfig(args) {
       // value is visible in the run banner, not silently coerced behind the user's back.
       const gate = dig(data, "intake_gate");
       if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
-      // FAFF-42/350: surface a non-default autonomous-entry preflight knob (require_container /
-      // require_branch_protection) so an opt-in `block` is visible in the run banner, never silent.
-      for (const knob of ["require_container", "require_branch_protection"]) {
+      // FAFF-42/350/333: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection / engine_bounded) so an opt-in `block` — or the engine_bounded
+      // attestation — is visible in the run banner, never silent.
+      for (const knob of ["require_container", "require_branch_protection", "engine_bounded"]) {
         const v = dig(data, `autonomous.${knob}`);
         if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
       }

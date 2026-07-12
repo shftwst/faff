@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runCli } from "./helpers/run-cli.mjs";
+import { HOST_SOCKET_PATHS, hostSocketProbe } from "../plugin/skills/faff/bin/lib/container-check.js";
 
 // --selftest drives the full pure container_check(env, fsq) precedence table in-process
 // (k8s / dockerenv / containerenv / pid1-container= / env-container / no-signal, precedence,
@@ -56,5 +57,45 @@ test("container-check --json: well-formed shape, exit code agrees with result", 
   assert.ok(["contained", "not_confirmed"].includes(out.result), `result=${out.result}`);
   assert.equal(typeof out.basis, "string");
   assert.ok(out.basis.length > 0);
+  assert.equal(code, out.result === "contained" ? 0 : 1);
+});
+
+// FAFF-333 — hostSocketProbe: pure, injected-fsq fixtures over the two canonical
+// HOST docker socket paths. A DIFFERENT axis from containment (containerCheck above) —
+// boundedness (ADR-0041 decision 3), never folded into containerCheck's own contract.
+test("hostSocketProbe: absent → {present:false, path:null}", () => {
+  const fsq = { exists: () => false };
+  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: null });
+});
+
+test("hostSocketProbe: /var/run/docker.sock present → flagged with that path", () => {
+  const fsq = { exists: (p) => p === "/var/run/docker.sock" };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: "/var/run/docker.sock" });
+});
+
+test("hostSocketProbe: /run/docker.sock present → flagged with that path", () => {
+  const fsq = { exists: (p) => p === "/run/docker.sock" };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: "/run/docker.sock" });
+});
+
+test("hostSocketProbe: both present → the first checked path wins", () => {
+  const fsq = { exists: () => true };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: HOST_SOCKET_PATHS[0] });
+});
+
+test("hostSocketProbe: rootless paths are deliberately excluded (never false-positive the recommended posture)", () => {
+  const fsq = { exists: (p) => p === "/run/user/1000/docker.sock" || p === "/run/user/1000/podman/podman.sock" };
+  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: null });
+});
+
+// `container-check --json` surfaces host_socket as an ADDITIONAL field — exit code stays
+// governed by `result` (containment) alone, never by host_socket presence.
+test("container-check --json: host_socket field is well-formed and exit is unaffected by it", () => {
+  const { stdout, code } = runCli(["container-check", "--json"]);
+  const out = JSON.parse(stdout);
+  assert.ok(out.host_socket && typeof out.host_socket === "object", "host_socket field present");
+  assert.equal(typeof out.host_socket.present, "boolean");
+  assert.ok(out.host_socket.path === null || typeof out.host_socket.path === "string");
+  // Exit is driven by `result` only (asserted above too) — host_socket never flips it.
   assert.equal(code, out.result === "contained" ? 0 : 1);
 });

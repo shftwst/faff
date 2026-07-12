@@ -164,8 +164,12 @@ test("FAFF-378: live L4 ledger (running + fresh heartbeat) → still resolves `f
 function lightsOutRoot() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-app-"));
   fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  // FAFF-333: attest engine_bounded so a REAL host docker socket on the test-running
+  // machine (GitHub Actions' own runners carry /var/run/docker.sock — the CI validate
+  // job even asserts `docker info` works) never adds an unrelated `host-socket` refusal
+  // to the assertion below (parity with lights-out.test.mjs's tmpRoot() fixture).
   fs.writeFileSync(path.join(dir, ".faffrc.yaml"),
-    "appetite: low\nslots:\n  review: faffter-dark-adversarial-review\n  spec_review: faffter-dark-spec-review\ngates:\n  fallback: fail-closed\n");
+    "appetite: low\nslots:\n  review: faffter-dark-adversarial-review\n  spec_review: faffter-dark-spec-review\ngates:\n  fallback: fail-closed\nautonomous:\n  engine_bounded: true\n");
   return dir;
 }
 const CONTAINED = (extra = {}) => ({ ...process.env, KUBERNETES_SERVICE_HOST: "10.0.0.1", ...extra });

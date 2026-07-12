@@ -625,6 +625,91 @@ test("FAFF-427: a fresh per-model baseline (tokens_at_start_by_model_class) subt
   } finally { f.cleanup(); }
 });
 
+// ===========================================================================
+// FAFF-428 — the L4 spend governor must be MEASURABLE, not merely configured.
+// Mid-run honesty: at L4 (`ledger.level === "L4"`), an estimate-only token figure
+// appends an L4-metering-degrade warning — via the existing warnings[] mechanism,
+// NEVER the exit code (sentryReadBudget / run-done --budget fail-open on any
+// non-zero exit, so a new exit path here would MASK a real breach).
+// ===========================================================================
+
+test("FAFF-428: L4 ledger + estimate-only tokens → warnings names the metering degrade, exit 0 unchanged", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 100000\n",
+    ledger: baseLedger({ level: "L4" }),
+  });
+  try {
+    // No CLAUDE_CODE_SESSION_ID in env → estimate path (mirrors the existing
+    // "no transcript → estimate fallback" test, plus the L4 ledger level).
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.ok(Array.isArray(s.warnings) && s.warnings.some((w) => /L4 budget metering degraded/.test(w)), JSON.stringify(s.warnings));
+    assert.ok(s.warnings.some((w) => /under-report/.test(w)));
+    assert.match(r.err, /faff budget check: L4 budget metering degraded/, "mirrors to stderr, prefixed");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-428: a non-L4 ledger (or no level at all) with estimate-only tokens carries NO metering warning (L1-L3 unchanged)", () => {
+  // No `level` field at all — the common case for every ledger prior to this change
+  // and every L1-L3 run today.
+  const f = fixture({ rc: "budget:\n  tokens: 100000\n", ledger: baseLedger() });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.ok(!("warnings" in s), "no level field at all → byte-identical to before FAFF-428");
+  } finally { f.cleanup(); }
+
+  const f2 = fixture({
+    rc: "budget:\n  tokens: 100000\n",
+    ledger: baseLedger({ level: "L3" }),
+  });
+  try {
+    const r2 = run(["budget", "check", "--run-dir", f2.runDir, "--root", f2.root]);
+    const s2 = JSON.parse(r2.out);
+    assert.equal(s2.tokens_source, "estimate");
+    assert.ok(!("warnings" in s2), "level:L3 with an estimate-only figure carries no L4-specific warning");
+  } finally { f2.cleanup(); }
+});
+
+test("FAFF-428: an L4 ledger with a MEASURABLE transcript carries no metering warning", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 100000\n",
+    ledger: baseLedger({ level: "L4", budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-l4-measurable";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 10, output_tokens: 5 }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.ok(!("warnings" in s), "a measurable L4 run carries no metering-degrade warning");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-428: the L4 metering warning COEXISTS with the FAFF-364 until-invalid warning (append-based assembly)", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 100000\n  until: \"25:00\"\n",
+    ledger: baseLedger({ level: "L4" }),
+  });
+  try {
+    // No transcript → estimate; AND a malformed until → both warnings must coexist
+    // in one array (the append-based assembly this change requires).
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.ok(Array.isArray(s.warnings) && s.warnings.length === 2, JSON.stringify(s.warnings));
+    assert.ok(s.warnings.some((w) => /25:00/), "the until-invalid warning is present");
+    assert.ok(s.warnings.some((w) => /L4 budget metering degraded/), "the L4 metering warning is present");
+  } finally { f.cleanup(); }
+});
+
 test("FAFF-427: a pre-change ledger (no per-model baseline) pro-rates the per-model deltas and warns", () => {
   const f = fixture({
     rc: "budget:\n  cost: 0.000001\n",

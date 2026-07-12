@@ -34,7 +34,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { AT_CEILING_OUTCOMES, envelopeFrom, measureTokensByModelClass } = require("./budget");
+const { AT_CEILING_OUTCOMES, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
@@ -291,14 +291,17 @@ function lightsOutEnforced(guardrails = LIGHTS_OUT_GUARDRAILS) {
 }
 
 // Pure: the refuse-to-start decision over v1's preconditions + the armed guardrail
-// set. Returns { proceed, refusals:[{gate,detail}], armed, enforced, banner, floor }. Proceed
-// iff EVERY guardrail is `live`, the review + spec_review slots are reachable, a
-// budget ceiling is set, and every floor assertion holds. Any miss refuses.
+// set. Returns { proceed, refusals:[{gate,detail}], armed, enforced, banner, floor,
+// degrades }. Proceed iff EVERY guardrail is `live`, the review + spec_review slots
+// are reachable, a budget ceiling is set, every floor assertion holds, AND (FAFF-428)
+// a token-dependent ceiling's meter is measurable OR the posture is `warn` (which
+// proceeds but populates `degrades`). Any other miss refuses.
 function lightsOutPreflight(probes) {
   const armed = lightsOutArmed(probes);
   const enforced = lightsOutEnforced();
   const floor = (probes && probes.floor) || {};
   const refusals = [];
+  const degrades = [];
 
   // Per-guardrail reachability (keystones included). Anything not `live` refuses —
   // a reachability fault, fail-closed; there is no designed keystone-absent mode.
@@ -325,6 +328,28 @@ function lightsOutPreflight(probes) {
   // both refusals present, each naming its own remedy.
   if (probes.budgetUntilInvalid != null)
     refusals.push({ gate: "budget-until-invalid", detail: `budget.until / --until '${probes.budgetUntilInvalid}' is not a valid HH:MM (00-23:00-59) — fix budget.until in .faffrc.yaml or the --until flag` });
+  // FAFF-428 — the L4 spend governor must be MEASURABLE, not merely configured. A
+  // token-dependent ceiling (tokens, or an armed cost per FAFF-427) whose meter is
+  // estimate-only (transcripts unreadable) either refuses (default posture) or
+  // proceeds with a loud `degrades` entry (explicit `warn` opt-in). An until-only /
+  // count-only governor needs no token meter and is untouched by this gate.
+  // `probes.meteringMeasurable` absent (an older caller of this pure function) is
+  // tolerated as measurable — additive-probe tolerance; the shipped cmdLightsOut
+  // always supplies it.
+  const meteringMeasurable = probes.meteringMeasurable !== undefined ? !!probes.meteringMeasurable : true;
+  if (probes.tokenDependentCeiling && !meteringMeasurable) {
+    if (probes.estimateOnlyPosture === "warn") {
+      degrades.push({
+        gate: "budget-metering",
+        detail: "budget metering degraded: estimate-only (attempts x est_tokens_per_attempt) — token/cost ceiling figures may under-report ~10x",
+      });
+    } else {
+      refusals.push({
+        gate: "budget-metering",
+        detail: "budget meter is estimate-only (transcripts unreadable: session id unset, transcript dir missing, or session file absent) — a token/cost ceiling cannot be measured, only estimated (~10x under-report); fix transcript availability, or set budget.on_estimate_only: warn to accept degraded metering",
+      });
+    }
+  }
   // Floor assertions — must hold in-container; a failed assertion refuses the run.
   // The refuse condition is UNCHANGED (fail-closed on any non-true value, static or
   // checked). FAFF-379: a checked entry that failed carries a specific per-key reason
@@ -349,8 +374,8 @@ function lightsOutPreflight(probes) {
   }
 
   const proceed = refusals.length === 0;
-  const banner = renderLightsOutBanner(armed, floor, proceed, probes, enforced);
-  return { proceed, refusals, armed, enforced, banner, floor };
+  const banner = renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades);
+  return { proceed, refusals, armed, enforced, banner, floor, degrades };
 }
 
 // Pure: render the human-facing banner — the trust contract. Derivable 1:1 from
@@ -361,7 +386,7 @@ function lightsOutPreflight(probes) {
 // fail-closed {id: boolean} map from lightsOutEnforced(); a 4-arg call leaves it
 // undefined and every line degrades to "reachable-only" (the documented failure
 // mode the selftest catches), never throwing.
-function renderLightsOutBanner(armed, floor, proceed, probes, enforced) {
+function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades = []) {
   const mark = (s) => (s === "live" ? "●" : s === "degraded" ? "◐" : "○");
   const enf = enforced || {};
   const lines = [];
@@ -387,6 +412,12 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced) {
       ? `${base}; ${notEnforced.length} reachable-but-not-enforced: ${notEnforced.join(", ")}`
       : base;
     lines.push(`  status: ${status}`);
+    // FAFF-428 — a warn-posture proceed still surfaces its metering degrade loudly,
+    // mirroring the REFUSED list's rendering (gate: detail), one line per entry.
+    if (degrades && degrades.length) {
+      lines.push(`  degraded (proceeding):`);
+      for (const d of degrades) lines.push(`    ⚠ ${d.gate}: ${d.detail}`);
+    }
   } else {
     const allLive = LIGHTS_OUT_GUARDRAIL_IDS.every((id) => armed[id] === "live");
     lines.push(`  status: REFUSED — preflight not satisfied${allLive ? "" : " (a guardrail is not live)"}`);
@@ -431,11 +462,49 @@ function resolveSlotOccupant(cfg, name) {
 function spendTimeCeilingSet(envelope) {
   const c = (envelope && envelope.ceilings) || {};
   if (c.tokens != null || c.until != null) return true;
+  return costArmed(envelope);
+}
+
+// FAFF-428 — is `budget.cost` an ARMED (priceable) ceiling? Split out of
+// spendTimeCeilingSet's cost branch (byte-identical logic, same precedence) so a
+// SECOND consumer — the budget-metering measurability gate below — can ask "is cost
+// priceable" without re-deriving the FAFF-427 pricing rule. `pricing:"map"` always has
+// SOME price (the ADR-0048 map + costliest-known-rate fallback); `pricing:"flat"`
+// requires an explicit `price_per_mtok > 0`; no `pricing` field at all (a raw/synthetic
+// envelope) falls back to the pre-FAFF-427 rule.
+function costArmed(envelope) {
+  const c = (envelope && envelope.ceilings) || {};
   if (c.cost == null) return false;
   const pricing = envelope && envelope.pricing;
-  if (pricing === "map") return true;                              // the map always has SOME price
-  if (pricing === "flat") return envelope.price_per_mtok > 0;       // legacy rule, explicit
-  return !!(envelope && envelope.price_per_mtok > 0);               // no `pricing` field — pre-FAFF-427 fallback
+  if (pricing === "map") return true;
+  if (pricing === "flat") return envelope.price_per_mtok > 0;
+  return !!(envelope && envelope.price_per_mtok > 0);
+}
+
+// FAFF-428 — is there a TOKEN-DEPENDENT ceiling armed: one whose breach test needs the
+// token meter? `tokens` always counts; an armed `cost` (costArmed above) always counts
+// too, since under FAFF-427 map pricing a dollar ceiling prices from token counts. An
+// `until`-only (or count-only) governor needs no token meter and is deliberately
+// EXCLUDED — a clock is honestly measurable without transcripts, so gating it on
+// meter availability would refuse a legitimately-governed run for no reason.
+function tokenDependentCeilingArmed(envelope) {
+  const c = (envelope && envelope.ceilings) || {};
+  return c.tokens != null || costArmed(envelope);
+}
+
+// FAFF-428 — the L4 estimate-only-metering posture: what happens when a token-dependent
+// ceiling is armed but the meter can't resolve real transcripts. Pure, level-scoped
+// local resolver (the `mintAtCeiling` precedent below) — NOT registered in the
+// level-blind `DEFAULTS` registry, since the key is consumed only on the L4 path.
+// Unset → `refuse` (the fail-closed L4 default: a governor whose instrument is broken
+// must refuse, never quietly govern fiction). An unrecognised value ALSO fails safe
+// toward `refuse` — the opposite fail-safe direction from `mintAtCeiling`'s typo rule,
+// because here `refuse` (not `warn`) is the safe/default posture.
+function estimateOnlyPosture(cfg) {
+  const raw = dig(cfg, "budget.on_estimate_only");
+  if (raw == null) return "refuse";
+  const v = String(raw).trim().toLowerCase();
+  return (v === "refuse" || v === "warn") ? v : "refuse";
 }
 
 // Pure: the MINT-TIME at_ceiling default for a lights-out (L4) run — `escalate`
@@ -527,6 +596,16 @@ function cmdLightsOut(args) {
   const envelope = envelopeFrom(cfg, { until: get("--until"), max_attempts: get("--max") });
   const budgetCeilingSet = spendTimeCeilingSet(envelope);
 
+  // FAFF-428 — sample the meter ONCE at preflight (never a guess): a token-dependent
+  // ceiling needs a working meter, not merely a set one. `runStartMs: null` is the
+  // documented degenerate path (no run has started yet) — the session-id match alone
+  // decides measurability. The SAME sample also becomes the mint-time metering record
+  // below (one sample, two uses — never a second, possibly-divergent read).
+  const metering = measureTokensByClass({ cwd: root, env: process.env, runStartMs: null });
+  const meteringMeasurable = metering.source === "transcript";
+  const onEstimateOnlyPosture = estimateOnlyPosture(cfg);
+  const tokenDependentCeiling = tokenDependentCeilingArmed(envelope);
+
   // Floor assertions (FAFF-379) — a checked/static split, not one kind of thing.
   // `no_execute` + `autonomous_contract` are STATIC invariants of the shipped code:
   // nothing external can runtime-verify "the runner derives no command from free text",
@@ -564,7 +643,14 @@ function cmdLightsOut(args) {
 
   // FAFF-364: forward the resolved envelope's until_invalid flag so the preflight
   // can refuse a malformed until at mint time — never carried into a run-ledger.
-  const probes = { container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet, budgetUntilInvalid: envelope.until_invalid, floor, floor_detail: floorDetail, dial: coherenceDial };
+  // FAFF-428: forward the metering-measurability probe + resolved posture + whether
+  // a token-dependent ceiling is armed, so the preflight can refuse/degrade estimate-
+  // only metering under a real ceiling.
+  const probes = {
+    container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet,
+    budgetUntilInvalid: envelope.until_invalid, floor, floor_detail: floorDetail, dial: coherenceDial,
+    meteringMeasurable, estimateOnlyPosture: onEstimateOnlyPosture, tokenDependentCeiling,
+  };
   const pf = lightsOutPreflight(probes);
 
   // FAFF-308: appetite is level-scoped — at L4 the runner forces `full` unconditionally,
@@ -592,7 +678,7 @@ function cmdLightsOut(args) {
 
   // --check: would-proceed, but mint nothing (a side-effect-free preflight probe).
   if (checkOnly) {
-    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true }) + "\n");
+    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true, degrades: pf.degrades }) + "\n");
     else { console.log(pf.banner); console.log(`\nPreflight PASS (--check: no run minted).`); }
     return 0;
   }
@@ -626,6 +712,14 @@ function cmdLightsOut(args) {
   if (modelBaseline.source === "transcript") {
     budgetBlock.tokens_at_start_by_model_class = Object.fromEntries(modelBaseline.by_model);
   }
+  // FAFF-428 — record the metering state at mint, from the SAME sample taken for the
+  // preflight probe above (never a second, possibly-divergent read). `degraded` is
+  // true only when the budget-metering gate actually fired in warn-posture (a clean
+  // measurable mint always records degraded:false).
+  budgetBlock.metering = {
+    source_at_mint: metering.source,
+    degraded: pf.degrades.some((d) => d.gate === "budget-metering"),
+  };
 
   const ledger = {
     run_id: runId,
@@ -659,7 +753,7 @@ function cmdLightsOut(args) {
   fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
 
   if (json) {
-    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner }) + "\n");
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner, degrades: pf.degrades }) + "\n");
   } else {
     console.log(pf.banner);
     console.log(`\nPreflight PASS — L4 run minted: ${runDir}`);
@@ -836,6 +930,73 @@ function lightsOutSelftest() {
   check("spend/time (real envelope): malformed --until does NOT satisfy the governor",
     spendTimeCeilingSet(envelopeFrom({}, { until: "garbage" })) === false);
 
+  // ---- FAFF-428: the L4 spend governor must be MEASURABLE, not merely configured ----
+
+  // estimateOnlyPosture: unset → refuse, warn honoured, unrecognised → refuse (fail-safe).
+  check("estimateOnlyPosture: unset → refuse (L4 default)", estimateOnlyPosture({}) === "refuse");
+  check("estimateOnlyPosture: no budget block → refuse", estimateOnlyPosture({ budget: {} }) === "refuse");
+  check("estimateOnlyPosture: explicit warn honoured", estimateOnlyPosture({ budget: { on_estimate_only: "warn" } }) === "warn");
+  check("estimateOnlyPosture: explicit refuse honoured", estimateOnlyPosture({ budget: { on_estimate_only: "refuse" } }) === "refuse");
+  check("estimateOnlyPosture: case/whitespace tolerant", estimateOnlyPosture({ budget: { on_estimate_only: "  WARN  " } }) === "warn");
+  check("estimateOnlyPosture: unrecognised value (typo) fails safe to refuse, NOT warn",
+    estimateOnlyPosture({ budget: { on_estimate_only: "wrn" } }) === "refuse");
+
+  // costArmed / tokenDependentCeilingArmed — the token-dependent-ceiling test the
+  // budget-metering gate keys off. tokens always counts; cost only when armed
+  // (FAFF-427 pricing); until/max_attempts alone never count.
+  check("costArmed: pricing:map + cost set is armed", costArmed({ ceilings: { cost: 5 }, pricing: "map" }) === true);
+  check("costArmed: pricing:flat + price>0 is armed", costArmed({ ceilings: { cost: 5 }, pricing: "flat", price_per_mtok: 3 }) === true);
+  check("costArmed: pricing:flat + price 0 is NOT armed", costArmed({ ceilings: { cost: 5 }, pricing: "flat", price_per_mtok: 0 }) === false);
+  check("costArmed: no cost ceiling at all is NOT armed", costArmed({ ceilings: { cost: null }, pricing: "map" }) === false);
+  check("tokenDependentCeilingArmed: tokens set is armed", tokenDependentCeilingArmed({ ceilings: { tokens: 100, cost: null }, pricing: "map" }) === true);
+  check("tokenDependentCeilingArmed: armed cost is armed", tokenDependentCeilingArmed({ ceilings: { tokens: null, cost: 5 }, pricing: "map" }) === true);
+  check("tokenDependentCeilingArmed: until-only is NOT armed (a clock needs no token meter)",
+    tokenDependentCeilingArmed({ ceilings: { tokens: null, cost: null, until: "07:00" }, pricing: "map" }) === false);
+  check("tokenDependentCeilingArmed: max_attempts-only is NOT armed",
+    tokenDependentCeilingArmed({ ceilings: { tokens: null, cost: null, max_attempts: 40 }, pricing: "map" }) === false);
+
+  // lightsOutPreflight: default posture (refuse) with an armed token-dependent ceiling
+  // and an estimate-only meter → refuses with gate budget-metering, no degrades.
+  const meteringRefuse = lightsOutPreflight(armedProbes({ tokenDependentCeiling: true, meteringMeasurable: false }));
+  check("budget-metering: estimate-only + token-dependent ceiling + default posture refuses",
+    meteringRefuse.proceed === false && meteringRefuse.refusals.some((r) => r.gate === "budget-metering"));
+  check("budget-metering refusal names the fix + the warn opt-out",
+    meteringRefuse.refusals.find((r) => r.gate === "budget-metering").detail.includes("budget.on_estimate_only: warn"));
+  check("budget-metering refuse path carries no degrades", meteringRefuse.degrades.length === 0);
+
+  // Explicit warn posture: same estimate-only + token-dependent ceiling now PROCEEDS,
+  // with a degrades[] entry naming budget-metering (the loud degrade, never silent).
+  const meteringWarn = lightsOutPreflight(armedProbes({
+    tokenDependentCeiling: true, meteringMeasurable: false, estimateOnlyPosture: "warn",
+  }));
+  check("budget-metering: warn posture proceeds despite estimate-only metering",
+    meteringWarn.proceed === true && !meteringWarn.refusals.some((r) => r.gate === "budget-metering"));
+  check("budget-metering: warn posture populates degrades[] naming the gate",
+    meteringWarn.degrades.some((d) => d.gate === "budget-metering"));
+  check("budget-metering: warn-posture banner carries a DEGRADED line",
+    /degraded \(proceeding\)/.test(meteringWarn.banner) && meteringWarn.banner.includes("budget-metering"));
+
+  // A MEASURABLE meter never fires the gate, regardless of posture or ceiling shape —
+  // the happy path (armedProbes' default) already proves this implicitly, restated here
+  // explicitly against a token-dependent ceiling.
+  const meteringOk = lightsOutPreflight(armedProbes({ tokenDependentCeiling: true, meteringMeasurable: true }));
+  check("budget-metering: measurable meter + token-dependent ceiling proceeds clean",
+    meteringOk.proceed === true && meteringOk.degrades.length === 0
+    && !meteringOk.refusals.some((r) => r.gate === "budget-metering"));
+
+  // An until-only (or absent) token-dependent-ceiling flag never fires the gate, even
+  // with an estimate-only meter and the default refuse posture — a clock needs no meter.
+  const meteringUntilOnly = lightsOutPreflight(armedProbes({ tokenDependentCeiling: false, meteringMeasurable: false }));
+  check("budget-metering: no token-dependent ceiling never fires the gate (until/count-only governor)",
+    meteringUntilOnly.proceed === true && meteringUntilOnly.degrades.length === 0
+    && !meteringUntilOnly.refusals.some((r) => r.gate === "budget-metering"));
+
+  // Additive-probe tolerance: an older caller of this pure function that never set
+  // `meteringMeasurable` at all is tolerated as measurable — never a surprise refusal.
+  const meteringAbsentProbe = lightsOutPreflight(armedProbes({ tokenDependentCeiling: true }));
+  check("budget-metering: absent meteringMeasurable probe tolerated as measurable (additive-probe rule)",
+    meteringAbsentProbe.proceed === true && !meteringAbsentProbe.refusals.some((r) => r.gate === "budget-metering"));
+
   // FAFF-312 — mint-time at_ceiling default: escalate-when-unset, explicit honoured.
   check("mint at_ceiling: unset → escalate (L4 default)", mintAtCeiling({}) === "escalate");
   check("mint at_ceiling: no budget block → escalate", mintAtCeiling({ budget: {} }) === "escalate");
@@ -997,4 +1158,4 @@ function lightsOutSelftest() {
 }
 
 
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, VETTED_RECIPES, checkWorktreeIsolation, cmdLightsOut, cmdWorktreeRoot, dialCoherence, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, worktreeRootSelftest };
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, VETTED_RECIPES, checkWorktreeIsolation, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, estimateOnlyPosture, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

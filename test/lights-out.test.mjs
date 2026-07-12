@@ -80,8 +80,10 @@ test("lights-out: no budget ceiling refuses", () => {
 });
 
 // FAFF-312 — a count-cap (max_attempts) alone is NOT an L4 governor: refuse, mint
-// nothing, and the refusal names the spend/time remedy. (max_attempts is legal only
+// nothing, and the refusal names the spend remedy. (max_attempts is legal only
 // as an extra backstop alongside a spend/time ceiling — see the tokens-only test.)
+// FAFF-427: the remedy now LEADS with budget.cost (the recommended default
+// governor — map-priced with no price_per_mtok needed), naming budget.tokens too.
 test("lights-out: count-cap-only (max_attempts) ceiling refuses — not an L4 governor", () => {
   const root = tmpRoot({ budget: "budget:\n  max_attempts: 40\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
@@ -90,22 +92,38 @@ test("lights-out: count-cap-only (max_attempts) ceiling refuses — not an L4 go
   assert.equal(out.proceed, false);
   const bc = out.refusals.find((r) => r.gate === "budget-ceiling");
   assert.ok(bc, "names the budget-ceiling gate");
-  assert.match(bc.detail, /spend\/time/, "detail names the spend/time remedy");
+  assert.match(bc.detail, /spend ceiling/, "detail names the spend remedy");
+  assert.match(bc.detail, /budget\.cost/, "detail leads with budget.cost, the recommended default governor");
   assert.match(bc.detail, /budget\.tokens/);
   assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on a count-cap-only ceiling");
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-// FAFF-312 — an unpriced `cost` ceiling is vacuous (never breaches), so it does NOT
-// satisfy the fail-closed precondition: refuse.
-test("lights-out: unpriced cost ceiling refuses (vacuous — never breaches)", () => {
-  const root = tmpRoot({ budget: "budget:\n  cost: 25\n" }); // no price_per_mtok ⇒ inert
+// FAFF-427: `budget.cost` alone, with NO `price_per_mtok` configured, is now the
+// DEFAULT, RECOMMENDED L4 spend governor — the ADR-0048 per-model x per-class map
+// prices it (with the costliest-known-rate fallback for an unpriced model), so a
+// dollar ceiling always has SOME price to apply. This replaces the pre-FAFF-427
+// "unpriced cost ceiling refuses (vacuous)" behaviour — a flat-scalar dead zone
+// that no longer exists now the map prices by default (see budget.test.mjs /
+// lights-out --selftest for the still-live legacy-flat-zero-price refusal case).
+test("lights-out: budget.cost alone (no price_per_mtok) PROCEEDS — the default map-priced dollar ceiling (AC 2)", () => {
+  const root = tmpRoot({ budget: "budget:\n  cost: 25\n" }); // no price_per_mtok ⇒ map pricing, always priceable
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 1, stdout);
-  assert.ok(out.refusals.some((r) => r.gate === "budget-ceiling"));
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.ok(!out.refusals || !out.refusals.some((r) => r.gate === "budget-ceiling"), "no budget-ceiling refusal");
+  assert.ok(fs.existsSync(path.join(root, ".faff")), "a run WAS minted — the dollar ceiling alone satisfied the gate");
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+// FAFF-427: a legacy-shaped envelope that EXPLICITLY sets the flat scalar to a
+// non-priced value (`price_per_mtok: 0`, `pricing` therefore resolves to "flat"
+// only when a caller stamps it verbatim on a hand-built envelope — see
+// lights-out --selftest's "pricing:flat + unpriced cost" case) still refuses;
+// this file's CLI-level fixtures always go through the real `envelopeFrom`,
+// which now resolves an unset price to `pricing:"map"` (see the test above) —
+// so the pure hand-built-envelope shape is covered in the unit selftest, not here.
 
 // FAFF-312 — a spend/time (tokens) ceiling proceeds, and the minted ledger envelope
 // carries the level-scoped mint-time default at_ceiling: "escalate" (config unset).

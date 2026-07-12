@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, envelopeFrom, envelopeFromLedger, measureTokens, readGovernanceConfig, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokensByModelClass, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
@@ -47,11 +47,25 @@ function economicsAttributeIssue(desc, outcomes) {
 // tallies, so it is identical run-to-run and fully selftest-coverable. Run-level
 // figures NEVER depend on per_issue (best-effort) — they render identically
 // whether or not attribution succeeded.
+// FAFF-427: `pricing`/`map_cost`/`map_warnings` are OPTIONAL additive opts — a
+// caller that never passes them (every pre-existing call, including this file's
+// own --selftest table) gets `pricing:"flat"` and the exact byte-for-byte
+// `cost_total` this function always computed, so nothing already depending on
+// this core's shape changes. `cmdEconomics` (the only production caller) passes
+// them once it has resolved the run's pricing source and, under map pricing,
+// computed the per-model walk's blended cost (`map_cost`) + any unpriced-model
+// names (`map_warnings`) — see below. Reconciling the two cost figures ADR-0048
+// deferred means this is now the SAME rule `budget.cost` prices from.
 function computeUnitEconomics(ledger, opts) {
-  const { tokens_total, tokens_source, price_per_mtok, tokens_at_start, per_issue } = opts;
+  const { tokens_total, tokens_source, price_per_mtok, tokens_at_start, per_issue, pricing, map_cost, map_warnings } = opts;
   const price = Number.isFinite(price_per_mtok) && price_per_mtok > 0 ? price_per_mtok : 0;
   const total = Number.isFinite(tokens_total) ? tokens_total : 0;
-  const cost_total = price > 0 ? (total / 1_000_000) * price : null;
+  const resolvedPricing = pricing === "map" ? "map" : "flat";
+  // flat: byte-for-byte the original rule. map: the caller's already-computed
+  // per-model walk cost (null when it couldn't price anything, e.g. no records).
+  const cost_total = resolvedPricing === "map"
+    ? ((typeof map_cost === "number" && Number.isFinite(map_cost)) ? map_cost : null)
+    : (price > 0 ? (total / 1_000_000) * price : null);
 
   const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
   const counts = new Map();
@@ -68,10 +82,14 @@ function computeUnitEconomics(ledger, opts) {
   let attempt_count = 0;
   for (const k of Object.keys(outcomes)) if (!BUDGET_NON_ATTEMPT_OUTCOMES.has(outcomes[k])) attempt_count++;
 
+  // FAFF-427: `cost_each` keys off `cost_total != null` rather than `price > 0` —
+  // in flat mode the two conditions are IDENTICAL (cost_total is null exactly
+  // when price<=0), so this is byte-for-byte unchanged for every existing caller;
+  // it additionally lets a map-priced (price==0) total propagate correctly.
   const unitCost = (denom) => denom > 0 ? {
     denom,
     tokens_each: Math.round(total / denom),
-    cost_each: price > 0 ? cost_total / denom : null,
+    cost_each: cost_total != null ? cost_total / denom : null,
   } : null;
 
   const warnings = [];
@@ -80,12 +98,14 @@ function computeUnitEconomics(ledger, opts) {
   if (tokens_source === "transcript" && tokens_at_start === 0 && total > 0) {
     warnings.push("tokens_at_start=0 — run total may be inflated by prior-session history");
   }
+  if (Array.isArray(map_warnings)) for (const w of map_warnings) warnings.push(w);
 
   return {
     run_id: (ledger && typeof ledger.run_id === "string" && ledger.run_id) || opts.run_id || null,
     tokens_total: total,
     tokens_source,
     price_per_mtok: price,
+    pricing: resolvedPricing,
     cost_total,
     buckets,
     shipped_count,
@@ -157,50 +177,15 @@ const BY_AXES = ["class", "model", "mcp", "day", "effort"];
 const EFFORT_ORDER = ["low", "medium", "high", "xhigh", "max"];
 const EFFORT_NONE_KEY = "(none)";
 
-// Per-model × per-class USD price per 1M tokens. Built-in default (seeded from the
-// FAFF-407 reference `PRICE_PER_MTOK`). An optional `budget.price_per_mtok_by_model`
-// config map is consulted FIRST (per-model; see resolveEconomicsPriceMap). A model
-// absent from BOTH prices to null (cost:null, kept distinct from $0). A dated
-// model-id suffix (-YYYYMMDD) is stripped before lookup, exactly as the reference.
-const PRICE_PER_MTOK = {
-  "claude-fable-5": { input: 10, output: 50, cache_write: 12.5, cache_read: 1.0 },
-  "claude-opus-4-8": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-opus-4-7": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-opus-4-6": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-opus-4-5": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
-  "claude-sonnet-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
-  "claude-sonnet-4-6": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
-  "claude-sonnet-4-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
-  "claude-haiku-4-5": { input: 1, output: 5, cache_write: 1.25, cache_read: 0.1 },
-};
-
-// Resolve a model's per-class price row, or null when unknown in BOTH the config
-// override and the built-in map (caller renders cost:null). A missing class within
-// a resolved row defaults to 0 (a partial price → $0 for that class).
-function economicsPriceForModel(model, priceMap) {
-  const m = priceMap || PRICE_PER_MTOK;
-  const row = m[model] || m[String(model).replace(/-\d{8}$/, "")];
-  if (!row || typeof row !== "object") return null;
-  return {
-    input: Number(row.input) || 0,
-    output: Number(row.output) || 0,
-    cache_write: Number(row.cache_write) || 0,
-    cache_read: Number(row.cache_read) || 0,
-  };
-}
-
-// Merge an optional `budget.price_per_mtok_by_model` config map OVER the built-in
-// defaults (config wins per-model). Pure; returns the built-in map unchanged when
-// no valid override is present.
-function resolveEconomicsPriceMap(cfg) {
-  const override = dig(cfg, "budget.price_per_mtok_by_model");
-  if (!override || typeof override !== "object" || Array.isArray(override)) return PRICE_PER_MTOK;
-  const merged = { ...PRICE_PER_MTOK };
-  for (const [model, row] of Object.entries(override)) {
-    if (row && typeof row === "object" && !Array.isArray(row)) merged[model] = row;
-  }
-  return merged;
-}
+// FAFF-427: `PRICE_PER_MTOK` / `economicsPriceForModel` / `resolveEconomicsPriceMap`
+// MOVED to `budget.js` (governance) — `budget.cost` is now the GOVERNOR that
+// consults this map (the reconciliation ADR-0048 deferred), and governance must
+// never be reached-back-into from factory (FAFF-359 region direction), so the
+// map lives where it is authoritative and this factory module imports it. Kept
+// as destructured bindings above (not re-declared here) so this file's own
+// `--by` breakdown code below — and every existing caller of these three names,
+// including this file's own `--selftest` table — is byte-for-byte unchanged;
+// `module.exports` at the bottom re-exports them under their original names.
 
 // Usage / model / day selectors — the SAME record rule as sumTranscriptFileByClass
 // (rec.message.usage ?? rec.usage, any record type), so the pivot selects exactly
@@ -716,17 +701,28 @@ function cmdEconomics(args) {
   const ledgerEnv = (ledger.budget && typeof ledger.budget === "object" && ledger.budget.envelope) || null;
   const env = ledgerEnv ? envelopeFromLedger(ledgerEnv, { until: null, max_attempts: null }, cfg) : envelopeFrom(cfg, {});
   const price = env.price_per_mtok > 0 ? env.price_per_mtok : 0;
+  // FAFF-427: resolved once, used both by the top-line (below) and by `--by`.
+  const priceMap = resolveEconomicsPriceMap(cfg);
 
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
   const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
 
-  // Reuse budget check's EXACT token path (measureTokens + the tokens_at_start
-  // baseline) — the same figure budget gates on, never a private recount.
-  const measured = measureTokens({ cwd: root, env: process.env, runStartMs });
+  // Reuse budget check's EXACT token path — but via the per-model resolver
+  // (FAFF-427), the ONE walk that also carries what map pricing needs. Its
+  // `totals` is the same scalar `measureTokens` returns (sum over `by_model`, by
+  // construction), so this is not an extra census — it is the single walk, and the
+  // no-`--by` common path now reads the transcript exactly once (the top-line no
+  // longer needs a separate `readRunTranscriptRecords`). The scalar total is still
+  // baselined at run start, the same figure budget gates on.
+  const measured = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs });
+  const measuredSource = measured.source;
+  const measuredTotal = measuredSource === "transcript"
+    ? (measured.totals.input + measured.totals.output + measured.totals.cache_write + measured.totals.cache_read)
+    : null;
   let tokensTotal, tokensSource;
-  if (measured.source === "transcript") {
-    tokensTotal = Math.max(0, measured.total - tokensAtStart);
+  if (measuredSource === "transcript") {
+    tokensTotal = Math.max(0, measuredTotal - tokensAtStart);
     tokensSource = "transcript";
   } else {
     const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
@@ -742,9 +738,53 @@ function cmdEconomics(args) {
     if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, process.env), sid, ledger, price);
   }
 
+  // FAFF-427: under map pricing, the top-line cost is THIS RUN's per-model spend
+  // priced from the same map + rate source `budget.cost` uses — so `cost_total`
+  // stays consistent with `tokens_total` (both baselined at run start) and with
+  // `budget check`'s `spent.cost`, closing ADR-0048's "two cost figures coexist"
+  // deferral (the divergence was a RATE difference — flat scalar vs the map — not a
+  // population one; both now use the map). The per-model this-run delta subtracts a
+  // real per-model baseline (`tokens_at_start_by_model_class`, written at a
+  // lights-out mint) when present, else pro-rates the whole-session per-model
+  // buckets by the scalar this-run fraction — the SAME degrade `cmdBudget` applies.
+  // At `tokens_at_start = 0` (the common single-session case) the fraction is 1, so
+  // the top-line equals the sum of `--by model`'s priced rows. A model absent from
+  // the resolved map is kept as `cost:null` (economics' REPORTING convention — NOT
+  // the governor's costliest-rate overcount) and named in a warning rather than
+  // silently dropped from the dollar figure.
+  let mapCost = null;
+  const mapWarnings = [];
+  if (env.pricing === "map" && measuredSource === "transcript") {
+    const baseByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
+      && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
+      ? ledger.budget.tokens_at_start_by_model_class : null;
+    const scale = measuredTotal > 0 ? tokensTotal / measuredTotal : 0;
+    let priced = 0, anyPriced = false;
+    const unpriced = [];
+    for (const [model, counts] of measured.by_model) {
+      const delta = {};
+      if (baseByModel) {
+        const base = baseByModel[model] || {};
+        for (const cls of TOKEN_DELTA_CLASSES) delta[cls] = Math.max(0, (counts[cls] || 0) - (Number(base[cls]) || 0));
+      } else {
+        for (const cls of TOKEN_DELTA_CLASSES) delta[cls] = (counts[cls] || 0) * scale;
+      }
+      const rate = economicsPriceForModel(model, priceMap);
+      if (!rate) { if (TOKEN_DELTA_CLASSES.some((cls) => delta[cls] > 0)) unpriced.push(model); continue; }
+      for (const cls of TOKEN_DELTA_CLASSES) priced += (delta[cls] / 1e6) * rate[cls];
+      anyPriced = true;
+    }
+    if (anyPriced) mapCost = priced;
+    else if (tokensTotal === 0) mapCost = 0; // nothing spent this run → $0, not "unknown"
+    if (unpriced.length) {
+      mapWarnings.push(`top-line excludes unpriced model(s) from cost (reported as cost:null, never silently free): ${unpriced.join(", ")}`);
+    }
+  }
+
   const econ = computeUnitEconomics(ledger, {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
     tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
+    pricing: env.pricing, map_cost: mapCost, map_warnings: mapWarnings,
   });
 
   // No `--by` → today's behaviour, byte-for-byte (always-JSON UnitEconomics blob).
@@ -756,7 +796,6 @@ function cmdEconomics(args) {
   // `--by <axis>`: pivot the SAME transcript record set into the requested axis'
   // buckets. topLineTotal is the RAW measureTokens sum over the same files (never
   // baseline-subtracted), so `--by class` reconciles by construction.
-  const priceMap = resolveEconomicsPriceMap(cfg);
   let bd;
   if (byAxis === "effort") {
     // FAFF-415: the effort axis reads events.jsonl (the only place request-time
@@ -769,14 +808,14 @@ function cmdEconomics(args) {
         reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: null, malformed_lines: malformed } };
     } else {
       let dominant = null, topLine = null;
-      if (measured.source === "transcript") {
+      if (measuredSource === "transcript") {
         const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
         dominant = economicsDominantModel(records);
-        topLine = measured.total;
+        topLine = measuredTotal;
       }
       bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed);
     }
-  } else if (measured.source !== "transcript") {
+  } else if (measuredSource !== "transcript") {
     bd = { axis: byAxis, source: "estimate", rows: [],
       reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
   } else {
@@ -784,7 +823,7 @@ function cmdEconomics(args) {
     if (byAxis === "mcp") {
       bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
     } else {
-      bd = economicsBreakdown(records, byAxis, priceMap, measured.total);
+      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal);
     }
   }
 

@@ -18,7 +18,7 @@ const { adrFlag } = require("./adr");
 const { FLOOR_LEVELS, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
-const { buildProgressPath } = require("./effects");
+const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
 const { tryReadLedger } = require("./prepcheck");
 
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
@@ -335,6 +335,68 @@ function readHoldout(runDir, issue) {
   return res.reason === "missing" ? "missing" : "blocked";
 }
 
+// === FAFF-383: mechanical observe — the merge chokepoint's half of the effects ledger =====
+// Detection-only, per ADR-0064's authority split: the OBSERVE is written only by the mechanical
+// actor that performed the effect (this module, after `gh pr merge` is confirmed to have landed),
+// never by the orchestrating step (graft Step 10 owns the DECLARE, before invoking this CLI at
+// all — never here). Nothing in this region may change merge-gate's verdict, exit code, or
+// emitted JSON — every call site below is reached strictly AFTER the verdict is already decided,
+// and every failure inside this region is swallowed to a stderr line, never a thrown/propagated
+// error, never a schema-2 effects[] on the result object.
+
+// Build the effect descriptors THIS invocation is about to observe. `deleteBranch` gates the
+// branch-delete leg — only the clean-success tail may pass true; the classifyPostMerge "merged"
+// path (post-merge step failed) always passes false, because whether --delete-branch itself
+// succeeded is exactly what's unconfirmed on that path (see 4.2's path (b) note in the spec).
+function mergeEffectsFor(pr, deleteBranch, headRefName) {
+  const effects = [{ kind: "merge", target: `pr:${pr}`, reversible: true }];
+  if (deleteBranch && headRefName) effects.push({ kind: "branch-delete", target: headRefName, reversible: true });
+  return effects;
+}
+
+// Read declared-effects.jsonl and warn — never refuse — for each about-to-be-observed effect with
+// no covering declaration at (issue, step "merge"): same kind, and target either an exact match or
+// covered by a "*" wildcard declaration (effectTargetMatches, the same match rule `effects check`
+// uses). This is advisory-only: it never blocks, and any read/parse failure degrades to "treat as
+// uncovered" (an unreadable ledger looks identical to an empty one — the caller still gets the
+// warning, never a silent skip).
+function warnUncoveredMergeObserves(runDir, issue, effects) {
+  let declared = [];
+  try {
+    const ledgerPath = path.join(runDir, "declared-effects.jsonl");
+    if (fs.existsSync(ledgerPath)) {
+      declared = fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")
+        .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
+        .filter((e) => e.kind_of_entry === "declare" && e.issue === issue && e.step === "merge")
+        .map((e) => e.effect);
+    }
+  } catch (e) { /* unreadable ledger => declared stays [] => every effect below reads as uncovered */ }
+  for (const eff of effects) {
+    const covered = declared.some((d) => d && d.kind === eff.kind && effectTargetMatches(d.target, eff.target));
+    if (!covered) {
+      process.stderr.write(`faff merge-gate: observed ${eff.kind} ${eff.target} with no covering declaration — declare it at graft Step 10 (faff effects declare --step merge); this will read as an escaped side-effect\n`);
+    }
+  }
+}
+
+// Observe what THIS invocation actually did. Called at exactly two points, both AFTER a
+// confirmed merge: the clean-success tail, and the classifyPostMerge "merged" path. Any failure
+// anywhere in this function (unreadable ledger, append error) is swallowed to one stderr warning —
+// the merge outcome this function is called from is already final by the time it runs.
+function observeMergeEffects(runDir, issue, effects) {
+  try {
+    warnUncoveredMergeObserves(runDir, issue, effects);
+    const result = appendEffectEntries(runDir, "observe", issue, "merge", effects);
+    if (result.violations) {
+      // Should not happen for internally-built descriptors (kind/target/reversible are all
+      // faff-constructed, never derived from untrusted input) — surfaced loudly if it ever does.
+      process.stderr.write(`faff merge-gate: effects ledger append rejected internally-built descriptors: ${JSON.stringify(result.violations)}\n`);
+    }
+  } catch (e) {
+    process.stderr.write(`faff merge-gate: effects ledger observe failed (merge outcome unaffected): ${e.message}\n`);
+  }
+}
+
 function cmdMergeGate(args) {
   if (args.includes("--selftest")) return mergeGateSelftest();
   const json = args.includes("--json");
@@ -389,9 +451,12 @@ function cmdMergeGate(args) {
 
   const repo = ghRepoSlug(repoFlag);
   if (!repo) { process.stderr.write("faff merge-gate: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
-  const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,state,url"]);
+  // headRefName (FAFF-383): the branch-delete observe target, derived mechanically alongside the
+  // identity fetch that already runs on every path — never a second gh call.
+  const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,headRefName,state,url"]);
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
   const headSha = hv.data.headRefOid;
+  const headRefName = hv.data.headRefName || null;
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status monotonicity).
   if (hv.data.state === "MERGED") {
     writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397: ensure the record exists even on the idempotent no-op path
@@ -445,6 +510,9 @@ function cmdMergeGate(args) {
       result.verdict = "merge-ok";
       result.warnings = [...(result.warnings || []), pm.warning];
       writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
+      // FAFF-383: path (b) — the post-merge step's own success is unconfirmed (that's WHY gh
+      // exited non-zero here), so observe the merge only, never branch-delete.
+      observeMergeEffects(runDir, issue, mergeEffectsFor(pr, false, headRefName));
       return emit(result, 0);
     }
     // Genuine refusal (PR did not merge) — behaviour-identical to today: classifyMergeFailure still
@@ -457,6 +525,9 @@ function cmdMergeGate(args) {
   result.merged = true;
   result.verdict = "merge-ok";
   writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
+  // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
+  // merge-args carried --delete-branch (parsedMerge.flags, not the raw --merge-args string).
+  observeMergeEffects(runDir, issue, mergeEffectsFor(pr, parsedMerge.flags.includes("--delete-branch"), headRefName));
   return emit(result, 0);
 }
 
@@ -636,6 +707,48 @@ function mergeGateSelftest() {
       return record.integrity === "violated";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
+  // mergeEffectsFor / observeMergeEffects (FAFF-383): the merge chokepoint's mechanical-observe
+  // side of the effects ledger — pure descriptor construction + the ledger-append integration.
+  check("mergeEffectsFor: merge only, no delete-branch → one merge descriptor", (() => {
+    const e = mergeEffectsFor(7, false, "some-branch");
+    return e.length === 1 && e[0].kind === "merge" && e[0].target === "pr:7" && e[0].reversible === true;
+  })());
+  check("mergeEffectsFor: delete-branch requested + headRefName known → merge + branch-delete", (() => {
+    const e = mergeEffectsFor(7, true, "faff-7-x");
+    return e.length === 2 && e[1].kind === "branch-delete" && e[1].target === "faff-7-x" && e[1].reversible === true;
+  })());
+  check("mergeEffectsFor: delete-branch requested but headRefName unknown → merge only (no crash, no null target)", (() => {
+    const e = mergeEffectsFor(7, true, null);
+    return e.length === 1 && e[0].kind === "merge";
+  })());
+  check("observeMergeEffects: appends an observe record covering (issue, step=merge) that check() reads as covered", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-"));
+    try {
+      appendEffectEntries(tmp, "declare", "FAFF-9", "merge", [{ kind: "merge", target: "pr:9" }]);
+      observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null));
+      const lines = fs.readFileSync(path.join(tmp, "declared-effects.jsonl"), "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+      return lines.length === 2 && lines[1].kind_of_entry === "observe" && lines[1].effect.target === "pr:9";
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  })());
+  check("observeMergeEffects: an unwritable run dir never throws AND emits the stderr warning (adversarial review: a prior version of this test only checked no-throw, which would still pass under a silent double-swallow)", (() => {
+    const origWrite = process.stderr.write;
+    let captured = "";
+    process.stderr.write = (chunk) => { captured += chunk; return true; };
+    let threw = false;
+    try { observeMergeEffects("/nonexistent/definitely-not-a-real-path", "FAFF-9", mergeEffectsFor(9, false, null)); }
+    catch (e) { threw = true; }
+    finally { process.stderr.write = origWrite; }
+    return !threw && /effects ledger observe failed/.test(captured);
+  })());
+  check("observeMergeEffects: an uncovered effect emits exactly the documented stderr warning (adversarial review: assert the actual warning text, not just its absence of a throw)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-warn-"));
+    const origWrite = process.stderr.write;
+    let captured = "";
+    process.stderr.write = (chunk) => { captured += chunk; return true; };
+    try { observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null)); }
+    finally { process.stderr.write = origWrite; fs.rmSync(tmp, { recursive: true, force: true }); }
+    return /observed merge pr:9 with no covering declaration — declare it at graft Step 10/.test(captured);
+  })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -652,4 +765,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeGateSelftest, mergeRecordPath, observeCi, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, warnUncoveredMergeObserves, writeMergeRecord };

@@ -17,7 +17,7 @@
 
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, existsSync, utimesSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, existsSync, readFileSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -40,7 +40,7 @@ case "$1" in
     [ "$2" = "view" ] && { printf '{"nameWithOwner":"%s"}' "$STUB_REPO"; exit 0; } ;;
   pr)
     case "$2" in
-      view)   printf '{"headRefOid":"%s","state":"%s","url":"https://example.test/pr/1"}' "$STUB_SHA" "$STUB_PR_STATE"; exit 0 ;;
+      view)   printf '{"headRefOid":"%s","headRefName":"%s","state":"%s","url":"https://example.test/pr/1"}' "$STUB_SHA" "\${STUB_HEAD_REF_NAME:-stub-head-branch}" "$STUB_PR_STATE"; exit 0 ;;
       checks) printf '[]'; exit 0 ;;
       merge)  printf '%s' "$*" > "$STUB_MERGE_SENTINEL"; exit 0 ;;
     esac ;;
@@ -56,7 +56,8 @@ exit 3
 
 // Build a doctored env whose PATH shadows the real gh with the stub, plus the canned-response vars.
 // ci:"green" → one completed/success check-run + a legacy success status ⇒ classifyHeadShaChecks → ci-green.
-function stubGhEnv({ prState = "OPEN", ci = "green" } = {}) {
+// headRefName (FAFF-383): the PR-view stub's headRefName field — the branch-delete observe target.
+function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-branch" } = {}) {
   const stubDir = mkTmp("mg-gh-");
   const ghPath = join(stubDir, "gh");
   writeFileSync(ghPath, STUB_GH);
@@ -70,6 +71,7 @@ function stubGhEnv({ prState = "OPEN", ci = "green" } = {}) {
     STUB_REPO: REPO,
     STUB_SHA: SHA,
     STUB_PR_STATE: prState,
+    STUB_HEAD_REF_NAME: headRefName,
     STUB_CHECK_RUNS: checkRuns,
     STUB_STATUS: status,
     STUB_MERGE_SENTINEL: sentinel,
@@ -341,4 +343,146 @@ test("FAFF-420: holdout present but no build-complete checkpoint under the run-d
   assert.equal(out.verdict, "refuse");
   assert.ok(out.blockers.some((b) => /L4 holdout: blocked/.test(b)), "an unprovable freshness must refuse (blocked), never a silent pass");
   assert.equal(existsSync(sentinel), false);
+});
+
+// --- FAFF-383: the merge chokepoint's producer half of the effects ledger — the spec's own
+// integration smoke test, end to end through the REAL merge-gate + effects CLIs (stubbed gh only).
+//
+// `faff effects declare|check` resolve their run dir as <root>/.faff/runs/<run-id> (via --root/--run);
+// `merge-gate` takes an arbitrary --run-dir. seedEffectsRunDir nests the run-dir at exactly that path
+// so both CLIs read/write the SAME declared-effects.jsonl — the graft-side declare and the mechanical
+// observe are provably the same ledger, not two isolated fixtures asserted to "look compatible".
+
+const EFFECTS_ISSUE = "FAFF-9";
+const EFFECTS_PR = 9;
+
+function seedEffectsRunDir(kind) {
+  const root = mkTmp("mg-effroot-");
+  const runId = "run-effects-test";
+  const runDir = join(root, ".faff", "runs", runId);
+  mkdirSync(runDir, { recursive: true });
+  if (kind === "merge-ok") {
+    const issueDir = join(runDir, EFFECTS_ISSUE);
+    mkdirSync(issueDir, { recursive: true });
+    writeFileSync(join(issueDir, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+    writeFileSync(join(issueDir, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+  }
+  return { root, runId, runDir };
+}
+
+const ledgerLines = (runDir) => {
+  const p = join(runDir, "declared-effects.jsonl");
+  if (!existsSync(p)) return [];
+  return readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+};
+
+const effArgs = (runDir, extra = []) =>
+  ["merge-gate", "--pr", String(EFFECTS_PR), "--issue", EFFECTS_ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", ...extra];
+
+test("FAFF-383 integration: a covering declare + merge-gate execute → the observe pair lands → effects check reports any_escape:false", () => {
+  const { root, runId, runDir } = seedEffectsRunDir("merge-ok");
+  const declared = runCli(
+    ["effects", "declare", "--root", root, "--run", runId, "--issue", EFFECTS_ISSUE, "--step", "merge"],
+    { input: JSON.stringify({ kind: "merge", target: `pr:${EFFECTS_PR}` }) },
+  );
+  assert.equal(declared.code, 0, "the graft-side declare must succeed before the merge is attempted");
+
+  const { env, sentinel } = stubGhEnv({ headRefName: "faff-9-x" });
+  const { code, stdout, stderr } = runCli(effArgs(runDir), { env });
+  assert.equal(code, 0);
+  assert.equal(JSON.parse(stdout).verdict, "merge-ok");
+  assert.equal(existsSync(sentinel), true, "the merge must actually have been attempted");
+  assert.doesNotMatch(stderr, /no covering declaration/, "a covered observe must never warn");
+
+  const lines = ledgerLines(runDir);
+  assert.equal(lines.length, 2, "exactly one declare + one observe, no extras");
+  assert.equal(lines[0].kind_of_entry, "declare");
+  assert.equal(lines[1].kind_of_entry, "observe");
+  assert.deepEqual(lines[1].effect, { kind: "merge", target: `pr:${EFFECTS_PR}`, reversible: true });
+
+  const check = runCli(["effects", "check", "--root", root, "--run", runId, "--json"]);
+  assert.equal(check.code, 0);
+  const j = JSON.parse(check.stdout);
+  assert.equal(j.any_escape, false, "a covered observe must never read as an escape");
+  assert.equal(j.escapes.length, 0);
+});
+
+test("FAFF-383 integration: NO declare + merge-gate execute → the merge still lands, one stderr warning fires, and effects check reports the escape", () => {
+  const { root, runId, runDir } = seedEffectsRunDir("merge-ok"); // no declare written at all
+
+  const { env, sentinel } = stubGhEnv({ headRefName: "faff-9-x" });
+  const { code, stdout, stderr } = runCli(effArgs(runDir), { env });
+  assert.equal(code, 0, "an uncovered observe must WARN, never refuse the merge");
+  assert.equal(JSON.parse(stdout).verdict, "merge-ok");
+  assert.equal(existsSync(sentinel), true);
+  assert.match(stderr, /observed merge pr:9 with no covering declaration/, "the warning names the exact effect and the remedy");
+  assert.match(stderr, /declare it at graft Step 10/);
+
+  const lines = ledgerLines(runDir);
+  assert.equal(lines.length, 1, "an observe with nothing declared is still recorded — detection needs the record to exist");
+  assert.equal(lines[0].kind_of_entry, "observe");
+
+  const check = runCli(["effects", "check", "--root", root, "--run", runId, "--json"]);
+  const j = JSON.parse(check.stdout);
+  assert.equal(j.any_escape, true);
+  assert.equal(j.escapes.length, 1);
+  assert.equal(j.escapes[0].issue, EFFECTS_ISSUE);
+  assert.equal(j.escapes[0].step, "merge");
+  assert.deepEqual(j.escapes[0].escaped, [{ kind: "merge", target: `pr:${EFFECTS_PR}`, reversible: true }]);
+});
+
+test("FAFF-383 integration: a covering declare including branch-delete + --merge-args \"--squash --delete-branch\" → both merge and branch-delete observed, check clean", () => {
+  const { root, runId, runDir } = seedEffectsRunDir("merge-ok");
+  runCli(
+    ["effects", "declare", "--root", root, "--run", runId, "--issue", EFFECTS_ISSUE, "--step", "merge"],
+    { input: JSON.stringify([{ kind: "merge", target: `pr:${EFFECTS_PR}` }, { kind: "branch-delete", target: "faff-9-x" }]) },
+  );
+
+  const { env } = stubGhEnv({ headRefName: "faff-9-x" });
+  const { code } = runCli(effArgs(runDir, ["--merge-args", "--squash --delete-branch"]), { env });
+  assert.equal(code, 0);
+
+  const lines = ledgerLines(runDir);
+  const observes = lines.filter((l) => l.kind_of_entry === "observe");
+  assert.equal(observes.length, 2, "both the merge and the branch-delete legs are observed");
+  assert.ok(observes.some((o) => o.effect.kind === "merge" && o.effect.target === `pr:${EFFECTS_PR}`));
+  assert.ok(observes.some((o) => o.effect.kind === "branch-delete" && o.effect.target === "faff-9-x"));
+
+  const check = runCli(["effects", "check", "--root", root, "--run", runId, "--json"]);
+  assert.equal(JSON.parse(check.stdout).any_escape, false);
+});
+
+test("FAFF-383: --merge-args without --delete-branch never observes a branch-delete leg, even with a covering declare", () => {
+  const { root, runId, runDir } = seedEffectsRunDir("merge-ok");
+  runCli(
+    ["effects", "declare", "--root", root, "--run", runId, "--issue", EFFECTS_ISSUE, "--step", "merge"],
+    { input: JSON.stringify({ kind: "merge", target: `pr:${EFFECTS_PR}` }) },
+  );
+  const { env } = stubGhEnv({ headRefName: "faff-9-x" });
+  runCli(effArgs(runDir, ["--merge-args", "--squash"]), { env });
+  const lines = ledgerLines(runDir);
+  assert.equal(lines.filter((l) => l.kind_of_entry === "observe").length, 1, "no --delete-branch flag => no branch-delete observe, regardless of what was declared");
+});
+
+test("FAFF-383: --check-only writes ZERO ledger entries (the short-circuit precedes any observe)", () => {
+  const { runDir } = seedEffectsRunDir("merge-ok");
+  const { env } = stubGhEnv();
+  runCli(effArgs(runDir, ["--check-only"]), { env });
+  assert.equal(ledgerLines(runDir).length, 0);
+});
+
+test("FAFF-383: a refuse verdict writes ZERO ledger entries", () => {
+  const { runDir } = seedEffectsRunDir("refuse");
+  const { env } = stubGhEnv();
+  runCli(effArgs(runDir), { env });
+  assert.equal(ledgerLines(runDir).length, 0);
+});
+
+test("FAFF-383: the already-MERGED idempotent no-op writes ZERO ledger entries (this invocation performed nothing)", () => {
+  const { runDir } = seedEffectsRunDir("merge-ok");
+  const { env } = stubGhEnv({ prState: "MERGED" });
+  const { code, stdout } = runCli(effArgs(runDir), { env });
+  assert.equal(code, 0);
+  assert.equal(JSON.parse(stdout).note, "already merged");
+  assert.equal(ledgerLines(runDir).length, 0);
 });

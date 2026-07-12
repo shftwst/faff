@@ -46,6 +46,13 @@ test("unset registry SLOT resolves to its default occupant, exit 0", () => {
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-403: graft's own namespace for the outage-retry-later bound — no .faffrc entry needed.
+test("unset graft.review_outage_retry_limit resolves to its baked default \"3\", exit 0", () => {
+  const dir = withConfig(null);
+  try { assert.deepEqual(run(dir, "config", "get", "graft.review_outage_retry_limit"), { code: 0, out: "3" }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("a configured value wins over the registry default (the bug this fixes)", () => {
   const dir = withConfig("slots:\n  review: faffter-dark-adversarial-review\n");
   try { assert.deepEqual(run(dir, "config", "get", "slots.review"), { code: 0, out: "faffter-dark-adversarial-review" }); }

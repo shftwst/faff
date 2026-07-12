@@ -66,6 +66,11 @@ const DEFAULTS = {
   "effort.build": "inherit",
   "effort.methodology": "inherit",
   "effort.intake": "inherit",
+  // FAFF-403: bounded retry count for graft's retry-later/awaiting-review hold on a mandatory-review
+  // `unavailable` (provider-outage) verdict — graft's own namespace (it owns the disposition loop;
+  // faffter_dark.adversarial.* configures the engine call, not loop policy). After this many held
+  // drains still unavailable, the arm escalates to the standard needs-human park (never silent-forever).
+  "graft.review_outage_retry_limit": "3",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -719,6 +724,8 @@ function cmdConfig(args) {
           "models.eval",
           // FAFF-416: per-lane effort lanes (non-prep, subagent-dispatched only).
           "effort.build", "effort.methodology", "effort.intake",
+          // FAFF-403: graft's outage-retry-later bound (graft.* namespace — graft owns the loop).
+          "graft.review_outage_retry_limit",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }

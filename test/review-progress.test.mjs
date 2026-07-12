@@ -127,3 +127,45 @@ test("FAFF-329 F4: a Phase-1 re-pass on a different diff resets a stale complete
     assert.equal(rec.phase2.findings_ref, null);
   } finally { rmSync(rd, { recursive: true, force: true }); }
 });
+
+// FAFF-403 — the outage-retry counter: graft's retry-later hold on a mandatory-review `unavailable`
+// verdict increments this instead of writing a terminal review-verdict.json. The counter must be
+// requestable only against an existing checkpoint (the arm only ever fires mid-review), absent → 1,
+// and it must carry forward across repeated calls (the cross-drain loop-safety pin the spec calls out
+// as the one real trap — a dropped carry would loop forever).
+test("write --outage-retry requires an existing checkpoint record (exit 2 if none)", () => {
+  const rd = runDir();
+  try {
+    const w = runCli(["review-progress", "write", rd, "FAFF-403", "--outage-retry"]);
+    assert.equal(w.code, 2);
+    assert.match(w.stderr, /requires an existing checkpoint record/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("write --outage-retry on a fresh checkpoint starts the counter at 1, preserving phase1/phase2", () => {
+  const rd = runDir();
+  try {
+    runCli(["review-progress", "write", rd, "FAFF-403", "--phase1-pass", "--diff-hash", "h1"]);
+    runCli(["review-progress", "write", rd, "FAFF-403", "--phase2", "in_flight"]);
+    const w = runCli(["review-progress", "write", rd, "FAFF-403", "--outage-retry"]);
+    assert.equal(w.code, 0, w.stderr);
+    const rec = JSON.parse(w.stdout);
+    assert.equal(rec.outage_retries, 1);
+    assert.equal(rec.phase1.diff_hash, "h1");
+    assert.equal(rec.phase2.status, "in_flight");
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+test("write --outage-retry increments across repeated (cross-drain) calls, never resets", () => {
+  const rd = runDir();
+  try {
+    runCli(["review-progress", "write", rd, "FAFF-403", "--phase1-pass", "--diff-hash", "h1"]);
+    runCli(["review-progress", "write", rd, "FAFF-403", "--phase2", "in_flight"]);
+    runCli(["review-progress", "write", rd, "FAFF-403", "--outage-retry"]);
+    runCli(["review-progress", "write", rd, "FAFF-403", "--outage-retry"]);
+    const w = runCli(["review-progress", "write", rd, "FAFF-403", "--outage-retry"]);
+    assert.equal(JSON.parse(w.stdout).outage_retries, 3, "three held drains ⇒ counter reads 3, not reset to 1");
+    const r = runCli(["review-progress", "read", rd, "FAFF-403"]);
+    assert.equal(JSON.parse(r.stdout).outage_retries, 3, "read round-trips the carried counter");
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});

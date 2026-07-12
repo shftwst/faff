@@ -436,6 +436,10 @@ function applySentryAbort(ledger, rec) {
     ...(rec.issue ? { issue: rec.issue } : {}),
     ...(rec.signal ? { signal: rec.signal } : {}),
     ...(rec.wip_commit ? { wip_commit: rec.wip_commit } : {}),
+    // FAFF-457: record any secret-class paths the WIP stage deliberately omitted,
+    // so the operator knows the resumable WIP does not carry them.
+    ...(Array.isArray(rec.wip_skipped_secret_class) && rec.wip_skipped_secret_class.length
+      ? { wip_skipped_secret_class: rec.wip_skipped_secret_class } : {}),
   };
   const owner = ledger.owner;
   if (owner && owner.status === "running") owner.status = "aborted-resumable";
@@ -653,14 +657,33 @@ function cmdSentry(args) {
     catch (e) { process.stderr.write(`faff sentry abort: malformed ledger in ${runDir}: ${e.message}\n`); return 2; }
     const issue = get("--issue"), signal = get("--signal"), worktree = get("--worktree");
     let wipCommit = null;
+    let wipSkipped = [];   // FAFF-457: secret-class paths the WIP stage deliberately omitted
     if (worktree) {
       // Commit in-flight WIP to the branch — park-protocol shape, NEVER force-reset.
+      // FAFF-457: stage SELECTIVELY (never `git add -A`) so a stray untracked secret
+      // (e.g. a live `.env`) is never swept into the resumable WIP commit. The
+      // selective-stage discipline lives in ONE home (bin/lib/stage.js); this
+      // governance span reaches it through a CHILD spawn of the bin (`stage-guard
+      // --mode wip`), NOT a require of the factory module (ADR-0042 direction rule) —
+      // the same child-invocation pattern sentry uses for corrective-integrity.
       try {
         const isRepo = spawnSync("git", ["-C", worktree, "rev-parse", "--is-inside-work-tree"], { encoding: "utf8" });
         if (isRepo.status === 0) {
-          const st = spawnSync("git", ["-C", worktree, "status", "--porcelain"], { encoding: "utf8" });
-          if (st.status === 0 && st.stdout.trim() !== "") {
-            spawnSync("git", ["-C", worktree, "add", "-A"], { encoding: "utf8" });
+          const wip = spawnSync(process.execPath, [ENTRYPOINT, "stage-guard", "--worktree", worktree, "--mode", "wip", "--json"], { encoding: "utf8" });
+          let stagedNonempty = false;
+          if (wip.status === 0 && wip.stdout.trim()) {
+            try { const j = JSON.parse(wip.stdout); stagedNonempty = !!j.staged_nonempty; wipSkipped = Array.isArray(j.skipped) ? j.skipped : []; }
+            catch { /* fall through — nothing staged recorded */ }
+          } else if (wip.status !== 0) {
+            // FAFF-457: the selective-stage child failed (best-effort). Fall back to
+            // staging TRACKED changes only — a tracked file is already in history so it
+            // can never be a stray untracked secret — preserving tracked WIP resumability
+            // without a bulk `git add -A`, even when the guard child is unavailable.
+            spawnSync("git", ["-C", worktree, "add", "-u"], { encoding: "utf8" });
+            const dq = spawnSync("git", ["-C", worktree, "diff", "--cached", "--quiet"], { encoding: "utf8" });
+            stagedNonempty = dq.status === 1;
+          }
+          if (stagedNonempty) {
             const msg = `wip: sentry abort (resumable)${issue ? " " + issue : ""}${signal ? " — " + signal : ""}`;
             const ci = spawnSync("git", ["-C", worktree, "commit", "-m", msg], { encoding: "utf8" });
             if (ci.status === 0) {
@@ -671,11 +694,11 @@ function cmdSentry(args) {
         }
       } catch { /* WIP commit is best-effort; the ledger mark still records the abort */ }
     }
-    applySentryAbort(ledger, { issue, signal, wip_commit: wipCommit, at: new Date().toISOString() });
+    applySentryAbort(ledger, { issue, signal, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped, at: new Date().toISOString() });
     atomicWriteLedger(runDir, ledger);
-    const payload = { run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null, wip_commit: wipCommit };
+    const payload = { run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped };
     if (asJson) console.log(JSON.stringify(payload));
-    else console.log(`sentry: run aborted (resumable)${wipCommit ? ` — WIP committed ${wipCommit.slice(0, 8)}` : ""}; ledger marked aborted-resumable`);
+    else console.log(`sentry: run aborted (resumable)${wipCommit ? ` — WIP committed ${wipCommit.slice(0, 8)}` : ""}${wipSkipped.length ? ` — omitted ${wipSkipped.length} secret-class path(s) from WIP` : ""}; ledger marked aborted-resumable`);
     return 0;
   }
 

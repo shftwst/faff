@@ -56,7 +56,7 @@ The between-units checkpoint each poll iteration (step 3 above) is `faff sentry 
 **Member-park procedure** — reached only on a member-scoped `pause` verdict for a still-in-flight member:
 
 1. **Confirm the member boundary first** — a member intervention acts ONLY when the member's subagent has returned (its slot is idle) or its liveness is genuinely dead per the verdict (`heartbeat.<issue>` AND its `build-start` baseline are both older than the stall window). **Never** interrupt a subagent that is actually still running — a live-but-slow member is left to keep polling; the verdict alone is not sufficient without this boundary confirm.
-2. **Commit worktree WIP** to the member's branch (park-protocol shape — `git add -A && git commit`, never a force-reset).
+2. **Commit worktree WIP** to the member's branch (park-protocol shape, never a force-reset). Stage **selectively** via the shared chokepoint — `faff stage-guard --worktree <member-worktree> --mode wip` (stages tracked changes + non-secret-class untracked paths, dropping any secret-class file so a stray `.env` is never swept into the WIP), then `git commit`. **Never `git add -A`** (FAFF-457 — the secret-leak vector).
 3. **Post the park comment** on the tracker issue citing the verdict's evidence (`heartbeat_age_secs`, `source`) — the same shape every other park uses.
 4. **Apply the park label** via the standard label op (`faff label add <issue> faff-parked`).
 5. **Record the ledger outcome** `"parked"` for that member (the orchestrator's own write — a build subagent never writes the ledger).

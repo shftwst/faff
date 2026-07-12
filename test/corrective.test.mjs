@@ -89,6 +89,24 @@ test("author: a valid forbid-surface input writes the artifact + appends correct
     assert.equal(events.length, 1);
     assert.equal(events[0].type, "corrective-authored");
     assert.equal(events[0].issue, "FAFF-1");
+    // the event data carries the FULL written record (not a summary) — the audit
+    // trail's whole value is being actually reviewable.
+    assert.equal(events[0].data.op, "forbid-surface");
+    assert.deepEqual(events[0].data.payload, { surfaces: ["src/foo.js"] });
+    assert.equal(events[0].data.cites.signal, "fix-review-thrash");
+    assert.equal(events[0].data.artifact, "0000-FAFF-1.json");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("author: a --cites-signal outside the derailment signal vocabulary → exit 1, nothing written (a real citation must trace to an actual trigger)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const r = runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", "src/foo.js", "--cites-signal", "banana"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /derailment signal vocabulary/);
+    assert.ok(!existsSync(join(rd, "corrective")));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -163,6 +181,26 @@ test("check: a foreign/hand-written artifact with an additive-shaped op is scope
     // point is that this artifact is never trusted regardless of gate state; the
     // schema-level rejection is pinned directly at the pure-core level below.
     assert.equal(out.disposition, "channel-D");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("author: a deleted earlier artifact never causes a later one to silently overwrite (collision-safe, count-independent naming)", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r1");
+    const author = (surface) => JSON.parse(runCli(["corrective", "author", "--run-dir", rd, "--issue", "FAFF-1", "--op", "forbid-surface",
+      "--surface", surface, "--cites-signal", "fix-review-thrash", "--json"]).stdout);
+    const first = author("a");
+    const second = author("b");
+    assert.notEqual(first.path, second.path);
+    // Simulate a compaction/cleanup deleting the FIRST artifact — a count-based seq
+    // (existing.length) would now recompute the same seq the deleted file had.
+    rmSync(first.path);
+    const third = author("c");
+    assert.notEqual(third.path, second.path, "the third artifact must never collide with — and silently overwrite — the survivor");
+    // the survivor (second) is untouched
+    const survivorRecord = JSON.parse(readFileSync(second.path, "utf8"));
+    assert.deepEqual(survivorRecord.payload.surfaces, ["b"]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

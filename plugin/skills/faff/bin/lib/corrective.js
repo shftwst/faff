@@ -36,7 +36,7 @@ const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
 const { eventLineCount, eventViolations } = require("./events");
 const { readGovernanceConfig } = require("./budget");
-const { sentryThresholds } = require("./sentry");
+const { DERAILMENT_SIGNALS, sentryThresholds } = require("./sentry");
 const { dig, findRoot } = require("./shared-infra");
 
 const CORRECTIVE_SCHEMA = 1;
@@ -91,12 +91,20 @@ function validateCorrectiveInput(record, effectiveThresholds) {
     v.push(...payloadViolations(record.op, record.payload));
     // Subtractive-width check: STRICTLY tighter (smaller) than the effective config
     // value for every v1 sentry.* numeric knob — equal or looser fails (author never
-    // writes it; check would reject it as a foreign/invalid artifact).
-    if (record.op === "tighten-threshold" && effectiveThresholds && record.payload && record.payload.threshold) {
+    // writes it; check would reject it as a foreign/invalid artifact). FAIL CLOSED
+    // when the strictness comparison can't be verified — a caller that PASSES an
+    // effectiveThresholds object is asking for the check; an unresolvable baseline
+    // (missing/non-finite key) must reject, never silently skip and let a looser
+    // value through. `effectiveThresholds` OMITTED ENTIRELY (undefined/null) is the
+    // one legitimate skip — the documented escape for a caller that doesn't have a
+    // baseline to check against at all (shape-only validation).
+    if (record.op === "tighten-threshold" && record.payload && record.payload.threshold) {
       const { key, value } = record.payload.threshold;
-      if (TIGHTENABLE_KEYS.includes(key) && Object.prototype.hasOwnProperty.call(effectiveThresholds, key)) {
-        const current = Number(effectiveThresholds[key]);
-        if (Number.isFinite(current) && !(Number(value) < current)) {
+      if (effectiveThresholds != null && TIGHTENABLE_KEYS.includes(key)) {
+        const current = Object.prototype.hasOwnProperty.call(effectiveThresholds, key) ? Number(effectiveThresholds[key]) : NaN;
+        if (!Number.isFinite(current)) {
+          v.push(`tighten-threshold key '${key}' has no verifiable effective config value — cannot confirm strictly-tighter, rejecting rather than silently skipping`);
+        } else if (!(Number(value) < current)) {
           v.push(`tighten-threshold value ${value} is not strictly tighter than the effective config value ${current} for '${key}'`);
         }
       }
@@ -107,6 +115,12 @@ function validateCorrectiveInput(record, effectiveThresholds) {
     // CONSTRAINT: no un-cited corrective input ever validates (ADR-0039's steering
     // residual is discharged by this audit trail, not by trust).
     v.push("missing required cites.signal — no un-cited corrective input ever validates");
+  } else if (!DERAILMENT_SIGNALS.has(cites.signal)) {
+    // The record definition types cites.signal as "one of DERAILMENT_SIGNALS" (spec
+    // §3 WHAT) — a citation naming a signal Sentry doesn't emit is not a real citation
+    // (it can't be cross-checked against an actual DerailmentVerdict), so it is
+    // rejected the same as a missing one, never silently accepted.
+    v.push(`cites.signal '${cites.signal}' not in the derailment signal vocabulary {${[...DERAILMENT_SIGNALS].join(", ")}}`);
   }
   return v;
 }
@@ -122,15 +136,24 @@ function foldCorrectiveConstraints(inputs) {
   const thresholds = {};
   let subset = null; // null = no descope-to-subset constraint applied yet (unbounded retained set)
   for (const inp of foldable) {
+    const payload = (inp.payload && typeof inp.payload === "object" && !Array.isArray(inp.payload)) ? inp.payload : {};
     if (inp.op === "forbid-surface") {
-      for (const s of inp.payload.surfaces) forbidSurfaces.add(s);
+      // Never-throws posture (module header): a malformed payload reaching the fold —
+      // a hand-forged artifact that slipped past validation via a future code path —
+      // degrades to an empty contribution, never a crash on `for...of` over a non-array.
+      for (const s of Array.isArray(payload.surfaces) ? payload.surfaces : []) forbidSurfaces.add(s);
     } else if (inp.op === "tighten-threshold") {
-      const { key, value } = inp.payload.threshold;
-      // Intersection semantics (order-independent fold): keep the STRICTEST
-      // (numerically smallest) value across multiple inputs targeting the same key.
-      if (!(key in thresholds) || Number(value) < Number(thresholds[key])) thresholds[key] = value;
+      const t = (payload.threshold && typeof payload.threshold === "object") ? payload.threshold : null;
+      if (t && typeof t.key === "string") {
+        const { key, value } = t;
+        // Intersection semantics (order-independent fold): keep the STRICTEST
+        // (numerically smallest) value across multiple inputs targeting the same key.
+        if (!(key in thresholds) || Number(value) < Number(thresholds[key])) thresholds[key] = value;
+      }
     } else if (inp.op === "descope-to-subset") {
-      const s = new Set(inp.payload.subset);
+      // `new Set(x)` throws on a non-iterable (e.g. payload.subset:null) — coerce to
+      // [] rather than propagate that crash into the fold.
+      const s = new Set(Array.isArray(payload.subset) ? payload.subset : []);
       subset = subset === null ? s : new Set([...subset].filter((x) => s.has(x)));
     }
   }
@@ -188,6 +211,34 @@ function readCorrectiveArtifacts(runDir) {
     out.push({ file: f, path: full, record, parseError });
   }
   return out;
+}
+
+// Read the run's event log and return the most recent `corrective-consumed` event's
+// data for this issue, or null (no prior consumption, or the log is absent/unreadable
+// — never throws; a read fault degrades to "no prior record", which only costs one
+// possibly-redundant re-append, never a crash or a false idempotency skip).
+function lastCorrectiveConsumed(runDir, issue) {
+  const p = path.join(runDir, "events.jsonl");
+  if (!fs.existsSync(p)) return null;
+  let lines;
+  try { lines = fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== ""); } catch { return null; }
+  let last = null;
+  for (const l of lines) {
+    let e;
+    try { e = JSON.parse(l); } catch { continue; }
+    if (e && e.type === "corrective-consumed" && e.issue === issue) last = e;
+  }
+  return last ? last.data : null;
+}
+
+// A stable fingerprint of a fold result — mandate + the applied set (op/issue/authored_at
+// per applied input), independent of key order. Two `check` calls that recompute the
+// SAME fold produce the same fingerprint; a genuinely new corrective input (or a
+// rejected-set change) changes it.
+function foldFingerprint(mandate, applied, rejected) {
+  const a = applied.map((x) => `${x.op}:${x.authored_at}`).sort();
+  const r = rejected.map((x) => x.file).sort();
+  return JSON.stringify({ mandate, a, r });
 }
 
 // --- I/O: append one governance event (mirrors events.js's own append shape,
@@ -260,13 +311,36 @@ function cmdCorrectiveAuthor(args) {
 
   const dir = correctiveDir(runDir);
   fs.mkdirSync(dir, { recursive: true });
+  // Collision-safe naming: derive the next seq from the HIGHEST existing numeric
+  // prefix + 1 (never a bare directory-listing COUNT — a deleted/compacted earlier
+  // artifact would make a count-based seq collide with a survivor and silently
+  // overwrite it, corrupting the audit trail an authored event already points at).
+  // `wx` (write-exclusive) is the second belt: even the max+1 guess can still
+  // collide under a genuine concurrent author (two orchestrator sessions), so probe
+  // upward on EEXIST rather than ever overwrite silently.
   const existing = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json")) : [];
-  const seq = existing.length;
-  const fname = `${String(seq).padStart(4, "0")}-${issue}.json`;
-  const fullPath = path.join(dir, fname);
-  fs.writeFileSync(fullPath, JSON.stringify(record, null, 2) + "\n");
+  let maxSeq = -1;
+  for (const f of existing) {
+    const m = f.match(/^(\d+)-/);
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+  }
+  let seq = maxSeq + 1;
+  let fname, fullPath;
+  for (;;) {
+    fname = `${String(seq).padStart(4, "0")}-${issue}.json`;
+    fullPath = path.join(dir, fname);
+    try {
+      fs.writeFileSync(fullPath, JSON.stringify(record, null, 2) + "\n", { flag: "wx" });
+      break;
+    } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      seq++; // occupied (race, or a gap this scan didn't see) — never overwrite, try the next slot
+    }
+  }
 
-  const eventResult = appendCorrectiveEvent(runDir, "corrective-authored", issue, { op, cites: record.cites, artifact: fname });
+  // data = the full written CorrectiveInput record (events.js's documenting comment
+  // for this type) — the audit trail is only as reviewable as what it actually carries.
+  const eventResult = appendCorrectiveEvent(runDir, "corrective-authored", issue, { ...record, artifact: fname });
 
   const out = { written: true, path: fullPath, run_id: record.run_id, issue, op, event_appended: eventResult.appended };
   if (asJson) console.log(JSON.stringify(out));
@@ -321,14 +395,32 @@ function cmdCorrectiveCheck(args) {
   const parkInputs = valid.filter((i) => i.op === "park-with-cause");
   const { mandate, constraints, applied } = foldCorrectiveConstraints(valid);
 
-  const eventResult = appendCorrectiveEvent(runDir, "corrective-consumed", issue, {
-    disposition: "trusted", mandate, applied_count: applied.length, rejected_count: rejected.length, parks: parkInputs.length,
-  });
+  // Idempotent re-consumption (spec HOW → edge cases): re-running `check` recomputes
+  // the same fold, so `corrective-consumed` is appended per ACTUAL new consumption,
+  // not per read — never a phantom duplicate on a wave re-entry that re-checks an
+  // unchanged constraint set. Compare against the LAST recorded consumption for this
+  // issue; only append when the fold's fingerprint actually changed (a new corrective
+  // input arrived, or the rejected set changed).
+  const fp = foldFingerprint(mandate, applied, rejected);
+  const priorData = lastCorrectiveConsumed(runDir, issue);
+  const priorFp = priorData ? foldFingerprint(priorData.mandate, priorData.applied || [], priorData.rejected || []) : null;
+  let eventResult;
+  if (priorFp !== null && priorFp === fp) {
+    eventResult = { appended: false, skipped: "idempotent-duplicate" };
+  } else {
+    // data = {disposition,mandate,applied,rejected} (events.js's documenting comment
+    // for this type) — the full applied/rejected arrays, not just counts, so the
+    // trail is actually reviewable (>=2 corrective inputs on one issue must be
+    // inspectable here).
+    eventResult = appendCorrectiveEvent(runDir, "corrective-consumed", issue, {
+      disposition: "trusted", mandate, applied, rejected, parks: parkInputs.length,
+    });
+  }
 
   const out = {
     run_dir: runDir, issue, disposition: "trusted", consumed: true,
     mandate, constraints, applied, parks: parkInputs.map((i) => ({ cause: i.payload.cause, cites: i.cites })),
-    rejected, event_appended: eventResult.appended,
+    rejected, event_appended: eventResult.appended, event_skipped: eventResult.skipped || null,
   };
   if (asJson) console.log(JSON.stringify(out));
   else {
@@ -369,6 +461,11 @@ function correctiveSelftest() {
   ok("empty cites.signal is rejected", validateCorrectiveInput({
     schema: 1, run_id: "r", issue: "X", op: "forbid-surface", payload: { surfaces: ["a"] }, cites: { signal: "" },
   }).some((m) => m.includes("cites.signal")));
+  ok("a cites.signal not in DERAILMENT_SIGNALS is rejected (a real citation must trace to an actual trigger)", validateCorrectiveInput({
+    schema: 1, run_id: "r", issue: "X", op: "forbid-surface", payload: { surfaces: ["a"] }, cites: { signal: "banana" },
+  }).some((m) => m.includes("derailment signal vocabulary")));
+  ok("every DERAILMENT_SIGNALS member is itself a valid citation", [...DERAILMENT_SIGNALS].every((sig) =>
+    validateCorrectiveInput({ schema: 1, run_id: "r", issue: "X", op: "forbid-surface", payload: { surfaces: ["a"] }, cites: { signal: sig } }).length === 0));
 
   // --- per-op payload shape ---
   ok("forbid-surface requires a non-empty surfaces array", payloadViolations("forbid-surface", {}).length > 0);
@@ -422,6 +519,25 @@ function correctiveSelftest() {
   const parkInput = { op: "park-with-cause", issue: "X", authored_at: "t", payload: { cause: "budget" }, cites };
   ok("park-with-cause is filtered out of the fold (executed as a park at authoring time, not a constraint)",
     foldCorrectiveConstraints([parkInput, forbidA]).applied.every((a) => a.op !== "park-with-cause"));
+
+  // --- adversarial-review follow-up: never-throws on a malformed payload reaching
+  // the fold (a hand-forged artifact that slipped past validation via some future
+  // code path — the module's own claim must hold at the fold too, not just at
+  // readCorrectiveArtifacts' JSON-parse boundary) ---
+  ok("a forbid-surface payload with a non-array surfaces field degrades to empty, never throws",
+    (() => { try { return foldCorrectiveConstraints([{ op: "forbid-surface", issue: "X", authored_at: "t", payload: { surfaces: null }, cites }]).constraints.forbid_surfaces.length === 0; } catch { return false; } })());
+  ok("a descope-to-subset payload with subset:null degrades to an empty retained set, never throws",
+    (() => { try { const r = foldCorrectiveConstraints([{ op: "descope-to-subset", issue: "X", authored_at: "t", payload: { subset: null }, cites }]); return r.mandate === "empty"; } catch { return false; } })());
+  ok("a tighten-threshold payload with a malformed threshold object is skipped, never throws",
+    (() => { try { return foldCorrectiveConstraints([{ op: "tighten-threshold", issue: "X", authored_at: "t", payload: { threshold: "not-an-object" }, cites }]).constraints.thresholds !== undefined; } catch { return false; } })());
+
+  // --- adversarial-review follow-up: tighten-threshold FAILS CLOSED when the
+  // strictness baseline can't be verified, rather than silently skipping the check ---
+  const mkTightenPartial = (value) => ({ schema: 1, run_id: "r", issue: "X", op: "tighten-threshold", payload: { threshold: { key: "thrash_n", value } }, cites: { signal: "fix-review-thrash" } });
+  ok("tighten-threshold with a PARTIAL effectiveThresholds missing the target key → rejected (fail closed, never a silent skip)",
+    validateCorrectiveInput(mkTightenPartial(1), { failure_k: 3 }).length > 0);
+  ok("tighten-threshold with effectiveThresholds OMITTED ENTIRELY (undefined) → shape-only validation, no strictness claim made",
+    validateCorrectiveInput(mkTightenPartial(1)).length === 0);
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (corrective --selftest, ${fail} failed)`);
   return fail ? 1 : 0;

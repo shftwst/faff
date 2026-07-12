@@ -328,6 +328,22 @@ function lightsOutPreflight(probes) {
   // both refusals present, each naming its own remedy.
   if (probes.budgetUntilInvalid != null)
     refusals.push({ gate: "budget-until-invalid", detail: `budget.until / --until '${probes.budgetUntilInvalid}' is not a valid HH:MM (00-23:00-59) — fix budget.until in .faffrc.yaml or the --until flag` });
+  // FAFF-325 — the L4 admission side of the corrective-integrity Punt-1 disposition (human
+  // decision 2026-07-10): an absent pid-1 FAFF_INTEGRITY_BOUNDARY declaration REFUSES admission
+  // here, fail-fast, never a mid-run merge surprise (the merge-floor consumer, cmdMergeGate,
+  // still refuses on absence too — defence-in-depth, in case this preflight is ever bypassed). A
+  // violation basis (env-injection/malformed/dir-mismatch — a declaration exists but failed
+  // verification) refuses too, naming the specific fault; violation is NEVER level-graded.
+  // `probes.correctiveIntegrityBasis` is the FAFF-325 probe's `.basis`, computed ONCE in
+  // cmdLightsOut (no run-dir exists yet at admission time, so dir-mismatch can never fire here —
+  // only no-declaration / env-injection / malformed; per-issue dir coverage is checked later, at
+  // the merge-floor consumer). "asserted" (or an absent/undefined probe result, for callers of
+  // this pure function that predate FAFF-325) never refuses here.
+  if (probes.correctiveIntegrityBasis === "no-declaration") {
+    refusals.push({ gate: "corrective-integrity", detail: "no FAFF_INTEGRITY_BOUNDARY declaration in pid-1 environ — set the FAFF_INTEGRITY_BOUNDARY declaration in the cage launch config" });
+  } else if (probes.correctiveIntegrityBasis && probes.correctiveIntegrityBasis !== "asserted") {
+    refusals.push({ gate: "corrective-integrity", detail: `corrective-artifact integrity attestation failed verification (basis: ${probes.correctiveIntegrityBasis}) — the FAFF_INTEGRITY_BOUNDARY declaration is present but invalid` });
+  }
   // FAFF-428 — the L4 spend governor must be MEASURABLE, not merely configured. A
   // token-dependent ceiling (tokens, or an armed cost per FAFF-427) whose meter is
   // estimate-only (transcripts unreadable) either refuses (default posture) or
@@ -570,11 +586,15 @@ function cmdLightsOut(args) {
   // lights-out path only — L1–L3 keep today's warn-don't-block behaviour.
   const container = containerCheck(process.env, realFsq()).result;
 
-  // FAFF-373: corrective-integrity CAPABILITY RECORD (not a guardrail, not a refuse
-  // path) — derive whether corrective authority is available from the fail-safe probe.
-  // No asserted boundary exists in this ticket, so this is always "channel-D-only";
-  // recorded on the minted ledger / JSON output only, never gated on.
-  const correctiveAuthority = correctiveIntegrityProbe(process.env, realFsq()).asserted ? "available" : "channel-D-only";
+  // FAFF-373/325: ONE probe call, TWO consumers — the capability record below (never gated
+  // on: `available` once a declaration is genuinely asserted, `channel-D-only` otherwise) AND
+  // the corrective-integrity admission REFUSAL in lightsOutPreflight (via probes.correctiveIntegrityBasis
+  // below). No run-dir exists yet at admission time (minted only AFTER this preflight decision),
+  // so required-dirs is empty here — dir-mismatch can only be detected later, per-issue, at the
+  // merge-floor consumer (cmdMergeGate). asserted:true (basis "asserted") records `available`;
+  // any unasserted basis records `channel-D-only`.
+  const correctiveProbe = correctiveIntegrityProbe(process.env, realFsq(), []);
+  const correctiveAuthority = correctiveProbe.asserted ? "available" : "channel-D-only";
 
   // Per-guardrail contract reachability probes (genuine, not config presence).
   const reachable = {};
@@ -650,6 +670,8 @@ function cmdLightsOut(args) {
     container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet,
     budgetUntilInvalid: envelope.until_invalid, floor, floor_detail: floorDetail, dial: coherenceDial,
     meteringMeasurable, estimateOnlyPosture: onEstimateOnlyPosture, tokenDependentCeiling,
+    // FAFF-325 — reuse the ONE probe call above; never a second, possibly-divergent read.
+    correctiveIntegrityBasis: correctiveProbe.basis,
   };
   const pf = lightsOutPreflight(probes);
 
@@ -888,6 +910,24 @@ function lightsOutSelftest() {
   // A null budgetUntilInvalid (the common/valid case) never fires the gate.
   check("null budgetUntilInvalid never fires budget-until-invalid",
     !happy.refusals.some((r) => r.gate === "budget-until-invalid"));
+
+  // FAFF-325 — the L4 admission side of the Punt-1 disposition: no declaration -> refuse
+  // (fail-fast, exact remedy line); a violation basis -> refuse, naming the fault; "asserted"
+  // (or an absent/undefined probe result, the happy-path fixture's default) never refuses here.
+  check("happy path (no correctiveIntegrityBasis set) never fires corrective-integrity",
+    !happy.refusals.some((r) => r.gate === "corrective-integrity"));
+  const noDecl = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: "no-declaration" }));
+  check("no-declaration refuses admission", noDecl.proceed === false && noDecl.refusals.some((r) => r.gate === "corrective-integrity"));
+  check("no-declaration refusal names the exact remedy line",
+    /set the FAFF_INTEGRITY_BOUNDARY declaration in the cage launch config/.test(noDecl.refusals.find((r) => r.gate === "corrective-integrity").detail));
+  for (const basis of ["env-injection", "malformed", "dir-mismatch"]) {
+    const viol = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: basis }));
+    check(`violation basis '${basis}' refuses admission, naming the fault`,
+      viol.proceed === false && viol.refusals.some((r) => r.gate === "corrective-integrity" && r.detail.includes(basis)));
+  }
+  const declAsserted = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: "asserted" }));
+  check("asserted basis never fires corrective-integrity",
+    !declAsserted.refusals.some((r) => r.gate === "corrective-integrity"));
 
   // FAFF-312 — spend/time ceiling predicate: a count-cap alone is NOT an L4 governor.
   // Driven both on hand-built envelopes (to exercise the guard directly) and on real

@@ -6,7 +6,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { runCli, repoRoot } from "./helpers/run-cli.mjs";
 
@@ -64,6 +65,38 @@ test("merge-gate: an unrecognised --merge-args token → exit 2 (no untrusted fr
 test("merge-gate: a bad --level → exit 2", () => {
   const { code } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L9"]);
   assert.equal(code, 2);
+});
+
+// --- FAFF-325: the "forged level input" failure mode — a build lane forges run-ledger.json's
+// `level` field down (e.g. L4→L1) to try to downgrade the corrective-integrity gate's L4
+// defence-in-depth branch (and the pre-existing holdout leg). The level MUST arrive via
+// invocation context, never silently from that build-lane-writable artifact: an explicit --level
+// that disagrees with a forged ledger fails LOUD (exit 2, FAFF-424's pre-existing mismatch guard)
+// rather than silently resolving in the (forged) ledger's favour — this is what makes it safe for
+// the new integrity leg to ride the same reconciled `level` holdout already uses (merge-gate.js
+// resolveIntegrity), instead of re-deriving a second, divergent level source.
+test("merge-gate: forged-ledger-level (run-ledger.json level:L1) vs explicit --level L4 → exit 2, never a silent downgrade (FAFF-325)", () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "faff-merge-gate-forged-level-"));
+  try {
+    writeFileSync(path.join(tmp, "run-ledger.json"), JSON.stringify({ run_id: "r", admitted: [], outcomes: {}, level: "L1" }));
+    const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", tmp, "--level", "L4"]);
+    assert.equal(code, 2);
+    assert.match(stderr, /contradicts run-ledger level/);
+    assert.match(stderr, /"L1"/);
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test("merge-gate: forged-ledger-level — a MATCHING forged --level L1 is accepted by the mismatch guard (the guard only catches DISAGREEMENT; residual gap is the caller's discipline, not this CLI's to close)", () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "faff-merge-gate-forged-level-"));
+  try {
+    writeFileSync(path.join(tmp, "run-ledger.json"), JSON.stringify({ run_id: "r", admitted: [], outcomes: {}, level: "L1" }));
+    // No --level flag at all: resolveGateLevel takes the ledger's L1 with no mismatch, so this
+    // proceeds past the mismatch guard (exit code here depends on network/gh reachability in the
+    // test sandbox, so we only assert it is NOT the fail-loud mismatch exit 2 with the "contradicts"
+    // message — i.e. the guard genuinely only fires on a DISAGREEING explicit flag).
+    const { stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", tmp]);
+    assert.doesNotMatch(stderr, /contradicts run-ledger level/);
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
 });
 
 // --- FAFF-375: --admin is off the allowlist; the human-only flags are fenced on a real TTY ---

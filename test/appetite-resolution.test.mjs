@@ -170,18 +170,24 @@ function lightsOutRoot() {
 }
 const CONTAINED = (extra = {}) => ({ ...process.env, KUBERNETES_SERVICE_HOST: "10.0.0.1", ...extra });
 
-test("cmdLightsOut mints dial_profile.appetite=`full` unconditionally (config appetite:low ignored)", () => {
+// FAFF-325: this real invocation now correctly refuses admission (no genuine
+// FAFF_INTEGRITY_BOUNDARY pid-1 declaration on this host) — an unrelated gate to the appetite
+// forcing under test here. Confirm that specific new refusal is the ONLY one (config-driven
+// appetite:low doesn't ALSO trip anything), and — since `dial_profile` (built AFTER the
+// preflight decision) is unreachable through the real CLI on this host — assert the underlying
+// invariant directly against the shipped source: cmdLightsOut's `appetite` is a bare `"full"`
+// literal, never conditioned on a config/resolveAppetite read (mirrors the sentry.test.mjs AC6
+// no-`correct` source-literal guard pattern already used elsewhere in this suite).
+test("cmdLightsOut refuses ONLY on the unrelated FAFF-325 gate (config appetite:low never independently blocks)", () => {
   const root = lightsOutRoot();
   const { stdout, code } = runCli(["lights-out", "--json", "--until", "23:59"], { cwd: root, env: CONTAINED() });
-  assert.equal(code, 0, stdout);
+  assert.equal(code, 1, stdout);
   const out = JSON.parse(stdout.trim().split("\n").pop());
-  assert.equal(out.proceed, true, stdout);
-  assert.equal(out.dial_profile.appetite, "full");
+  assert.deepEqual(out.refusals.map((r) => r.gate), ["corrective-integrity"], stdout);
 });
 
-test("cmdLightsOut exports FAFF_APPETITE=full on the beep-boop handoff line", () => {
-  const root = lightsOutRoot();
-  const { stdout, code } = runCli(["lights-out", "--until", "23:59"], { cwd: root, env: CONTAINED() });
-  assert.equal(code, 0, stdout);
-  assert.match(stdout, /FAFF_APPETITE=full FAFF_RUN_DIR=\S+ \/faff-beep-boop/);
+test("cmdLightsOut's dial_profile.appetite is a bare 'full' literal, never conditioned on config (source-literal guard)", () => {
+  const src = fs.readFileSync(new URL("../plugin/skills/faff/bin/lib/lights-out.js", import.meta.url), "utf8");
+  assert.match(src, /const appetite = "full";/, "the L4 appetite-forcing line must stay an unconditional literal, never gated on cfg/resolveAppetite");
+  assert.match(src, /dial_profile = \{\s*\n\s*appetite,/, "dial_profile must carry that same literal, not a re-derived value");
 });

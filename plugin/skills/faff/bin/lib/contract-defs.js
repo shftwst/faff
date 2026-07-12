@@ -966,6 +966,15 @@ const NO_CI_POLICIES = ["needs-human", "allow"];
 
 // PURE: FloorInputs -> { verdict, blockers }. Same inputs, same verdict — the whole point of the
 // ticket. Every failing leg is reported (never just the first) so a refuse names all its causes.
+// `f.integrity` (FAFF-325, optional — undefined is a no-op, so every pre-existing caller/fixture
+// that never set it is unaffected): the corrective-integrity attestation state cmdMergeGate derived
+// from correctiveIntegrityProbe + integrityGate(_, "merge-floor") for THIS pr's merge-floor
+// artifacts — "asserted" | "unasserted-ok" | "unasserted-refuse" | "violated". "violated" (a
+// declaration exists but failed verification: env-injection/malformed/dir-mismatch) refuses at
+// EVERY level, never level-graded. "unasserted-refuse" is the L4 defence-in-depth leg (no
+// declaration at all, on a run cmdMergeGate resolved as L4) — the run-start preflight should
+// already have refused admission, so reaching here is a belt-and-braces catch, not the primary
+// gate. "asserted" and "unasserted-ok" never block.
 function decideFloor(f) {
   const blockers = [];
   if (!f.ac_complete) blockers.push("ACs not all verified");
@@ -975,6 +984,8 @@ function decideFloor(f) {
   if (!f.head_sha_matches) blockers.push("green CI is not on the current PR head sha");
   if (f.ci_state === "no-ci-coverage" && f.no_ci_policy === "needs-human") blockers.push("no CI coverage for this diff (FAFF-3)");
   if (f.level === "L4" && f.holdout !== "meets-spec") blockers.push(`L4 holdout: ${f.holdout} (need meets-spec)`);
+  if (f.integrity === "violated") blockers.push("corrective-artifact integrity violated (FAFF-325): the FAFF_INTEGRITY_BOUNDARY attestation failed verification (forged/tampered) — refused at every level");
+  if (f.integrity === "unasserted-refuse") blockers.push("corrective-artifact integrity unasserted at L4 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)");
   return { verdict: blockers.length === 0 ? "merge-ok" : "refuse", blockers };
 }
 

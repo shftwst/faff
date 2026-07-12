@@ -305,7 +305,16 @@ test("FAFF-420: holdout mtime predates the build-complete checkpoint (stale) →
   assert.equal(existsSync(sentinel), false, "a stale holdout must never satisfy the L4 floor");
 });
 
-test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) → the holdout floor passes (merge-ok)", () => {
+// FAFF-325: this test host carries no genuine FAFF_INTEGRITY_BOUNDARY pid-1 declaration (nothing
+// in this test harness can fake /proc/1/environ for a really-spawned child), so an L4 run now ALSO
+// trips the corrective-integrity defence-in-depth leg — exactly the shipped behaviour: at rung-0,
+// with no outer-layer mount+declaration anywhere, the run-start preflight is supposed to have
+// refused this L4 run at ADMISSION, long before it ever reached merge-gate; reaching here at all is
+// the belt-and-braces case, and it correctly refuses too. This test's original intent — prove the
+// HOLDOUT leg itself is satisfied by a fresh, run-scoped verdict — still holds: assert no holdout
+// blocker fires, and that integrity is the ONLY reason the overall verdict is refuse (never conflate
+// the two legs, and never silently paper over the new gate by loosening this assertion).
+test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) → the holdout leg itself is satisfied (no L4-holdout blocker); overall refuse is FAFF-325's corrective-integrity defence-in-depth, unasserted on this host", () => {
   const runDir = seedRunDir("merge-ok");
   const checkpointTime = new Date("2026-07-10T12:00:00.000Z");
   const freshHoldoutTime = new Date("2026-07-10T13:00:00.000Z"); // after the checkpoint
@@ -313,11 +322,13 @@ test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) �
   writeHoldout(runDir, freshHoldoutTime);
   const { env, sentinel } = stubGhEnv();
   const { code, stdout } = runCli(argsL4(runDir), { env });
-  assert.equal(code, 0);
   const out = JSON.parse(stdout);
-  assert.equal(out.verdict, "merge-ok");
-  assert.equal(out.merged, true);
-  assert.equal(existsSync(sentinel), true, "a fresh, run-scoped meets-spec verdict must satisfy the L4 floor (happy path)");
+  assert.ok(!out.blockers.some((b) => /L4 holdout/.test(b)), "the fresh, run-scoped meets-spec verdict must satisfy the holdout leg on its own");
+  assert.equal(code, 1);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /corrective-artifact integrity unasserted at L4/.test(b)), "the ONLY remaining blocker must be the FAFF-325 defence-in-depth leg");
+  assert.equal(out.integrity, "unasserted", "the result carries the FAFF-325 integrity annotation on the refuse path too");
+  assert.equal(existsSync(sentinel), false, "no genuine FAFF_INTEGRITY_BOUNDARY on this host → correctly refused, never merged");
 });
 
 test("FAFF-420: holdout present but no build-complete checkpoint under the run-dir → refuse, blocked (freshness unprovable)", () => {

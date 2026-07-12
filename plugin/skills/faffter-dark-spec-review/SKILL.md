@@ -87,6 +87,8 @@ Collect the per-lens refutations into one JSON array and pipe it to the bundled 
   "model": "provider/model" }
 ```
 
+**`model` may be sourced from the transport-prepended header, not reconstructed from config (FAFF-361).** On an exit-0 pass, `review-call.mjs`'s stdout already starts with `## Adversarial findings — <provider>/<model> (chain[<i>], host: <source>)` — a harness-authored, unconditional guarantee (see the sibling `faffter-dark-adversarial-review/SKILL.md` → "The header is harness-authored"), not something this occupant must assemble from `faffter_dark.adversarial` config itself. Read `provider`/`model` off that first line when populating this field; it is exact for whichever backend in the fallback chain actually served the refutation, which a config-only reconstruction cannot guarantee once a fallback has won.
+
 ```bash
 printf '%s' "$REFUTATIONS_JSON" | node plugin/skills/faffter-dark-spec-review/aggregate.mjs --n <count of enabled lenses>
 ```

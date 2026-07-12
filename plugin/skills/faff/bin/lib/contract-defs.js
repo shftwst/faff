@@ -67,11 +67,15 @@ function computeReviewVerdict(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
   }
-  const SIGNALS = ["pass", "fail", "needs-human"];
+  // unavailable (FAFF-405): a KNOWN fail-closed value — "no review verdict could be produced"
+  // (provider outage), distinct from the malformed/unknown fallback below (still needs-human).
+  // Never pass. Exempt from the findings-substantiation check below by construction (that check
+  // only fires for fail/needs-human) — a bare {signal:"unavailable"} is conformant.
+  const SIGNALS = ["pass", "fail", "needs-human", "unavailable"];
   const violations = [];
   let signal = extraction.signal;
   if (!SIGNALS.includes(signal)) {
-    violations.push(`signal ${JSON.stringify(signal)} not in {pass,fail,needs-human} — coerced to needs-human`);
+    violations.push(`signal ${JSON.stringify(signal)} not in {pass,fail,needs-human,unavailable} — coerced to needs-human`);
     signal = "needs-human";
   }
   const raw = Array.isArray(extraction.findings) ? extraction.findings : [];
@@ -955,7 +959,7 @@ function computePrdrYagniVerdict(input) {
 // no "safe coerce to pass" here, ever. `violations` carries the blockers, so the uniform exitFor
 // maps blockers-empty→exit 0 (merge-ok) and blockers-present→exit 1 (refuse).
 const CI_STATES = ["ci-green", "ci-red", "no-ci-coverage", "indeterminate"];
-const FLOOR_REVIEW_VERDICTS = ["pass", "fail", "needs-human", "missing"];
+const FLOOR_REVIEW_VERDICTS = ["pass", "fail", "needs-human", "unavailable", "missing"];
 const FLOOR_LEVELS = ["L1", "L2", "L3", "L4"];
 const FLOOR_HOLDOUTS = ["meets-spec", "blocked", "missing", "not-applicable"];
 const NO_CI_POLICIES = ["needs-human", "allow"];
@@ -1024,6 +1028,7 @@ const CONTRACTS = {
       { name: "ac-incomplete", in: { ac_complete: false, review_verdict: "pass", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
       { name: "review-missing", in: { ac_complete: true, review_verdict: "missing", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
       { name: "review-fail", in: { ac_complete: true, review_verdict: "fail", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
+      { name: "review-unavailable-refuses", in: { ac_complete: true, review_verdict: "unavailable", ci_state: "ci-green", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
       { name: "ci-red", in: { ac_complete: true, review_verdict: "pass", ci_state: "ci-red", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
       { name: "no-ci-coverage-refuses-by-default", in: { ac_complete: true, review_verdict: "pass", ci_state: "no-ci-coverage", head_sha_matches: true, level: "L3", holdout: "not-applicable" }, wantExit: 1 },
       { name: "no-ci-coverage-allow-opt-in", in: { ac_complete: true, review_verdict: "pass", ci_state: "no-ci-coverage", head_sha_matches: true, level: "L3", holdout: "not-applicable", no_ci_policy: "allow" }, wantExit: 0 },
@@ -1058,6 +1063,9 @@ const CONTRACTS = {
       { name: "escalated-needs-human", in: { signal: "needs-human", findings: [{ location_present: true, action_present: true }] }, wantExit: 0 },
       { name: "pass-no-findings", in: { signal: "pass", findings: [] }, wantExit: 0 },
       { name: "adversarial-outcome-passthrough", in: { signal: "pass", findings: [], adversarial_outcome: "chain-outage-skipped" }, wantExit: 0 },
+      { name: "unavailable-bare-conformant", in: { signal: "unavailable", findings: [] }, wantExit: 0 },
+      { name: "unavailable-with-well-formed-finding-conformant", in: { signal: "unavailable", findings: [{ location_present: true, action_present: true }] }, wantExit: 0 },
+      { name: "unavailable-with-malformed-finding-still-flagged", in: { signal: "unavailable", findings: [{ location_present: false, action_present: false }] }, wantExit: 1 },
       { name: "needs-human-no-findings", in: { signal: "needs-human", findings: [] }, wantExit: 1 },
       { name: "coerce-malformed-signal", in: { signal: "maybe", findings: [{ location_present: true, action_present: true }] }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },

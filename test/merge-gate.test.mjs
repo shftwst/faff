@@ -37,6 +37,7 @@ const floorCases = [
   ["ci-red → refuse", { ci_state: "ci-red" }, 1],
   ["indeterminate CI → refuse (fail-closed)", { ci_state: "indeterminate" }, 1],
   ["absent review verdict → refuse", { review_verdict: "missing" }, 1],
+  ["unavailable review verdict → refuse, never merge-ok (FAFF-405)", { review_verdict: "unavailable" }, 1],
   ["L4 holdout missing → refuse (fail-closed)", { level: "L4", holdout: "missing" }, 1],
   ["L4 holdout meets-spec → merge-ok", { level: "L4", holdout: "meets-spec" }, 0],
   ["bad ci_state enum → fail-loud (exit 2, never a pass)", { ci_state: "greenish" }, 2],

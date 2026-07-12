@@ -483,3 +483,215 @@ test("FAFF-326: an unparseable --authority value fails loud (exit 2), never a si
     assert.equal(r.code, 2);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ===========================================================================
+// FAFF-324: on-disk CONTENT-forgery probes under the shared-fs container model.
+//
+// AC5 (above) covers INJECTED-FIELD forgery — extra keys in the in-memory signal
+// bundle a caller passes to `evaluateDerailment`. The production build subagent
+// has no arg surface to reach that channel at all (it returns only a terminal
+// token; `sentry check` is never invoked BY it). That leaves the channel AC5
+// doesn't address: a same-uid, same-fs build lane REWRITING the on-disk files
+// `sentry check` reads (run-ledger.json, events.jsonl) before the orchestrator's
+// next check observes them — no special privilege needed, a plain writeFileSync.
+//
+// Each probe below demonstrates a genuine trip, then performs the SAME on-disk
+// rewrite a build lane could perform, and shows the trip is suppressed. This is
+// the evidence base for the ADR-0034 "Re-examination under the shared-fs
+// container model (FAFF-324)" amendment (docs/adr/0034-*.md) — each probe name
+// maps 1:1 to a row of that amendment's forgery-vector table.
+// ===========================================================================
+
+test("FAFF-324 vector 1: forging a fake issue-outcome/shipped event suppresses fix-review-thrash — sentry check has no reconcile-against-git step of its own", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const thrashEvents = [0, 1, 2].map((seq) => ({ schema: 1, run_id: "r", seq, ts: now, phase: "build", type: "build-start", issue: "A" }));
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["A"], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } }, thrashEvents);
+
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "fix-review-thrash"), "genuine thrash trips before forgery");
+
+    // Same-uid build-lane forgery: append a fabricated issue-outcome:shipped event.
+    // No merge ever happened, no merge-record.json exists — just a raw JSONL append.
+    const forged = [...thrashEvents, { schema: 1, run_id: "r", seq: 3, ts: now, phase: "build", type: "issue-outcome", issue: "A", data: { outcome: "shipped" } }];
+    writeFileSync(join(rd, "events.jsonl"), forged.map((e) => JSON.stringify(e)).join("\n") + "\n");
+
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "fix-review-thrash"), undefined,
+      "the forged shipped event suppresses the genuine thrash trip");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324 vector 2: truncating build-start events out of events.jsonl suppresses fix-review-thrash", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const thrashEvents = [0, 1, 2].map((seq) => ({ schema: 1, run_id: "r", seq, ts: now, phase: "build", type: "build-start", issue: "A" }));
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["A"], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } }, thrashEvents);
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "fix-review-thrash"));
+
+    // Forgery: rewrite the "append-only" log down to 2 of the 3 real build-start
+    // events. events.jsonl is append-only by CONVENTION, not by filesystem enforcement.
+    writeFileSync(join(rd, "events.jsonl"), thrashEvents.slice(0, 2).map((e) => JSON.stringify(e)).join("\n") + "\n");
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "fix-review-thrash"), undefined,
+      "truncating events.jsonl below thrash_n suppresses the trip");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324 vector 3: rewriting ledger.outcomes suppresses budget-breach (max_attempts) — attemptsFromLedger trusts the file wholesale", () => {
+  const dir = tmp();
+  try {
+    const now = "2026-06-29T00:00:00Z";
+    const ledger = {
+      run_id: "r", admitted: ["A", "B"], outcomes: { A: "errored", B: "errored" },
+      budget: { envelope: { ceilings: { max_attempts: 1 }, at_ceiling: "escalate" } },
+      owner: { status: "running", started_at: now, last_heartbeat: now },
+    };
+    const rd = mkRun(dir, "r", ledger);
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(Date.parse(now))]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "budget-breach"), "genuine max_attempts breach trips before forgery");
+
+    // Forgery: rewrite both real attempt outcomes to "routed-out" — a non-attempt
+    // outcome attemptsFromLedger deliberately excludes (an issue that never got a
+    // graft invocation shouldn't count). This is the precise forgery attemptsFromLedger
+    // cannot distinguish from a genuine routed-out: it counts ledger.outcomes keys
+    // wholesale, no cross-check against how many builds the tracker/git actually saw
+    // dispatched. (Emptying outcomes to {} entirely does NOT work as a forgery here —
+    // attemptsFromLedger's own admitted-count FALLBACK for an empty outcomes object
+    // means a forger must leave same-cardinality, wrong-VALUE entries, not delete them.)
+    const forgedLedger = { ...ledger, outcomes: { A: "routed-out", B: "routed-out" } };
+    writeFileSync(join(rd, "run-ledger.json"), JSON.stringify(forgedLedger, null, 2) + "\n");
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(Date.parse(now))]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "budget-breach"), undefined,
+      "relabelling both real attempts as routed-out suppresses the max_attempts breach the real attempt count would have tripped");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324 vector 4: rewriting owner.last_heartbeat to 'now' suppresses wall-clock-runaway (heartbeat staleness) — liveness has no git-truth counterpart", () => {
+  const dir = tmp();
+  try {
+    // A recent started_at (well under the 4h run-elapsed ceiling) so ONLY heartbeat
+    // staleness can trip — isolates the vector from vector 5's run-elapsed trip.
+    const recentStart = new Date(Date.now() - 60_000).toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: recentStart, last_heartbeat: STALE } });
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.evidence.tripped_on === "heartbeat-staleness"));
+
+    // Forgery: rewrite owner.last_heartbeat directly in run-ledger.json — bypassing
+    // the sanctioned `faff heartbeat` write path (FAFF-355), which only ever writes
+    // the dedicated heartbeat FILE, never this ledger field, and only while
+    // owner.status === "running" (a read-only guard against the very ledger this
+    // probe is rewriting — no enforcement barrier against a direct fs write).
+    const led = JSON.parse(readFileSync(join(rd, "run-ledger.json"), "utf8"));
+    led.owner.last_heartbeat = new Date().toISOString();
+    writeFileSync(join(rd, "run-ledger.json"), JSON.stringify(led, null, 2) + "\n");
+
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "wall-clock-runaway"), undefined,
+      "a forged fresh heartbeat suppresses staleness detection — no reconcile path exists for liveness");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324 vector 5: rewriting owner.started_at to 'now' suppresses wall-clock-runaway (run-elapsed) — no git-truth counterpart", () => {
+  const dir = tmp();
+  try {
+    // Fresh heartbeat (so ONLY run-elapsed can trip) but started long enough ago to
+    // exceed the 4h default run_elapsed_ceiling_secs.
+    const now = new Date();
+    const longAgo = new Date(now.getTime() - (14400 + 600) * 1000).toISOString(); // ceiling + 10min
+    const nowIso = now.toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: longAgo, last_heartbeat: nowIso } });
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.evidence.tripped_on === "run-elapsed"));
+
+    const led = JSON.parse(readFileSync(join(rd, "run-ledger.json"), "utf8"));
+    led.owner.started_at = new Date().toISOString();
+    writeFileSync(join(rd, "run-ledger.json"), JSON.stringify(led, null, 2) + "\n");
+
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "wall-clock-runaway"), undefined,
+      "a forged recent started_at suppresses run-elapsed detection — no git/tracker record of the run's true start exists to reconcile against");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324 vector 6: flipping owner.status running→done suppresses wall-clock-runaway entirely — only a running owner is evaluated", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: STALE, last_heartbeat: STALE } });
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "wall-clock-runaway"));
+
+    // Forgery: the run is NOT actually done — the process is still stuck — but a
+    // direct ledger rewrite makes evalWallClock's `owner.status !== "running"` guard
+    // skip it as if it had legitimately finished.
+    const led = JSON.parse(readFileSync(join(rd, "run-ledger.json"), "utf8"));
+    led.owner.status = "done";
+    writeFileSync(join(rd, "run-ledger.json"), JSON.stringify(led, null, 2) + "\n");
+
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "wall-clock-runaway"), undefined,
+      "a forged owner.status='done' makes the running-owner guard skip a genuinely-runaway process entirely");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324 vector 7: deleting repeated-failure events suppresses repeated-identical-failure", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const failEvents = [0, 1, 2].map((seq) => ({ schema: 1, run_id: "r", seq, ts: now, phase: "build", type: "issue-outcome", issue: "B", data: { outcome: "errored", fingerprint: "boom" } }));
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["B"], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } }, failEvents);
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "repeated-identical-failure"));
+
+    writeFileSync(join(rd, "events.jsonl"), failEvents.slice(0, 2).map((e) => JSON.stringify(e)).join("\n") + "\n");
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "repeated-identical-failure"), undefined,
+      "truncating the failure-event log below failure_k suppresses the trip");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324: structural guard — `sentry check` never consults integrityGate's 'detection' consumer (the reconcile-only disposition FAFF-373 shipped is not wired into the detection path)", () => {
+  const src = readFileSync(SENTRY_SRC, "utf8");
+  assert.ok(!/correctiveIntegrityProbe|integrityGate/.test(src),
+    "sentry.js never in-process-calls the FAFF-373/325 corrective-integrity gate module. The only " +
+    "spawned corrective-integrity call it makes is `--consumer corrective` (for the Channel-A authority " +
+    "parameter) — never `--consumer detection`, whose 'reconcile-only' disposition exists in " +
+    "corrective-integrity.js only to be asserted by its own --selftest. A future wiring of the " +
+    "'detection' consumer into `sentry check` touches this file and should also update the ADR-0034 " +
+    "amendment this ticket wrote.");
+});
+
+test("FAFF-324: `faff reconcile` (FAFF-397, wired at beep-boop run-end) DOES catch a forged TERMINAL 'shipped' claim — the backstop that exists, demonstrated end-to-end. It catches only the terminal claim, never the mid-run event/attempt-count tampering vectors 1-3/7 demonstrate above (those can suppress a real-time trip and let the run keep grinding WITHOUT ever having to fake a final shipped outcome).", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["A"], outcomes: { A: "shipped" }, owner: { status: "done", started_at: now, last_heartbeat: now } });
+    // The orchestrator's run-end ReconcileInput for this issue (beep-boop step 11.5):
+    // ledger claims "shipped", but no merge-record.json was ever written (no merge-gate
+    // run ever happened for a build-lane-forged claim) and the live forge observation
+    // shows no merge — exactly what a forged run-ledger.json outcome looks like from
+    // the run-end reconcile's point of view.
+    const reconcileInput = JSON.stringify({ shipped: [{ issue: "A", recorded: null, observed: { pr_merged: false, merged_head_sha: null } }] });
+
+    const l4 = JSON.parse(run(dir, ["reconcile", "--run-dir", rd, "--level", "L4", "--json"], reconcileInput).out);
+    assert.equal(l4.consistent, false);
+    assert.equal(l4.divergences[0].class, "claimed-shipped-unmerged");
+    assert.equal(l4.disposition, "needs-human", "at L4 (lights-out) the forged-shipped claim hard-blocks");
+
+    const l3 = JSON.parse(run(dir, ["reconcile", "--run-dir", rd, "--level", "L3", "--json"], reconcileInput).out);
+    assert.equal(l3.disposition, "warn", "at L3 (the ordinary autonomous default) the SAME divergence is only a non-blocking warn — surfaced, not gated");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-324: structural guard — `faff reconcile`'s divergence classes never inspect owner.*/heartbeat fields (vectors 4-6 have NO reconcile counterpart, not even advisory)", () => {
+  const reconcileSrcPath = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "lib", "reconcile.js");
+  const src = readFileSync(reconcileSrcPath, "utf8");
+  assert.ok(!/\bowner\b|last_heartbeat|started_at/.test(src),
+    "reconcile.js's three divergence classes (phantom-merge, claimed-shipped-unmerged, unowned-sibling-mutation) " +
+    "are defined entirely over shipped-outcome/merge-record/forge state and sibling terminal-state — none of them " +
+    "touch a ledger's owner.status/started_at/last_heartbeat fields, so a heartbeat/run-elapsed/owner-status forgery " +
+    "(vectors 4-6 above) has no reconcile-against-git counterpart of any kind, blocking or advisory.");
+});

@@ -190,3 +190,86 @@ test("a write/rename fault degrades to a soft no-op (exit 0, written:false) — 
     assert.deepEqual(leftover, [], "the tmp file is cleaned up on failure, not orphaned");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// --- FAFF-327: `--unit <issue>` — the fleet member tick ---------------------------
+
+test("--unit writes BOTH the run heartbeat file and heartbeat.<issue>, reports unit, and leaves run-ledger.json byte-identical", () => {
+  const { root, runDir, readRaw, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(1000) },
+  });
+  try {
+    const before = readRaw();
+    const r = run(["heartbeat", runDir, "--unit", "FAFF-1", "--json"]);
+    assert.equal(r.code, 0);
+    const j = JSON.parse(r.out);
+    assert.equal(j.written, true);
+    assert.equal(j.unit, "FAFF-1");
+    assert.equal(readRaw(), before, "run-ledger.json byte-identical after a --unit tick");
+    const runHb = heartbeatFile();
+    assert.ok(runHb, "the run-level heartbeat file was written");
+    assert.equal(runHb.trim(), j.last_heartbeat);
+    const memberHb = readFileSync(join(runDir, "heartbeat.FAFF-1"), "utf8");
+    assert.equal(memberHb.trim(), j.last_heartbeat, "the member file carries the same tick timestamp");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("without --unit, behaviour and JSON output are unchanged from post-FAFF-355 main (unit:null, no member file)", () => {
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["heartbeat", runDir, "--json"]);
+    assert.equal(r.code, 0);
+    const j = JSON.parse(r.out);
+    assert.equal(j.written, true);
+    assert.equal(j.unit, null);
+    assert.ok(heartbeatFile(), "the run-level file was written");
+    const memberFiles = readdirSync(runDir).filter((n) => n.startsWith("heartbeat.") && n !== "heartbeat");
+    assert.deepEqual(memberFiles, [], "no member file is ever created without --unit");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--unit on a done owner is the same soft no-op as without --unit — no run file, no member file, written:false", () => {
+  const stamp = isoAgo(1000);
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: { X: "shipped" }, owner: { status: "done", last_heartbeat: stamp },
+  });
+  try {
+    const r = run(["heartbeat", runDir, "--unit", "X", "--json"]);
+    assert.equal(r.code, 0);
+    const j = JSON.parse(r.out);
+    assert.equal(j.written, false);
+    assert.equal(j.unit, "X", "unit is still echoed even on a soft no-op — it was a valid flag, just nothing to tick");
+    assert.equal(heartbeatFile(), null, "no run file for a done owner");
+    assert.equal(existsSync(join(runDir, "heartbeat.X")), false, "no member file for a done owner");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("an invalid --unit value (traversal-shaped) fails loud, exit 2, before any write", () => {
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    for (const bad of ["../escape", ".."]) {
+      const r = run(["heartbeat", runDir, "--unit", bad]);
+      assert.equal(r.code, 2, `--unit ${JSON.stringify(bad)} should be rejected`);
+      assert.match(r.err, /not a valid issue id/);
+    }
+    assert.equal(heartbeatFile(), null, "an invalid --unit never reaches any write");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("--unit's RUN_DIR positional resolution is unaffected — the flag+value pair never shifts the positional index", () => {
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    // --unit BEFORE the positional RUN_DIR arg — must still resolve the same run dir.
+    const r = run(["heartbeat", "--unit", "X", runDir, "--json"]);
+    assert.equal(r.code, 0);
+    const j = JSON.parse(r.out);
+    assert.equal(j.run_dir, runDir);
+    assert.equal(j.written, true);
+    assert.ok(heartbeatFile());
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

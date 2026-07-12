@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -726,4 +726,199 @@ test("FAFF-324: structural guard — `faff reconcile`'s divergence classes never
     "are defined entirely over shipped-outcome/merge-record/forge state and sibling terminal-state — none of them " +
     "touch a ledger's owner.status/started_at/last_heartbeat fields, so a heartbeat/run-elapsed/owner-status forgery " +
     "(vectors 4-6 above) has no reconcile-against-git counterpart of any kind, blocking or advisory.");
+});
+
+// ===========================================================================
+// FAFF-327 — fleet (concurrent) member-resolved supervision, end-to-end via the real
+// CLI (runCli/execFileSync, not the in-memory selftest above). Deterministic: every
+// time-based assertion pins `--now-ms` (the FAFF-301 pattern) rather than depending
+// on wall-clock time of day. Member files are written directly (mirroring what
+// `faff heartbeat <dir> --unit <issue>` produces) so this exercises the READ side of
+// the fleet path against real files on disk.
+// ===========================================================================
+
+function writeMemberBeat(runDir, issue, iso) {
+  writeFileSync(join(runDir, `heartbeat.${issue}`), iso + "\n");
+}
+
+// The documented v1 default (SENTRY_THRESHOLD_DEFAULTS.stall_window_secs === 900,
+// mirrors runcheck's RUN_HEARTBEAT_STALE_SECS_DEFAULT) — no `.faffrc` override in
+// these fixtures, so this literal matches what `faff sentry check` actually resolves.
+const STALL_WINDOW_SECS_DEFAULT = 900;
+
+test("FAFF-327 fleet fixture: N in-flight members (one stale) -> member-scoped pause end-to-end, run stays healthy", () => {
+  const dir = tmp();
+  try {
+    const fixtureStart = "2026-07-01T00:00:00Z";
+    const startMs = Date.parse(fixtureStart);
+    const nowMs = startMs + (STALL_WINDOW_SECS_DEFAULT + 120) * 1000;
+    const ledger = {
+      run_id: "r", admitted: ["HEALTHY-1", "HEALTHY-2", "STALLED"], outcomes: {},
+      owner: { status: "running", started_at: fixtureStart, last_heartbeat: new Date(nowMs - 5_000).toISOString() },
+    };
+    const rd = mkRun(dir, "r", ledger, [
+      { schema: 1, run_id: "r", seq: 0, ts: fixtureStart, phase: "build", type: "build-start", issue: "HEALTHY-1" },
+      { schema: 1, run_id: "r", seq: 1, ts: fixtureStart, phase: "build", type: "build-start", issue: "HEALTHY-2" },
+      { schema: 1, run_id: "r", seq: 2, ts: fixtureStart, phase: "build", type: "build-start", issue: "STALLED" },
+    ]);
+    // Two members tick their own file recently; STALLED's file (and its build-start)
+    // are both older than the stall window.
+    writeMemberBeat(rd, "HEALTHY-1", new Date(nowMs - 5_000).toISOString());
+    writeMemberBeat(rd, "HEALTHY-2", new Date(nowMs - 5_000).toISOString());
+    writeMemberBeat(rd, "STALLED", fixtureStart);
+
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(nowMs)]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.intervention, "pause", "one stalled member caps the fleet response at pause, never abort");
+    assert.equal(out.tripped, true);
+    const memberVerdicts = out.verdicts.filter((v) => v.scope === "member");
+    assert.equal(memberVerdicts.length, 1, "exactly the one stalled member trips — the two healthy tickers do not");
+    assert.equal(memberVerdicts[0].member, "STALLED");
+    assert.equal(memberVerdicts[0].signal, "wall-clock-runaway");
+    // The run heartbeat file itself is fresh (ticked by the healthy members) -> no
+    // run-scoped wall-clock-runaway alongside the member one.
+    assert.ok(!out.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined),
+      "the run itself is not runaway — only the one member is");
+
+    // Report-only: no write on any fleet path, and no NEW file beyond the fixture's own.
+    const before = ["run-ledger.json", "events.jsonl", "heartbeat.HEALTHY-1", "heartbeat.HEALTHY-2", "heartbeat.STALLED"].sort();
+    assert.deepEqual(readdirSync(rd).sort(), before, "sentry check wrote nothing — same file set before and after");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-327: ALL members silent past the window (run heartbeat file itself stale) -> run-scoped abort, today's kill-switch preserved", () => {
+  const dir = tmp();
+  try {
+    const fixtureStart = "2026-07-01T00:00:00Z";
+    const startMs = Date.parse(fixtureStart);
+    const nowMs = startMs + (STALL_WINDOW_SECS_DEFAULT + 120) * 1000;
+    const ledger = {
+      run_id: "r", admitted: ["X", "Y"], outcomes: {},
+      owner: { status: "running", started_at: fixtureStart, last_heartbeat: fixtureStart }, // stale run file too
+    };
+    const rd = mkRun(dir, "r", ledger, [
+      { schema: 1, run_id: "r", seq: 0, ts: fixtureStart, phase: "build", type: "build-start", issue: "X" },
+      { schema: 1, run_id: "r", seq: 1, ts: fixtureStart, phase: "build", type: "build-start", issue: "Y" },
+    ]);
+    writeMemberBeat(rd, "X", fixtureStart);
+    writeMemberBeat(rd, "Y", fixtureStart);
+
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(nowMs)]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.intervention, "abort", "all-stalled -> the RUN-scoped predicate trips, unchanged kill-switch behaviour");
+    assert.ok(out.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined),
+      "a run-scoped (no scope field) wall-clock-runaway verdict is present");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-327: no member heartbeat files and no build-start events (sequential/legacy) -> payload byte-equivalent to the pre-327 surface", () => {
+  const dir = tmp();
+  try {
+    const ledger = {
+      run_id: "r", admitted: ["A"], outcomes: { A: "shipped" },
+      owner: { status: "running", started_at: "2026-07-01T00:00:00Z", last_heartbeat: "2026-07-01T00:00:05Z" },
+    };
+    const rd = mkRun(dir, "r", ledger); // no events.jsonl at all
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(Date.parse("2026-07-01T00:00:10Z"))]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.deepEqual(out.verdicts, []);
+    assert.equal(out.intervention, "continue");
+    assert.equal(out.tripped, false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-327: `faff heartbeat <dir> --unit X` leaves run-ledger.json byte-identical (the FAFF-355 invariant extended to the member tick), and writes both files", () => {
+  const dir = tmp();
+  try {
+    const ledger = {
+      run_id: "r", admitted: ["X"], outcomes: {},
+      owner: { status: "running", started_at: "2026-07-01T00:00:00Z", last_heartbeat: "2026-07-01T00:00:00Z" },
+    };
+    const rd = mkRun(dir, "r", ledger);
+    const before = readFileSync(join(rd, "run-ledger.json"), "utf8");
+    const r = run(dir, ["heartbeat", rd, "--unit", "X", "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.written, true);
+    assert.equal(out.unit, "X");
+    assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), before, "run-ledger.json byte-identical after a --unit tick");
+    assert.ok(existsSync(join(rd, "heartbeat")), "the run heartbeat file was written");
+    assert.ok(existsSync(join(rd, "heartbeat.X")), "the member heartbeat file was written");
+    assert.equal(readFileSync(join(rd, "heartbeat.X"), "utf8").trim(), out.last_heartbeat);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-327: `faff heartbeat` WITHOUT --unit is unchanged from post-FAFF-355 main — no member file, no unit key surprise", () => {
+  const dir = tmp();
+  try {
+    const ledger = {
+      run_id: "r", admitted: ["X"], outcomes: {},
+      owner: { status: "running", started_at: "2026-07-01T00:00:00Z", last_heartbeat: "2026-07-01T00:00:00Z" },
+    };
+    const rd = mkRun(dir, "r", ledger);
+    const r = run(dir, ["heartbeat", rd, "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.written, true);
+    assert.equal(out.unit, null, "unit is null when --unit was never passed");
+    assert.ok(existsSync(join(rd, "heartbeat")));
+    // No stray member file (a member file is always "heartbeat.<issue>", dot-suffixed —
+    // distinct from the bare run-level "heartbeat" file asserted above).
+    assert.deepEqual(readdirSync(rd).filter((n) => n.startsWith("heartbeat.")), []);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-327 integration smoke test (spec section 8): mint, tick one member, park the other, then all-stale -> abort; run-ledger.json bytes unchanged throughout", () => {
+  const dir = tmp();
+  try {
+    // `faff heartbeat --unit` has no clock seam (it always ticks real wall-clock time,
+    // by design — FAFF-355), so this fixture pins the CHECK's virtual "now" a few
+    // seconds ahead of actual real time instead of pinning a historical date: X's
+    // real tick (moments before the check) reads as fresh relative to that virtual
+    // now, while Y's explicitly-written stale mark reads as stale — deterministic
+    // without depending on wall-clock time OF DAY (the FAFF-301 property), since the
+    // offsets are all relative to `checkNowMs`, computed once.
+    const checkNowMs = Date.now() + 5_000;
+    const staleIso = new Date(checkNowMs - (STALL_WINDOW_SECS_DEFAULT + 60) * 1000).toISOString();
+    const ledger = {
+      run_id: "r", admitted: ["X", "Y"], outcomes: {},
+      owner: { status: "running", started_at: staleIso, last_heartbeat: staleIso },
+    };
+    const rd = mkRun(dir, "r", ledger, [
+      { schema: 1, run_id: "r", seq: 0, ts: staleIso, phase: "build", type: "build-start", issue: "X" },
+      { schema: 1, run_id: "r", seq: 1, ts: staleIso, phase: "build", type: "build-start", issue: "Y" },
+    ]);
+    const ledgerSnapshot = readFileSync(join(rd, "run-ledger.json"), "utf8");
+
+    // 1+2: tick X (real time — also refreshes the run-level file, per --unit's
+    // shape); Y's member file is written stale directly (a member that never ticks).
+    const t1 = run(dir, ["heartbeat", rd, "--unit", "X", "--json"]);
+    assert.equal(t1.code, 0);
+    writeMemberBeat(rd, "Y", staleIso);
+    assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), ledgerSnapshot, "ledger unchanged after the tick");
+
+    // 3: check at the pinned virtual now — the RUN file (freshly ticked moments ago,
+    // real time) is fresh; Y is stale.
+    const r3 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(checkNowMs)]).out);
+    assert.equal(r3.intervention, "pause");
+    assert.ok(r3.verdicts.some((v) => v.scope === "member" && v.member === "Y"));
+    assert.ok(!r3.verdicts.some((v) => v.scope === "member" && v.member === "X"), "X ticked recently — no member verdict for it");
+    assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), ledgerSnapshot, "ledger unchanged after the check");
+
+    // 4: overwrite X's member file AND the run-level heartbeat file both stale
+    // (simulate nobody ticking anything further) -> the RUN-scoped predicate trips.
+    writeMemberBeat(rd, "X", staleIso);
+    writeFileSync(join(rd, "heartbeat"), staleIso + "\n");
+    const r4 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(checkNowMs)]).out);
+    assert.equal(r4.intervention, "abort");
+    assert.ok(r4.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined), "run-scoped trip fired");
+
+    // 5: run-ledger.json bytes unchanged throughout; no file beyond the two member
+    // files + the run heartbeat file was ever created.
+    assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), ledgerSnapshot, "ledger unchanged after the second check");
+    assert.deepEqual(readdirSync(rd).sort(), ["events.jsonl", "heartbeat", "heartbeat.X", "heartbeat.Y", "run-ledger.json"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -1023,6 +1023,43 @@ test("FAFF-414 runReviewChain: an escaped auth-shaped throw (401) maps to AUTH v
   assert.equal(res.exit, EXIT.AUTH, "an escaped auth-shaped throw still surfaces needs-human via AUTH, not masked by 'B was down'");
 });
 
+// Adversarial review (FAFF-414): safeCall's error `note` must reach the per-backend log line — a
+// regression that drops it (e.g. `return { status: mapThrowStatus(err) }` with no `note`) would still
+// pass every mechanism-level test above (failureClasses/exit unchanged) while silently losing the ONLY
+// human-actionable detail the needs-human terminal carries. Assert the actual message text, not just the
+// status/exit shape.
+test("FAFF-414 runReviewChain: the thrown error's message reaches the per-backend log line's detail, not just the status/exit", async () => {
+  const chain = [
+    { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+  ];
+  const trace = [];
+  await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async (opts) => {
+      if (opts.host === "https://a/v1") throw new Error("HTTP 400: messages: field required");
+      return { status: "ok", content: "### observation: no findings" };
+    },
+  });
+  assert.ok(trace.some((l) => l.includes("HTTP 400: messages: field required")),
+    "the thrown message text must survive into the log line, not just the recorded status/exit class");
+});
+
+// Adversarial review (FAFF-414): a non-Error throw (`throw "x"` / `throw null`) must still surface SOMETHING
+// in the note rather than losing it — no real orchestration function in this file throws non-Error today,
+// but safeCall's catch is a generic boundary and must not silently blank the detail on an unusual throw.
+test("FAFF-414 runReviewChain: a non-Error throw (bare string) still carries its text into the log, never a blank/lost note", async () => {
+  const chain = [{ provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" }];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async () => { throw "raw string fault, not an Error instance"; }, // eslint-disable-line no-throw-literal
+  });
+  assert.equal(res.exit, EXIT.USAGE, "a non-Error throw still maps to a needs-human class, not OTHER");
+  assert.ok(trace.some((l) => l.includes("raw string fault, not an Error instance")),
+    "the raw thrown value's text survives into the log even when it isn't an Error instance");
+});
+
 test("FAFF-414 main(): a lone backend whose orchestration throws a non-transient 400 → EXIT.USAGE (2), never OTHER (1)", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(

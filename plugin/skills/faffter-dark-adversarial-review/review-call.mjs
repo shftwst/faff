@@ -849,7 +849,13 @@ async function safeCall(callFn) {
   try {
     return await callFn();
   } catch (err) {
-    return { status: mapThrowStatus(err), note: err && err.message };
+    // Adversarial review (FAFF-414): every throw site in THIS file only ever throws `new Error(...)`, so
+    // `err.message` always exists in practice — but a non-Error throw (`throw "x"` / `throw null`) must
+    // still surface SOMETHING in the log, not a lost/empty note (the needs-human signal is only actionable
+    // if the human can see what actually failed). `err instanceof Error` covers every real case; the
+    // String() fallback is a defensive backstop for a value that isn't.
+    const note = err instanceof Error ? err.message : String(err);
+    return { status: mapThrowStatus(err), note };
   }
 }
 

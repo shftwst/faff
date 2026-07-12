@@ -730,9 +730,24 @@ function mergeGateSelftest() {
       return lines.length === 2 && lines[1].kind_of_entry === "observe" && lines[1].effect.target === "pr:9";
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   })());
-  check("observeMergeEffects: an unwritable run dir never throws (swallowed to a warning, caller unaffected)", (() => {
-    try { observeMergeEffects("/nonexistent/definitely-not-a-real-path", "FAFF-9", mergeEffectsFor(9, false, null)); return true; }
-    catch (e) { return false; }
+  check("observeMergeEffects: an unwritable run dir never throws AND emits the stderr warning (adversarial review: a prior version of this test only checked no-throw, which would still pass under a silent double-swallow)", (() => {
+    const origWrite = process.stderr.write;
+    let captured = "";
+    process.stderr.write = (chunk) => { captured += chunk; return true; };
+    let threw = false;
+    try { observeMergeEffects("/nonexistent/definitely-not-a-real-path", "FAFF-9", mergeEffectsFor(9, false, null)); }
+    catch (e) { threw = true; }
+    finally { process.stderr.write = origWrite; }
+    return !threw && /effects ledger observe failed/.test(captured);
+  })());
+  check("observeMergeEffects: an uncovered effect emits exactly the documented stderr warning (adversarial review: assert the actual warning text, not just its absence of a throw)", (() => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-observe-warn-"));
+    const origWrite = process.stderr.write;
+    let captured = "";
+    process.stderr.write = (chunk) => { captured += chunk; return true; };
+    try { observeMergeEffects(tmp, "FAFF-9", mergeEffectsFor(9, false, null)); }
+    finally { process.stderr.write = origWrite; fs.rmSync(tmp, { recursive: true, force: true }); }
+    return /observed merge pr:9 with no covering declaration — declare it at graft Step 10/.test(captured);
   })());
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;

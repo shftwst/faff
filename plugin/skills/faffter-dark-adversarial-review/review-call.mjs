@@ -769,6 +769,18 @@ export function ledgerMandatory(runDir) {
   return !!(ledger && ledger.level === "L4");
 }
 
+// PURE (FAFF-414): map a throw that escaped a family's orchestration function (runReviewOllama/OpenAi/
+// Anthropic — a bad request shape, an oversized payload/413, or any other non-transient fault those
+// functions don't already convert into a status) to a stable per-backend status string. Mirrors
+// isAuthError so an escaped 401/403 still routes distinctly (defense-in-depth: each family already
+// classifies its OWN auth faults internally and returns a status rather than throwing, so this branch is
+// a backstop, not the primary path). Everything else is a generic non-transient REQUEST fault — a
+// config/request problem, not an availability one — so it must never be confused with "unreachable" (a
+// pass+skip class); it needs its own needs-human-class exit (mapResultExit below).
+export function mapThrowStatus(err) {
+  return isAuthError(err) ? "auth-failed" : "request-failed";
+}
+
 // PURE (FAFF-232): map a runReview() result + host provenance to the documented exit class for ONE backend.
 // Extracted from main()'s old inline if-ladder so the single-backend path and runReviewChain map identically.
 export function mapResultExit(result, hostSource) {
@@ -777,6 +789,9 @@ export function mapResultExit(result, hostSource) {
     case "unsupported-provider": return EXIT.USAGE;
     case "model-not-served": return EXIT.NOT_SERVED;
     case "auth-failed": return EXIT.AUTH;
+    // FAFF-414: a non-transient throw that escaped a run function (see safeCall/mapThrowStatus) — reuse
+    // USAGE(2), already a needs-human class (CHAIN_NEEDS_HUMAN below), rather than minting a new exit code.
+    case "request-failed": return EXIT.USAGE;
     case "unreachable":
     case "transport-failed": return unreachableExit({ hostSource });
     default: return EXIT.OTHER;
@@ -821,6 +836,22 @@ const CHAIN_ADVANCE_REASON = {
   "model-not-served": "not-served",
   "auth-failed": "auth",
 };
+
+// Non-rejecting wrapper around a per-backend callReview() invocation (FAFF-414). The per-family
+// orchestration functions (runReviewOllama/OpenAi/Anthropic) are BYTE-UNCHANGED — they still throw
+// straight out on a non-transient, non-auth error (a bad request shape, an oversized payload/413, etc.);
+// the catch lives ONLY here, at the chain boundary, OUTSIDE streamWithTransportRetry (which already owns
+// the transient-retry catch). A throw that escapes a run function is exactly as informative as any other
+// per-backend fault the chain already advances past (unreachable / auth-failed / model-not-served /
+// transport-failed) — so it must never abort the WHOLE review at the unmapped EXIT.OTHER; it resolves to
+// a status-shaped result the loop below treats identically to a returned status.
+async function safeCall(callFn) {
+  try {
+    return await callFn();
+  } catch (err) {
+    return { status: mapThrowStatus(err), note: err && err.message };
+  }
+}
 
 // FAFF-232: run an ORDERED chain of backends, returning the first that produces findings. A backend that
 // does not (any non-OK class) is recorded and the chain ADVANCES — the value is a real second opinion from
@@ -902,7 +933,7 @@ export async function runReviewChain(chain = [], shared = {}) {
       const SENTINEL = { __deadline: true };
       let timer;
       const deadlineP = new Promise((res) => { timer = setTimeout(() => res(SENTINEL), remaining); if (timer && timer.unref) timer.unref(); });
-      result = await Promise.race([callReview(), deadlineP]);
+      result = await Promise.race([safeCall(callReview), deadlineP]);
       clearTimeout(timer);
       if (result === SENTINEL) {
         const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
@@ -911,7 +942,7 @@ export async function runReviewChain(chain = [], shared = {}) {
         return { exit, deadlineExceeded: true, failureClasses };
       }
     } else {
-      result = await callReview();
+      result = await safeCall(callReview);
     }
     const exit = mapResultExit(result, b.hostSource);
     if (exit === EXIT.OK) {

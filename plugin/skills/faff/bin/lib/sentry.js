@@ -47,6 +47,25 @@
 // gate module (this file stays a pure governance span; region direction, ADR 0042).
 // Only `fix-review-thrash` maps to `correct` (and only under authority); every other
 // signal's mapping, and every abort route, is UNCHANGED.
+//
+// FAFF-327 (fleet / member-resolved supervision): under the parallel executor, N
+// build subagents share ONE run — so run-scoped liveness (evalWallClock, above) goes
+// blind to a single stalled member for as long as ANY peer keeps ticking. Sentry stays
+// ONE evaluator, member-resolved: `evalMemberStall` reads each in-flight member's OWN
+// single-writer `heartbeat.<issue>` file (FAFF-355's named extension point, written by
+// `faff heartbeat --unit <issue>`) and emits a verdict carrying `scope:"member"` +
+// `member:<issue>` when that ONE member goes stale — never a new fleet-status write,
+// never a per-member sentry. A member-scoped wall-clock-runaway caps at `pause`
+// (park that member, the fleet runs on) — it NEVER escalates to run-wide `abort` by
+// itself; the run-scoped `abort` route stays exactly as it was (all members silent ⇒
+// the RUN heartbeat file itself goes stale ⇒ evalWallClock trips as today). Thrash /
+// repeated-identical-failure verdicts additionally gain the SAME scope/member fields
+// (their evidence already names a single issue) — purely additive attribution; their
+// OWN mapped intervention (SIGNAL_TRIP_INTERVENTION, unchanged) is untouched by that
+// annotation, so a fleet member that thrashes/repeat-fails still drives the same
+// run-scoped response it always did. In-flight-member derivation and fleet
+// evaluation are both auto-detected from the existing events+ledger surface — a run
+// with no in-flight members computes an empty set and is byte-equivalent to pre-327.
 // ===========================================================================
 
 
@@ -54,7 +73,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { readGovernanceConfig } = require("./budget");
-const { atomicWriteLedger, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
+const { atomicWriteLedger, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
 const { RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./runcheck");
 const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 
@@ -129,6 +148,19 @@ function normalizeSentrySignals(raw) {
     // ("heartbeat-file" | "owner.last_heartbeat" | null) — threaded through to
     // evalWallClock's evidence so it never names a source it no longer reads.
     heartbeat_source: typeof r.heartbeat_source === "string" ? r.heartbeat_source : null,
+    // FAFF-327: { issue -> iso|null } — the caller's per-member `heartbeat.<issue>`
+    // reads (filesystem access happens in cmdSentry, never here). Sanitized to a
+    // plain map of string keys to string|null values only — any other shape a
+    // build subagent might forge onto this closed surface is dropped, mirroring the
+    // rest of this normalizer's AC5 posture.
+    member_beats: (() => {
+      const raw = (r.member_beats && typeof r.member_beats === "object" && !Array.isArray(r.member_beats)) ? r.member_beats : {};
+      const out = {};
+      for (const k of Object.keys(raw)) {
+        if (typeof raw[k] === "string" || raw[k] === null) out[k] = raw[k];
+      }
+      return out;
+    })(),
   };
 }
 
@@ -201,7 +233,13 @@ function evalThrash(events, th) {
     }
   }
   if (!worst) return null;
-  return { signal: "fix-review-thrash", severity: "trip", evidence: { issue: worst.issue, build_starts: worst.count, event_seq: worst.seq ?? null } };
+  // FAFF-327: additive scope/member attribution — evidence already names a single
+  // issue (worst.issue is by construction the one worst offender), so this always
+  // applies. Purely informational: the roll-up in evaluateDerailment keys the
+  // pause-cap off signal==="wall-clock-runaway" (evalMemberStall's own output), so
+  // this annotation never changes fix-review-thrash's own SIGNAL_TRIP_INTERVENTION
+  // mapping (already "pause", unaffected either way).
+  return { signal: "fix-review-thrash", severity: "trip", scope: "member", member: worst.issue, evidence: { issue: worst.issue, build_starts: worst.count, event_seq: worst.seq ?? null } };
 }
 
 // repeated-identical-failure — same failure fingerprint >= failure_k times. A failure
@@ -215,7 +253,7 @@ function sentryFailureFingerprint(e) {
   return null;
 }
 function evalRepeatedFailure(events, th) {
-  const counts = {}, lastSeq = {};
+  const counts = {}, lastSeq = {}, issuesByFp = {};
   for (const e of events) {
     const isFailure = (e.type === "park") || (e.type === "issue-outcome" && e.data && e.data.outcome === "errored");
     if (!isFailure) continue;
@@ -223,13 +261,30 @@ function evalRepeatedFailure(events, th) {
     if (!fp) continue;
     counts[fp] = (counts[fp] || 0) + 1;
     if (Number.isInteger(e.seq)) lastSeq[fp] = e.seq;
+    // FAFF-327: track which issue(s) contributed to this fingerprint, so the verdict
+    // can be attributed to a single member IFF every occurrence names the same one.
+    if (!issuesByFp[fp]) issuesByFp[fp] = new Set();
+    if (e.issue) issuesByFp[fp].add(e.issue);
   }
   let worst = null;
   for (const fp of Object.keys(counts)) {
     if (counts[fp] >= th.failure_k && (!worst || counts[fp] > worst.count)) worst = { fp, count: counts[fp], seq: lastSeq[fp] };
   }
   if (!worst) return null;
-  return { signal: "repeated-identical-failure", severity: "trip", evidence: { fingerprint: worst.fp, count: worst.count, event_seq: worst.seq ?? null } };
+  const verdict = { signal: "repeated-identical-failure", severity: "trip", evidence: { fingerprint: worst.fp, count: worst.count, event_seq: worst.seq ?? null } };
+  // FAFF-327: additive scope/member attribution, ONLY when the fingerprint is
+  // unambiguously one issue's (a shared explicit data.fingerprint across issues
+  // stays run-scoped — no false single-member attribution). Purely informational:
+  // the roll-up keys the pause-cap off signal==="wall-clock-runaway", so this never
+  // changes repeated-identical-failure's own mapped intervention ("abort", unchanged
+  // — a fleet member that keeps failing identically still aborts the run, exactly as
+  // a sequential run always did).
+  const issues = issuesByFp[worst.fp];
+  if (issues && issues.size === 1) {
+    verdict.scope = "member";
+    verdict.member = [...issues][0];
+  }
+  return verdict;
 }
 
 // scope-drift — ADVISORY (warn only, never trips). v1 heuristic: surfaced when the
@@ -257,6 +312,63 @@ function evalForbiddenSideEffect(signals) {
   return { signal: "forbidden-side-effect-attempt", severity: "trip", evidence: { event_seq: seq } };
 }
 
+// FAFF-327 — in-flight members: build-start events minus terminal ledger outcomes.
+// PURE (reads only the already-normalized events array + ledger.outcomes — no fs).
+// Dispatch is what starts a member's liveness obligation, so the member's LATEST
+// build-start ts is also its age baseline (closes the never-ticked-member hole: a
+// member that dies before its first heartbeat tick still ages from dispatch, not
+// from "never"). An event with no issue or no parseable ts is skipped — no baseline,
+// no obligation. This is the SAME derivation cmdSentry uses to decide which
+// heartbeat.<issue> files to read, so the two never drift (one function, two callers).
+function sentryInflightMembers(events, ledger) {
+  const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes)) ? ledger.outcomes : {};
+  const lastStart = {};
+  for (const e of (Array.isArray(events) ? events : [])) {
+    if (!e || e.type !== "build-start" || !e.issue) continue;
+    const ts = typeof e.ts === "string" ? e.ts : null;
+    if (!ts || !Number.isFinite(Date.parse(ts))) continue;
+    const prev = lastStart[e.issue];
+    if (!prev || Date.parse(ts) > Date.parse(prev)) lastStart[e.issue] = ts;
+  }
+  return Object.keys(lastStart)
+    .filter((issue) => !Object.prototype.hasOwnProperty.call(outcomes, issue))
+    .map((issue) => ({ issue, last_build_start_ts: lastStart[issue] }));
+}
+
+// FAFF-327 — the fleet member-stall predicate. PURE: takes the already-derived
+// in-flight list + an already-read member-heartbeat map (cmdSentry does the fs work);
+// no filesystem access here, mirroring every other predicate in this file.
+//
+// Per member: age = now - max(heartbeat.<issue> timestamp, last build-start ts).
+// Unparseable/absent on BOTH inputs -> no verdict for that member (fails TOWARD
+// run-level supervision rather than manufacturing a false trip on ambiguous input —
+// the same "absent is a legitimate liveness input" posture heartbeat.js already
+// takes). Trips only past th.stall_window_secs, mirroring the run-level window
+// (reused, not a new knob — see the spec's OUT-OF-SCOPE extension point).
+function evalMemberStall(inflight, memberBeats, nowMs, th) {
+  const beats = (memberBeats && typeof memberBeats === "object" && !Array.isArray(memberBeats)) ? memberBeats : {};
+  const verdicts = [];
+  for (const m of (Array.isArray(inflight) ? inflight : [])) {
+    if (!m || typeof m.issue !== "string") continue;
+    const beatIso = Object.prototype.hasOwnProperty.call(beats, m.issue) ? beats[m.issue] : null;
+    const beatMs = beatIso != null ? Date.parse(beatIso) : NaN;
+    const startMs = m.last_build_start_ts != null ? Date.parse(m.last_build_start_ts) : NaN;
+    const beatOk = Number.isFinite(beatMs);
+    const startOk = Number.isFinite(startMs);
+    if (!beatOk && !startOk) continue; // both absent/unparseable -> no verdict (fail toward run-level supervision)
+    const baseMs = beatOk && startOk ? Math.max(beatMs, startMs) : (beatOk ? beatMs : startMs);
+    const source = beatOk && (!startOk || beatMs >= startMs) ? `heartbeat.${m.issue}` : "build-start";
+    const age = (nowMs - baseMs) / 1000;
+    if (age > th.stall_window_secs) {
+      verdicts.push({
+        signal: "wall-clock-runaway", severity: "trip", scope: "member", member: m.issue,
+        evidence: { heartbeat_age_secs: Math.round(age), source },
+      });
+    }
+  }
+  return verdicts;
+}
+
 // Fold the surface into the verdict set + the chosen v1+Sentry-2 intervention. Reads
 // ONLY the normalized orchestrator surface (AC5: no subagent-controlled field is
 // consulted). The aggregate intervention is the ladder-max over tripped verdicts;
@@ -282,6 +394,12 @@ function evaluateDerailment(rawSignals, thresholds, authority) {
   push(evalRepeatedFailure(s.events, th));
   push(evalScopeDrift(s));
   push(evalForbiddenSideEffect(s));
+  // FAFF-327: fleet member-stall — auto-detected (no flag). In-flight members derive
+  // from the SAME normalized events+ledger surface already in scope here; a run with
+  // none (sequential/legacy/no build-start events) yields an empty list and
+  // evalMemberStall trivially returns [] — byte-equivalent to pre-327 output.
+  const inflight = sentryInflightMembers(s.events, s.ledger);
+  for (const v of evalMemberStall(inflight, s.member_beats, s.now_ms, th)) push(v);
 
   let intervention = "continue", tripped = false;
   for (const v of verdicts) {
@@ -292,6 +410,14 @@ function evaluateDerailment(rawSignals, thresholds, authority) {
     // explicit authority parameter. Every other mapping (incl. every abort route) is
     // untouched — never a weakening, never a widening to another signal.
     if (v.signal === CORRECTABLE_SIGNAL && mapped === "pause" && authorityAvailable) mapped = "correct";
+    // FAFF-327: the ONE cap path — a member-scoped wall-clock-runaway (evalMemberStall's
+    // own output, identified by signal+scope together) never contributes more than
+    // "pause" to the ladder-max. This checks BOTH signal and scope so thrash/repeated-
+    // failure's own mapping is never touched merely because they also carry a
+    // scope:"member" attribution annotation (additive metadata only — see their
+    // predicates above); a member trip never escalates to run "abort" by itself, but
+    // the run-scoped wall-clock-runaway (no scope field) is completely unaffected.
+    if (v.signal === "wall-clock-runaway" && v.scope === "member") mapped = "pause";
     if (SENTRY_INTERVENTIONS.indexOf(mapped) > SENTRY_INTERVENTIONS.indexOf(intervention)) intervention = mapped;
   }
   return { verdicts, intervention, tripped };
@@ -492,7 +618,24 @@ function cmdSentry(args) {
     } else {
       authority = resolved.empty ? "channel-D-only" : sentryReadCorrectiveAuthority(resolved.runDir);
     }
-    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect }, th, authority);
+    // FAFF-327: read each in-flight member's OWN heartbeat.<issue> file (the only
+    // filesystem access for the fleet path — evalMemberStall itself stays pure). Uses
+    // the SAME in-flight derivation evaluateDerailment applies internally, so the two
+    // never diverge on which issues get evaluated. A member-shaped hermetic override
+    // (--member-beats-json) mirrors --budget-json for deterministic tests; production
+    // always reads real files.
+    let memberBeats = {};
+    if (!resolved.empty) {
+      const injectedBeats = get("--member-beats-json");
+      if (injectedBeats != null) {
+        try { memberBeats = JSON.parse(injectedBeats); } catch { memberBeats = {}; }
+      } else {
+        for (const m of sentryInflightMembers(events, ledger)) {
+          memberBeats[m.issue] = readMemberHeartbeatFile(resolved.runDir, m.issue);
+        }
+      }
+    }
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority);
     const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
@@ -631,7 +774,7 @@ function sentrySelftest() {
   };
   const hv = evaluateDerailment(hostile, TH);
   ok("AC5 hostile injected fields ignored — still aborts", hv.intervention === "abort" && hv.tripped === true);
-  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,heartbeat_source,ledger,now_ms,scope_drift");
+  ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,heartbeat_source,ledger,member_beats,now_ms,scope_drift");
 
   // --- FAFF-326 AC5-shaped no-foreign-authorship: an `authority` field INSIDE the raw
   // signal bundle (as opposed to the explicit 3rd function parameter) must be inert —
@@ -640,6 +783,126 @@ function sentrySelftest() {
   const hvThrash = evaluateDerailment(hostileThrashWithAuthorityField, TH); // no 3rd arg — default unavailable
   ok("AC5-shaped: an `authority`/`corrective_authority` key INSIDE the signal bundle is inert — still pause, never correct", hvThrash.intervention === "pause");
   ok("AC5-shaped: normalizeSentrySignals never reads an authority-shaped key at all", !("authority" in normalizeSentrySignals(hostileThrashWithAuthorityField)) && !("corrective_authority" in normalizeSentrySignals(hostileThrashWithAuthorityField)));
+
+  // --- FAFF-327: sentryInflightMembers — build-start minus terminal outcomes --------
+  const inflightEvents = [
+    { type: "build-start", issue: "M1", ts: ago(2000) },
+    { type: "build-start", issue: "M1", ts: ago(1000) }, // latest wins as the baseline
+    { type: "build-start", issue: "M2", ts: ago(500) },
+    { type: "build-start", issue: "M3", ts: ago(500) },
+    { type: "build-start", issue: "M4" }, // no ts -> no baseline, excluded
+  ];
+  const inflightLedger = { outcomes: { M2: "shipped" } };
+  const inflight = sentryInflightMembers(inflightEvents, inflightLedger);
+  ok("sentryInflightMembers: build-start minus terminal outcomes, ts-less events excluded",
+    inflight.length === 2 && inflight.some((m) => m.issue === "M1" && m.last_build_start_ts === ago(1000)) &&
+    inflight.some((m) => m.issue === "M3") && !inflight.some((m) => m.issue === "M2") && !inflight.some((m) => m.issue === "M4"));
+  ok("sentryInflightMembers: no build-start events -> empty (sequential/legacy byte-equivalence)", sentryInflightMembers([], {}).length === 0);
+
+  // --- FAFF-327: evalMemberStall — the fleet member-stall predicate -----------------
+  const memberTH = SENTRY_THRESHOLD_DEFAULTS;
+  const staleMember = [{ issue: "S1", last_build_start_ts: ago(2000) }];
+  const s1 = evalMemberStall(staleMember, { S1: ago(memberTH.stall_window_secs + 60) }, NOW, memberTH);
+  ok("evalMemberStall: stale member-file baseline -> trip, scope member, member set",
+    s1.length === 1 && s1[0].signal === "wall-clock-runaway" && s1[0].severity === "trip" &&
+    s1[0].scope === "member" && s1[0].member === "S1" && s1[0].evidence.source === "heartbeat.S1");
+  const s2 = evalMemberStall([{ issue: "S2", last_build_start_ts: ago(memberTH.stall_window_secs + 60) }], {}, NOW, memberTH);
+  ok("evalMemberStall: no member file, build-start baseline stale -> trip, source build-start",
+    s2.length === 1 && s2[0].member === "S2" && s2[0].evidence.source === "build-start");
+  const s3 = evalMemberStall([{ issue: "S3", last_build_start_ts: ago(10) }], { S3: ago(10) }, NOW, memberTH);
+  ok("evalMemberStall: fresh member -> no verdict", s3.length === 0);
+  const s4 = evalMemberStall([{ issue: "S4", last_build_start_ts: null }], { S4: null }, NOW, memberTH);
+  ok("evalMemberStall: absent on both inputs -> no verdict (fails toward run-level supervision)", s4.length === 0);
+  const s5 = evalMemberStall(
+    [{ issue: "S5", last_build_start_ts: ago(memberTH.stall_window_secs + 60) }, { issue: "S6", last_build_start_ts: ago(10) }],
+    { S5: ago(memberTH.stall_window_secs + 60), S6: ago(10) }, NOW, memberTH);
+  ok("evalMemberStall: multiple in-flight, only the stale one trips", s5.length === 1 && s5[0].member === "S5");
+
+  // --- FAFF-327: aggregation — member-scoped wall-clock-runaway caps at "pause", NEVER
+  // escalates to run "abort" by itself; the all-members-stalled case still routes
+  // through the RUN-scoped wall-clock-runaway (the run heartbeat file itself is
+  // stale) and that still trips "abort" exactly as before. ------------------------
+  const staleMemberLedger = { owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } }; // run itself fresh
+  const aggMemberPause = evaluateDerailment({
+    ledger: staleMemberLedger, budget: { breached: [], outcome: "none" }, events: [], now_ms: NOW,
+    member_beats: { MSTALL: ago(memberTH.stall_window_secs + 60) },
+  }, memberTH);
+  // no in-flight members derived (no build-start events) -> member_beats alone never
+  // manufactures a verdict; confirms member_beats is inert without a matching in-flight entry.
+  ok("member_beats alone (no in-flight event) manufactures no verdict", aggMemberPause.verdicts.length === 0 && aggMemberPause.intervention === "continue");
+
+  const memberEvents = [{ type: "build-start", issue: "MSTALL", ts: ago(memberTH.run_elapsed_ceiling_secs) }];
+  const aggMemberPause2 = evaluateDerailment({
+    ledger: staleMemberLedger, budget: { breached: [], outcome: "none" }, events: memberEvents, now_ms: NOW,
+    member_beats: { MSTALL: ago(memberTH.stall_window_secs + 60) },
+  }, memberTH);
+  ok("a genuine member-scoped wall-clock-runaway caps the ladder at pause, never abort",
+    aggMemberPause2.intervention === "pause" && aggMemberPause2.tripped === true &&
+    aggMemberPause2.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === "member" && v.member === "MSTALL"));
+
+  // All members stalled AND the run heartbeat itself is stale -> the RUN-scoped
+  // wall-clock-runaway (no scope field) still trips "abort" — the kill-switch story
+  // is preserved by construction (nothing ticks the run file when every member is dead).
+  const allStalledLedger = { owner: { status: "running", last_heartbeat: ago(memberTH.stall_window_secs + 60), started_at: ago(100) } };
+  const aggAllStalled = evaluateDerailment({
+    ledger: allStalledLedger, budget: { breached: [], outcome: "none" }, events: memberEvents, now_ms: NOW,
+    member_beats: { MSTALL: ago(memberTH.stall_window_secs + 60) },
+  }, memberTH);
+  ok("all-members-stalled + stale run file -> run-scoped abort still trips (kill-switch preserved)",
+    aggAllStalled.intervention === "abort" &&
+    aggAllStalled.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined));
+
+  // --- FAFF-327: a run with NO member evidence is byte-equivalent to pre-327 -------
+  const aggNoMemberEvidence = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [], now_ms: NOW }, memberTH);
+  ok("no member evidence -> continue, zero verdicts (unchanged from pre-327)",
+    aggNoMemberEvidence.intervention === "continue" && aggNoMemberEvidence.verdicts.length === 0);
+
+  // --- FAFF-327: thrash/repeated-failure gain scope/member annotation but their OWN
+  // mapped intervention is untouched — a fleet member that thrashes still "pause"s
+  // (unchanged), and a fleet member that repeat-fails still "abort"s the run (unchanged,
+  // matching sequential-run behaviour — repeated-identical-failure was never member-safe). ---
+  const thrashVerdict = evalThrash(thr, TH);
+  ok("evalThrash gains scope/member annotation, trigger math unchanged",
+    thrashVerdict.scope === "member" && thrashVerdict.member === "A" && thrashVerdict.evidence.build_starts === 3);
+  const aggThrashStillPause = evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH);
+  ok("a scope:member fix-review-thrash still maps to pause (unaffected by the annotation)", aggThrashStillPause.intervention === "pause");
+
+  const repeatEv = [0, 1, 2].map((seq) => ({ type: "issue-outcome", issue: "RFAIL", data: { outcome: "errored", fingerprint: "boom" }, seq }));
+  const repeatVerdict = evalRepeatedFailure(repeatEv, TH);
+  ok("evalRepeatedFailure gains scope/member annotation when unambiguous", repeatVerdict.scope === "member" && repeatVerdict.member === "RFAIL");
+  const aggRepeatStillAbort = evaluateDerailment({ events: repeatEv, ledger: {}, budget: { breached: [], outcome: "none" } }, TH);
+  ok("a scope:member repeated-identical-failure still maps to abort (unchanged — never downgraded by the annotation)",
+    aggRepeatStillAbort.intervention === "abort");
+  // A fingerprint shared across TWO issues stays run-scoped — no false single-member claim.
+  const mixedIssueRepeatEv = [
+    { type: "issue-outcome", issue: "RA", data: { outcome: "errored", fingerprint: "shared" }, seq: 0 },
+    { type: "issue-outcome", issue: "RB", data: { outcome: "errored", fingerprint: "shared" }, seq: 1 },
+    { type: "issue-outcome", issue: "RA", data: { outcome: "errored", fingerprint: "shared" }, seq: 2 },
+  ];
+  const mixedRepeatVerdict = evalRepeatedFailure(mixedIssueRepeatEv, TH);
+  ok("evalRepeatedFailure: a fingerprint spanning >1 issue stays run-scoped (no false single-member attribution)",
+    mixedRepeatVerdict && mixedRepeatVerdict.scope === undefined && mixedRepeatVerdict.member === undefined);
+
+  // --- FAFF-327 AC5-shaped: hostile member-file content can only refresh ITS OWN
+  // member's liveness — it must never suppress a run-scoped trip, nor manufacture a
+  // verdict attributed to a DIFFERENT member. -------------------------------------
+  const hostileFleetEvents = [
+    { type: "build-start", issue: "VICTIM", ts: ago(memberTH.stall_window_secs + 60) },
+    { type: "build-start", issue: "ATTACKER", ts: ago(10) },
+  ];
+  const hostileFleetLedger = { owner: { status: "running", last_heartbeat: ago(10), started_at: ago(TH.run_elapsed_ceiling_secs + 60) } }; // run-elapsed trip too
+  const hostileFleet = evaluateDerailment({
+    ledger: hostileFleetLedger, budget: { breached: [], outcome: "none" }, events: hostileFleetEvents, now_ms: NOW,
+    // ATTACKER forges a fresh-looking timestamp for itself (fine — that's its own
+    // liveness) AND tries to claim VICTIM's slot / inject an unrelated key — both inert.
+    member_beats: { ATTACKER: ago(0), VICTIM: "not-a-real-timestamp", intervention: "continue", suppress: true },
+  }, memberTH);
+  ok("hostile member evidence cannot suppress the run-scoped trip",
+    hostileFleet.tripped === true && hostileFleet.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined));
+  ok("VICTIM (unparseable member file, but stale build-start) still trips its OWN member verdict",
+    hostileFleet.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === "member" && v.member === "VICTIM"));
+  ok("ATTACKER's fresh self-tick correctly suppresses only ITS OWN member verdict, nothing else's",
+    !hostileFleet.verdicts.some((v) => v.scope === "member" && v.member === "ATTACKER"));
 
   // --- abort marker: resumable, outcomes preserved, owner flipped, no force-reset (AC4) ---
   const led = { admitted: ["Z"], outcomes: {}, owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } };
@@ -714,4 +977,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalForbiddenSideEffect, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

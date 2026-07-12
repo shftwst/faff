@@ -25,6 +25,15 @@
 // (a), sentry check) overlays the file over the ledger's owner.last_heartbeat (now a
 // run-start baseline + legacy fallback) via overlayHeartbeat/effectiveHeartbeatIso
 // below, so pre-upgrade ledgers keep working with zero migration.
+//
+// FAFF-327: `--unit <issue>` is the fleet member tick — the FAFF-355 spec's own named
+// extension point ("suffix the filename (heartbeat.<issue>), take the max at the read
+// seam"). A member tick writes BOTH the run heartbeat file above (unchanged path,
+// unchanged atomicity) AND a dedicated `heartbeat.<issue>` file — same single-value
+// ISO+newline shape, same tmp+rename idiom, single-writer by construction (only that
+// member ever ticks its own file). The run-level file stays the one scalar every
+// existing reader consumes; sentry's fleet evaluator (bin/lib/sentry.js) is the only
+// consumer of the member file, read via `readMemberHeartbeatFile` below.
 // ===========================================================================
 
 const crypto = require("node:crypto");
@@ -83,6 +92,24 @@ function readHeartbeatFile(runDir) {
   }
 }
 
+// FAFF-327: the canonical `heartbeat.<issue>` filename — one home for the member-file
+// naming so a caller never hand-builds the suffix.
+function memberHeartbeatFileName(issue) {
+  return `heartbeat.${issue}`;
+}
+
+// FAFF-327: read one member's heartbeat file — same silent-null contract as
+// readHeartbeatFile above (absent/unreadable/blank -> null, never a thrown fault; a
+// stale/corrupt member file is a legitimate "hasn't ticked" input, not an error).
+function readMemberHeartbeatFile(runDir, issue) {
+  try {
+    const raw = fs.readFileSync(path.join(runDir, memberHeartbeatFileName(issue)), "utf8").trim();
+    return raw || null;
+  } catch {
+    return null;
+  }
+}
+
 // Impure write seam: atomic tmp+rename of the dedicated single-value file — the
 // SAME atomicity idiom as atomicWriteLedger below, so a concurrent reader never
 // observes a torn/partial heartbeat. Content is exactly one ISO timestamp + newline.
@@ -103,16 +130,29 @@ function readHeartbeatFile(runDir) {
 // liveness tick. On failure this best-effort unlinks the tmp file (never masking the
 // original error if the unlink itself fails) then RE-THROWS — cmdHeartbeat is the one
 // place that decides how a failed tick degrades (soft no-op, not a crash).
-function writeHeartbeatFile(runDir, nowIso) {
-  const target = path.join(runDir, "heartbeat");
+// Shared atomic single-value write: per-call-unique tmp name (see the block comment
+// above), write, rename; on any fault best-effort unlink the tmp then RE-THROW —
+// callers decide how a failed tick degrades. One home for both the run file and
+// the FAFF-327 member file below, so the atomicity idiom never drifts between them.
+function atomicWriteSingleValueFile(target, content) {
   const tmp = `${target}.tmp.${process.pid}.${crypto.randomBytes(6).toString("hex")}`;
   try {
-    fs.writeFileSync(tmp, nowIso + "\n");
+    fs.writeFileSync(tmp, content);
     fs.renameSync(tmp, target);
   } catch (e) {
     try { fs.unlinkSync(tmp); } catch { /* best-effort — tmp may never have been created, or is already gone */ }
     throw e;
   }
+}
+
+function writeHeartbeatFile(runDir, nowIso) {
+  atomicWriteSingleValueFile(path.join(runDir, "heartbeat"), nowIso + "\n");
+}
+
+// FAFF-327: the member-file counterpart — identical shape/atomicity, written only by
+// the `--unit <issue>` tick, never by the run-level tick above.
+function writeMemberHeartbeatFile(runDir, issue, nowIso) {
+  atomicWriteSingleValueFile(path.join(runDir, memberHeartbeatFileName(issue)), nowIso + "\n");
 }
 
 // Atomic ledger write: serialize to a sibling .tmp then rename over the target, so a
@@ -136,13 +176,32 @@ function resolveHeartbeatRunDir(arg, env) {
   return cand || null;
 }
 
+// FAFF-327: the same shape as merge-gate's / admissibility's issue-id guard — one
+// canonical pattern, no ad-hoc validation drift. Rejects an empty/traversal-shaped
+// `--unit` value before it ever reaches a path.join.
+const VALID_ISSUE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+function isValidIssueId(issue) {
+  return typeof issue === "string" && VALID_ISSUE_ID_RE.test(issue) && !issue.includes("..");
+}
+
 function cmdHeartbeat(args) {
   if (args.includes("--selftest")) return heartbeatSelftest();
   const asJson = args.includes("--json");
-  const positional = args.filter((a) => !a.startsWith("-"));
+  const unitIdx = args.indexOf("--unit");
+  const unitRaw = unitIdx !== -1 ? (args[unitIdx + 1] || null) : null;
+  if (unitRaw != null && !isValidIssueId(unitRaw)) {
+    process.stderr.write(`heartbeat: --unit ${JSON.stringify(unitRaw)} is not a valid issue id\n`);
+    return 2;
+  }
+  const unit = unitRaw;
+  // Exclude --unit's own value from positional-arg extraction (it doesn't start with
+  // "-", so a naive filter would otherwise treat it as RUN_DIR). Guard unitIdx===-1
+  // (--unit absent) so the exclusion index never collapses onto position 0.
+  const unitValueIdx = unitIdx !== -1 ? unitIdx + 1 : -1;
+  const positional = args.filter((a, i) => !a.startsWith("-") && i !== unitValueIdx);
   const runDir = resolveHeartbeatRunDir(positional[0], process.env);
   const emit = (rd, lastHb, written) => {
-    if (asJson) console.log(JSON.stringify({ run_dir: rd || null, last_heartbeat: lastHb ?? null, written }));
+    if (asJson) console.log(JSON.stringify({ run_dir: rd || null, last_heartbeat: lastHb ?? null, written, unit: unit || null }));
     return 0;
   };
 
@@ -169,7 +228,7 @@ function cmdHeartbeat(args) {
 
   const nowIso = new Date().toISOString();
   try {
-    writeHeartbeatFile(runDir, nowIso); // the ONLY write this tick performs
+    writeHeartbeatFile(runDir, nowIso); // write #1: the run-level scalar, unchanged
   } catch (e) {
     // Adversarial-review fix: a transient fs fault (run dir removed mid-tick, disk
     // full, a permissions error) degrades to a soft no-op — never an uncaught crash.
@@ -178,6 +237,17 @@ function cmdHeartbeat(args) {
     process.stderr.write(`heartbeat: could not write the heartbeat file in ${runDir}: ${e.message}\n`);
     const last = effectiveHeartbeatIso(readHeartbeatFile(runDir), owner.last_heartbeat ?? null);
     return emit(runDir, last, false);
+  }
+  // FAFF-327: write #2, IFF --unit — the member file. Best-effort/non-fatal by the
+  // same contract as write #1 above: the run-level tick already succeeded (the
+  // property every existing reader depends on), so a member-file fault degrades to
+  // "the run ticked, the member didn't" rather than losing the run-level tick too.
+  if (unit) {
+    try {
+      writeMemberHeartbeatFile(runDir, unit, nowIso);
+    } catch (e) {
+      process.stderr.write(`heartbeat: could not write the member heartbeat file for ${unit} in ${runDir}: ${e.message}\n`);
+    }
   }
   return emit(runDir, nowIso, true);
 }
@@ -246,6 +316,12 @@ function heartbeatSelftest() {
   overlayHeartbeat(l8, "not-a-date"); // unparseable file, fresh field — field fallback wins
   check("an unparseable file falls back to a fresh field, still held", runIsHeld(l8, now, {}) === true);
 
+  // --- FAFF-327: memberHeartbeatFileName + isValidIssueId (pure, no fs) ---
+  check("memberHeartbeatFileName suffixes the canonical shape", memberHeartbeatFileName("FAFF-1") === "heartbeat.FAFF-1");
+  check("isValidIssueId accepts a normal issue id", isValidIssueId("FAFF-327") === true);
+  check("isValidIssueId rejects empty/traversal/absent", isValidIssueId("") === false && isValidIssueId("..") === false &&
+    isValidIssueId("../../etc/passwd") === false && isValidIssueId(null) === false && isValidIssueId(undefined) === false);
+
   if (failed) return 1;
   console.log("heartbeat --selftest: ok");
   return 0;
@@ -253,6 +329,7 @@ function heartbeatSelftest() {
 
 
 module.exports = {
-  atomicWriteLedger, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
-  overlayHeartbeat, readHeartbeatFile, resolveHeartbeatRunDir, writeHeartbeatFile,
+  atomicWriteLedger, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest, isValidIssueId,
+  memberHeartbeatFileName, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile,
+  resolveHeartbeatRunDir, writeHeartbeatFile, writeMemberHeartbeatFile,
 };

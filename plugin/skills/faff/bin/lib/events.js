@@ -25,11 +25,20 @@ const EVENT_TYPES = new Set([
   // captured `sentry check --json` payload verbatim. Emitted only on a COMPLETED
   // consult — a failed consult (non-zero/unparseable) emits none (logged instead).
   "sentry-checkpoint",
+  // FAFF-326: Channel A's append-only audit trail — one per `faff corrective author`
+  // (data = the written CorrectiveInput record) and one per `faff corrective check`
+  // that ran WHILE asserted (data = {disposition,mandate,applied,rejected}). Both are
+  // issue-scoped (EVENT_ISSUE_SCOPED below) — a corrective input always constrains
+  // exactly one unit's next dispatch. This is what makes a sequential-narrowing
+  // pattern (ADR-0039's named residual) reviewable: >=2 inputs on one issue is
+  // visible in this trail, never silently accumulated.
+  "corrective-authored", "corrective-consumed",
 ]);
 // Types that are about one specific issue → `issue` is required.
 // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
 const EVENT_ISSUE_SCOPED = new Set([
   "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
+  "corrective-authored", "corrective-consumed",
 ]);
 // The run-ledger outcome vocabulary an issue-outcome event's data.outcome must use.
 const EVENT_LEDGER_OUTCOMES = new Set([

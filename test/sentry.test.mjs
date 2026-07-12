@@ -372,6 +372,11 @@ test("FAFF-425: a budget consult that hits the same own-fault (indeterminate) pr
 });
 
 // --- AC6: corrective-redirect / fleet / who-watches-the-watcher are NOT here -------
+// FAFF-326 (Sentry-2, Channel A) consciously EXTENDS this guard rather than deleting
+// it: the ladder now contains `correct` (between pause and abort), but it stays
+// UNREACHABLE while unasserted — the only production state this sandbox can ever
+// exercise via the CLI (the corrective-integrity gate reads the genuine pid-1
+// environ; there is no ambient way to fake asserted:true from a test process).
 
 // --- FAFF-352: the effects→sentry bridge — `--forbidden-side-effect` on `check` -----
 
@@ -427,13 +432,12 @@ test("FAFF-352 bridge integration: an escaped effect (declared-effects ledger) �
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("AC6: the v1 intervention ladder stops at abort — `correct` is deferred, not present", () => {
+test("AC6 (extended, FAFF-326): the ladder now CONTAINS `correct` (between pause and abort), but stays unreachable while unasserted", () => {
   const dir = tmp();
   try {
-    // No reachable code path or output ever yields `correct`; the ladder is continue|pause|abort.
     const src = readFileSync(SENTRY_SRC, "utf8");
-    assert.ok(/const SENTRY_INTERVENTIONS = \["continue", "pause", "abort"\]/.test(src), "ladder is exactly continue|pause|abort");
-    // exercised live: the worst aggregate Sentry can route to is abort.
+    assert.ok(/const SENTRY_INTERVENTIONS = \["continue", "pause", "correct", "abort"\]/.test(src), "ladder is exactly continue|pause|correct|abort");
+    // exercised live: the worst aggregate Sentry can route to (unasserted) is still abort.
     const ledger = {
       run_id: "r", admitted: ["A", "B"], outcomes: { A: "shipped", B: "parked" },
       budget: { envelope: { ceilings: { max_attempts: 1 }, at_ceiling: "escalate" } },
@@ -441,7 +445,41 @@ test("AC6: the v1 intervention ladder stops at abort — `correct` is deferred, 
     };
     const rd = mkRun(dir, "r", ledger);
     const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
-    assert.ok(["continue", "pause", "abort"].includes(out.intervention));
+    assert.ok(["continue", "pause", "correct", "abort"].includes(out.intervention));
     assert.notEqual(out.intervention, "correct");
+    assert.equal(out.authority, "channel-D-only", "the real corrective-integrity gate is unasserted in this sandbox — authority degrades honestly");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-326: a thrash-only trip (no budget/wall-clock competing signal), UNASSERTED (no real declaration) → still pause, `correct` unreachable via the live CLI", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const events = [0, 1, 2].map((seq) => ({ type: "build-start", issue: "A", seq }));
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["A"], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } }, events);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.intervention, "pause", "thrash trip, unasserted authority → the v1 default, unchanged");
+    assert.equal(out.authority, "channel-D-only");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-326: the --authority hermetic test seam is explicit-flag-only — 'available' upgrades a thrash trip to `correct`", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const events = [0, 1, 2].map((seq) => ({ type: "build-start", issue: "A", seq }));
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["A"], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } }, events);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--authority", "available"]).out);
+    assert.equal(out.intervention, "correct");
+    assert.equal(out.authority, "available");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-326: an unparseable --authority value fails loud (exit 2), never a silent fallback", () => {
+  const dir = tmp();
+  try {
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "done" } });
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--authority", "yes-please"]);
+    assert.equal(r.code, 2);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.0](https://github.com/shftwst/faff/compare/faff--v0.9.0...faff--v0.10.0) (2026-07-12)
+
+
+### Features
+
+* **FAFF-194:** deterministic guards for machine-checkable adversarial findings + output-format enforcement ([#321](https://github.com/shftwst/faff/issues/321)) ([3a03dc8](https://github.com/shftwst/faff/commit/3a03dc8e15d34cac6eb596f0534a3461c6a108ee))
+* **FAFF-355:** dedicated single-value heartbeat file — close the N-writer ledger race ([#317](https://github.com/shftwst/faff/issues/317)) ([f81e819](https://github.com/shftwst/faff/commit/f81e8199dfa337101b8df5f5aa139cf01bd6cfbe))
+* **FAFF-361:** review-call.mjs prepends the model-attribution header itself ([#322](https://github.com/shftwst/faff/issues/322)) ([27fc571](https://github.com/shftwst/faff/commit/27fc571717b9fdd92e0830f1271e68375bdb5e4b))
+* **FAFF-397:** blocking run-end ground-truth reconcile ([#318](https://github.com/shftwst/faff/issues/318)) ([2bf69c6](https://github.com/shftwst/faff/commit/2bf69c609a82811cba6d7d7a5f585d08dc1c45dd))
+* **FAFF-403:** retry-later/awaiting-review disposition for review-provider outage ([#320](https://github.com/shftwst/faff/issues/320)) ([b0560fd](https://github.com/shftwst/faff/commit/b0560fd14f19803d425439127260ed8c608a71fc))
+* **FAFF-405:** add unavailable as a first-class review-verdict signal ([#319](https://github.com/shftwst/faff/issues/319)) ([23307e6](https://github.com/shftwst/faff/commit/23307e66adb1e1b5084c002bfe19a681b1c20969))
+* **FAFF-421:** migrate read-skill methodology calls to producer dispatch ([#315](https://github.com/shftwst/faff/issues/315)) ([52bbef5](https://github.com/shftwst/faff/commit/52bbef51142aedb44257d6875be6dca4917dddb3))
+* **FAFF-422:** local-engine lane values v1 — one-shot dispatch for methodology/intake ([#316](https://github.com/shftwst/faff/issues/316)) ([1539f3d](https://github.com/shftwst/faff/commit/1539f3d4f480e1808c03b91daa637b4c2f01dcde))
+* **FAFF-427:** wire the ADR-0048 per-model × per-class price map into budget.cost; make a dollar ceiling the default L4 governor ([#324](https://github.com/shftwst/faff/issues/324)) ([037148c](https://github.com/shftwst/faff/commit/037148c62f705bdcedf97c97ce842f36e056ae67))
+
+
+### Bug Fixes
+
+* **FAFF-414:** review-call.mjs advances the fallback chain on a non-transient throw (HTTP 400/413), not abort to EXIT.OTHER ([#323](https://github.com/shftwst/faff/issues/323)) ([c9306d7](https://github.com/shftwst/faff/commit/c9306d7a9a9e2d8c06da00ad7656baac6910b034))
+* **FAFF-428:** refuse or loudly degrade L4 budget metering when transcripts are unavailable ([#325](https://github.com/shftwst/faff/issues/325)) ([bc02ff6](https://github.com/shftwst/faff/commit/bc02ff6c2dbbba02b7d946f3300ec906ab835f29))
+* **FAFF-443:** source --global skill links from the main checkout, flag worktree-sourced links in doctor ([#312](https://github.com/shftwst/faff/issues/312)) ([518cf45](https://github.com/shftwst/faff/commit/518cf45ed807e64e35a6bbd2602937b80568c884))
+
 ## [0.9.0](https://github.com/shftwst/faff/compare/faff--v0.8.0...faff--v0.9.0) (2026-07-10)
 
 

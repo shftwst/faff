@@ -21,75 +21,201 @@ function classifyCriterion(text) {
   return "prose";
 }
 
-// Pure function over the `## Acceptance criteria` section body. No filesystem /
-// tracker I/O, so it is unit-testable in isolation. Returns [{text, kind}].
+// FAFF-275: a fence-open line whose info string is EXACTLY `holdout` (case-insensitive) — every
+// criterion unit formed inside that fence is a holdout. Both fence styles recognised, matching
+// the fence-toggle regex every other scanner in this file already shares.
+function isHoldoutFenceOpen(line) {
+  return /^\s*(?:```|~~~)\s*holdout\s*$/i.test(line);
+}
+
+// Pure function over the `## Acceptance criteria` / `## Scenarios` section body. No filesystem /
+// tracker I/O, so it is unit-testable in isolation. Returns [{text, kind, holdout}].
 //  - strips blank lines, code-fence markers, and whole-line italic placeholders (^_.*_$)
 //  - a unit is one markdown list item ("- "/"* "/"N.") OR a Given/When/Then block
+// FAFF-275: the marker is read HERE, at unit-formation time, so classify's flags and dodSplit's
+// removals (holdoutRemovalSpans, below) can never disagree — both share isHoldoutFenceOpen + the
+// same `/^holdout:\s*/i` bullet-prefix test. A bullet's explicit `holdout:` prefix wins over an
+// enclosing fence's state (irrelevant in practice — bullets don't appear inside GWT fences).
 function classifyAcceptanceCriteria(sectionText) {
   const lines = String(sectionText == null ? "" : sectionText).split(/\r?\n/);
   const units = [];
   let cur = null;
-  const pushCur = () => { if (cur != null) { const t = cur.trim(); if (t) units.push(t); } cur = null; };
+  let curHoldout = false;
+  let fence = false;
+  let fenceHoldout = false;
+  const pushCur = () => { if (cur != null) { const t = cur.trim(); if (t) units.push({ text: t, holdout: curHoldout }); } cur = null; curHoldout = false; };
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, "");
-    if (/^\s*```/.test(line)) continue;                          // drop fence markers, keep content
+    if (/^\s*(?:```|~~~)/.test(line)) {                          // drop fence markers, keep content
+      if (!fence) { fence = true; fenceHoldout = isHoldoutFenceOpen(line); }
+      else { fence = false; fenceHoldout = false; }
+      continue;
+    }
     if (line.trim() === "") { pushCur(); continue; }             // blank closes a unit
     if (/^_.*_$/.test(line.trim())) { pushCur(); continue; }     // whole-line italic placeholder — not a criterion
+    if (!fence && /^\s*>/.test(line)) { pushCur(); continue; }   // FAFF-275: a blockquote line (e.g. dodSplit's withheld-note) is never a criterion
     const li = line.match(/^\s*(?:[-*+]|\d+[.)])\s+(.*)$/);
-    if (li) { pushCur(); cur = li[1]; continue; }                // a list item starts a fresh unit
-    if (/^\s*Given\b/i.test(line)) { pushCur(); cur = line.trim(); continue; }  // GWT block start
+    if (li) {
+      pushCur();
+      const m = li[1].match(/^holdout:\s*(.*)$/i);
+      if (m) { cur = m[1]; curHoldout = true; }                  // FAFF-275: bullet-prefix marker, stripped before classifying
+      else { cur = li[1]; curHoldout = fence && fenceHoldout; }
+      continue;
+    }
+    if (/^\s*Given\b/i.test(line)) { pushCur(); cur = line.trim(); curHoldout = fence && fenceHoldout; continue; }  // GWT block start
     if (cur != null) cur += "\n" + line.trim();                  // continuation (When/Then/And/wrap)
-    else cur = line.trim();                                      // a bare leading prose/assertion line
+    else { cur = line.trim(); curHoldout = fence && fenceHoldout; }  // a bare leading prose/assertion line
   }
   pushCur();
-  return units.map((text) => ({ text, kind: classifyCriterion(text) }));
+  return units.map((u) => ({ text: u.text, kind: classifyCriterion(u.text), holdout: u.holdout }));
 }
 
 // --- dod classify (FAFF-34) ---
-// The body of a heading section (`## Scenarios`, `### N. DONE`, …) up to the next equal/higher heading.
-// Fence-aware: a `#` inside a code fence is not a heading. Returns null when the heading is absent. Pure.
+// The LINE-INDEX extent of a heading section (`## Scenarios`, `### N. DONE`, …), up to the next
+// equal/higher heading. Fence-aware: a `#` inside a code fence is not a heading. Returns null when
+// the heading is absent. Pure. `sectionBody` (below) is a thin text-joining wrapper over this; FAFF-275's
+// `dodSplit` needs the INDICES themselves (to remove/keep specific lines), so the range-finding walk
+// lives here once and both callers share it — never two independently-drifting boundary scanners.
 // FAFF-306: `opts.extraStop(line)` is an OPTIONAL boundary extension consulted outside fences — the
 // scenarios caller passes `scenariosBoundaryStop` (stop at a DONE heading / contract fence / confidence
 // line regardless of relative level); other callers omit it and keep the equal/higher-heading break alone.
-function sectionBody(specText, headingRe, opts) {
+function sectionBodyRange(lines, headingRe, opts) {
   const extraStop = opts && opts.extraStop;
-  const lines = String(specText == null ? "" : specText).split(/\r?\n/);
   let start = -1, level = 0, fence = false;
   for (let k = 0; k < lines.length; k++) {
     if (/^\s*(?:```|~~~)/.test(lines[k])) { fence = !fence; continue; }
     if (!fence && headingRe.test(lines[k])) { start = k; level = headingLevel(lines[k]); break; }
   }
   if (start === -1) return null;
-  const body = [];
+  let end = lines.length;
   fence = false;
   for (let k = start + 1; k < lines.length; k++) {
     // The extra boundary is checked OUTSIDE a fence and BEFORE the fence toggle, so a
     // `faff-contract:` fence-open stops the section instead of being entered as fence content.
-    if (!fence && extraStop && extraStop(lines[k])) break;
-    if (/^\s*(?:```|~~~)/.test(lines[k])) { fence = !fence; body.push(lines[k]); continue; }
+    if (!fence && extraStop && extraStop(lines[k])) { end = k; break; }
+    if (/^\s*(?:```|~~~)/.test(lines[k])) { fence = !fence; continue; }
     const lvl = fence ? 0 : headingLevel(lines[k]);
-    if (lvl > 0 && lvl <= level) break;
-    body.push(lines[k]);
+    if (lvl > 0 && lvl <= level) { end = k; break; }
   }
-  return body.join("\n");
+  return { headingLine: start, bodyStart: start + 1, bodyEnd: end };
+}
+
+// The body TEXT of a heading section — a thin join over sectionBodyRange (see above for the shared
+// boundary walk). Unchanged behaviour/signature; existing callers (admissible, dod classify) are
+// unaffected by the refactor.
+function sectionBody(specText, headingRe, opts) {
+  const lines = String(specText == null ? "" : specText).split(/\r?\n/);
+  const range = sectionBodyRange(lines, headingRe, opts);
+  if (range == null) return null;
+  return lines.slice(range.bodyStart, range.bodyEnd).join("\n");
 }
 
 // Classify a spec's DoD criteria by born-verifiability class, reusing classifyCriterion VERBATIM (no forked
 // rule — the same scenario>assertion>prose function `faff admissible` applies). Criteria are drawn from the
 // SAME structures admissible reads: the `## Scenarios` section (each Given/When/Then block + each assertion
 // bullet, via classifyAcceptanceCriteria) and the `### N. DONE` checklist (each `- [ ]` item). Pure — no I/O.
+// FAFF-275: additive `holdout` per-criterion flag + top-level `holdout_counts` — `counts` is untouched and
+// still sums to `criteria.length`, so every existing consumer keeps working unread.
 function dodClassify(specText) {
   const criteria = [];
   const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE, { extraStop: scenariosBoundaryStop });
   if (scenBody != null) {
-    for (const u of classifyAcceptanceCriteria(scenBody)) criteria.push({ text: u.text, class: u.kind, source: "scenarios" });
+    for (const u of classifyAcceptanceCriteria(scenBody)) criteria.push({ text: u.text, class: u.kind, source: "scenarios", holdout: u.holdout });
   }
+  const doneAdvisories = [];
   for (const t of parseDoneChecklist(specText)) {
-    criteria.push({ text: t, class: classifyCriterion(t), source: "done" });
+    // FAFF-275: DONE mirrors the body 1:1 and is NEVER withheld (the closed-loop rule — a withheld
+    // DONE item would silently break graft's AC checklist + the merge-gate floor). A `holdout:`-prefixed
+    // DONE item is left LITERAL (no strip, holdout stays false) and draws an advisory, never a strip/removal.
+    if (/^holdout:\s*/i.test(t)) doneAdvisories.push(t);
+    criteria.push({ text: t, class: classifyCriterion(t), source: "done", holdout: false });
+  }
+  for (const t of doneAdvisories) {
+    process.stderr.write(`dod classify: DONE item begins "holdout:" but DONE items are never withheld (marker ignored, text kept literal): ${t.replace(/\s+/g, " ").slice(0, 60)}\n`);
   }
   const counts = { scenario: 0, assertion: 0, prose: 0 };
   for (const c of criteria) counts[c.class]++;
-  return { criteria, counts };
+  const holdout_counts = { holdout: 0, visible: 0 };
+  for (const c of criteria) { if (c.holdout) holdout_counts.holdout++; else holdout_counts.visible++; }
+  return { criteria, counts, holdout_counts };
+}
+
+// FAFF-275: within a Scenarios-section BODY (already isolated by sectionBodyRange), find the
+// line-index spans to REMOVE for the builder view — a holdout fence (open..close inclusive) or a
+// holdout bullet (its start line + continuation lines, up to the next blank/unit/fence/heading).
+// Independent scan from classifyAcceptanceCriteria, but shares its two marker predicates
+// (isHoldoutFenceOpen, the `/^holdout:\s*/i` bullet-prefix test) and its unit-boundary rules
+// (blank / new-bullet / new-Given closes the current unit) — one shared vocabulary, two projections
+// (classify's flags, split's removals), never two independently-drifting parsers.
+function holdoutRemovalSpans(bodyLines) {
+  const spans = [];
+  let fence = false, fenceHoldout = false, fenceStart = -1;
+  let bulletStart = -1;   // -1 == not currently inside a holdout-bullet unit
+  const closeBullet = (endIdx) => { if (bulletStart !== -1) { spans.push({ start: bulletStart, end: endIdx }); bulletStart = -1; } };
+  for (let i = 0; i < bodyLines.length; i++) {
+    const line = bodyLines[i].replace(/\s+$/, "");
+    if (/^\s*(?:```|~~~)/.test(line)) {
+      if (!fence) { fence = true; fenceHoldout = isHoldoutFenceOpen(line); fenceStart = i; closeBullet(i - 1); }
+      else { if (fenceHoldout) spans.push({ start: fenceStart, end: i }); fence = false; fenceHoldout = false; fenceStart = -1; }
+      continue;
+    }
+    if (fence) continue;                                          // in-fence content is handled as ONE span above
+    if (line.trim() === "") { closeBullet(i - 1); continue; }      // blank closes the current holdout-bullet unit
+    const li = line.match(/^\s*(?:[-*+]|\d+[.)])\s+(.*)$/);
+    if (li) { closeBullet(i - 1); bulletStart = /^holdout:\s*/i.test(li[1]) ? i : -1; continue; }
+    if (/^\s*Given\b/i.test(line)) { closeBullet(i - 1); continue; }  // a new GWT unit is never itself holdout outside a fence
+    // a continuation line belongs to the currently-open holdout bullet, if any — no-op otherwise
+  }
+  closeBullet(bodyLines.length - 1);
+  return spans;
+}
+
+// FAFF-275: the deterministic split behind `faff dod split --view builder|full`. `full` is the
+// identity (byte-for-byte). `builder` removes each holdout-marked scenario unit and inserts one
+// withheld-count note directly under the Scenarios heading — a no-marker spec is a guaranteed,
+// byte-identical no-op (the input is returned UNTOUCHED, never reconstructed from split lines).
+// Pure: no tracker/network/LLM. Returns { text, warnings } — warnings is the over-withholding
+// advisory (never gates; the CLI wrapper prints it to stderr, mirroring admissibleVerdict's
+// return-don't-print convention elsewhere in this file).
+function dodSplit(specText, view) {
+  const text = String(specText == null ? "" : specText);
+  if (view === "full") return { text, warnings: [] };
+
+  const lines = text.split(/\r?\n/);
+  const range = sectionBodyRange(lines, SCENARIOS_HEADING_RE, { extraStop: scenariosBoundaryStop });
+  if (range == null) return { text, warnings: [] };                // no Scenarios section — nothing the marker's jurisdiction covers
+
+  const bodyLines = lines.slice(range.bodyStart, range.bodyEnd);
+  const classified = classifyAcceptanceCriteria(bodyLines.join("\n"));
+  const holdoutCount = classified.filter((c) => c.holdout).length;
+  if (holdoutCount === 0) return { text, warnings: [] };            // guaranteed byte-identical no-op
+
+  const spans = holdoutRemovalSpans(bodyLines);
+  const removed = new Set();
+  for (const s of spans) for (let i = s.start; i <= s.end; i++) removed.add(i);
+  const kept = [];
+  for (let i = 0; i < bodyLines.length; i++) if (!removed.has(i)) kept.push(bodyLines[i]);
+  // Collapse a doubled blank line LEFT BY a removal (array-level — never touch bytes outside
+  // removed spans), then drop a leading blank: the note becomes the section's new first line.
+  const collapsed = [];
+  for (const l of kept) {
+    if (l.trim() === "" && collapsed.length > 0 && collapsed[collapsed.length - 1].trim() === "") continue;
+    collapsed.push(l);
+  }
+  while (collapsed.length > 0 && collapsed[0].trim() === "") collapsed.shift();
+
+  const bornBefore = classified.filter((c) => c.kind === "scenario" || c.kind === "assertion").length;
+  const bornAfter = classified.filter((c) => !c.holdout && (c.kind === "scenario" || c.kind === "assertion")).length;
+  const warnings = [];
+  if (bornBefore >= 1 && bornAfter === 0) {
+    warnings.push("over-withholding advisory: the builder view retains ZERO born-verifiable Scenarios-section criteria (the full spec had >= 1) — consider marking fewer scenarios as holdout");
+  }
+
+  const note = `> ${holdoutCount} holdout scenario(s) withheld from this view — evaluated code-blind against the running feature; full spec on the tracker.`;
+  const before = lines.slice(0, range.headingLine + 1);   // everything up to + including the Scenarios heading, untouched
+  const after = lines.slice(range.bodyEnd);               // everything from the section's end onward, untouched
+  const middleLines = ["", note, "", ...collapsed];
+  return { text: [...before, ...middleLines, ...after].join("\n"), warnings };
 }
 
 // The `## Acceptance criteria` section body (case-insensitive heading PREFIX, so
@@ -485,11 +611,13 @@ function cmdAdmissible(args) {
 // faff dod classify — FAFF-34: classify a spec's DoD criteria by born-verifiability class (reusing
 // classifyCriterion verbatim), for the evaluator to decide which it may machine-judge (scenario/assertion)
 // vs force to needs-human (prose). Pure: file/stdin in, JSON out, no tracker/network/LLM.
+// FAFF-275: `dod split` is a sibling action in this same namespace — see cmdDodSplit.
 function cmdDod(args) {
   if (args.includes("--selftest")) return dodSelftest();
   const action = args.find((a) => !a.startsWith("--"));
+  if (action === "split") return cmdDodSplit(args);
   if (action !== "classify") {
-    process.stderr.write("faff dod: usage: faff dod classify --spec <path|-> [--json]\n");
+    process.stderr.write("faff dod: usage:\n  faff dod classify --spec <path|-> [--json]\n  faff dod split --spec <path|-> --view builder|full\n");
     return 2;
   }
   const json = args.includes("--json");
@@ -506,6 +634,33 @@ function cmdDod(args) {
   const r = dodClassify(specText);
   process.stdout.write(JSON.stringify(r, null, json ? 0 : 2) + "\n");
   return 0;   // a successful parse is exit 0 (an empty criteria set is valid data the evaluator handles)
+}
+
+// faff dod split --spec <path|-> --view builder|full — FAFF-275: print the requested visibility
+// view of a spec. `full` is the identity (byte-for-byte); `builder` removes each holdout-marked
+// scenario unit (see dodSplit) and inserts one withheld-count note. Pure beyond the single
+// file/stdin read (no tracker/network/LLM) — the over-withholding advisory (if any) is printed to
+// stderr, never gating (exit stays 0). Exit 2: missing/unknown --view, or unreadable spec.
+function cmdDodSplit(args) {
+  const view = adrFlag(args, "--view");
+  if (view !== "builder" && view !== "full") {
+    process.stderr.write("faff dod split: usage: faff dod split --spec <path|-> --view builder|full\n");
+    return 2;
+  }
+  const specIdx = args.indexOf("--spec");
+  const specArg = specIdx !== -1 ? args[specIdx + 1] : null;
+  let specText;
+  try {
+    if (specArg && specArg !== "-") specText = fs.readFileSync(specArg, "utf8");
+    else specText = fs.readFileSync(0, "utf8");   // --spec - or no --spec → stdin
+  } catch (e) {
+    process.stderr.write(`faff dod split: cannot read spec: ${e.message}\n`);
+    return 2;
+  }
+  const { text, warnings } = dodSplit(specText, view);
+  process.stdout.write(text);
+  for (const w of warnings) process.stderr.write(`faff dod split: ${w}\n`);
+  return 0;
 }
 
 // In-memory selftest of dodClassify + classifyCriterion parity (mirrors admissible --selftest). No I/O.
@@ -564,6 +719,77 @@ function dodSelftest() {
   check("FAFF-306: DONE items not double-counted (source scenarios holds only the real GWT)", mmU.criteria.filter((c) => c.source === "scenarios").length === 1 && mmU.criteria.filter((c) => c.source === "done").length === 1);
   check("FAFF-306: classification is identical whether SCENARIOS is h2 or h3 (heading level no longer matters)", JSON.stringify(mmU) === JSON.stringify(mmN));
   check("FAFF-306: parseScenarios count == dod source:scenarios scenario count (cross-parser agreement)", parseScenarios(mmUnnumbered) === mmU.criteria.filter((c) => c.source === "scenarios" && c.class === "scenario").length);
+
+  // --- FAFF-275: holdout marker + `dod split` ---
+  const holdoutSpec = [
+    "## Scenarios", "",
+    "```holdout",
+    "Given a fenced holdout scenario",
+    "When it runs",
+    "Then it is withheld from the builder",
+    "```", "",
+    "```",
+    "Given a plain visible scenario",
+    "When it runs",
+    "Then it is NOT withheld",
+    "```", "",
+    "- holdout: The p99 latency MUST be < 200ms",
+    "- The onboarding copy reads warmly",
+    "",
+    "## 8. DONE", "",
+    "- [ ] the parser returns >=1 item",
+  ].join("\n");
+  const hc = dodClassify(holdoutSpec);
+  const scenarioCriteria = hc.criteria.filter((c) => c.source === "scenarios");
+  check("FAFF-275: fenced-holdout GWT criterion → holdout true", scenarioCriteria.some((c) => c.class === "scenario" && c.holdout === true && /withheld from the builder/.test(c.text)));
+  check("FAFF-275: plain-fence GWT criterion → holdout false", scenarioCriteria.some((c) => c.class === "scenario" && c.holdout === false && /NOT withheld/.test(c.text)));
+  check("FAFF-275: `holdout:` bullet → prefix stripped, class assertion, holdout true", scenarioCriteria.some((c) => c.text === "The p99 latency MUST be < 200ms" && c.class === "assertion" && c.holdout === true));
+  check("FAFF-275: unmarked bullet → holdout false", scenarioCriteria.some((c) => /onboarding copy/.test(c.text) && c.holdout === false));
+  check("FAFF-275: holdout_counts sums to criteria.length, holdout+visible split correct", hc.holdout_counts.holdout + hc.holdout_counts.visible === hc.criteria.length && hc.holdout_counts.holdout === 2);
+  check("FAFF-275: counts is UNCHANGED shape and still sums to criteria.length", hc.counts.scenario + hc.counts.assertion + hc.counts.prose === hc.criteria.length);
+
+  const builderView = dodSplit(holdoutSpec, "builder");
+  check("FAFF-275: dod split --view full is the identity (byte-for-byte)", dodSplit(holdoutSpec, "full").text === holdoutSpec);
+  check("FAFF-275: dod split --view builder omits the fenced-holdout block", !/withheld from the builder/.test(builderView.text));
+  check("FAFF-275: dod split --view builder omits the holdout bullet", !/p99 latency/.test(builderView.text));
+  check("FAFF-275: dod split --view builder retains the visible scenario + bullet", /NOT withheld/.test(builderView.text) && /onboarding copy/.test(builderView.text));
+  check("FAFF-275: dod split --view builder inserts the withheld-count note under the Scenarios heading", /^## Scenarios\n\n> 2 holdout scenario\(s\) withheld/.test(builderView.text));
+  check("FAFF-275: dod split --view builder retains the DONE section untouched", /## 8\. DONE[\s\S]*the parser returns >=1 item/.test(builderView.text));
+
+  // Coherence invariant: dodClassify(dodSplit(spec, builder)) == full classification minus the holdout criteria.
+  const bviewClassified = dodClassify(builderView.text);
+  const expectedRemaining = hc.criteria.filter((c) => !c.holdout);
+  check("FAFF-275 coherence invariant: builder-view classification == full minus holdout criteria", JSON.stringify(bviewClassified.criteria) === JSON.stringify(expectedRemaining));
+  check("FAFF-275 coherence invariant: builder-view holdout_counts.holdout is 0", bviewClassified.holdout_counts.holdout === 0);
+
+  // A marker-free spec's builder view MUST be a byte-identical no-op.
+  const noMarkerSpec = "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n";
+  check("FAFF-275: no-marker spec → builder view is byte-identical to the input", dodSplit(noMarkerSpec, "builder").text === noMarkerSpec);
+
+  // A marker OUTSIDE the Scenarios section is not recognised — no flag, no strip, no removal.
+  const markerOutside = "## Scenarios\n```\nGiven x\nThen y\n```\n\n## 8. DONE\n\n- [ ] holdout: the parser returns >=1 item\n";
+  const outsideClassified = dodClassify(markerOutside);
+  check("FAFF-275: a `holdout:`-prefixed DONE item stays literal (not stripped), holdout false", outsideClassified.criteria.some((c) => c.source === "done" && c.text === "holdout: the parser returns >=1 item" && c.holdout === false));
+  check("FAFF-275: dod split never removes a DONE-section holdout-prefixed item", dodSplit(markerOutside, "builder").text === markerOutside);
+
+  // ~~~ fences are recognised too, matching the shared fence recognisers.
+  const tildeSpec = "## Scenarios\n\n~~~holdout\nGiven x\nWhen y\nThen z\n~~~\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n";
+  const tildeClassified = dodClassify(tildeSpec);
+  check("FAFF-275: ~~~holdout fence recognised same as ```holdout", tildeClassified.criteria.some((c) => c.source === "scenarios" && c.holdout === true));
+  check("FAFF-275: dod split removes a ~~~holdout fence", !/Given x/.test(dodSplit(tildeSpec, "builder").text));
+
+  // Over-withholding: builder view retains ZERO born-verifiable scenarios-section criteria while
+  // the full spec had >= 1 → advisory warning, never a gate (dodSplit still succeeds, just warns).
+  const allHoldoutSpec = "## Scenarios\n```holdout\nGiven x\nWhen y\nThen z\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n";
+  const allHoldoutSplit = dodSplit(allHoldoutSpec, "builder");
+  check("FAFF-275: over-withholding fires an advisory warning (never a gate)", allHoldoutSplit.warnings.length >= 1 && /over-withholding/.test(allHoldoutSplit.warnings[0]));
+
+  // Marked-vs-unmarked parity: `faff admissible` on the FULL spec is marker-blind (a holdout-marked
+  // scenario counts toward R1 exactly as unmarked — fence info never mattered to parseScenarios).
+  const unmarkedEquivalent = holdoutSpec.replace(/```holdout/, "```").replace(/- holdout: /, "- ");
+  const vMarked = admissibleVerdict(holdoutSpec, true), vUnmarked = admissibleVerdict(unmarkedEquivalent, true);
+  check("FAFF-275: marked-vs-unmarked admissible parity (same admissible verdict + reasons)", vMarked.admissible === vUnmarked.admissible && JSON.stringify(vMarked.reasons) === JSON.stringify(vUnmarked.reasons));
+
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;
 }
@@ -857,4 +1083,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, BANNED_VAGUE, DUP_THRESHOLD, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, doneScenariosLevelWarning, firstHeadingLevelMatching, headingLevel, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, matchesBannedVague, opensContractFence, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, BANNED_VAGUE, DUP_THRESHOLD, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, matchesBannedVague, opensContractFence, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

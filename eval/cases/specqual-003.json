@@ -1,0 +1,7 @@
+{ "id": "specqual-003", "kind": "specqual",
+  "fixture": { "version": 1,
+    "issue": "Issue: the spec producer's Scenarios section can optionally withhold a scenario from the builder for the code-blind evaluator, by marking it holdout (a `holdout` fence-info string on a Given/When/Then block, or a `holdout:` bullet prefix). Explore findings: the marker is recognised only inside `## Scenarios`; selection is producer judgement at spec-write time, bounded by a minority-subset rule (never more than half, never all — the builder must keep at least one visible scenario) and a generalisation rule (a holdout must verify behaviour the WHY/WHAT/HOW body already requires, never be the sole statement of a requirement)." },
+  "question": "Write the `## Scenarios` section of a lite-nlspec for this feature, applying the holdout-selection rules yourself: mark a minority of the scenarios holdout (never all), and make sure every holdout scenario verifies behaviour already stated in the spec body rather than introducing a new, undisclosed requirement.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [ ["holdout"], ["minority", "one-in-three", "a subset", "never more than half"], ["generalisation", "generalise", "already requires", "already required", "not the sole statement"] ],
+    "must_avoid": [ ["mark every scenario", "all scenarios holdout", "every scenario holdout", "withhold all"], ["a new requirement only stated in the holdout", "the only place this is required", "not mentioned elsewhere in the spec"] ] } } }

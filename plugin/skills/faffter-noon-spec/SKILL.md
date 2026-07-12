@@ -68,6 +68,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 - **Non-functional objectives → assertions, not scenarios.** A constraint like "no PII in logs" or "p99 < 200ms" is an assertion/constraint line, not a forced Given-When-Then — two complementary forms, one for behaviour, one for non-functional.
 - This is the same language as holdout BDD; a holdout is just the withheld subset of these scenarios.
 - **Anti-pattern:** restating the DONE checklist as Given-When-Then. Why: DONE already mirrors the body; scenarios sharpen the WHAT's main objectives, they don't duplicate DONE. The dedicated section + complexity bar exist to avoid exactly this.
+- **Marking a holdout (optional).** Withhold a scenario from the builder for the code-blind evaluator by marking it in place — a fenced GWT block whose fence-info is `holdout` (```` ```holdout ```` / `~~~holdout`), or a bullet prefixed `holdout:` (stripped before classification). Mark a minority (never more than half, never all — the builder keeps at least one visible scenario), and only a scenario whose behaviour the body already requires — never the sole statement of a requirement. DONE items are never marked.
 
 ### 4. DONE — Definition of Done (closed-loop)
 

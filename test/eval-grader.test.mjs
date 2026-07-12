@@ -643,7 +643,9 @@ test("all eval/cases load and validate", () => {
   // FAFF-283: +6 refutation-spec (4 planted-lens + 2 clean/near-miss) + 5 refutation-code (3 planted + 2 clean/near-miss).
   // FAFF-346: +2 prep-architecture-trigger (the prep-time new-runnable-surface fire/skip seam — one per verdict).
   // FAFF-269: +4 refutation-spec (007-009 faff-specific infosec catches on the forge / stale-ledger / self-attestation surfaces; 010 same-surface clean near-miss) — the primed-vs-generic threat-prior corpus.
-  assert.equal(cases.length, 72);
+  // FAFF-275: +1 specqual (specqual-003 — the holdout-selection judgement: mark a minority, never all,
+  // and every holdout scenario verifies behaviour the body already requires).
+  assert.equal(cases.length, 73);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

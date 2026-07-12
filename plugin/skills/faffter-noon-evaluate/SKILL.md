@@ -21,6 +21,7 @@ The trust boundary is fixed and not negotiable:
 - **Exercise + the met/unmet decision are the LLM's** — and only these.
 - **Prose → `needs-human` is mechanical** — a `prose` criterion is never judged; the `holdout-verdict` contract rejects any prose criterion judged otherwise.
 - **Verdict validation is mechanical** — `faff contract holdout-verdict` checks shape + consistency. Do not re-validate here; emit a conformant block and let the consumer pipe it.
+- **Criteria may carry `holdout: true`** — a scenario the spec producer withheld from the builder's view. Evaluate the full criteria set (holdout + visible) regardless; the `holdout-verdict` contract judges the whole DoD and does not distinguish the two.
 
 ## Inputs
 

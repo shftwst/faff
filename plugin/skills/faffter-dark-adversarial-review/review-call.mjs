@@ -126,7 +126,11 @@ export function assembleUserMessage({ contextFiles = [], diff = "" }) {
 // e.g. the `## Adversarial findings — provider/model` header line) and an ordered list of finding
 // sections. Each section spans from its `### ` heading line to (exclusive) the next one, or EOF. Severity
 // is parsed from the heading; a heading with no recognised severity word still yields a section (raw
-// findings-shape validation only cares that >=1 section has severity != null).
+// findings-shape validation only cares that >=1 section has severity != null). `start`/`end` are the
+// section's line-index bounds in `content.split("\n")` — carried so refuteFindings can splice the
+// original lines array directly rather than re-stringify (see refuteFindings for why that matters).
+// The heading test excludes `####`+ (an h4+ inside a finding body is not a NEW finding boundary).
+const HEADING_LINE_RE = /^###\s(?!#)/;
 const SEVERITY_HEADING_RE = /^###\s*\[?(critical|major|minor|observation)\]?\s*[:—-]\s*(.*)$/i;
 
 export function splitFindings(content) {
@@ -134,7 +138,7 @@ export function splitFindings(content) {
   const lines = text.split("\n");
   const headingIdxs = [];
   for (let i = 0; i < lines.length; i++) {
-    if (/^###\s/.test(lines[i])) headingIdxs.push(i);
+    if (HEADING_LINE_RE.test(lines[i])) headingIdxs.push(i);
   }
   if (headingIdxs.length === 0) return { preamble: text, sections: [] };
   const preamble = lines.slice(0, headingIdxs[0]).join("\n");
@@ -148,7 +152,7 @@ export function splitFindings(content) {
     const m = heading.match(SEVERITY_HEADING_RE);
     const severity = m ? m[1].toLowerCase() : null;
     const title = m ? m[2] : heading.replace(/^###\s*/, "");
-    sections.push({ heading, severity, title, body, raw });
+    sections.push({ heading, severity, title, body, raw, start, end });
   }
   return { preamble, sections };
 }
@@ -172,14 +176,34 @@ export function canonicalHeader(provider, model) {
   return `## Adversarial findings — ${provider}/${model}`;
 }
 
-const HEADER_LINE_RE = /^##[ \t]*Adversarial findings.*$/mi;
+const HEADER_LINE_RE = /^##[ \t]*Adversarial findings/i;
+
+// Locate an existing header line's index, searching ONLY the preamble (before the first `### ` finding
+// heading, exclusive) — never a finding body. Returns -1 when absent. Shared by ensureHeader (below) and
+// main()'s "was a header already present" check, so both use the identical scoped definition of "present".
+function findHeaderLineIdx(lines) {
+  const firstHeadingIdx = lines.findIndex((l) => HEADING_LINE_RE.test(l));
+  const scopeEnd = firstHeadingIdx === -1 ? lines.length : firstHeadingIdx;
+  for (let i = 0; i < scopeEnd; i++) if (HEADER_LINE_RE.test(lines[i])) return i;
+  return -1;
+}
+
+// PURE: does `content` already carry a header line (searched preamble-only, never a finding body)?
+export function hasHeader(content) {
+  return findHeaderLineIdx(String(content == null ? "" : content).split("\n")) !== -1;
+}
 
 // PURE: replace an existing (possibly model-echoed, possibly wrong) header line with the canonical one, or
 // prepend it when absent. A no-op (byte-identical) when the existing header already matches canonical.
+// The search is scoped to the PREAMBLE (before the first `### ` finding heading) only — a finding BODY
+// that legitimately quotes a `## Adversarial findings — …` line (e.g. citing a prior review for
+// comparison) must never be rewritten; only the document's own provenance header may be.
 export function ensureHeader(content, provider, model) {
   const header = canonicalHeader(provider, model);
   const text = String(content == null ? "" : content);
-  if (HEADER_LINE_RE.test(text)) return text.replace(HEADER_LINE_RE, header);
+  const lines = text.split("\n");
+  const headerIdx = findHeaderLineIdx(lines);
+  if (headerIdx !== -1) { lines[headerIdx] = header; return lines.join("\n"); }
   return `${header}\n\n${text}`;
 }
 
@@ -195,12 +219,30 @@ export function findSyntaxClaims(sectionText) {
 const JS_FAMILY_RE = /\.(m|c)?js$/i;
 function isJsFamily(p) { return JS_FAMILY_RE.test(String(p == null ? "" : p)); }
 
+// A char that continues a path/filename token — used to reject a match that is really a PREFIX of a
+// longer named path (e.g. contextPaths containing both "src/foo.js" and "src/foo.js.bak": a mention of
+// only the latter must not also count as naming the former).
+const PATH_TOKEN_CHAR_RE = /[A-Za-z0-9_./-]/;
+
+// PURE: is `path` named in `text` at a genuine path boundary (not merely a textual prefix of a longer
+// path that's the one actually mentioned)? Shared by claimTargets (below) and refuteFindings' "did this
+// claim name ANY context path at all" check, so both use the identical definition of "named".
+function pathMentionedIn(text, path) {
+  const idx = text.indexOf(path);
+  if (idx === -1) return false;
+  const before = idx > 0 ? text[idx - 1] : "";
+  const after = idx + path.length < text.length ? text[idx + path.length] : "";
+  return !PATH_TOKEN_CHAR_RE.test(before) && !PATH_TOKEN_CHAR_RE.test(after);
+}
+
 // PURE: which context paths does this finding's text name, filtered to JS-family (.js/.mjs/.cjs) — the
-// only family `node --check` can settle. A path is "named" by simple substring match against the section
-// text (heading + body), matching how the reviewer's own context files are fenced (assembleUserMessage).
+// only family `node --check` can settle. A path is "named" by substring match against the section text
+// (heading + body), matching how the reviewer's own context files are fenced (assembleUserMessage) —
+// BOUNDARY-CHECKED so a shorter path is never counted as named merely because it's a textual prefix of a
+// longer one that happens to be mentioned instead.
 export function claimTargets(sectionText, contextPaths) {
   const text = String(sectionText == null ? "" : sectionText);
-  return (contextPaths || []).filter((p) => text.includes(p) && isJsFamily(p));
+  return (contextPaths || []).filter((p) => isJsFamily(p) && pathMentionedIn(text, p));
 }
 
 // The injectable check runner (the only new I/O) — real spawnSync("node", ["--check", path]); ok iff
@@ -225,42 +267,55 @@ export function realCheck(path) {
 // path at all (JS or otherwise), fall back to every JS-family context path (a generic "this code has a
 // syntax error" claim, uncommitted to one file) — but a claim that names ONLY a non-JS-family file (e.g.
 // SKILL.md) stays untouched: it named something, just nothing this pass can settle (precision bias).
+//
+// Reconstruction: edits are applied by SPLICING the original `content.split("\n")` array in place (heading
+// line rewritten, one evidence line inserted) rather than re-joining pre-computed section strings — the
+// latter silently collapses blank-line separators between sections whenever at least one sibling section
+// is refuted, corrupting untouched findings' spacing (caught in review). Splicing touches only the exact
+// lines of a refuted section, so every untouched section's original bytes — including its surrounding
+// blank-line separators — survive verbatim. Sections are edited LAST-to-FIRST so an earlier section's
+// line-index bounds (computed once, up front) stay valid across the whole pass.
 export function refuteFindings(content, contextPaths, { checkFn = realCheck } = {}) {
+  const text = String(content == null ? "" : content);
   const paths = contextPaths || [];
   const jsPaths = paths.filter(isJsFamily);
-  const { preamble, sections } = splitFindings(content);
+  const { sections } = splitFindings(content);
   const refutations = [];
-  let changed = false;
+  const outLines = text.split("\n");
 
-  const newSections = sections.map((s) => {
-    if (s.severity == null) return s;
-    if (!findSyntaxClaims(s.raw)) return s;
+  for (let idx = sections.length - 1; idx >= 0; idx--) {
+    const s = sections[idx];
+    if (s.severity == null) continue;
+    if (!findSyntaxClaims(s.raw)) continue;
 
     let targets = claimTargets(s.raw, paths);
     if (targets.length === 0) {
-      const namedAnyContextPath = paths.some((p) => s.raw.includes(p));
+      const namedAnyContextPath = paths.some((p) => pathMentionedIn(s.raw, p));
       if (!namedAnyContextPath) targets = jsPaths;   // generic claim, no file named — check every JS file
     }
-    if (targets.length === 0) return s;   // cannot tie the claim to a checkable file — untouched
+    if (targets.length === 0) continue;   // cannot tie the claim to a checkable file — untouched
 
     const results = targets.map((t) => checkFn(t));
-    if (!results.every((r) => r && r.ok)) return s;   // any check failure — the reviewer may be right
+    if (!results.every((r) => r && r.ok)) continue;   // any check failure — the reviewer may be right
 
-    changed = true;
     refutations.push({ title: s.title, files: targets, from: s.severity });
     const files = targets.join(", ");
     const newTitle = `[auto-refuted] ${s.title}`;
-    const newHeading = `### observation: ${newTitle}`;
     const evidence = `> auto-refuted: node --check passed on ${files} — syntax claim mechanically disproved (was ${s.severity})`;
-    const newRaw = s.body ? `${newHeading}\n${s.body}\n${evidence}` : `${newHeading}\n${evidence}`;
-    return { ...s, severity: "observation", title: newTitle, heading: newHeading, raw: newRaw };
-  });
 
-  if (!changed) return { content, refutations: [] };
+    // Insert the evidence line right after the section's LAST non-blank line (searching backward from
+    // s.end, exclusive, down to s.start+1) — this lands it after real content and leaves any ORIGINAL
+    // trailing blank-line separator before the next heading (or EOF) exactly where it was.
+    let insertAt = s.start + 1;   // default: no body lines at all — right after the (rewritten) heading
+    for (let li = s.end - 1; li > s.start; li--) {
+      if (outLines[li].trim() !== "") { insertAt = li + 1; break; }
+    }
+    outLines[s.start] = `### observation: ${newTitle}`;
+    outLines.splice(insertAt, 0, evidence);
+  }
 
-  const sectionsText = newSections.map((s) => s.raw).join("\n");
-  const rebuilt = preamble ? `${preamble}\n${sectionsText}` : sectionsText;
-  return { content: rebuilt, refutations };
+  if (refutations.length === 0) return { content, refutations: [] };
+  return { content: outLines.join("\n"), refutations: refutations.reverse() };
 }
 
 // --- OpenAI-compatible (/v1) pure functions ---
@@ -925,7 +980,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     for (const r of refutations) {
       process.stderr.write(`refuted: "${r.title}" — node --check clean on ${r.files.join(", ")}; ${r.from} → observation\n`);
     }
-    const hadHeader = HEADER_LINE_RE.test(refuted);
+    const hadHeader = hasHeader(refuted);
     const winnerProvider = (res.winner && res.winner.provider) || "ollama";
     const winnerModel = res.winner && res.winner.model;
     const finalContent = ensureHeader(refuted, winnerProvider, winnerModel);

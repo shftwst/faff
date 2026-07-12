@@ -14,7 +14,7 @@ import {
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory,
-  splitFindings, validateFindingsShape, canonicalHeader, ensureHeader,
+  splitFindings, validateFindingsShape, canonicalHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
@@ -1504,6 +1504,98 @@ test("FAFF-194 integration smoke test: a confidently-wrong syntax critical on a 
   assert.match(stdout, /^## Adversarial findings — ollama\/qwen3-next:80b\n/);
   assert.match(stdout, /### observation: \[auto-refuted\]/);
   assert.match(stdout, /auto-refuted: node --check passed/);
+});
+
+// ── Adversarial review findings (real nvidia/z-ai/glm-5.2 Phase-2 pass on this diff) — regression tests ──
+// Four findings were confirmed and fixed: (1) refuteFindings' string-rebuild collapsed blank-line
+// separators between sections whenever a sibling was refuted; (2) ensureHeader's header-line regex used
+// `m` (multiline) so it could rewrite a header-like line quoted INSIDE a finding body; (3) claimTargets'
+// bare substring match could count a path as "named" merely because it's a textual prefix of a longer
+// named path; (4) splitFindings treated `####` (h4) as a new finding boundary, truncating the preceding
+// section's body. A fifth ("no new-config" observation) and a sixth (unbounded fallback spawn count) were
+// accepted as valid-but-non-blocking and are not code changes here.
+
+test("FAFF-194 refuteFindings: preserves the ORIGINAL blank-line separator before the next section (was: collapsed)", () => {
+  const content = "## Adversarial findings — ollama/m\n\n### critical: this wont parse and has a syntax error\nsome body text\n\n### minor: unrelated\nanother body";
+  const checkFn = () => ({ ok: true, output: "" });
+  const { content: out } = refuteFindings(content, ["x.mjs"], { checkFn });
+  // the untouched sibling section's heading must still be preceded by a blank line, exactly as in the input
+  assert.match(out, /\n\n### minor: unrelated\nanother body$/, "the blank-line separator survives the rebuild");
+});
+
+test("FAFF-194 refuteFindings: a THIRD untouched section further down the document keeps its own original spacing too", () => {
+  const content = [
+    "### critical: syntax error in file",
+    "body one",
+    "",
+    "### major: unrelated finding A",
+    "body two",
+    "",
+    "### minor: unrelated finding B",
+    "body three",
+  ].join("\n");
+  const checkFn = () => ({ ok: true, output: "" });
+  const { content: out } = refuteFindings(content, ["x.mjs"], { checkFn });
+  const lines = out.split("\n");
+  // both untouched sections must still be preceded by exactly one blank line, as in the original
+  const majorIdx = lines.findIndex((l) => l.startsWith("### major:"));
+  const minorIdx = lines.findIndex((l) => l.startsWith("### minor:"));
+  assert.equal(lines[majorIdx - 1], "", "blank line before the untouched major section survives");
+  assert.equal(lines[minorIdx - 1], "", "blank line before the untouched minor section survives");
+});
+
+test("FAFF-194 ensureHeader: does NOT rewrite a header-LIKE line quoted inside a finding BODY (only the preamble is in scope)", () => {
+  const content = "## Adversarial findings — ollama/m\n\n### observation: comparing against a prior pass\nthe previous run said:\n## Adversarial findings — old-provider/old-model\nand missed X";
+  const out = ensureHeader(content, "ollama", "m");
+  assert.equal(out, content, "the document's own preamble header was already canonical — untouched; the quoted line in the body must survive verbatim");
+  assert.ok(out.includes("## Adversarial findings — old-provider/old-model"), "the quoted body line was not rewritten");
+});
+
+test("FAFF-194 ensureHeader: still finds + replaces the REAL preamble header even when a finding body quotes a header-like line afterward", () => {
+  const content = "## Adversarial Findings (model's own wrong guess)\n\n### observation: x\nquoting: ## Adversarial findings — other/model";
+  const out = ensureHeader(content, "ollama", "real-model");
+  const lines = out.split("\n");
+  assert.equal(lines[0], "## Adversarial findings — ollama/real-model", "the preamble header was replaced");
+  assert.ok(out.includes("quoting: ## Adversarial findings — other/model"), "the body's quoted line is untouched");
+});
+
+test("FAFF-194 hasHeader: true only for a preamble header, never a body-quoted one", () => {
+  assert.equal(hasHeader("## Adversarial findings — ollama/m\n\n### observation: no findings"), true);
+  assert.equal(hasHeader("### observation: x\nsome text mentioning ## Adversarial findings — old/one"), false);
+  assert.equal(hasHeader(""), false);
+});
+
+test("FAFF-194 claimTargets: a path that is a textual PREFIX of a longer named path is NOT counted as named", () => {
+  const ctx = ["src/foo.js", "test/src/foo.js.spec.mjs"];
+  const text = "### critical: `test/src/foo.js.spec.mjs` has a syntax error";
+  assert.deepEqual(claimTargets(text, ctx), ["test/src/foo.js.spec.mjs"], "only the actually-named longer path counts — not the shorter path it happens to prefix");
+});
+
+test("FAFF-194 refuteFindings: a claim naming only the LONGER of two prefix-colliding paths only checks that one", () => {
+  const short = tmpJsFile("short.mjs", "export const a = 1;\n");
+  const long = short + ".bak.mjs";   // "short.mjs" is a textual prefix of "short.mjs.bak.mjs"
+  writeFileSync(long, "export const a = 1;\n");
+  const content = `### critical: \`${long}\` is invalid JavaScript syntax`;
+  const seen = [];
+  const checkFn = (p) => { seen.push(p); return { ok: true, output: "" }; };
+  const { refutations } = refuteFindings(content, [short, long], { checkFn });
+  assert.equal(refutations.length, 1);
+  assert.deepEqual(seen, [long], "only the actually-named longer path was checked — the shorter prefix path was never spuriously included");
+});
+
+test("FAFF-194 splitFindings: a level-4 (####) sub-heading inside a finding body is NOT treated as a new section boundary", () => {
+  const content = "### critical: something\nintro\n#### a sub-point\nmore detail\n\n### minor: next finding\nbody";
+  const { sections } = splitFindings(content);
+  assert.equal(sections.length, 2, "the #### line must not split the first finding into two sections");
+  assert.match(sections[0].body, /#### a sub-point/, "the sub-heading survives as part of the first section's body");
+  assert.equal(sections[1].severity, "minor");
+});
+
+test("FAFF-194 ensureHeader: a #### line before the first real finding never fools the preamble-scope boundary", () => {
+  // (defensive — #### is not a valid finding heading, so the preamble-scope search must not stop there)
+  const content = "## Adversarial findings — ollama/m\n#### not a real finding\n\n### observation: no findings";
+  const out = ensureHeader(content, "ollama", "m");
+  assert.equal(out, content, "already-canonical header, found correctly despite the #### line, untouched");
 });
 
 // ── No new .faffrc knobs (config schema unchanged — a grep-level assertion, not a config-parser test) ──

@@ -761,12 +761,15 @@ test("FAFF-232 runReviewChain: a backend with an unset api-key env advances (cla
     { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
   ];
   const calls = [];
+  const trace = [];
   const res = await runReviewChain(chain, {
-    system: "S", user: "U",
+    system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: async (opts) => { calls.push(opts.host); return { status: "ok", content: "### observation: no findings" }; },
   });
   assert.equal(res.exit, EXIT.OK);
   assert.deepEqual(calls, ["http://b:11434"], "the unset-key backend was NOT called; the chain advanced");
+  assert.ok(trace.some((l) => /\[chain\] openai\/m1 unset-key \(env 'MISSING_KEY'\) → advancing \(exit 7\)/.test(l)),
+    "FAFF-361: the unset-key skip is logged via the reshaped [chain] ... → advancing note");
 });
 
 test("FAFF-232 runReviewChain: a malformed backend (missing host) advances, not a whole-chain abort", async () => {
@@ -774,11 +777,14 @@ test("FAFF-232 runReviewChain: a malformed backend (missing host) advances, not 
     { provider: "openai", model: "m1" },
     { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
   ];
+  const trace = [];
   const res = await runReviewChain(chain, {
-    system: "S", user: "U",
+    system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: scriptedRunReview({ "http://b:11434": { status: "ok", content: "### observation: no findings" } }),
   });
   assert.equal(res.exit, EXIT.OK);
+  assert.ok(trace.some((l) => /\[chain\] openai\/m1 invalid \(missing model\/host\) → advancing \(exit 2\)/.test(l)),
+    "FAFF-361: the invalid-backend skip is logged via the reshaped [chain] ... → advancing note");
 });
 
 test("FAFF-232 main(): --backends-json advances past a 429 primary to a healthy fallback → exit 0", async () => {

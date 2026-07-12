@@ -595,6 +595,38 @@ test("FAFF-324 vector 4: rewriting owner.last_heartbeat to 'now' suppresses wall
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("FAFF-324 vector 4b: ticking the SANCTIONED `faff heartbeat` command (no raw fs bypass) also suppresses wall-clock-runaway (heartbeat-file overlay) — the production-reachable variant of vector 4, not merely a theoretical one", () => {
+  const dir = tmp();
+  try {
+    // Same isolation as vector 4: a recent started_at so ONLY heartbeat staleness can
+    // trip, keeping this probe distinct from vector 5's run-elapsed trip.
+    const recentStart = new Date(Date.now() - 60_000).toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: recentStart, last_heartbeat: STALE } });
+    const before = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.ok(before.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.evidence.tripped_on === "heartbeat-staleness"));
+
+    // Forgery: call the SANCTIONED `faff heartbeat` command itself — the write path
+    // FAFF-355 grants every build subagent legitimately, for real liveness ticking
+    // during long steps (gate ladder, adversarial review). No raw fs write, no
+    // bypassed guard: `cmdHeartbeat` writes the dedicated heartbeat FILE, which
+    // `overlayHeartbeat` prefers over a stale `owner.last_heartbeat` (bin/lib/
+    // sentry.js's `cmdSentry` calls `overlayHeartbeat(ledger, readHeartbeatFile(...))`
+    // before evaluating any predicate). A build lane that is genuinely stalled but
+    // keeps ticking — the exact "gamed liveness" residual ADR-0034's follow-up guard
+    // names but does not solve — suppresses the SAME trip via the SAME production
+    // code path a legitimate long step uses, no forgery-grade access required at all.
+    const tick = run(dir, ["heartbeat", rd, "--json"]);
+    assert.equal(tick.code, 0, "the sanctioned heartbeat tick itself must succeed");
+    assert.ok(existsSync(join(rd, "heartbeat")), "the tick wrote the dedicated heartbeat file FAFF-355 defines");
+
+    const after = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(after.verdicts.find((v) => v.signal === "wall-clock-runaway"), undefined,
+      "a sanctioned-but-gamed heartbeat tick suppresses staleness detection via the FILE overlay — " +
+      "distinct from vector 4's ledger-field bypass, and MORE directly production-reachable since it " +
+      "requires no raw fs write at all, only calling a tool the build lane already legitimately has");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("FAFF-324 vector 5: rewriting owner.started_at to 'now' suppresses wall-clock-runaway (run-elapsed) — no git-truth counterpart", () => {
   const dir = tmp();
   try {

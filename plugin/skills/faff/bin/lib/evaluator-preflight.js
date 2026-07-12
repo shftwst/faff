@@ -63,7 +63,10 @@ function cmdEvaluatorPreflight(args) {
   if (args.includes("--selftest")) return evaluatorPreflightSelftest();
   const json = args.includes("--json");
   const rpIdx = args.indexOf("--repo-path");
-  if (rpIdx !== -1 && (args[rpIdx + 1] === undefined || args[rpIdx + 1].startsWith("--"))) {
+  if (rpIdx !== -1 && (args[rpIdx + 1] === undefined || args[rpIdx + 1] === "" || args[rpIdx + 1].startsWith("--"))) {
+    // Fail-CLOSED on a missing/empty --repo-path value: an empty path must not
+    // silently resolve to the blind (holds) state — that would report the
+    // boundary present on garbage input. Usage error, like the missing-value case.
     process.stderr.write("usage: faff evaluator-preflight [--repo-path <path>] [--json] [--selftest]\n");
     return 2;
   }

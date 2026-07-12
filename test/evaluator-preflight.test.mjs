@@ -90,6 +90,11 @@ test("evaluator-preflight --repo-path with no value → usage exit 2", () => {
   assert.equal(code, 2);
 });
 
+test("evaluator-preflight --repo-path '' → fail-closed usage exit 2 (empty path never silently holds)", () => {
+  const { code } = runCli(["evaluator-preflight", "--repo-path", ""]);
+  assert.equal(code, 2);
+});
+
 // --- the lane-boundary contract (intent-out half) ---
 
 test("contract lane-boundary: conformant evaluator intent → exit 0", () => {

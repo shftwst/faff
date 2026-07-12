@@ -109,6 +109,20 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
     checkpoints,
   };
 
+  // supervision (FAFF-352): sibling of the budget block, same shape — sentry-checkpoint
+  // events (never live recompute) prove a `faff sentry check` consult ran at every
+  // between-units checkpoint. last_intervention is the LAST checkpoint's (seq order)
+  // data.intervention, or null when there are no checkpoints at all (a legacy run, or
+  // one where the bridge never fired) — that null is the honest reading, not a gap.
+  const supervisionCheckpoints = events.filter((e) => e.type === "sentry-checkpoint").sort(bySeq)
+    .map((e) => ({ seq: e.seq, ts: e.ts, data: e.data }));
+  const lastCheckpoint = supervisionCheckpoints.length ? supervisionCheckpoints[supervisionCheckpoints.length - 1] : null;
+  const supervision = {
+    checkpoints: supervisionCheckpoints,
+    last_intervention: (lastCheckpoint && lastCheckpoint.data && typeof lastCheckpoint.data === "object")
+      ? (lastCheckpoint.data.intervention ?? null) : null,
+  };
+
   // coherence: reuse auditLedger for undispatched/invalid, add cross-substrate checks.
   let undispatched = [], invalid_outcomes = [];
   if (ledger) {
@@ -145,6 +159,7 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
     lifecycle,
     issues,
     budget,
+    supervision,
     coherence,
     discovered_scope_filed: ledger && ledger.discovered_scope_filed !== undefined ? ledger.discovered_scope_filed : null,
   };
@@ -179,6 +194,11 @@ function renderAuditText(recon) {
     ? Object.keys(recon.budget.envelope.ceilings) : [];
   console.log(`budget:   ceilings ${ceilings.length ? ceilings.join(",") : "(none)"}  ·  ${recon.budget.checkpoints.length} checkpoint(s)`
     + (recon.budget.tokens_at_start != null ? `  ·  tokens_at_start ${recon.budget.tokens_at_start}` : ""));
+
+  // FAFF-352: always render, mirroring the budget line — "0 checkpoint(s)" on a
+  // pre-existing/legacy run is the honest reading ("no recorded supervision"), which
+  // is exactly the visibility this block exists to create.
+  console.log(`supervision: ${recon.supervision.checkpoints.length} checkpoint(s)  ·  last intervention: ${recon.supervision.last_intervention ?? "—"}`);
 
   const c = recon.coherence;
   if (c.clean) {
@@ -268,6 +288,10 @@ function auditSelftest() {
     check("clean: budget tokens", rec.budget.tokens_at_start === 100);
     check("clean: coherence clean", rec.coherence.clean === true);
     check("clean: discovered_scope_filed 0", rec.discovered_scope_filed === 0);
+    // FAFF-352: N=0 supervision checkpoints (this fixture has none) → the honest
+    // "no recorded supervision" reading, never omitted / never a crash on absence.
+    check("clean: supervision N=0 checkpoints", rec.supervision.checkpoints.length === 0);
+    check("clean: supervision N=0 last_intervention null", rec.supervision.last_intervention === null);
   }
 
   // 2. Undispatched: admitted with no outcome → unclean, listed.
@@ -342,6 +366,22 @@ function auditSelftest() {
     const ledger = { run_id: "r", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "parked" } };
     const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
     check("park: cause surfaced", rec.issues[0].park_cause === "needs-decision-first");
+  }
+
+  // 10. FAFF-352: N>0 sentry-checkpoint events → supervision.checkpoints in seq order,
+  // last_intervention = the LAST checkpoint's data.intervention (not the max/worst).
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 0, ts: "t0", phase: "run", type: "sentry-checkpoint", data: { intervention: "continue", tripped: false, verdicts: [] } },
+      { schema: 1, run_id: "r", seq: 1, ts: "t1", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped" } },
+      { schema: 1, run_id: "r", seq: 2, ts: "t2", phase: "run", type: "sentry-checkpoint", data: { intervention: "abort", tripped: true, verdicts: [{ signal: "budget-breach", severity: "trip", evidence: {} }] } },
+    ];
+    const ledger = { run_id: "r", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("supervision: N=2 checkpoints in seq order", rec.supervision.checkpoints.length === 2
+      && rec.supervision.checkpoints[0].seq === 0 && rec.supervision.checkpoints[1].seq === 2);
+    check("supervision: last_intervention is the LAST checkpoint's (seq order), not worst-of", rec.supervision.last_intervention === "abort");
+    check("supervision: checkpoints carry the sentry payload verbatim under data", rec.supervision.checkpoints[1].data.tripped === true);
   }
 
   if (failed) { console.log(`RESULT: audit --selftest FAILED (${failed} failure(s))`); return 1; }

@@ -373,6 +373,60 @@ test("FAFF-425: a budget consult that hits the same own-fault (indeterminate) pr
 
 // --- AC6: corrective-redirect / fleet / who-watches-the-watcher are NOT here -------
 
+// --- FAFF-352: the effects→sentry bridge — `--forbidden-side-effect` on `check` -----
+
+test("FAFF-352: --forbidden-side-effect arms forbidden-side-effect-attempt (trip → abort); absent flag → no such verdict, unchanged degraded behaviour", () => {
+  const dir = tmp();
+  try {
+    // A clean surface: fresh heartbeat, no budget breach, no thrash/failures — so the
+    // ONLY thing that can trip is the flag itself, isolating its effect.
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+
+    const without = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(without.verdicts.find((v) => v.signal === "forbidden-side-effect-attempt"), undefined,
+      "absent the flag (and no event-path signal), the trigger degrades to no-signal exactly as before");
+    assert.equal(without.intervention, "continue");
+
+    const withFlag = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--forbidden-side-effect"]).out);
+    const fse = withFlag.verdicts.find((v) => v.signal === "forbidden-side-effect-attempt");
+    assert.ok(fse, "forbidden-side-effect-attempt verdict present with the flag");
+    assert.equal(fse.severity, "trip");
+    assert.equal(withFlag.intervention, "abort", "forbidden-side-effect-attempt maps to abort per SIGNAL_TRIP_INTERVENTION");
+
+    // FAFF-352 WHAT constraint: the emitted payload carries no TOP-LEVEL
+    // forbidden_side_effect key (only nested, if at all, under verdict evidence) — so
+    // a future emitter can never smuggle the events-path predicate's key in here.
+    assert.ok(!("forbidden_side_effect" in withFlag), "no top-level forbidden_side_effect key in the sentry check payload");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-352 bridge integration: an escaped effect (declared-effects ledger) → `effects check` any_escape:true → flagged `sentry check` → abort", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["FAFF-1"], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+
+    // Seed an OBSERVED effect with no covering DECLARATION — an escape by construction.
+    const observeR = run(dir, ["effects", "observe", "--run", "r", "--issue", "FAFF-1", "--step", "build"],
+      JSON.stringify({ kind: "deploy", target: "prod" }));
+    assert.equal(observeR.code, 0);
+
+    const checkR = JSON.parse(run(dir, ["effects", "check", "--run", "r", "--json"]).out);
+    assert.equal(checkR.any_escape, true, "the observed effect with no declaration is a real escape");
+
+    // The orchestrator passes --forbidden-side-effect IFF any_escape — exercise both
+    // sides of that branch against the SAME ledger state.
+    const clean = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(clean.verdicts.find((v) => v.signal === "forbidden-side-effect-attempt"), undefined,
+      "without the bridged flag, the escape alone does not trip sentry (event-path only, and no event carries it)");
+
+    const bridged = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--forbidden-side-effect"]).out);
+    assert.equal(bridged.intervention, "abort", "the bridged escape trips abort at the very next checkpoint");
+    assert.ok(bridged.verdicts.some((v) => v.signal === "forbidden-side-effect-attempt" && v.severity === "trip"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("AC6: the v1 intervention ladder stops at abort — `correct` is deferred, not present", () => {
   const dir = tmp();
   try {

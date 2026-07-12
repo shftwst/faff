@@ -96,6 +96,19 @@ test("append: issue-scoped issue-outcome carries issue + data.outcome", () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("append: FAFF-352 sentry-checkpoint is run-scoped (no issue required) and carries the sentry payload verbatim under data", () => {
+  const dir = tmp(); mkRun(dir, "run-X");
+  try {
+    const payload = { run_dir: "/some/run", verdicts: [{ signal: "budget-breach", severity: "trip", evidence: {} }], intervention: "abort", tripped: true, thresholds: {} };
+    const r = run(dir, ["events", "append", "--run", "run-X", "--ts", "t"],
+      JSON.stringify({ phase: "run", type: "sentry-checkpoint", data: payload }));
+    assert.equal(r.code, 0);
+    const ev = lines(dir, "run-X")[0];
+    assert.equal(ev.issue, undefined, "sentry-checkpoint is run-scoped — no issue field");
+    assert.deepEqual(ev.data, payload, "data carries the sentry check payload verbatim");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- append: validation failures (nothing appended) -----------------------
 
 test("append: issue-scoped type missing issue → exit 1, nothing appended", () => {

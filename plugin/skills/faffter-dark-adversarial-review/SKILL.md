@@ -46,10 +46,10 @@ Faff-graft provides:
 
 Phase 1 returns a hard signal (`pass` / `fail` / `needs-human`) per `faffter-noon-review`.
 
-Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial reviewer may be a less capable model; its findings are hypotheses, not rulings. The output **must name the model used** (`provider/model`) as its first line — so a finding can be investigated/tuned in retrospect, and so a quality difference between models is attributable (FAFF-183: a 27B and an 80B gave materially different findings on the same diff).
+Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial reviewer may be a less capable model; its findings are hypotheses, not rulings. Attribution — naming which backend served the response — is **not** the model's job (see below); the reviewer's job is the finding body:
 
 ```
-## Adversarial findings — `<provider>/<model>`
+## Adversarial findings — `<provider>/<model>` (chain[<i>], host: <source>)
 
 ### [severity]: [title]
 [description of the concern and why it might matter]
@@ -59,7 +59,7 @@ Severities: `critical`, `major`, `minor`, `observation` — but these are the ad
 
 **When there are no findings, emit exactly one section: `### observation: no findings`** (FAFF-194). A clean review that emits nothing findings-shaped is indistinguishable from a malformed one — see **Output-format enforcement** below — so a well-behaved model with nothing to report still produces a recognised section, not empty/prose-only output.
 
-**The header is harness-authored, not model prose (FAFF-194).** `review-call.mjs` normalises the `## Adversarial findings — <provider>/<model>` line itself from the winning backend's own provenance — prepending it when absent, replacing it (never trusting a model-echoed, possibly-wrong tag) when present. Don't rely on the model getting the header right; it never has to.
+**The header is harness-authored, not model prose — the lens never has to name its own model (FAFF-194, extended FAFF-361).** `review-call.mjs` prepends the `## Adversarial findings — <provider>/<model> (chain[<i>], host: <source>)` line itself, from the winning backend's own provenance (`attributionHeader`) — the chain position and host source, not just the provider/model, so the exact serving backend is reconstructible without inference. It normalises the line unconditionally: prepending it when absent, replacing it (never trusting a model-echoed, possibly-wrong tag) when present. A custom `--system` lens — even one that drops any self-naming instruction entirely — still gets a correctly-attributed header; a lens that *does* still self-name produces at most harmless duplication (the transport's line is first and authoritative). Don't instruct the model to name itself; it was never a load-bearing part of the contract, and now it is guaranteed not to be needed.
 
 **Refuted findings arrive pre-downgraded (FAFF-194).** Before this output reaches the implementor, `review-call.mjs` runs a deterministic refutation pass over machine-checkable syntax/parse claims (v1 scope): a `critical`/`major`/`minor` finding claiming a context file "won't parse" is downgraded to `severity: observation` with an `[auto-refuted]` title prefix and a `node --check` evidence line, **iff** every file the claim ties to positively passes the check. A refuted finding is never dropped — the downgrade + evidence line is the audit trail of what the reviewer got wrong.
 

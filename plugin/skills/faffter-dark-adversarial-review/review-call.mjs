@@ -170,10 +170,18 @@ export function validateFindingsShape(content) {
   return { ok: true };
 }
 
-// PURE: the canonical, harness-authored findings header — provenance is harness data, never demanded
-// from the fallible model (FAFF-194 design decision: normalise/prepend rather than park on a missing one).
-export function canonicalHeader(provider, model) {
-  return `## Adversarial findings — ${provider}/${model}`;
+// PURE (FAFF-361): the canonical, harness-authored findings header — provenance is harness data,
+// never demanded from the fallible model (FAFF-194 design decision: normalise/prepend rather than
+// park on a missing one). Extended by FAFF-361 to also carry the winner's chain position and host
+// provenance (chain[<index>], host: <hostSource>) — the mechanical answer to "which configured
+// backend actually served this?", the exact provenance a same-day reconstruction incident needed.
+// provider defaults to "ollama" (mirrors the `tag` fallback in runReviewChain) and hostSource
+// defaults to "config" (back-compat for a caller that hasn't set it) when either is falsy.
+export function attributionHeader(winner, index) {
+  const w = winner || {};
+  const provider = w.provider || "ollama";
+  const hostSource = w.hostSource || "config";
+  return `## Adversarial findings — ${provider}/${w.model} (chain[${index}], host: ${hostSource})`;
 }
 
 const HEADER_LINE_RE = /^##[ \t]*Adversarial findings/i;
@@ -198,8 +206,8 @@ export function hasHeader(content) {
 // The search is scoped to the PREAMBLE (before the first `### ` finding heading) only — a finding BODY
 // that legitimately quotes a `## Adversarial findings — …` line (e.g. citing a prior review for
 // comparison) must never be rewritten; only the document's own provenance header may be.
-export function ensureHeader(content, provider, model) {
-  const header = canonicalHeader(provider, model);
+export function ensureHeader(content, winner, index) {
+  const header = attributionHeader(winner, index);
   const text = String(content == null ? "" : content);
   const lines = text.split("\n");
   const headerIdx = findHeaderLineIdx(lines);
@@ -803,6 +811,17 @@ export function mandatoryRemap(exit, mandatory) {
   return exit;
 }
 
+// FAFF-361: maps a per-backend runReview() result `status` to the short cause token the reshaped
+// `[chain] <tag> <reason> → advancing` note names. Falls back to the raw status string for anything
+// unlisted (e.g. "unsupported-provider") so an unrecognised status still logs something greppable
+// rather than silently dropping the reason.
+const CHAIN_ADVANCE_REASON = {
+  unreachable: "unreachable",
+  "transport-failed": "transport-failed",
+  "model-not-served": "not-served",
+  "auth-failed": "auth",
+};
+
 // FAFF-232: run an ORDERED chain of backends, returning the first that produces findings. A backend that
 // does not (any non-OK class) is recorded and the chain ADVANCES — the value is a real second opinion from
 // SOMEONE, so a per-backend fault never sinks the chain if a healthy fallback exists. Only when every
@@ -811,7 +830,14 @@ export function mandatoryRemap(exit, mandatory) {
 //
 // chain element: { provider, model, host, hostSource, apiKey?, apiKeyEnv?, apiKeyMissing?, reasoningOff?, timeoutMs? }
 // shared:        { system, user, numPredict, runReviewFn?, getFn?, streamFn?, log? }
-// returns:       { exit, content?, truncated?, winner?, failureClasses }
+// returns:       { exit, content?, truncated?, winner?, winnerIndex?, failureClasses }
+//
+// FAFF-361: every per-skipped-backend log line below is reshaped to the greppable
+// `[chain] <provider>/<model> <reason> → advancing (exit <n>)` form ONLY when the chain is actually
+// ADVANCING (verb === "advancing", i.e. a fallback remains) — a clean stdout must never hide which
+// elements failed. The terminal ("exhausted", last backend, no fallback left) log line is deliberately
+// UNCHANGED — reshaping it is out of scope (the design spec §2: "Restructuring the existing
+// exhausted/success stderr log lines").
 export async function runReviewChain(chain = [], shared = {}) {
   const runReviewFn = shared.runReviewFn || runReview;
   const log = shared.log || ((m) => process.stderr.write(m + "\n"));
@@ -839,13 +865,17 @@ export async function runReviewChain(chain = [], shared = {}) {
     // backend path where callers never passed --provider.
     if (!b.model || !b.host) {
       failureClasses.push(EXIT.USAGE);
-      log(`${verb}: backend ${i + 1}/${n} invalid (missing model/host) (exit ${EXIT.USAGE})`);
+      log(verb === "advancing"
+        ? `[chain] ${tag} invalid (missing model/host) → advancing (exit ${EXIT.USAGE})`
+        : `${verb}: backend ${i + 1}/${n} invalid (missing model/host) (exit ${EXIT.USAGE})`);
       continue;
     }
     // A declared-but-unset api key env is that backend's auth fault — no point calling, advance.
     if (b.apiKeyMissing) {
       failureClasses.push(EXIT.AUTH);
-      log(`${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
+      log(verb === "advancing"
+        ? `[chain] ${tag} unset-key (env '${b.apiKeyEnv}') → advancing (exit ${EXIT.AUTH})`
+        : `${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
       continue;
     }
     // FAFF-329: bound the WHOLE backend call (incl. a slow-trickle stream whose per-chunk activity
@@ -891,15 +921,19 @@ export async function runReviewChain(chain = [], shared = {}) {
       const shape = validateFindingsShape(result.content || "");
       if (!shape.ok) {
         failureClasses.push(EXIT.MALFORMED);
-        log(`${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${EXIT.MALFORMED})`);
+        log(verb === "advancing"
+          ? `[chain] ${tag} malformed (${shape.reason}) → advancing (exit ${EXIT.MALFORMED})`
+          : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${EXIT.MALFORMED})`);
         continue;
       }
       if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);
-      return { exit: EXIT.OK, content: result.content || "", truncated: !!result.truncated, winner: b, failureClasses };
+      return { exit: EXIT.OK, content: result.content || "", truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses };
     }
     failureClasses.push(exit);
     const detail = (result && result.note) || (result && result.names ? `available: ${result.names.join(", ")}` : "");
-    log(`${verb}: ${tag} failed (${result && result.status}${detail ? ": " + detail : ""}) (exit ${exit})`);
+    log(verb === "advancing"
+      ? `[chain] ${tag} ${(result && CHAIN_ADVANCE_REASON[result.status]) || (result && result.status) || "failed"}${detail ? ` (${detail})` : ""} → advancing (exit ${exit})`
+      : `${verb}: ${tag} failed (${result && result.status}${detail ? ": " + detail : ""}) (exit ${exit})`);
   }
   return { exit: chainTerminalExit(failureClasses), failureClasses };
 }
@@ -981,9 +1015,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       process.stderr.write(`refuted: "${r.title}" — node --check clean on ${r.files.join(", ")}; ${r.from} → observation\n`);
     }
     const hadHeader = hasHeader(refuted);
-    const winnerProvider = (res.winner && res.winner.provider) || "ollama";
-    const winnerModel = res.winner && res.winner.model;
-    const finalContent = ensureHeader(refuted, winnerProvider, winnerModel);
+    const finalContent = ensureHeader(refuted, res.winner, res.winnerIndex);
     if (!hadHeader) process.stderr.write("normalized: findings header missing — prepended canonical provenance\n");
     process.stdout.write((finalContent || "").trim() + "\n");
     return EXIT.OK;

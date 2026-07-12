@@ -14,7 +14,7 @@ import {
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory,
-  splitFindings, validateFindingsShape, canonicalHeader, ensureHeader, hasHeader,
+  splitFindings, validateFindingsShape, attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
@@ -702,8 +702,10 @@ test("FAFF-232 runReviewChain: advances past a failed primary to a healthy fallb
   });
   assert.equal(res.exit, EXIT.OK);
   assert.equal(res.winner.provider, "ollama");
+  assert.equal(res.winnerIndex, 1, "FAFF-361: 0-based chain position of the winner");
   assert.match(res.content, /ollama\/qwen/);
-  assert.ok(trace.some((l) => /advancing: nvidia\/nemotron failed/.test(l)), "primary failure logged as advancing");
+  assert.ok(trace.some((l) => /\[chain\] nvidia\/nemotron transport-failed/.test(l) && /→ advancing/.test(l)),
+    "FAFF-361: primary failure logged via the reshaped [chain] ... → advancing note");
 });
 
 test("FAFF-232 runReviewChain: advance-on-unreachable then success", async () => {
@@ -720,6 +722,7 @@ test("FAFF-232 runReviewChain: advance-on-unreachable then success", async () =>
   });
   assert.equal(res.exit, EXIT.OK);
   assert.equal(res.winner.host, "https://b/v1");
+  assert.equal(res.winnerIndex, 1, "FAFF-361: winner served from chain position 1");
 });
 
 test("FAFF-232 runReviewChain: all-exhausted availability-only → 5 (pass+skip)", async () => {
@@ -794,6 +797,26 @@ test("FAFF-232 main(): --backends-json advances past a 429 primary to a healthy 
     }) },
   );
   assert.equal(code, EXIT.OK);
+});
+
+test("FAFF-361 main(): --backends-json header names the FALLBACK's provider/model and chain[1] when the primary is skipped", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const dir = mkdtempSync(join(tmpdir(), "faff361-"));
+  const bf = join(dir, "backends.json");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "nvidia", model: "nemotron", host: "https://nv/v1", host_source: "config" },
+    { provider: "ollama", model: "qwen", host: "http://ollama:11434", host_source: "config" },
+  ]));
+  const { result: code, stdout } = await captureStdout(() => main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff],
+    { runReviewFn: scriptedRunReview({
+      "https://nv/v1": { status: "transport-failed", note: "HTTP 429" },
+      "http://ollama:11434": { status: "ok", content: "### observation: no findings" },
+    }) },
+  ));
+  assert.equal(code, EXIT.OK);
+  assert.match(stdout, /^## Adversarial findings — ollama\/qwen \(chain\[1\], host: config\)\n/,
+    "the header names the FALLBACK that actually served, at its real chain position — not the primary");
 });
 
 test("FAFF-232 main(): --backends-json all-exhausted availability → exit 5 (pass+skip)", async () => {
@@ -1200,26 +1223,60 @@ test("FAFF-194 validateFindingsShape: >=1 recognised severity section is finding
   assert.equal(validateFindingsShape("## Adversarial findings — ollama/m\n\n### critical: x\nbody").ok, true);
 });
 
-// ── canonicalHeader / ensureHeader ──
+// ── attributionHeader / ensureHeader (FAFF-361: chain[index] + host provenance) ──
 
-test("FAFF-194 canonicalHeader: exact provenance format", () => {
-  assert.equal(canonicalHeader("ollama", "llama3.1:70b"), "## Adversarial findings — ollama/llama3.1:70b");
+test("FAFF-361 attributionHeader: exact provenance format, incl. chain index and host source", () => {
+  assert.equal(
+    attributionHeader({ provider: "ollama", model: "llama3.1:70b", hostSource: "config" }, 0),
+    "## Adversarial findings — ollama/llama3.1:70b (chain[0], host: config)",
+  );
 });
 
-test("FAFF-194 ensureHeader: prepends when no header line is present", () => {
-  const out = ensureHeader("### observation: no findings", "ollama", "m");
-  assert.match(out, /^## Adversarial findings — ollama\/m\n\n### observation: no findings$/);
+test("FAFF-361 attributionHeader: provider falsy → renders 'ollama' (mirrors the tag fallback)", () => {
+  assert.equal(
+    attributionHeader({ model: "m" }, 0),
+    "## Adversarial findings — ollama/m (chain[0], host: config)",
+  );
 });
 
-test("FAFF-194 ensureHeader: REPLACES an existing (possibly model-echoed/wrong) header with the canonical one", () => {
-  const out = ensureHeader("## Adversarial Findings (some model's own guess)\n\n### critical: x", "ollama", "real-model");
-  assert.match(out, /^## Adversarial findings — ollama\/real-model\n/);
+test("FAFF-361 attributionHeader: hostSource falsy → defaults to 'config' (back-compat)", () => {
+  assert.equal(
+    attributionHeader({ provider: "nvidia", model: "m" }, 2),
+    "## Adversarial findings — nvidia/m (chain[2], host: config)",
+  );
+});
+
+test("FAFF-361 attributionHeader: hostSource 'default' (unconfigured localhost) is emitted verbatim", () => {
+  assert.equal(
+    attributionHeader({ model: "m", hostSource: "default" }, 0),
+    "## Adversarial findings — ollama/m (chain[0], host: default)",
+  );
+});
+
+test("FAFF-361 attributionHeader: a slash-bearing model id is emitted verbatim, no escaping", () => {
+  assert.equal(
+    attributionHeader({ provider: "nvidia", model: "z-ai/glm-5.2", hostSource: "config" }, 0),
+    "## Adversarial findings — nvidia/z-ai/glm-5.2 (chain[0], host: config)",
+  );
+});
+
+test("FAFF-194/361 ensureHeader: prepends when no header line is present", () => {
+  const out = ensureHeader("### observation: no findings", { provider: "ollama", model: "m", hostSource: "config" }, 0);
+  assert.match(out, /^## Adversarial findings — ollama\/m \(chain\[0\], host: config\)\n\n### observation: no findings$/);
+});
+
+test("FAFF-194/361 ensureHeader: REPLACES an existing (possibly model-echoed/wrong) header with the canonical one", () => {
+  const out = ensureHeader(
+    "## Adversarial Findings (some model's own guess)\n\n### critical: x",
+    { provider: "ollama", model: "real-model", hostSource: "config" }, 0,
+  );
+  assert.match(out, /^## Adversarial findings — ollama\/real-model \(chain\[0\], host: config\)\n/);
   assert.ok(!out.includes("some model's own guess"));
 });
 
-test("FAFF-194 ensureHeader: a no-op (byte-identical) when the existing header already matches canonical", () => {
-  const content = "## Adversarial findings — ollama/m\n\n### critical: x\nbody";
-  assert.equal(ensureHeader(content, "ollama", "m"), content);
+test("FAFF-194/361 ensureHeader: a no-op (byte-identical) when the existing header already matches canonical", () => {
+  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n\n### critical: x\nbody";
+  assert.equal(ensureHeader(content, { provider: "ollama", model: "m", hostSource: "config" }, 0), content);
 });
 
 // ── findSyntaxClaims ──
@@ -1386,8 +1443,10 @@ test("FAFF-194 runReviewChain: a non-findings-shaped OK result records failure c
   });
   assert.equal(res.exit, EXIT.OK);
   assert.equal(res.winner.host, "http://b:11434");
+  assert.equal(res.winnerIndex, 1, "FAFF-361: winner served from chain position 1 (element 0 was malformed)");
   assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
-  assert.ok(trace.some((l) => /produced non-findings output/.test(l) && /exit 10/.test(l)));
+  assert.ok(trace.some((l) => /\[chain\] nvidia\/m1 malformed/.test(l) && /exit 10/.test(l) && /→ advancing/.test(l)),
+    "FAFF-361: the malformed skip is logged via the reshaped [chain] ... → advancing note");
 });
 
 test("FAFF-194 runReviewChain: a fully-exhausted chain containing only a malformed OK result → terminal exit 10, never 5", async () => {
@@ -1441,8 +1500,28 @@ test("FAFF-194 main(): a winning result missing the header gets it prepended, no
   } finally {
     process.stderr.write = origErr;
   }
-  assert.match(stdout, /^## Adversarial findings — ollama\/m\n/);
+  assert.match(stdout, /^## Adversarial findings — ollama\/m \(chain\[0\], host: config\)\n/);
   assert.match(errOut, /normalized: findings header missing/);
+});
+
+test("FAFF-361 main(): single-backend legacy path, provider omitted, --host-source default → header renders ollama/<model> (chain[0], host: default)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const { result: code, stdout } = await captureStdout(() => main(
+    ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
+    { runReviewFn: async () => ({ status: "ok", content: "### observation: no findings" }) },
+  ));
+  assert.equal(code, EXIT.OK);
+  assert.match(stdout, /^## Adversarial findings — ollama\/m \(chain\[0\], host: default\)\n/);
+});
+
+test("FAFF-361 main(): a non-OK exit (unreachable) emits NO header — stdout stays empty, exit unchanged", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const { result: code, stdout } = await captureStdout(() => main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "config"],
+    { runReviewFn: async () => ({ status: "unreachable", note: "ECONNREFUSED" }) },
+  ));
+  assert.equal(code, EXIT.UNREACHABLE);
+  assert.equal(stdout, "", "the attribution prepend is strictly confined to the exit-0 branch — no header on a non-OK exit");
 });
 
 test("FAFF-194 main(): a winning result WITH a canonical header is byte-identical (no spurious normalisation log)", async () => {
@@ -1450,7 +1529,7 @@ test("FAFF-194 main(): a winning result WITH a canonical header is byte-identica
   const origErr = process.stderr.write.bind(process.stderr);
   let errOut = "";
   process.stderr.write = (c) => { errOut += c; return true; };
-  const content = "## Adversarial findings — ollama/m\n\n### observation: no findings";
+  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n\n### observation: no findings";
   let stdout;
   try {
     ({ stdout } = await captureStdout(() => main(
@@ -1501,7 +1580,7 @@ test("FAFF-194 integration smoke test: a confidently-wrong syntax critical on a 
     { runReviewFn: async () => ({ status: "ok", content }) },   // checkFn omitted — uses the REAL realCheck
   ));
   assert.equal(code, EXIT.OK);
-  assert.match(stdout, /^## Adversarial findings — ollama\/qwen3-next:80b\n/);
+  assert.match(stdout, /^## Adversarial findings — ollama\/qwen3-next:80b \(chain\[0\], host: config\)\n/);
   assert.match(stdout, /### observation: \[auto-refuted\]/);
   assert.match(stdout, /auto-refuted: node --check passed/);
 });
@@ -1544,18 +1623,18 @@ test("FAFF-194 refuteFindings: a THIRD untouched section further down the docume
   assert.equal(lines[minorIdx - 1], "", "blank line before the untouched minor section survives");
 });
 
-test("FAFF-194 ensureHeader: does NOT rewrite a header-LIKE line quoted inside a finding BODY (only the preamble is in scope)", () => {
-  const content = "## Adversarial findings — ollama/m\n\n### observation: comparing against a prior pass\nthe previous run said:\n## Adversarial findings — old-provider/old-model\nand missed X";
-  const out = ensureHeader(content, "ollama", "m");
+test("FAFF-194/361 ensureHeader: does NOT rewrite a header-LIKE line quoted inside a finding BODY (only the preamble is in scope)", () => {
+  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n\n### observation: comparing against a prior pass\nthe previous run said:\n## Adversarial findings — old-provider/old-model\nand missed X";
+  const out = ensureHeader(content, { provider: "ollama", model: "m", hostSource: "config" }, 0);
   assert.equal(out, content, "the document's own preamble header was already canonical — untouched; the quoted line in the body must survive verbatim");
   assert.ok(out.includes("## Adversarial findings — old-provider/old-model"), "the quoted body line was not rewritten");
 });
 
-test("FAFF-194 ensureHeader: still finds + replaces the REAL preamble header even when a finding body quotes a header-like line afterward", () => {
+test("FAFF-194/361 ensureHeader: still finds + replaces the REAL preamble header even when a finding body quotes a header-like line afterward", () => {
   const content = "## Adversarial Findings (model's own wrong guess)\n\n### observation: x\nquoting: ## Adversarial findings — other/model";
-  const out = ensureHeader(content, "ollama", "real-model");
+  const out = ensureHeader(content, { provider: "ollama", model: "real-model", hostSource: "config" }, 0);
   const lines = out.split("\n");
-  assert.equal(lines[0], "## Adversarial findings — ollama/real-model", "the preamble header was replaced");
+  assert.equal(lines[0], "## Adversarial findings — ollama/real-model (chain[0], host: config)", "the preamble header was replaced");
   assert.ok(out.includes("quoting: ## Adversarial findings — other/model"), "the body's quoted line is untouched");
 });
 
@@ -1591,10 +1670,10 @@ test("FAFF-194 splitFindings: a level-4 (####) sub-heading inside a finding body
   assert.equal(sections[1].severity, "minor");
 });
 
-test("FAFF-194 ensureHeader: a #### line before the first real finding never fools the preamble-scope boundary", () => {
+test("FAFF-194/361 ensureHeader: a #### line before the first real finding never fools the preamble-scope boundary", () => {
   // (defensive — #### is not a valid finding heading, so the preamble-scope search must not stop there)
-  const content = "## Adversarial findings — ollama/m\n#### not a real finding\n\n### observation: no findings";
-  const out = ensureHeader(content, "ollama", "m");
+  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n#### not a real finding\n\n### observation: no findings";
+  const out = ensureHeader(content, { provider: "ollama", model: "m", hostSource: "config" }, 0);
   assert.equal(out, content, "already-canonical header, found correctly despite the #### line, untouched");
 });
 

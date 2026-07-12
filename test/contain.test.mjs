@@ -323,6 +323,16 @@ test("FAFF-354: --record with a '..' run-id segment is a usage error (traversal 
   assert.match(r.err, /path separator/);
 });
 
+test("FAFF-354: isSafeRunId rejects a control character (e.g. embedded NUL) in the run-id", async () => {
+  // A real CLI invocation can never carry a NUL byte in argv — Node's own
+  // child_process.spawnSync (and every POSIX shell) rejects/strips it before the
+  // process even starts — so this exercises the pure predicate directly (the
+  // in-process call path `cmdContain` is also exported for direct use).
+  const { isSafeRunId } = await import("../plugin/skills/faff/bin/lib/contain.js");
+  assert.equal(isSafeRunId(`run${String.fromCharCode(0)}trav`), false);
+  assert.equal(isSafeRunId(`run${String.fromCharCode(10)}trav`), false);
+});
+
 test("FAFF-354: without --record, behaviour is byte-identical to before (back-compat)", () => {
   const r = run("contain", "M", "--parent", "C", "--ancestry", anc(["C", "M"]), "--json");
   assert.equal(r.code, 0);

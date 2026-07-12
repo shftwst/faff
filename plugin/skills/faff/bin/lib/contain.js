@@ -49,7 +49,7 @@ const path = require("node:path");
 const {
   CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, containerParent, findRoot, parseAncestry, subtreeContains,
 } = require("./shared-infra");
-const { EVENT_PHASES, appendEventRecord } = require("./events");
+const { EVENT_PHASES, appendEventRecord, eventViolations } = require("./events");
 
 // The pure containment primitives (containerParent / subtreeContains / parseAncestry /
 // CONTAIN_ROOT / CONTAIN_ENTRY_TYPES) live in shared-infra.js, not here — `audit`
@@ -66,11 +66,17 @@ const { EVENT_PHASES, appendEventRecord } = require("./events");
 const CONTAIN_VALUE_FLAGS = new Set(["--parent", "--ancestry", "--root", "--record", "--phase"]);
 // A --record run-id may only resolve inside .faff/runs/<run-id> — reject a path
 // separator or a ".." segment before it ever reaches a path.join (traversal guard;
-// this is a new agent-supplied input on the very command being hardened).
+// this is a new agent-supplied input on the very command being hardened). Also
+// rejects control characters (incl. embedded NUL): Node's fs functions currently
+// degrade a NUL-containing path to a harmless "not found" on this platform rather
+// than throwing, but that is incidental fs behaviour, not a guarantee this guard
+// should lean on — reject the class outright rather than rely on it.
 function isSafeRunId(runId) {
   if (typeof runId !== "string" || runId === "") return false;
   if (runId.includes("/") || runId.includes("\\")) return false;
   if (runId.split(/[/\\]/).includes("..")) return false;
+  // eslint-disable-next-line no-control-regex -- deliberately matching control chars
+  if (/[\x00-\x1f]/.test(runId)) return false;
   return true;
 }
 function cmdContain(args) {
@@ -120,7 +126,7 @@ function cmdContain(args) {
     process.stderr.write(`faff contain: --phase must be one of ${[...EVENT_PHASES].join(", ")} (got ${JSON.stringify(phaseArg)}).\n`); return 2;
   }
   if (wantRecord && !isSafeRunId(recordRunId)) {
-    process.stderr.write("faff contain: --record <run-id> must not contain a path separator or a '..' segment.\n"); return 2;
+    process.stderr.write("faff contain: --record <run-id> must not contain a path separator, a '..' segment, or a control character.\n"); return 2;
   }
 
   // --ancestry is required EXCEPT for --root (which is unconditionally outward) and
@@ -157,14 +163,26 @@ function cmdContain(args) {
   const out = { mandate, parent: wantRoot ? null : parentArg, root: wantRoot, verdict };
 
   if (wantRecord) {
-    appendEventRecord(recordDir, recordRunId, {
+    const payload = {
       phase, type: "containment-check", issue: mandate,
       data: {
         mandate, parent: wantRoot ? null : parentArg, root: wantRoot,
         ancestry_raw: typeof ancestryArg === "string" ? ancestryArg : null,
         verdict, exit,
       },
-    });
+    };
+    // Defense-in-depth: assert the payload this command constructs is itself a
+    // valid RunEvent payload (the same check `events append` runs on caller-supplied
+    // JSON) before writing it as durable evidence — a malformed record would
+    // undermine the whole point of --record. Should never fire on correct code
+    // (every field here is internally computed, not user JSON); a violation means a
+    // future code change drifted the shape, and that must fail loud, not write
+    // silently-bad evidence.
+    const violations = eventViolations(payload, false);
+    if (violations.length) {
+      throw new Error(`faff contain --record: internal error — constructed an invalid containment-check payload: ${violations.join("; ")}`);
+    }
+    appendEventRecord(recordDir, recordRunId, payload);
   }
 
   if (asJson) {
@@ -267,6 +285,8 @@ const ISSAFE_RUNID_CASES = [
   ["..", false],
   [null, false],
   [undefined, false],
+  [`run${String.fromCharCode(0)}trav`, false], // embedded NUL — control-char guard
+  [`run${String.fromCharCode(10)}trav`, false], // embedded newline — control-char guard
 ];
 
 function containSelftest() {

@@ -63,9 +63,27 @@ function dirsCoverAll(declaredDirs, requiredDirs) {
 // from `fsq.readEnviron("/proc/1/environ")` — `env` (the CLI's own inherited
 // process env) is read ONLY to detect a poisoning attempt (a declaration present
 // there that pid-1 does not corroborate), never as a trust source itself.
+// `env` NEVER contributes a positive trust signal, including on agreement: the
+// asserted:true branch below is derived ENTIRELY from the pid-1 value (`parsed`),
+// never from `env` matching it. A build lane that reads its own pid-1's genuine
+// declaration (same-uid read access) and copies it into its OWN inherited env
+// gains nothing — it cannot rewrite pid-1's actual environ (a fixed exec-time
+// kernel snapshot, not a live/writable channel from a sibling process), and the
+// probe's trust decision was already earned by that same genuine pid-1 value
+// regardless of what `env` says. `env` agreement is therefore inert, not a hole
+// (adversarial review, FAFF-325 — disposition: proven false, logged).
 // `requiredDirs` is the explicitly-passed integrity-dir set the declaration's
 // ro-dir-set must cover (FAFF-337: the probe never does latest-run discovery); a
 // non-array value degrades to "nothing required", never to a security hole.
+// SCOPE NOTE (assert-don't-implement, ADR-0010): the probe verifies the
+// declaration's SOURCE is unforgeable by the build lane and its dir set is not
+// too NARROW (dirsCoverAll below) — it does NOT and CANNOT verify the outer
+// layer's declaration is HONEST (that the mount genuinely, exactly matches the
+// declared dirs, no broader). A declaration of "/" is not a code bug here; it is
+// an outer-layer correctness question this ticket explicitly does not scope in —
+// "asserts, not creates" (see the module header + ADR-0061). Faff trusts the
+// launcher's claim once it is confirmed genuinely pid-1-sourced; it never audits
+// the launcher's honesty (adversarial review, FAFF-325 — logged, out of scope).
 //   asserted:true  ONLY when: a pid-1 declaration exists, is well-formed, AND its
 //                  dir set ⊇ requiredDirs.
 //   asserted:false otherwise, with `basis` distinguishing:

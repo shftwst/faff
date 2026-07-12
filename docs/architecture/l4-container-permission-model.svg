@@ -76,7 +76,8 @@
 
   <!-- docker engine bar -->
   <rect x="64" y="520" width="1112" height="38" rx="7" fill="#e2f4f6" stroke="#0e7490"/>
-  <text x="80" y="544" class="t" font-size="12"><tspan font-size="14">🐳</tspan>  <tspan font-weight="700">docker engine INSIDE claude-box</tspan>  (precondition: a mounted socket / docker-in-docker) — the <tspan font-weight="700">only</tspan> container-launching capability faff drives, and only via the env slot</text>
+  <text x="80" y="544" class="t" font-size="12"><tspan font-size="14">🐳</tspan>  <tspan font-weight="700">docker engine INSIDE claude-box</tspan>  (precondition: a <tspan font-weight="700">bounded rootless nested engine</tspan> — dind/podman-in-podman/sysbox; a mounted host socket or privileged dind <tspan font-weight="700">voids host isolation</tspan> — ADR-0041 §3) — faff's <tspan font-weight="700">only</tspan> container-launching path, via the env slot</text>
+  <text x="80" y="556" class="mut" font-size="9.5" font-style="italic">bounds HOST isolation only — the SUT below runs in nested child containers; within-cage LANE isolation (evaluator code-blindness) is a separate rung → FAFF-276</text>
 
   <!-- SUT env (real containers) -->
   <rect x="64" y="572" width="1112" height="196" rx="9" fill="#e6f7f9" stroke="#0e7490" stroke-width="2"/>

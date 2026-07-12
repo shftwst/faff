@@ -36,7 +36,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { AT_CEILING_OUTCOMES, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
-const { containerCheck, realFsq } = require("./container-check");
+const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { eventLineCount } = require("./events");
 const { atomicWriteLedger } = require("./heartbeat");
@@ -313,6 +313,26 @@ function lightsOutPreflight(probes) {
       refusals.push({ gate: `guardrail:${id}`, detail: `${id} not live (${armed[id]}) — its CLI contract failed the launch reachability probe; fail-closed, no reduced mode` });
     }
   }
+  // FAFF-333 — host-socket boundedness (ADR-0041 decision 3): a mounted HOST docker
+  // socket inside the cage is root-equivalent host control and voids ADR-0010 host
+  // isolation, even when container-check itself reports `contained` (containment and
+  // boundedness are orthogonal axes — see container-check.js's hostSocketProbe). This
+  // is POSITIVE evidence of an unbounded posture, so it REFUSES unconditionally on the
+  // lights-out path — no knob softens it, except the operator's own attestation that
+  // the same-path socket is actually a BOUNDED nested engine (autonomous.engine_bounded:
+  // true), which downgrades this refusal to a warn WITHOUT waiving the containment
+  // requirement above.
+  if (probes.hostSocketPresent && probes.engineBounded !== true) {
+    refusals.push({
+      gate: "host-socket",
+      detail: `host docker socket ${probes.hostSocketPath || "docker.sock"} voids ADR-0010 host isolation (ADR-0041 decision 3) — move to a bounded nested engine (rootless dind/podman/sysbox), or set autonomous.engine_bounded:true to attest a bounded engine at this path`,
+    });
+  } else if (probes.hostSocketPresent && probes.engineBounded === true) {
+    degrades.push({
+      gate: "host-socket",
+      detail: `host docker socket ${probes.hostSocketPath || "docker.sock"} present but attested bounded (autonomous.engine_bounded:true) — proceeding on the operator's word; the containment requirement above is unaffected`,
+    });
+  }
   // Basic preconditions (NOT rich dial-coherence — reckless level+appetite+slots+gates
   // adjudication is a deferred follow-on; v1 does cheap reachability/presence probes).
   if (!probes.reviewReachable)
@@ -586,6 +606,15 @@ function cmdLightsOut(args) {
   // lights-out path only — L1–L3 keep today's warn-don't-block behaviour.
   const container = containerCheck(process.env, realFsq()).result;
 
+  // FAFF-333 — host-socket boundedness probe (ADR-0041 decision 3), a DIFFERENT axis
+  // from the containment check above: a mounted HOST docker socket is root-equivalent
+  // host control regardless of whether containerCheck reports contained. Unconditional
+  // refuse on THIS path unless the operator attests the same-path socket is a bounded
+  // nested engine (autonomous.engine_bounded, default false — fail-safe: unset/anything
+  // other than the literal boolean true never softens the refuse).
+  const hostSocket = hostSocketProbe(realFsq());
+  const engineBounded = dig(cfg, "autonomous.engine_bounded") === true;
+
   // FAFF-373/325: ONE probe call, TWO consumers — the capability record below (never gated
   // on: `available` once a declaration is genuinely asserted, `channel-D-only` otherwise) AND
   // the corrective-integrity admission REFUSAL in lightsOutPreflight (via probes.correctiveIntegrityBasis
@@ -672,6 +701,9 @@ function cmdLightsOut(args) {
     meteringMeasurable, estimateOnlyPosture: onEstimateOnlyPosture, tokenDependentCeiling,
     // FAFF-325 — reuse the ONE probe call above; never a second, possibly-divergent read.
     correctiveIntegrityBasis: correctiveProbe.basis,
+    // FAFF-333 — reuse the ONE hostSocketProbe call above; never a second, possibly-
+    // divergent read. engineBounded is the operator's own attestation (default false).
+    hostSocketPresent: hostSocket.present, hostSocketPath: hostSocket.path, engineBounded,
   };
   const pf = lightsOutPreflight(probes);
 
@@ -869,6 +901,27 @@ function lightsOutSelftest() {
   check("REFUSED status line unchanged", bare.banner.includes("REFUSED — preflight not satisfied (a guardrail is not live)"));
   check("refuse-path guardrail lines still carry enforcement token",
     bare.banner.split("\n").filter((l) => /^ {4}[●◐○] /.test(l)).every((l) => /\b(enforced|reachable-only)\b/.test(l)));
+
+  // FAFF-333 — host socket present (unattested) → REFUSE, unconditionally, even though
+  // every other guardrail (incl. container containment) is otherwise happy-path green.
+  const hostSocketRefuse = lightsOutPreflight(armedProbes({ hostSocketPresent: true, hostSocketPath: "/var/run/docker.sock" }));
+  check("host socket present (unattested) refuses", hostSocketRefuse.proceed === false);
+  check("host-socket refusal names its gate + the path + ADR-0041",
+    (() => { const r = hostSocketRefuse.refusals.find((r) => r.gate === "host-socket");
+      return !!r && r.detail.includes("/var/run/docker.sock") && /ADR-0041/.test(r.detail); })());
+  // Attested bounded (autonomous.engine_bounded:true) → downgrades to a warn, proceeds —
+  // the containment requirement (container: "contained" from armedProbes()) still applies.
+  const hostSocketAttested = lightsOutPreflight(armedProbes({ hostSocketPresent: true, hostSocketPath: "/var/run/docker.sock", engineBounded: true }));
+  check("host socket present + engine_bounded:true proceeds", hostSocketAttested.proceed === true);
+  check("host socket present + engine_bounded:true carries a degrades[] warn naming host-socket",
+    hostSocketAttested.degrades.some((d) => d.gate === "host-socket"));
+  check("host socket present + engine_bounded:true never carries a host-socket refusal",
+    !hostSocketAttested.refusals.some((r) => r.gate === "host-socket"));
+  // Socket absent (the byte-for-byte-unchanged default, since armedProbes() supplies no
+  // hostSocketPresent key at all) → the happy path above already proves this: `happy`
+  // has proceed:true and zero refusals with hostSocketPresent left unset entirely.
+  check("socket absent (unset) is byte-for-byte unchanged — happy path carries no host-socket refusal",
+    !happy.refusals.some((r) => r.gate === "host-socket"));
 
   // Review slot unreachable → refuse (configured-but-down == absent, never pass+skip).
   const noReview = lightsOutPreflight(armedProbes({ reviewReachable: false }));

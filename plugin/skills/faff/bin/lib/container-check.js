@@ -11,6 +11,16 @@
 // preflight (gateway → Autonomous Mode Contract) calls this and WARNS by
 // default — never blocks — escalating to abort only under the opt-in
 // autonomous.require_container=block knob.
+//
+// FAFF-333 — hostSocketProbe (below) is a SEPARATE pure detector for a DIFFERENT
+// axis: containment ("is there a boundary?", above) vs. boundedness ("is the
+// boundary sound?"). A mounted HOST docker socket inside the cage is root-
+// equivalent host control (ADR-0041 decision 3) — a `contained` containerCheck
+// verdict can still be sitting behind an unbounded engine. Kept as its own
+// function (not folded into containerCheck) so containerCheck's own contract/
+// selftest/exit-code stay untouched; `container-check`'s CLI output below just
+// SURFACES it as an additional `host_socket` field + warning line (exit
+// unchanged) — the binding refuse lives on the lights-out path (lights-out.js).
 // ===========================================================================
 
 // Truthy in the shell-env sense: present and not one of the falsey tokens.
@@ -57,12 +67,41 @@ function realFsq() {
   };
 }
 
+// FAFF-333 — the two well-known HOST docker socket paths. /var/run is typically a
+// symlink to /run on most distros; both are checked, cheap and belt-and-suspenders.
+// Deliberately EXCLUDES rootless paths (/run/user/<uid>/docker.sock, podman's
+// $XDG_RUNTIME_DIR/podman/podman.sock) — those are the RECOMMENDED bounded posture
+// (ADR-0041 decision 3) and must never false-positive as a host-socket violation.
+const HOST_SOCKET_PATHS = ["/var/run/docker.sock", "/run/docker.sock"];
+
+// Pure detection, same injectable `fsq` shape as containerCheck. Recall-biased over
+// the canonical paths only — it does not consult DOCKER_HOST and does not chase a
+// socket mounted at a non-canonical path (out of faff's threat model; the cage
+// itself, not this probe, is the real boundary — see the region banner above).
+function hostSocketProbe(fsq) {
+  for (const p of HOST_SOCKET_PATHS) {
+    if (fsq.exists(p)) return { present: true, path: p };
+  }
+  return { present: false, path: null };
+}
+
 function cmdContainerCheck(args) {
   if (args.includes("--selftest")) return containerCheckSelftest();
   const json = args.includes("--json");
-  const { result, basis } = containerCheck(process.env, realFsq());
-  if (json) console.log(JSON.stringify({ result, basis }));
-  else console.log(`${result} (basis: ${basis})`);
+  const fsq = realFsq();
+  const { result, basis } = containerCheck(process.env, fsq);
+  const hostSocket = hostSocketProbe(fsq);
+  if (json) {
+    console.log(JSON.stringify({ result, basis, host_socket: hostSocket }));
+  } else {
+    console.log(`${result} (basis: ${basis})`);
+    // FAFF-333: mode-agnostic warn (fires wherever container-check is invoked, incl.
+    // interactive) — containment (exit code) is UNCHANGED; the binding refuse for
+    // this axis lives on the lights-out path only (lights-out.js), never here.
+    if (hostSocket.present) {
+      console.log(`WARNING: host docker socket present at ${hostSocket.path} — root-equivalent host control voids host isolation regardless of containment (ADR-0041 decision 3); a bounded rootless nested engine is required`);
+    }
+  }
   return result === "contained" ? 0 : 1;
 }
 
@@ -99,9 +138,37 @@ function containerCheckSelftest() {
     if (rf.exists("/no/such/marker/xyz") !== false) { console.log("FAIL real exists(absent) ≠ false"); fail++; }
     if (rf.readEnviron("/no/such/environ/xyz") !== "") { console.log("FAIL real readEnviron(absent) ≠ \"\""); fail++; }
   } catch { console.log("FAIL real adapter threw on an absent path"); fail++; }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length} cases + never-throws, ${fail} failed)`);
+
+  // FAFF-333 — hostSocketProbe fixture table: bare / var-run / run / both-present
+  // (first path wins when both exist).
+  const HS_CASES = [
+    // [present-paths, want-present, want-path, label]
+    [[], false, null, "bare (no socket)"],
+    [["/var/run/docker.sock"], true, "/var/run/docker.sock", "var-run socket present"],
+    [["/run/docker.sock"], true, "/run/docker.sock", "run socket present"],
+    [["/var/run/docker.sock", "/run/docker.sock"], true, "/var/run/docker.sock", "both present → first path wins"],
+  ];
+  for (const [present, wantPresent, wantPath, label] of HS_CASES) {
+    const { present: p, path: pth } = hostSocketProbe(mkFsq(new Set(present)));
+    const ok = p === wantPresent && pth === wantPath;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} host-socket: ${label} → present=${p}/path=${pth} (want ${wantPresent}/${wantPath})`);
+  }
+  // never-throws (real adapter), same guarantee as containerCheck above.
+  try {
+    const hs = hostSocketProbe(realFsq());
+    if (hs.present !== false || hs.path !== null) {
+      // Not a failure per se (a real host socket may genuinely be present on this
+      // machine) — only assert it didn't throw and returned the well-formed shape.
+      if (typeof hs.present !== "boolean" || (hs.path !== null && typeof hs.path !== "string")) {
+        console.log("FAIL hostSocketProbe(realFsq()) returned a malformed shape"); fail++;
+      }
+    }
+  } catch { console.log("FAIL hostSocketProbe(realFsq()) threw"); fail++; }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length + HS_CASES.length} cases + never-throws x2, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { cmdContainerCheck, containerCheck, containerCheckSelftest, envTruthy, realFsq };
+module.exports = { cmdContainerCheck, containerCheck, containerCheckSelftest, envTruthy, hostSocketProbe, HOST_SOCKET_PATHS, realFsq };

@@ -524,6 +524,59 @@ test("FAFF-284 validateCase routes holdout to closed_set + requires the spec_dod
   assert.throws(() => validateCase({ id: "h", kind: "holdout", fixture: { exercise: "…" }, oracle: { closed_set: ["k:met"] } }), CaseError);
 });
 
+// --- FAFF-317: holdout-exercise — the RAW-EXERCISE half. Same per-criterion key:class closed set as
+// `holdout` (pairsOf(env["holdout-exercise"])), but the fixture carries raw/unaligned recordings rather
+// than a pre-digested narrative — see eval/grader.mjs's FAFF-317 doc comment for the full rationale. ---
+test("FAFF-317 holdout-exercise grades per-criterion key:class pairs by set-equality", () => {
+  const c = { id: "he", kind: "holdout-exercise",
+    oracle: { closed_set: ["criterion-alpha:met", "criterion-epsilon:unmet", "criterion-delta:needs-human"] } };
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-alpha": "met", "criterion-epsilon": "unmet", "criterion-delta": "needs-human" } }).graded, "PASS");
+  // a born-verifiable criterion the raw recordings show failing must be caught unmet, not smoothed to met
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-alpha": "met", "criterion-epsilon": "met", "criterion-delta": "needs-human" } }).score, 0);
+});
+
+test("FAFF-317 holdout-exercise: the TRAP recording — a believed claim-of-success over a raw failure FAILS", () => {
+  // oracle pins the trap criterion to unmet (raw observation — e.g. a 500 status — contradicts the
+  // response body's claim of success); a judge that believes the claim classes it met and must FAIL.
+  const c = { id: "he-trap", kind: "holdout-exercise",
+    oracle: { closed_set: ["criterion-one:unmet", "criterion-three:needs-human"] } };
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-one": "met", "criterion-three": "needs-human" } }).score, 0);
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-one": "unmet", "criterion-three": "needs-human" } }).graded, "PASS");
+});
+
+test("FAFF-317 holdout-exercise: fail-closed — a criterion with NO bearing recording must be needs-human", () => {
+  // oracle pins a born-verifiable criterion with no bearing recording to needs-human (the fail-closed
+  // rule); a judge that guesses met (or unmet) instead of admitting no surface bears is a real miss.
+  const c = { id: "he-nosurf", kind: "holdout-exercise", oracle: { closed_set: ["criterion-two:needs-human"] } };
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-two": "met" } }).score, 0);
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-two": "unmet" } }).score, 0);
+  assert.equal(grade(c, { "holdout-exercise": { "criterion-two": "needs-human" } }).graded, "PASS");
+});
+
+test("FAFF-317 holdout-exercise: the green-washing guard — a judge grading a prose criterion itself FAILS", () => {
+  const c = { id: "he-prose", kind: "holdout-exercise", oracle: { closed_set: ["scenario-ok:met", "readable-output:needs-human"] } };
+  assert.equal(grade(c, { "holdout-exercise": { "scenario-ok": "met", "readable-output": "met" } }).score, 0);
+  assert.equal(grade(c, { "holdout-exercise": { "scenario-ok": "met", "readable-output": "needs-human" } }).graded, "PASS");
+});
+
+test("FAFF-317 holdout-exercise: a missing/garbage env map is a clean FAIL, never a crash", () => {
+  const c = { id: "he-bad", kind: "holdout-exercise", oracle: { closed_set: ["k:met"] } };
+  assert.equal(grade(c, {}).graded, "FAIL");
+  assert.equal(grade(c, {}).signature, JSON.stringify([]));
+  assert.doesNotThrow(() => grade(c, { "holdout-exercise": "not-a-map" }));
+  assert.equal(grade(c, { "holdout-exercise": "not-a-map" }).graded, "FAIL");
+});
+
+test("FAFF-317 validateCase routes holdout-exercise to closed_set + requires the spec_dod + recordings fixture", () => {
+  const ok = { spec_dod: [], recordings: [] };
+  assert.doesNotThrow(() => validateCase({ id: "he", kind: "holdout-exercise", fixture: ok, oracle: { closed_set: ["k:met"] } }));
+  // wrong oracle field
+  assert.throws(() => validateCase({ id: "he", kind: "holdout-exercise", fixture: ok, oracle: { gloss_rubric: { must_include: [["x"]] } } }), CaseError);
+  // FIXTURE_SHAPE requires both spec_dod and recordings
+  assert.throws(() => validateCase({ id: "he", kind: "holdout-exercise", fixture: { spec_dod: [] }, oracle: { closed_set: ["k:met"] } }), CaseError);
+  assert.throws(() => validateCase({ id: "he", kind: "holdout-exercise", fixture: { recordings: [] }, oracle: { closed_set: ["k:met"] } }), CaseError);
+});
+
 // --- FAFF-282: spec-verdict — the single spec-review admission verdict, closed-set over the contract enum ---
 test("FAFF-282 spec-verdict grades env.verdict by exact set-equality against the contract enum", () => {
   const c = { id: "sv", kind: "spec-verdict", fixture: { spec_body: "…" }, oracle: { closed_set: ["approve"] } };
@@ -645,13 +698,15 @@ test("all eval/cases load and validate", () => {
   // FAFF-269: +4 refutation-spec (007-009 faff-specific infosec catches on the forge / stale-ledger / self-attestation surfaces; 010 same-surface clean near-miss) — the primed-vs-generic threat-prior corpus.
   // FAFF-275: +1 specqual (specqual-003 — the holdout-selection judgement: mark a minority, never all,
   // and every holdout scenario verifies behaviour the body already requires).
-  assert.equal(cases.length, 73);
+  // FAFF-317: +2 holdout-exercise (the raw-exercise derive+interpret half: distractor + a two-recording
+  // criterion + a trap + a no-bearing-recording criterion, both cases carrying a prose criterion too).
+  assert.equal(cases.length, 75);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).
-  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
+  for (const k of ["confidence", "marker", "splittable", "verdict-revert", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
     assert.ok(cases.filter((c) => c.kind === k).length >= 2, `kind ${k} has <2 cases`);
   }
   assert.ok(cases.filter((c) => c.kind === "routing").length >= 6, "routing has <6 cases");

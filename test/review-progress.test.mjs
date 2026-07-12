@@ -156,6 +156,19 @@ test("write --outage-retry on a fresh checkpoint starts the counter at 1, preser
   } finally { rmSync(rd, { recursive: true, force: true }); }
 });
 
+test("write --outage-retry combined with --phase1-pass or --phase2 is rejected (exit 2, no silent flag-priority)", () => {
+  const rd = runDir();
+  try {
+    runCli(["review-progress", "write", rd, "FAFF-403", "--phase1-pass", "--diff-hash", "h1"]);
+    const w1 = runCli(["review-progress", "write", rd, "FAFF-403", "--phase1-pass", "--diff-hash", "h1", "--outage-retry"]);
+    assert.equal(w1.code, 2);
+    assert.match(w1.stderr, /not combinable/);
+    const w2 = runCli(["review-progress", "write", rd, "FAFF-403", "--phase2", "in_flight", "--outage-retry"]);
+    assert.equal(w2.code, 2);
+    assert.match(w2.stderr, /not combinable/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
 test("write --outage-retry increments across repeated (cross-drain) calls, never resets", () => {
   const rd = runDir();
   try {

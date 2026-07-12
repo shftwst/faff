@@ -220,7 +220,7 @@ If wave 1's build queue is empty after assembly (step 4), skip steps 5–8 and p
 After the wave loop converges (and only when builds ran — the wave-1 short-circuit at step 9 skips this), collect the **discovered scope** `/faff-graft` recorded during the run and file the concrete items as Backlog tickets. This is bottom-up source (b) — execution-discovered work (gateway → **Agent Lanes**; `design/planning-loop.md`). It is the one step where beep-boop writes tickets **directly** rather than via tidy — legitimately, as the orchestrator lane (full tracker write). **Same procedure, two timings:** by default it runs once here at end-of-run (file-and-defer); under **`--converge`** the *same* sub-steps 1–7 are invoked **per wave at step 8.0** so scope re-enters the same run, and this end-of-run pass files only the residual (final-wave scope, or scope a budget breach short-circuited). File-and-defer is the **fallback** whenever the mode is off or budget-capped — no discovered scope is ever dropped.
 
 1. **Collect.** Glob `.faff/runs/<run-id>/*/discovered-scope.json` (each built issue's file; absent when it found nothing). Every built issue contributes regardless of its terminal outcome — a `shipped`, `pr-open`, or `parked` issue can all carry discovered scope.
-2. **Containment check (FAFF-221 — runs before the appetite gate; this is chokepoint #1).** This step is an autonomous-by-construction create path, so each `concrete` item passes `autonomous_file_check` (see _Containment at the filing chokepoint_ below) **before** the gate. The **mandate is the `<ISSUE>` dir the item came from** — the built issue beep-boop was dispatched from the human-admitted queue. Fetch the intended parent's ancestry **fresh** and call `faff contain`. `outward` (or an item graft already tagged `containment: outward-new-root`) → skip steps 3–4, jump to step 6 (surface-only). `contained` → fall through to the appetite gate. `vague` items skip the check (they are never filed regardless).
+2. **Containment check (FAFF-221 — runs before the appetite gate; this is chokepoint #1).** This step is an autonomous-by-construction create path, so each `concrete` item passes `autonomous_file_check` (see _Containment at the filing chokepoint_ below) **before** the gate. The **mandate is the `<ISSUE>` dir the item came from** — the built issue beep-boop was dispatched from the human-admitted queue. Fetch the intended parent's ancestry **fresh** and call `faff contain … --record <run-id> --phase run` (FAFF-354 — see the procedure below). `outward` (or an item graft already tagged `containment: outward-new-root`) → skip steps 3–4, jump to step 6 (surface-only). `contained` → fall through to the appetite gate. `vague` items skip the check (they are never filed regardless).
 3. **Gate per item:**
    - `vague` items → never filed. Aggregate for the run summary + the next `/faff-wtf` morning brief only.
    - `concrete` + `contained` items → **appetite-gated** (gateway → **Appetite for destruction**, _Execution-discovered auto-create_ row): `low` surfaces only; `medium` files only with an opinionated methodology; `high` (default) files every concrete item; `full` always files. An `outward-new-root` item is **never** filed at any level including `full` (the hard floor) — it was already routed to step 6.
@@ -236,21 +236,21 @@ Filed tickets are **new work, not admitted issues** — they sit outside runchec
 This is one of the **two** autonomous-by-construction tracker-create paths (the other is tidy chain-gap auto-fill); both call the same `autonomous_file_check` before any create, so an agent-discovered item can only become a ticket **inside the subtree of the mandate** it was discovered under. `faff-graft` only *records* discovered scope (gateway → **Agent Lanes**) — it is **not** a create path. The mode signal is structural, not a flag (gateway → scope-containment is by-construction, FAFF-217); interactive jot/plot create freely and stamp `initiated: interactive`.
 
 ```
-PROCEDURE autonomous_file_check(mandate, candidate):
+PROCEDURE autonomous_file_check(mandate, candidate, run_id, phase):
   1. parent   := candidate.intended_parent            # sanctioned ancestor, or none → --root
   2. ancestry := <fresh agent-side tracker read of parent's parentId chain, at filing time>
-  3. verdict  := faff contain <mandate> (--parent <parent> | --root) --ancestry <json>   # exit 0/3/2
+  3. verdict  := faff contain <mandate> (--parent <parent> | --root) --ancestry <json> --record <run_id> --phase <phase>   # exit 0/3/2 (FAFF-354)
   4. contained (0): proceed to the existing appetite gate; on create stamp initiated: autonomous
        (faff intake-record <new> --via jot --initiated autonomous)
   5. outward (3):   create NOTHING; record containment: "outward-new-root"; surface (run digest →
        /faff-wtf) AND comment on the mandate issue; do NOT park
-  6. usage (2):     malformed ancestry → log + surface, no create, no crash
+  6. usage (2):     malformed ancestry, OR --record's run dir missing → log + surface, no create, no crash (fail-closed to NO-CREATE, never a silently-unrecorded verdict)
   # NEVER self-call `faff intake-record --via fast-track` to convert an outward verdict — fast-track is human-only.
 ```
 
 - **Ancestry is fetched fresh** at filing time (never a cached chain from an earlier pass — a stale chain could make an outward parent read as contained).
 - **`--root`, a cycle, or an unknown/absent parentId** all return outward (fail-closed, delegated to `faff contain`); **mandate == parent** is the contained base case.
-- **Containment is a precondition, not a replacement for appetite** — a `contained` verdict still goes through the existing appetite gate, which decides whether to file at this level. **outward-new-root is never filed at any appetite including `full`** (the hard floor — gateway → **Appetite for destruction**).
+- **Containment is a precondition, not a replacement for appetite** — a `contained` verdict still goes through the existing appetite gate, which decides whether to file at this level. **outward-new-root is never filed at any appetite including `full`** (the hard floor — gateway → **Appetite for destruction**). **Trust boundary (FAFF-354):** `--ancestry` is agent-sourced, so the verdict binds structure, not truthfulness — `--record <run_id> --phase <phase>` binds it to the exact payload walked so `faff audit` can recompute-and-compare post-hoc, a **detective**, never preventive, control (never fetches the tracker itself).
 
 ### 10b. Per-run holdout phase (L4 lights-out signal only — the enforced holdout guardrail)
 

@@ -34,91 +34,51 @@
 // human clears; a false contained would silently expand scope. `--root` (an intended
 // new top-level container) is outward by definition. The base case mandate == parent
 // is contained (the first child of the mandate), for issue/project/initiative alike.
+//
+// TRUST BOUNDARY (FAFF-354): --ancestry is AGENT-SOURCED — fetched and supplied by
+// the very agent this gate constrains — so the walk binds STRUCTURE, not truthfulness:
+// a confabulated-but-well-formed chain still computes a verdict. `--record <run-id>`
+// binds each verdict to the exact payload it was computed from, durably, so `faff
+// audit` can recompute-and-compare post-hoc — a DETECTIVE control, never a preventive
+// one. It does not verify ancestry against the tracker (this CLI never fetches the
+// tracker) and does not stop a fabricated chain from passing.
 // ===========================================================================
 
-// The one new piece of logic: the single upward containment edge for a node, chosen
-// by its type (the parentId-dominant cross-project membership rule — see ADR). Returns
-// the container-parent id, or null (a root: no edge of the applicable kind). Pure, no
-// throw. An absent `type` defaults to "issue" (backward compat); an unknown `type`
-// value never reaches here — parseAncestry rejects it with usage exit 2.
+const fs = require("node:fs");
+const path = require("node:path");
+const {
+  CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, containerParent, findRoot, parseAncestry, subtreeContains,
+} = require("./shared-infra");
+const { EVENT_PHASES, appendEventRecord, eventViolations } = require("./events");
 
+// The pure containment primitives (containerParent / subtreeContains / parseAncestry /
+// CONTAIN_ROOT / CONTAIN_ENTRY_TYPES) live in shared-infra.js, not here — `audit`
+// (governance, FAFF-354's recompute-and-compare) needs them too, and governance may
+// reference shared-infra only, never a factory module like this one (ADR 0042; `faff
+// regions check` enforces the direction). Re-exported below for existing callers of
+// this module (byte-identical external surface).
 
-function containerParent(entry) {
-  if (!entry || typeof entry !== "object") return null;
-  const type = entry.type || "issue";
-  if (type === "issue") {
-    // parentId FIRST (the tightest, most-intentional edge), then jump to the
-    // containing project at a top-level issue; a top-level issue with no project = root.
-    if (typeof entry.parentId === "string") return entry.parentId;
-    if (typeof entry.projectId === "string") return entry.projectId;
-    return null;
-  }
-  if (type === "project") {
-    return typeof entry.initiativeId === "string" ? entry.initiativeId : null;
-  }
-  // type === "initiative": top of the hierarchy, no container edge.
-  return null;
-}
-
-// Pure subtree-membership walk. `parent` is the intended parent id, or the ROOT
-// sentinel (null) for an intended new root. `entryOf` maps id → the typed AncestryEntry
-// (undefined when unknown/absent — the agent's fetched ancestry). Walks from `parent`
-// upward following each node's TYPED containment edge (containerParent); reaching
-// `mandate` → "contained"; exhausting to a root ≠ mandate, an unknown link, an unknown
-// node, or a cycle → "outward" (fail-closed). Returns "contained" | "outward". No I/O,
-// no throw. Note ids are compared by id only — Linear's issue/project/initiative id
-// namespaces are disjoint, so the walk needs no mandate-type argument.
-const CONTAIN_ROOT = null; // the --root sentinel: an intended new root
-function subtreeContains(mandate, parent, entryOf) {
-  if (parent === CONTAIN_ROOT) return "outward";  // intended new root — never contained
-  const lookup = entryOf instanceof Map ? (id) => entryOf.get(id) : (id) => entryOf[id];
-  let cursor = parent;
-  const visited = new Set();
-  while (cursor !== null && cursor !== undefined && !visited.has(cursor)) {
-    if (cursor === mandate) return "contained";    // base case + transitive ancestor reached
-    visited.add(cursor);
-    const entry = lookup(cursor);                  // undefined if unknown/absent → null below
-    cursor = entry ? containerParent(entry) : null;
-  }
-  return "outward"; // walked to a root ≠ mandate, hit an unknown link, an unknown node, or a cycle
-}
-
-// Build the id→entry lookup from the agent-supplied ancestry array. Each entry is a
-// typed AncestryEntry {id, type?, parentId?, projectId?, initiativeId?} (FAFF-222) —
-// a typed SUPERSET of FAFF-219's {id, parentId}. An absent `type` ⇒ "issue"; absent
-// edge fields ⇒ no edge of that kind (→ fail-closed outward when the walk exhausts
-// there). Throws on a non-array / malformed shape / UNKNOWN `type` value so the
-// caller can map it to a usage exit (2) rather than a silent wrong verdict.
-const CONTAIN_ENTRY_TYPES = new Set(["issue", "project", "initiative"]);
-function parseAncestry(json) {
-  const arr = JSON.parse(json); // may throw → caught by caller
-  if (!Array.isArray(arr)) throw new Error("--ancestry must be a JSON array of {id, type?, parentId?, projectId?, initiativeId?}");
-  const m = new Map();
-  for (const e of arr) {
-    if (!e || typeof e !== "object" || typeof e.id !== "string") {
-      throw new Error("--ancestry entries must be objects with a string id");
-    }
-    if (e.type !== undefined && !CONTAIN_ENTRY_TYPES.has(e.type)) {
-      throw new Error(`--ancestry entry type must be one of issue|project|initiative (got ${JSON.stringify(e.type)})`);
-    }
-    // Store the whole typed entry, coercing absent/non-string edges to null so
-    // containerParent reads a clean shape. Untyped {id, parentId} ⇒ {type:"issue",
-    // parentId, projectId:null, initiativeId:null} ⇒ edge = parentId ⇒ FAFF-219 walk.
-    m.set(e.id, {
-      id: e.id,
-      type: e.type !== undefined ? e.type : "issue",
-      parentId: typeof e.parentId === "string" ? e.parentId : null,
-      projectId: typeof e.projectId === "string" ? e.projectId : null,
-      initiativeId: typeof e.initiativeId === "string" ? e.initiativeId : null,
-    });
-  }
-  return m;
-}
-
-// `faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]`
+// `faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--record <run-id>] [--phase p] [--json]`
 // PURE: walks the supplied ancestry, no tracker call. exit 0 contained · 3 outward
 // (fail-closed: --root / unknown / cycle / out-of-subtree) · 2 usage/malformed-args.
-const CONTAIN_VALUE_FLAGS = new Set(["--parent", "--ancestry", "--root"]);
+// `--record` (FAFF-354) is the detective-control recording flag — see the TRUST
+// BOUNDARY note in the region header above for what it does and does not guarantee.
+const CONTAIN_VALUE_FLAGS = new Set(["--parent", "--ancestry", "--root", "--record", "--phase"]);
+// A --record run-id may only resolve inside .faff/runs/<run-id> — reject a path
+// separator or a ".." segment before it ever reaches a path.join (traversal guard;
+// this is a new agent-supplied input on the very command being hardened). Also
+// rejects control characters (incl. embedded NUL): Node's fs functions currently
+// degrade a NUL-containing path to a harmless "not found" on this platform rather
+// than throwing, but that is incidental fs behaviour, not a guarantee this guard
+// should lean on — reject the class outright rather than rely on it.
+function isSafeRunId(runId) {
+  if (typeof runId !== "string" || runId === "") return false;
+  if (runId.includes("/") || runId.includes("\\")) return false;
+  if (runId.split(/[/\\]/).includes("..")) return false;
+  // eslint-disable-next-line no-control-regex -- deliberately matching control chars
+  if (/[\x00-\x1f]/.test(runId)) return false;
+  return true;
+}
 function cmdContain(args) {
   if (args.includes("--selftest")) return containSelftest();
   // Parse: first bare token is the mandate; --parent takes a value, --root is a
@@ -140,7 +100,7 @@ function cmdContain(args) {
     }
   }
   const asJson = flags["--json"] === true;
-  const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--json]";
+  const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--record <run-id>] [--phase run|tidy|prep|build] [--json]";
 
   if (danglingValueFlag) { process.stderr.write(`faff contain: ${danglingValueFlag} needs a value.\n`); return 2; }
   if (!mandate) { process.stderr.write(`${usage}\n`); return 2; }
@@ -152,6 +112,21 @@ function cmdContain(args) {
   }
   if (!wantRoot && parentArg === undefined) {
     process.stderr.write("faff contain: supply exactly one of --parent <id> or --root.\n"); return 2;
+  }
+
+  // --record / --phase validation (usage-class, before any verdict is computed).
+  const recordRunId = flags["--record"];
+  const wantRecord = typeof recordRunId === "string";
+  const phaseArg = flags["--phase"];
+  if (phaseArg !== undefined && !wantRecord) {
+    process.stderr.write("faff contain: --phase only makes sense alongside --record.\n"); return 2;
+  }
+  const phase = phaseArg !== undefined ? phaseArg : "run";
+  if (wantRecord && !EVENT_PHASES.has(phase)) {
+    process.stderr.write(`faff contain: --phase must be one of ${[...EVENT_PHASES].join(", ")} (got ${JSON.stringify(phaseArg)}).\n`); return 2;
+  }
+  if (wantRecord && !isSafeRunId(recordRunId)) {
+    process.stderr.write("faff contain: --record <run-id> must not contain a path separator, a '..' segment, or a control character.\n"); return 2;
   }
 
   // --ancestry is required EXCEPT for --root (which is unconditionally outward) and
@@ -168,10 +143,47 @@ function cmdContain(args) {
     process.stderr.write("faff contain: --ancestry <json> is required unless --root or --parent equals the mandate.\n"); return 2;
   }
 
+  // --record: resolve + validate the run dir BEFORE computing/printing any verdict —
+  // never a silently-unrecorded verdict. A missing/non-dir run dir is usage-class
+  // exit 2 (NOT 3 — contain's own exit 3 already means "outward", so a record
+  // failure must never read as a verdict).
+  let recordDir = null;
+  if (wantRecord) {
+    const root = findRoot();
+    recordDir = path.join(root, ".faff", "runs", recordRunId);
+    if (!fs.existsSync(recordDir) || !fs.statSync(recordDir).isDirectory()) {
+      process.stderr.write("faff contain: run dir missing — initialise the run first\n");
+      return 2;
+    }
+  }
+
   const parent = wantRoot ? CONTAIN_ROOT : parentArg;
   const verdict = subtreeContains(mandate, parent, entryOf);
   const exit = verdict === "contained" ? 0 : 3;
   const out = { mandate, parent: wantRoot ? null : parentArg, root: wantRoot, verdict };
+
+  if (wantRecord) {
+    const payload = {
+      phase, type: "containment-check", issue: mandate,
+      data: {
+        mandate, parent: wantRoot ? null : parentArg, root: wantRoot,
+        ancestry_raw: typeof ancestryArg === "string" ? ancestryArg : null,
+        verdict, exit,
+      },
+    };
+    // Defense-in-depth: assert the payload this command constructs is itself a
+    // valid RunEvent payload (the same check `events append` runs on caller-supplied
+    // JSON) before writing it as durable evidence — a malformed record would
+    // undermine the whole point of --record. Should never fire on correct code
+    // (every field here is internally computed, not user JSON); a violation means a
+    // future code change drifted the shape, and that must fail loud, not write
+    // silently-bad evidence.
+    const violations = eventViolations(payload, false);
+    if (violations.length) {
+      throw new Error(`faff contain --record: internal error — constructed an invalid containment-check payload: ${violations.join("; ")}`);
+    }
+    appendEventRecord(recordDir, recordRunId, payload);
+  }
 
   if (asJson) {
     console.log(JSON.stringify(out, null, 2));
@@ -260,6 +272,23 @@ function containSelftestEntries(ancestry) {
   return m;
 }
 
+// FAFF-354: isSafeRunId is the pure traversal-guard predicate behind --record's usage
+// check. [runId, want] pairs.
+const ISSAFE_RUNID_CASES = [
+  ["smoke", true],
+  ["run-20260712-171150-beepboop-full", true],
+  ["", false],
+  ["../evil", false],
+  ["a/../b", false],
+  ["nested/path", false],
+  ["nested\\path", false],
+  ["..", false],
+  [null, false],
+  [undefined, false],
+  [`run${String.fromCharCode(0)}trav`, false], // embedded NUL — control-char guard
+  [`run${String.fromCharCode(10)}trav`, false], // embedded newline — control-char guard
+];
+
 function containSelftest() {
   let fail = 0;
   for (const [mandate, parent, ancestry, want] of CONTAIN_SELFTEST_CASES) {
@@ -270,9 +299,16 @@ function containSelftest() {
     const p = parent === CONTAIN_ROOT ? "--root" : parent;
     console.log(`${ok ? "ok  " : "FAIL"} mandate=${mandate} parent=${p} ancestry=${JSON.stringify(ancestry)} → ${got}${ok ? "" : ` (want ${want})`}`);
   }
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CONTAIN_SELFTEST_CASES.length} cases, ${fail} failed)`);
+  for (const [runId, want] of ISSAFE_RUNID_CASES) {
+    const got = isSafeRunId(runId);
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} isSafeRunId(${JSON.stringify(runId)}) → ${got}${ok ? "" : ` (want ${want})`}`);
+  }
+  const total = CONTAIN_SELFTEST_CASES.length + ISSAFE_RUNID_CASES.length;
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, CONTAIN_SELFTEST_CASES, CONTAIN_VALUE_FLAGS, cmdContain, containSelftest, containSelftestEntries, containerParent, parseAncestry, subtreeContains };
+module.exports = { CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, CONTAIN_SELFTEST_CASES, CONTAIN_VALUE_FLAGS, cmdContain, containSelftest, containSelftestEntries, containerParent, isSafeRunId, parseAncestry, subtreeContains };

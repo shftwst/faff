@@ -13,14 +13,29 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
 function run(...args) {
   const r = spawnSync("node", [CLI, ...args], { encoding: "utf8" });
   return { code: r.status ?? 1, out: (r.stdout ?? "").toString(), err: (r.stderr ?? "").toString() };
+}
+
+// FAFF-354: --record resolves the run dir off `findRoot()` (walks up from cwd looking
+// for .git or .faff) — so these tests spawn with `cwd` pointed at a tmp dir carrying
+// its own `.faff/runs/<run-id>/`, never the real repo's run history.
+function runIn(cwd, ...args) {
+  const r = spawnSync("node", [CLI, ...args], { cwd, encoding: "utf8" });
+  return { code: r.status ?? 1, out: (r.stdout ?? "").toString(), err: (r.stderr ?? "").toString() };
+}
+function tmpRunDir(runId = "r1") {
+  const root = mkdtempSync(join(tmpdir(), "faff-contain-record-"));
+  mkdirSync(join(root, ".faff", "runs", runId), { recursive: true });
+  return root;
 }
 // FAFF-219 untyped form: a list of [id, parentId] pairs → [{id, parentId}, ...].
 const anc = (...pairs) => JSON.stringify(pairs.map(([id, parentId]) => ({ id, parentId })));
@@ -237,4 +252,99 @@ test("FAFF-222: --json shape is byte-identical for a typed contained verdict (no
   assert.equal(r.code, 0);
   const o = JSON.parse(r.out);
   assert.deepEqual(o, { mandate: "P", parent: "I", root: false, verdict: "contained" });
+});
+
+// ===========================================================================
+// FAFF-354 — hardening against agent-supplied ancestry: `--record <run-id>` binds
+// each verdict to the exact payload it was computed from via a `containment-check`
+// event; `--phase` tags that event; both are purely additive (no --record ⇒
+// byte-identical to every case above).
+// ===========================================================================
+
+test("FAFF-354: --record happy path — verdict/exit unchanged, one containment-check event appended", () => {
+  const root = tmpRunDir("r1");
+  const r = runIn(root, "contain", "M", "--parent", "C", "--ancestry", anc(["C", "M"]), "--record", "r1");
+  assert.equal(r.code, 0);
+  assert.match(r.out, /contained/);
+  const raw = readFileSync(join(root, ".faff", "runs", "r1", "events.jsonl"), "utf8").trim();
+  const ev = JSON.parse(raw);
+  assert.equal(ev.schema, 1);
+  assert.equal(ev.run_id, "r1");
+  assert.equal(ev.seq, 0);
+  assert.equal(ev.phase, "run");
+  assert.equal(ev.type, "containment-check");
+  assert.equal(ev.issue, "M");
+  assert.deepEqual(ev.data, { mandate: "M", parent: "C", root: false, ancestry_raw: anc(["C", "M"]), verdict: "contained", exit: 0 });
+});
+
+test("FAFF-354: --record on an outward verdict records verdict:outward, exit:3 unchanged", () => {
+  const root = tmpRunDir("r1");
+  const r = runIn(root, "contain", "M", "--root", "--record", "r1", "--phase", "tidy");
+  assert.equal(r.code, 3);
+  const ev = JSON.parse(readFileSync(join(root, ".faff", "runs", "r1", "events.jsonl"), "utf8").trim());
+  assert.equal(ev.phase, "tidy");
+  assert.deepEqual(ev.data, { mandate: "M", parent: null, root: true, ancestry_raw: null, verdict: "outward", exit: 3 });
+});
+
+test("FAFF-354: --record with a missing run dir → exit 2, no verdict printed, nothing appended", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-contain-record-")); // .faff/runs/nope never created
+  const r = runIn(root, "contain", "M", "--parent", "M", "--record", "nope");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /run dir missing/);
+  assert.doesNotMatch(r.out, /contained|outward/);
+  assert.equal(existsSync(join(root, ".faff", "runs", "nope", "events.jsonl")), false);
+});
+
+test("FAFF-354: --phase outside EVENT_PHASES is a usage error, no verdict, nothing appended", () => {
+  const root = tmpRunDir("r1");
+  const r = runIn(root, "contain", "M", "--parent", "M", "--record", "r1", "--phase", "bogus");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--phase must be one of/);
+  assert.equal(existsSync(join(root, ".faff", "runs", "r1", "events.jsonl")), false);
+});
+
+test("FAFF-354: --phase without --record is a usage error (exit 2)", () => {
+  const r = run("contain", "M", "--parent", "M", "--phase", "tidy");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /--phase only makes sense alongside --record/);
+});
+
+test("FAFF-354: --record with a run-id containing a path separator is a usage error (traversal guard)", () => {
+  const root = tmpRunDir("r1");
+  const r = runIn(root, "contain", "M", "--parent", "M", "--record", "nested/path");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /path separator/);
+});
+
+test("FAFF-354: --record with a '..' run-id segment is a usage error (traversal guard)", () => {
+  const root = tmpRunDir("r1");
+  const r = runIn(root, "contain", "M", "--parent", "M", "--record", "../evil");
+  assert.equal(r.code, 2);
+  assert.match(r.err, /path separator/);
+});
+
+test("FAFF-354: isSafeRunId rejects a control character (e.g. embedded NUL) in the run-id", async () => {
+  // A real CLI invocation can never carry a NUL byte in argv — Node's own
+  // child_process.spawnSync (and every POSIX shell) rejects/strips it before the
+  // process even starts — so this exercises the pure predicate directly (the
+  // in-process call path `cmdContain` is also exported for direct use).
+  const { isSafeRunId } = await import("../plugin/skills/faff/bin/lib/contain.js");
+  assert.equal(isSafeRunId(`run${String.fromCharCode(0)}trav`), false);
+  assert.equal(isSafeRunId(`run${String.fromCharCode(10)}trav`), false);
+});
+
+test("FAFF-354: without --record, behaviour is byte-identical to before (back-compat)", () => {
+  const r = run("contain", "M", "--parent", "C", "--ancestry", anc(["C", "M"]), "--json");
+  assert.equal(r.code, 0);
+  const o = JSON.parse(r.out);
+  assert.deepEqual(o, { mandate: "M", parent: "C", root: false, verdict: "contained" });
+});
+
+test("FAFF-354: two --record calls into the same run append two events with monotonic seq", () => {
+  const root = tmpRunDir("r1");
+  runIn(root, "contain", "M", "--parent", "M", "--record", "r1");
+  runIn(root, "contain", "M", "--parent", "C", "--ancestry", anc(["C", "M"]), "--record", "r1");
+  const lines = readFileSync(join(root, ".faff", "runs", "r1", "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(lines.length, 2);
+  assert.deepEqual(lines.map((l) => l.seq), [0, 1]);
 });

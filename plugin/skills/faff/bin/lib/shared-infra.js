@@ -26,6 +26,90 @@ function findRoot(start = process.cwd()) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// shared: the subtree-of-mandate containment walk (FAFF-219/222) — pure, no I/O.
+// Lives here (not in contain.js's factory region) because BOTH `contain` (factory,
+// the CLI surface) and `audit` (governance, FAFF-354's recompute-and-compare) need
+// it, and governance may reference shared-infra only, never factory (ADR 0042).
+// ---------------------------------------------------------------------------
+
+// The single upward containment edge for a node, chosen by its type (the
+// parentId-dominant cross-project membership rule — see ADR 0012). Returns the
+// container-parent id, or null (a root: no edge of the applicable kind). Pure, no
+// throw. An absent `type` defaults to "issue" (backward compat); an unknown `type`
+// value never reaches here — parseAncestry rejects it with usage exit 2.
+function containerParent(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const type = entry.type || "issue";
+  if (type === "issue") {
+    // parentId FIRST (the tightest, most-intentional edge), then jump to the
+    // containing project at a top-level issue; a top-level issue with no project = root.
+    if (typeof entry.parentId === "string") return entry.parentId;
+    if (typeof entry.projectId === "string") return entry.projectId;
+    return null;
+  }
+  if (type === "project") {
+    return typeof entry.initiativeId === "string" ? entry.initiativeId : null;
+  }
+  // type === "initiative": top of the hierarchy, no container edge.
+  return null;
+}
+
+// Pure subtree-membership walk. `parent` is the intended parent id, or the ROOT
+// sentinel (null) for an intended new root. `entryOf` maps id → the typed AncestryEntry
+// (undefined when unknown/absent — the agent's fetched ancestry). Walks from `parent`
+// upward following each node's TYPED containment edge (containerParent); reaching
+// `mandate` → "contained"; exhausting to a root ≠ mandate, an unknown link, an unknown
+// node, or a cycle → "outward" (fail-closed). Returns "contained" | "outward". No I/O,
+// no throw. Note ids are compared by id only — Linear's issue/project/initiative id
+// namespaces are disjoint, so the walk needs no mandate-type argument.
+const CONTAIN_ROOT = null; // the --root sentinel: an intended new root
+function subtreeContains(mandate, parent, entryOf) {
+  if (parent === CONTAIN_ROOT) return "outward";  // intended new root — never contained
+  const lookup = entryOf instanceof Map ? (id) => entryOf.get(id) : (id) => entryOf[id];
+  let cursor = parent;
+  const visited = new Set();
+  while (cursor !== null && cursor !== undefined && !visited.has(cursor)) {
+    if (cursor === mandate) return "contained";    // base case + transitive ancestor reached
+    visited.add(cursor);
+    const entry = lookup(cursor);                  // undefined if unknown/absent → null below
+    cursor = entry ? containerParent(entry) : null;
+  }
+  return "outward"; // walked to a root ≠ mandate, hit an unknown link, an unknown node, or a cycle
+}
+
+// Build the id→entry lookup from the agent-supplied ancestry array. Each entry is a
+// typed AncestryEntry {id, type?, parentId?, projectId?, initiativeId?} (FAFF-222) —
+// a typed SUPERSET of FAFF-219's {id, parentId}. An absent `type` ⇒ "issue"; absent
+// edge fields ⇒ no edge of that kind (→ fail-closed outward when the walk exhausts
+// there). Throws on a non-array / malformed shape / UNKNOWN `type` value so the
+// caller can map it to a usage exit (2) rather than a silent wrong verdict.
+const CONTAIN_ENTRY_TYPES = new Set(["issue", "project", "initiative"]);
+function parseAncestry(json) {
+  const arr = JSON.parse(json); // may throw → caught by caller
+  if (!Array.isArray(arr)) throw new Error("--ancestry must be a JSON array of {id, type?, parentId?, projectId?, initiativeId?}");
+  const m = new Map();
+  for (const e of arr) {
+    if (!e || typeof e !== "object" || typeof e.id !== "string") {
+      throw new Error("--ancestry entries must be objects with a string id");
+    }
+    if (e.type !== undefined && !CONTAIN_ENTRY_TYPES.has(e.type)) {
+      throw new Error(`--ancestry entry type must be one of issue|project|initiative (got ${JSON.stringify(e.type)})`);
+    }
+    // Store the whole typed entry, coercing absent/non-string edges to null so
+    // containerParent reads a clean shape. Untyped {id, parentId} ⇒ {type:"issue",
+    // parentId, projectId:null, initiativeId:null} ⇒ edge = parentId ⇒ FAFF-219 walk.
+    m.set(e.id, {
+      id: e.id,
+      type: e.type !== undefined ? e.type : "issue",
+      parentId: typeof e.parentId === "string" ? e.parentId : null,
+      projectId: typeof e.projectId === "string" ? e.projectId : null,
+      initiativeId: typeof e.initiativeId === "string" ? e.initiativeId : null,
+    });
+  }
+  return m;
+}
+
 // Shared mtime-DESC ordering for `.faff/runs/<run-id>` directories (FAFF-337). Three
 // run-id mint formats coexist (dash-prefixed date, compact `run-`, and legacy bare
 // stamps) with no shared lexical shape, so sorting by NAME is format-dependent and can
@@ -316,4 +400,4 @@ function findConfig(root) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, LEGACY_CONFIG, dig, findConfig, findConfigIn, findRoot, latestRunDir, mainWorktreeRoot, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, containerParent, dig, findConfig, findConfigIn, findRoot, latestRunDir, mainWorktreeRoot, parseAncestry, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

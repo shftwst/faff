@@ -611,11 +611,17 @@ function cmdLightsOut(args) {
 
   // FAFF-427: best-effort per-model baseline snapshot, additive alongside the
   // envelope — the `budget.cost` map-pricing rule subtracts THIS from later
-  // per-model totals to get the run's own delta, exactly as the scalar
-  // baseline does for `budget.tokens`. Absent/estimate-degraded (no resolvable
-  // transcript at mint time) simply omits the field — `budget check` falls back
-  // to its pro-rata degrade, never a crash or a fabricated baseline.
-  const modelBaseline = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs: null });
+  // per-model totals to get the run's own delta. It MUST be measured with the
+  // SAME file-selection window `budget check` uses at check time — i.e.
+  // `runStartMs = this run's start` (owner.started_at, == nowMs here), NOT null.
+  // With null the mtime pre-filter is skipped, so a same-session PRIOR run's
+  // child transcripts land in the baseline; but at check time those children are
+  // pre-filtered OUT (mtime < run start), so the two file sets diverge and the
+  // subtraction undercounts this run's spend (a governor must never undercount).
+  // Passing the run-start instant makes mint and check select identically.
+  // Absent/estimate-degraded (no resolvable transcript at mint) simply omits the
+  // field — `budget check` falls back to its pro-rata degrade, never a crash.
+  const modelBaseline = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs: Date.parse(nowIso) });
   const budgetBlock = { envelope };
   if (modelBaseline.source === "transcript") {
     budgetBlock.tokens_at_start_by_model_class = Object.fromEntries(modelBaseline.by_model);

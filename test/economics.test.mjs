@@ -192,6 +192,57 @@ test("FAFF-427: top-line cost_total under map pricing RECONCILES with the sum of
   } finally { f.cleanup(); }
 });
 
+test("FAFF-427: map-priced cost_total is THIS-RUN spend (baseline-subtracted), not whole-session — pro-rata fallback", () => {
+  // A resumed session: the ledger's scalar baseline reflects ~4M prior-session
+  // tokens; this run itself burned only ~1M. cost_total must price the ~1M
+  // this-run delta (consistent with tokens_total + budget check's spent.cost),
+  // NOT the whole ~5M session — the bug the correctness review caught.
+  const ledger = baseLedger({ budget: { tokens_at_start: 4000000 } }); // no per-model baseline → pro-rata
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-baseline-prorata";
+    // whole-session opus input = 5,000,000 tokens ($25 @ $5/Mtok if priced whole).
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 5000000 } }, timestamp: "2026-07-01T10:00:00Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const e = JSON.parse(r.out);
+    assert.equal(e.pricing, "map");
+    assert.equal(e.tokens_total, 1000000); // 5M measured − 4M baseline
+    // this-run delta = 5M × (1M/5M) = 1M opus input @ $5/Mtok = $5 — NOT the whole-session $25.
+    assert.ok(Math.abs(e.cost_total - 5) < 1e-9, `cost_total=${e.cost_total} (must be this-run $5, not whole-session $25)`);
+    // and cost_per_shipped is consistent with the this-run figure (1 shipped).
+    assert.ok(Math.abs(e.cost_per_shipped.cost_each - 5) < 1e-9);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-427: map-priced cost_total honours a real per-model baseline (tokens_at_start_by_model_class) exactly", () => {
+  const ledger = baseLedger({
+    budget: {
+      tokens_at_start: 3000000,
+      tokens_at_start_by_model_class: { "claude-opus-4-8": { input: 3000000, output: 0, cache_write: 0, cache_read: 0 } },
+    },
+  });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-baseline-exact";
+    // whole-session opus input = 4M; real baseline 3M → this-run delta 1M @ $5/Mtok = $5.
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 4000000 } }, timestamp: "2026-07-01T10:00:00Z" },
+      ],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_total, 1000000); // 4M − 3M
+    assert.ok(Math.abs(e.cost_total - 5) < 1e-9, `cost_total=${e.cost_total} (1M opus input @ $5/Mtok)`);
+  } finally { f.cleanup(); }
+});
+
 test("FAFF-427: estimate source + map pricing (no --by) → cost_total stays null, pricing still reported", () => {
   const ledger = baseLedger();
   const f = fixture({ rc: null, ledger });

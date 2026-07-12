@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByModelClass, priceModelClassSums, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokensByModelClass, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
@@ -708,12 +708,21 @@ function cmdEconomics(args) {
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
   const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
 
-  // Reuse budget check's EXACT token path (measureTokens + the tokens_at_start
-  // baseline) — the same figure budget gates on, never a private recount.
-  const measured = measureTokens({ cwd: root, env: process.env, runStartMs });
+  // Reuse budget check's EXACT token path — but via the per-model resolver
+  // (FAFF-427), the ONE walk that also carries what map pricing needs. Its
+  // `totals` is the same scalar `measureTokens` returns (sum over `by_model`, by
+  // construction), so this is not an extra census — it is the single walk, and the
+  // no-`--by` common path now reads the transcript exactly once (the top-line no
+  // longer needs a separate `readRunTranscriptRecords`). The scalar total is still
+  // baselined at run start, the same figure budget gates on.
+  const measured = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs });
+  const measuredSource = measured.source;
+  const measuredTotal = measuredSource === "transcript"
+    ? (measured.totals.input + measured.totals.output + measured.totals.cache_write + measured.totals.cache_read)
+    : null;
   let tokensTotal, tokensSource;
-  if (measured.source === "transcript") {
-    tokensTotal = Math.max(0, measured.total - tokensAtStart);
+  if (measuredSource === "transcript") {
+    tokensTotal = Math.max(0, measuredTotal - tokensAtStart);
     tokensSource = "transcript";
   } else {
     const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
@@ -729,27 +738,46 @@ function cmdEconomics(args) {
     if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, process.env), sid, ledger, price);
   }
 
-  // FAFF-427: under map pricing, the top-line reuses the SAME per-model walk the
-  // `--by model` breakdown computes (reusing `economicsBreakdown`, never a second
-  // pricing implementation) — so the top-line and the breakdown agree BY
-  // CONSTRUCTION, closing ADR-0048's "two cost figures coexist" deferral. Like
-  // `--by`, this prices the RAW whole-session per-model totals (never
-  // baseline-subtracted — the existing `--by` convention this reuses), so it
-  // reconciles exactly with `--by model`'s summed cost. A model absent from the
-  // resolved map contributes `cost:null` to that row (economics' existing
-  // REPORTING convention — never the governor's costliest-rate overcount) and is
-  // named in a warning rather than silently excluded from view.
+  // FAFF-427: under map pricing, the top-line cost is THIS RUN's per-model spend
+  // priced from the same map + rate source `budget.cost` uses — so `cost_total`
+  // stays consistent with `tokens_total` (both baselined at run start) and with
+  // `budget check`'s `spent.cost`, closing ADR-0048's "two cost figures coexist"
+  // deferral (the divergence was a RATE difference — flat scalar vs the map — not a
+  // population one; both now use the map). The per-model this-run delta subtracts a
+  // real per-model baseline (`tokens_at_start_by_model_class`, written at a
+  // lights-out mint) when present, else pro-rates the whole-session per-model
+  // buckets by the scalar this-run fraction — the SAME degrade `cmdBudget` applies.
+  // At `tokens_at_start = 0` (the common single-session case) the fraction is 1, so
+  // the top-line equals the sum of `--by model`'s priced rows. A model absent from
+  // the resolved map is kept as `cost:null` (economics' REPORTING convention — NOT
+  // the governor's costliest-rate overcount) and named in a warning rather than
+  // silently dropped from the dollar figure.
   let mapCost = null;
   const mapWarnings = [];
-  if (env.pricing === "map" && tokensSource === "transcript") {
-    const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
-    const modelBd = economicsBreakdown(records, "model", priceMap, measured.total);
-    const pricedRows = modelBd.rows.filter((r) => r.cost != null);
-    const unpricedRows = modelBd.rows.filter((r) => r.cost == null);
-    if (pricedRows.length) mapCost = pricedRows.reduce((s, r) => s + r.cost, 0);
-    else if (measured.total === 0) mapCost = 0; // nothing spent yet — $0, not "unknown"
-    if (unpricedRows.length) {
-      mapWarnings.push(`top-line excludes unpriced model(s) from cost (reported as cost:null, never silently free): ${unpricedRows.map((r) => r.key).join(", ")}`);
+  if (env.pricing === "map" && measuredSource === "transcript") {
+    const baseByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
+      && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
+      ? ledger.budget.tokens_at_start_by_model_class : null;
+    const scale = measuredTotal > 0 ? tokensTotal / measuredTotal : 0;
+    let priced = 0, anyPriced = false;
+    const unpriced = [];
+    for (const [model, counts] of measured.by_model) {
+      const delta = {};
+      if (baseByModel) {
+        const base = baseByModel[model] || {};
+        for (const cls of TOKEN_DELTA_CLASSES) delta[cls] = Math.max(0, (counts[cls] || 0) - (Number(base[cls]) || 0));
+      } else {
+        for (const cls of TOKEN_DELTA_CLASSES) delta[cls] = (counts[cls] || 0) * scale;
+      }
+      const rate = economicsPriceForModel(model, priceMap);
+      if (!rate) { if (TOKEN_DELTA_CLASSES.some((cls) => delta[cls] > 0)) unpriced.push(model); continue; }
+      for (const cls of TOKEN_DELTA_CLASSES) priced += (delta[cls] / 1e6) * rate[cls];
+      anyPriced = true;
+    }
+    if (anyPriced) mapCost = priced;
+    else if (tokensTotal === 0) mapCost = 0; // nothing spent this run → $0, not "unknown"
+    if (unpriced.length) {
+      mapWarnings.push(`top-line excludes unpriced model(s) from cost (reported as cost:null, never silently free): ${unpriced.join(", ")}`);
     }
   }
 
@@ -780,14 +808,14 @@ function cmdEconomics(args) {
         reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: null, malformed_lines: malformed } };
     } else {
       let dominant = null, topLine = null;
-      if (measured.source === "transcript") {
+      if (measuredSource === "transcript") {
         const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
         dominant = economicsDominantModel(records);
-        topLine = measured.total;
+        topLine = measuredTotal;
       }
       bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed);
     }
-  } else if (measured.source !== "transcript") {
+  } else if (measuredSource !== "transcript") {
     bd = { axis: byAxis, source: "estimate", rows: [],
       reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
   } else {
@@ -795,7 +823,7 @@ function cmdEconomics(args) {
     if (byAxis === "mcp") {
       bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
     } else {
-      bd = economicsBreakdown(records, byAxis, priceMap, measured.total);
+      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal);
     }
   }
 

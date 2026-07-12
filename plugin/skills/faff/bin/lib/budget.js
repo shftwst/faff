@@ -581,10 +581,7 @@ function cmdBudget(args) {
   const measuredFull = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs });
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
-  const costWarnings = [];
-  // Resolved BEFORE the token walk so the pro-rata warning below can gate on it —
-  // an unconfigured cost dimension must stay silent (no warnings a human never
-  // asked about), exactly like every other unconfigured budget dimension.
+  const costWarnings = [];         // accumulated unconditionally; the single costConfigured gate is at the flush point
   const costConfigured = env.ceilings.cost != null;
   if (measuredFull.source === "transcript") {
     const wholeSessionTotal = measuredFull.totals.input + measuredFull.totals.output
@@ -612,7 +609,7 @@ function cmdBudget(args) {
         for (const cls of TOKEN_DELTA_CLASSES) delta[cls] = (counts[cls] || 0) * scale;
         tokensByModelDelta.set(model, delta);
       }
-      if (costConfigured && wholeSessionTotal > 0) costWarnings.push("cost pro-rated (no per-model baseline — tokens_at_start_by_model_class absent from this run's ledger)");
+      if (wholeSessionTotal > 0) costWarnings.push("cost pro-rated (no per-model baseline — tokens_at_start_by_model_class absent from this run's ledger)");
     }
   } else {
     const attemptsForEst = attemptsFromLedger(ledger);
@@ -623,26 +620,26 @@ function cmdBudget(args) {
 
   const attempts = attemptsFromLedger(ledger);
 
-  // FAFF-427: `budget.cost` prices from the SAME rule as the `economics` top-line.
-  // Cost warnings are surfaced only when a cost CEILING is actually configured
-  // (`ceilings.cost != null`) — an unconfigured cost dimension must stay silent,
-  // exactly as an unconfigured tokens/until dimension does (a clean envelope's
-  // JSON must not sprout warnings nobody asked for). `costConfigured` is resolved
-  // above (before the token walk) so the pro-rata warning can gate on it too.
+  // FAFF-427: `budget.cost` prices from the SAME map + rate source the `economics`
+  // top-line uses. Each branch accumulates its diagnostic into `costWarnings`
+  // UNCONDITIONALLY; the single `costConfigured` gate lives at the flush point below
+  // (so an unconfigured cost dimension stays silent — a clean envelope's JSON must
+  // not sprout warnings nobody asked for — without every branch re-deriving that
+  // guard, the one place a future branch would forget it).
   let cost;
   if (env.pricing === "flat") {
     cost = env.price_per_mtok > 0 ? (tokens / 1_000_000) * env.price_per_mtok : null;
-    if (costConfigured && env.price_per_mtok > 0) {
+    if (env.price_per_mtok > 0) {
       costWarnings.push("budget.price_per_mtok is deprecated — unset it (or set budget.price_per_mtok_by_model to override specific models) to price per-model x per-class from the ADR-0048 map");
     }
   } else if (tokensSource === "estimate") {
     cost = null;
-    if (costConfigured) costWarnings.push("cost ceiling not meterable from estimates (no per-model data) — resolve a transcript, or set budget.price_per_mtok for the flat-scalar estimate path");
+    costWarnings.push("cost ceiling not meterable from estimates (no per-model data) — resolve a transcript, or set budget.price_per_mtok for the flat-scalar estimate path");
   } else {
     const priceMap = resolveEconomicsPriceMap(cfg);
     const priced = priceModelClassSums(tokensByModelDelta, priceMap);
     cost = priced.cost;
-    if (costConfigured && priced.unpriced_models.length) {
+    if (priced.unpriced_models.length) {
       costWarnings.push(`unpriced model(s) priced at the costliest known rate (fail-safe overcount): ${priced.unpriced_models.join(", ")}`);
     }
   }
@@ -671,7 +668,10 @@ function cmdBudget(args) {
     warnings.push(msg);
     process.stderr.write(`faff budget check: ${msg}\n`);
   }
-  for (const w of costWarnings) warnings.push(w);
+  // Single cost-warning gate (FAFF-427): only surface cost diagnostics when a cost
+  // ceiling is actually configured — the one place the "stay silent when
+  // unconfigured" invariant lives, rather than repeated at every push site.
+  if (costConfigured) for (const w of costWarnings) warnings.push(w);
   if (warnings.length) state.warnings = warnings;
 
   console.log(JSON.stringify(state));

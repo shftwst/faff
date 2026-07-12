@@ -5,9 +5,7 @@ description: "Chew through ready work unattended — overnight or fire-and-forge
 
 # Faff — Beep-Boop
 
-Unattended end-to-end runs of the faff suite. Drives the other faff skills in **autonomous mode** — no prompts, no human in the loop, parks anything ambiguous, logs everything to `.faff/runs/…`.
-
-This skill is the orchestrator. It does not reimplement prep, build, or tidy — it invokes the existing faff sub-skills with the autonomous-mode signal set.
+Unattended end-to-end runs of the faff suite. Drives the other faff skills in **autonomous mode** — no prompts, no human in the loop, parks anything ambiguous, logs everything to `.faff/runs/…`. This skill is the orchestrator: it does not reimplement prep, build, or tidy — it invokes the existing faff sub-skills with the autonomous-mode signal set.
 
 **Methodology lens.** The `methodology` slot **always runs** — it defaults to `faffter-noon-methodology-thematic` when `.faffrc` sets none, and its `pick-ordering` / `build-queue` outputs are Required (gateway → **The `methodology` slot**), so the build-queue order always comes through it. What's *conditional* is only the display banner: the run summary's first line is `Methodology: [skill-name]` and an opinionated lens (e.g. `faffter-dark-methodology-agile-delivery`) re-sequences by its own logic (value × risk × dep-aware) rather than the thematic default's baseline order. When the slot is the silent thematic default, the banner is omitted and the order is whatever the default's `pick-ordering` returns (priority + chainable unlock value) — beep-boop renders the slot's order and never names a baseline of its own; the slot is never *skipped*, because its outputs are load-bearing. **No WIP gating** — autonomous queues are unbounded regardless of methodology. Admission stays governed by the verdict gate (admit `fire-and-forget` + `likely-fire`, route out the other four verdicts).
 
@@ -84,7 +82,7 @@ In-flight units finish naturally. There is **no mid-issue cancellation** — a `
 Budget backstops *rogue spend*; **Sentry** is the live **derailment interrupt** — it stops a run going *wrong* (thrash, no-progress, repeated-identical-failure, escaped side-effect, wall-clock, liveness). At **every between-units checkpoint** (the same boundaries the budget check fires), run the canonical checkpoint procedure below — **its one home**; the call-sites (steps 3, 7, 8.1) reference it by name and never restate it (a copy per site is a `faff validate-adapters` duplicated-block violation):
 
 1. `faff budget check --json --run-dir <run_dir>` (see _The check_; act on a breach), then `faff effects check --run <run_id> --json` → `{escapes, any_escape}` (missing declared-effects ledger ⇒ `any_escape:false`, clean; a non-zero exit is itself a fault — treat as `any_escape:false`, log the fault, proceed to the consult unflagged, never a hard stop) — fresh every checkpoint, immediately before the consult.
-2. `faff sentry check --json --run-dir <run_dir>`, appending `--forbidden-side-effect` IFF step 1's `any_escape`. Pure evaluator (events/ledger/heartbeat/a consumed budget-check surface, mutates nothing) → `DerailmentVerdicts` + intervention `continue|pause|abort`. Consume it — never re-implement trigger math in loop prose.
+2. `faff sentry check --json --run-dir <run_dir>`, appending `--forbidden-side-effect` IFF step 1's `any_escape`. Pure evaluator (events/ledger/heartbeat/a consumed budget-check surface, mutates nothing) → `DerailmentVerdicts` + intervention `continue|pause|correct|abort` (FAFF-326: `correct` — Sentry-2 Channel A — is reachable only under an authority the CLI itself derives from the FAFF-373/FAFF-325 corrective-integrity gate; today's real-world routing is unchanged wherever that gate is unasserted). Consume it — never re-implement trigger math in loop prose.
 3. On a COMPLETED consult only: `echo '{"phase":"run","type":"sentry-checkpoint","data":<step-2 payload>}' | faff events append --run <run_id>` — a failed consult emits none (logged instead). Then act on `data.intervention` per the handling table below.
 
 **The consult always runs; acting on it is mint-scoped** — a run is **L4** iff its ledger was `faff lights-out`-minted (`level: "L4"`). Only L4 **acts**; a non-L4 run **logs + surfaces** the verdicts (shared telemetry + the threshold-calibration feed) and takes **no dispatch action**. Don't fork the consult itself on level (shared prose drifts) — only the handling does. An aborted L4 run is **resumable by design**, so a disputed abort is a paused night, not lost work — tune the `sentry.*` thresholds, not the model. `continue` → proceed either way; the trips an L4 run acts on:
@@ -93,6 +91,7 @@ Budget backstops *rogue spend*; **Sentry** is the live **derailment interrupt** 
 |---|---|---|
 | consult fails (non-zero / unparseable) | **fail closed** — stop dispatching, surface needs-human *"kill-switch evaluator down"* | log the failure, continue |
 | `pause` | **park the implicated issue(s)** the verdict names (thrash / repeated-failure are issue-scoped) via the shared park protocol; continue the queue | log + surface, proceed |
+| `correct` (FAFF-326, Channel A — abort-and-narrow, issue-scoped) | **abort the issue resumably** (`faff sentry abort --issue <id> --worktree <path>`), author the narrowing (`faff corrective author`), continue the queue — re-dispatch consumes it via `faff corrective check` (concurrency executors' `constraints` wiring); unreachable until a genuine attestation is asserted (else degrades to the `pause` row above) | log + surface, same as `pause` |
 | `abort` | run **`faff sentry abort --run-dir <run-dir>`** (ledger → aborted-resumable), launch nothing further, surface the verdicts | log + surface, proceed |
 
 ### Unreached issues
@@ -484,7 +483,7 @@ When a `methodology` skill is configured, the first line of the summary file is 
 ```markdown
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
 Mode: [full | explicit-list] · Duration: Xh Ym
-Waves: N · Sentry: N checkpoints · max intervention: <continue|pause|abort>
+Waves: N · Sentry: N checkpoints · max intervention: <continue|pause|correct|abort>
 Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>) | sentry-abort | converged/both-dry | non-convergence | product-incomplete
 
 ## Unit economics — call `faff economics --run-dir <run-dir> --json` (pure) after step-11 runcheck; the CLI computes, beep-boop only renders (FAFF-357)

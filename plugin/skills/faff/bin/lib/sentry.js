@@ -5,8 +5,11 @@
 // / evaluator. Sentry READS a live run's out-of-band, append-only surface — the
 // orchestrator-owned events.jsonl + run-ledger.json + owner.last_heartbeat, plus the
 // pure `faff budget check` reading — WITHOUT mutating it, evaluates the v1 derailment
-// triggers, and emits DerailmentVerdicts + the chosen v1 intervention (continue |
-// pause | abort — NEVER `correct`, which is Sentry-2 / FAFF-278).
+// triggers, and emits DerailmentVerdicts + the chosen intervention (continue | pause |
+// correct | abort). `correct` (Sentry-2 / FAFF-278, built FAFF-326) is reachable ONLY
+// under an explicit `authority:"available"` parameter — never a raw-signal field; in
+// production that parameter is gated behind the still-narrow FAFF-373/FAFF-325
+// corrective-integrity attestation, so today's real-world routing is unchanged.
 //
 // Un-subvertable BY CONSTRUCTION: evaluateDerailment reads ONLY the normalized
 // orchestrator surface (a closed input allowlist). The supervised build subagent
@@ -31,6 +34,19 @@
 // the shared `resolveLedgerOrFault` (also used by `budget check`); a legitimately
 // empty surface (no run requested, none found) is unaffected and stays the unchanged
 // all-clear at exit 0.
+//
+// FAFF-326 (Sentry-2, Channel A — subtractive corrective authority): the ladder gains
+// `correct`, BETWEEN `pause` and `abort` — never above abort, so a co-tripping abort
+// signal always wins the ladder-max. `correct` is reachable ONLY when the caller
+// passes an explicit `authority` parameter of `"available"` to `evaluateDerailment` —
+// NEVER a raw-signal field (AC5's closed-allowlist property stays intact: no value a
+// build subagent could inject into the signal bundle can flip this). `cmdSentry`
+// derives that parameter from the FAFF-373/FAFF-325 corrective-integrity gate via a
+// CHILD invocation of THIS bin (`corrective-integrity --consumer corrective`) —
+// mirroring `sentryReadBudget` below — never a direct require of the factory-region
+// gate module (this file stays a pure governance span; region direction, ADR 0042).
+// Only `fix-review-thrash` maps to `correct` (and only under authority); every other
+// signal's mapping, and every abort route, is UNCHANGED.
 // ===========================================================================
 
 
@@ -46,11 +62,18 @@ const DERAILMENT_SIGNALS = new Set([
   "fix-review-thrash", "budget-breach", "repeated-identical-failure",
   "wall-clock-runaway", "scope-drift", "forbidden-side-effect-attempt",
 ]);
-// The v1 intervention ladder, ASCENDING severity (index = rank). `correct` is
-// DELIBERATELY absent — that authority is the deferred Sentry-2 slice.
-const SENTRY_INTERVENTIONS = ["continue", "pause", "abort"];
+// The v1+Sentry-2 intervention ladder, ASCENDING severity (index = rank). `correct`
+// (FAFF-326) sits BETWEEN `pause` and `abort` — a narrowing of a pause-class response
+// only, never a weakening of an abort route. Reachable only under an explicit
+// `authority:"available"` parameter (see evaluateDerailment below) — never via a
+// raw-signal field.
+const SENTRY_INTERVENTIONS = ["continue", "pause", "correct", "abort"];
 // The intervention a signal routes to WHEN IT TRIPS. warn-severity verdicts never
 // escalate past `continue`; scope-drift is advisory (warn-only ⇒ never reaches here).
+// fix-review-thrash's mapped value is upgraded pause→correct in evaluateDerailment's
+// aggregation loop, IFF the explicit authority parameter is "available" — this map
+// itself is UNCHANGED (still names "pause"), so a reader of this table alone sees
+// exactly the v1 default/degraded behaviour.
 const SIGNAL_TRIP_INTERVENTION = {
   "budget-breach": "abort",
   "wall-clock-runaway": "abort",
@@ -59,6 +82,9 @@ const SIGNAL_TRIP_INTERVENTION = {
   "fix-review-thrash": "pause",
   "scope-drift": "continue",
 };
+// The one signal Channel A may upgrade to `correct`, and only when authority is
+// available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
+const CORRECTABLE_SIGNAL = "fix-review-thrash";
 // v1 default thresholds — config values (overridable via `.faffrc` sentry.*).
 // stall_window mirrors the heartbeat staleness window for consistency.
 const SENTRY_THRESHOLD_DEFAULTS = {
@@ -231,12 +257,23 @@ function evalForbiddenSideEffect(signals) {
   return { signal: "forbidden-side-effect-attempt", severity: "trip", evidence: { event_seq: seq } };
 }
 
-// Fold the surface into the verdict set + the chosen v1 intervention. Reads ONLY the
-// normalized orchestrator surface (AC5: no subagent-controlled field is consulted). The
-// aggregate intervention is the ladder-max over tripped verdicts; warn-only ⇒ continue.
-function evaluateDerailment(rawSignals, thresholds) {
+// Fold the surface into the verdict set + the chosen v1+Sentry-2 intervention. Reads
+// ONLY the normalized orchestrator surface (AC5: no subagent-controlled field is
+// consulted). The aggregate intervention is the ladder-max over tripped verdicts;
+// warn-only ⇒ continue.
+//
+// FAFF-326: `authority` is a THIRD, EXPLICIT function parameter — deliberately NOT a
+// member of `rawSignals` / `normalizeSentrySignals`'s closed allowlist, so no value a
+// build subagent could inject into the signal bundle can reach it (AC5-shaped
+// no-foreign-authorship). Default `"channel-D-only"` (unavailable) — matches v1
+// production behaviour byte-for-byte when the caller passes nothing. Only
+// `"available"` (the literal string) ever upgrades the CORRECTABLE_SIGNAL's mapped
+// `pause` to `correct`; anything else (including a truthy-but-wrong-typed value)
+// degrades to unavailable, never a silent enable.
+function evaluateDerailment(rawSignals, thresholds, authority) {
   const s = normalizeSentrySignals(rawSignals);
   const th = thresholds || SENTRY_THRESHOLD_DEFAULTS;
+  const authorityAvailable = authority === "available";
   const verdicts = [];
   const push = (v) => { if (v && DERAILMENT_SIGNALS.has(v.signal) && (v.severity === "warn" || v.severity === "trip")) verdicts.push(v); };
   push(evalBudgetBreach(s.budget));
@@ -250,7 +287,11 @@ function evaluateDerailment(rawSignals, thresholds) {
   for (const v of verdicts) {
     if (v.severity !== "trip") continue;
     tripped = true;
-    const mapped = SIGNAL_TRIP_INTERVENTION[v.signal] || "pause";
+    let mapped = SIGNAL_TRIP_INTERVENTION[v.signal] || "pause";
+    // The ONLY upgrade path: fix-review-thrash's pause -> correct, gated on the
+    // explicit authority parameter. Every other mapping (incl. every abort route) is
+    // untouched — never a weakening, never a widening to another signal.
+    if (v.signal === CORRECTABLE_SIGNAL && mapped === "pause" && authorityAvailable) mapped = "correct";
     if (SENTRY_INTERVENTIONS.indexOf(mapped) > SENTRY_INTERVENTIONS.indexOf(intervention)) intervention = mapped;
   }
   return { verdicts, intervention, tripped };
@@ -309,6 +350,29 @@ function sentryReadBudget(runDir) {
     // spawnSync/JSON.parse threw outright (e.g. the child binary itself is
     // unreachable) — same own-fault classification as above.
     return { breached: [], outcome: "indeterminate" };
+  }
+}
+
+// FAFF-326: derive the `authority` parameter from the FAFF-373/FAFF-325
+// corrective-integrity gate via a CHILD invocation of THIS bin — Sentry owns no
+// direct require of the factory-region gate module (region direction, ADR 0042: a
+// governance span never references a factory identifier; a self-spawn of this same
+// bin is a process boundary, invisible to that lint by design — mirrors
+// sentryReadBudget exactly). Fail-safe: ANY non-OK child (non-zero exit, unparseable
+// stdout, spawn failure) degrades to "channel-D-only" — NEVER "available". Only a
+// clean { trusted: true } reply from `corrective-integrity --consumer corrective`
+// (FAFF-373's own asserted/degraded gate — no crypto, no signature) ever returns
+// "available".
+function sentryReadCorrectiveAuthority(runDir) {
+  try {
+    const r = spawnSync(process.execPath, [ENTRYPOINT, "corrective-integrity", "--consumer", "corrective", "--run-dir", runDir, "--json"], { encoding: "utf8" });
+    if (r.status === 0 && r.stdout) {
+      const j = JSON.parse(r.stdout.trim());
+      return j.trusted === true ? "available" : "channel-D-only";
+    }
+    return "channel-D-only";
+  } catch {
+    return "channel-D-only";
   }
 }
 
@@ -411,8 +475,25 @@ function cmdSentry(args) {
       }
     }
     const checkedRunDir = resolved.empty ? null : resolved.runDir;
-    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect }, th);
-    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th };
+    // FAFF-326: authority is an EXPLICIT parameter, never a raw-signal field.
+    // --authority is a hermetic TEST-ONLY seam (explicit-flag-only, mirrors
+    // --budget-json / --now-ms — no ambient/env form); production always derives it
+    // from the corrective-integrity gate via sentryReadCorrectiveAuthority (a
+    // self-spawn child call, "channel-D-only" today until FAFF-325's declaration is
+    // actually asserted for this run).
+    const authorityFlag = get("--authority");
+    let authority;
+    if (authorityFlag != null) {
+      if (authorityFlag !== "available" && authorityFlag !== "channel-D-only") {
+        process.stderr.write(`faff sentry check: --authority '${authorityFlag}' must be 'available' or 'channel-D-only'\n`);
+        return 2;
+      }
+      authority = authorityFlag;
+    } else {
+      authority = resolved.empty ? "channel-D-only" : sentryReadCorrectiveAuthority(resolved.runDir);
+    }
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect }, th, authority);
+    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
     else {
@@ -525,6 +606,21 @@ function sentrySelftest() {
   const aggNone = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
   ok("clean run → continue, no verdicts", aggNone.intervention === "continue" && aggNone.verdicts.length === 0);
 
+  // --- FAFF-326: `correct` reachable ONLY under the explicit authority parameter ---
+  const aggPauseNoAuth = evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH, "channel-D-only");
+  ok("thrash + explicit channel-D-only authority → still pause (unchanged)", aggPauseNoAuth.intervention === "pause");
+  const aggCorrect = evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH, "available");
+  ok("thrash + authority available → correct (the ONE upgrade path)", aggCorrect.intervention === "correct" && aggCorrect.tripped === true);
+  // correct sits BELOW abort in the ladder — a co-tripping abort signal still wins.
+  const aggAbortBeatsCorrect = evaluateDerailment({ budget: { breached: ["max_attempts"], outcome: "escalate" }, events: thr, ledger: {} }, TH, "available");
+  ok("escalate+thrash+authority available → abort still wins (correct never outranks abort)", aggAbortBeatsCorrect.intervention === "abort");
+  // authority "available" alone (no trip) never manufactures a verdict.
+  const aggAuthNoTrip = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH, "available");
+  ok("authority available with nothing tripped → continue, no verdicts", aggAuthNoTrip.intervention === "continue" && aggAuthNoTrip.verdicts.length === 0);
+  // only fix-review-thrash upgrades — a different trip signal is never routed to correct.
+  const aggOtherTripAuth = evaluateDerailment({ ledger: { owner: { status: "running", last_heartbeat: ago(0), started_at: ago(TH.run_elapsed_ceiling_secs + 60) } }, budget: { breached: [], outcome: "none" }, events: [] }, TH, "available");
+  ok("run-elapsed trip + authority available → still abort, never correct (only fix-review-thrash upgrades)", aggOtherTripAuth.intervention === "abort");
+
   // --- AC5: no-write-path — a supervised subagent's injected fields cannot flip a trip ---
   const hostile = {
     budget: { breached: ["max_attempts"], outcome: "escalate" }, // real orchestrator-surface trip
@@ -537,6 +633,14 @@ function sentrySelftest() {
   ok("AC5 hostile injected fields ignored — still aborts", hv.intervention === "abort" && hv.tripped === true);
   ok("AC5 normalizer keeps only the surface allowlist", Object.keys(normalizeSentrySignals(hostile)).sort().join(",") === "budget,events,forbidden_side_effect,heartbeat_source,ledger,now_ms,scope_drift");
 
+  // --- FAFF-326 AC5-shaped no-foreign-authorship: an `authority` field INSIDE the raw
+  // signal bundle (as opposed to the explicit 3rd function parameter) must be inert —
+  // a build subagent controls the signal bundle, never the explicit parameter.
+  const hostileThrashWithAuthorityField = { events: thr, ledger: {}, budget: { breached: [], outcome: "none" }, authority: "available", corrective_authority: "available" };
+  const hvThrash = evaluateDerailment(hostileThrashWithAuthorityField, TH); // no 3rd arg — default unavailable
+  ok("AC5-shaped: an `authority`/`corrective_authority` key INSIDE the signal bundle is inert — still pause, never correct", hvThrash.intervention === "pause");
+  ok("AC5-shaped: normalizeSentrySignals never reads an authority-shaped key at all", !("authority" in normalizeSentrySignals(hostileThrashWithAuthorityField)) && !("corrective_authority" in normalizeSentrySignals(hostileThrashWithAuthorityField)));
+
   // --- abort marker: resumable, outcomes preserved, owner flipped, no force-reset (AC4) ---
   const led = { admitted: ["Z"], outcomes: {}, owner: { status: "running", last_heartbeat: ago(10), started_at: ago(100) } };
   applySentryAbort(led, { issue: "Z", signal: "budget-breach", wip_commit: "abc1234", at: ago(0) });
@@ -547,8 +651,17 @@ function sentrySelftest() {
   applySentryAbort(ledDone, { at: ago(0) });
   ok("abort never resurrects a done owner", ledDone.owner.status === "done");
 
-  // --- `correct` is intentionally NOT in the v1 ladder (deferred to Sentry-2) ---
-  ok("ladder stops at abort (no `correct`)", !SENTRY_INTERVENTIONS.includes("correct") && SENTRY_INTERVENTIONS[SENTRY_INTERVENTIONS.length - 1] === "abort");
+  // --- FAFF-326: `correct` is now IN the ladder, between pause and abort — abort is
+  // still the ladder-max terminal rung, and correct is unreachable without the
+  // explicit authority parameter (pinned above; this asserts the shape). ---
+  ok("ladder is exactly continue|pause|correct|abort, abort still terminal",
+    JSON.stringify(SENTRY_INTERVENTIONS) === JSON.stringify(["continue", "pause", "correct", "abort"]) &&
+    SENTRY_INTERVENTIONS[SENTRY_INTERVENTIONS.length - 1] === "abort");
+  ok("correct sits strictly between pause and abort",
+    SENTRY_INTERVENTIONS.indexOf("pause") < SENTRY_INTERVENTIONS.indexOf("correct") &&
+    SENTRY_INTERVENTIONS.indexOf("correct") < SENTRY_INTERVENTIONS.indexOf("abort"));
+  ok("correct is UNREACHABLE while unasserted — the default (no authority arg) call never yields it for any trip",
+    evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH).intervention !== "correct");
 
   // --- FAFF-425: an own-fault reading the run's ledger is INDETERMINATE, never a
   // silent "no derailment" — covered here at the pure-core level; the full
@@ -601,4 +714,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalForbiddenSideEffect, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryReadBudget, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalForbiddenSideEffect, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

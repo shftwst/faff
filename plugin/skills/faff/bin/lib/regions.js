@@ -77,6 +77,11 @@ const REGION_MAP = {
   "spec-review-lenses": "factory",
   "container-check": "factory",
   "corrective-integrity": "factory",
+  // FAFF-326: corrective requires corrective-integrity (factory) directly and
+  // sentry.js's sentryThresholds (governance) — factory→governance is legal (ADR
+  // 0042); sentry.js itself stays governance-pure by deriving authority through a
+  // CHILD spawn of this bin rather than requiring this module (see sentry.js).
+  "corrective": "factory",
   "next": "factory",
   "project-next": "factory",
   "state": "factory",
@@ -152,6 +157,7 @@ const REGION_SELFTEST_ARGV = {
   "spec-review-lenses": ["spec-review-lenses", "--selftest"],
   "container-check": ["container-check", "--selftest"],
   "corrective-integrity": ["corrective-integrity", "--selftest"],
+  "corrective": ["corrective", "--selftest"],
   "next": ["next", "--selftest"],
   "project-next": ["project-next", "--selftest"],
   "state": null,

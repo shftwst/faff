@@ -1064,6 +1064,8 @@ const CONTRACTS = {
       { name: "pass-no-findings", in: { signal: "pass", findings: [] }, wantExit: 0 },
       { name: "adversarial-outcome-passthrough", in: { signal: "pass", findings: [], adversarial_outcome: "chain-outage-skipped" }, wantExit: 0 },
       { name: "unavailable-bare-conformant", in: { signal: "unavailable", findings: [] }, wantExit: 0 },
+      { name: "unavailable-with-well-formed-finding-conformant", in: { signal: "unavailable", findings: [{ location_present: true, action_present: true }] }, wantExit: 0 },
+      { name: "unavailable-with-malformed-finding-still-flagged", in: { signal: "unavailable", findings: [{ location_present: false, action_present: false }] }, wantExit: 1 },
       { name: "needs-human-no-findings", in: { signal: "needs-human", findings: [] }, wantExit: 1 },
       { name: "coerce-malformed-signal", in: { signal: "maybe", findings: [{ location_present: true, action_present: true }] }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },

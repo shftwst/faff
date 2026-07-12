@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import {
   aggregate, strictMajority, mapSeverity, renderBlock, SEVERITY_MAP,
 } from "../plugin/skills/faffter-dark-spec-review/aggregate.mjs";
@@ -121,6 +123,28 @@ test("aggregate.mjs CLI fail-safe: empty/inconsistent input exits non-zero (neve
   // unparseable JSON → non-zero (no fabricated verdict)
   res = spawnSync(process.execPath, [AGG], { input: "{ not json", encoding: "utf8" });
   assert.notEqual(res.status, 0);
+});
+
+test("aggregate.mjs CLI-entrypoint guard fires from a URL-special-char path (FAFF-464)", () => {
+  // Regression: the guard once compared import.meta.url (percent-encoded) against a hand-built
+  // `file://${process.argv[1]}` (raw path). From a dir whose path holds a URL-special char (`×`),
+  // the two diverged, the guard failed, main() never ran, and the process exited 0 with EMPTY
+  // stdout — a silent no-op on a gate component. pathToFileURL encodes identically, so the guard
+  // now fires. Zero-dependency (node:fs + node:url stdlib only), so a standalone copy runs.
+  const dir = mkdtempSync(join(tmpdir(), "faff-×-"));
+  try {
+    const agg = join(dir, "aggregate.mjs");
+    copyFileSync(AGG, agg);
+    const res = spawnSync(process.execPath, [agg, "--n", "1"], {
+      input: '[{"lens":"architectural","outcome":"clear","objections":[]}]',
+      encoding: "utf8",
+    });
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /faff-contract:spec-review-verdict/,
+      "guard must fire from a special-char path — a non-empty verdict block, never a silent empty exit 0");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("aggregate.mjs CLI: stdin refutations → a contract block that validates against faff contract", () => {

@@ -8,9 +8,10 @@
 // this mapping out, by design); this is the reviewer's judgement, owned by this occupant.
 //
 // Pure functions carry no I/O and are unit-tested directly; the CLI is a thin stdin→stdout wrapper.
-// Zero-dependency: node:fs only.
+// Zero-dependency: node stdlib only (node:fs, node:url).
 
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 // The contract severity enum is blocker|major|minor. Refuters speak the adversarial-review
 // vocabulary (critical|major|minor|observation); map it onto the contract enum. An `observation`
@@ -209,6 +210,10 @@ function main(argv) {
 }
 
 // Run as CLI only when invoked directly (not when imported by the test).
-if (import.meta.url === `file://${process.argv[1]}`) {
+// `import.meta.url` is a percent-encoded file: URL; build the comparison URL from process.argv[1]
+// via pathToFileURL so it encodes identically. Concatenating the file scheme with the raw path
+// under-encodes URL-special chars (e.g. an interpunct in a worktree branch dir), silently failing
+// the equality and no-op'ing main() on a gate component (FAFF-464).
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   process.exit(main(process.argv));
 }

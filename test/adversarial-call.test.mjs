@@ -2,7 +2,7 @@
 // Zero live model calls — getFn/streamFn are mocked.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -14,6 +14,8 @@ import {
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory,
+  splitFindings, validateFindingsShape, canonicalHeader, ensureHeader, hasHeader,
+  findSyntaxClaims, claimTargets, refuteFindings, realCheck,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -667,7 +669,7 @@ test("FAFF-232 chainTerminalExit: returns the FIRST needs-human class in chain o
   assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.NOT_SERVED]), EXIT.AUTH);
   assert.equal(chainTerminalExit([EXIT.NOT_SERVED, EXIT.AUTH]), EXIT.NOT_SERVED);
   assert.equal(chainTerminalExit([]), EXIT.UNREACHABLE);
-  assert.deepEqual([...CHAIN_NEEDS_HUMAN].sort((a, b) => a - b), [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH].sort((a, b) => a - b));
+  assert.deepEqual([...CHAIN_NEEDS_HUMAN].sort((a, b) => a - b), [EXIT.USAGE, EXIT.NOT_SERVED, EXIT.DEFAULT_HOST_UNREACHABLE, EXIT.AUTH, EXIT.MALFORMED].sort((a, b) => a - b));
 });
 
 test("FAFF-232 mapResultExit: per-backend result → exit class (host-source aware)", () => {
@@ -695,7 +697,7 @@ test("FAFF-232 runReviewChain: advances past a failed primary to a healthy fallb
     system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: scriptedRunReview({
       "https://nv/v1": { status: "transport-failed", note: "HTTP 429: rate limited" },
-      "http://ollama:11434": { status: "ok", content: "## Adversarial findings — ollama/qwen\n..." },
+      "http://ollama:11434": { status: "ok", content: "## Adversarial findings — ollama/qwen\n\n### observation: no findings\n..." },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
@@ -713,7 +715,7 @@ test("FAFF-232 runReviewChain: advance-on-unreachable then success", async () =>
     system: "S", user: "U",
     runReviewFn: scriptedRunReview({
       "https://a/v1": { status: "unreachable", note: "ECONNREFUSED" },
-      "https://b/v1": { status: "ok", content: "findings" },
+      "https://b/v1": { status: "ok", content: "### observation: no findings" },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
@@ -758,7 +760,7 @@ test("FAFF-232 runReviewChain: a backend with an unset api-key env advances (cla
   const calls = [];
   const res = await runReviewChain(chain, {
     system: "S", user: "U",
-    runReviewFn: async (opts) => { calls.push(opts.host); return { status: "ok", content: "ok" }; },
+    runReviewFn: async (opts) => { calls.push(opts.host); return { status: "ok", content: "### observation: no findings" }; },
   });
   assert.equal(res.exit, EXIT.OK);
   assert.deepEqual(calls, ["http://b:11434"], "the unset-key backend was NOT called; the chain advanced");
@@ -771,7 +773,7 @@ test("FAFF-232 runReviewChain: a malformed backend (missing host) advances, not 
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U",
-    runReviewFn: scriptedRunReview({ "http://b:11434": { status: "ok", content: "ok" } }),
+    runReviewFn: scriptedRunReview({ "http://b:11434": { status: "ok", content: "### observation: no findings" } }),
   });
   assert.equal(res.exit, EXIT.OK);
 });
@@ -788,7 +790,7 @@ test("FAFF-232 main(): --backends-json advances past a 429 primary to a healthy 
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
       "https://nv/v1": { status: "transport-failed", note: "HTTP 429" },
-      "http://ollama:11434": { status: "ok", content: "findings" },
+      "http://ollama:11434": { status: "ok", content: "### observation: no findings" },
     }) },
   );
   assert.equal(code, EXIT.OK);
@@ -884,7 +886,7 @@ test("FAFF-329 runReviewChain: a needs-human fault before the deadline DOMINATES
 
 test("FAFF-329 runReviewChain: a healthy backend within budget still wins (exit 0)", async () => {
   let t = 0; const nowFn = () => t;
-  const runReviewFn = async () => { t += 100; return { status: "ok", content: "## findings" }; };
+  const runReviewFn = async () => { t += 100; return { status: "ok", content: "### observation: no findings" }; };
   const chain = [{ model: "m", host: "h", hostSource: "config" }];
   const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 2000, log: () => {} });
   assert.equal(r.exit, EXIT.OK);
@@ -984,7 +986,7 @@ test("FAFF-398 main: --lights-out + a served backend → OK (0), no false fail-c
   const { sys, dif } = specFiles398();
   const code = await main(
     ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--lights-out"],
-    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "## findings" } }) },
+    { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "### observation: no findings" } }) },
   );
   assert.equal(code, EXIT.OK);
 });
@@ -1121,4 +1123,485 @@ test("FAFF-401 main: config-fault dominance untouched — L4 ledger + AUTH still
     { runReviewFn: scriptedRunReview({ "http://x:1": { status: "auth-failed" } }) },
   );
   assert.equal(code, EXIT.AUTH, "a config fault dominates the ledger-derived mandatory remap, unchanged");
+});
+
+// ===========================================================================
+// FAFF-194 — deterministic guards for machine-checkable findings + output-format enforcement
+// ===========================================================================
+
+// Small local helper: capture whatever main() writes to stdout (existing tests only assert the exit
+// code; the refutation/header-normalisation behaviour lives in stdout content, so this is new).
+async function captureStdout(fn) {
+  const orig = process.stdout.write.bind(process.stdout);
+  let out = "";
+  process.stdout.write = (chunk) => { out += chunk; return true; };
+  try {
+    const result = await fn();
+    return { result, stdout: out };
+  } finally {
+    process.stdout.write = orig;
+  }
+}
+
+// ── splitFindings ──
+
+test("FAFF-194 splitFindings: preamble captured, one section per ### heading, severity + title parsed", () => {
+  const content = "## Adversarial findings — ollama/m\n\n### critical: bad thing\nbody line 1\nbody line 2\n\n### minor: small thing\nanother body";
+  const { preamble, sections } = splitFindings(content);
+  assert.equal(preamble, "## Adversarial findings — ollama/m\n");
+  assert.equal(sections.length, 2);
+  assert.equal(sections[0].severity, "critical");
+  assert.equal(sections[0].title, "bad thing");
+  assert.match(sections[0].body, /body line 1/);
+  assert.equal(sections[1].severity, "minor");
+  assert.equal(sections[1].title, "small thing");
+});
+
+test("FAFF-194 splitFindings: bracketed severity `### [critical]:` and em-dash separator both parse", () => {
+  const a = splitFindings("### [critical]: bracketed").sections[0];
+  assert.equal(a.severity, "critical");
+  const b = splitFindings("### observation — dash separator").sections[0];
+  assert.equal(b.severity, "observation");
+});
+
+test("FAFF-194 splitFindings: an unrecognised severity word still yields a section with severity null", () => {
+  const { sections } = splitFindings("### not-a-severity: whatever");
+  assert.equal(sections.length, 1);
+  assert.equal(sections[0].severity, null);
+});
+
+test("FAFF-194 splitFindings: no ### headings at all → empty sections, whole content is preamble", () => {
+  const { preamble, sections } = splitFindings("just some prose, no findings");
+  assert.equal(sections.length, 0);
+  assert.equal(preamble, "just some prose, no findings");
+});
+
+test("FAFF-194 splitFindings: empty content → empty sections, empty preamble", () => {
+  assert.deepEqual(splitFindings(""), { preamble: "", sections: [] });
+  assert.deepEqual(splitFindings(undefined), { preamble: "", sections: [] });
+});
+
+// ── validateFindingsShape ──
+
+test("FAFF-194 validateFindingsShape: empty/whitespace-only content is malformed", () => {
+  assert.equal(validateFindingsShape("").ok, false);
+  assert.equal(validateFindingsShape("   \n  ").ok, false);
+  assert.equal(validateFindingsShape(undefined).ok, false);
+});
+
+test("FAFF-194 validateFindingsShape: prose with no ### section is malformed (a rambling/headerless essay)", () => {
+  const r = validateFindingsShape("## Adversarial findings — ollama/m\n\nI have thoughts but no structured findings.");
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /no recognised finding section/);
+});
+
+test("FAFF-194 validateFindingsShape: >=1 recognised severity section is findings-shaped, incl. the no-findings marker", () => {
+  assert.equal(validateFindingsShape("### observation: no findings").ok, true);
+  assert.equal(validateFindingsShape("## Adversarial findings — ollama/m\n\n### critical: x\nbody").ok, true);
+});
+
+// ── canonicalHeader / ensureHeader ──
+
+test("FAFF-194 canonicalHeader: exact provenance format", () => {
+  assert.equal(canonicalHeader("ollama", "llama3.1:70b"), "## Adversarial findings — ollama/llama3.1:70b");
+});
+
+test("FAFF-194 ensureHeader: prepends when no header line is present", () => {
+  const out = ensureHeader("### observation: no findings", "ollama", "m");
+  assert.match(out, /^## Adversarial findings — ollama\/m\n\n### observation: no findings$/);
+});
+
+test("FAFF-194 ensureHeader: REPLACES an existing (possibly model-echoed/wrong) header with the canonical one", () => {
+  const out = ensureHeader("## Adversarial Findings (some model's own guess)\n\n### critical: x", "ollama", "real-model");
+  assert.match(out, /^## Adversarial findings — ollama\/real-model\n/);
+  assert.ok(!out.includes("some model's own guess"));
+});
+
+test("FAFF-194 ensureHeader: a no-op (byte-identical) when the existing header already matches canonical", () => {
+  const content = "## Adversarial findings — ollama/m\n\n### critical: x\nbody";
+  assert.equal(ensureHeader(content, "ollama", "m"), content);
+});
+
+// ── findSyntaxClaims ──
+
+test("FAFF-194 findSyntaxClaims: matches the documented syntax/parse phrasings", () => {
+  for (const t of [
+    "this is a syntax error",
+    "throws a SyntaxError",
+    "won't parse",
+    "will not parse",
+    "fails to parse",
+    "this is invalid JavaScript syntax",
+    "not valid syntax",
+  ]) {
+    assert.ok(findSyntaxClaims(t), `expected a syntax-claim match: "${t}"`);
+  }
+});
+
+test("FAFF-194 findSyntaxClaims: does not match an unrelated (semantic/security/concurrency) finding", () => {
+  assert.ok(!findSyntaxClaims("this endpoint has no auth check"));
+  assert.ok(!findSyntaxClaims("possible race condition on shared state"));
+  assert.ok(!findSyntaxClaims("this crashes on a null input"));
+});
+
+// ── claimTargets ──
+
+test("FAFF-194 claimTargets: named JS-family paths in the text are returned; non-JS matches are filtered out", () => {
+  const ctx = ["plugin/skills/faff/SKILL.md", "plugin/skills/x/review-call.mjs", "src/foo.js"];
+  const text = "### critical: `plugin/skills/x/review-call.mjs` and `plugin/skills/faff/SKILL.md` are both broken";
+  assert.deepEqual(claimTargets(text, ctx), ["plugin/skills/x/review-call.mjs"]);
+});
+
+test("FAFF-194 claimTargets: empty when the text names no context path at all", () => {
+  assert.deepEqual(claimTargets("### critical: something is wrong", ["src/foo.js"]), []);
+});
+
+// ── refuteFindings ──
+
+function tmpJsFile(name, code) {
+  const dir = mkdtempSync(join(tmpdir(), "faff194-"));
+  const p = join(dir, name);
+  writeFileSync(p, code);
+  return p;
+}
+
+test("FAFF-194 refuteFindings: a syntax claim naming a clean context file is downgraded with evidence attached (never dropped)", () => {
+  const file = tmpJsFile("clean.mjs", "export const ok = 1;\n");
+  const content = `### critical: \`${file}\` is invalid JavaScript syntax\nsome body text`;
+  const checkFn = (p) => ({ ok: p === file, output: "" });
+  const { content: out, refutations } = refuteFindings(content, [file], { checkFn });
+  assert.equal(refutations.length, 1);
+  assert.equal(refutations[0].from, "critical");
+  assert.deepEqual(refutations[0].files, [file]);
+  assert.match(out, /^### observation: \[auto-refuted\]/);
+  assert.match(out, /some body text/, "the original body survives — never dropped");
+  assert.match(out, new RegExp(`auto-refuted: node --check passed on ${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} — syntax claim mechanically disproved \\(was critical\\)`));
+});
+
+test("FAFF-194 refuteFindings: a target file that FAILS the check leaves the finding untouched (the reviewer may be right)", () => {
+  const file = tmpJsFile("broken.mjs", "export const x = ;;;\n");
+  const content = `### critical: \`${file}\` is invalid JavaScript syntax`;
+  const checkFn = (p) => ({ ok: false, output: "SyntaxError" });
+  const { content: out, refutations } = refuteFindings(content, [file], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content, "untouched — byte-identical");
+});
+
+test("FAFF-194 refuteFindings: a claim naming ONLY a non-JS context file stays untouched (precision bias — cannot settle)", () => {
+  const content = "### critical: `SKILL.md` has invalid syntax and won't parse";
+  const checkFn = () => { throw new Error("must not be called — no checkable target"); };
+  const { content: out, refutations } = refuteFindings(content, ["SKILL.md", "src/other.js"], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content);
+});
+
+test("FAFF-194 refuteFindings: a generic claim naming no file falls back to checking ALL JS-family context files", () => {
+  const a = tmpJsFile("a.mjs", "export const a = 1;\n");
+  const b = tmpJsFile("b.mjs", "export const b = 2;\n");
+  const content = "### major: this code contains invalid JavaScript syntax somewhere";
+  const seen = [];
+  const checkFn = (p) => { seen.push(p); return { ok: true, output: "" }; };
+  const { refutations } = refuteFindings(content, [a, b, "docs/SKILL.md"], { checkFn });
+  assert.equal(refutations.length, 1);
+  assert.deepEqual(seen.sort(), [a, b].sort(), "only the JS-family context files were checked, not SKILL.md");
+});
+
+test("FAFF-194 refuteFindings: no JS-family context files at all → the whole pass is a no-op", () => {
+  const content = "### critical: this code has a syntax error";
+  const checkFn = () => { throw new Error("must not be called"); };
+  const { content: out, refutations } = refuteFindings(content, ["docs/SKILL.md"], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content);
+});
+
+test("FAFF-194 refuteFindings: multiple syntax-claim findings are each refuted independently", () => {
+  const f1 = tmpJsFile("f1.mjs", "export const a = 1;\n");
+  const f2 = tmpJsFile("f2.mjs", "export const a = 2;\n");
+  const content = [
+    `### critical: \`${f1}\` won't parse`,
+    `### major: \`${f2}\` fails to parse`,
+    "### minor: unrelated finding about naming",
+  ].join("\n");
+  const checkFn = (p) => ({ ok: true, output: "" });
+  const { content: out, refutations } = refuteFindings(content, [f1, f2], { checkFn });
+  assert.equal(refutations.length, 2);
+  const { sections } = splitFindings(out);
+  assert.equal(sections[0].severity, "observation");
+  assert.equal(sections[1].severity, "observation");
+  assert.equal(sections[2].severity, "minor", "the unrelated finding is untouched");
+});
+
+test("FAFF-194 refuteFindings: a non-syntax finding (semantic/security) is never touched even with matching context files", () => {
+  const f = tmpJsFile("f.mjs", "export const a = 1;\n");
+  const content = `### critical: \`${f}\` has no input validation`;
+  const checkFn = () => { throw new Error("must not be called — not a syntax claim"); };
+  const { content: out, refutations } = refuteFindings(content, [f], { checkFn });
+  assert.equal(refutations.length, 0);
+  assert.equal(out, content);
+});
+
+test("FAFF-194 refuteFindings: realCheck actually spawns node --check (integration, no mock)", () => {
+  const good = tmpJsFile("real-good.mjs", "export const ok = 1;\n");
+  const bad = tmpJsFile("real-bad.mjs", "export const x = ;;;\n");
+  const okResult = realCheck(good);
+  assert.equal(okResult.ok, true);
+  const badResult = realCheck(bad);
+  assert.equal(badResult.ok, false);
+
+  const content = `### critical: \`${good}\` is invalid JavaScript syntax`;
+  const { refutations } = refuteFindings(content, [good], {}); // default checkFn = realCheck
+  assert.equal(refutations.length, 1, "the default checkFn (realCheck) settles a genuinely clean file");
+
+  const content2 = `### critical: \`${bad}\` is invalid JavaScript syntax`;
+  const { refutations: refs2 } = refuteFindings(content2, [bad], {});
+  assert.equal(refs2.length, 0, "a genuinely broken file is NOT refuted — the reviewer was right");
+});
+
+// ── EXIT.MALFORMED + CHAIN_NEEDS_HUMAN + mandatoryRemap (the exit-code surface, FAFF-194) ──
+
+test("FAFF-194 EXIT.MALFORMED === 10, member of CHAIN_NEEDS_HUMAN", () => {
+  assert.equal(EXIT.MALFORMED, 10);
+  assert.ok(CHAIN_NEEDS_HUMAN.has(EXIT.MALFORMED));
+});
+
+test("FAFF-194 mandatoryRemap: MALFORMED(10) passes through UNCHANGED at every mandatory-ness (never touched by the 5/8 remap)", () => {
+  assert.equal(mandatoryRemap(EXIT.MALFORMED, true), EXIT.MALFORMED);
+  assert.equal(mandatoryRemap(EXIT.MALFORMED, false), EXIT.MALFORMED);
+});
+
+// ── runReviewChain: per-backend shape validation (FAFF-194) ──
+
+test("FAFF-194 runReviewChain: a non-findings-shaped OK result records failure class 10 and advances to a healthy fallback", async () => {
+  const chain = [
+    { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+  ];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: scriptedRunReview({
+      "https://a/v1": { status: "ok", content: "" },   // empty — malformed
+      "http://b:11434": { status: "ok", content: "### observation: no findings" },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winner.host, "http://b:11434");
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.ok(trace.some((l) => /produced non-findings output/.test(l) && /exit 10/.test(l)));
+});
+
+test("FAFF-194 runReviewChain: a fully-exhausted chain containing only a malformed OK result → terminal exit 10, never 5", async () => {
+  const chain = [{ provider: "ollama", model: "m", host: "http://a:1", hostSource: "config" }];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: async () => ({ status: "ok", content: "no structured findings here" }),
+  });
+  assert.equal(res.exit, EXIT.MALFORMED);
+});
+
+test("FAFF-194 runReviewChain: a config fault still DOMINATES a malformed fault in a fully-failed chain (returns the FIRST needs-human class in order)", () => {
+  assert.equal(chainTerminalExit([EXIT.MALFORMED, EXIT.AUTH]), EXIT.MALFORMED, "MALFORMED came first in chain order");
+  assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.MALFORMED]), EXIT.AUTH, "AUTH came first in chain order");
+});
+
+// ── main(): empty/malformed content from a reachable+served backend never exits 0 (the worst prior hole) ──
+
+test("FAFF-194 main(): empty content from a reachable+served backend → EXIT.MALFORMED (10), never OK (0)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+    { runReviewFn: async () => ({ status: "ok", content: "" }) },
+  );
+  assert.equal(code, EXIT.MALFORMED);
+  assert.notEqual(code, EXIT.OK);
+});
+
+test("FAFF-194 main(): header-only / no-recognised-section content → EXIT.MALFORMED (10)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+    { runReviewFn: async () => ({ status: "ok", content: "## Adversarial findings — ollama/m\n\njust some rambling prose" }) },
+  );
+  assert.equal(code, EXIT.MALFORMED);
+});
+
+// ── main(): the refutation pass + header normalisation run on the winning content (FAFF-194) ──
+
+test("FAFF-194 main(): a winning result missing the header gets it prepended, normalisation logged to stderr", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const origErr = process.stderr.write.bind(process.stderr);
+  let errOut = "";
+  process.stderr.write = (c) => { errOut += c; return true; };
+  let stdout;
+  try {
+    ({ stdout } = await captureStdout(() => main(
+      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--provider", "ollama"],
+      { runReviewFn: async () => ({ status: "ok", content: "### observation: no findings" }) },
+    )));
+  } finally {
+    process.stderr.write = origErr;
+  }
+  assert.match(stdout, /^## Adversarial findings — ollama\/m\n/);
+  assert.match(errOut, /normalized: findings header missing/);
+});
+
+test("FAFF-194 main(): a winning result WITH a canonical header is byte-identical (no spurious normalisation log)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const origErr = process.stderr.write.bind(process.stderr);
+  let errOut = "";
+  process.stderr.write = (c) => { errOut += c; return true; };
+  const content = "## Adversarial findings — ollama/m\n\n### observation: no findings";
+  let stdout;
+  try {
+    ({ stdout } = await captureStdout(() => main(
+      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+      { runReviewFn: async () => ({ status: "ok", content }) },
+    )));
+  } finally {
+    process.stderr.write = origErr;
+  }
+  assert.equal(stdout, content.trim() + "\n", "byte-identical back-compat — findings-shaped, header-bearing, claim-free output");
+  assert.ok(!errOut.includes("normalized:"));
+});
+
+test("FAFF-194 main(): a refutable syntax critical in the winning content is downgraded before stdout, and logged to stderr", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff194main-"));
+  const sys = join(dir, "system.txt"); writeFileSync(sys, "SYS");
+  const diff = join(dir, "diff.txt"); writeFileSync(diff, "DIFF");
+  const jsFile = join(dir, "names.mjs"); writeFileSync(jsFile, "export const names = [1, 2, 3];\n");
+  const content = `## Adversarial findings — ollama/m\n\n### critical: \`${jsFile}\` is invalid JavaScript syntax\nsome explanation`;
+  const origErr = process.stderr.write.bind(process.stderr);
+  let errOut = "";
+  process.stderr.write = (c) => { errOut += c; return true; };
+  let stdout;
+  try {
+    ({ stdout } = await captureStdout(() => main(
+      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--context", jsFile],
+      { runReviewFn: async () => ({ status: "ok", content }), checkFn: (p) => ({ ok: p === jsFile, output: "" }) },
+    )));
+  } finally {
+    process.stderr.write = origErr;
+  }
+  assert.match(stdout, /### observation: \[auto-refuted\]/);
+  assert.ok(!/^### critical/m.test(stdout), "the critical severity does not survive to stdout");
+  assert.match(errOut, /^refuted: /m);
+});
+
+// Integration smoke test (per the spec's DONE section): stub streamFn output claiming invalid syntax on
+// a REAL temp .mjs file that parses clean under a REAL node --check, passed via --context; run main()
+// with injected transport + the REAL default checkFn; expect exit 0, canonical header, downgraded finding.
+test("FAFF-194 integration smoke test: a confidently-wrong syntax critical on a clean real file is downgraded, header canonical, exit 0", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff194smoke-"));
+  const sys = join(dir, "system.txt"); writeFileSync(sys, "SYS");
+  const diff = join(dir, "diff.txt"); writeFileSync(diff, "DIFF");
+  const cleanFile = join(dir, "clean-real.mjs"); writeFileSync(cleanFile, "export const names = [\"a\", \"b\"];\n");
+  const content = `### critical: \`${cleanFile}\` is invalid JavaScript syntax\nthe file won't parse`;
+  const { result: code, stdout } = await captureStdout(() => main(
+    ["--host", "http://h:1", "--model", "qwen3-next:80b", "--provider", "ollama", "--system", sys, "--diff", diff, "--context", cleanFile],
+    { runReviewFn: async () => ({ status: "ok", content }) },   // checkFn omitted — uses the REAL realCheck
+  ));
+  assert.equal(code, EXIT.OK);
+  assert.match(stdout, /^## Adversarial findings — ollama\/qwen3-next:80b\n/);
+  assert.match(stdout, /### observation: \[auto-refuted\]/);
+  assert.match(stdout, /auto-refuted: node --check passed/);
+});
+
+// ── Adversarial review findings (real nvidia/z-ai/glm-5.2 Phase-2 pass on this diff) — regression tests ──
+// Four findings were confirmed and fixed: (1) refuteFindings' string-rebuild collapsed blank-line
+// separators between sections whenever a sibling was refuted; (2) ensureHeader's header-line regex used
+// `m` (multiline) so it could rewrite a header-like line quoted INSIDE a finding body; (3) claimTargets'
+// bare substring match could count a path as "named" merely because it's a textual prefix of a longer
+// named path; (4) splitFindings treated `####` (h4) as a new finding boundary, truncating the preceding
+// section's body. A fifth ("no new-config" observation) and a sixth (unbounded fallback spawn count) were
+// accepted as valid-but-non-blocking and are not code changes here.
+
+test("FAFF-194 refuteFindings: preserves the ORIGINAL blank-line separator before the next section (was: collapsed)", () => {
+  const content = "## Adversarial findings — ollama/m\n\n### critical: this wont parse and has a syntax error\nsome body text\n\n### minor: unrelated\nanother body";
+  const checkFn = () => ({ ok: true, output: "" });
+  const { content: out } = refuteFindings(content, ["x.mjs"], { checkFn });
+  // the untouched sibling section's heading must still be preceded by a blank line, exactly as in the input
+  assert.match(out, /\n\n### minor: unrelated\nanother body$/, "the blank-line separator survives the rebuild");
+});
+
+test("FAFF-194 refuteFindings: a THIRD untouched section further down the document keeps its own original spacing too", () => {
+  const content = [
+    "### critical: syntax error in file",
+    "body one",
+    "",
+    "### major: unrelated finding A",
+    "body two",
+    "",
+    "### minor: unrelated finding B",
+    "body three",
+  ].join("\n");
+  const checkFn = () => ({ ok: true, output: "" });
+  const { content: out } = refuteFindings(content, ["x.mjs"], { checkFn });
+  const lines = out.split("\n");
+  // both untouched sections must still be preceded by exactly one blank line, as in the original
+  const majorIdx = lines.findIndex((l) => l.startsWith("### major:"));
+  const minorIdx = lines.findIndex((l) => l.startsWith("### minor:"));
+  assert.equal(lines[majorIdx - 1], "", "blank line before the untouched major section survives");
+  assert.equal(lines[minorIdx - 1], "", "blank line before the untouched minor section survives");
+});
+
+test("FAFF-194 ensureHeader: does NOT rewrite a header-LIKE line quoted inside a finding BODY (only the preamble is in scope)", () => {
+  const content = "## Adversarial findings — ollama/m\n\n### observation: comparing against a prior pass\nthe previous run said:\n## Adversarial findings — old-provider/old-model\nand missed X";
+  const out = ensureHeader(content, "ollama", "m");
+  assert.equal(out, content, "the document's own preamble header was already canonical — untouched; the quoted line in the body must survive verbatim");
+  assert.ok(out.includes("## Adversarial findings — old-provider/old-model"), "the quoted body line was not rewritten");
+});
+
+test("FAFF-194 ensureHeader: still finds + replaces the REAL preamble header even when a finding body quotes a header-like line afterward", () => {
+  const content = "## Adversarial Findings (model's own wrong guess)\n\n### observation: x\nquoting: ## Adversarial findings — other/model";
+  const out = ensureHeader(content, "ollama", "real-model");
+  const lines = out.split("\n");
+  assert.equal(lines[0], "## Adversarial findings — ollama/real-model", "the preamble header was replaced");
+  assert.ok(out.includes("quoting: ## Adversarial findings — other/model"), "the body's quoted line is untouched");
+});
+
+test("FAFF-194 hasHeader: true only for a preamble header, never a body-quoted one", () => {
+  assert.equal(hasHeader("## Adversarial findings — ollama/m\n\n### observation: no findings"), true);
+  assert.equal(hasHeader("### observation: x\nsome text mentioning ## Adversarial findings — old/one"), false);
+  assert.equal(hasHeader(""), false);
+});
+
+test("FAFF-194 claimTargets: a path that is a textual PREFIX of a longer named path is NOT counted as named", () => {
+  const ctx = ["src/foo.js", "test/src/foo.js.spec.mjs"];
+  const text = "### critical: `test/src/foo.js.spec.mjs` has a syntax error";
+  assert.deepEqual(claimTargets(text, ctx), ["test/src/foo.js.spec.mjs"], "only the actually-named longer path counts — not the shorter path it happens to prefix");
+});
+
+test("FAFF-194 refuteFindings: a claim naming only the LONGER of two prefix-colliding paths only checks that one", () => {
+  const short = tmpJsFile("short.mjs", "export const a = 1;\n");
+  const long = short + ".bak.mjs";   // "short.mjs" is a textual prefix of "short.mjs.bak.mjs"
+  writeFileSync(long, "export const a = 1;\n");
+  const content = `### critical: \`${long}\` is invalid JavaScript syntax`;
+  const seen = [];
+  const checkFn = (p) => { seen.push(p); return { ok: true, output: "" }; };
+  const { refutations } = refuteFindings(content, [short, long], { checkFn });
+  assert.equal(refutations.length, 1);
+  assert.deepEqual(seen, [long], "only the actually-named longer path was checked — the shorter prefix path was never spuriously included");
+});
+
+test("FAFF-194 splitFindings: a level-4 (####) sub-heading inside a finding body is NOT treated as a new section boundary", () => {
+  const content = "### critical: something\nintro\n#### a sub-point\nmore detail\n\n### minor: next finding\nbody";
+  const { sections } = splitFindings(content);
+  assert.equal(sections.length, 2, "the #### line must not split the first finding into two sections");
+  assert.match(sections[0].body, /#### a sub-point/, "the sub-heading survives as part of the first section's body");
+  assert.equal(sections[1].severity, "minor");
+});
+
+test("FAFF-194 ensureHeader: a #### line before the first real finding never fools the preamble-scope boundary", () => {
+  // (defensive — #### is not a valid finding heading, so the preamble-scope search must not stop there)
+  const content = "## Adversarial findings — ollama/m\n#### not a real finding\n\n### observation: no findings";
+  const out = ensureHeader(content, "ollama", "m");
+  assert.equal(out, content, "already-canonical header, found correctly despite the #### line, untouched");
+});
+
+// ── No new .faffrc knobs (config schema unchanged — a grep-level assertion, not a config-parser test) ──
+
+test("FAFF-194: no new config-key reads were introduced (grep-level assertion — config schema unchanged)", () => {
+  const src = readFileSync(new URL("../plugin/skills/faffter-dark-adversarial-review/review-call.mjs", import.meta.url), "utf8");
+  assert.ok(!/process\.env\.FAFFRC/.test(src));
+  assert.ok(!/faff config get/.test(src), "review-call.mjs never shells out to faff config — it only reads CLI flags + run-ledger.json");
 });

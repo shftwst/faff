@@ -27,8 +27,13 @@ function tmpRoot(dial = {}) {
   // alone refuses), so proceed-path fixtures carry a `budget.tokens` ceiling by default.
   // `dial.budget: null` omits the block (the no-ceiling refuse fixture); a string value
   // supplies an explicit `budget:` block (the count-cap / explicit-at_ceiling fixtures).
+  // FAFF-428: these fixtures don't set up a real transcript, so the test-running
+  // process's metering resolves estimate-only for the fixture's tmp `--root` — the
+  // default fallback carries `on_estimate_only: warn` so proceed-path assertions
+  // elsewhere in this file (unrelated to metering) aren't newly gated on it. The
+  // dedicated FAFF-428 tests below construct their own budget blocks explicitly.
   const budgetBlock = dial.budget === null ? ""
-    : (typeof dial.budget === "string" ? dial.budget : "budget:\n  tokens: 50000000\n");
+    : (typeof dial.budget === "string" ? dial.budget : "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n");
   const recipeLine = dial.recipe ? `recipe: ${dial.recipe}\n` : "";
   fs.writeFileSync(
     path.join(dir, ".faffrc.yaml"),
@@ -107,7 +112,10 @@ test("lights-out: count-cap-only (max_attempts) ceiling refuses — not an L4 go
 // that no longer exists now the map prices by default (see budget.test.mjs /
 // lights-out --selftest for the still-live legacy-flat-zero-price refusal case).
 test("lights-out: budget.cost alone (no price_per_mtok) PROCEEDS — the default map-priced dollar ceiling (AC 2)", () => {
-  const root = tmpRoot({ budget: "budget:\n  cost: 25\n" }); // no price_per_mtok ⇒ map pricing, always priceable
+  // FAFF-428: on_estimate_only: warn — this fixture has no real transcript, so the
+  // cost-armed ceiling would otherwise refuse on estimate-only metering (a different
+  // gate than the one under test here).
+  const root = tmpRoot({ budget: "budget:\n  cost: 25\n  on_estimate_only: warn\n" }); // no price_per_mtok ⇒ map pricing, always priceable
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
   assert.equal(code, 0, stdout);
@@ -128,7 +136,8 @@ test("lights-out: budget.cost alone (no price_per_mtok) PROCEEDS — the default
 // FAFF-312 — a spend/time (tokens) ceiling proceeds, and the minted ledger envelope
 // carries the level-scoped mint-time default at_ceiling: "escalate" (config unset).
 test("lights-out: tokens ceiling proceeds; minted envelope defaults at_ceiling escalate", () => {
-  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n" });
+  // FAFF-428: on_estimate_only: warn — no real transcript in this fixture.
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
   assert.equal(code, 0, stdout);
@@ -143,7 +152,8 @@ test("lights-out: tokens ceiling proceeds; minted envelope defaults at_ceiling e
 // FAFF-312 — an explicit budget.at_ceiling: stop is minted verbatim (human-explicit
 // config outranks the level default; the operator asked for a quiet stop at ceiling).
 test("lights-out: explicit budget.at_ceiling stop is minted verbatim", () => {
-  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  at_ceiling: stop\n" });
+  // FAFF-428: on_estimate_only: warn — no real transcript in this fixture.
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  at_ceiling: stop\n  on_estimate_only: warn\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
   assert.equal(code, 0, stdout);
@@ -157,7 +167,8 @@ test("lights-out: explicit budget.at_ceiling stop is minted verbatim", () => {
 // extra backstop, and a forced 2-outcome breach yields outcome "escalate" (→ Sentry's
 // budget-breach signal + run-done's fixed-floor escalation, never a silent stop).
 test("lights-out: budget check --run-dir reflects the minted escalate at_ceiling on breach", () => {
-  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  max_attempts: 1\n" });
+  // FAFF-428: on_estimate_only: warn — no real transcript in this fixture.
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  max_attempts: 1\n  on_estimate_only: warn\n" });
   const mint = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const { run_dir } = JSON.parse(mint.stdout);
   const lp = path.join(run_dir, "run-ledger.json");
@@ -463,5 +474,90 @@ test("lights-out: valid --until flag over malformed config proceeds clean", () =
   const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.envelope.ceilings.until, "06:00", "the valid flag value wins and is minted");
   assert.equal(ledger.budget.envelope.until_invalid ?? null, null, "no until_invalid on a clean resolution");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ===========================================================================
+// FAFF-428 — the L4 spend governor must be MEASURABLE, not merely configured.
+// CONTAINED-but-transcript-free: a fresh --root tmpdir has no matching
+// ~/.claude/projects/<encoded> directory, so `measureTokensByClass` resolves
+// estimate-only regardless of whether CLAUDE_CODE_SESSION_ID happens to be set in
+// the ambient test-running environment — these fixtures explicitly strip it too, so
+// the estimate-only path is unambiguous and never accidentally measurable.
+// ===========================================================================
+const CONTAINED_NO_TRANSCRIPT = (() => {
+  const env = { ...CONTAINED };
+  delete env.CLAUDE_CODE_SESSION_ID;
+  return env;
+})();
+
+// AC / Scenario 1 — an L4 config with a token-dependent ceiling (tokens) and
+// unreadable transcripts REFUSES by default: exit 1, gate budget-metering, no run
+// ledger minted.
+test("lights-out: estimate-only metering + a tokens ceiling refuses by default (budget-metering)", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n" }); // no on_estimate_only ⇒ refuse default
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED_NO_TRANSCRIPT });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 1, stdout);
+  assert.equal(out.proceed, false);
+  const bm = out.refusals.find((r) => r.gate === "budget-metering");
+  assert.ok(bm, "names the budget-metering gate");
+  assert.match(bm.detail, /estimate-only/);
+  assert.match(bm.detail, /budget\.on_estimate_only: warn/, "names the warn opt-out remedy");
+  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on an unmeasurable meter");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// Scenario 2 — the same config plus `budget.on_estimate_only: warn` PROCEEDS: the
+// JSON carries degrades[] naming budget-metering, and the minted ledger records
+// budget.metering = { source_at_mint: "estimate", degraded: true }.
+test("lights-out: budget.on_estimate_only warn proceeds; ledger records the metering degrade", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED_NO_TRANSCRIPT });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.ok(Array.isArray(out.degrades) && out.degrades.some((d) => d.gate === "budget-metering"), JSON.stringify(out.degrades));
+  assert.match(out.banner, /degraded \(proceeding\)/);
+  assert.match(out.banner, /budget-metering/);
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.deepEqual(ledger.budget.metering, { source_at_mint: "estimate", degraded: true });
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// Scenario 3 — an L4 config whose ONLY ceiling is budget.until (a clock, not a token
+// meter) with unreadable transcripts does NOT fire budget-metering — a clock ceiling
+// needs no token meter.
+test("lights-out: until-only ceiling + estimate-only metering never fires budget-metering", () => {
+  const root = tmpRoot({ budget: "budget:\n  until: \"23:59\"\n" }); // no tokens/cost — until only
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED_NO_TRANSCRIPT });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.ok(!out.refusals, "no refusals key on a proceeding run");
+  assert.ok(!out.degrades || out.degrades.length === 0, "an until-only ceiling never degrades on metering either");
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.budget.metering.source_at_mint, "estimate", "the mint still HONESTLY records the sampled source");
+  assert.equal(ledger.budget.metering.degraded, false, "not a degrade — the gate never fired for an until-only governor");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// A clean, measurable L4 run (real transcript) mints degraded:false and carries no
+// budget-metering entries anywhere — the byte-identical-to-today assertion.
+test("lights-out: a measurable meter (real transcript) mints degraded:false, no degrades/refusals", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n" });
+  const sid = "test-lo-measurable";
+  const projdir = path.join(root, "cfg", "projects", root.replace(/\//g, "-"));
+  fs.mkdirSync(projdir, { recursive: true });
+  fs.writeFileSync(path.join(projdir, `${sid}.jsonl`),
+    JSON.stringify({ sessionId: sid, message: { usage: { input_tokens: 10, output_tokens: 5 } } }));
+  const env = { ...CONTAINED_NO_TRANSCRIPT, CLAUDE_CONFIG_DIR: path.join(root, "cfg"), CLAUDE_CODE_SESSION_ID: sid };
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env });
+  const out = JSON.parse(stdout);
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.ok(!out.degrades || out.degrades.length === 0, JSON.stringify(out.degrades));
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.deepEqual(ledger.budget.metering, { source_at_mint: "transcript", degraded: false });
   fs.rmSync(root, { recursive: true, force: true });
 });

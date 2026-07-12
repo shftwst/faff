@@ -484,7 +484,7 @@ Waves: N
 Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>)
 
 ## Unit economics — call `faff economics --run-dir <run-dir> --json` (pure) after step-11 runcheck; the CLI computes, beep-boop only renders (FAFF-357)
-Run spend <tokens_total> (<tokens_source>)[ · $<cost_total>] · per shipped <tokens_each>[· $x] (`— (0 shipped) ⚠ ZERO-SHIP` when zero_ship) · per attempt <tokens_each> (<attempt_count>) · per bucket shipped N·parked N (`no build outcomes this run` if empty) · per issue FAFF-49 6.1M (omit if per_issue empty) · one `⚠ <warning>` per warnings[]
+Run spend <tokens_total> (<tokens_source>)[ · $<cost_total>] · per shipped <tokens_each>[· $x] (`— (0 shipped) ⚠ ZERO-SHIP` when zero_ship) · per attempt <tokens_each> (<attempt_count>) · per bucket shipped N·parked N (`no build outcomes this run` if empty) · per issue FAFF-49 6.1M (omit if per_issue empty) · one `⚠ <warning>` per warnings[] · `⚠ metering degraded at mint: estimate-only (budget.on_estimate_only: warn)` when the run ledger's `budget.metering.degraded` is true (FAFF-428)
 
 ## Methodology findings (rendered only when a methodology skill is configured)
 

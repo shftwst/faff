@@ -668,6 +668,20 @@ function cmdBudget(args) {
     warnings.push(msg);
     process.stderr.write(`faff budget check: ${msg}\n`);
   }
+  // FAFF-428 — at L4 only, an estimate-only token figure is a metering DEGRADE, not
+  // merely a fallback: the preflight's own meter sample can go stale mid-run (env
+  // change across resume, deleted history) even when the run started measurable, so
+  // this is the persistent net. Rides the existing warnings[] mechanism — NEVER a new
+  // exit code: sentryReadBudget / run-done --budget treat any non-zero child exit as
+  // the unbreached default (fail-open), so signalling here via the exit code would
+  // MASK a real breach instead of revealing a broken meter (the exact inversion of
+  // intent). No ledger, no `level` field, or `level != "L4"` → byte-for-byte
+  // unchanged (L1-L3 estimate-fallback is an unwarned, ordinary count-idiom).
+  if (tokensSource === "estimate" && ledger.level === "L4") {
+    const msg = "L4 budget metering degraded: transcripts unreadable — token figure is attempts x est_tokens_per_attempt (may under-report ~10x)";
+    warnings.push(msg);
+    process.stderr.write(`faff budget check: ${msg}\n`);
+  }
   // Single cost-warning gate (FAFF-427): only surface cost diagnostics when a cost
   // ceiling is actually configured — the one place the "stay silent when
   // unconfigured" invariant lives, rather than repeated at every push site.

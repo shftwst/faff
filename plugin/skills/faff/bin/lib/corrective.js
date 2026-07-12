@@ -126,6 +126,17 @@ function validateCorrectiveInput(record, effectiveThresholds) {
 }
 
 // --- pure: fold the cumulative constraint set into a mandate verdict --------------
+// PRECONDITION (load-bearing, adversarial-review-noted): called ONLY over inputs
+// that already passed `validateCorrectiveInput` against a real effectiveThresholds
+// baseline — this fold does NOT re-verify the tighten-threshold subtractive-width
+// invariant (it has no config/threshold baseline to check against; threading one in
+// would couple a pure fold to I/O for a property its single caller, cmdCorrectiveCheck,
+// has already enforced). The single production call site (`cmdCorrectiveCheck`)
+// upholds this by construction — it filters to `valid` (post-validateCorrectiveInput)
+// before ever calling this function. A caller that folds unvalidated input bypasses
+// the subtractive-width guarantee; this function's own defences are scoped to
+// crash-safety (malformed payload shapes never throw) and mandate correctness, not
+// re-deriving validation this file already owns elsewhere.
 // Called only over ALREADY-VALID, issue-matched inputs. `park-with-cause` never
 // reaches this fold (spec: it is executed as a park via the shared protocol at
 // authoring time) — filtered out by the caller before folding.
@@ -151,9 +162,17 @@ function foldCorrectiveConstraints(inputs) {
         if (!(key in thresholds) || Number(value) < Number(thresholds[key])) thresholds[key] = value;
       }
     } else if (inp.op === "descope-to-subset") {
-      // `new Set(x)` throws on a non-iterable (e.g. payload.subset:null) — coerce to
-      // [] rather than propagate that crash into the fold.
-      const s = new Set(Array.isArray(payload.subset) ? payload.subset : []);
+      // adversarial-review follow-up: a malformed payload.subset (e.g. null) must
+      // contribute NOTHING to the fold, never be coerced into an empty ARRAY — an
+      // empty descope-to-subset is a REAL, meaningful "retain nothing" constraint
+      // (mandate: empty is the correct semantic reply to it), whereas a malformed
+      // payload is not a constraint at all and coercing null->[] would silently
+      // manufacture that same real signal from garbage input — a denial-of-service
+      // vector (a hand-forged artifact with subset:null would force a park). SKIP
+      // this input outright when the shape is wrong; only a genuine array (including
+      // a genuine []) ever touches `subset`.
+      if (!Array.isArray(payload.subset)) continue;
+      const s = new Set(payload.subset);
       subset = subset === null ? s : new Set([...subset].filter((x) => s.has(x)));
     }
   }
@@ -231,14 +250,23 @@ function lastCorrectiveConsumed(runDir, issue) {
   return last ? last.data : null;
 }
 
-// A stable fingerprint of a fold result — mandate + the applied set (op/issue/authored_at
-// per applied input), independent of key order. Two `check` calls that recompute the
-// SAME fold produce the same fingerprint; a genuinely new corrective input (or a
-// rejected-set change) changes it.
-function foldFingerprint(mandate, applied, rejected) {
+// A stable fingerprint of a fold result — mandate + the RESOLVED constraint content
+// (forbid_surfaces/thresholds/descope, not just which artifacts contributed) + the
+// applied/rejected identity sets, independent of key order. adversarial-review
+// follow-up: fingerprinting `constraints` (not just applied[].authored_at) closes a
+// narrow TOCTOU gap — an in-place artifact rewrite that preserves authored_at but
+// changes payload content now changes the fingerprint too, so it is never mistaken
+// for an idempotent re-check. Two `check` calls that recompute the SAME fold produce
+// the same fingerprint; a genuinely new/changed corrective input changes it.
+function foldFingerprint(mandate, constraints, applied, rejected) {
   const a = applied.map((x) => `${x.op}:${x.authored_at}`).sort();
   const r = rejected.map((x) => x.file).sort();
-  return JSON.stringify({ mandate, a, r });
+  return JSON.stringify({
+    mandate, a, r,
+    forbid: [...constraints.forbid_surfaces].sort(),
+    thresholds: constraints.thresholds,
+    descope: constraints.descope === null ? null : [...constraints.descope].sort(),
+  });
 }
 
 // --- I/O: append one governance event (mirrors events.js's own append shape,
@@ -248,7 +276,11 @@ function appendCorrectiveEvent(runDir, type, issue, data) {
   const runId = path.basename(runDir);
   const eventsPath = path.join(runDir, "events.jsonl");
   const seq = eventLineCount(eventsPath);
-  const record = { schema: 1, run_id: runId, seq, ts: new Date().toISOString(), phase: "build", type, issue, data };
+  // adversarial-review follow-up: phase "run" (not "build") — authoring and
+  // consumption both happen at the ORCHESTRATOR lane (between-units / the dispatch
+  // boundary), the same phase the FAFF-352 sentry-checkpoint event uses, never inside
+  // a build subagent's own lane.
+  const record = { schema: 1, run_id: runId, seq, ts: new Date().toISOString(), phase: "run", type, issue, data };
   const violations = eventViolations(record, true);
   if (violations.length) return { appended: false, violations }; // never write a malformed record
   fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
@@ -401,19 +433,23 @@ function cmdCorrectiveCheck(args) {
   // unchanged constraint set. Compare against the LAST recorded consumption for this
   // issue; only append when the fold's fingerprint actually changed (a new corrective
   // input arrived, or the rejected set changed).
-  const fp = foldFingerprint(mandate, applied, rejected);
+  const fp = foldFingerprint(mandate, constraints, applied, rejected);
   const priorData = lastCorrectiveConsumed(runDir, issue);
-  const priorFp = priorData ? foldFingerprint(priorData.mandate, priorData.applied || [], priorData.rejected || []) : null;
+  const priorConstraints = priorData && priorData.constraints
+    ? priorData.constraints
+    : { forbid_surfaces: [], thresholds: {}, descope: null }; // pre-fingerprint-fix event records (belt-and-braces; never a false idempotent match)
+  const priorFp = priorData ? foldFingerprint(priorData.mandate, priorConstraints, priorData.applied || [], priorData.rejected || []) : null;
   let eventResult;
   if (priorFp !== null && priorFp === fp) {
     eventResult = { appended: false, skipped: "idempotent-duplicate" };
   } else {
-    // data = {disposition,mandate,applied,rejected} (events.js's documenting comment
-    // for this type) — the full applied/rejected arrays, not just counts, so the
-    // trail is actually reviewable (>=2 corrective inputs on one issue must be
-    // inspectable here).
+    // data = {disposition,mandate,constraints,applied,rejected} (events.js's
+    // documenting comment for this type) — the full applied/rejected arrays AND the
+    // resolved constraints, not just counts, so the trail is actually reviewable
+    // (>=2 corrective inputs on one issue must be inspectable here) and the next
+    // idempotency check has real content to compare against.
     eventResult = appendCorrectiveEvent(runDir, "corrective-consumed", issue, {
-      disposition: "trusted", mandate, applied, rejected, parks: parkInputs.length,
+      disposition: "trusted", mandate, constraints, applied, rejected, parks: parkInputs.length,
     });
   }
 
@@ -526,8 +562,13 @@ function correctiveSelftest() {
   // readCorrectiveArtifacts' JSON-parse boundary) ---
   ok("a forbid-surface payload with a non-array surfaces field degrades to empty, never throws",
     (() => { try { return foldCorrectiveConstraints([{ op: "forbid-surface", issue: "X", authored_at: "t", payload: { surfaces: null }, cites }]).constraints.forbid_surfaces.length === 0; } catch { return false; } })());
-  ok("a descope-to-subset payload with subset:null degrades to an empty retained set, never throws",
-    (() => { try { const r = foldCorrectiveConstraints([{ op: "descope-to-subset", issue: "X", authored_at: "t", payload: { subset: null }, cites }]); return r.mandate === "empty"; } catch { return false; } })());
+  ok("a descope-to-subset payload with subset:null is SKIPPED (never throws, and never manufactures a false mandate:empty from garbage input — that would be a DoS vector: a forged malformed artifact forcing a park)",
+    (() => { try { const r = foldCorrectiveConstraints([{ op: "descope-to-subset", issue: "X", authored_at: "t", payload: { subset: null }, cites }]); return r.mandate === "narrowed" && r.constraints.descope === null; } catch { return false; } })());
+  ok("a malformed descope-to-subset input is skipped even alongside a REAL, valid descope constraint (the garbage input contributes nothing — the real one still governs)",
+    (() => { const s2 = foldCorrectiveConstraints([
+      { op: "descope-to-subset", issue: "X", authored_at: "t1", payload: { subset: null }, cites },
+      { op: "descope-to-subset", issue: "X", authored_at: "t2", payload: { subset: ["a", "b"] }, cites },
+    ]); return s2.mandate === "narrowed" && JSON.stringify(s2.constraints.descope.sort()) === JSON.stringify(["a", "b"]); })());
   ok("a tighten-threshold payload with a malformed threshold object is skipped, never throws",
     (() => { try { return foldCorrectiveConstraints([{ op: "tighten-threshold", issue: "X", authored_at: "t", payload: { threshold: "not-an-object" }, cites }]).constraints.thresholds !== undefined; } catch { return false; } })());
 

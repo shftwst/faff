@@ -81,7 +81,11 @@ In-flight units finish naturally. There is **no mid-issue cancellation** — a `
 
 ### The interrupt — `faff sentry check`
 
-Budget backstops *rogue spend*; **Sentry** is the live **derailment interrupt** — it stops a run going *wrong* (thrash, no-progress, repeated-identical-failure, escaped side-effect, wall-clock, liveness). At **every between-units checkpoint** (the same boundaries the budget check fires) also run `faff sentry check --json --run-dir <run-dir>`: a **pure evaluator** that reads the run's append-only surface (events, ledger, heartbeat, a consumed `faff budget check`) without mutating it and emits `DerailmentVerdicts` + an intervention `continue | pause | abort`. Consume its verdict — **never re-implement trigger math** (attempt counting, staleness) in loop prose; running outside the supervised context is what makes it trustworthy.
+Budget backstops *rogue spend*; **Sentry** is the live **derailment interrupt** — it stops a run going *wrong* (thrash, no-progress, repeated-identical-failure, escaped side-effect, wall-clock, liveness). At **every between-units checkpoint** (the same boundaries the budget check fires), run the canonical checkpoint procedure below — **its one home**; the call-sites (steps 3, 7, 8.1) reference it by name and never restate it (a copy per site is a `faff validate-adapters` duplicated-block violation):
+
+1. `faff budget check --json --run-dir <run_dir>` (see _The check_; act on a breach), then `faff effects check --run <run_id> --json` → `{escapes, any_escape}` (missing declared-effects ledger ⇒ `any_escape:false`, clean) — fresh every checkpoint, immediately before the consult.
+2. `faff sentry check --json --run-dir <run_dir>`, appending `--forbidden-side-effect` IFF step 1's `any_escape`. Pure evaluator (events/ledger/heartbeat/a consumed budget-check surface, mutates nothing) → `DerailmentVerdicts` + intervention `continue|pause|abort`. Consume it — never re-implement trigger math in loop prose.
+3. On a COMPLETED consult only: `echo '{"phase":"run","type":"sentry-checkpoint","data":<step-2 payload>}' | faff events append --run <run_id>` — a failed consult emits none (logged instead). Then act on `data.intervention` per the handling table below.
 
 **The consult always runs; acting on it is mint-scoped** — a run is **L4** iff its ledger was `faff lights-out`-minted (`level: "L4"`). Only L4 **acts**; a non-L4 run **logs + surfaces** the verdicts (shared telemetry + the threshold-calibration feed) and takes **no dispatch action**. Don't fork the consult itself on level (shared prose drifts) — only the handling does. An aborted L4 run is **resumable by design**, so a disputed abort is a paused night, not lost work — tune the `sentry.*` thresholds, not the model. `continue` → proceed either way; the trips an L4 run acts on:
 
@@ -142,7 +146,7 @@ For each candidate, invoke the `faff-prep` skill via the Skill tool in autonomou
 - `parked` — low confidence, contract violation, or architectural change needed; tracker tagged, log written
 - `errored` — treated as parked for reporting
 
-Runs until the prep queue is empty. **Never short-circuits on build-queue state.**
+Runs until the prep queue is empty. **Never short-circuits on build-queue state.** After every prep return, run the between-units checkpoint (see _The interrupt_) before dispatching the next candidate.
 
 ### 4. Build queue assembly
 
@@ -179,14 +183,14 @@ Hand the conflict-analysis partition to the **`concurrency` slot** (see _Build-p
 
 ### 7. Wave drain
 
-Keep building until the wave's build queue is drained or everything remaining is parked. Each build return is aggregated. This is the inner drain loop — when a wave's queue is exhausted, control passes to step 8 (wave re-entry).
+Keep building until the wave's build queue is drained or everything remaining is parked. Each build return is aggregated. After every build return (and before every launch in parallel mode), run the between-units checkpoint (see _The interrupt_ → the canonical checkpoint procedure). This is the inner drain loop — when a wave's queue is exhausted, control passes to step 8 (wave re-entry).
 
 ### 8. Wave re-entry
 
 After the wave drains, re-check the tracker for work newly unlocked by issues that just shipped. Faff's promotion rule is that **only specced items live in Todo**, but Todo can hold specced-and-blocked items too — so a chain unlock can land in either bucket. Wave re-entry scans both, **consults `faff next` per newly-unblocked item** (gateway → **Next-step transition**) to decide its step — `prep` routes through narrow prep, `graft` rejoins build-queue assembly, `skip-ineligible`/`needs-human` route out — rather than prose-deciding. Every newly-unblocked item that returns `prep` routes through narrow prep. Prep is the single mechanism that handles spec generation, in-place refresh, and the Backlog→Todo move; the orchestrator does no tracker state moves of its own.
 
 0. **File this wave's discovered scope (`--converge` only; skipped by default — as is the `--converge` branch of step 5; with the flag absent step 8 is exactly the default loop).** Before the budget check, run the **step-10 filing mechanism** over *this wave's* `discovered-scope.json` files only, so concrete, contained, non-duplicate items become Backlog tickets in time for step 8.2's re-query. Track the **count of new concrete items filed** (`filed_this_wave`) for the step-5 non-convergence backstop. **Eligibility is not bypassed** — a filed ticket re-enters only if it passes step 8.3's automation-eligibility filter: under the `opt-in` default it lacks a human-set `faff-automate` (the filing path can't write it — FAFF-218), so it surfaces On-hold for crank-up (file-and-defer, reached mid-run); under `opt-out` it is built this run, draining the tributary in-run.
-1. **Budget check + Sentry consult.** Run `faff budget check` **and** `faff sentry check` (see _Budget flags_ → _The check_ / _The interrupt_) — both fire at this and every between-units checkpoint. For budget: if `breached ≠ []`, act on `outcome`: `stop`/`escalate` → exit to reporting with `Stop reason: budget-hit(<dims>)` (or `budget-escalated(<dims>)`), `escalate` additionally emitting the structured needs-human signal; `narrow` → continue this wave with only the methodology's cheapest remaining subset, re-checking after each, falling through to `stop` when nothing fits. The wave re-entry step is the last point at which the budget gate fires for the run; on a `stop`/`escalate` exit the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary. Under `--converge` a breach here short-circuits the loop **before** re-entry; scope not yet built falls back to the step-10 file-and-defer form. For Sentry: act on the intervention per _The interrupt_ (mint-scoped — L4 acts, non-L4 logs + surfaces).
+1. **Between-units checkpoint (budget + Sentry).** Run the canonical checkpoint procedure (see _Budget flags_ → _The check_ / _The interrupt_ — the effects-bridge and event-emission steps live there once, not restated here) — both budget and Sentry fire at this and every between-units checkpoint. For budget: if `breached ≠ []`, act on `outcome`: `stop`/`escalate` → exit to reporting with `Stop reason: budget-hit(<dims>)` (or `budget-escalated(<dims>)`), `escalate` additionally emitting the structured needs-human signal; `narrow` → continue this wave with only the methodology's cheapest remaining subset, re-checking after each, falling through to `stop` when nothing fits. The wave re-entry step is the last point at which the budget gate fires for the run; on a `stop`/`escalate` exit the run ends cleanly with any unreached issues reported under `## Unreached (budget hit)` in the summary. Under `--converge` a breach here short-circuits the loop **before** re-entry; scope not yet built falls back to the step-10 file-and-defer form. For Sentry: act on the intervention per _The interrupt_ (mint-scoped — L4 acts, non-L4 logs + surfaces).
 2. Re-query **Backlog AND Todo** issues per the shared ignore rule, excluding anything already touched by an earlier wave (shipped / PR-open / parked / errored — these stay in their bucket; once parked in this run, always parked in this run).
 3. For every **Backlog or Todo** issue whose declared blockers are now all closed (shipped earlier in this run or already closed at run start) **and which is automation-eligible** (skip anything not automation-eligible — gateway → **Automation eligibility**), invoke **narrow prep** — the `faff-prep` skill via the Skill tool, autonomous on just that issue. (Prep itself also returns `ineligible` for a not-eligible issue, so this filter is the early-exit, not the guarantee.) Prep handles three cases through its existing autonomous returns (see step 3 of the full pipeline):
    - **Backlog, unspecced** (was blocked from being specced): prep generates a fresh spec and, on high confidence, promotes to Todo (`promoted`).
@@ -363,6 +367,7 @@ Alongside the terminal run-ledger, the orchestrator appends an **ordered timelin
 | Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`, + `data.gate`/`data.rework_turns` on a non-clean build) | **yes** |
 | Discovered-scope ticket filed (step 10) | `run` / `discovered-scope-filed` | no |
 | Budget checkpoint | `run` / `budget-checkpoint` (`data` = `BudgetState`) | **yes** |
+| Sentry checkpoint (FAFF-352) | `run` / `sentry-checkpoint` (`data` = the `faff sentry check` payload, verbatim) | no |
 | An issue is parked | `prep`\|`build` / `park` (issue) | **yes** |
 | Orchestrator exit (any path) | `run` / `run-end` | **yes** |
 
@@ -478,10 +483,9 @@ When a `methodology` skill is configured, the first line of the summary file is 
 
 ```markdown
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
-Mode: [full | explicit-list]
-Duration: Xh Ym
-Waves: N
-Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>)
+Mode: [full | explicit-list] · Duration: Xh Ym
+Waves: N · Sentry: N checkpoints · max intervention: <continue|pause|abort>
+Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>) | sentry-abort | converged/both-dry | non-convergence | product-incomplete
 
 ## Unit economics — call `faff economics --run-dir <run-dir> --json` (pure) after step-11 runcheck; the CLI computes, beep-boop only renders (FAFF-357)
 Run spend <tokens_total> (<tokens_source>)[ · $<cost_total>] · per shipped <tokens_each>[· $x] (`— (0 shipped) ⚠ ZERO-SHIP` when zero_ship) · per attempt <tokens_each> (<attempt_count>) · per bucket shipped N·parked N (`no build outcomes this run` if empty) · per issue FAFF-49 6.1M (omit if per_issue empty) · one `⚠ <warning>` per warnings[] · `⚠ metering degraded at mint: estimate-only (budget.on_estimate_only: warn)` when the run ledger's `budget.metering.degraded` is true (FAFF-428)

@@ -218,8 +218,10 @@ function evalScopeDrift(signals) {
 }
 
 // forbidden-side-effect-attempt — consumes the FAFF-42 boundary. DEGRADES to no-signal
-// in v1 (no FAFF-42 runtime emitter is wired yet) unless the orchestrator supplies the
-// signal (signals.forbidden_side_effect / an event data.forbidden_side_effect).
+// unless the orchestrator supplies the signal — via `sentry check`'s `--forbidden-side-
+// effect` CLI flag (FAFF-352, the effects→sentry bridge: the orchestrator sets it IFF
+// `faff effects check` reported any_escape at this checkpoint) or an event-path
+// `data.forbidden_side_effect` key (signals.forbidden_side_effect / event.data, below).
 function evalForbiddenSideEffect(signals) {
   let seq = null, hit = signals.forbidden_side_effect === true;
   for (const e of signals.events) {
@@ -367,6 +369,12 @@ function cmdSentry(args) {
   if (!runDir) runDir = latestRunDir(root);
 
   if (sub === "check") {
+    // FAFF-352: the CLI surface of the effects→sentry bridge. The orchestrator runs
+    // `faff effects check` immediately before this call and passes the flag IFF
+    // any_escape is true — a two-line reach onto the signals.forbidden_side_effect
+    // seam that already existed (normalizeSentrySignals / evalForbiddenSideEffect,
+    // untouched). Boolean, no value; absent ⇒ unchanged degraded (no-signal) behaviour.
+    const forbiddenSideEffect = args.includes("--forbidden-side-effect");
     const cfg = readGovernanceConfig(root);
     const th = sentryThresholds(cfg);
     const nowRes = resolveSentryNow(get); // hermetic test-only clock seam (FAFF-301) — checked before ledger resolution
@@ -403,7 +411,7 @@ function cmdSentry(args) {
       }
     }
     const checkedRunDir = resolved.empty ? null : resolved.runDir;
-    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource }, th);
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect }, th);
     const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");

@@ -159,6 +159,45 @@ test("absent provenance → {absent:true}, not an error", () => {
   assert.equal(o.issues[0].provenance.absent, true);
 });
 
+test("FAFF-352: no sentry-checkpoint events → supervision.checkpoints empty, last_intervention null, text renders '0 checkpoint(s)' / '—'", () => {
+  const { root, runId } = tmpRun({
+    events: [ev(0, "2026-06-29T03:00:00Z", "run", "run-start"), ev(1, "2026-06-29T03:05:00Z", "run", "run-end")],
+    ledger: { run_id: "r1", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } },
+  });
+  const rj = run([runId, "--json", "--root", root]);
+  assert.equal(rj.status, 0, rj.stderr);
+  const o = JSON.parse(rj.stdout);
+  assert.deepEqual(o.supervision.checkpoints, []);
+  assert.equal(o.supervision.last_intervention, null);
+
+  const rt = run([runId, "--root", root]);
+  assert.equal(rt.status, 0, rt.stderr);
+  assert.match(rt.stdout, /supervision: 0 checkpoint\(s\)\s+·\s+last intervention: —/);
+});
+
+test("FAFF-352: N sentry-checkpoint events → supervision.checkpoints in seq order, last_intervention is the LAST one's", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t0", "run", "sentry-checkpoint", undefined, { run_dir: "/r", verdicts: [], intervention: "continue", tripped: false, thresholds: {} }),
+      ev(1, "t1", "build", "issue-outcome", "FAFF-1", { outcome: "shipped" }),
+      ev(2, "t2", "run", "sentry-checkpoint", undefined, { run_dir: "/r", verdicts: [{ signal: "budget-breach", severity: "trip", evidence: {} }], intervention: "abort", tripped: true, thresholds: {} }),
+    ],
+    ledger: { run_id: "r1", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } },
+  });
+  const rj = run([runId, "--json", "--root", root]);
+  assert.equal(rj.status, 0, rj.stderr);
+  const o = JSON.parse(rj.stdout);
+  assert.equal(o.supervision.checkpoints.length, 2);
+  assert.deepEqual(o.supervision.checkpoints.map((c) => c.seq), [0, 2]);
+  assert.equal(o.supervision.last_intervention, "abort");
+  // sentry-checkpoint is run-scoped — it never appears under any issue's own events list.
+  assert.deepEqual(o.issues[0].events.map((e) => e.type), ["issue-outcome"]);
+
+  const rt = run([runId, "--root", root]);
+  assert.equal(rt.status, 0, rt.stderr);
+  assert.match(rt.stdout, /supervision: 2 checkpoint\(s\)\s+·\s+last intervention: abort/);
+});
+
 test("default text output is skimmable (lists, not run-on prose)", () => {
   const { root, runId } = tmpRun({
     events: [ev(0, "2026-06-29T03:00:00Z", "run", "run-start"), ev(1, "2026-06-29T03:05:00Z", "run", "run-end")],

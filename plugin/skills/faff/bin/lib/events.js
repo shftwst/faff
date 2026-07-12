@@ -20,6 +20,11 @@ const EVENT_PHASES = new Set(["run", "tidy", "prep", "build"]);
 const EVENT_TYPES = new Set([
   "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
   "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",
+  // FAFF-352: one per orchestrator-run `faff sentry check` consult — run-scoped (no
+  // `issue` field; EVENT_ISSUE_SCOPED is deliberately untouched below), `data` = the
+  // captured `sentry check --json` payload verbatim. Emitted only on a COMPLETED
+  // consult — a failed consult (non-zero/unparseable) emits none (logged instead).
+  "sentry-checkpoint",
 ]);
 // Types that are about one specific issue → `issue` is required.
 // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
@@ -340,6 +345,9 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "parked", gate: 5 } }, 1, "non-string gate rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped", rework_turns: -1 } }, 1, "negative rework_turns rejected"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped", rework_turns: 1.5 } }, 1, "non-integer rework_turns rejected"],
+    // FAFF-352 — sentry-checkpoint: run-scoped (no issue), data = the sentry check payload.
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "sentry-checkpoint", data: { run_dir: "/r", verdicts: [], intervention: "continue", tripped: false, thresholds: {} } }, 0, "valid sentry-checkpoint (envelope, no issue)"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "sentry-checkpoint" }, 0, "valid sentry-checkpoint with no data"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {

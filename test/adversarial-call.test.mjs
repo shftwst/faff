@@ -12,7 +12,7 @@ import {
   buildAnthropicPayload, accumulateAnthropic, ANTHROPIC_VERSION,
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
-  runReviewChain, chainTerminalExit, mapResultExit, CHAIN_NEEDS_HUMAN, mandatoryRemap,
+  runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory,
   splitFindings, validateFindingsShape, attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
@@ -872,6 +872,245 @@ test("FAFF-232 main(): empty --backends-json → USAGE (2)", async () => {
 test("FAFF-232 parseArgs: --backends-json is collected", () => {
   assert.equal(parseArgs(["--backends-json", "/tmp/b.json"]).backendsJson, "/tmp/b.json");
 });
+
+// ===========================================================================
+// FAFF-414 — a non-transient throw (HTTP 400/413) advances the fallback chain
+// instead of aborting to EXIT.OTHER. runReviewOllama/OpenAi/Anthropic are byte-
+// unchanged (still throw); the catch lives ONLY at the runReviewChain boundary
+// (safeCall), so a throw is exactly as informative as a returned status.
+// ===========================================================================
+
+test("FAFF-414 mapThrowStatus: an auth-shaped throw (401/403, or a marked bad-key 400) maps to auth-failed; else request-failed", () => {
+  assert.equal(mapThrowStatus(new Error("HTTP 401")), "auth-failed");
+  assert.equal(mapThrowStatus(new Error("HTTP 403")), "auth-failed");
+  assert.equal(mapThrowStatus(new Error('HTTP 400: {"error":{"message":"API_KEY_INVALID"}}')), "auth-failed");
+  assert.equal(mapThrowStatus(new Error("HTTP 400 Bad Request")), "request-failed");
+  assert.equal(mapThrowStatus(new Error("HTTP 413 Payload Too Large")), "request-failed");
+  assert.equal(mapThrowStatus(new Error("some other error")), "request-failed");
+});
+
+test("FAFF-414 mapResultExit: request-failed → EXIT.USAGE (reused; no new exit code minted), a needs-human class", () => {
+  assert.equal(mapResultExit({ status: "request-failed" }), EXIT.USAGE);
+  assert.ok(CHAIN_NEEDS_HUMAN.has(EXIT.USAGE), "USAGE already dominates a pure-availability chain");
+  assert.equal(mapResultExit({ status: "auth-failed" }), EXIT.AUTH, "auth-failed unchanged");
+});
+
+test("FAFF-414 runReviewChain: ollama — a non-transient streamFn throw (400) advances to a healthy fallback (exit 0)", async () => {
+  const chain = [
+    { provider: "ollama", model: "m1", host: "http://a:1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+  ];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: (opts) => runReview({
+      ...opts,
+      getFn: async () => JSON.stringify({ models: [{ name: opts.model }] }),
+      streamFn: async () => {
+        if (opts.host === "http://a:1") throw new Error("HTTP 400: bad request shape");
+        return JSON.stringify({ message: { content: "### observation: no findings" }, done: true, done_reason: "stop" });
+      },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winner.host, "http://b:1");
+  assert.deepEqual(res.failureClasses, [EXIT.USAGE]);
+  assert.ok(trace.some((l) => /\[chain\] ollama\/m1 request-failed/.test(l) && /→ advancing/.test(l)),
+    "the throwing primary's fault is logged, not silently swallowed");
+});
+
+test("FAFF-414 runReviewChain: openai — a non-transient streamFn throw (413) advances to a healthy fallback (exit 0)", async () => {
+  const chain = [
+    { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "openai", model: "m2", host: "https://b/v1", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: (opts) => runReview({
+      ...opts, apiKey: "K",
+      getFn: async () => JSON.stringify({ data: [{ id: opts.model }] }),
+      streamFn: async () => {
+        if (opts.host === "https://a/v1") throw new Error("HTTP 413 Payload Too Large");
+        return `data: ${JSON.stringify({ choices: [{ delta: { content: "### observation: no findings" }, finish_reason: "stop" }] })}\ndata: [DONE]`;
+      },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winner.host, "https://b/v1");
+  assert.deepEqual(res.failureClasses, [EXIT.USAGE]);
+});
+
+test("FAFF-414 runReviewChain: anthropic — a non-transient streamFn throw (400, distinct from 404/401) advances to a healthy fallback (exit 0)", async () => {
+  const chain = [
+    { provider: "anthropic", model: "claude-opus-4-8", host: "https://api.anthropic.com", hostSource: "config", apiKey: "sk-ant-a" },
+    { provider: "anthropic", model: "claude-opus-4-8", host: "https://api.anthropic.com", hostSource: "config", apiKey: "sk-ant-b" },
+  ];
+  let calls = 0;
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: (opts) => runReview({
+      ...opts,
+      streamFn: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("HTTP 400: messages: field required");
+        return [
+          `data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: "### observation: no findings" } })}`,
+          `data: ${JSON.stringify({ type: "message_delta", delta: { stop_reason: "end_turn" } })}`,
+        ].join("\n");
+      },
+    }),
+  });
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(calls, 2, "the fallback was actually called after the primary's throw");
+  assert.deepEqual(res.failureClasses, [EXIT.USAGE]);
+});
+
+test("FAFF-414 runReviewChain: a fully-failed chain whose only faults are non-transient throws terminates at USAGE (needs-human), never OTHER or pass+skip", async () => {
+  const chain = [
+    { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+  ];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: async () => { throw new Error("HTTP 400: bad request shape"); },
+  });
+  assert.equal(res.exit, EXIT.USAGE, "needs-human class — never OTHER(1) and never pass+skip(5)");
+  assert.notEqual(res.exit, EXIT.OTHER);
+  assert.notEqual(res.exit, EXIT.UNREACHABLE);
+  assert.deepEqual(res.failureClasses, [EXIT.USAGE, EXIT.USAGE]);
+});
+
+test("FAFF-414 runReviewChain: single-backend (1-element) chain — a lone throwing backend surfaces USAGE, not OTHER (structural back-compat, AC4)", async () => {
+  const chain = [{ provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" }];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: async () => { throw new Error("HTTP 413 Payload Too Large"); },
+  });
+  assert.equal(res.exit, EXIT.USAGE);
+  assert.notEqual(res.exit, EXIT.OTHER);
+});
+
+test("FAFF-414 runReviewChain: a throw (USAGE) recorded alongside an unreachable (5), in either order, terminates at USAGE — request fault dominates availability", async () => {
+  const throwFirst = await runReviewChain(
+    [{ model: "a", host: "h1", hostSource: "config" }, { model: "b", host: "h2", hostSource: "config" }],
+    {
+      system: "S", user: "U", log: () => {},
+      runReviewFn: async (opts) => { if (opts.host === "h1") throw new Error("HTTP 400"); return { status: "unreachable" }; },
+    },
+  );
+  assert.equal(throwFirst.exit, EXIT.USAGE);
+
+  const unreachableFirst = await runReviewChain(
+    [{ model: "a", host: "h1", hostSource: "config" }, { model: "b", host: "h2", hostSource: "config" }],
+    {
+      system: "S", user: "U", log: () => {},
+      runReviewFn: async (opts) => { if (opts.host === "h1") return { status: "unreachable" }; throw new Error("HTTP 400"); },
+    },
+  );
+  assert.equal(unreachableFirst.exit, EXIT.USAGE);
+});
+
+test("FAFF-414 runReviewChain: an escaped auth-shaped throw (401) maps to AUTH via mapThrowStatus (defense-in-depth), dominating an otherwise pass+skip chain", async () => {
+  const chain = [
+    { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+  ];
+  let call = 0;
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: () => {},
+    runReviewFn: async () => { call++; if (call === 1) throw new Error("HTTP 401 Unauthorized"); return { status: "unreachable" }; },
+  });
+  assert.equal(res.exit, EXIT.AUTH, "an escaped auth-shaped throw still surfaces needs-human via AUTH, not masked by 'B was down'");
+});
+
+// Adversarial review (FAFF-414): safeCall's error `note` must reach the per-backend log line — a
+// regression that drops it (e.g. `return { status: mapThrowStatus(err) }` with no `note`) would still
+// pass every mechanism-level test above (failureClasses/exit unchanged) while silently losing the ONLY
+// human-actionable detail the needs-human terminal carries. Assert the actual message text, not just the
+// status/exit shape.
+test("FAFF-414 runReviewChain: the thrown error's message reaches the per-backend log line's detail, not just the status/exit", async () => {
+  const chain = [
+    { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+  ];
+  const trace = [];
+  await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async (opts) => {
+      if (opts.host === "https://a/v1") throw new Error("HTTP 400: messages: field required");
+      return { status: "ok", content: "### observation: no findings" };
+    },
+  });
+  assert.ok(trace.some((l) => l.includes("HTTP 400: messages: field required")),
+    "the thrown message text must survive into the log line, not just the recorded status/exit class");
+});
+
+// Adversarial review (FAFF-414): a non-Error throw (`throw "x"` / `throw null`) must still surface SOMETHING
+// in the note rather than losing it — no real orchestration function in this file throws non-Error today,
+// but safeCall's catch is a generic boundary and must not silently blank the detail on an unusual throw.
+test("FAFF-414 runReviewChain: a non-Error throw (bare string) still carries its text into the log, never a blank/lost note", async () => {
+  const chain = [{ provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" }];
+  const trace = [];
+  const res = await runReviewChain(chain, {
+    system: "S", user: "U", log: (m) => trace.push(m),
+    runReviewFn: async () => { throw "raw string fault, not an Error instance"; }, // eslint-disable-line no-throw-literal
+  });
+  assert.equal(res.exit, EXIT.USAGE, "a non-Error throw still maps to a needs-human class, not OTHER");
+  assert.ok(trace.some((l) => l.includes("raw string fault, not an Error instance")),
+    "the raw thrown value's text survives into the log even when it isn't an Error instance");
+});
+
+test("FAFF-414 main(): a lone backend whose orchestration throws a non-transient 400 → EXIT.USAGE (2), never OTHER (1)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+    { runReviewFn: async () => { throw new Error("HTTP 400 Bad Request"); } },
+  );
+  assert.equal(code, EXIT.USAGE);
+  assert.notEqual(code, EXIT.OTHER);
+});
+
+// Integration smoke test (per the spec's DONE section): a 2-element --backends-json chain, the primary
+// throws a 413 (oversized diff), the fallback is healthy → exit 0; swap the fallback to also throw → exit 2.
+test("FAFF-414 main(): --backends-json integration smoke — throwing primary(413) + healthy fallback → exit 0; both throwing → exit 2 (never 1)", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const dir = mkdtempSync(join(tmpdir(), "faff414-"));
+  const bf = join(dir, "backends.json");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "nvidia", model: "nemotron", host: "https://nv/v1", host_source: "config" },
+    { provider: "ollama", model: "qwen", host: "http://ollama:11434", host_source: "config" },
+  ]));
+
+  const codeHealthy = await main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff],
+    { runReviewFn: scriptedThrowThenReview({
+      "https://nv/v1": () => { throw new Error("HTTP 413 Payload Too Large"); },
+      "http://ollama:11434": () => ({ status: "ok", content: "### observation: no findings" }),
+    }) },
+  );
+  assert.equal(codeHealthy, EXIT.OK);
+
+  const codeBothThrow = await main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff],
+    { runReviewFn: scriptedThrowThenReview({
+      "https://nv/v1": () => { throw new Error("HTTP 413 Payload Too Large"); },
+      "http://ollama:11434": () => { throw new Error("HTTP 400 Bad Request"); },
+    }) },
+  );
+  assert.equal(codeBothThrow, EXIT.USAGE, "a fully-exhausted throw-only chain → 2, never OTHER (1)");
+  assert.notEqual(codeBothThrow, EXIT.OTHER);
+});
+
+// Small helper for the integration smoke test above: byHost[host] is a thunk that either returns a
+// runReview-shaped result or throws — lets a single scripted map express both "returns status" and
+// "throws" backends without a second bespoke helper.
+function scriptedThrowThenReview(byHost) {
+  return async (opts) => {
+    const thunk = byHost[opts.host];
+    if (!thunk) return { status: "unreachable", note: "no script" };
+    return thunk();
+  };
+}
 
 // ── FAFF-329: total wall-clock --deadline on the Phase-2 chain ──
 

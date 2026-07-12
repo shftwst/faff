@@ -143,6 +143,13 @@ This is the same language as holdout BDD; a holdout is just the withheld subset 
 
 **Anti-pattern:** restating the DONE checklist as Given-When-Then. Why: DONE already mirrors the body; scenarios sharpen the WHAT's main objectives, they do not duplicate DONE. The dedicated section + complexity bar exist to avoid exactly this.
 
+**Marking a holdout.** Optionally withhold a scenario from the builder and reserve it for the code-blind evaluator — mark it in place, in this same section, never a second section or format:
+
+- **Fenced GWT block:** open the fence with the info string `holdout` (```` ```holdout ```` or `~~~holdout`) instead of a bare fence — every criterion unit inside is a holdout.
+- **Assertion bullet:** prefix the bullet `holdout:` (case-insensitive) — `- holdout: The p99 latency MUST be < 200ms`. The prefix is stripped before classification; it is never part of the stored criterion text.
+
+**Selection rules.** Marking is optional — zero holdouts is fully valid. Mark a minority (guideline one-in-three, never more than half, and never all — the builder must retain at least one visible scenario). A holdout must verify behaviour the WHAT/HOW body already requires, never be the sole statement of a requirement — prefer a different concrete instantiation of a stated rule (other values, another path) over introducing new behaviour only a holdout states. DONE items are never marked.
+
 ### 6. DESIGN DECISION RATIONALE
 
 Collect all decisions made throughout the spec. For each:

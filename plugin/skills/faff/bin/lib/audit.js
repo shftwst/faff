@@ -15,7 +15,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { auditLedger } = require("./runcheck");
-const { findRoot, readLedger } = require("./shared-infra");
+// FAFF-354: the containment recompute reads the SAME pure primitives `contain`
+// computed the original verdict with — sourced from shared-infra (not contain.js
+// directly), since governance (this file) may reference shared-infra only, never a
+// factory module like contain.js (ADR 0042; `faff regions check` enforces this).
+const { CONTAIN_ROOT, findRoot, parseAncestry, readLedger, subtreeContains } = require("./shared-infra");
 
 function readEvents(runDir) {
   const p = path.join(runDir, "events.jsonl");
@@ -146,10 +150,49 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
     }
   }
   const malformed_event_lines = eventsResult.malformed || [];
+
+  // FAFF-354: recompute every recorded `faff contain --record` invocation with the
+  // SAME parseAncestry + subtreeContains functions that produced it (same binary —
+  // no drift possible), and compare. A mismatch means the recorded line was
+  // tampered with or written by something else — never a natural product of this
+  // walk. Detective control only: an internally-consistent fabrication (the agent
+  // supplies a false-but-well-formed chain AND records exactly what it walked)
+  // recomputes clean — the trust this closes is "does the record match what the
+  // agent claims it walked", not "is the ancestry true".
+  const containment_mismatches = [];
+  for (const e of events) {
+    if (e.type !== "containment-check") continue;
+    const d = e.data && typeof e.data === "object" ? e.data : {};
+    let recomputed;
+    if (d.ancestry_raw === null || d.ancestry_raw === undefined) {
+      recomputed = subtreeContains(d.mandate, d.root ? CONTAIN_ROOT : d.parent, new Map());
+    } else {
+      let entryOf;
+      try { entryOf = parseAncestry(d.ancestry_raw); }
+      catch { containment_mismatches.push({ seq: e.seq, issue: e.issue, recorded: d.verdict, recomputed: "unreproducible" }); continue; }
+      recomputed = subtreeContains(d.mandate, d.root ? CONTAIN_ROOT : d.parent, entryOf);
+    }
+    if (recomputed !== d.verdict) {
+      containment_mismatches.push({ seq: e.seq, issue: e.issue, recorded: d.verdict, recomputed });
+    }
+  }
+
+  // FAFF-354: a run whose ledger shows filed discovered-scope tickets but whose
+  // timeline holds NO containment-check events at all — the create chokepoint was
+  // never recorded (skipped `--record`, or `contain` skipped entirely). This only
+  // catches the beep-boop step-10 ledger-counted path; a record-less tidy
+  // chain-gap create carries no ledger counter and is invisible here (named v1
+  // limitation — see the spec's HOW → limitations).
+  const discoveredScopeFiled = ledger && typeof ledger.discovered_scope_filed === "number" ? ledger.discovered_scope_filed : 0;
+  const hasContainmentChecks = events.some((e) => e.type === "containment-check");
+  const unrecorded_creates = discoveredScopeFiled > 0 && !hasContainmentChecks;
+
   const coherence = {
     clean: undispatched.length === 0 && invalid_outcomes.length === 0 && mismatches.length === 0
-      && missing_substrates.length === 0 && malformed_event_lines.length === 0,
+      && missing_substrates.length === 0 && malformed_event_lines.length === 0
+      && containment_mismatches.length === 0 && !unrecorded_creates,
     undispatched, invalid_outcomes, mismatches, missing_substrates,
+    containment_mismatches, unrecorded_creates,
   };
   if (malformed_event_lines.length) coherence.malformed_event_lines = malformed_event_lines;
 
@@ -210,6 +253,12 @@ function renderAuditText(recon) {
     if (c.invalid_outcomes.length) console.log(`  invalid outcomes: ${c.invalid_outcomes.map((x) => `${x.issue}=${x.outcome}`).join(", ")}`);
     if (c.mismatches.length) console.log(`  mismatches: ${c.mismatches.map((m) => `${m.issue} (ledger ${m.ledger_outcome} vs event ${m.event_outcome})`).join(", ")}`);
     if (c.malformed_event_lines && c.malformed_event_lines.length) console.log(`  malformed event lines: ${c.malformed_event_lines.join(", ")}`);
+    if (c.containment_mismatches && c.containment_mismatches.length) {
+      console.log(`  containment mismatches: ${c.containment_mismatches.map((m) => `seq ${m.seq} (recorded ${m.recorded} vs recomputed ${m.recomputed})`).join(", ")}`);
+    }
+    if (c.unrecorded_creates) {
+      console.log(`  unrecorded creates: ledger filed ${recon.discovered_scope_filed ?? "?"} discovered-scope ticket(s), no containment-check events`);
+    }
   }
 }
 
@@ -382,6 +431,70 @@ function auditSelftest() {
       && rec.supervision.checkpoints[0].seq === 0 && rec.supervision.checkpoints[1].seq === 2);
     check("supervision: last_intervention is the LAST checkpoint's (seq order), not worst-of", rec.supervision.last_intervention === "abort");
     check("supervision: checkpoints carry the sentry payload verbatim under data", rec.supervision.checkpoints[1].data.tripped === true);
+  }
+
+  // 11. FAFF-354: a recorded containment-check event whose verdict agrees with the
+  // recompute → no finding, coherence stays clean.
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "contained", exit: 0 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {}, discovered_scope_filed: 0 };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("containment clean: no mismatch", rec.coherence.containment_mismatches.length === 0);
+    check("containment clean: coherence stays clean", rec.coherence.clean === true);
+  }
+
+  // 12. FAFF-354: a recorded containment-check event whose verdict disagrees with the
+  // recompute (a tampered/foreign line) → containment_mismatches names it, clean false.
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 5, ts: "t", phase: "run", type: "containment-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "outward", exit: 3 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {} };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("containment mismatch: one finding", rec.coherence.containment_mismatches.length === 1);
+    check("containment mismatch: shape", rec.coherence.containment_mismatches[0].seq === 5
+      && rec.coherence.containment_mismatches[0].issue === "FAFF-1"
+      && rec.coherence.containment_mismatches[0].recorded === "outward"
+      && rec.coherence.containment_mismatches[0].recomputed === "contained");
+    check("containment mismatch: not clean", rec.coherence.clean === false);
+  }
+
+  // 13. FAFF-354: a recorded ancestry_raw that fails to parse → recomputed "unreproducible".
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: "not json", verdict: "contained", exit: 0 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {} };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("unreproducible: recomputed marker", rec.coherence.containment_mismatches.length === 1
+      && rec.coherence.containment_mismatches[0].recomputed === "unreproducible");
+    check("unreproducible: not clean", rec.coherence.clean === false);
+  }
+
+  // 14. FAFF-354: ledger filed discovered-scope tickets but the timeline holds zero
+  // containment-check events → unrecorded_creates true, clean false.
+  {
+    const ledger = { run_id: "r", admitted: [], outcomes: {}, discovered_scope_filed: 2 };
+    const rec = buildReconstruction("r", "/d", evs([]), ledger, {});
+    check("unrecorded creates: true", rec.coherence.unrecorded_creates === true);
+    check("unrecorded creates: not clean", rec.coherence.clean === false);
+  }
+
+  // 15. FAFF-354: discovered_scope_filed > 0 but containment-check events ARE present →
+  // unrecorded_creates false (the chokepoint was recorded, even if for other issues).
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", parent: "FAFF-1", root: false, ancestry_raw: null, verdict: "contained", exit: 0 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {}, discovered_scope_filed: 1 };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("unrecorded creates: false when checks are present", rec.coherence.unrecorded_creates === false);
   }
 
   if (failed) { console.log(`RESULT: audit --selftest FAILED (${failed} failure(s))`); return 1; }

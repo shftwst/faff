@@ -109,6 +109,29 @@ test("append: FAFF-352 sentry-checkpoint is run-scoped (no issue required) and c
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("append: FAFF-354 containment-check is issue-scoped (issue = mandate) and carries the contain record verbatim under data", () => {
+  const dir = tmp(); mkRun(dir, "run-X");
+  try {
+    const payload = { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "contained", exit: 0 };
+    const r = run(dir, ["events", "append", "--run", "run-X", "--ts", "t"],
+      JSON.stringify({ phase: "run", type: "containment-check", issue: "FAFF-1", data: payload }));
+    assert.equal(r.code, 0);
+    const ev = lines(dir, "run-X")[0];
+    assert.equal(ev.issue, "FAFF-1");
+    assert.deepEqual(ev.data, payload);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("append: FAFF-354 containment-check missing issue → exit 1 (issue-scoped)", () => {
+  const dir = tmp(); mkRun(dir, "run-X");
+  try {
+    const r = run(dir, ["events", "append", "--run", "run-X", "--ts", "t"],
+      JSON.stringify({ phase: "run", type: "containment-check", data: { mandate: "FAFF-1", parent: null, root: true, ancestry_raw: null, verdict: "outward", exit: 3 } }));
+    assert.equal(r.code, 1);
+    assert.equal(existsSync(logPath(dir, "run-X")), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- append: validation failures (nothing appended) -----------------------
 
 test("append: issue-scoped type missing issue → exit 1, nothing appended", () => {
@@ -192,6 +215,31 @@ test("validate: a well-formed log → exit 0", () => {
     run(dir, ["events", "append", "--run", "run-X", "--ts", "t"],
       JSON.stringify({ phase: "build", type: "issue-outcome", issue: "FAFF-35", data: { outcome: "shipped" } }));
     assert.equal(run(dir, ["events", "validate", "--file", logPath(dir, "run-X")]).code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("validate: FAFF-354 accepts a well-formed containment-check record", () => {
+  const dir = tmp(); mkRun(dir, "run-X");
+  try {
+    run(dir, ["events", "append", "--run", "run-X", "--ts", "t"], JSON.stringify({
+      phase: "run", type: "containment-check", issue: "FAFF-1",
+      data: { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "contained", exit: 0 },
+    }));
+    assert.equal(run(dir, ["events", "validate", "--file", logPath(dir, "run-X")]).code, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("validate: FAFF-354 rejects a containment-check record missing the required issue field", () => {
+  const dir = tmp();
+  const f = join(dir, "log.jsonl");
+  writeFileSync(f, JSON.stringify({
+    schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check",
+    data: { mandate: "FAFF-1", parent: null, root: true, ancestry_raw: null, verdict: "outward", exit: 3 },
+  }) + "\n");
+  try {
+    const r = run(dir, ["events", "validate", "--file", f]);
+    assert.equal(r.code, 1);
+    assert.match(r.err, /issue-scoped but missing required field 'issue'/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

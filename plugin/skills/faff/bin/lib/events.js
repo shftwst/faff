@@ -33,12 +33,18 @@ const EVENT_TYPES = new Set([
   // pattern (ADR-0039's named residual) reviewable: >=2 inputs on one issue is
   // visible in this trail, never silently accumulated.
   "corrective-authored", "corrective-consumed",
+  // FAFF-354: one per `faff contain --record` invocation — binds a containment
+  // verdict to the EXACT agent-supplied ancestry it was computed from (`issue` =
+  // the mandate; data = {mandate,parent,root,ancestry_raw,verdict,exit}), so `faff
+  // audit` can recompute-and-compare post-hoc. Detective, not preventive: it makes
+  // a fabricated ancestry durable evidence, it does not stop one being supplied.
+  "containment-check",
 ]);
 // Types that are about one specific issue → `issue` is required.
 // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
 const EVENT_ISSUE_SCOPED = new Set([
   "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
-  "corrective-authored", "corrective-consumed",
+  "corrective-authored", "corrective-consumed", "containment-check",
 ]);
 // The run-ledger outcome vocabulary an issue-outcome event's data.outcome must use.
 const EVENT_LEDGER_OUTCOMES = new Set([
@@ -152,6 +158,24 @@ function eventLineCount(filePath) {
   return raw.split("\n").filter((l) => l.trim() !== "").length;
 }
 
+// The shared envelope-append core (FAFF-354): builds the CLI-owned envelope
+// (schema/run_id/seq/ts) around a caller-supplied payload and appends it to
+// `<dir>/events.jsonl`. One home for the seq/envelope logic — both `events append`
+// (below) and `contain --record` call this rather than each hand-rolling their own.
+// `dir` must already be a validated, existing run directory — this function does
+// NOT check for one, because its two callers need different exit codes on a
+// missing run dir (events append: 3; contain --record: 2, since contain's own
+// exit 3 already means "outward") and so validate it themselves before calling in.
+function appendEventRecord(dir, run, payload, ts) {
+  const eventsPath = path.join(dir, "events.jsonl");
+  const seq = eventLineCount(eventsPath);
+  const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
+  if (payload.issue !== undefined) record.issue = payload.issue;
+  if (payload.data !== undefined) record.data = payload.data;
+  fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
+  return record;
+}
+
 function cmdEvents(args) {
   let root = null, run = null, ts = null, file = null, tokensFlag = false;
   const rest = [];
@@ -190,10 +214,6 @@ function cmdEvents(args) {
       for (const x of violations) process.stderr.write(`- ${x}\n`);
       return 1;
     }
-    const eventsPath = path.join(dir, "events.jsonl");
-    const seq = eventLineCount(eventsPath);
-    const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
-    if (payload.issue !== undefined) record.issue = payload.issue;
     let data = payload.data;
     // FAFF-408: opt-in token-tagging. Absent --tokens ⇒ NO measurement, NO ledger
     // read, and `data` is exactly payload.data — the record is byte-identical to the
@@ -258,8 +278,7 @@ function cmdEvents(args) {
       }
       data = base;
     }
-    if (data !== undefined) record.data = data;
-    fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
+    const record = appendEventRecord(dir, run, { phase: payload.phase, type: payload.type, issue: payload.issue, data }, ts);
     console.log(JSON.stringify(record));
     return 0;
   }
@@ -357,6 +376,10 @@ function eventsSelftest() {
     // FAFF-352 — sentry-checkpoint: run-scoped (no issue), data = the sentry check payload.
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "sentry-checkpoint", data: { run_dir: "/r", verdicts: [], intervention: "continue", tripped: false, thresholds: {} } }, 0, "valid sentry-checkpoint (envelope, no issue)"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "sentry-checkpoint" }, 0, "valid sentry-checkpoint with no data"],
+    // FAFF-354 — containment-check: issue-scoped (issue = mandate), data = the recorded
+    // contain invocation (mandate/parent/root/ancestry_raw/verdict/exit).
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", issue: "FAFF-1", data: { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "contained", exit: 0 } }, 0, "valid containment-check record"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", data: { mandate: "FAFF-1", parent: null, root: true, ancestry_raw: null, verdict: "outward", exit: 3 } }, 1, "containment-check missing required issue field"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {
@@ -374,4 +397,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, cmdEvents, eventLineCount, eventViolations, eventsSelftest };
+module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, appendEventRecord, cmdEvents, eventLineCount, eventViolations, eventsSelftest };

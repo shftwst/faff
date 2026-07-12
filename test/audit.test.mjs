@@ -209,3 +209,94 @@ test("default text output is skimmable (lists, not run-on prose)", () => {
   assert.match(r.stdout, /coherence:/);
   assert.match(r.stdout, /issues \(1\):/);
 });
+
+// ===========================================================================
+// FAFF-354 — recompute-and-compare over recorded `containment-check` events
+// (from `faff contain --record`), plus the `unrecorded_creates` finding. Both
+// are DETECTIVE, never preventive — see the trust-boundary note on `contain`.
+// ===========================================================================
+
+test("FAFF-354: a clean recorded containment-check (recompute agrees) keeps coherence clean", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t", "run", "containment-check", "FAFF-1", {
+        mandate: "FAFF-1", parent: "FAFF-2", root: false,
+        ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "contained", exit: 0,
+      }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {}, discovered_scope_filed: 0 },
+  });
+  const r = run([runId, "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.deepEqual(o.coherence.containment_mismatches, []);
+  assert.equal(o.coherence.unrecorded_creates, false);
+  assert.equal(o.coherence.clean, true);
+});
+
+test("FAFF-354: a tampered recorded verdict (disagrees with recompute) → containment_mismatches, clean false", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(3, "t", "run", "containment-check", "FAFF-1", {
+        mandate: "FAFF-1", parent: "FAFF-2", root: false,
+        ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "outward", exit: 3,
+      }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {} },
+  });
+  const r = run([runId, "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.containment_mismatches.length, 1);
+  assert.deepEqual(o.coherence.containment_mismatches[0], { seq: 3, issue: "FAFF-1", recorded: "outward", recomputed: "contained" });
+  assert.equal(o.coherence.clean, false);
+
+  const rt = run([runId, "--root", root]);
+  assert.match(rt.stdout, /containment mismatches: seq 3 \(recorded outward vs recomputed contained\)/);
+});
+
+test("FAFF-354: an unparseable recorded ancestry_raw recomputes 'unreproducible'", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t", "run", "containment-check", "FAFF-1", {
+        mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: "not json", verdict: "contained", exit: 0,
+      }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {} },
+  });
+  const r = run([runId, "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.containment_mismatches.length, 1);
+  assert.equal(o.coherence.containment_mismatches[0].recomputed, "unreproducible");
+  assert.equal(o.coherence.clean, false);
+});
+
+test("FAFF-354: discovered_scope_filed > 0 with zero containment-check events → unrecorded_creates true, clean false", () => {
+  const { root, runId } = tmpRun({
+    ledger: { run_id: "r1", admitted: [], outcomes: {}, discovered_scope_filed: 2 },
+  });
+  const r = run([runId, "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.unrecorded_creates, true);
+  assert.equal(o.coherence.clean, false);
+
+  const rt = run([runId, "--root", root]);
+  assert.match(rt.stdout, /unrecorded creates: ledger filed 2 discovered-scope ticket\(s\), no containment-check events/);
+});
+
+test("FAFF-354: discovered_scope_filed > 0 WITH containment-check events present → unrecorded_creates false", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t", "run", "containment-check", "FAFF-9", {
+        mandate: "FAFF-9", parent: "FAFF-9", root: false, ancestry_raw: null, verdict: "contained", exit: 0,
+      }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {}, discovered_scope_filed: 1 },
+  });
+  const r = run([runId, "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.unrecorded_creates, false);
+});

@@ -75,6 +75,10 @@ Surface every issue that is **not automation-eligible** **and** notable (gateway
 
 **Render each issue with the shared On-hold-entry form** — `rendering_adaptor` slot → **Canonical visual forms → (f) On-hold entry** (default `faffidavit-rendering`). That single shared form is the canonical definition; `/faff-tidy` §4a renders the same form, so the two stay DRY — do not re-specify the fields here. It carries, per issue: the grounded synthesis gloss, then the three release-decision signals (**reversibility tier** — coarse/advisory `low-risk` / `higher-risk` from the gateway side-effect-outside-PR taxonomy · **standalone-ness** — `independent` / `blocks N` / `blocked by N` from the relation graph · **unlock value** — `unlocks N` direct+transitive dependents), then the ineligibility reason + how to make it eligible (add `faff-automate` — or for a held ticket, remove `faff-automation-hold` — via `/faff-jot ISSUE-XX` crank up/crank down or interactive `/faff-tidy`). The signals are mechanical reads of state `/faff-wtf` already pulls fresh (the relation graph, the chainable-unlock metric — an objective graph fact). **Order the section via the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**) over these issues — `/faff-wtf` states no risk/unlock ordering of its own; the thematic default surfaces the best crank-up candidates first. These issues remain in all counts and read-views — they are **not** excluded the way cancelled/archived are. This section is read-only: `/faff-wtf` never changes eligibility. Skip the section if none.
 
+### 4c. Awaiting review — adversarial outage (FAFF-403)
+
+Surface every issue tagged `faff-awaiting-review` via a **live tracker label query** (this label is not `faff-parked`'s query above and is easy to miss otherwise — wtf's parked query is scoped to `faff-parked` only). **Distinct from both Parked and On-hold above:** this is neither a human park nor a human-set eligibility hold — it means the built work is durable (branch pushed) and the review is waiting on a **machine** (the provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no rebuild. For each: issue id + title, the outage-retry attempt count (`n`/`graft.review_outage_retry_limit`), and a note that no action is needed — it self-resolves next drain, or escalates to an ordinary park after the retry bound. Skip the section if none.
+
 ### 5. Today's Focus
 Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**; the thematic default orders by priority → chainable unlock value):
 - **Never suggest cancelled or archived** issues or projects as candidates (shared rule)
@@ -197,6 +201,9 @@ Source of truth is the configured issue tracker. Snapshot below — re-query via
 
 ### Parked overnight
 - ISSUE-XX  [synthesis gloss] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
+
+### Awaiting review (adversarial outage)
+- ISSUE-XX  [synthesis gloss] — review provider unavailable, attempt n/N; auto-resumes next drain, no action needed
 
 ### Do this
 Ordered by the configured methodology's `pick-ordering`. Items freshly unblocked by recent shipping are annotated as just-appeared leverage.

@@ -297,6 +297,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 { "run_id": "<run-id>", "admitted": ["SHF-1", "SHF-2"], "outcomes": { "SHF-1": "shipped" },
   "discovered_scope_filed": 0,
   "review_adversarial_skipped": [],
+  "review_outage_pending": [],
   "budget": { "envelope": { "ceilings": { "max_attempts": 8 }, "at_ceiling": "stop", "price_per_mtok": 0 },
               "tokens_at_start": 12000 },
   "owner": { "status": "running", "pid": 12345, "session_id": "<run-id>",
@@ -310,6 +311,7 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
 
 - **`discovered_scope_filed`** (informational) — the count of execution-discovered tickets filed at step 10 (default timing) **and** at step 8.0 (under `--converge`). These are **new** tickets, not admitted build-queue issues, so they are **outside** the invariant above and never affect `runcheck` — until one is admitted to a wave's build queue, at which point it appears in `admitted` and is covered by the invariant like any other issue.
 - **`review_adversarial_skipped`** (informational, additive — top-level `[issue-id]` array) — the ids of issues that **shipped without adversarial review** because the second-opinion chain was in a **full-chain outage** (every backend unreachable) at review time, in autonomous mode. The build agent's review slot returned `signal: pass` carrying `adversarial_outcome: "chain-outage-skipped"` (an infra outage produces no finding to gate on — a down provider is not a code defect); graft persists that on the per-issue `review-verdict.json` artifact, and the orchestrator reads it from there during its reconciliation (not from a changed token shape) and records the id here. These issues **still land in `outcomes` as `shipped`** (or whatever terminal bucket they reached) — this array is an **orthogonal annotation**, not a bucket, so it is **outside** the `runcheck` completeness invariant and needs no ledger migration. It drives the distinct run-summary subsection (`## Shipped (adversarial review skipped — chain outage)`) so a review-skipped merge is never presented as an undifferentiated auto-merge. Empty on a run with no outage.
+- **`review_outage_pending`** (informational, additive — top-level `[issue-id]` array, FAFF-403) — the ids of issues graft returned `retry-later` for: a mandatory-review `unavailable` verdict with a resumable build-progress checkpoint, held rather than parked (see `faff-graft` → the `unavailable` disposition). These issues **land in `outcomes` as `parked`** — mirrors `review_adversarial_skipped` exactly: an orthogonal annotation, not a bucket, **outside** the `runcheck` completeness invariant, no ledger migration needed. It drives the distinct run-summary subsection (`## Awaiting review (adversarial outage)`) so a held issue is never presented as an ordinary human park — the next drain auto-resumes it at review, no human action needed. Empty on a run with no outage.
 - **`budget`** (FAFF-36) — the resolved `BudgetEnvelope` plus the `tokens_at_start` baseline, written **once at run start** (alongside the owner stamp): `{ envelope: {ceilings, at_ceiling, price_per_mtok}, tokens_at_start }`. `faff budget check` reads it each between-units checkpoint; `tokens_at_start` is the run-start transcript-sum so the token dimension counts *this run's* spend, not whole-session history. Absent ⇒ no budget set (every check returns `breached: []`). Informational to `runcheck` — outside the completeness invariant. (FAFF-408) When events are token-tagged, this block additionally carries `tokens_at_start_by_class` (the run-start four-class baseline that seeds the per-event checkpoint) and an advancing `tokens_at_last_event` (the last tagged event's cumulative); both are additive telemetry state the CLI maintains — `budget check` still gates on the scalar `tokens_at_start` total, unchanged.
 - **`owner`** (FAFF-205) — the liveness contract that lets the Stop hook tell an *in-flight* run apart from an *abandoned* one. Without it, a parallel session's hook can't distinguish "an orchestrator is actively draining this" from "this queue was deferred", and it false-blocks the unrelated session (see _Stop hook_ below). Stamp it **at run start**, refresh `last_heartbeat` **across the whole graft lifecycle**, and close it **at exit**:
   - `status` — `"running"` while the orchestrator holds the run; set to `"done"` at orchestrator exit (clean drain, all-parked, **or** budget-hit — every exit path).
@@ -527,6 +529,9 @@ repeat-parked ⚠ (N)
 ## Parked: N
 - ISSUE-ZZ: title — reason: low-confidence fresh-spec (log: ISSUE-ZZ/prep.md)
 
+## Awaiting review (adversarial outage): N (FAFF-403 — rendered only when `review_outage_pending` is non-empty)
+- ISSUE-XX: title — review provider unavailable; build held (branch pushed, checkpoint intact); attempt n/N; auto-resumes at review next drain (ledger: review_outage_pending)
+
 ## Errored: N
 - ISSUE-WW: title — MCP timeout during build
 
@@ -575,7 +580,7 @@ The **Human follow-ups** section captures post-merge housekeeping that was skipp
 
 - **Shipped** — auto-merged. Rendered under **one** of two subsections: `## Shipped (auto-merged)` (the norm) **or** `## Shipped (adversarial review skipped — chain outage)` when the issue's id is in the ledger's `review_adversarial_skipped` array (it shipped, but with the second-opinion chain in a full-chain outage). Both are the same `shipped` outcome bucket — the split is a rendering that flags the review gap, **not** a new bucket — so an affected issue appears in exactly one of the two and is **never** duplicated across them.
 - **PR open for human review**
-- **Parked**
+- **Parked** — rendered under `## Parked` (the norm) **or** `## Awaiting review (adversarial outage)` (FAFF-403) when the id is in `review_outage_pending` — same `parked` bucket, the split only flags a resumable hold vs. an ordinary human park.
 - **Errored**
 - **Routed out (not built)** — spec-gated successfully but the verdict was not `fire-and-forget` / `likely-fire`, so it never entered the build pass.
 - **Unreached (budget hit)** — appears **only** when a budget dimension (`until` / `max_attempts` / `tokens` / `cost`) was set and breached with a non-empty build queue remaining; reached build-ready but wasn't dispatched before the budget fire (see `## Budget flags`). On a `tokens`/`cost` breach surface the `tokens_source` (`transcript` / `estimate`) so a reader knows whether the figure was metered or estimated.

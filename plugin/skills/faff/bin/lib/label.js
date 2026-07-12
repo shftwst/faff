@@ -70,6 +70,12 @@ const LABEL_SELFTEST_CASES = [
   // remove of a present label ⇒ idempotent_noop false (a real removal)
   [{ action: "remove", issue: "FAFF-99", label: "faff-parked", present: ["faff-parked"] },
     { action: "remove", ensure_first: false, idempotent_noop: false, hasEntry: false, rejected: false }],
+  // FAFF-403: the new awaiting-review hold label is CLI-writable (no tracker_owned flag),
+  // same shape as faff-parked — proves it slots into the manifest-driven op with no special-casing.
+  [{ action: "add", issue: "FAFF-403", label: "faff-awaiting-review", present: null },
+    { action: "add", ensure_first: true, idempotent_noop: null, hasEntry: true, rejected: false }],
+  [{ action: "remove", issue: "FAFF-403", label: "faff-awaiting-review", present: null },
+    { action: "remove", ensure_first: false, idempotent_noop: null, hasEntry: false, rejected: false }],
 ];
 
 function labelSelftest() {

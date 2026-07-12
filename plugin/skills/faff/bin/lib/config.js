@@ -75,9 +75,13 @@ const DEFAULTS = {
   // false (refuse on positive evidence of a mounted host socket). true is the operator taking
   // responsibility that a same-path socket is a BOUNDED nested engine, not the host daemon;
   // it downgrades the lights-out refuse to a warn without waiving container-check's own
-  // containment requirement. Read directly via dig() in lights-out.js (a boolean, not an enum
-  // like the sibling require_container/require_branch_protection warn|block knobs, which are
-  // resolved by SKILL.md prose rather than code).
+  // containment requirement. This registry entry drives `config get`'s DISPLAY value (so it
+  // returns "false" instead of exit-3, and shows in `config defaults`); it does NOT drive the
+  // gate. The gate resolves the attestation fail-closed in lights-out.js's engineBoundedFromConfig
+  // (only an explicit affirmative attests — unset/unrecognised always refuses), independent of
+  // this value, so flipping it here changes the display, never the safety default. Unlike the
+  // sibling require_container/require_branch_protection warn|block enums (resolved by SKILL.md
+  // prose), this is a boolean.
   "autonomous.engine_bounded": "false",
 };
 

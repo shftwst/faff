@@ -290,6 +290,20 @@ function lightsOutEnforced(guardrails = LIGHTS_OUT_GUARDRAILS) {
   return enforced;
 }
 
+// FAFF-333 — resolve the operator's host-socket boundedness attestation from config,
+// FAIL-CLOSED: only an explicit affirmative attests; every other value (false, "false",
+// "yes", "1", a typo, unset) leaves the host-socket refuse in force. A bare `=== true`
+// alone would silently drop a quoted `engine_bounded: "true"` — the hand-rolled YAML
+// parser returns the STRING "true" for a quoted scalar, so `"true" === true` is false —
+// into refuse despite the operator doing exactly what the docs said. So accept the
+// string spelling too (trimmed, case-insensitive), while staying strict on everything
+// unrecognised. Lives here (the impure config-reading wrapper's helper) so the pure
+// lightsOutPreflight keeps taking a clean resolved boolean in `probes.engineBounded`.
+function engineBoundedFromConfig(cfg) {
+  const raw = dig(cfg, "autonomous.engine_bounded");
+  return raw === true || String(raw).trim().toLowerCase() === "true";
+}
+
 // Pure: the refuse-to-start decision over v1's preconditions + the armed guardrail
 // set. Returns { proceed, refusals:[{gate,detail}], armed, enforced, banner, floor,
 // degrades }. Proceed iff EVERY guardrail is `live`, the review + spec_review slots
@@ -610,10 +624,9 @@ function cmdLightsOut(args) {
   // from the containment check above: a mounted HOST docker socket is root-equivalent
   // host control regardless of whether containerCheck reports contained. Unconditional
   // refuse on THIS path unless the operator attests the same-path socket is a bounded
-  // nested engine (autonomous.engine_bounded, default false — fail-safe: unset/anything
-  // other than the literal boolean true never softens the refuse).
+  // nested engine (autonomous.engine_bounded) — resolved fail-closed by engineBoundedFromConfig.
   const hostSocket = hostSocketProbe(realFsq());
-  const engineBounded = dig(cfg, "autonomous.engine_bounded") === true;
+  const engineBounded = engineBoundedFromConfig(cfg);
 
   // FAFF-373/325: ONE probe call, TWO consumers — the capability record below (never gated
   // on: `available` once a declaration is genuinely asserted, `channel-D-only` otherwise) AND
@@ -1251,4 +1264,4 @@ function lightsOutSelftest() {
 }
 
 
-module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, VETTED_RECIPES, checkWorktreeIsolation, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, estimateOnlyPosture, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };
+module.exports = { ADVERSARIAL_REVIEW_OCCUPANTS, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS, FLOOR_LABELS, FLOOR_MODES, GUARDRAIL_STATES, LIGHTS_OUT_FLOOR_KEYS, LIGHTS_OUT_GUARDRAILS, LIGHTS_OUT_GUARDRAIL_IDS, VETTED_RECIPES, checkWorktreeIsolation, cmdLightsOut, cmdWorktreeRoot, costArmed, dialCoherence, engineBoundedFromConfig, estimateOnlyPosture, isAdversarial, isStrictlyUnderRoot, lightsOutArmed, lightsOutEnforced, lightsOutPreflight, lightsOutSelftest, mintAtCeiling, prdCreativeLicenceFromFlag, probeContractReachable, renderLightsOutBanner, resolveSlotOccupant, resolveWorktreeRoot, spendTimeCeilingSet, tokenDependentCeilingArmed, worktreeRootSelftest };

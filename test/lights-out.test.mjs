@@ -12,7 +12,8 @@ import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
 import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
-import { LIGHTS_OUT_GUARDRAIL_IDS, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { LIGHTS_OUT_GUARDRAIL_IDS, engineBoundedFromConfig, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
 
@@ -160,6 +161,30 @@ test("lightsOutPreflight: socket absent (the default — no hostSocketPresent ke
   assert.equal(pf.proceed, true);
   assert.ok(!pf.refusals.some((x) => x.gate === "host-socket"));
   assert.ok(!pf.degrades.some((x) => x.gate === "host-socket"));
+});
+
+// FAFF-333 — engineBoundedFromConfig resolves the attestation FAIL-CLOSED from a REALLY-parsed
+// config (the config-resolution seam cmdLightsOut uses in production, so a coercion regression is
+// caught here). The load-bearing case: a QUOTED `engine_bounded: "true"` — which the hand-rolled
+// YAML parser returns as the STRING "true", not a boolean — must still attest, or an operator who
+// quoted the value gets a silent refuse despite doing what the docs said.
+test("engineBoundedFromConfig: bare `true` attests (boolean, the documented form)", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: true\n")), true);
+});
+test("engineBoundedFromConfig: QUOTED `\"true\"` attests too (the YAML-quoting footgun)", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: \"true\"\n")), true);
+});
+test("engineBoundedFromConfig: `True` (case variant) attests", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: True\n")), true);
+});
+test("engineBoundedFromConfig is FAIL-CLOSED on every non-affirmative (false/\"false\"/yes/unset)", () => {
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: false\n")), false);
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: \"false\"\n")), false);
+  // `yes` is NOT a documented affirmative — fail-closed keeps it refusing (safe direction).
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("autonomous:\n  engine_bounded: yes\n")), false);
+  // unset ⇒ the default posture (refuse), regardless of the DEFAULTS registry display value.
+  assert.equal(engineBoundedFromConfig(parseYamlSubset("slots:\n  review: x\n")), false);
+  assert.equal(engineBoundedFromConfig({}), false);
 });
 
 // Bare host (container-check not_confirmed) → refuse, no run minted, exit 1. The

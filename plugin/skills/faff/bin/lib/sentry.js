@@ -73,8 +73,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { readGovernanceConfig } = require("./budget");
+const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { atomicWriteLedger, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
-const { RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./runcheck");
 const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 
 const DERAILMENT_SIGNALS = new Set([
@@ -104,19 +104,19 @@ const SIGNAL_TRIP_INTERVENTION = {
 // The one signal Channel A may upgrade to `correct`, and only when authority is
 // available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
 const CORRECTABLE_SIGNAL = "fix-review-thrash";
-// v1 default thresholds — config values (overridable via `.faffrc` sentry.*).
-// stall_window mirrors the heartbeat staleness window for consistency.
-const SENTRY_THRESHOLD_DEFAULTS = {
-  thrash_n: 3,                                      // >=N build-starts on one issue, no ship → trip
-  failure_k: 3,                                     // same failure fingerprint >=K times → trip
-  stall_window_secs: RUN_HEARTBEAT_STALE_SECS_DEFAULT, // heartbeat staleness ceiling (900s)
-  run_elapsed_ceiling_secs: 14400,                  // 4h wall-clock run-elapsed ceiling
-};
+// FAFF-362: v1 default thresholds — now DERIVED from the active-by-default
+// delivery profile (governance-profile.js's DELIVERY_PROFILE.sentry.thresholds)
+// rather than an independent literal object; same 4 keys, same values,
+// byte-identical. Config values (`.faffrc` sentry.*) still override, unchanged.
+const SENTRY_THRESHOLD_DEFAULTS = DELIVERY_PROFILE.sentry.thresholds;
 
-// Resolve thresholds from config, falling back to the documented v1 defaults. A
-// non-positive / non-numeric config value falls back (never weakens to 0/∞ silently).
-function sentryThresholds(cfg) {
-  const d = SENTRY_THRESHOLD_DEFAULTS;
+// Resolve thresholds from config, falling back to the profile's declared defaults
+// (delivery by default). A non-positive / non-numeric config value falls back
+// (never weakens to 0/∞ silently). `profile` is a trailing defaulted parameter
+// (mirrors the other threaded engine cores) — SECOND_PROFILE resolves DIFFERENT
+// defaults (e.g. thrash_n 5), config still overrides on top.
+function sentryThresholds(cfg, profile = activeProfile()) {
+  const d = profile.sentry.thresholds;
   const num = (v, def) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : def; };
   return {
     thrash_n: num(dig(cfg, "sentry.thrash_n"), d.thrash_n),
@@ -216,14 +216,19 @@ function evalWallClock(ledger, nowMs, th, heartbeatSource) {
 
 // fix-review-thrash — >= thrash_n build-start events for ONE issue with no shipped
 // outcome (a re-dispatch loop making no progress). Event-derived → coarse by design.
-function evalThrash(events, th) {
+// FAFF-362: `profile` is a trailing defaulted parameter — the thrash vocabulary
+// (which type starts a re-dispatch, which type+outcome counts as shipped) is read
+// from profile.sentry.thrash rather than embedded as literals; the trip LOGIC
+// (the loop, the >= th.thrash_n test) is unchanged engine code.
+function evalThrash(events, th, profile = activeProfile()) {
+  const T = profile.sentry.thrash;
   const starts = {}, lastSeq = {}, shipped = new Set();
   for (const e of events) {
-    if (e.type === "build-start" && e.issue) {
+    if (e.type === T.start_type && e.issue) {
       starts[e.issue] = (starts[e.issue] || 0) + 1;
       if (Number.isInteger(e.seq)) lastSeq[e.issue] = e.seq;
     }
-    if (e.type === "issue-outcome" && e.issue && e.data && e.data.outcome === "shipped") shipped.add(e.issue);
+    if (e.type === T.ship_type && e.issue && e.data && e.data.outcome === T.ship_outcome) shipped.add(e.issue);
   }
   let worst = null;
   for (const issue of Object.keys(starts)) {
@@ -245,19 +250,25 @@ function evalThrash(events, th) {
 // repeated-identical-failure — same failure fingerprint >= failure_k times. A failure
 // is a park event or an errored issue-outcome; the fingerprint prefers an explicit
 // data.fingerprint, else issue + the failure key.
-function sentryFailureFingerprint(e) {
+// FAFF-362: `profile` is a trailing defaulted parameter — which type is a "park"
+// (park_type), which type+outcome is "errored" (outcome_type/errored_outcome) are
+// read from profile.sentry.failure. The fingerprint STRING's own "park"/"outcome"
+// tags are descriptive label text (not vocabulary being validated), left as-is.
+function sentryFailureFingerprint(e, profile = activeProfile()) {
+  const F = profile.sentry.failure;
   if (e.data && typeof e.data.fingerprint === "string" && e.data.fingerprint) return e.data.fingerprint;
   const issue = e.issue || "?";
-  if (e.type === "park") return `${issue}:park:${(e.data && (e.data.reason || e.data.root_cause)) || "park"}`;
-  if (e.type === "issue-outcome") return `${issue}:outcome:${(e.data && e.data.outcome) || "?"}`;
+  if (e.type === F.park_type) return `${issue}:park:${(e.data && (e.data.reason || e.data.root_cause)) || F.park_type}`;
+  if (e.type === F.outcome_type) return `${issue}:outcome:${(e.data && e.data.outcome) || "?"}`;
   return null;
 }
-function evalRepeatedFailure(events, th) {
+function evalRepeatedFailure(events, th, profile = activeProfile()) {
+  const F = profile.sentry.failure;
   const counts = {}, lastSeq = {}, issuesByFp = {};
   for (const e of events) {
-    const isFailure = (e.type === "park") || (e.type === "issue-outcome" && e.data && e.data.outcome === "errored");
+    const isFailure = (e.type === F.park_type) || (e.type === F.outcome_type && e.data && e.data.outcome === F.errored_outcome);
     if (!isFailure) continue;
-    const fp = sentryFailureFingerprint(e);
+    const fp = sentryFailureFingerprint(e, profile);
     if (!fp) continue;
     counts[fp] = (counts[fp] || 0) + 1;
     if (Number.isInteger(e.seq)) lastSeq[fp] = e.seq;
@@ -320,11 +331,15 @@ function evalForbiddenSideEffect(signals) {
 // from "never"). An event with no issue or no parseable ts is skipped — no baseline,
 // no obligation. This is the SAME derivation cmdSentry uses to decide which
 // heartbeat.<issue> files to read, so the two never drift (one function, two callers).
-function sentryInflightMembers(events, ledger) {
+// FAFF-362: `profile` is a trailing defaulted parameter — "build-start" (the type
+// that starts a member's liveness obligation) is read from
+// profile.sentry.thrash.start_type rather than embedded as a literal.
+function sentryInflightMembers(events, ledger, profile = activeProfile()) {
+  const startType = profile.sentry.thrash.start_type;
   const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes)) ? ledger.outcomes : {};
   const lastStart = {};
   for (const e of (Array.isArray(events) ? events : [])) {
-    if (!e || e.type !== "build-start" || !e.issue) continue;
+    if (!e || e.type !== startType || !e.issue) continue;
     const ts = typeof e.ts === "string" ? e.ts : null;
     if (!ts || !Number.isFinite(Date.parse(ts))) continue;
     const prev = lastStart[e.issue];
@@ -345,7 +360,12 @@ function sentryInflightMembers(events, ledger) {
 // the same "absent is a legitimate liveness input" posture heartbeat.js already
 // takes). Trips only past th.stall_window_secs, mirroring the run-level window
 // (reused, not a new knob — see the spec's OUT-OF-SCOPE extension point).
-function evalMemberStall(inflight, memberBeats, nowMs, th) {
+// FAFF-362: `profile` is a trailing defaulted parameter — the evidence.source
+// fallback label names the dispatch-event type from profile.sentry.thrash.
+// start_type rather than a hardcoded "build-start", so the label stays honest
+// under a non-delivery dialect (e.g. SECOND_PROFILE's "job-start").
+function evalMemberStall(inflight, memberBeats, nowMs, th, profile = activeProfile()) {
+  const startType = profile.sentry.thrash.start_type;
   const beats = (memberBeats && typeof memberBeats === "object" && !Array.isArray(memberBeats)) ? memberBeats : {};
   const verdicts = [];
   for (const m of (Array.isArray(inflight) ? inflight : [])) {
@@ -357,7 +377,7 @@ function evalMemberStall(inflight, memberBeats, nowMs, th) {
     const startOk = Number.isFinite(startMs);
     if (!beatOk && !startOk) continue; // both absent/unparseable -> no verdict (fail toward run-level supervision)
     const baseMs = beatOk && startOk ? Math.max(beatMs, startMs) : (beatOk ? beatMs : startMs);
-    const source = beatOk && (!startOk || beatMs >= startMs) ? `heartbeat.${m.issue}` : "build-start";
+    const source = beatOk && (!startOk || beatMs >= startMs) ? `heartbeat.${m.issue}` : startType;
     const age = (nowMs - baseMs) / 1000;
     if (age > th.stall_window_secs) {
       verdicts.push({
@@ -382,24 +402,28 @@ function evalMemberStall(inflight, memberBeats, nowMs, th) {
 // `"available"` (the literal string) ever upgrades the CORRECTABLE_SIGNAL's mapped
 // `pause` to `correct`; anything else (including a truthy-but-wrong-typed value)
 // degrades to unavailable, never a silent enable.
-function evaluateDerailment(rawSignals, thresholds, authority) {
+// FAFF-362: `profile` is a FOURTH, trailing defaulted parameter (mirrors the other
+// threaded engine cores) — the default resolves DELIVERY_PROFILE, byte-identical.
+// It sits AFTER `authority` (not before) so it never disturbs the AC5-shaped
+// no-foreign-authorship property of that parameter's position/semantics.
+function evaluateDerailment(rawSignals, thresholds, authority, profile = activeProfile()) {
   const s = normalizeSentrySignals(rawSignals);
-  const th = thresholds || SENTRY_THRESHOLD_DEFAULTS;
+  const th = thresholds || profile.sentry.thresholds;
   const authorityAvailable = authority === "available";
   const verdicts = [];
   const push = (v) => { if (v && DERAILMENT_SIGNALS.has(v.signal) && (v.severity === "warn" || v.severity === "trip")) verdicts.push(v); };
   push(evalBudgetBreach(s.budget));
   push(evalWallClock(s.ledger, s.now_ms, th, s.heartbeat_source));
-  push(evalThrash(s.events, th));
-  push(evalRepeatedFailure(s.events, th));
+  push(evalThrash(s.events, th, profile));
+  push(evalRepeatedFailure(s.events, th, profile));
   push(evalScopeDrift(s));
   push(evalForbiddenSideEffect(s));
   // FAFF-327: fleet member-stall — auto-detected (no flag). In-flight members derive
   // from the SAME normalized events+ledger surface already in scope here; a run with
   // none (sequential/legacy/no build-start events) yields an empty list and
   // evalMemberStall trivially returns [] — byte-equivalent to pre-327 output.
-  const inflight = sentryInflightMembers(s.events, s.ledger);
-  for (const v of evalMemberStall(inflight, s.member_beats, s.now_ms, th)) push(v);
+  const inflight = sentryInflightMembers(s.events, s.ledger, profile);
+  for (const v of evalMemberStall(inflight, s.member_beats, s.now_ms, th, profile)) push(v);
 
   let intervention = "continue", tripped = false;
   for (const v of verdicts) {
@@ -570,7 +594,12 @@ function cmdSentry(args) {
     // untouched). Boolean, no value; absent ⇒ unchanged degraded (no-signal) behaviour.
     const forbiddenSideEffect = args.includes("--forbidden-side-effect");
     const cfg = readGovernanceConfig(root);
-    const th = sentryThresholds(cfg);
+    // FAFF-362: resolve the active profile ONCE for this invocation (may throw
+    // GovernanceProfileError on a bad $FAFF_GOVERNANCE_PROFILE override — caught
+    // at bin/faff's dispatch boundary, loud exit 2, never a silent delivery
+    // fallback) and thread it through every profile-consuming call below.
+    const profile = activeProfile();
+    const th = sentryThresholds(cfg, profile);
     const nowRes = resolveSentryNow(get); // hermetic test-only clock seam (FAFF-301) — checked before ledger resolution
     if (nowRes.error) { process.stderr.write(`faff sentry check: ${nowRes.error}\n`); return 2; }
 
@@ -634,12 +663,12 @@ function cmdSentry(args) {
       if (injectedBeats != null) {
         try { memberBeats = JSON.parse(injectedBeats); } catch { memberBeats = {}; }
       } else {
-        for (const m of sentryInflightMembers(events, ledger)) {
+        for (const m of sentryInflightMembers(events, ledger, profile)) {
           memberBeats[m.issue] = readMemberHeartbeatFile(resolved.runDir, m.issue);
         }
       }
     }
-    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority);
+    const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile);
     const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");

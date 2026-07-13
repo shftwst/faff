@@ -13,20 +13,30 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
-const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
+const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
+const { findRoot, latestRunDir, readLedger, RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./shared-infra");
 
-const TERMINAL_STATES = new Set(["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"]);
+// FAFF-362: TERMINAL_STATES stays exported (governance-check.js/disposition.js
+// reuse it directly as a Set) but is now DERIVED from the active-by-default
+// delivery profile rather than an independent literal — same 6 values,
+// byte-identical, single-sourced in governance-profile.js's DELIVERY_PROFILE.
+const TERMINAL_STATES = new Set(DELIVERY_PROFILE.terminal_states);
 
 // Pure audit over a parsed ledger object (FAFF-205): the completeness core,
 // decoupled from disk so the gate (which already holds the ledger) and the
 // selftest can both drive it. `run_id` falls back to the caller-supplied label.
-function auditLedger(data, label) {
+// FAFF-362: `profile` is a trailing defaulted parameter (mirrors the existing
+// nowFn/getFn injectable-seam pattern) — the default resolves DELIVERY_PROFILE
+// (byte-identical), an explicit profile (e.g. SECOND_PROFILE) drives a different
+// dialect's terminal-state vocabulary with no other code path change.
+function auditLedger(data, label, profile = activeProfile()) {
   const admitted = [...new Set(data.admitted ?? [])];
   const outcomes = data.outcomes ?? {};
   if (typeof outcomes !== "object" || Array.isArray(outcomes)) throw new Error("outcomes must be an object");
   const undispatched = admitted.filter((i) => !(i in outcomes));
+  const validStates = new Set(profile.terminal_states);
   const invalid = [...new Set(Object.entries(outcomes)
-    .filter(([, s]) => !TERMINAL_STATES.has(s)).map(([i, s]) => `${i}=${s}`))].sort();
+    .filter(([, s]) => !validStates.has(s)).map(([i, s]) => `${i}=${s}`))].sort();
   return {
     run_id: data.run_id ?? label,
     admitted, undispatched, invalid_outcomes: invalid,
@@ -58,7 +68,9 @@ function auditRun(runDir) {
 // heartbeats still arrive.
 // ---------------------------------------------------------------------------
 
-const RUN_HEARTBEAT_STALE_SECS_DEFAULT = 900;
+// FAFF-362: RUN_HEARTBEAT_STALE_SECS_DEFAULT now lives in shared-infra.js (single
+// source, imported above) and is re-exported below unchanged for every existing
+// consumer (sentry.js) — see shared-infra.js's comment for why.
 
 function heartbeatStaleSecs(env) {
   const raw = (env || process.env).FAFF_RUN_HEARTBEAT_STALE_SECS;

@@ -1,6 +1,6 @@
 ---
 name: faff-plot
-description: "Turn an application-scale idea into a planned, dependency-linked roadmap. Recurses a discovery brief top-down into initiatives → projects → first-slice epics. Use for 'plan this out', 'decompose this app', 'break this big thing into a roadmap', 'map out the whole project', 'plot the build'."
+description: "Turn an application-scale idea into a planned, dependency-linked roadmap. Recurses a discovery brief top-down into initiatives → projects → first-slice epics. Use for 'plan this out', 'decompose this app', 'break this big thing into a roadmap', 'map out the whole project', 'plot the build'. Or `/faff-plot rehome` to run the whole-backlog rehoming pass — group loose Backlog work into human-confirmed outcome-led projects ('sort out the loose backlog', 'rehome the backlog')."
 judgement_seam: decomposition
 ---
 
@@ -27,6 +27,8 @@ All human-facing output this skill emits — roadmap container and epic **descri
 `/faff-map` is plot's **read-only twin** at the same altitude — it audits whether a roadmap joins up but never writes. plot writes; map audits. Keep them distinct: never fold plot's write power into map.
 
 ## What it does (the flow)
+
+Two entry modes, selected by argument: **bare `/faff-plot`** runs the default brief-recursion flow below; **`/faff-plot rehome`** runs the whole-backlog rehoming pass (**Rehoming pass** section). The `rehome` argument is the only trigger — no loose-count threshold, no cadence knob.
 
 ```
 discovery brief → recurse top-down (ticket-shaping per level) → write skeleton → chain to map (audit) + prep (first slice)
@@ -88,6 +90,75 @@ After the skeleton is written, offer two gates in order:
 - **Audit:** "Roadmap created — audit whether it joins up via `/faff-map`? (y/n)". On confirm, invoke the `faff-map` skill via the Skill tool. This is the coherence check on what plot just wrote — chain join-up, gate fireability, ghost projects.
 - **Start:** "Prep the first slice for build via `/faff-prep <first-epic>`? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool on the highest-sequenced first-slice epic. On deny, stop cleanly.
 
+## Rehoming pass (`/faff-plot rehome`)
+
+The **write half** of backlog convergence. Under the agile lens new work lands project-less in Backlog by design (its Default-landing rule); this pass drains the accumulated loose set into outcome-led projects. The `methodology` slot's `rehome-set` output supplies the grouping *judgement*; plot owns the loop, the human gate, and the writes — the same division as `ticket-shaping`. **Rehoming, never deleting.**
+
+**Entry.** The explicit `rehome` argument selects this mode; bare `/faff-plot` is unchanged. Deterministic entry — no loose-count trigger, no cadence config. When bare `/faff-plot` is invoked with no brief and the human's intent is clearly rehoming ("sort out the loose backlog"), plot may offer this mode conversationally. The pass needs a tracker (it reads and writes tracker projects); in git-only mode there is no project-less-Backlog concept, so the mode is a no-op.
+
+**The flow:**
+
+```
+/faff-plot rehome
+  → pull the loose backlog fresh (project-less + Backlog + non-terminal + not cancelled/archived)
+  → dispatch rehome-set (producer dispatch; one batched request/response)
+  → render the proposal (per project: name, outcome, members, proposed edges; + leave-loose set + findings)
+  → per proposed project: approve / edit (strike-out) / decline   [unconditional gate, every appetite]
+  → per approved project: create container → reparent members → draw edges → prdr-author (Step 5b)
+  → log everything; offer the /faff-map audit hand-off
+```
+
+### R1. Pull the loose backlog
+
+Fetch fresh (gateway → **Always-pull-fresh**): every issue that is **project-less AND in Backlog AND non-terminal AND not cancelled/archived** (gateway → **Ignore cancelled and archived**). Terminal and already-homed tickets are structurally outside the input set. Assemble the dependency graph and the existing projects alongside — `rehome-set`'s full input.
+
+### R2. Dispatch `rehome-set`
+
+Dispatch per gateway → **Sibling-skill invocation → Producer dispatch**: resolve `slots.methodology` at dispatch (never hardcode), an Agent-tool subagent with `run_in_background: false`, `models.methodology` / `effort.methodology` via `faff config get` (`inherit` omits the arg), in-context fallback when plot is itself a subagent. Transport grain: **one batched dispatch per pass** (gateway → **The `methodology` slot → Transport**) — the whole loose set in, one proposal out; the per-grouping gate is at apply, not here.
+
+The proposal shape is the gateway `rehome-set` row (**The `methodology` slot**): proposed outcome-led containers (each `{container_name, outcome}`), a membership map, proposed coherence blocker edges (`{blocker, blocked}` — explicit, never written by the methodology), an explicit leave-loose set (each loose ticket with a one-line reason), and principle-keyed findings, ordered by which grouping unlocks sequencable value first. Completeness: every input loose ticket appears exactly once across membership ∪ leave-loose — surface a violation, never silently drop a ticket. (If the shipped contract differs from this, the shipped row wins.)
+
+### R3. Render the proposal — zero writes pre-confirm
+
+Render through the configured `rendering_adaptor` (**Rendering** above — enumerable sets as lists): per proposed project its name, outcome, members, and proposed edges; then the leave-loose set with reasons and the principle-keyed findings. **Nothing is written to the tracker before the gate.**
+
+### R4. Confirm gate (unconditional — every appetite level)
+
+Gate **per proposed project** — plot's yes/edit/no shape (Step 4) extended with strike-outs:
+
+- **approve** — apply the group as proposed.
+- **edit** = **strike-out only** — the human names members to remove; struck members become leave-loose; proposed edges touching a struck member are dropped; the trimmed group is re-presented for approve/decline. **Never re-dispatch `rehome-set` on an edit** — the strike is authoritative and subtractive, which avoids re-proposing the struck member (anti-thrash). Adding a member is a tracker action the human takes directly, not an edit path.
+- **decline** — the whole group's members become leave-loose; nothing is written for it.
+
+The prompt states the manual-undo path explicitly: *un-homing is manual — Linear UI/API only; the MCP's `save_issue.project` is reassign-only and cannot null a project* — so approval is high-consequence.
+
+**Composition with the topology-write dial.** This pass inherits plot's **Containers always confirm** floor: every approved rehome creates a container, and no appetite level auto-creates a container, so the whole apply sits behind this gate at every appetite. The gateway topology-write-authority dial's rehome authority (gateway → **Appetite for destruction → Topology-write authority**) still governs the methodology's *other, narrower* call sites (gating-chain rehome, MVP scope-cut, thematic conversion) — the dial adds the topology axis to the hard floor, it never relaxes it.
+
+### R5. Apply approved projects
+
+Per approved project, **finish-forward — never roll back** (rollback would delete a container or un-home members; the first breaks the never-delete floor, the second is impossible via the MCP):
+
+1. **Create the container** — plot's container machinery, with a `planned by /faff-plot (rehome pass)` provenance line (gateway provenance rule). No `faff-jot-intake` label and no `faff intake-record` — those are issue-creation conventions and this pass creates no issues. On failure: report, skip this project's remaining writes, continue to the next approved project.
+2. **Reparent each approved member** via `save_issue` project assignment. **Re-check fresh first** (gateway gate-freshness): a member homed or progressed mid-conversation is skipped with a logged note, never force-moved — human curation wins. On a member failure: log, continue with the rest.
+3. **Draw the approved blocker edges** among the approved tickets (blocker / blocked-by links, tracker-agnostic). Append-only — an edge that already exists is skipped. On an edge failure: log, continue.
+4. **Step 5b — `prdr-author`** for the new project, inputs adapted for reparented members: `outcome` = the proposal's outcome statement; `child_specs` = the approved members' titles + descriptions (+ attached specs where present); `target` resolves `explicit > inherited > methodology-default`. Same approve/edit/skip gate and manual-authoritative rule as **Step 5b** — a `skip` leaves the PRDR `Proposed`. A DoD-less outcome project is the "bare bucket" the agile lens itself refuses.
+
+Report each project's landed state exactly — container id, members moved / skipped / failed, edges drawn / missing — with manual completion steps for anything missing. No per-member tracker comment: the new membership is already legible, and the gateway forbids duplicating legible state; the apply log is the write record.
+
+**Idempotence.** Re-running converges: already-homed members drop out of the input set, and existing projects are part of `rehome-set`'s input, so a re-run proposes homing the remainder into an existing container rather than duplicating it.
+
+### Zero-write endings
+
+All three write nothing to the tracker and are logged:
+
+- **Unanswered** (e.g. the thematic default declines with an empty set) — report "the configured methodology (`<name>`) offers no grouping opinion for a backlog rehoming pass" and how to switch lenses (`slots.methodology` in `.faffrc`). Exit cleanly.
+- **Answered but empty** — render the leave-loose set with the lens's findings; "nothing to rehome yet" is information, not an error.
+- **All declined** — acknowledge, log the declines, exit cleanly.
+
+### Autonomous invocation
+
+Mirrors plot's brief-recursion fallback (**Autonomous mode** below): if the rehome mode is somehow invoked autonomously, dispatch `rehome-set`, write the rendered proposal to `.faff/intake/<date>-rehome-proposal.md`, surface it for human review, and write **nothing** to the tracker. `/faff-beep-boop` never invokes the pass — the gate stays human-shaped even when no human is present.
+
 ## Methodology influence
 
 The shape of the tree is the methodology's call, per level (`ticket-shaping` with `shape-level`):
@@ -117,6 +188,8 @@ Reads the suite-wide `appetite` dial, lightly modulated since container creation
 ## Logging
 
 Write a log per the gateway `.faff/logging` rule: the brief, each level's `ticket-shaping` request (`shape-level` + sub-brief) and the methodology's proposed children, every stop-rule decision (which branches were stopped and why), what was created (ids + relationships per level), and any chain to `/faff-map` or `/faff-prep`. Enough that a follow-up agent can see how the roadmap came to exist and where it was deliberately left shallow.
+
+For a **rehoming pass** (`/faff-plot rehome`), log instead: the pulled loose-backlog set, the `rehome-set` dispatch (slot / model / effort resolved), the full proposal, every gate decision (approve / edit / decline with the strike-outs), every write with its outcome, and every skip with its reason — enough to resume or audit the rehome in a fresh conversation.
 
 ## Rules
 

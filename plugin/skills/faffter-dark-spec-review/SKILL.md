@@ -50,20 +50,28 @@ Each enabled lens is a single isolated pass with its own "break this spec" syste
 
 Each refuter pass is made by the bundled adversarial-review transport, **`review-call.mjs`** (model preflight, think-suppression, streaming, token budget, the fallback chain, and the exit-code→outcome discipline). It is **reused verbatim** — the helper lives in the sibling `faffter-dark-adversarial-review` skill; do not copy or fork it, and do not hand-roll an API call. The spec-altitude review and the product-altitude PRDR review share exactly this transport plus the "a different model challenges; the loop never self-grades" discipline — nothing above it (artifact, lens count, arbiter, contract) is shared.
 
-Resolve the backend (`provider` / `host` / `model` / `timeout` / `api_key_env` / `reasoning_off`, and the optional `fallbacks` chain) from `faffter_dark.adversarial` via `faff config get` — never read the rc file directly. Resolve the host **provenance** off the `faff config get` exit status: key resolves (exit 0) → `--host-source config`; key unset (non-zero) → `--host-source default` with the documented localhost host, so an absent provider block cannot invisibly disable the gate. Per enabled lens:
+**Assemble the chain mechanically (FAFF-261) — never `JSON.parse` `faffter_dark.adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff adversarial-backends` subcommand once (it is the single mechanical path for both a one-backend config and a multi-backend fallback chain — no per-flag `faff config get provider/host/model/api_key_env/reasoning_off` assembly left to retype) and branch on its exit code. Per enabled lens:
 
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 REVIEW_CALL=<.../skills/faffter-dark-adversarial-review/review-call.mjs>
-node "$REVIEW_CALL" --host "$host" --model "$model" --timeout "$timeout" \
-  --host-source "$host_source" \
-  --provider "$provider" --api-key-env "$api_key_env" ${reasoning_off:+--reasoning-off} \
-  --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md \
-  --context plugin/skills/faff/SKILL.md --context <each file the spec names> \
-  --diff <spec-file>
+backends_json=$(mktemp)
+"$faff" adversarial-backends > "$backends_json"; backends_exit=$?
+timeout=$("$faff" config get faffter_dark.adversarial.timeout -d 120)
+
+case "$backends_exit" in
+  0)
+    node "$REVIEW_CALL" --backends-json "$backends_json" --timeout "$timeout" \
+      --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md \
+      --context plugin/skills/faff/SKILL.md --context <each file the spec names> \
+      --diff <spec-file>
+    ;;
+  3) : ;; # unconfigured (FAFF-213) — this lens's outcome is unavailable/config-fault, below; no chain to call
+  2) : ;; # malformed faffter_dark.adversarial.fallbacks JSON — this lens's outcome is unavailable/config-fault
+esac
 ```
 
-The **spec** is supplied as `--diff` (the thing under scrutiny); repo files as `--context`; the lens refutation prompt as `--system`. When `faffter_dark.adversarial.fallbacks` is set, build the ordered chain (`[primary, ...fallbacks]`) and pass it as one `--backends-json` file instead of the single-backend flags — the helper iterates the chain and the exit codes below are unchanged. Configure the refuter backend to a model **structurally different** from the spec author's; independence is the whole point.
+The **spec** is supplied as `--diff` (the thing under scrutiny); repo files as `--context`; the lens refutation prompt as `--system`. `$backends_json` holds the primary-first JSON array (`{provider, model, host, api_key_env?, reasoning_off?, timeout?}`) `review-call.mjs`'s `--backends-json` mapper consumes verbatim, whether the config is a single backend or a fallback chain — one mechanical assembly path, unified. A `faff adversarial-backends` exit `3` (unconfigured/unset host — the FAFF-213 signal) or `2` (malformed `fallbacks` JSON) means there is no chain to call the helper with; treat either as this lens's **`unavailable`**, kind `config-fault` (the same per-lens outcome the table below assigns a `review-call.mjs` config-fault exit) — never a silent `clear`. Configure the refuter backend to a model **structurally different** from the spec author's; independence is the whole point.
 
 ### Per-lens outcome (the helper's exit decides — not prose)
 

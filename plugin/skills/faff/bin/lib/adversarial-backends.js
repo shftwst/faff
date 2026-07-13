@@ -1,0 +1,221 @@
+// ===========================================================================
+// === region:factory — adversarial-backends — FAFF-261: mechanical assembly of ===
+// the adversarial-review fallback chain from config, replacing agent hand-
+// assembly (JSON.parse the fallbacks string + merge + temp-file) with one
+// deterministic emitter. Emits the exact primary-first, snake_case shape
+// `review-call.mjs`'s `--backends-json` mapper already consumes verbatim
+// ({provider,model,host,api_key_env?,reasoning_off?,timeout?}) — review-call.mjs
+// itself is UNCHANGED by this command. Preserves the FAFF-213 unset-provider
+// signal (exit 3) so a calling skill's existing --host-source default →
+// needs-human path is byte-for-byte unchanged; a malformed `fallbacks` value
+// fails loud (exit 2) rather than silently emitting a [primary]-only chain.
+// ===========================================================================
+
+const { dig, findRoot } = require("./shared-infra");
+const { loadConfig } = require("./config");
+
+// The Backend record's field set (snake_case — the shape review-call.mjs's
+// mapper reads verbatim: b.api_key_env || b.apiKeyEnv, b.reasoning_off ??
+// b.reasoningOff ?? false, b.timeout != null — see review-call.mjs's
+// --backends-json mapper). provider/model/host are required by the mapper's
+// own usage contract; the rest are optional.
+const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "reasoning_off", "timeout"];
+
+function present(v) { return v !== null && v !== undefined && v !== ""; }
+
+// PURE: copy only the known Backend fields present on `obj` (a config-shaped
+// object — the `adversarial` scalar block, or one `backends[]`/parsed-
+// `fallbacks[]` array element). Never leaks an unrelated config key into the
+// emitted chain.
+function pickBackendKeys(obj) {
+  const out = {};
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return out;
+  for (const k of BACKEND_KEYS) if (present(obj[k])) out[k] = obj[k];
+  return out;
+}
+
+// PURE: a legacy fallback inherits any OMITTED optional key (api_key_env /
+// reasoning_off / timeout) from the primary — provider/model/host are always
+// self-contained (a fallback names its own backend; there is nothing sensible
+// to inherit there). An explicit value on the fallback is never overwritten.
+function inheritOptionalFromPrimary(fallback, primary) {
+  const out = pickBackendKeys(fallback);
+  for (const k of ["api_key_env", "reasoning_off", "timeout"]) {
+    if (!(k in out) && present(primary[k])) out[k] = primary[k];
+  }
+  return out;
+}
+
+// PURE core (FAFF-261): assemble the primary-first backend chain from the
+// `faffter_dark.adversarial` config block. Returns { chain } on success, or
+// { error: "unset" } — no provider configured, or its host is unset (the
+// FAFF-213 signal; the caller maps this to exit 3, never a localhost-defaulted
+// chain) — or { error: "malformed", detail } — unparseable/non-array
+// `fallbacks` JSON (the caller maps this to exit 2, fail-loud, never a
+// silently-emitted [primary]-only chain on a broken config).
+function assembleAdversarialBackends(cfg) {
+  const adv = dig(cfg, "faffter_dark.adversarial");
+  if (!adv || typeof adv !== "object" || Array.isArray(adv)) return { error: "unset" };
+
+  // Native `backends:` array form (FAFF-262) — each element stands alone, used
+  // as-is (no primary-key inheritance; review-call.mjs's mapper supplies its
+  // own reasoning_off/timeout defaults for a bare element). An explicit EMPTY
+  // array is not a valid chain (spec §4 edge cases) — fall through to legacy.
+  if (Array.isArray(adv.backends) && adv.backends.length > 0) {
+    return { chain: adv.backends.map(pickBackendKeys) };
+  }
+
+  // Legacy `primary + fallbacks`-string form. An unset host is the FAFF-213
+  // signal — never emit a localhost-defaulted chain.
+  if (!present(adv.host)) return { error: "unset" };
+  const primary = pickBackendKeys(adv);
+  let fallbacks = [];
+  if (present(adv.fallbacks)) {
+    let parsed;
+    try { parsed = JSON.parse(adv.fallbacks); }
+    catch (e) { return { error: "malformed", detail: `faffter_dark.adversarial.fallbacks is not valid JSON: ${e.message}` }; }
+    if (!Array.isArray(parsed)) {
+      return { error: "malformed", detail: "faffter_dark.adversarial.fallbacks must be a JSON array of backend objects" };
+    }
+    fallbacks = parsed.map((fb) => inheritOptionalFromPrimary(fb, primary));
+  }
+  const chain = [primary, ...fallbacks];
+  if (chain.length === 0) return { error: "unset" };
+  return { chain };
+}
+
+function cmdAdversarialBackends(args) {
+  if (args.includes("--selftest")) return adversarialBackendsSelftest();
+  let root = null;
+  for (let i = 0; i < args.length; i++) if (args[i] === "--root") root = args[++i];
+  // --json is accepted-and-ignored: the default output is already the JSON
+  // array `review-call.mjs`'s --backends-json wants (the single sanctioned
+  // shape), so the flag exists for CLI-convention parity, not a mode switch.
+  root = root || findRoot();
+  const [cfg] = loadConfig(root);
+  const res = assembleAdversarialBackends(cfg);
+  if (res.error === "unset") {
+    process.stderr.write(
+      "faff adversarial-backends: faffter_dark.adversarial is unset (or its host is unset) — " +
+      "no adversarial provider configured; the calling skill's --host-source default → needs-human path applies\n");
+    return 3;
+  }
+  if (res.error === "malformed") {
+    process.stderr.write(`faff adversarial-backends: ${res.detail}\n`);
+    return 2;
+  }
+  console.log(JSON.stringify(res.chain));
+  return 0;
+}
+
+// In-memory selftest table (mirrors eligible/models' --selftest shape). Covers
+// the DONE-listed cases: legacy primary-only, legacy primary+fallbacks
+// (inheritance + `nvidia/`-prefix preservation), native `backends:` array,
+// unset-host (exit-3 class), malformed `fallbacks` (exit-2 class), plus the
+// round-trip contract (emitted keys ⊆ the --backends-json mapper's accepted set).
+function adversarialBackendsSelftest() {
+  let fail = 0;
+  const ok = (label, cond) => { console.log(`${cond ? "ok  " : "FAIL"} ${label}`); if (!cond) fail++; };
+
+  // legacy, primary-only (no fallbacks key at all) — one-element chain.
+  {
+    const cfg = { faffter_dark: { adversarial: {
+      provider: "nvidia", model: "nvidia/nemotron-3-super-120b-a12b",
+      host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
+    } } };
+    const res = assembleAdversarialBackends(cfg);
+    ok("legacy primary-only: one-element chain", !!res.chain && res.chain.length === 1);
+    ok("legacy primary-only: nvidia/ prefix intact", res.chain[0].model === "nvidia/nemotron-3-super-120b-a12b");
+    ok("legacy primary-only: api_key_env carried", res.chain[0].api_key_env === "NVIDIA_API_KEY");
+  }
+
+  // legacy, primary + fallbacks — inheritance of omitted optional keys + nvidia/ prefix preserved.
+  {
+    const cfg = { faffter_dark: { adversarial: {
+      provider: "nvidia", model: "nvidia/nemotron-3-super-120b-a12b",
+      host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
+      fallbacks: JSON.stringify([{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio:11434" }]),
+    } } };
+    const res = assembleAdversarialBackends(cfg);
+    ok("legacy+fallbacks: two-element primary-first chain", !!res.chain && res.chain.length === 2);
+    ok("legacy+fallbacks: primary nvidia/ prefix intact", res.chain[0].model === "nvidia/nemotron-3-super-120b-a12b");
+    ok("legacy+fallbacks: fallback provider/model/host self-contained",
+      res.chain[1].provider === "ollama" && res.chain[1].model === "qwen3-next:80b" && res.chain[1].host === "http://studio:11434");
+    ok("legacy+fallbacks: fallback inherits omitted api_key_env from primary", res.chain[1].api_key_env === "NVIDIA_API_KEY");
+    ok("legacy+fallbacks: fallback inherits omitted timeout from primary", res.chain[1].timeout === 480);
+  }
+
+  // legacy, fallback with its OWN api_key_env — inheritance never overwrites an explicit value.
+  {
+    const cfg = { faffter_dark: { adversarial: {
+      provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "PRIMARY_KEY",
+      fallbacks: JSON.stringify([{ provider: "openai", model: "m2", host: "https://b/v1", api_key_env: "FALLBACK_KEY" }]),
+    } } };
+    const res = assembleAdversarialBackends(cfg);
+    ok("legacy+fallbacks: an explicit fallback api_key_env is never overwritten by inheritance", res.chain[1].api_key_env === "FALLBACK_KEY");
+  }
+
+  // native backends: array — each element used as-is, no inheritance applied.
+  {
+    const cfg = { faffter_dark: { adversarial: { backends: [
+      { provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "K1" },
+      { provider: "ollama", model: "m2", host: "http://b:11434" },
+    ] } } };
+    const res = assembleAdversarialBackends(cfg);
+    ok("native backends: two-element chain, primary-first order preserved",
+      !!res.chain && res.chain.length === 2 && res.chain[0].model === "nvidia/m1" && res.chain[1].model === "m2");
+    ok("native backends: no cross-element inheritance (fallback has no api_key_env)", !("api_key_env" in res.chain[1]));
+  }
+
+  // native backends: empty array falls through to legacy — unset host here → exit-3 class.
+  {
+    const cfg = { faffter_dark: { adversarial: { backends: [] } } };
+    ok("native empty backends[] + no legacy host → unset (exit-3 class)", assembleAdversarialBackends(cfg).error === "unset");
+  }
+
+  // unset: no faffter_dark.adversarial block at all.
+  ok("absent adversarial block → unset (exit-3 class)", assembleAdversarialBackends({}).error === "unset");
+
+  // unset: legacy scalars present but host is unset (the FAFF-213 signal) — must
+  // NEVER fall back to a localhost-defaulted chain.
+  {
+    const cfg = { faffter_dark: { adversarial: { provider: "nvidia", model: "m1" } } };
+    ok("legacy with unset host → unset (exit-3 class), never a localhost default", assembleAdversarialBackends(cfg).error === "unset");
+  }
+
+  // malformed: fallbacks is not valid JSON.
+  {
+    const cfg = { faffter_dark: { adversarial: { provider: "nvidia", model: "m1", host: "https://a/v1", fallbacks: "{not json" } } };
+    ok("malformed fallbacks JSON → malformed (exit-2 class), never a silent [primary]-only chain",
+      assembleAdversarialBackends(cfg).error === "malformed");
+  }
+
+  // malformed: fallbacks parses but is not an array.
+  {
+    const cfg = { faffter_dark: { adversarial: { provider: "nvidia", model: "m1", host: "https://a/v1", fallbacks: '{"a":1}' } } };
+    ok("non-array fallbacks JSON → malformed (exit-2 class)", assembleAdversarialBackends(cfg).error === "malformed");
+  }
+
+  // round-trip contract: emitted keys are exactly the snake_case shape review-call.mjs's
+  // --backends-json mapper reads (provider/model/host/api_key_env/reasoning_off/timeout) —
+  // no camelCase, no stray keys leaked from the config object.
+  {
+    const cfg = { faffter_dark: { adversarial: {
+      provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K", reasoning_off: true, timeout: 30,
+      some_other_key: "must-not-leak",
+    } } };
+    const res = assembleAdversarialBackends(cfg);
+    const keys = Object.keys(res.chain[0]);
+    const allowed = new Set(BACKEND_KEYS);
+    ok("emitted keys ⊆ the mapper's accepted key set", keys.every((k) => allowed.has(k)));
+    ok("unrelated config keys never leak into the emitted backend", !("some_other_key" in res.chain[0]));
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (adversarial-backends, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+module.exports = {
+  BACKEND_KEYS, adversarialBackendsSelftest, assembleAdversarialBackends, cmdAdversarialBackends,
+  inheritOptionalFromPrimary, pickBackendKeys,
+};

@@ -124,6 +124,9 @@ const REGION_MAP = {
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
   // sits in factory, not governance, despite the name.
   "governance-check": "factory",
+  // FAFF-261: mechanical adversarial-backends assembly reads config via loadConfig/dig
+  // (factory identifiers, config.js) — same family as config/eligible/models → factory.
+  "adversarial-backends": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -199,6 +202,7 @@ const REGION_SELFTEST_ARGV = {
   "merge-gate": ["merge-gate", "--selftest"],
   "branch-protection-check": ["branch-protection-check", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],
+  "adversarial-backends": ["adversarial-backends", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

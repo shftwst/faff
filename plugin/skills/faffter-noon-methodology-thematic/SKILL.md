@@ -260,6 +260,12 @@ Independents run in parallel; collision groups serialise within themselves.
 
 **Appetite** tunes only the strictness of `within_scope` (lower = permissive, higher = tighter), never whether to admit — the conservative-reject-on-doubt arbitration is the CLI's.
 
+### `rehome-set`
+
+**Optional** (gateway → **The `methodology` slot**). Proposing outcome-led project homes for loose Backlog work requires an **outcome** judgement — which shippable outcome a set of loose tickets converges on — and this lens is opinion-free by design: it groups by where work *sits* in the graph, never by the value-outcome it delivers. So the thematic default's legitimate answer is an **empty rehome-set**: no proposed containers, no membership map, no coherence edges, no leave-loose reasoning. This is an answer, not a gap — outcome-led formation is exactly the opinion an opinionated lens (`faffter-dark-methodology-agile-delivery`) adds on top.
+
+**Empty/unanswered ⇒ the caller reports no grouping opinion and writes nothing** (zero-config unchanged).
+
 ## Appetite integration
 
 The thematic lens respects appetite but has limited agency by design:

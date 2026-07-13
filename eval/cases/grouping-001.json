@@ -1,0 +1,29 @@
+{ "id": "grouping-001", "kind": "grouping",
+  "fixture": { "version": 1,
+    "loose_issues": [
+      { "id": "TCK-11", "title": "Add a password-reset request endpoint that emails a one-time token" },
+      { "id": "TCK-12", "title": "Reset-token email template + expiry copy" },
+      { "id": "TCK-13", "title": "Rate-limit reset requests per account to stop enumeration" },
+      { "id": "TCK-21", "title": "Generate a PDF invoice from a billing period" },
+      { "id": "TCK-22", "title": "Scheduler that emails each customer their monthly invoice" },
+      { "id": "TCK-31", "title": "Bump the CI runner base image to ubuntu-24.04" }
+    ],
+    "dependency_graph": [
+      { "blocker": "TCK-11", "blocked": "TCK-13" },
+      { "blocker": "TCK-21", "blocked": "TCK-22" }
+    ],
+    "existing_projects": [
+      { "name": "Customers can pay us on time", "outcome": "Customers receive and settle invoices without chasing" }
+    ] },
+  "question": "You are the agile-delivery methodology lens answering the `rehome-set` named output. Given the loose Backlog set, its dependency graph, and the existing projects, propose outcome-led project containers (name + one outcome each) with a membership map and any coherence blocker edges, order proposals by which grouping unlocks sequencable value first, and put every correctly-loose ticket in an explicit leave-loose set with a one-line reason. Every input ticket must appear exactly once across membership and leave-loose. Propose only high-confidence groupings; write nothing.",
+  "oracle": { "gloss_rubric": {
+    "must_include": [
+      ["password reset", "self-service password", "account recovery", "reset their own password"],
+      ["invoice", "invoicing", "billing"],
+      ["leave loose", "stays loose", "remains loose", "deliberately loose", "leave-loose"],
+      ["coherence edge", "blocked by", "blocker", "sequencable", "sequenceable"]
+    ],
+    "must_avoid": [
+      ["tech debt", "chores", "miscellaneous", "housekeeping", "grab bag"],
+      ["backend work", "frontend work", "infra work", "refactors", "the auth layer"]
+    ] } } }

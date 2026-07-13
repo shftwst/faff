@@ -65,12 +65,21 @@ function assembleAdversarialBackends(cfg) {
     return { chain: adv.backends.map(pickBackendKeys) };
   }
 
-  // Legacy `primary + fallbacks`-string form. An unset host is the FAFF-213
-  // signal — never emit a localhost-defaulted chain.
+  // Legacy `primary + fallbacks` form. An unset host is the FAFF-213 signal —
+  // never emit a localhost-defaulted chain.
   if (!present(adv.host)) return { error: "unset" };
   const primary = pickBackendKeys(adv);
   let fallbacks = [];
-  if (present(adv.fallbacks)) {
+  if (Array.isArray(adv.fallbacks)) {
+    // The config parser has handled native YAML block sequences under ANY key
+    // since FAFF-262 — a `fallbacks:` value authored as a real YAML list (not
+    // the quoted JSON-string form) already arrives here as a JS array; no
+    // JSON.parse is needed or correct (JSON.parse on a non-string coerces via
+    // toString, which would misreport a perfectly valid native list as
+    // malformed). Real repo configs use exactly this shape.
+    fallbacks = adv.fallbacks.map((fb) => inheritOptionalFromPrimary(fb, primary));
+  } else if (present(adv.fallbacks)) {
+    // The documented canonical shape: a quoted JSON-string array.
     let parsed;
     try { parsed = JSON.parse(adv.fallbacks); }
     catch (e) { return { error: "malformed", detail: `faffter_dark.adversarial.fallbacks is not valid JSON: ${e.message}` }; }
@@ -153,6 +162,22 @@ function adversarialBackendsSelftest() {
     } } };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy+fallbacks: an explicit fallback api_key_env is never overwritten by inheritance", res.chain[1].api_key_env === "FALLBACK_KEY");
+  }
+
+  // legacy, `fallbacks` authored as a NATIVE YAML array (not the JSON-string form) — the
+  // config parser has handled block sequences under any key since FAFF-262, so a real
+  // .faffrc.yaml may already hand this a JS array; it must be used as-is, never JSON.parse'd
+  // (which would misreport a valid native list as malformed via toString() coercion).
+  {
+    const cfg = { faffter_dark: { adversarial: {
+      provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "NVIDIA_API_KEY",
+      fallbacks: [{ provider: "gemini", model: "models/gemma-4-31b-it", host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY" }],
+    } } };
+    const res = assembleAdversarialBackends(cfg);
+    ok("legacy, native-array fallbacks: not misreported as malformed", res.error === undefined);
+    ok("legacy, native-array fallbacks: two-element primary-first chain", !!res.chain && res.chain.length === 2);
+    ok("legacy, native-array fallbacks: fallback fields carried through untouched",
+      res.chain[1].provider === "gemini" && res.chain[1].model === "models/gemma-4-31b-it" && res.chain[1].api_key_env === "GEMINI_API_KEY");
   }
 
   // native backends: array — each element used as-is, no inheritance applied.

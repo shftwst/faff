@@ -65,6 +65,24 @@ test("legacy fallback with its OWN api_key_env is never overwritten by inheritan
   assert.equal(res.chain[1].api_key_env, "FALLBACK_KEY");
 });
 
+test("legacy, fallbacks authored as a NATIVE YAML array (not JSON-string) is used as-is, never JSON.parse'd", () => {
+  // FAFF-262 lets the config parser turn a block sequence under ANY key into a real JS
+  // array. A real .faffrc.yaml's `faffter_dark.adversarial.fallbacks` may already be
+  // authored this way (not the quoted JSON-string form) — JSON.parse on an array would
+  // coerce via toString() and wrongly report "malformed". Must be used as-is.
+  const cfg = { faffter_dark: { adversarial: {
+    provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "NVIDIA_API_KEY",
+    fallbacks: [{ provider: "gemini", model: "models/gemma-4-31b-it", host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY" }],
+  } } };
+  const res = assembleAdversarialBackends(cfg);
+  assert.equal(res.error, undefined);
+  assert.equal(res.chain.length, 2);
+  assert.deepEqual(res.chain[1], {
+    provider: "gemini", model: "models/gemma-4-31b-it",
+    host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY",
+  });
+});
+
 test("native backends: array is emitted as-is, primary-first order preserved, no cross-element inheritance", () => {
   const cfg = { faffter_dark: { adversarial: { backends: [
     { provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "K1" },
@@ -167,6 +185,31 @@ test("CLI: --json is accepted-and-ignored (same JSON array either way)", () => {
     assert.equal(plain.code, 0);
     assert.equal(withJson.code, 0);
     assert.equal(plain.stdout, withJson.stdout);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("CLI: fallbacks authored as a real YAML block sequence (the shape this repo's own .faffrc.yaml uses) resolves cleanly, not malformed", () => {
+  const dir = fixtureDir(
+    "faffter_dark:\n" +
+    "  adversarial:\n" +
+    "    provider: nvidia\n" +
+    "    model: nvidia/nemotron-3-super-120b-a12b\n" +
+    "    host: https://integrate.api.nvidia.com/v1\n" +
+    "    api_key_env: NVIDIA_API_KEY\n" +
+    "    fallbacks:\n" +
+    "        - provider: gemini\n" +
+    "          model: models/gemma-4-31b-it\n" +
+    "          host: https://generativelanguage.googleapis.com/v1beta/openai\n" +
+    "          api_key_env: GEMINI_API_KEY\n",
+  );
+  try {
+    const r = runCli(["adversarial-backends"], { cwd: dir });
+    assert.equal(r.code, 0, `expected exit 0, got ${r.code}: ${r.stderr}`);
+    const chain = JSON.parse(r.stdout);
+    assert.equal(chain.length, 2);
+    assert.equal(chain[0].model, "nvidia/nemotron-3-super-120b-a12b");
+    assert.equal(chain[1].provider, "gemini");
+    assert.equal(chain[1].model, "models/gemma-4-31b-it");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

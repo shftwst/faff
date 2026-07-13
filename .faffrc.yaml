@@ -1,0 +1,62 @@
+# faff — the harness's OWN repo config (Linear tracker · agile lens · nlspec spec).
+# (Corrected 2026-07-01: previously carried a copied P1-link-shortener SUT / git-only header — a relic.)
+
+tracking:
+    spec_docs_path: docs/specs/ # where graft commits specs (git-only spec store is .faff/specs/)
+
+slots:
+    methodology: faffter-dark-methodology-agile-delivery # agile lens owns outcome-led project shape
+    spec: faffter-dark-nlspec # full nlspec → born-verifiable ## Scenarios + ### N. DONE
+    architecture: faffter-noon-architecture # PROPOSE box (default; explicit for clarity)
+    env: faffter-noon-env-compose # PROVISION box (docker-compose via your Colima daemon)
+    review: faffter-dark-adversarial-review # adversarial 2nd-opinion gate (RESTORED 2026-07-03 — dropped in the Jul 1 rewrite; see faffter_dark block below)
+    # evaluator (faffter-noon-evaluate) is invoked via the holdout → prdr-coverage path, not an rc slot.
+
+appetite: high
+automation_default: opt-in # fail-safe: a ticket is automatable ONLY when a human adds `faff-automate` in the tracker (the control-plane gesture, FAFF-19/125/218)
+intake_gate: warn
+
+budget: # FABLE-WEEK (frontier --converge): spend/time BACKSTOP, not a count-cap (FAFF-312 model).
+    max_attempts: 40 # runaway backstop ONLY (won't bind the scoped bulk slice); NOT the terminator
+    tokens: 3000000000 # 3B runaway backstop (subscription covers the week; catches a true runaway)
+    at_ceiling: escalate # surface a needs-human signal at the ceiling — never silently drain
+    # run-done (dryness) + convergence.max_waves govern the real exit; budget is the backstop.
+    # ORIGINAL (revert after the Fable week): max_attempts: 4 · tokens: 100000000 · at_ceiling: stop
+
+convergence:
+    enabled: true # within-run convergence on by default: drain execution-discovered scope in-run
+    max_waves: 8 # reported runaway backstop only (dryness is the normal exit, never this)
+
+# faffter-dark: LLM provider config for the adversarial `review` slot (faffter-dark-adversarial-review).
+faffter_dark:
+    adversarial: # PRIMARY backend = chain element 0
+        provider: nvidia
+        model: z-ai/glm-5.2
+        host: https://integrate.api.nvidia.com/v1
+        api_key_env: NVIDIA_API_KEY # confirmed set in env (name only; never the key itself)
+        timeout: 480
+        fallbacks:
+            # - provider: nvidia
+            #   model: deepseek-ai/deepseek-v4-pro
+            #   host: https://integrate.api.nvidia.com/v1
+            #   api_key_env: NVIDIA_API_KEY
+            # - provider: nvidia
+            #   model: nvidia/nemotron-3-super-120b-a12b
+            #   host: https://integrate.api.nvidia.com/v1
+            #   api_key_env: NVIDIA_API_KEY
+            - provider: gemini
+              model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
+              host: https://generativelanguage.googleapis.com/v1beta/openai
+              api_key_env: GEMINI_API_KEY
+            - provider: ollama
+              model: qwen3-next:80b-a3b-instruct-q4_K_M
+              host: http://studio.longhair-escalator.ts.net:11434
+
+models:
+    #build: opus # Agent-token — the concurrency executors' build subagents (default: inherit)
+    build_by_confidence:
+        default: opus
+        high: sonnet
+        medium: opus
+    prep_explore: sonnet # Agent-token — faff-prep's explore + clean-context verify subagents (default: inherit)
+    eval: claude-opus-4-8

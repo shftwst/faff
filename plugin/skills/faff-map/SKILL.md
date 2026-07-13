@@ -37,7 +37,7 @@ Run through these phases in order:
 - Establish the roadmap's shape from the tracker itself (per **Roadmap shape is deduced from the tracker** above): what the top-level outcome containers are, how projects nest under them, and how the status / cycle / target-date fields map onto Now / Next / Later horizons. There is no methodology doc to read — don't look for one.
 - Re-fetch the tracker's top-level outcome containers (Linear: initiatives; GitHub Projects: projects; Jira: epics or initiatives — autodetect from the available MCP, don't hardcode). For each: name, status, success metric / description.
 - For each initiative, fetch its child projects with their status (started/planned/backlog or the tracker's equivalent), description, and target dates.
-- For each project, fetch its issues with status, priority, and blocker links (both directions — what blocks me, what I block).
+- For each project, fetch its issues with status, priority, and blocker links (both directions — what blocks me, what I block). Drop satisfied edges before any downstream use (gateway → **Satisfied blockers — edges to terminal work**) — a blocker whose target has shipped is not live.
 - Read `CLAUDE.md` for any consuming-project context that should weight initiatives (current workstream flag, paused initiatives, externally-imposed deadlines).
 - Pull recent git activity (last 7-14 days of commits on `main` and active branches, recent merged PRs) to ground "Now" projects against actual movement — a project marked "started" with no recent commits is a finding.
 
@@ -75,7 +75,7 @@ If an initiative is missing a horizon (no Next, no Later) — call it out as **�
 
 ### 4. Dependency chain — does everything join up?
 
-Draw an ASCII chain showing how initiatives feed each other. The chain answers: **if every Now project ships, do the Next gates fire? If every Next project ships, do the Later initiatives unblock?**
+Draw an ASCII chain showing how initiatives feed each other. The chain answers: **if every Now project ships, do the Next gates fire? If every Next project ships, do the Later initiatives unblock?** Draw the chain over **live** blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) is not a link and never breaks the join-up.
 
 ```
           ┌─────────────────────────────────────────┐
@@ -96,7 +96,7 @@ After the diagram, write one summary line. It must stay consistent with the depe
 
 ### 5. Trigger gates and whether they can fire
 
-For every "X → Y" transition implied by the chain, table whether the gate can actually fire. A gate is **fireable** if (a) all upstream work is in flight or shipped and (b) the downstream project actually exists in the tracker.
+For every "X → Y" transition implied by the chain, table whether the gate can actually fire. A gate is **fireable** if (a) all upstream work is in flight or shipped and (b) the downstream project actually exists in the tracker. A satisfied blocker edge (gateway → **Satisfied blockers — edges to terminal work**) never counts against fireability.
 
 | Gate | Who fires it | Currently fireable? | Notes |
 |---|---|---|---|

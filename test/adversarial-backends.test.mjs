@@ -257,6 +257,13 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     "    timeout: 30\n" +
     '    fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]\'\n',
   );
+  // review-call.mjs resolves each backend's api_key_env against the AMBIENT process.env
+  // (never injectable) — force it deterministically set here (some dev machines legitimately
+  // export NVIDIA_API_KEY; CI never does) so this test's outcome never depends on whichever
+  // happens to be true of the runtime environment it executes in.
+  const hadKey = Object.prototype.hasOwnProperty.call(process.env, "NVIDIA_API_KEY");
+  const savedKey = process.env.NVIDIA_API_KEY;
+  process.env.NVIDIA_API_KEY = "test-dummy-key";
   try {
     const emitted = runCli(["adversarial-backends"], { cwd: dir });
     assert.equal(emitted.code, 0, emitted.stderr);
@@ -287,5 +294,8 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     assert.equal(captured[1].model, "qwen3-next:80b");
     assert.equal(captured[1].host, "http://studio:11434");
     assert.equal(captured[1].timeoutMs, 30000, "the fallback inherited the primary's timeout, and the transport read it correctly");
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally {
+    if (hadKey) process.env.NVIDIA_API_KEY = savedKey; else delete process.env.NVIDIA_API_KEY;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

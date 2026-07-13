@@ -185,13 +185,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 **Ordering:** `pick-ordering`. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
 
-**Conflict analysis (safe for parallel):**
-1. Specs name same files → collision
-2. Specs name same top-level directory → collision
-3. One declares another as blocker → serialise dependent behind
-4. Shared scope tag per CLAUDE.md conventions → collision
-
-Independents run in parallel; collision groups serialise within themselves.
+**Conflict analysis:** partition the admitted set into independents (parallel-safe) and collision groups (serialised within the group, parallel across groups) per the canonical heuristics — see `faff-beep-boop` → **Conflict analysis**. Single home: do **not** recap the heuristics here.
 
 **Wave structure:** After each wave drains, re-check for newly unlocked work, narrow-prep unblocked candidates, re-assemble the queue. Continue until drained or budget hit.
 

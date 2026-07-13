@@ -117,3 +117,29 @@ node eval/run-evals.mjs --compare \
 FAFF-131 then fills `docs/adr/0004-*.md` (FAFF-130 shipped the **scaffold**) with the measured
 per-kind accuracy + flakiness + $/case cost + the gloss judge↔human delta — now tabulable
 **frontier vs local** — and the fork recommendation (evals-only / live-driver / both).
+
+## Raw judgement capture (FAFF-320)
+A full sweep (`node eval/run-evals.mjs`, and `--update-baseline`) streams **every rep's raw judgement**
+to a durable append-only JSONL as each rep completes — *before* the next rep runs — so a `SIGKILL`
+mid-sweep loses at most the in-flight rep, and calibration (FAFF-319) reads captured data instead of
+re-running a multi-hour sweep. The path is printed at sweep start:
+```
+.faff/eval-runs/<run-id>/judgements.jsonl        # run-id = YYYYMMDD-HHMMSS (gitignored, durable-local)
+```
+One JSONL line per completed rep (a `JudgementRecord`): `run_id, ts, case_id, kind, rep, status`
+(`"graded"|"errored"`), `raw_text` (the model output, capped to `RAW_CAP` = 16 KB with `raw_truncated`),
+`raw_truncated, envelope` (the parsed judgement, `null` on parse failure), `graded, score, signature,
+oracle`. **Advisory-only** — never a gate/oracle/`per_kind` input (ADR-0004); the run's pass/fail is
+byte-identical with capture on vs off. Errored reps are captured too (an envelope-parse failure keeps
+the bounded failing `raw_text` — the highest-value capture for fixing a broken contract).
+
+Inspect model-**predicted vs oracle** per case straight from the log (the documented `jq` recipe — the
+same one recorded in the operator-local `.faff/calibration/README.md`):
+```sh
+jq -c 'select(.case_id=="confidence-001") | {rep, predicted: .envelope, graded, oracle}' \
+  .faff/eval-runs/<run-id>/judgements.jsonl
+```
+`per_kind` accuracy/stability is **derivable** from the captured `score`/`signature` grouped by `kind`
+(the source material FAFF-318's resume/checkpoint would consume). Retention: bounded per-rep by the
+16 KB `raw_text` cap; no auto-pruning in v1 (a multi-hour sweep is still many MB — prune old
+`.faff/eval-runs/` dirs by hand).

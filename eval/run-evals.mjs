@@ -8,8 +8,8 @@
 // eval/ is NOT matched by `node --test` globs, so CI never imports/runs this orchestrator.
 // Zero-dependency: node builtins only.
 
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
 import https from "node:https";
@@ -20,6 +20,64 @@ import { parseJudgementEnvelope, EnvelopeError } from "./envelope.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const BASE_REPS = 20;     // spec Decision 4 — ~88% power vs a 10% flip rate
 export const MAX_REPS = 50;      // adaptive-escalation ceiling
+
+// FAFF-320 — durable per-rep raw-judgement capture (advisory-only; NEVER a grading input — ADR-0004).
+// Each completed rep (happy path + both error branches) appends one JudgementRecord JSONL line to
+// `.faff/eval-runs/<run-id>/judgements.jsonl` the instant it finishes — before the next rep's driver
+// call — so a SIGKILL mid-sweep loses at most the in-flight rep and calibration reads captured data
+// instead of re-running. Capture is opt-in: a `judgementsPath` threaded from the CLI entry point,
+// defaulting to null so the pure mock-driver test path stays I/O-free (the deadlineMs = null pattern).
+export const RAW_CAP = 16384; // bytes — bounds a pathological model dump × ~1,300 reps; envelopes are tiny.
+
+// PURE — cap rawText to RAW_CAP bytes, keeping the leading (envelope/parse-relevant) head. Returns
+// { raw_text, raw_truncated }; null rawText (e.g. the driver threw) → { null, false }.
+export function capRaw(rawText, cap = RAW_CAP) {
+  if (rawText == null) return { raw_text: null, raw_truncated: false };
+  const buf = Buffer.from(String(rawText), "utf8");
+  if (buf.length <= cap) return { raw_text: String(rawText), raw_truncated: false };
+  return { raw_text: buf.subarray(0, cap).toString("utf8"), raw_truncated: true };
+}
+
+// PURE — build one JudgementRecord from the values already in hand at a rep's completion point.
+export function buildJudgementRecord(c, i, runId, { status, rawText = null, env = null, graded = null, score = null, signature = null }) {
+  const { raw_text, raw_truncated } = capRaw(rawText);
+  return {
+    run_id: runId,
+    ts: new Date().toISOString(),
+    case_id: c.id,
+    kind: c.kind,
+    rep: i,
+    status,
+    raw_text,
+    raw_truncated,
+    envelope: env,
+    graded,
+    score,
+    signature,
+    oracle: c.oracle,
+  };
+}
+
+// Guarded synchronous append — mirrors `bin/faff events append` (inline, NOT imported: the eval
+// harness stays node-builtins-only). Synchronous by design: the record is flushed to disk before the
+// call returns, hence before the next rep's driver call — the crash-salvage guarantee.
+export function appendJudgement(judgementsPath, record) {
+  if (judgementsPath == null) return;                          // opt-out / test path
+  mkdirSync(dirname(judgementsPath), { recursive: true });     // lazy, idempotent
+  appendFileSync(judgementsPath, JSON.stringify(record) + "\n");
+}
+
+// PURE — mint a date-prefixed YYYYMMDD-HHMMSS run-id (lexical sort == chronological, matching .faff/runs/).
+export function mintRunId(d = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+// Resolve the capture path for a full sweep: `.faff/eval-runs/<run-id>/judgements.jsonl` (dir created
+// lazily on first append). Minted ONLY at the full-sweep CLI entry points (main, --update-baseline).
+export function mintCapturePath(runId = mintRunId()) {
+  return join(HERE, "..", ".faff", "eval-runs", runId, "judgements.jsonl");
+}
 
 export function loadCases(dir = join(HERE, "cases")) {
   return readdirSync(dir)
@@ -43,17 +101,24 @@ export function loadLiveCases(dir = join(HERE, "cases-live")) {
 }
 
 // Drive one case. `driver(evalCase, repIndex) -> Promise<{ rawText, tokens, transcript? }>`.
-async function runCase(c, driver, { baseReps, maxReps }) {
+// FAFF-320 — `judgementsPath` (default null): when set, each completed rep appends one JudgementRecord
+// to it synchronously, before the next rep runs. null (the mock-driver test path) → capture is a no-op.
+async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null }) {
   const base = Math.min(c.reps || baseReps, maxReps);
   const reps = [];
   let target = base;
   let escalated = false;
+  // FAFF-320 — the run-id is the capture dir's name; derived (not re-threaded) so runCase's contract
+  // stays minimal. null path → no capture (records are neither built nor written — clock-free).
+  const runId = judgementsPath ? basename(dirname(judgementsPath)) : null;
   for (let i = 0; i < target; i++) {
     let out;
     try {
       out = await driver(c, i);
     } catch (e) {
       reps.push(erroredRep(`driver-error:${e.message}`));
+      // FAFF-320 — driver threw: no out, no envelope, no grade. Captured so crash-salvage has no holes.
+      if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "errored", rawText: null, env: null, graded: "ERRORED" }));
       continue;
     }
     try {
@@ -62,12 +127,17 @@ async function runCase(c, driver, { baseReps, maxReps }) {
       rr.tokens = out.tokens ?? rr.tokens ?? 0;
       rr.format = env.format; // FAFF-137: "compliant" | "noncompliant" — feeds format_adherence
       reps.push(rr);
+      // FAFF-320 — happy path: envelope + grade in hand. Advisory capture only (never feeds per_kind).
+      if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "graded", rawText: out.rawText, env, graded: rr.graded, score: rr.score, signature: rr.signature }));
     } catch (e) {
       // FAFF-139: the per-rep cfgDir is removed by the driver, so the errored-rep diagnostic is the
       // malformed-output snippet (the actual judgement text that failed to parse), not a dead path.
       if (e instanceof EnvelopeError) {
         const snippet = out.rawText ? out.rawText.slice(0, 300) : null;
         reps.push(erroredRep(out.transcript ?? snippet ?? e.message));
+        // FAFF-320 — envelope-parse failure: the bounded failing rawText is the HIGHEST-value capture
+        // (envelope is null, so this is what you inspect to fix a broken contract / miscalibrated oracle).
+        if (judgementsPath) appendJudgement(judgementsPath, buildJudgementRecord(c, i, runId, { status: "errored", rawText: out.rawText, env: null, graded: "ERRORED" }));
       } else throw e; // a real grader bug must surface, not masquerade as flakiness
     }
     // Adaptive escalation: once the base reps are in, if they disagree, concentrate reps here.
@@ -81,12 +151,12 @@ async function runCase(c, driver, { baseReps, maxReps }) {
 
 // Run all cases. `deadlineMs` (optional) is the wall-clock ceiling checked BETWEEN cases —
 // when unset (the test path) no clock is read, so the orchestrator is deterministic.
-export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = MAX_REPS, deadlineMs = null } = {}) {
+export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = MAX_REPS, deadlineMs = null, judgementsPath = null } = {}) {
   const results = [];
   let incomplete = false;
   for (const c of cases) {
     if (deadlineMs != null && Date.now() >= deadlineMs) { incomplete = true; break; }
-    results.push(await runCase(c, driver, { baseReps, maxReps }));
+    results.push(await runCase(c, driver, { baseReps, maxReps, judgementsPath })); // FAFF-320 — opt-in capture
   }
   return summarize(results, incomplete);
 }
@@ -231,7 +301,9 @@ async function updateBaseline(argv, presets, baselinePath) {
   const driver = resolveDriver(argv, presets);
   let cases = loadCases();
   if (only) cases = cases.filter((c) => c.id === only);
-  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
+  const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for this multi-hour sweep
+  console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
+  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS, judgementsPath });
   let prevPolicy = DEFAULT_POLICY;
   try { prevPolicy = JSON.parse(readFileSync(baselinePath, "utf8")).policy ?? DEFAULT_POLICY; } catch { /* new baseline */ }
   const out = {
@@ -473,6 +545,8 @@ export async function gate(argv, presets, baselinePath, opts = {}) {
 // `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json`   (FAFF-169: deliberate re-baseline)
 // frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
 // Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less baseline.
+// FAFF-320 — a full sweep (`main`, `--update-baseline`) streams every rep's raw judgement to
+// `.faff/eval-runs/<run-id>/judgements.jsonl` (printed at start) for crash-salvage + calibration.
 async function main(argv) {
   const cliPresets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
   const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
@@ -491,7 +565,9 @@ async function main(argv) {
   const driver = resolveDriver(argv, presets); // fail-loud before loadCases/runEvals if local underspecified
   let cases = loadCases();
   if (only) cases = cases.filter((c) => c.id === only);
-  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
+  const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for the full sweep
+  console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
+  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS, judgementsPath });
   const reportDir = join(HERE, "report");
   mkdirSync(reportDir, { recursive: true });
   writeFileSync(join(reportDir, "latest.json"), JSON.stringify(summary, null, 2));

@@ -21,7 +21,7 @@ const CONTROL_LABELS = [
   { name: "faff-jot-intake", color: "#4ea7fc",
     description: "Cosmetic hint: work created by /faff-jot, picked up by the next /faff-prep pass. NOT provenance — the load-bearing intake signal is the .faff/provenance marker (FAFF-212) and the initiated audit field (FAFF-220); this label survives only as a grandfather bridge for legacy tickets (FAFF-209: the label alone is NOT provenance)." },
   { name: "faff-chain-gap-fill", color: "#4ea7fc",
-    description: "Cosmetic hint: an auto-filled chain-gap / execution-discovered ticket (faff-tidy / faff-beep-boop), picked up by the next /faff-prep pass. NOT provenance — the load-bearing initiation signal is the initiated: autonomous audit field (FAFF-220); this label survives only as a grandfather/migration hint." },
+    description: "Cosmetic hint: an auto-filled chain-gap / execution-discovered ticket (faff-tidy / faff-beep-boop, or a methodology lens filing a surfaced prerequisite/follow-up dependency), picked up by the next /faff-prep pass. NOT provenance — the load-bearing initiation signal is the initiated: autonomous audit field (FAFF-220); this label survives only as a grandfather/migration hint." },
   { name: "faff-awaiting-review", color: "#f2c94c",
     description: "Built work holding for review-provider recovery; the next drain resumes at review (no rebuild). Applied by faff-graft; cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear on state moves). NOT a park (faff-parked, above) — a hold means automation is waiting on a machine, not a human (FAFF-403)." },
   { name: "faff-repeat-parked", color: "#d97706",

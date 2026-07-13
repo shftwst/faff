@@ -44,7 +44,7 @@ Order a set of issues by the core ordering rule. Issues gating the longest chain
 5. No false `**Assumes:**` entries (the assumption actually holds in current state)
 
 **Demote** when:
-- Repeat-parked: 3+ parks with same root-cause class in 21 days → demote to Backlog, tag `faff-repeat-parked` via `faff label add`
+- Repeat-parked: 3+ parks with same root-cause class in 21 days → demote to Backlog, tag `faff-repeat-parked` via the sanctioned op (`faff label add`)
 - Challenged spec: post-spec comment raises unresolved challenge → back to needs-prep
 - Stale spec: codebase drift invalidates approach → back to needs-refresh
 

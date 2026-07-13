@@ -42,7 +42,7 @@ const FIXED_NOW = "2026-06-16T00:00:00Z";
 function trackerWith(issueId) {
   return loadFixture({
     version: 1,
-    labels: [{ name: "faff-repeat-parked", color: "#e8a33d" }],
+    labels: [{ name: "faff-repeat-parked", color: "#d97706" }],
     issues: [
       {
         id: issueId,

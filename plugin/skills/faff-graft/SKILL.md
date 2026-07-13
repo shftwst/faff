@@ -55,7 +55,7 @@ The user may provide an issue identifier, OR invoke with no arguments.
 
 **Step 0: Create step-by-step todos (mandatory — interactive and autonomous)**
 
-Before starting any work, use `TodoWrite` to create one todo per numbered step below — one todo per step, in order. Mark each `in_progress` when starting it and `completed` the moment it finishes. This is the forcing function that stops review, AC verification, or any other late step from being dropped when the build phase becomes a habit loop.
+Before starting any work, use your harness's todo-tracking capability (e.g. `TodoWrite`, or `TaskCreate`/`TaskUpdate`) to create one todo per numbered step below — one todo per step, in order. Mark each `in_progress` when starting it and `completed` the moment it finishes. This is the forcing function that stops review, AC verification, or any other late step from being dropped when the build phase becomes a habit loop.
 
 Minimum todo set:
 

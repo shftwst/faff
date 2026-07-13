@@ -64,7 +64,7 @@ Test: if a reader can point at the visual and ask "is this right?" without re-re
 
 ## Canonical visual forms
 
-Callers pick from this catalogue. Inventing new visual forms inline is forbidden — if a skill needs a sixth form, this section gains it first.
+Callers pick from this catalogue. Inventing new visual forms inline is forbidden — if a skill needs a new form, this section gains it first.
 
 **(a) Cycle bracket** (3+ items inline)
 

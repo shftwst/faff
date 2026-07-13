@@ -37,7 +37,7 @@ This spec is the buildable design for FAFF-351. Audience: the build agent that w
 
 ## 3. WHAT — the per-level guarantee table
 
-(Full WHAT/HOW/SCENARIOS/DONE detail is on the FAFF-351 tracker comment; this committed copy is the build-time snapshot.)
+(Full WHAT/HOW/SCENARIOS/DONE detail is on the FAFF-351 tracker comment; this committed copy is the build-time snapshot. §4–§7 — HOW, SCENARIOS, DESIGN DECISION RATIONALE, OPEN QUESTIONS — live only on the tracker comment and are intentionally omitted here; the snapshot jumps §3 → §8.)
 
 Add a per-level guarantee table to the gateway levels section separating mechanically-enforced guarantees (each naming its artifact) from model-compliance ones (citing existing honest-limit prose), label L4 "(preview)" in both the levels table and the lights-out banner, and add one honest-axis line: decreasing scheduled human attention, with mechanical safety rising only where named.
 

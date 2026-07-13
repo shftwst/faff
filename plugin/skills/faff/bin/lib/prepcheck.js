@@ -162,12 +162,149 @@ function prepcheckHookDecision(openMarkers, nowMs, env, opts) {
   return { block: [...new Set(block)].sort(), warn: [...new Set(warn)].sort() };
 }
 
+// ---------------------------------------------------------------------------
+// FAFF-258 — single-issue prepcheck mode: the orchestrator↔prep delegation
+// reconciliation primitive. Extends FAFF-178's same-turn-attach guard from the
+// interactive Stop-hook to the delegated/autonomous prep boundary, where a
+// prep flow can emit its terminal token and return before the hook fires. A
+// pure marker reader — no tracker call (the pure-function CLI invariant); the
+// tracker spec-discovery read lives in the orchestrator's reconciliation.
+//
+// Additive only: gated on `--issue`, never touches the `--hook` code path
+// above (byte-unchanged) or the plain/`--json` global-scan path below.
+// ---------------------------------------------------------------------------
+
+// Attempt to read+parse `.faff/prep/<issue>.json`. Returns a filesystem read
+// result `{ exists, parseOk, marker }` — the classifier below is pure over
+// this shape, so PREPCHECK_ISSUE_SELFTEST_CASES drives it without touching disk.
+function readPrepIssueFile(root, issueId) {
+  const p = path.join(root, ".faff", "prep", `${issueId}.json`);
+  if (!fs.existsSync(p)) return { exists: false };
+  let raw;
+  try { raw = fs.readFileSync(p, "utf8"); } catch { return { exists: true, parseOk: false }; }
+  try {
+    const marker = JSON.parse(raw);
+    return { exists: true, parseOk: true, marker };
+  } catch {
+    return { exists: true, parseOk: false };
+  }
+}
+
+// Pure five-state classifier (filesystem-free): given a read result + the
+// optional caller-supplied run_dir, returns { payload, exitCode } per the
+// FAFF-258 spec's verdict enum + exit map (0/0/1/2/2 for
+// attached/parked/open/missing/malformed).
+function classifyPrepIssue(issueId, read, runDir) {
+  if (!read.exists) {
+    return {
+      payload: { issue: issueId, state: "missing", spec_produced: null, attached: null, disposition: null, owner: null, ts: null, owner_matches_run: null },
+      exitCode: 2,
+    };
+  }
+  const m = read.marker;
+  if (!read.parseOk || !m || typeof m !== "object" || Array.isArray(m) || !("spec_produced" in m)) {
+    return {
+      payload: { issue: issueId, state: "malformed", spec_produced: null, attached: null, disposition: null, owner: null, ts: null, owner_matches_run: null },
+      exitCode: 2,
+    };
+  }
+  const owner = m.owner || null;
+  const owner_matches_run = (runDir && owner && owner.run_dir)
+    ? path.resolve(runDir) === path.resolve(owner.run_dir)
+    : null;
+  const payload = {
+    issue: issueId,
+    spec_produced: m.spec_produced,
+    attached: m.attached === undefined ? null : m.attached,
+    disposition: m.disposition === undefined ? null : m.disposition,
+    owner,
+    ts: m.ts === undefined ? null : m.ts,
+    owner_matches_run,
+  };
+  if (m.disposition === "parked") return { payload: { ...payload, state: "parked" }, exitCode: 0 };
+  if (m.spec_produced === true && m.attached === true) return { payload: { ...payload, state: "attached" }, exitCode: 0 };
+  if (m.spec_produced === true && m.attached !== true) return { payload: { ...payload, state: "open" }, exitCode: 1 };
+  return { payload: { ...payload, state: "missing" }, exitCode: 2 }; // spec_produced not true → produced nothing yet
+}
+
+function prepcheckIssue(root, issueId, runDir) {
+  return classifyPrepIssue(issueId, readPrepIssueFile(root, issueId), runDir);
+}
+
+// [name, read, runDir, wantState, wantExitCode, wantOwnerMatchesRun?] — filesystem-free,
+// drives classifyPrepIssue directly. wantOwnerMatchesRun is checked only when present
+// (some cases care only about state/exit).
+const PREPCHECK_ISSUE_SELFTEST_CASES = [
+  ["attached marker → attached, exit 0",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-1", spec_produced: true, attached: true, ts: "2026-07-10T00:00:00Z" } },
+    null, "attached", 0],
+  ["parked marker (attach not expected, by-design non-attach) → parked, exit 0",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-2", spec_produced: true, attached: false, disposition: "parked" } },
+    null, "parked", 0],
+  ["produced-but-unattached, no park disposition → open, exit 1 (the FAFF-258 drop)",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-3", spec_produced: true, attached: false } },
+    null, "open", 1],
+  ["no marker file for the issue → missing, exit 2",
+    { exists: false },
+    null, "missing", 2],
+  ["marker present but unparseable JSON → malformed, exit 2",
+    { exists: true, parseOk: false },
+    null, "malformed", 2],
+  ["marker present but missing the required spec_produced key → malformed, exit 2",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-4", attached: false } },
+    null, "malformed", 2],
+  ["marker parses to a non-object (e.g. an array) → malformed, exit 2",
+    { exists: true, parseOk: true, marker: ["not", "an", "object"] },
+    null, "malformed", 2],
+  ["spec_produced explicitly false (nothing produced yet) → missing, exit 2",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-5", spec_produced: false } },
+    null, "missing", 2],
+  ["owner_matches_run: true when --run-dir matches the marker's owner.run_dir",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-6", spec_produced: true, attached: true, owner: { run_dir: "/runs/MINE" } } },
+    "/runs/MINE", "attached", 0, true],
+  ["owner_matches_run: false when --run-dir differs from the marker's owner.run_dir",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-7", spec_produced: true, attached: true, owner: { run_dir: "/runs/OTHER" } } },
+    "/runs/MINE", "attached", 0, false],
+  ["owner_matches_run: null when --run-dir is omitted",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-8", spec_produced: true, attached: true, owner: { run_dir: "/runs/OTHER" } } },
+    null, "attached", 0, null],
+  ["owner_matches_run: null when the marker carries no owner.run_dir at all",
+    { exists: true, parseOk: true, marker: { issue: "FAFF-9", spec_produced: true, attached: true, owner: { session_id: "S1" } } },
+    "/runs/MINE", "attached", 0, null],
+];
+
+function prepcheckIssueSelftest() {
+  let fail = 0;
+  for (const [name, read, runDir, wantState, wantExitCode, wantOwnerMatchesRun] of PREPCHECK_ISSUE_SELFTEST_CASES) {
+    const { payload, exitCode } = classifyPrepIssue("TEST-ISSUE", read, runDir);
+    let ok = payload.state === wantState && exitCode === wantExitCode;
+    if (wantOwnerMatchesRun !== undefined) ok = ok && payload.owner_matches_run === wantOwnerMatchesRun;
+    if (!ok) fail++;
+    const wantOwnerNote = wantOwnerMatchesRun !== undefined ? ` owner_matches_run=${wantOwnerMatchesRun}` : "";
+    console.log(`${ok ? "ok  " : "FAIL"} ${name} → state=${payload.state} exit=${exitCode} owner_matches_run=${payload.owner_matches_run} (want state=${wantState} exit=${wantExitCode}${wantOwnerNote})`);
+  }
+  return fail;
+}
+
 function cmdPrepcheck(args) {
   if (args.includes("--selftest")) return prepcheckSelftest();
   const hook = args.includes("--hook");
   const asJson = args.includes("--json");
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const root = get("--root") || findRoot();
+
+  // FAFF-258: single-issue mode — an exit-coded report (mirrors `runcheck RUN_DIR`),
+  // not a hook payload, since it's orchestrator-consumed rather than a Stop-hook.
+  // Gated on --issue; the --hook and global-scan paths below are untouched.
+  const issue = get("--issue");
+  if (issue) {
+    const runDir = get("--run-dir");
+    const { payload, exitCode } = prepcheckIssue(root, issue, runDir);
+    if (asJson) console.log(JSON.stringify(payload, null, 2));
+    else console.log(`${payload.state}: ${issue}`);
+    return exitCode;
+  }
+
   const markers = readPrepMarkers(root);
   const result = auditPrepMarkers(markers);
 
@@ -269,10 +406,11 @@ function prepcheckSelftest() {
     console.log(`${ok ? "ok  " : "FAIL"} markers=${markers.length} → open=${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
   }
   fail += prepcheckHookSelftest(); // FAFF-250: the ownership + liveness hook gate
-  const total = PREPCHECK_SELFTEST_CASES.length + PREPCHECK_HOOK_SELFTEST_CASES.length;
+  fail += prepcheckIssueSelftest(); // FAFF-258: the single-issue five-state verdict
+  const total = PREPCHECK_SELFTEST_CASES.length + PREPCHECK_HOOK_SELFTEST_CASES.length + PREPCHECK_ISSUE_SELFTEST_CASES.length;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { PREPCHECK_HOOK_SELFTEST_CASES, PREPCHECK_NOW, PREPCHECK_SELFTEST_CASES, PREP_MARKER_STALE_SECS_DEFAULT, PREP_OWN_RUN_DIR, auditPrepMarkers, cmdPrepcheck, isPrepMarkerOpen, openM, prepIsHeld, prepIsOwned, prepMarkerStaleSecs, prepMtAgo, prepReason, prepcheckHookDecision, prepcheckHookSelftest, prepcheckSelftest, readPrepMarkers, tryReadLedger };
+module.exports = { PREPCHECK_HOOK_SELFTEST_CASES, PREPCHECK_ISSUE_SELFTEST_CASES, PREPCHECK_NOW, PREPCHECK_SELFTEST_CASES, PREP_MARKER_STALE_SECS_DEFAULT, PREP_OWN_RUN_DIR, auditPrepMarkers, classifyPrepIssue, cmdPrepcheck, isPrepMarkerOpen, openM, prepIsHeld, prepIsOwned, prepMarkerStaleSecs, prepMtAgo, prepReason, prepcheckHookDecision, prepcheckHookSelftest, prepcheckIssue, prepcheckIssueSelftest, prepcheckSelftest, readPrepIssueFile, readPrepMarkers, tryReadLedger };

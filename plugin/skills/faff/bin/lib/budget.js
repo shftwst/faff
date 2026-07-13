@@ -528,11 +528,18 @@ function resolveBudgetNow(get) {
 function cmdBudget(args) {
   if (args.includes("--selftest")) return budgetSelftest();
   const sub = args.find((a) => !a.startsWith("-"));
-  if (sub !== "check") { process.stderr.write("usage: faff budget check [--run-dir DIR] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
+  if (sub !== "check") { process.stderr.write("usage: faff budget check [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
 
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const flags = { until: get("--until"), max_attempts: get("--max") };
   const root = get("--root") || findRoot();
+  // FAFF-488: an optional `--session-id` selects which session's transcript is
+  // metered, overriding $CLAUDE_CODE_SESSION_ID in the EFFECTIVE env handed to the
+  // measure functions below (never process.env itself, never written into any
+  // event/ledger field) — a selector, not a payload; non-leak by construction.
+  // Absent ⇒ effectiveEnv IS process.env, byte-for-byte today's resolution.
+  const sessionIdFlag = get("--session-id");
+  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
 
   // --now-ms/--now is a usage error (exit 2) — resolved BEFORE ledger evaluation,
   // same as before FAFF-425 (distinct from the ledger-fault exit 3 below).
@@ -578,7 +585,7 @@ function cmdBudget(args) {
   // `measureTokens` would (its `totals` is the sum over `by_model`, by
   // construction), so this is not a second walk — it is the one walk, now also
   // carrying what map-pricing needs. Estimate fallback when the transcript is gone.
-  const measuredFull = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs });
+  const measuredFull = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
   const costWarnings = [];         // accumulated unconditionally; the single costConfigured gate is at the flush point

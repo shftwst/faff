@@ -622,3 +622,39 @@ test("FAFF-337: runDirsNewestFirst orders by mtime — faff state resolves the i
     assert.equal(j2.ledger_run, "newer-name-older-mtime");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// ===========================================================================
+// FAFF-488 — S2: --session-id restores per-issue attribution on the pinned
+// root+session path (an owned agent-*.jsonl child + sibling .meta.json), from
+// a process cwd that is NOT the pinned root and with no ambient session id —
+// the same headless-orchestrator shape budget.test.mjs's S1 exercises.
+// ===========================================================================
+test("S2 (FAFF-488): --session-id restores per-issue attribution (owned child + .meta.json) from a mismatched cwd with no ambient session id", () => {
+  const ledger = baseLedger({ outcomes: { "FAFF-77": "shipped" }, budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  const worktree = mkdtempSync(join(tmpdir(), "faff-econ-worktree-"));
+  try {
+    const sid = "sess-perissue";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: { usage: [{ input_tokens: 1000 }] },
+      "agent-x.jsonl": { usage: [{ input_tokens: 500000 }], meta: { description: "Build FAFF-77 via faff-graft" } },
+    });
+    const spawnEnv = { HOME: process.env.HOME, PATH: process.env.PATH, CLAUDE_CONFIG_DIR: cfg };
+
+    // Sanity: without --session-id, no ambient sid → estimate, per_issue empty.
+    const before = spawnSync("node", [CLI, "economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    const beforeJson = JSON.parse(before.stdout);
+    assert.equal(beforeJson.tokens_source, "estimate");
+    assert.deepEqual(beforeJson.per_issue, []);
+
+    // With --session-id: the pinned root+session path restores both the
+    // four-class total AND per-issue attribution in the same call.
+    const after = spawnSync("node", [CLI, "economics", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid, "--json"],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    assert.equal(after.status, 0, after.stderr);
+    const afterJson = JSON.parse(after.stdout);
+    assert.equal(afterJson.tokens_source, "transcript");
+    assert.deepEqual(afterJson.per_issue, [{ issue: "FAFF-77", bucket: "shipped", tokens: 500000, cost: null }]);
+  } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
+});

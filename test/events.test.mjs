@@ -469,3 +469,38 @@ test("parity: the --tokens delta sum equals budget check's total on the same tra
     assert.equal(deltaSum, 181);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ===========================================================================
+// FAFF-488 — S5: `--session-id` selects which session's transcript `--tokens`
+// measures (overriding $CLAUDE_CODE_SESSION_ID in the effective env only) and
+// NEVER leaks into the emitted event — `data` stays exactly the four classes,
+// no session id / extra field anywhere in the written line.
+// ===========================================================================
+test("S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects the transcript for --tokens without leaking; events validate confirms exactly the four classes", () => {
+  const dir = tmp(); mkRun(dir, "R");
+  try {
+    const sid = "sess-s5-selector-only";
+    const cfg = withTranscripts(dir, dir, sid, { [`${sid}.jsonl`]: [{ input_tokens: 10, output_tokens: 2 }] });
+    writeLedger(dir, "R", { run_id: "R", budget: { tokens_at_start_by_class: { ...ZERO_BY_CLASS } } });
+    // No ambient CLAUDE_CODE_SESSION_ID anywhere in this env — only --session-id.
+    const r = run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens", "--session-id", sid],
+      JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const ev = lines(dir, "R");
+    assert.equal(ev[0].data.tokens_source, "transcript");
+    assert.deepEqual(ev[0].data.tokens, { input: 10, output: 2, cache_write: 0, cache_read: 0 });
+
+    // faff events validate confirms the well-formed shape.
+    const v = run(dir, ["events", "validate", "--file", logPath(dir, "R")]);
+    assert.equal(v.code, 0, v.err);
+
+    // Non-leak: the --session-id VALUE itself must never appear anywhere in the
+    // emitted line (it is a selector, never a payload) and data.tokens carries
+    // exactly the four classes — nothing else.
+    const raw = readFileSync(logPath(dir, "R"), "utf8");
+    assert.ok(!raw.includes(sid), "the --session-id value must never appear in the emitted event line");
+    assert.deepEqual(Object.keys(ev[0].data.tokens).sort(), ["cache_read", "cache_write", "input", "output"]);
+    assert.deepEqual(Object.keys(ev[0].data).sort(), ["tokens", "tokens_source"], "data carries only tokens + tokens_source — no session id, no extra field");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

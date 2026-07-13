@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -621,4 +621,102 @@ test("FAFF-337: runDirsNewestFirst orders by mtime — faff state resolves the i
     assert.equal(j2.ledger_outcome, "parked");
     assert.equal(j2.ledger_run, "newer-name-older-mtime");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ===========================================================================
+// FAFF-488 — S2: --session-id restores per-issue attribution on the pinned
+// root+session path (an owned agent-*.jsonl child + sibling .meta.json), from
+// a process cwd that is NOT the pinned root and with no ambient session id —
+// the same headless-orchestrator shape budget.test.mjs's S1 exercises.
+// ===========================================================================
+test("S2 (FAFF-488): --session-id restores per-issue attribution (owned child + .meta.json) from a mismatched cwd with no ambient session id", () => {
+  const ledger = baseLedger({ outcomes: { "FAFF-77": "shipped" }, budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  const worktree = mkdtempSync(join(tmpdir(), "faff-econ-worktree-"));
+  try {
+    const sid = "sess-perissue";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: { usage: [{ input_tokens: 1000 }] },
+      "agent-x.jsonl": { usage: [{ input_tokens: 500000 }], meta: { description: "Build FAFF-77 via faff-graft" } },
+    });
+    const spawnEnv = { HOME: process.env.HOME, PATH: process.env.PATH, CLAUDE_CONFIG_DIR: cfg };
+
+    // Sanity: without --session-id, no ambient sid → estimate, per_issue empty.
+    const before = spawnSync("node", [CLI, "economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    const beforeJson = JSON.parse(before.stdout);
+    assert.equal(beforeJson.tokens_source, "estimate");
+    assert.deepEqual(beforeJson.per_issue, []);
+
+    // With --session-id: the pinned root+session path restores both the
+    // four-class total AND per-issue attribution in the same call.
+    const after = spawnSync("node", [CLI, "economics", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid, "--json"],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    assert.equal(after.status, 0, after.stderr);
+    const afterJson = JSON.parse(after.stdout);
+    assert.equal(afterJson.tokens_source, "transcript");
+    assert.deepEqual(afterJson.per_issue, [{ issue: "FAFF-77", bucket: "shipped", tokens: 500000, cost: null }]);
+  } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
+});
+
+// ===========================================================================
+// FAFF-488 — Integration smoke: the exact sequence a real beep-boop
+// orchestrator makes — run-start `budget check` baseline, a token-tagged
+// `issue-outcome` append for a simulated subagent return, then `economics` —
+// all with --root "$measure_root" --session-id "$session_id", from a process
+// cwd that is NOT the pinned root and with no ambient session id. Asserts the
+// FAFF-488 degrade does not reproduce end-to-end across all three commands.
+//
+// Honest limit (per the spec's §7 Assumes): this fixture hand-places the
+// owned agent-*.jsonl child under the pinned root's project dir, proving the
+// CLI plumbing end-to-end. It does NOT prove where a REAL isolated-worktree
+// build subagent's own transcript actually lands on disk — that discharge
+// requires a real dispatch, out of scope for this fixture-driven suite.
+// ===========================================================================
+test("Integration smoke (FAFF-488): budget check (baseline) -> events append --tokens (simulated subagent return) -> economics, all pinned to --root/--session-id from a mismatched cwd with no ambient session id", () => {
+  const runId = "run-test";
+  const ledger = {
+    run_id: runId, admitted: ["FAFF-90"], outcomes: { "FAFF-90": "shipped" },
+    owner: { status: "running", started_at: "2026-06-23T15:00:00Z" },
+    budget: { tokens_at_start: 0, tokens_at_start_by_class: { input: 0, output: 0, cache_write: 0, cache_read: 0 } },
+  };
+  const f = fixture({ rc: null, ledger });
+  const worktree = mkdtempSync(join(tmpdir(), "faff-econ-smoke-worktree-"));
+  try {
+    const sid = "sess-smoke";
+    // The orchestrator's own transcript + one owned subagent child (simulating
+    // the build subagent's return), under the MAIN checkout's (f.root) project dir.
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: { usage: [{ input_tokens: 1000, output_tokens: 200 }] },
+      "agent-faff90.jsonl": { usage: [{ input_tokens: 300000, output_tokens: 20000 }], meta: { description: "Build FAFF-90 via faff-graft" } },
+    });
+    // No ambient CLAUDE_CODE_SESSION_ID anywhere in this env — only --session-id.
+    const spawnEnv = { HOME: process.env.HOME, PATH: process.env.PATH, CLAUDE_CONFIG_DIR: cfg };
+    const pinned = ["--root", f.root, "--session-id", sid];
+
+    // 1. Run-start baseline: `faff budget check` (measures against the seeded
+    // tokens_at_start:0 baseline — the orchestrator would record this at mint).
+    const baseline = spawnSync("node", [CLI, "budget", "check", "--run-dir", f.runDir, ...pinned], { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    assert.equal(baseline.status, 0, baseline.stderr);
+    const baselineJson = JSON.parse(baseline.stdout);
+    assert.equal(baselineJson.tokens_source, "transcript", "run-start baseline must resolve via transcript, not estimate");
+
+    // 2. A token-tagged `issue-outcome` append for the simulated subagent return.
+    const append = spawnSync("node", [CLI, "events", "append", "--run", runId, ...pinned, "--tokens"], {
+      encoding: "utf8", cwd: worktree, env: spawnEnv,
+      input: JSON.stringify({ phase: "build", type: "issue-outcome", issue: "FAFF-90", data: { outcome: "shipped" } }),
+    });
+    assert.equal(append.status, 0, append.stderr);
+    const eventLine = JSON.parse(readFileSync(join(f.runDir, "events.jsonl"), "utf8").trim());
+    assert.equal(eventLine.data.tokens_source, "transcript", "the issue-outcome event must be token-tagged from the transcript, not degrade to estimate");
+
+    // 3. `faff economics` — the final consumer.
+    const econ = spawnSync("node", [CLI, "economics", "--run-dir", f.runDir, ...pinned, "--json"], { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    assert.equal(econ.status, 0, econ.stderr);
+    const econJson = JSON.parse(econ.stdout);
+    assert.equal(econJson.tokens_source, "transcript", "the FAFF-488 degrade does not reproduce: economics resolves via transcript");
+    assert.ok(econJson.tokens_total > 0, `tokens_total=${econJson.tokens_total}`);
+    assert.deepEqual(econJson.per_issue, [{ issue: "FAFF-90", bucket: "shipped", tokens: 320000, cost: null }],
+      "per-issue attribution is populated end-to-end, not empty");
+  } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
 });

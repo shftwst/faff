@@ -729,3 +729,92 @@ test("FAFF-427: a pre-change ledger (no per-model baseline) pro-rates the per-mo
     assert.ok(s.warnings.some((w) => /pro-rated/.test(w)), JSON.stringify(s.warnings));
   } finally { f.cleanup(); }
 });
+
+// ===========================================================================
+// FAFF-488 — `--session-id` overlays $CLAUDE_CODE_SESSION_ID in the EFFECTIVE
+// env handed to the measure functions (never process.env itself, never written
+// into any event/ledger field). Absent ⇒ byte-for-byte the ambient-env path
+// above (S4). The key missing coverage: a run whose process cwd is NOT the
+// pinned root (the linked-worktree hazard) and whose ambient env carries no
+// session id — the exact shape a headless orchestrator turn can hit.
+// ===========================================================================
+
+test("S1 (FAFF-488): --session-id resolves the transcript from a mismatched process cwd with no ambient session id; the SAME setup WITHOUT the flag genuinely degrades to estimate", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  // A directory standing in for "a linked worktree" — deliberately NOT f.root, and
+  // never passed as --root; the process cwd here must not matter once --root is
+  // explicit, but it stands in for the cwd-drift hazard the spec names.
+  const worktree = mkdtempSync(join(tmpdir(), "faff-budget-worktree-"));
+  try {
+    const sid = "sess-cwd-mismatch";
+    // The transcript lives under the MAIN checkout's (f.root) project dir.
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 1000, output_tokens: 200 }],
+    });
+    const spawnEnv = { HOME: process.env.HOME, PATH: process.env.PATH, CLAUDE_CONFIG_DIR: cfg };
+
+    // Sanity / regression proof: WITHOUT --session-id, root is already correct
+    // (--root is explicit) but no ambient CLAUDE_CODE_SESSION_ID exists anywhere
+    // in this env → the session file can't be selected → estimate. This is the
+    // exact degrade this change fixes; asserting it here proves the fixture is
+    // load-bearing, not a fake green.
+    const before = spawnSync("node", [CLI, "budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    const beforeState = JSON.parse(before.stdout);
+    assert.equal(beforeState.tokens_source, "estimate",
+      "without --session-id, no ambient sid resolves the session file → estimate (the pre-fix degrade)");
+
+    // WITH --session-id: the same fixture now resolves to the transcript.
+    const after = spawnSync("node", [CLI, "budget", "check", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    assert.equal(after.status, 0, after.stderr);
+    const afterState = JSON.parse(after.stdout);
+    assert.equal(afterState.tokens_source, "transcript");
+    assert.equal(typeof afterState.spent.tokens, "number");
+    assert.ok(afterState.spent.tokens > 0);
+    assert.ok(!("warnings" in afterState), "no estimate-degrade warning once resolved via --session-id");
+
+    // The four-class breakdown backing that scalar total is genuinely available
+    // on the pinned path too (--by class, via economics, same root+session).
+    const econ = spawnSync("node", [CLI, "economics", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid, "--by", "class", "--json"],
+      { encoding: "utf8", cwd: worktree, env: spawnEnv });
+    assert.equal(econ.status, 0, econ.stderr);
+    const econJson = JSON.parse(econ.stdout);
+    assert.equal(econJson.breakdown.source, "transcript");
+    assert.deepEqual(econJson.breakdown.rows.map((r) => r.key).sort(), ["cache_read", "cache_write", "input", "output"]);
+    for (const row of econJson.breakdown.rows) {
+      assert.ok(Number.isInteger(row.total) && row.total >= 0, `row ${row.key} total=${row.total}`);
+    }
+  } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
+});
+
+test("S3 (FAFF-488): --session-id naming a session with NO transcript file at all still degrades honestly to estimate + the FAFF-428 warning, exit unchanged", () => {
+  const f = fixture({ rc: "budget:\n  tokens: 100000\n", ledger: baseLedger({ level: "L4" }) });
+  try {
+    const sid = "sess-genuinely-absent";
+    // No project dir / transcript is written for this session at all.
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.ok(Array.isArray(s.warnings) && s.warnings.some((w) => /L4 budget metering degraded/.test(w)), JSON.stringify(s.warnings));
+  } finally { f.cleanup(); }
+});
+
+test("S4 (FAFF-488): no --session-id (and no --root beyond the pre-existing flag) → byte-for-byte the pre-change ambient-env resolution", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-bytefb";
+    const cfg = withTranscripts(f.root, f.root, sid, { [`${sid}.jsonl`]: [{ input_tokens: 42, output_tokens: 7 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root], { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 49);
+  } finally { f.cleanup(); }
+});

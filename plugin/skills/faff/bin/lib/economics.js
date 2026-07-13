@@ -675,6 +675,13 @@ function cmdEconomics(args) {
   if (args.includes("--selftest")) return economicsSelftest();
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const root = get("--root") || findRoot();
+  // FAFF-488: an optional `--session-id` selects which session's transcript is
+  // metered, overriding $CLAUDE_CODE_SESSION_ID in the EFFECTIVE env handed to the
+  // measure functions below (never process.env itself, never written into any
+  // event/ledger field) — a selector, not a payload; non-leak by construction.
+  // Absent ⇒ effectiveEnv IS process.env, byte-for-byte today's resolution.
+  const sessionIdFlag = get("--session-id");
+  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
 
   // FAFF-410: optional `--by <axis>` breakdown. Fail-loud on an unrecognised axis
   // (mirrors validateModelLane) — never a silent default.
@@ -715,7 +722,7 @@ function cmdEconomics(args) {
   // no-`--by` common path now reads the transcript exactly once (the top-line no
   // longer needs a separate `readRunTranscriptRecords`). The scalar total is still
   // baselined at run start, the same figure budget gates on.
-  const measured = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs });
+  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
   const measuredSource = measured.source;
   const measuredTotal = measuredSource === "transcript"
     ? (measured.totals.input + measured.totals.output + measured.totals.cache_write + measured.totals.cache_read)
@@ -734,8 +741,8 @@ function cmdEconomics(args) {
   // transcripts to sum) and best-effort — an empty list is a clean fallback.
   let perIssue = [];
   if (tokensSource === "transcript") {
-    const sid = process.env.CLAUDE_CODE_SESSION_ID;
-    if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, process.env), sid, ledger, price);
+    const sid = effectiveEnv.CLAUDE_CODE_SESSION_ID;
+    if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, effectiveEnv), sid, ledger, price);
   }
 
   // FAFF-427: under map pricing, the top-line cost is THIS RUN's per-model spend

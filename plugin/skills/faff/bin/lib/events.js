@@ -177,7 +177,7 @@ function appendEventRecord(dir, run, payload, ts) {
 }
 
 function cmdEvents(args) {
-  let root = null, run = null, ts = null, file = null, tokensFlag = false;
+  let root = null, run = null, ts = null, file = null, tokensFlag = false, sessionIdFlag = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--root") root = args[++i];
@@ -185,10 +185,17 @@ function cmdEvents(args) {
     else if (args[i] === "--ts") ts = args[++i];
     else if (args[i] === "--file") file = args[++i];
     else if (args[i] === "--tokens") tokensFlag = true;
+    else if (args[i] === "--session-id") sessionIdFlag = args[++i];
     else rest.push(args[i]);
   }
   if (rest.includes("--selftest")) return eventsSelftest();
   root = root || findRoot();
+  // FAFF-488: an optional `--session-id` selects which session's transcript is
+  // metered by --tokens, overriding $CLAUDE_CODE_SESSION_ID in the EFFECTIVE env
+  // (never process.env itself, never written into any event `data`) — a selector,
+  // not a payload; non-leak by construction. Absent ⇒ effectiveEnv IS process.env,
+  // byte-for-byte today's resolution.
+  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
   const cmd = rest[0];
 
   if (cmd === "append") {
@@ -229,7 +236,7 @@ function cmdEvents(args) {
       try { ledger0 = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch { ledger0 = null; }
       const ownerStart = ledger0 && ledger0.owner && ledger0.owner.started_at ? Date.parse(ledger0.owner.started_at) : null;
       const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
-      const measured = measureTokensByClass({ cwd: root, env: process.env, runStartMs });
+      const measured = measureTokensByClass({ cwd: root, env: effectiveEnv, runStartMs });
       const base = { ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}) };
       // A transcript delta is emitted ONLY if the advancing checkpoint is durably
       // persisted in the same step — persist-then-emit, atomic in effect. Otherwise

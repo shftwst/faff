@@ -79,6 +79,22 @@ The safety net isn't you staying awake — it's mechanical and always on:
 
 In an unattended run the tracker is the human-legible record, control plane, and observability surface that makes it safe to step back. Every issue's status, spec, park reason, and delivery outcome is reflected back into the tracker — so when you wake up, the morning view is the tracker plus the run-ledger, not a wall of logs. That's what makes L3 a place you can actually leave the building from.
 
+## Headless / CI runs — the disposition exit contract
+
+The park protocol and the tracker control plane above assume an **interactive next session**: you run `/faff-wtf` in the morning and read what parked. A **headless** run — CI job, cron line, a container that exits when the agent does — has no such session, and its run-ledger may live in an ephemeral filesystem that's gone once the container dies. Left there, a run whose issues *all parked* still reports **green by silence**: the durable park signals exist (each parked issue carries a `faff-parked` label + reason comment on the tracker, and the run still writes `summary.md`), but nothing gives the **host** a non-zero exit to gate on.
+
+`faff disposition` is that exit contract. Run it as your wrapper's **final, exit-propagating step**, after the agent exits:
+
+```sh
+FAFF_RUN_DIR=$(faff lights-out | sed -n 's/^run dir: //p')   # or your own run-dir capture
+FAFF_RUN_DIR="$FAFF_RUN_DIR" claude -p "/faff-beep-boop"       # the unattended drain
+faff disposition --run-dir "$FAFF_RUN_DIR"                     # <-- final step; its exit is the run's exit
+```
+
+It reads that one run dir's end state and **exits non-zero when anything needs a human** — a parked / errored / `unreached-budget` issue, a PR left open for review, a run-level escalation (`budget-escalated`, `non-convergence`, `product-incomplete`, a Sentry abort), or an incomplete ledger (admitted work that never dispatched). An all-clean run — every issue `shipped` or `routed-out`, no escalation, a complete ledger — exits **0** and applies no label. It is a **pure reader**: no tracker, network, or writes; it adds no second copy of the park signal, only the process-exit verdict over the signals that already ship. Pass `--json` to capture the itemised `DispositionReport` (which issues, which cause) as a CI artifact; the exit code alone is enough for a red/green gate.
+
+**Interactive runs are unchanged.** No interactive skill calls the verb; the default surfacing stays the run-ledger → `/faff-wtf` morning view. The disposition sink is purely the *headless override* — the command your CI/cron wrapper runs last so a needs-attention run turns the build red instead of passing quietly.
+
 ## Going lights-out (L4) — `faff lights-out`
 
 L3 keeps you *on* the loop: you walk away, but you're the one who reviews the morning's parks. **L4 is *out* of the loop** — correctness is held up by adversarial machinery (a second model trying to break the change, a code-blind holdout marking the work against a spec it never saw) rather than by you reading anything in the morning. `faff lights-out` is the single entry point that turns L3 into L4: it composes the shipped L4 guardrails into **one enforced launch** instead of a hand-assembly of `/faff-beep-boop` flags a forgotten one of which would silently degrade the run.

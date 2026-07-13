@@ -242,7 +242,7 @@ This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite gove
 - **Reorder** build queues by value x risk x deps (principles 2 + 7) — overrides the thematic ordering when materially different — and **re-home** a value stream's gating chain by **reparenting the clear chain into the gated stream** (real container / `parentId` move, `blockedBy` edges preserved), per the gateway topology-write-authority dial (see **Re-homing gating chains into the stream they gate**).
 - **Propose a scope cut** (principle 2) — surface a non-critical MVP issue to rehome *out* + its proposed real DoD-bearing home, for the human to confirm the *DoD-still-satisfied* judgement; on confirm, **reparent it out** (never cancel/delete), logged. See **Cutting non-spine scope out of an MVP (rehome, never delete)**.
 - **Propose a thematic-project conversion** (the **thematic-project** finding) — lay out the per-ticket rehome plan + remainder-to-backlog + shell retirement, act on the clear rehomes and propose the ambiguous-home judgement for confirm (never cancel/delete). See **Converting a thematic project to outcome-led**.
-- **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-methodology-fill`.
+- **File prerequisite/follow-up tickets** for surfaced dependencies (principle 6) — Backlog, tagged `faff-chain-gap-fill`.
 - **Flag stalled work for demotion** — issues stuck In Progress with no commits for N days get surfaced with a demotion recommendation. At high appetite, the demotion executes (In Progress → Backlog) with a tracker comment explaining why.
 - Every action is documented: tracker comment on the affected issue, log entry in `.faff/logs/`.
 

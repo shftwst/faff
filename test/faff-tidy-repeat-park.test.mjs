@@ -1,7 +1,7 @@
 // FAFF-152 — repeat-park scripted-driver test (deterministic — test/, not eval/).
 //
 // faff-tidy's repeat-park demotion (>=3 same-root-cause parks in a rolling 21-day
-// window -> demote Todo->Backlog + tag `repeat-parked`) is load-bearing structural-
+// window -> demote Todo->Backlog + tag `faff-repeat-parked`) is load-bearing structural-
 // diagnostic logic. Its *counting* half is purely deterministic, so it belongs in a
 // scripted `test/` case — NOT in `eval/` (the per-park root-cause CLASSIFICATION is the
 // LLM-judgement half, assigned by the routing_adaptor at park time and read back here,
@@ -42,7 +42,7 @@ const FIXED_NOW = "2026-06-16T00:00:00Z";
 function trackerWith(issueId) {
   return loadFixture({
     version: 1,
-    labels: [{ name: "repeat-parked", color: "#e8a33d" }],
+    labels: [{ name: "faff-repeat-parked", color: "#e8a33d" }],
     issues: [
       {
         id: issueId,
@@ -83,7 +83,7 @@ test("FLAG — 3 same-class parks in 21d: the real seam flags repeat_parked, dem
       { verdict: { issue: "ISS-RP", token: "repeat-parked", source: "faff park-history" } },
       { bucket: { name: "repeat-parked", issues: ["ISS-RP"] } },
       { mutate: { op: "setStatus", issue: "ISS-RP", args: { status: "Backlog" } } },
-      { mutate: { op: "addLabel", issue: "ISS-RP", args: { label: "repeat-parked" } } },
+      { mutate: { op: "addLabel", issue: "ISS-RP", args: { label: "faff-repeat-parked" } } },
       { render: { surface: "tidy-report" } },
     ]),
   });
@@ -94,7 +94,7 @@ test("FLAG — 3 same-class parks in 21d: the real seam flags repeat_parked, dem
   // --- proof-of-mechanism: the demote+tag the flag drives ---
   expectBucket(rec, "repeat-parked", ["ISS-RP"]);
   expectMutation(rec, { op: "setStatus", issue: "ISS-RP", args: { status: "Backlog" } });
-  expectMutation(rec, { op: "addLabel", issue: "ISS-RP", args: { label: "repeat-parked" } });
+  expectMutation(rec, { op: "addLabel", issue: "ISS-RP", args: { label: "faff-repeat-parked" } });
 
   // --- cross-seam ordering: the seam computation precedes the bucket it informed ---
   expectSeamOrder(rec, { kind: "cliCall", argvHead: "park-history" }, { kind: "bucket", name: "repeat-parked" });

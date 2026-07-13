@@ -44,7 +44,7 @@ Order a set of issues by the core ordering rule. Issues gating the longest chain
 5. No false `**Assumes:**` entries (the assumption actually holds in current state)
 
 **Demote** when:
-- Repeat-parked: 3+ parks with same root-cause class in 21 days → demote to Backlog, tag `repeat-parked`
+- Repeat-parked: 3+ parks with same root-cause class in 21 days → demote to Backlog, tag `faff-repeat-parked` via `faff label add`
 - Challenged spec: post-spec comment raises unresolved challenge → back to needs-prep
 - Stale spec: codebase drift invalidates approach → back to needs-refresh
 
@@ -94,7 +94,7 @@ Detection is conservative. False positives in this phase are expensive — the h
 |---|---|
 | Cycle where one edge is defensive-not-load-bearing (the spec for A doesn't actually reference B's output) | Strip the defensive edge. Log the cycle, the stripped edge, the reasoning. |
 | Ghost-project pointer where the named container **clearly maps** to an existing container by name proximity (e.g. spec says "logging-cleanup project", tracker has "Logging cleanup") | Repoint the issue to the existing container. Log the move. |
-| Repeat-park (issue in the seam's `repeat_parked` set), issue still in Todo | Demote to Backlog, tag with `repeat-parked` (or tracker equivalent). Log the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue. The qualifying set is the seam's `repeat_parked` output (above), not a re-count — only the *source* of the set is the seam; the demote behaviour, tag, and appetite-gating are unchanged. |
+| Repeat-park (issue in the seam's `repeat_parked` set), issue still in Todo | Demote to Backlog, tag with `faff-repeat-parked` via the sanctioned op. Log the demotion. The issue is clearly not Todo-ready; leaving it as Todo lies to the queue. The qualifying set is the seam's `repeat_parked` output (above), not a re-count — only the *source* of the set is the seam; the demote behaviour, tag, and appetite-gating are unchanged. |
 
 Three detection categories never auto-apply mechanically (one of them, chain gaps, *does* auto-ticket at higher appetite; see below):
 

@@ -838,7 +838,10 @@ function cmdHoldout(args) {
     try { return { key, text: fs.readFileSync(path.join(dir, name), "utf8") }; }
     catch { return { key, unreadable: true }; }
   });
-  const out = computeHoldoutVerdictsMap(association, files);
+  // FAFF-384: --require-spawner-attested arms the spawner-attestation ratchet inside the shared trust gate.
+  // The caller (the run bridge) sets it iff the run's lane-boundary intent promised the evaluator cage.
+  const requireSpawnerAttested = args.includes("--require-spawner-attested");
+  const out = computeHoldoutVerdictsMap(association, files, { requireSpawnerAttested });
   const json = args.includes("--json");   // accepted for symmetry with `dod classify`; output is always JSON
   process.stdout.write(JSON.stringify(out, null, json ? 0 : 2) + "\n");
   // The skipped audit trail also goes to stderr so a missing/untrusted PRDR is visible, never silent.
@@ -879,7 +882,11 @@ function cmdHoldoutVerdict(args) {
   let block;
   try { block = JSON.parse(text); }
   catch (e) { return emit({ gate: "block", reason: "unreadable", detail: e.message }, 1); }
-  const res = holdoutGateResult(block);
+  // FAFF-384: --require-spawner-attested arms the spawner-attestation ratchet inside the SAME trust gate.
+  // faff-graft Step-10 sets it iff the run's lane-boundary intent promised the evaluator cage; absent, the
+  // gate is byte-for-byte today's per-issue behaviour (legacy uncaged runs unaffected).
+  const requireSpawnerAttested = args.includes("--require-spawner-attested");
+  const res = holdoutGateResult(block, { requireSpawnerAttested });
   return emit(res, res.gate === "pass" ? 0 : 1);
 }
 
@@ -948,6 +955,21 @@ function holdoutVerdictsSelftest() {
   // g6. gaps → block (mixed verdicts never merge)
   const g6 = holdoutGateResult({ aggregate: "gaps", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] });
   check("gate: gaps → block (reason=gaps)", g6.gate === "block" && g6.reason === "gaps");
+
+  // --- FAFF-384: the spawner-attestation ratchet threaded through both consumers ---
+  const attested = JSON.stringify({ aggregate: "meets-spec", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }], violations: [], spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" } });
+  // gate: a self-attested meets-spec passes with the flag OFF (legacy) but BLOCKS with the flag ON.
+  check("gate: self-attested meets-spec, ratchet OFF → pass", holdoutGateResult(JSON.parse(meets)).gate === "pass");
+  check("gate: self-attested meets-spec, ratchet ON → block", holdoutGateResult(JSON.parse(meets), { requireSpawnerAttested: true }).gate === "block");
+  // gate: a spawner-attested meets-spec passes even with the flag ON.
+  check("gate: spawner-attested meets-spec, ratchet ON → pass", holdoutGateResult(JSON.parse(attested), { requireSpawnerAttested: true }).gate === "pass");
+  // map bridge: same self-attested file is trusted with the flag OFF, contract-rejected with the flag ON.
+  const rOff = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, [{ key: "FAFF-34", text: meets }]);
+  check("bridge: self-attested, ratchet OFF → met", rOff.verdicts["0007"] === "met");
+  const rOn = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, [{ key: "FAFF-34", text: meets }], { requireSpawnerAttested: true });
+  check("bridge: self-attested, ratchet ON → contract-rejected", !("0007" in rOn.verdicts) && rOn.skipped.some((s) => s.reason === "contract-rejected"));
+  const rOnA = computeHoldoutVerdictsMap({ "FAFF-34": "0007" }, [{ key: "FAFF-34", text: attested }], { requireSpawnerAttested: true });
+  check("bridge: spawner-attested, ratchet ON → met", rOnA.verdicts["0007"] === "met");
 
   if (failed) { console.log(`holdout --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("holdout --selftest: ok"); return 0;

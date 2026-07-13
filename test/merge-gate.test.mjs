@@ -137,3 +137,50 @@ test("graft Step 10 + default ship producer contain no direct `gh pr merge` comm
     if (m) assert.fail(`${path.basename(f)} still presents a runnable raw merge command: "${m[0]}…"`);
   }
 });
+
+// --- FAFF-384: the merge-floor cage-promise resolver that ARMS the spawner-attestation ratchet ---
+// laneBoundaryPromisesCage reads <run-dir>/lane-boundary.json and decides whether readHoldout must require
+// spawner attestation. Fail-safe toward the strong direction: absent → legacy (OFF); a present-but-broken
+// promise → ARM (ON); a valid cage-shaped promise → ARM; a valid non-cage (rung-0) declaration → OFF.
+import { laneBoundaryPromisesCage } from "../plugin/skills/faff/bin/lib/merge-gate.js";
+
+function runDirWith(laneBoundary) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "faff-lb-"));
+  if (laneBoundary !== undefined) writeFileSync(path.join(dir, "lane-boundary.json"), laneBoundary);
+  return dir;
+}
+
+test("cage promise: absent lane-boundary.json → NOT armed (byte-for-byte legacy)", () => {
+  const dir = runDirWith(undefined);
+  assert.equal(laneBoundaryPromisesCage(dir), false);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("cage promise: valid cage-shaped intent (evaluator/own/repo:absent) → ARMED", () => {
+  const dir = runDirWith(JSON.stringify({ version: 1, lane: "evaluator", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: true }));
+  assert.equal(laneBoundaryPromisesCage(dir), true);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("cage promise: valid NON-cage rung-0 declaration (container shared / repo present) → NOT armed", () => {
+  const dir = runDirWith(JSON.stringify({ version: 1, lane: "evaluator", container: "shared", accesses: { repo: "present", host_socket: "present" }, integrity_signal: false }));
+  assert.equal(laneBoundaryPromisesCage(dir), false);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("cage promise: present-but-malformed intent → ARMED (a broken promise never relaxes to self-attestation)", () => {
+  const dir = runDirWith("{not valid json");
+  assert.equal(laneBoundaryPromisesCage(dir), true);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("cage promise: present but out-of-enum (violations) → ARMED (never relax on an invalid promise)", () => {
+  const dir = runDirWith(JSON.stringify({ version: 1, lane: "builder", container: "own", accesses: { repo: "absent", host_socket: "absent" }, integrity_signal: false }));
+  assert.equal(laneBoundaryPromisesCage(dir), true);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("cage promise: no run dir → NOT armed", () => {
+  assert.equal(laneBoundaryPromisesCage(""), false);
+  assert.equal(laneBoundaryPromisesCage(null), false);
+});

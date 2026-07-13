@@ -15,7 +15,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { adrFlag } = require("./adr");
-const { FLOOR_LEVELS, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
+const { FLOOR_LEVELS, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
@@ -314,6 +314,28 @@ function holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs) {
 // pre-this-build verdict is refused too. Reduces through the SAME holdoutGateResult gate (never forked).
 // pass → meets-spec; a "missing" block or an absent/foreign holdout file → missing; anything else
 // (including unprovable/failed freshness) → blocked.
+// FAFF-384: resolve the run's cage promise from its lane-boundary intent artifact (<run-dir>/lane-boundary.json,
+// the orchestrator-held, rung-1-integrity-covered run dir). The promise ARMS the spawner-attestation ratchet in
+// readHoldout below — the merge-floor's physical enforcement of "the evaluator was code-blind by construction".
+// Fail-SAFE toward the strong direction the spec fixes ("a malformed promise never relaxes to legacy"):
+//   - absent file (ENOENT) → promise ABSENT → ratchet OFF → byte-for-byte legacy (uncaged runs unaffected).
+//   - present + valid + cage-shaped (lane evaluator, container own, accesses.repo absent) → ratchet ON.
+//   - present + valid but NON-cage (e.g. container shared / repo present — a legitimate rung-0 declaration) → OFF.
+//   - present + malformed/unreadable → ratchet ON (a present-but-broken promise never relaxes to self-attestation).
+// PURE beyond the single-file read; never throws.
+function laneBoundaryPromisesCage(runDir) {
+  if (!runDir) return false;
+  let raw;
+  try { raw = fs.readFileSync(path.join(runDir, "lane-boundary.json"), "utf8"); }
+  catch (e) { return e.code === "ENOENT" ? false : true; } // absent → legacy; unreadable → present-but-broken → arm
+  let intent;
+  try { intent = JSON.parse(raw); } catch { return true; } // present-but-malformed → arm (never relax)
+  const { contractData, failLoud } = computeLaneBoundary(intent);
+  if (failLoud || !contractData) return true; // structurally malformed present intent → arm
+  if (contractData.violations.length > 0) return true; // a present, invalid promise → arm
+  return contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent";
+}
+
 function readHoldout(runDir, issue) {
   if (!runDir) return "missing"; // no run to bind to => fail-closed, never fall back to CWD-relative
   const holdoutPath = path.join(runDir, issue, "holdout.json");
@@ -330,7 +352,10 @@ function readHoldout(runDir, issue) {
   } catch (e) { /* leave checkpointTimeMs NaN => not fresh below */ }
   if (!holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs)) return "blocked"; // stale, or freshness unprovable => refuse (never "missing")
 
-  const res = holdoutGateResult(block);
+  // FAFF-384: arm the spawner-attestation ratchet iff THIS run promised the evaluator cage. Absent a promise
+  // (the overwhelmingly common non-L4-cage path) the gate is byte-for-byte today's holdoutGateResult.
+  const requireSpawnerAttested = laneBoundaryPromisesCage(runDir);
+  const res = holdoutGateResult(block, { requireSpawnerAttested });
   if (res.gate === "pass") return "meets-spec";
   return res.reason === "missing" ? "missing" : "blocked";
 }
@@ -765,4 +790,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, warnUncoveredMergeObserves, writeMergeRecord };

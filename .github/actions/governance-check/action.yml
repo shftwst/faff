@@ -104,6 +104,12 @@ runs:
           echo "$DIRS"
           echo "GOVDIRSEOF"
         } >> "$GITHUB_OUTPUT"
+        # A dedicated boolean output — never branch subsequent steps on whether the
+        # multiline `dirs` output STRINGIFIES to '' (GitHub's heredoc-style multiline
+        # capture of an empty value is not guaranteed to compare equal to the empty
+        # string literal in an `if:` expression — an ambiguity worth avoiding entirely
+        # rather than relying on).
+        if [ -n "$DIRS" ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
 
     # Derive a default --issue from the PR head branch name when the caller didn't pass
     # one explicitly. A miss here is fine — the verb's own branch-name/admitted fallback
@@ -125,7 +131,7 @@ runs:
     # "emitting the format ≠ being governed" must always be visible, greppable).
     - name: Apply on-missing policy (no carried artifacts)
       id: on-missing
-      if: steps.discover.outputs.dirs == ''
+      if: steps.discover.outputs.found == 'false'
       shell: bash
       run: |
         set -euo pipefail
@@ -146,7 +152,7 @@ runs:
     # here — the exit code is deliberately observed and re-emitted, not merely propagated.
     - name: Run governance-check
       id: governance-check
-      if: steps.discover.outputs.dirs != ''
+      if: steps.discover.outputs.found == 'true'
       shell: bash
       run: |
         set -uo pipefail

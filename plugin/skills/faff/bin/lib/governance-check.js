@@ -28,6 +28,7 @@
 // ===========================================================================
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { auditLedger, TERMINAL_STATES } = require("./runcheck");
@@ -351,7 +352,6 @@ function cmdGovernanceCheck(args) {
 // ---------------------------------------------------------------------------
 
 function mkTmpRunDir(prefix) {
-  const os = require("node:os");
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
 

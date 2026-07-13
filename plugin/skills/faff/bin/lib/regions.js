@@ -61,6 +61,10 @@ const REGION_MAP = {
   // ledger + reuses measureTokens/attemptsFromLedger), not part of the
   // extractable flight-recorder layer → factory (FAFF-357).
   "economics": "factory",
+  // disposition — FAFF-396: the run-end verdict a headless wrapper exits on. Reads the
+  // ledger + faff-parks + events into a DispositionReport, reuses governance's
+  // auditLedger/TERMINAL_STATES (factory→governance is legal), writes nothing → factory.
+  "disposition": "factory",
   // quality — the reporting mirror of economics: reads the run ledger + events.jsonl
   // into a QualityReport, touches no producer → factory (FAFF-418).
   "quality": "factory",
@@ -147,6 +151,7 @@ const REGION_SELFTEST_ARGV = {
   "intake-record": ["intake-record", "--selftest"],
   "contain": ["contain", "--selftest"],
   "economics": ["economics", "--selftest"],
+  "disposition": ["disposition", "--selftest"],
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],

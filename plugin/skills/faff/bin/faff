@@ -58,6 +58,7 @@ const { cmdFixtures } = require("./lib/fixtures");
 const { cmdDoctor, cmdGates, cmdSync } = require("./lib/gates");
 const { cmdGitignoreEnsure } = require("./lib/gitignore-ensure");
 const { cmdGovernanceCheck } = require("./lib/governance-check");
+const { cmdProfiles } = require("./lib/governance-profile");
 const { cmdHeartbeat } = require("./lib/heartbeat");
 const { cmdHooksEnsure } = require("./lib/hooks-ensure");
 const { cmdIntakeRecord, cmdIntakecheck } = require("./lib/intake-provenance");
@@ -137,6 +138,7 @@ Subcommands:
   gates <discover|run> [--json] [--root DIR]    FAFF-11: cost-ordered engineering-quality gate ladder — discover the repo's OWN declared cheap checks (pre-commit/package.json/Makefile) as an ordered List<Rung> cheapest-first + a discovery classification (confident/none); run discovers then executes them cheapest-first in the worktree sandbox (execution_target = cwd, the FAFF-12 seam), fail-fast on the first failing required rung, emits a GatesOutcome + a faff-contract:quality-gates block. TRUSTED-SOURCE-ONLY (never a command from an issue/comment); errored rung → needs-human not fail; discovery:none → gates.fallback config (advisory default | fail-closed). discover exit 0/2; run exit 0 all-pass / 1 >=1 fail or needs-human / 2 usage; --selftest runs the table
   contract <name> [--in FILE] [--require-spawner-attested]   per-slot contract script (FAFF-77): extraction JSON (stdin) -> canonical contract data (stdout); exit 0 conformant / 1 non-conformant / 2 fail-loud; --selftest runs the table. FAFF-384: --require-spawner-attested (holdout-verdict only) arms the spawner-attestation ratchet — a verdict whose code_blind is not spawner-attested is non-conformant (exit 1) when the run promised an evaluator cage
   profile <validate|show|mine> [--file F] [--json] [--root DIR]  FAFF-26/231: infra-profile schema + CLI + repo-mining acquirer. validate a profile JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective profile (.faff/infra-profile.json + .faffrc.yaml infra:, override wins per field); exit 3 when none. mine (FAFF-231) is the default profile-slot occupant — a deterministic, read-only repo-miner that scans --root for infra artifacts and emits ONE faff-contract:infra-profile block (--json for raw JSON); pure file inspection, NO network/install/subprocess, writes no files. --selftest runs the validator table
+  profiles <list|validate> [--file F] [--json]   FAFF-362: governance profiles — the closed-vocab declared table (terminal states, event types, per-type field rules, sentry thresholds/predicate bindings) the runcheck/events/sentry engines read via a threaded, defaulted \`profile\` parameter instead of hardcoded literals. list prints the active profile (default DELIVERY_PROFILE — today's exact vocabulary, byte-identical; $FAFF_GOVERNANCE_PROFILE names an override file). validate [--file F] shape-validates a profile (F, or the active one): exit 0 valid / 1 invalid+reasons naming the offending leaf / 2 unreadable. A missing/malformed/shape-invalid $FAFF_GOVERNANCE_PROFILE override is a GovernanceProfileError, caught at dispatch — every governance subcommand exits loud (stderr + exit 2), NEVER a silent fallback to delivery. --selftest drives all three engines' pure cores under both DELIVERY_PROFILE and a synthetic disjoint-vocabulary SECOND_PROFILE fixture, proving a delivery fixture is rejected under SECOND_PROFILE (and vice versa) and sentry's thrash predicate trips at SECOND_PROFILE's own thrash_n — the dialect-independence proof
   fixtures <validate|show|realise> [--file F] [--out DIR] [--root DIR]  FAFF-31: fixtures dataset-manifest schema + CLI (slice 1; generator slot deferred). validate a manifest JSON (stdin or --file): exit 0 valid / 1 invalid+reasons / 2 malformed. show prints the effective manifest (.faff/fixtures/manifest.json ⊕ .faffrc.yaml fixtures:, override wins per field); exit 3 when none. realise deterministically writes per-entity JSON from (manifest, seed) into dataset_path/--out. --selftest runs the validator table
   events <append|validate|read> --run <run-id> [--ts ISO] [--file F] [--type T] [--issue I] [--json] [--root DIR]   FAFF-35 (slice 1): structured run-event log — the timeline substrate for run observability. append reads a {phase,type,issue?,data?} payload on stdin, the CLI fills the envelope (schema/run_id/seq/ts) — seq = current line count (monotonic, gap-free, authoritative; ts is best-effort annotation) — and appends one JSON line to .faff/runs/<run-id>/events.jsonl: exit 0 ok / 1 invalid / 2 malformed / 3 run-dir-missing. validate checks a JSONL stream line-by-line (--file or stdin): exit 0 all-valid / 1 line-numbered violations (incl. advisory non-contiguous seq) / 2 unreadable. read filters the log (--type/--issue, --json): exit 0 / 3 no events. FAFF-408: --tokens (append) injects a four-class token delta + tokens_source into data. FAFF-415: an optional data.effort label (low|medium|high|xhigh|max) records a dispatch's request-time reasoning-effort (validated, additive, non-leak; economics --by effort pivots it). FAFF-418: an issue-outcome event may also carry an optional data.gate (which quality gate {structural|adversarial|holdout|ci} caught a non-shipped build) + data.rework_turns (non-negative integer fix-loop count) — validated, additive, non-leak; faff quality pivots them. PURE (no tracker/network), single-writer slice; --selftest runs the validator table
   review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N] | --outage-retry]   FAFF-329: per-issue review checkpoint at \`<run-dir>/<issue>/review-progress.json\` so a re-dispatched build subagent RESUMES the graft review step (skips a completed Phase-1/Phase-2) instead of repeating it. read → ReviewProgress JSON (exit 0) / exit 3 if absent (no checkpoint yet, not an error); write --phase1-pass --diff-hash records the passing Phase-1 verdict + the diff hash it was computed against (the diff-identity guard — a resume skips Phase-1 only if the CURRENT diff still matches); write --phase2 <pending|in_flight|complete|skipped_deadline|skipped_unreachable> records Phase-2 progress; write --outage-retry (FAFF-403) increments the top-level outage_retries counter (absent → 1, requires an existing record — exit 2 if none) for graft's retry-later hold on a mandatory-review \`unavailable\` verdict. PURE JSON (no tracker/network); a HINT never authoritative over git/PR truth; exit 2 usage/bad-status; --selftest runs the fold table
@@ -209,6 +211,7 @@ const COMMANDS = {
   "prd": cmdPrd,
   "prdr": cmdPrdr,
   "profile": cmdProfile,
+  "profiles": cmdProfiles,
   "fixtures": cmdFixtures,
   "env": cmdEnv,
   "engine": cmdEngine,
@@ -237,7 +240,19 @@ function main(argv) {
   if (!sub) { process.stderr.write(USAGE); return 2; }
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
   const handler = COMMANDS[sub];
-  if (handler) return handler(rest);
+  if (handler) {
+    // FAFF-362: a bad $FAFF_GOVERNANCE_PROFILE override (missing/malformed/shape-
+    // invalid) is a GovernanceProfileError thrown by governance-profile.js's
+    // activeProfile() — caught HERE, uniformly, for every subcommand (present or
+    // future) that resolves the active governance profile, converting it to a
+    // loud stderr line + exit 2. Never a silent fallback to the delivery profile.
+    // Any other thrown error is a genuine bug — rethrown unchanged.
+    try { return handler(rest); }
+    catch (e) {
+      if (e && e.faffGovernanceProfileError) { process.stderr.write(`faff: ${e.message}\n`); return 2; }
+      throw e;
+    }
+  }
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;
 }

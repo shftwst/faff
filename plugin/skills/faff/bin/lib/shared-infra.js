@@ -16,6 +16,17 @@ const { spawnSync } = require("node:child_process");
 const HERE = path.resolve(__dirname, "..");
 const ENTRYPOINT = path.resolve(__dirname, "..", "faff");
 
+// FAFF-362: the run-heartbeat staleness default. SINGLE SOURCE for both runcheck's
+// own liveness gate (heartbeatStaleSecs, runcheck.js) and DELIVERY_PROFILE.sentry.
+// thresholds.stall_window_secs (governance-profile.js) — the profile references
+// this constant rather than restating 900. Lives here (shared-infra), not in
+// runcheck.js, purely to break a require cycle: governance-profile.js needs this
+// value to build DELIVERY_PROFILE, while runcheck.js needs governance-profile.js
+// for its threaded profile default parameter — putting the constant in the module
+// BOTH already depend on (shared-infra) avoids the cycle. runcheck.js re-exports
+// it unchanged so every existing consumer (sentry.js) is untouched.
+const RUN_HEARTBEAT_STALE_SECS_DEFAULT = 900;
+
 function findRoot(start = process.cwd()) {
   let d = path.resolve(start);
   for (;;) {
@@ -400,4 +411,4 @@ function findConfig(root) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, containerParent, dig, findConfig, findConfigIn, findRoot, latestRunDir, mainWorktreeRoot, parseAncestry, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, containerParent, dig, findConfig, findConfigIn, findRoot, latestRunDir, mainWorktreeRoot, parseAncestry, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

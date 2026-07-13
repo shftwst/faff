@@ -50,6 +50,11 @@ const REGION_MAP = {
   // family as runcheck (completeness) / effects (declared-vs-observed) / audit (forensics) —
   // a pure core with NO factory-identifier references, so it belongs in governance too.
   "reconcile": "governance",
+  // profiles — FAFF-362: the declared vocabulary table runcheck/events/sentry read via a
+  // threaded profile parameter (governance-profile.js) — pure data + a pure shape
+  // validator, no factory-identifier references, mirrors `regions` itself but for the
+  // governance dialect rather than the region map.
+  "profiles": "governance",
   // factory — everything else (faff-the-factory's domain)
   "config": "factory",
   "sync": "factory",
@@ -151,6 +156,7 @@ const REGION_SELFTEST_ARGV = {
   "sentry": ["sentry", "--selftest"],
   "audit": ["audit", "--selftest"],
   "reconcile": ["reconcile", "--selftest"],
+  "profiles": ["profiles", "--selftest"],
   // factory — argv per member; null = deliberately no standalone selftest
   "config": ["config", "init", "--selftest"],
   "sync": null,

@@ -13,43 +13,24 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
+const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { atomicWriteLedger } = require("./heartbeat");
 const { findRoot } = require("./shared-infra");
 
-const EVENT_PHASES = new Set(["run", "tidy", "prep", "build"]);
-const EVENT_TYPES = new Set([
-  "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
-  "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",
-  // FAFF-352: one per orchestrator-run `faff sentry check` consult — run-scoped (no
-  // `issue` field; EVENT_ISSUE_SCOPED is deliberately untouched below), `data` = the
-  // captured `sentry check --json` payload verbatim. Emitted only on a COMPLETED
-  // consult — a failed consult (non-zero/unparseable) emits none (logged instead).
-  "sentry-checkpoint",
-  // FAFF-326: Channel A's append-only audit trail — one per `faff corrective author`
-  // (data = the written CorrectiveInput record) and one per `faff corrective check`
-  // that ran WHILE asserted (data = {disposition,mandate,applied,rejected}). Both are
-  // issue-scoped (EVENT_ISSUE_SCOPED below) — a corrective input always constrains
-  // exactly one unit's next dispatch. This is what makes a sequential-narrowing
-  // pattern (ADR-0039's named residual) reviewable: >=2 inputs on one issue is
-  // visible in this trail, never silently accumulated.
-  "corrective-authored", "corrective-consumed",
-  // FAFF-354: one per `faff contain --record` invocation — binds a containment
-  // verdict to the EXACT agent-supplied ancestry it was computed from (`issue` =
-  // the mandate; data = {mandate,parent,root,ancestry_raw,verdict,exit}), so `faff
-  // audit` can recompute-and-compare post-hoc. Detective, not preventive: it makes
-  // a fabricated ancestry durable evidence, it does not stop one being supplied.
-  "containment-check",
-]);
+// FAFF-362: EVENT_PHASES / EVENT_TYPES / EVENT_ISSUE_SCOPED / EVENT_LEDGER_OUTCOMES
+// stay exported (contain.js — factory — reuses EVENT_PHASES directly) but are now
+// DERIVED from the active-by-default delivery profile rather than independent
+// literals — identical values, single-sourced in governance-profile.js's
+// DELIVERY_PROFILE. terminal_states (runcheck, 6) vs ledger_outcomes (events, 7,
+// adds "claimed-by-peer") are deliberately two distinct profile keys — see
+// governance-profile.js's comment on why they are never unified.
+const EVENT_PHASES = new Set(DELIVERY_PROFILE.event_phases);
+const EVENT_TYPES = new Set(DELIVERY_PROFILE.event_types);
 // Types that are about one specific issue → `issue` is required.
 // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2)
-const EVENT_ISSUE_SCOPED = new Set([
-  "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
-  "corrective-authored", "corrective-consumed", "containment-check",
-]);
+const EVENT_ISSUE_SCOPED = new Set(DELIVERY_PROFILE.issue_scoped_types);
 // The run-ledger outcome vocabulary an issue-outcome event's data.outcome must use.
-const EVENT_LEDGER_OUTCOMES = new Set([
-  "shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer",
-]);
+const EVENT_LEDGER_OUTCOMES = new Set(DELIVERY_PROFILE.ledger_outcomes);
 // FAFF-415: the closed reasoning-effort vocabulary a dispatch may tag onto its phase
 // event via data.effort. Reasoning-effort is a REQUEST-TIME setting the transcript
 // never records, so it is captured here at dispatch time (riding FAFF-408's token-tag
@@ -71,8 +52,14 @@ const QUALITY_GATE_CATCHES = new Set(["structural", "adversarial", "holdout", "c
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
 // full record read back off disk (validate: the envelope must be present + well-formed).
+// FAFF-362: `profile` is a trailing defaulted parameter (mirrors runcheck's auditLedger)
+// — the default resolves DELIVERY_PROFILE, byte-identical to the pre-profile literals;
+// an explicit profile (e.g. SECOND_PROFILE) validates against a different dialect with
+// no other code path change. `outcome_required_types` membership REPLACES the inline
+// `obj.type === "issue-outcome"` conditional this used to carry (the closed-vocab guard
+// as data, not a hardcoded type check).
 // Returns an array of human-readable violation strings (empty ⇒ valid).
-function eventViolations(obj, requireEnvelope) {
+function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
   if (obj === null || typeof obj !== "object" || Array.isArray(obj)) {
     return ["event must be a JSON object"];
   }
@@ -83,19 +70,24 @@ function eventViolations(obj, requireEnvelope) {
     if (!Number.isInteger(obj.seq)) v.push("seq must be an integer");
     if (obj.ts === undefined || obj.ts === null || obj.ts === "") v.push("missing ts");
   }
-  if (!EVENT_PHASES.has(obj.phase)) {
-    v.push(`phase '${obj.phase}' not in Phase {${[...EVENT_PHASES].join(", ")}}`);
+  const phases = new Set(profile.event_phases);
+  const types = new Set(profile.event_types);
+  const issueScoped = new Set(profile.issue_scoped_types);
+  const outcomeRequired = new Set(profile.outcome_required_types);
+  const ledgerOutcomes = new Set(profile.ledger_outcomes);
+  if (!phases.has(obj.phase)) {
+    v.push(`phase '${obj.phase}' not in Phase {${[...phases].join(", ")}}`);
   }
-  if (!EVENT_TYPES.has(obj.type)) {
-    v.push(`type '${obj.type}' not in EventType {${[...EVENT_TYPES].join(", ")}}`);
+  if (!types.has(obj.type)) {
+    v.push(`type '${obj.type}' not in EventType {${[...types].join(", ")}}`);
   }
-  if (EVENT_ISSUE_SCOPED.has(obj.type) && (obj.issue === undefined || obj.issue === null || obj.issue === "")) {
+  if (issueScoped.has(obj.type) && (obj.issue === undefined || obj.issue === null || obj.issue === "")) {
     v.push(`type '${obj.type}' is issue-scoped but missing required field 'issue'`);
   }
-  if (obj.type === "issue-outcome") {
+  if (outcomeRequired.has(obj.type)) {
     const outcome = obj.data && typeof obj.data === "object" ? obj.data.outcome : undefined;
-    if (!EVENT_LEDGER_OUTCOMES.has(outcome)) {
-      v.push(`issue-outcome.data.outcome '${outcome}' not in ledger outcome vocabulary {${[...EVENT_LEDGER_OUTCOMES].join(", ")}}`);
+    if (!ledgerOutcomes.has(outcome)) {
+      v.push(`${obj.type}.data.outcome '${outcome}' not in ledger outcome vocabulary {${[...ledgerOutcomes].join(", ")}}`);
     }
   }
   // FAFF-408: optional token-tag telemetry under data (additive; schema stays 1).

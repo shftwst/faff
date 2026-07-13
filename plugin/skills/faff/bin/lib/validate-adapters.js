@@ -5,7 +5,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { HERE } = require("./shared-infra");
-const { loadConfig } = require("./config");
+const { loadConfig, DEFAULTS } = require("./config");
 const { CANONICAL_CONFIG, findRoot } = require("./shared-infra");
 
 const REGISTRY = {
@@ -479,6 +479,42 @@ function cmdValidateAdapters(args) {
         console.log(`FAIL  ${name} (delegation conformance)`);
         console.log(`        ✗ line ${i + 1}: hardcoded install-mode literal "${bad}" at a Skill-tool delegation site —`);
         console.log(`          name the sibling by its canonical name and resolve per gateway → Sibling-skill invocation (FAFF-164/172)`);
+      }
+    }
+  }
+  // FAFF-191: prose-supplied-default lint — the deferred half of FAFF-182. Derives both check sets
+  // from the registry at lint time (never a hardcoded copy — the registry is the single source):
+  // rule (a) flags a redundant `-d` on a key the registry already defaults; rule (b) flags a
+  // dispatch site (Skill-tool delegation or producer-subagent dispatch) that names a bundled slot
+  // default literally instead of resolving it via `config get slots.<x>`. Both key on the
+  // CONSTRUCTION, never on bare occurrence, so a documentation mention (the gateway Slots table,
+  // config examples, narrative, a skill's own self-description) never flags. Reuses allSkills above.
+  const registryKeys = new Set(Object.keys(DEFAULTS));
+  const slotDefaults = new Set(
+    Object.entries(DEFAULTS).filter(([k]) => k.startsWith("slots.")).map(([, v]) => v),
+  );
+  const DISPATCH_ANCHOR = /via the Skill tool|producer subagent|producer dispatch/i;
+  const GET_WITH_D = /config get\s+`?([A-Za-z0-9_.<>-]+)`?[^\n]*\s-d\s/;
+  for (const name of allSkills) {
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    const lines = text.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.includes(".example")) continue;
+      const m = line.match(GET_WITH_D);
+      if (m && registryKeys.has(m[1])) {
+        failed = true;
+        console.log(`FAIL  ${name} (prose default)`);
+        console.log(`        ✗ line ${i + 1}: redundant \`-d\` on registry key "${m[1]}" — the registry owns the default; drop the -d (drift vector) (FAFF-191)`);
+      }
+      if (DISPATCH_ANCHOR.test(line)) {
+        const tokens = [...line.matchAll(/`([^`]+)`/g)].map((t) => t[1]);
+        const bad = tokens.find((t) => slotDefaults.has(t));
+        if (bad) {
+          failed = true;
+          console.log(`FAIL  ${name} (prose default)`);
+          console.log(`        ✗ line ${i + 1}: dispatch site names bundled default "${bad}" — route through \`faff config get slots.<x>\` and name no default (FAFF-191)`);
+        }
       }
     }
   }

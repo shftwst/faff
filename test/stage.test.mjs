@@ -26,6 +26,15 @@ function tmpRepo() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-stage-"));
   const g = (...a) => spawnSync("git", ["-C", dir, ...a], { encoding: "utf8", env: GENV }).stdout?.trim() ?? "";
   g("init", "-q");
+  // Repo-LOCAL committer identity — GENV only reaches git commands run through `g`;
+  // the sentry-abort WIP commit runs inside the `faff sentry abort` CLI child, which
+  // does NOT inherit GENV, so a global-config-less environment (CI) leaves that nested
+  // `git commit` with no identity and it silently no-ops (no WIP sha). Repo-local config
+  // is read by every git process in this repo, child included — so the WIP commit lands
+  // in CI exactly as it does locally. (FAFF-457: the -z parse + secret-skip are correct;
+  // this was the sole CI-only gap.)
+  g("config", "user.email", "t@t");
+  g("config", "user.name", "t");
   fs.writeFileSync(path.join(dir, "README.md"), "hello\n");
   g("add", "--", "README.md");
   g("commit", "-q", "-m", "init");

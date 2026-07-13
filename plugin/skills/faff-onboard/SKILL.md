@@ -44,7 +44,7 @@ bail check → detect (discovery) → ask team_key → preview → confirm → w
 
 Run `"$faff" config path` and branch on the exit code **before doing anything else**:
 
-- **Exit 0** — a config already exists. Print the resolved path, report that faff is already set up for this repo, and **stop**. Onboarding never overwrites a live config. (If the human wants to change a value, that's a targeted `faff config init --set …`, not a re-onboard.)
+- **Exit 0** — a config already exists. **First distinguish a decline-stub from a real config.** A *decline-stub* is the minimal rc a declined first-run offer writes (gateway → **First run**): a config carrying **only** the one empty-value `tracking.spec_docs_path` leaf and nothing else. Read the config with existing `faff config get`; if it is a decline-stub (that one empty key is all there is), a *deliberate* `/faff-onboard` **proceeds to detection (step 2)** rather than bailing — the human declined once but is now opting in for real, and onboarding a decline-stub clobbers nothing. Otherwise a real config exists: print the resolved path, report that faff is already set up for this repo, and **stop**. Onboarding never overwrites a live config. (If the human wants to change a value, that's a targeted `faff config init --set …`, not a re-onboard.)
 - **Exit 2** — a legacy-named config (`.faffrc` / `.faffrc.yml`) is present. **Surface the loud config-rename error verbatim** and stop — do **not** bootstrap a fresh config over it. The fix is to rename the file to `.faffrc.yaml`, not to write a second one.
 - **Exit 3** — no config. **Proceed** to detection.
 

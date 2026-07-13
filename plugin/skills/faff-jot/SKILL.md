@@ -87,7 +87,7 @@ After creating, offer the next step via the standard chaining gate: "Tickets cre
 
 ## Existing-ticket interactor (`/faff-jot ISSUE-XX`)
 
-When invoked with an issue-id argument, `/faff-jot` is **not** doing new-work intake — it's the human's conversational entry point to **shape or gate an existing ticket**. It is **interactive-only** (never autonomous) and runs in the orchestrator lane, which already has tracker write (it creates tickets for new work), so mutating a label on an existing ticket is within-lane.
+When invoked with an issue-id argument, `/faff-jot` is **not** doing new-work intake — it's the human's conversational entry point to **shape or gate an existing ticket**. It is **interactive-only** (never autonomous) and runs in the orchestrator lane, which already has tracker write (it creates tickets for new work). But the eligibility labels it shapes (`faff-automate` / `faff-automation-hold`) are **tracker-owned** (FAFF-218), so `/faff-jot` never writes them itself — it **advises** the human on the toggle to make in the tracker (see step 3), consistent with the write-abstention model.
 
 **Remit — shaping & eligibility only.** Crank up/crank down (add/remove `faff-automate`) + hold/unhold (the `faff-automation-hold` hard stop), and (deferred — see **Out of scope**) re-scope, re-home (re-parent), split/merge *intent*: "the human deciding a ticket's shape and whether it enters the pipeline." It deliberately does **not** absorb operations that already have homes:
 

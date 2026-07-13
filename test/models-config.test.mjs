@@ -124,8 +124,19 @@ test("resolveEvalModel precedence: flag > config CLI > pinned fallback (never th
 });
 
 test("resolveEvalModel real spawn path resolves the registry default (no shell involved)", () => {
-  // exercises the default argv-array spawn against the real CLI (pure read, no model call)
-  assert.equal(resolveEvalModel([]), "claude-sonnet-4-6");
+  // exercises the default argv-array spawn against the real CLI (pure read, no model call).
+  // Run from an isolated dir with no .faffrc so the spawn resolves the registry DEFAULT, not
+  // whatever this repo's own .faffrc sets for models.eval — the test must not depend on repo
+  // faffrc values (which legitimately override the default).
+  const dir = fixtureDir(); // empty temp dir, no .faffrc
+  const prev = process.cwd();
+  try {
+    process.chdir(dir);
+    assert.equal(resolveEvalModel([]), "claude-sonnet-4-6");
+  } finally {
+    process.chdir(prev);
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 // ── FAFF-334: per-issue build-model routing (`models.build_by_confidence` matcher) ──

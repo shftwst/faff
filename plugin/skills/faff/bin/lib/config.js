@@ -27,6 +27,9 @@ const DEFAULTS = {
   "slots.methodology": "faffter-noon-methodology-thematic",
   "slots.routing_adaptor": "faffidavit-routing",
   "slots.rendering_adaptor": "faffidavit-rendering",
+  // FAFF-191: the L4 PRD-admissibility slot — gap-filled (was documented in the gateway Slots
+  // table and relied on by faff-beep-boop's prose parenthetical, but absent from the registry).
+  "slots.prd": "faffter-noon-prd",
   "logging": "full",
   "concurrency_max": "4",
   "automation_default": "opt-in",
@@ -727,7 +730,7 @@ function cmdConfig(args) {
         const expected = [
           "slots.intake", "slots.spec", "slots.spec_review", "slots.review", "slots.ship", "slots.concurrency",
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
-          "slots.env",
+          "slots.env", "slots.prd",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
           "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
           "models.build", "models.prep_explore",

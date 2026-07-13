@@ -46,6 +46,14 @@ test("unset registry SLOT resolves to its default occupant, exit 0", () => {
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-191: slots.prd was documented (gateway Slots table) and relied on by faff-beep-boop's
+// prose parenthetical, but missing from the registry — a gap-fill, not a new slot.
+test("unset slots.prd resolves to its default occupant faffter-noon-prd, exit 0", () => {
+  const dir = withConfig(null);
+  try { assert.deepEqual(run(dir, "config", "get", "slots.prd"), { code: 0, out: "faffter-noon-prd" }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // FAFF-403: graft's own namespace for the outage-retry-later bound — no .faffrc entry needed.
 test("unset graft.review_outage_retry_limit resolves to its baked default \"3\", exit 0", () => {
   const dir = withConfig(null);

@@ -463,7 +463,30 @@ function deriveHoldoutAggregate(verdicts) {
   return "gaps";                                          // mixed met/unmet
 }
 
-function computeHoldoutVerdict(extraction) {
+// FAFF-384: shape-validate the spawner `attestation` record (present iff spawner_attested:true). The
+// withheld-set is the BASIS code_blind is derived from, so `repo` MUST be provably withheld and the in-cage
+// preflight MUST have passed for an attested-blind verdict to mean anything. Returns the normalised record
+// (pushing any shape violation), or null on a non-object. PURE.
+function validateSpawnerAttestation(att, violations) {
+  if (att === null || typeof att !== "object" || Array.isArray(att)) {
+    violations.push("spawner_attested is true but attestation is missing or not an object");
+    return null;
+  }
+  const spawner = typeof att.spawner === "string" && att.spawner.trim() ? att.spawner : "";
+  if (!spawner) violations.push("attestation.spawner is missing or not a non-empty string");
+  const w = (att.withheld && typeof att.withheld === "object" && !Array.isArray(att.withheld)) ? att.withheld : null;
+  if (!w) violations.push("attestation.withheld is missing or not an object");
+  const withheld = { repo: !!(w && w.repo === true), worktree_cwd: !!(w && w.worktree_cwd === true), diff: !!(w && w.diff === true) };
+  if (!withheld.repo) violations.push("attestation.withheld.repo is not true — the codebase was not provably withheld, so the blindness is not spawner-derived");
+  const preflight = typeof att.preflight === "string" ? att.preflight : "";
+  if (preflight !== "pass") violations.push(`attestation.preflight ${JSON.stringify(att.preflight)} is not "pass" — the in-cage preflight did not confirm the boundary`);
+  return { spawner, withheld, preflight };
+}
+
+// `opts.requireSpawnerAttested` (default false) is CALLER-RESOLVED from the run's lane-boundary cage promise;
+// the validator itself stays PURE — it never reads the intent artifact off disk (that is the caller's job at
+// the dispatch boundary). Threading an optional 2nd arg keeps every existing 1-arg caller byte-for-byte.
+function computeHoldoutVerdict(extraction, opts = {}) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
   }
@@ -505,11 +528,33 @@ function computeHoldoutVerdict(extraction) {
     for (const v of extraction.violations) if (typeof v === "string" && v.trim()) violations.push(v);
   }
 
-  return { contractData: { aggregate, code_blind, criteria, violations }, failLoud: null };
+  // FAFF-384: spawner attestation (ADDITIVE, the rung-2 second slice). The two fields appear in contractData
+  // ONLY when the input carries `spawner_attested`, so a legacy (uncaged) verdict validates byte-for-byte with
+  // the ratchet OFF — the additive-only invariant. `spawner_attested:true` sets code_blind from what the
+  // spawner PROVABLY withheld (not the judged party's self-claim); a claimed attestation is shape-checked. The
+  // ratchet (opts.requireSpawnerAttested, caller-resolved from the cage promise) makes a self-attested verdict
+  // a violation — the lying-evaluator hole. A non-boolean spawner_attested is itself a violation.
+  const hasSpawnerField = Object.prototype.hasOwnProperty.call(extraction, "spawner_attested");
+  const spawner_attested = extraction.spawner_attested === true;
+  let attestation = null;
+  if (hasSpawnerField) {
+    if (spawner_attested) attestation = validateSpawnerAttestation(extraction.attestation, violations);
+    else if (extraction.spawner_attested !== false) violations.push(`spawner_attested ${JSON.stringify(extraction.spawner_attested)} is not a boolean`);
+  }
+  if (opts && opts.requireSpawnerAttested && !spawner_attested) {
+    violations.push("spawner attestation required (the run's lane-boundary intent promised an evaluator cage) but the verdict is not spawner-attested — a self-attested code_blind is inadmissible");
+  }
+
+  const contractData = { aggregate, code_blind, criteria, violations };
+  if (hasSpawnerField) {
+    contractData.spawner_attested = spawner_attested;
+    if (attestation) contractData.attestation = attestation;
+  }
+  return { contractData, failLoud: null };
 }
 
-function contractHoldoutVerdict(extraction) {
-  const { contractData, failLoud } = computeHoldoutVerdict(extraction);
+function contractHoldoutVerdict(extraction, opts = {}) {
+  const { contractData, failLoud } = computeHoldoutVerdict(extraction, opts);
   if (failLoud) return { failLoud };
   const schemaErr = schemaCheck(contractData, "holdout-verdict");
   if (schemaErr) return { failLoud: schemaErr };
@@ -588,7 +633,7 @@ function contractLaneBoundary(extraction) {
 // exactly "meets-spec"; every other aggregate passes through as its own ≠"met" string; untrusted files are
 // omitted entirely (their aggregate cannot be believed). Conservative duplicate-PRDR fold: a PRDR is `met`
 // only when EVERY trusted file mapping to it is `met` (a single failing re-run is never masked).
-function computeHoldoutVerdictsMap(association, files) {
+function computeHoldoutVerdictsMap(association, files, opts = {}) {
   const contributions = new Map();   // prdr-id -> [trusted value, ...] (insertion order = sorted-key order)
   const skipped = [];
   for (const { key, text, unreadable } of files) {
@@ -597,9 +642,10 @@ function computeHoldoutVerdictsMap(association, files) {
     if (unreadable) { skipped.push({ key, reason: "unreadable" }); continue; }
     let block;
     try { block = JSON.parse(text); } catch { skipped.push({ key, reason: "unreadable" }); continue; }
-    // The trust gate — the SAME compute fn `faff contract holdout-verdict` runs. A fail-loud (non-object),
-    // any contract violation, or a non-true code_blind ⇒ untrusted ⇒ never "met".
-    const { contractData, failLoud } = computeHoldoutVerdict(block);
+    // The trust gate — the SAME compute fn `faff contract holdout-verdict` runs (FAFF-384: incl. the spawner-
+    // attestation ratchet when opts.requireSpawnerAttested is set by the caller from the run's cage promise).
+    // A fail-loud (non-object), any contract violation, or a non-true code_blind ⇒ untrusted ⇒ never "met".
+    const { contractData, failLoud } = computeHoldoutVerdict(block, opts);
     if (failLoud || (contractData && contractData.violations.length > 0) || block.code_blind !== true) {
       skipped.push({ key, reason: "contract-rejected" }); continue;
     }
@@ -620,8 +666,8 @@ function computeHoldoutVerdictsMap(association, files) {
 // the `faff-graft` Step-10 call-site. `pass` ⇔ well-formed ∧ code_blind:true ∧ zero violations ∧
 // aggregate==="meets-spec"; EVERYTHING else (fails/gaps/needs-human/non-blind/incoherent/malformed) is
 // `block`. Fail-closed by construction — this never returns `pass` on doubt. Pure over the parsed block.
-function holdoutGateResult(block) {
-  const { contractData, failLoud } = computeHoldoutVerdict(block);
+function holdoutGateResult(block, opts = {}) {
+  const { contractData, failLoud } = computeHoldoutVerdict(block, opts);
   if (failLoud) return { gate: "block", reason: "contract-rejected", detail: failLoud };
   if (contractData.violations.length > 0 || block.code_blind !== true) {
     return { gate: "block", reason: "contract-rejected", aggregate: contractData.aggregate, code_blind: contractData.code_blind, violations: contractData.violations };
@@ -1293,6 +1339,16 @@ const CONTRACTS = {
       { name: "aggregate-mismatch", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "unmet", evidence_present: true }] }, wantExit: 1 },
       { name: "out-of-enum-aggregate-coerced", in: { aggregate: "perfect", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, wantExit: 1 },
       { name: "out-of-enum-class", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "behavioural", verdict: "met", evidence_present: true }] }, wantExit: 1 },
+      // FAFF-384 spawner-attestation ratchet. `attFix` = a conformant spawner-attested meets-spec verdict.
+      { name: "ratchet-off-legacy-self-attested-passes", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, wantExit: 0 },
+      { name: "ratchet-on-self-attested-blocks", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, opts: { requireSpawnerAttested: true }, wantExit: 1 },
+      { name: "ratchet-on-spawner-attested-passes", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" } }, opts: { requireSpawnerAttested: true }, wantExit: 0 },
+      { name: "spawner-attested-missing-attestation", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: true }, opts: { requireSpawnerAttested: true }, wantExit: 1 },
+      { name: "spawner-attested-repo-not-withheld", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: false, worktree_cwd: true, diff: true }, preflight: "pass" } }, opts: { requireSpawnerAttested: true }, wantExit: 1 },
+      { name: "spawner-attested-preflight-not-pass", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "refused" } }, opts: { requireSpawnerAttested: true }, wantExit: 1 },
+      { name: "refuse-to-attest-false-tolerated-flag-off", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: false }, wantExit: 0 },
+      { name: "refuse-to-attest-false-blocks-flag-on", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: false }, opts: { requireSpawnerAttested: true }, wantExit: 1 },
+      { name: "spawner-attested-non-boolean", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: "yes" }, wantExit: 1 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -1337,7 +1393,7 @@ function contractSelftest(name) {
     if (!c) { process.stderr.write(`faff contract: unknown contract '${n}'\n`); return 2; }
     for (const f of c.fixtures) {
       total++;
-      const exit = exitFor(c.run(f.in));
+      const exit = exitFor(f.opts ? c.run(f.in, f.opts) : c.run(f.in));
       const ok = exit === f.wantExit;
       if (!ok) fail++;
       console.log(`${ok ? "ok  " : "FAIL"} ${n}/${f.name} → exit ${exit} (want ${f.wantExit})`);
@@ -1360,7 +1416,10 @@ function cmdContract(args) {
   let extraction;
   try { extraction = JSON.parse(rawIn); }
   catch (e) { process.stderr.write(`faff contract ${name}: extraction is not valid JSON: ${e.message}\n`); return 2; }
-  const result = c.run(extraction);
+  // FAFF-384: `--require-spawner-attested` arms the holdout-verdict spawner-attestation ratchet (caller-
+  // resolved from the run's lane-boundary cage promise). Ignored by every other contract's run fn.
+  const runOpts = name === "holdout-verdict" && args.includes("--require-spawner-attested") ? { requireSpawnerAttested: true } : undefined;
+  const result = runOpts ? c.run(extraction, runOpts) : c.run(extraction);
   if (result.failLoud) { process.stderr.write(`faff contract ${name}: fail-loud: ${result.failLoud}\n`); return 2; }
   process.stdout.write(JSON.stringify(result.contractData) + "\n");
   return (result.contractData.violations || []).length === 0 ? 0 : 1;

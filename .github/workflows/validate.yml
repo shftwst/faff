@@ -118,6 +118,9 @@ jobs:
       - name: Validate holdout verdicts → DoD-verdict map table (FAFF-277)
         run: node plugin/skills/faff/bin/faff holdout --selftest
 
+      - name: Validate the code-blind evaluator spawner pure core (FAFF-384)
+        run: node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest
+
       - name: Validate engineering-quality gate ladder
         run: node plugin/skills/faff/bin/faff gates --selftest
 

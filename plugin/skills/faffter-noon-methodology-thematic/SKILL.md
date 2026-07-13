@@ -20,7 +20,7 @@ slots:
 
 ## Core ordering rule
 
-**Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents, over live blocker edges only — gateway → **Satisfied blockers — edges to terminal work**).**
+**Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents, over live blocker edges only — gateway → *Satisfied blockers — edges to terminal work*).**
 
 When two issues have equal priority, the one that unlocks more downstream work goes first. When both are equal, creation order breaks the tie (oldest first — fairness over recency). Every output below that sequences work uses this rule.
 

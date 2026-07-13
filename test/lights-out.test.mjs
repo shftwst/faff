@@ -529,6 +529,20 @@ test("lights-out: proceed reports enforced map (8/8) + ledger carries it", () =>
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+// FAFF-351 — L4 is shipped-and-reachable but not yet proven on a real end-to-end holdout
+// run, so the banner carries a "(preview)" caveat on the runtime surface an operator
+// confirms an L4 run against (mirrors the gateway levels table + guarantee table). The
+// caveat rides both the headline and the level line, and survives into the persisted ledger.
+test("lights-out: banner carries the L4 (preview) caveat, persisted to the ledger", () => {
+  const root = tmpRoot();
+  const { runDir, ledger: minted } = mintFixtureLedger(root, { maxAttempts: 5 });
+  assert.match(minted.banner, /faff lights-out — L4 \(preview\) run banner/);
+  assert.match(minted.banner, /level: L4 \(preview\)/);
+  const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+  assert.match(ledger.banner, /L4 \(preview\)/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 // FAFF-298 — dial-coherence end-to-end: a fully-contained, budgeted run whose dials
 // are each individually valid but JOINTLY reckless (non-adversarial review + advisory
 // gates) refuses at preflight with the named dial-coherence gates, mints nothing.

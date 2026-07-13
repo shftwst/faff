@@ -700,9 +700,11 @@ test("all eval/cases load and validate", () => {
   // and every holdout scenario verifies behaviour the body already requires).
   // FAFF-317: +2 holdout-exercise (the raw-exercise derive+interpret half: distractor + a two-recording
   // criterion + a trap + a no-bearing-recording criterion, both cases carrying a prose criterion too).
-  assert.equal(cases.length, 75);
+  // FAFF-436: +1 grouping (the agile lens's rehome-set proposal — two outcome clusters + a deliberately-loose
+  // ticket; must_avoid catches thematic-bucket phrasing).
+  assert.equal(cases.length, 76);
   const kinds = new Set(cases.map((c) => c.kind));
-  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger"]) {
+  for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger", "grouping"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
   }
   // ≥2 cases each for the new classification kinds (the 2/kind convention); routing ships ≥6 (one per verdict).

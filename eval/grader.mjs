@@ -214,7 +214,17 @@ import { fileURLToPath } from "node:url";
 //                     fixture's note for the human baseline). Oracle = ["flagged"] if it SHOULD raise a
 //                     finding above minor, else []. predictedSet = ["flagged"] iff env.findings has ≥1
 //                     finding above minor severity, else []. Both reduce to setEqual vs oracle.closed_set.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"];
+// FAFF-436 — the methodology rehome-set surface adds one gloss_rubric kind:
+//   grouping        — SHIPPED. The agile lens's rehome-set proposal: given a loose Backlog set, it
+//                     proposes outcome-led project containers + an explicit leave-loose set. Advisory
+//                     rubric-coverage over the proposal text (env.grouping — a {id: text} map or flat
+//                     array of container names + outcome glosses + leave-loose lines), delegating to
+//                     gradeCoverage verbatim (the architecture/gradeShaping precedent). NOT in
+//                     CLOSED_SET_KINDS. must_avoid catches thematic-bucket phrasing (the conservatism
+//                     tripwire); the completeness invariant (every input ticket once) is a skill AC
+//                     noted in the fixture, not new grade math. Surface = the agile lens (its
+//                     judgement_seam flips ordering → grouping); thematic keeps ordering.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -332,7 +342,7 @@ export function validateCase(c) {
   // FAFF-241 — specqual joins the same gloss_rubric arm (collection-level coverage over the spec body).
   // FAFF-240 — roadmap joins the same gloss_rubric arm (collection-level coverage over the synthesis).
   const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
-    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap" || c.kind === "adr-gloss") ? "gloss_rubric"
+    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap" || c.kind === "adr-gloss" || c.kind === "grouping") ? "gloss_rubric"
     : "closed_set";
   const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
   if (populated.length !== 1 || populated[0] !== want) {
@@ -777,6 +787,15 @@ export function grade(c, env) {
   // collection → every must_include misses (coverage low), never a crash. No new grade math.
   if (c.kind === "architecture") {
     const { score, vector } = gradeCoverage((env && env.architecture) || [], c.oracle.gloss_rubric);
+    return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
+  }
+  // FAFF-436 — grouping: collection-level rubric coverage over the agile lens's rehome-set proposal
+  // (env.grouping, a {id: text} map or flat array of the proposed container names + outcome glosses +
+  // leave-loose lines), delegating byte-for-byte to gradeCoverage — the architecture/gradeShaping
+  // pattern (PARTIAL on [0,1), PASS on 1, vector signature). A missing/garbage field → empty collection
+  // → every must_include misses (coverage low), never a crash. No new grade math.
+  if (c.kind === "grouping") {
+    const { score, vector } = gradeCoverage((env && env.grouping) || [], c.oracle.gloss_rubric);
     return { graded: score === 1 ? "PASS" : "PARTIAL", score, tokens, signature: JSON.stringify(vector) };
   }
   // FAFF-241 — specqual: collection-level rubric coverage over the GENERATED spec's sections

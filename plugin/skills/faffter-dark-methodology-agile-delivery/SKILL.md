@@ -2,7 +2,7 @@
 name: faffter-dark-methodology-agile-delivery
 description: "Agile-delivery `methodology` lens — answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the thematic default. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
-judgement_seam: ordering
+judgement_seam: grouping
 ---
 
 # faffter-dark-methodology-agile-delivery
@@ -18,7 +18,7 @@ slots:
 
 ## Outputs
 
-This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. It also answers the optional `issue-critique` (per-issue lens for `/faff-prep`), `crank-up-set` (ranked not-eligible unlock batches for `/faff-wtf` + `/faff-tidy`), `prdr-author` (a target-scaled project DoD for `/faff-plot` + `/faff-jot` + the lights-out runner), and `yagni-judge` (Phase-1 of the upper/YAGNI gate — FAFF-256) outputs. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
+This skill fills the `methodology` slot, so it answers the same named-output set — but through the seven-principle lens rather than pure graph structure. That set (the outputs, which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment`, `build-queue`. It also answers the optional `issue-critique` (per-issue lens for `/faff-prep`), `crank-up-set` (ranked not-eligible unlock batches for `/faff-wtf` + `/faff-tidy`), `prdr-author` (a target-scaled project DoD for `/faff-plot` + `/faff-jot` + the lights-out runner), `yagni-judge` (Phase-1 of the upper/YAGNI gate — FAFF-256), and `rehome-set` (outcome-led grouping proposals for loose Backlog work, requested by `/faff-plot`) outputs. A caller requests an output by name and receives the answer plus principle-grounded findings; this skill does not know or describe its callers.
 
 Inputs it expects with any request: the relevant issues, their state, sequencing, workstream grouping, dependency graph. Output of every request includes structured findings — `(principle violated, diagnosis, recommended action)` — and a banner line `Methodology: faffter-dark-methodology-agile-delivery` for the caller to display (the gateway envelope's `Methodology: <name>` line carries this skill's own name, not a nickname).
 
@@ -29,13 +29,14 @@ How the principles map onto the outputs:
 | `ticket-shaping` | 1 (outcome-named workstreams, not the brief's literal capability names), 4 (right-sized — split a capability that's too big, merge always-together items), 6 (surface deps as explicit blocker links), 2 + 7 (sequence the proposed tickets by value × risk) |
 | `pick-ordering` / `build-queue` | 2 (value × risk, sharpened to incremental end-user value), 7 (risk-aware) — override the thematic default's priority+unlock when materially different; **re-home a value stream's gating chain into that stream's order** (see **Re-homing gating chains into the stream they gate**) |
 | `promotion-readiness` | 4 (right-sized), 6 (surfaced deps) |
-| `backlog-diagnostics` | Composes the shared structural/topology floor for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6, plus the **thematic-project** structural-category finding (a project grouped by a capability / layer / theme, not an outcome — see **Converting a thematic project to outcome-led**) |
+| `backlog-diagnostics` | Composes the shared structural/topology floor for the mandatory graph floor (cycles + ghost-projects), then adds principle findings: 1 (outcome-named), 4, 5 (cohesive), 6, plus the **thematic-project** structural-category finding (a project grouped by a capability / layer / theme, not an outcome — see **Converting a thematic project to outcome-led**), plus the **loose-accumulation** finding (project-less Backlog tickets forming a groupable cluster → recommend the rehoming pass — see **Proposing outcome-led groupings for loose work**) |
 | `standup-digest` | 3 (WIP cap — humans only), plus top findings from 1, 5, 6, 7 |
 | `horizon-assignment` | 2, 7 to re-sequence within horizons; 1, 5, 6 in the risk view |
 | `issue-critique` | per-issue: 4 (right-sized / split / merge), 1 + 5 (workstream fit), 6 (surfaced deps), 7 (risk profile → de-risking spike) |
 | `crank-up-set` | **Composes** `faffter-noon-methodology-thematic`'s `crank-up-set` slice algorithm for the graph walk + frontiers, then **re-ranks** the returned sets by 2 (value × risk) and 7 (risk-aware), trimming to the thinnest coherent slice (MVP, principle 4). Does not re-implement the walk. Appetite per-level: low = solo safe roots; full = deepest runway. |
 | `prdr-author` | **Composes** the thematic baseline's `prdr-author` field derivation, then **scales the DoD by the agile lens**: 4 (right-sized — the thinnest coherent done-bar for the target, MVP cut over exhaustive coverage), 2 + 7 (value × risk — the DoD's done-criteria are the highest-value increment the target funds, de-risked first). Does not re-author from scratch — composes the thematic fields and re-frames the `definition_of_done` ambition. |
 | `yagni-judge` | Proposes the upper-gate Phase-1 `{serves_goal, within_scope, verdict, reason}` through the value lens: 2 + 7 (value × risk — does this PRDR earn its keep for the goal it cites?), 4 (right-sized — MVP cut, so *exceeding* the goal reads as `within_scope: false`). The agile lens is the natural YAGNI judge (it owns the MVP/bet call). It **proposes, never admits** — the adversarial skeptic challenges it (Phase 2) and `faff prdr yagni` arbitrates conservatively. |
+| `rehome-set` | 1 + 5 (outcome-named containers, one outcome each — never a theme/capability/layer bucket), 4 (a cluster too thin to be a deliverable stays loose), 6 (coherence blocker edges proposed explicitly), 2 + 7 (proposals ordered by which grouping unlocks sequencable value first). **Read-only — proposes, never writes** (see **Proposing outcome-led groupings for loose work**). |
 
 The WIP cap (principle 3) applies to `standup-digest` only — never to `build-queue` (autonomous work is unbounded).
 
@@ -127,6 +128,28 @@ Under the agile lens an **outcome-led project is the only legitimate project sha
 **Per level** (the lens's flavour of the gateway **Appetite for destruction → Topology-write authority** dial — the levels are not re-derived here): `low` **diagnoses only** — surface the thematic-project finding + the offered conversion, zero writes; `medium` surfaces the finding with the recommended conversion, no reparent / retire (conversion is a high-judgement op); `high` (default) **proposes the conversion** — the per-ticket rehome plan + remainder-to-backlog + shell retirement, acting on the clear rehomes and proposing the judgement where the outcome home is ambiguous; `full` **converts in one pass** — rehome all live work, land the remainder, retire the drained shell, fully logged.
 
 **Invariants, inherited from the dial (named, not restated):** reversibility (retire / close, never cancel / delete — at every level including `full`); idempotent / anti-thrash (a converted project stays converted — a retired drained shell is recognised as already-converted next pass, a rehomed ticket does not bounce back into a thematic home); the human-curated-structure floor (a project a human curated as a deliberate grouping stays propose-and-confirm at every level).
+
+## Proposing outcome-led groupings for loose work
+
+The **Default landing** rule sends new work project-less to Backlog on purpose, so loose tickets accumulate. The `rehome-set` output is the convergence step: given the project-less Backlog set, its dependency graph, and the existing projects, it **proposes** outcome-led homes for the loose work. It is **read-only — it proposes, never writes**; applying a proposal is the caller's human-gated act.
+
+**The proposal procedure:**
+
+1. **Cluster the loose set by shared outcome.** A cluster is a subset of loose tickets that converge on one user-facing or business outcome — the same outcome test **Converting a thematic project to outcome-led** uses, applied forward to un-grouped work.
+2. **Name each high-confidence cluster's container by its outcome** (principles 1 + 5) — an outcome statement, never a capability / layer / theme. A thematic bucket in a proposal is the lens's own structural-category error; never propose one. One outcome per container.
+3. **Drop clusters too thin to be a deliverable** (principle 4 applied to containers) — a pair of tickets with no sequencable value together stays loose, not a manufactured project.
+4. **Propose the coherence blocker edges** that make each grouping sequencable (principle 6): the `blockedBy` edges internal to the cluster, emitted as proposals, never written. An edge that would create a cycle against the live graph is omitted and noted in findings.
+5. **Order the proposals** by which grouping unlocks sequencable value first (principles 2 + 7).
+6. **Name every remaining loose ticket in the leave-loose set** with a one-line reason. A ticket may also be proposed for membership in an *existing* project whose outcome it matches (existing projects are an input for exactly this) — still a proposal, never a write.
+
+**Completeness — nothing silently omitted.** Every input loose ticket appears **exactly once** across the union of proposal memberships and the leave-loose set. A silently dropped ticket is indistinguishable from a forgotten one, which the caller cannot act on.
+
+**Conservative bias.** A wrong grouping is worse than a loose ticket: applying a proposal is cheap, but unwinding it is a manual reassign (a project assignment cannot be nulled — only moved), so err toward loose. Some loose is *correct* — a genuinely independent ticket has no outcome home and belongs in leave-loose. Propose **only high-confidence groupings**; when in doubt, leave loose and say so.
+
+**Loose-accumulation diagnostic** (a `backlog-diagnostics` finding). When `backlog-diagnostics` runs and the lens detects ≥1 groupable cluster among the project-less Backlog tickets (a judgement call — no count threshold), surface a finding that names the cluster members (tracker id + gloss) and the candidate outcome, and recommends running the rehoming pass. The don't-nag rule applies (a repeat finding surfaces at most once). Additive over the structural/topology floor. Diagnosis template (the three-part educational shape):
+> _"[N] project-less Backlog tickets include a groupable cluster — [id: gloss, …] converge on the outcome '[candidate outcome]'. Loose work doesn't get sequenced, so this value sits un-orderable. Run the rehoming pass to propose an outcome-led home for it (and confirm the rest is deliberately loose)."_
+
+**Appetite** tunes proposal **breadth and the confidence threshold only — never write authority**: `low` proposes only the clearest single grouping at the tightest confidence bar; `full` proposes the widest defensible set at a looser (but still high) bar. At **every** level, zero tracker writes — the output is a proposal document. An empty answer (no cluster clears the bar) is a valid, complete result: empty proposals, every ticket in leave-loose; the caller reports no grouping opinion and writes nothing.
 
 ## The seven principles
 

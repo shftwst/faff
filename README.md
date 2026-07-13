@@ -15,7 +15,7 @@ In both, the tracker stays the human-legible record, control plane, and observab
 
 ## The levels
 
-The **levels** aren't a faff feature. They're *how far you've wandered off from the loop* — who's running it, and what's keeping it from spontaneous robot combustion while your back's turned. That's the "where do I fit, what do I gain" question, and it's the whole pitch.
+The **levels** aren't a faff feature. They're *how far you've wandered off from the loop* — who's running it, and what's keeping it from spontaneous robot combustion while your back's turned. That's the "where do I fit, what do I gain" question, and it's the whole pitch. And a level is per-**workload**, not per-team: eligibility is set per ticket, so a team legitimately runs L1 and L3 on the same board the same night — see [Adopting by change-class](docs/guide/adopting-by-change-class.md).
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|
@@ -70,6 +70,7 @@ Everything past the pitch lives in `docs/`:
 
 - [Walkthroughs](docs/guide/walkthroughs.md) — two guided runs: idea → tickets, and a first build start to finish.
 - [Unattended runs](docs/guide/unattended.md) — the L3 deep-dive: the loop, fire-and-forget, park protocol, run-ledger, tracker-as-control-plane, and running over SSH.
+- [Adopting by change-class](docs/guide/adopting-by-change-class.md) — the adoption pattern: risk-tiered delegation per change-class, not a per-team level, built on per-ticket eligibility, appetite, and the verdict gate.
 - [Configuration](docs/guide/configuration.md) — the `.faffrc.yaml` reference, plus the two knobs (appetite, slots).
 - [Skills & slots](docs/guide/skills.md) — the skill catalogue, the slot model, and swapping in third-party or your own doing-skills.
 - [The `faff` CLI](docs/guide/cli.md) — the bundled command-line tool and its subcommands, grouped by purpose.

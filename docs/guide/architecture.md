@@ -6,6 +6,6 @@ Faff operates across three segregated executor lanes with controlled visibility:
 |---|---|---|---|
 | **Orchestrator** | Pipeline sequencing, external interface (tracker, human, reporting) | Tracker, docs, codebase (read) | — |
 | **Implementor** | Architecture, spec interpretation, code, tests | Codebase (read/write), spec | Tracker, human dialogue |
-| **Evaluator** *(future, L4)* | Quality control from business-value perspective | Spec, running environment | Codebase |
+| **Evaluator** *(L4, lights-out)* | Quality control from business-value perspective | Spec, running environment | Codebase |
 
-Isolation is by design — the implementor can't mark its own homework, and (once built) the evaluator can't be biased by implementation approach. **Today only the orchestrator and implementor lanes are active**; the evaluator lane is a documented-but-future L4 capability.
+Isolation is by design — the implementor can't mark its own homework, and the evaluator can't be biased by implementation approach. The evaluator lane is the **L4 lights-out lane**: it runs under `faff lights-out`, where the code-blind holdout evaluator judges the work against a spec it never saw and its verdict gates the merge. Not every enforcement leg is wired end-to-end yet — the `evaluator-preflight` assert-in is built but not yet called from the live holdout dispatch (see [CLI reference](cli.md)) — but the lane ships and runs on the lights-out path.

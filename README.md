@@ -22,13 +22,13 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 | **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
 | **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-graft` |
 | **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
-| **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | lights-out (frontier) |
+| **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | `faff lights-out` |
 
 **L1/L2 are the on-ramp.** They're the same tracker + methodology tooling — *without* handing off the build. At **L1** you write the code and faff plays planning exoskeleton (what's worth building, a spec worth building from). At **L2**, `/faff-graft` drives one build but stops at every gate for your say-so. Same tracker, same methodology — you just haven't handed the keys over yet.
 
 **L3 · on the loop is the centrepiece.** `/faff-beep-boop` chews through the ready queue unattended and **parks** anything it can't call. The safety net isn't you staying awake — it's mechanical: the **park protocol** never quietly bins a loose end, and the **run-ledger** refuses to call a run "done" if it left admitted work dangling. The tracker reflects every status, spec, park, and outcome, so the morning view is the tracker — not a wall of logs. This is the level you can actually leave the building from. → [Unattended runs](docs/guide/unattended.md), and [what makes work eligible before an unattended run](docs/guide/unattended.md#before-your-first-unattended-run).
 
-**L4 · out of the loop** is the frontier — lights-out, correctness held up by adversarial review and isolated holdout worktrees. Not built yet.
+**L4 · out of the loop** is lights-out. `faff lights-out` is the single self-checking entry point that turns an L3 run into L4 — a fail-closed preflight, an L4 run-ledger, and correctness held up by adversarial review and a code-blind holdout verdict on isolated worktrees. It ships as a v1 basic preflight, with richer dial-coherence and the adversarial-promotion machinery as named follow-ons. → [Going lights-out](docs/guide/unattended.md#going-lights-out-l4--faff-lights-out).
 
 > Two knobs cut across all four levels (they aren't levels themselves): **slots** decide *what* runs at each stage, and **appetite** sets *how much rope* the pipeline gets before checking back. See [Configuration](docs/guide/configuration.md).
 

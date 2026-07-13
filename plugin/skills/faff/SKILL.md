@@ -11,7 +11,7 @@ description: "Gateway — routes to the right faff sub-skill. Use /faff-jot to s
 
 Under the hood it's a **harness**: a set of Claude Code skills wrapping the delivery loop (issue → spec → build → review → ship) in fixed contracts and gates. It won't make the model a better engineer. It makes it **safe to stop watching**, one step at a time.
 
-The **levels** aren't a faff feature. They're *how far you've wandered off from the loop*. One question sorts them: **who's running it, and what's keeping it from spontaneous robot combustion while your back's turned?**
+The **levels** aren't a faff feature. They're *how far you've wandered off from the loop*. One question sorts them: **who's running it, and what's keeping it from spontaneous robot combustion while your back's turned?** And a level is per-**workload**, not per-team: eligibility is set per ticket, so a team legitimately runs L1 and L3 on the same board the same night.
 
 | Level | You're | Loop run by | What keeps it honest | Entry point |
 |---|---|---|---|---|

@@ -20,7 +20,7 @@ slots:
 
 ## Core ordering rule
 
-**Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents).**
+**Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents, over live blocker edges only — gateway → **Satisfied blockers — edges to terminal work**).**
 
 When two issues have equal priority, the one that unlocks more downstream work goes first. When both are equal, creation order breaks the tie (oldest first — fairness over recency). Every output below that sequences work uses this rule.
 
@@ -32,7 +32,7 @@ It does **not** answer the optional `issue-critique` output — per-issue right-
 
 ### `pick-ordering`
 
-Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top.
+Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top. Unlock value counts live blocker edges only (gateway → **Satisfied blockers — edges to terminal work**) — a satisfied edge adds no downstream count.
 
 ### `promotion-readiness`
 
@@ -164,7 +164,7 @@ The cycle + ghost-project findings feed the **automation-routing contract** (fix
 
 Surface, in order:
 1. **Recently shipped** — completed in last 24-48h + what each just unblocked. Float newly-unblocked issues to the top of recommendations.
-2. **Today's focus** — top N ready issues by `pick-ordering`. Recommend the one that unlocks the most downstream value.
+2. **Today's focus** — top N ready issues by `pick-ordering`. Recommend the one that unlocks the most downstream value (live edges only — gateway → **Satisfied blockers — edges to terminal work**).
 3. **Heads up** — structural problems that would bite today: repeat-parks, chain gaps (with sub-type), orphaned+repeat-parked, approaching deadlines.
 4. **Queues** — build queue + prep queue counts.
 
@@ -175,7 +175,7 @@ Render: every issue gets tracker ID + plain-English gloss + unlock-chain consequ
 Assign each issue a horizon from tracker state:
 - **Now** — In Progress or actively being built
 - **Next** — Todo, blockers clear or nearly clear, spec exists
-- **Later** — Backlog, or blocked by Now/Next work
+- **Later** — Backlog, or blocked by Now/Next work (live edges only — a satisfied edge, gateway → **Satisfied blockers — edges to terminal work**, does not count as blocked)
 
 Sequence within each horizon by `pick-ordering`. Surface structural diagnostics relevant to roadmaps: ghost-project pointers, structural gaps (initiative has no Next project), unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), parked issues with unmet unpark conditions. Emit an ASCII chain diagram (initiative → project → issue) with structural gaps marked inline.
 
@@ -183,7 +183,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 **Admission:** `fire-and-forget` + `likely-fire` verdicts enter; `needs-decision-first` / `gap-blocked` / `circular-blocked` / `repeat-parked` route out.
 
-**Ordering:** `pick-ordering`. Independents ordered directly; collision groups serialised within (lead issue determines group position).
+**Ordering:** `pick-ordering`. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
 
 **Conflict analysis (safe for parallel):**
 1. Specs name same files → collision
@@ -220,7 +220,7 @@ Independents run in parallel; collision groups serialise within themselves.
 **Slice algorithm:**
 
 1. **Roots.** Filter the not-eligible set to issues with ≥1 not-eligible dependent (downstream runway), ranked by the core ordering rule (priority → chainable unlock value). Apply a **min unlock-value threshold ≥2** (mirrors the value-chains render gate) — a lone not-eligible leaf (unlocks 0) is omitted in favour of a root with runway.
-2. **Depth.** Walk transitive dependents in dependency order; admit a dependent `D` into the slice **iff** `D` is not-eligible **and** all `D`'s blockers are already in the slice (no outside blocker).
+2. **Depth.** Walk transitive dependents in dependency order; admit a dependent `D` into the slice **iff** `D` is not-eligible **and** all `D`'s blockers are already in the slice (no outside blocker; a satisfied blocker — gateway → **Satisfied blockers — edges to terminal work** — is neither in the slice nor an outside blocker, so it never excludes `D`).
 3. **Stop per branch at the first frontier:** (a) **branch point** — `D` has an outside (non-slice) blocker → exclude, mark `"fans out — separate proposal"`; (b) **risk spike** — `D`'s reversibility tier flips to higher-risk; (c) **value plateau** — `D` unlocks 0 **and** is not spec-ready.
 4. **Annotate.** Each member carries its `faff next --if-eligible` badge (would-build / would-need-prep / would-still-need-decision); each set carries a one-line **hypothetical-verdict distribution** (e.g. "2 would-build, 1 would-need-prep") + any deferred-with-reason members.
 5. **Shared member.** When a member sits in two roots' slices, the **highest-priority root claims it**; the other marks it `"shared with <root>"` (deterministic; avoids double-cranking in render).

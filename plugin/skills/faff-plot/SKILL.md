@@ -38,7 +38,7 @@ discovery brief → recurse top-down (ticket-shaping per level) → write skelet
 ### 1. Entry — get a discovery brief
 
 - **Chained from `/faff-jot`** (the common path): jot hands over the brief it already gathered when it judged the work application-scale. Use it directly — do not re-run discovery.
-- **Standalone** (`/faff-plot` invoked directly): run discovery first, exactly as jot does — invoke the configured `intake` skill (default `faffter-noon-intake`) via the Skill tool (resolve the slot value per gateway → **Sibling-skill invocation**: a bundled default is a canonical name, an explicitly-namespaced override is used verbatim), passing the human's description, and take back a discovery brief. A missing `intake` slot is never a blocker: run the default inline.
+- **Standalone** (`/faff-plot` invoked directly): run discovery first, exactly as jot does — invoke the configured `intake` skill via the Skill tool (resolve the slot value per gateway → **Sibling-skill invocation**: a bundled default is a canonical name, an explicitly-namespaced override is used verbatim), passing the human's description, and take back a discovery brief. A missing `intake` slot is never a blocker: run the default inline.
 
 If the brief is too thin to plan a coherent roadmap (one vague capability, no stated dependencies), say so and offer to deepen discovery rather than inventing structure.
 
@@ -74,7 +74,7 @@ Create top-down as each level is confirmed: initiative containers → project co
 
 ### 5b. Propose a project DoD (`prdr-author`, L3 propose-for-approval)
 
-For each **project** container just written (not initiatives, not epics), ask the configured `methodology` skill's **`prdr-author`** output (default `faffter-noon-methodology-thematic`) for a target-scaled project DoD, then **surface it for human approval** — `/faff-plot` runs at L3, so the machine **proposes**, the human **ratifies**:
+For each **project** container just written (not initiatives, not epics), ask the configured `methodology` skill's **`prdr-author`** output for a target-scaled project DoD, then **surface it for human approval** — `/faff-plot` runs at L3, so the machine **proposes**, the human **ratifies**:
 
 - Request `prdr-author` with the project's `{outcome, child_specs, target}` — `target` resolves `explicit > inherited > methodology-default` (gateway → **The `methodology` slot**, `prdr-author` row). The methodology writes the `AuthoredPrdr` via `faff prdr new --provenance loop --status Proposed`.
 - **Surface, never auto-accept:** present the proposed `## Definition of done` + decision under the project and gate — "Proposed project DoD for <project> (target: <t>). Approve as-is / edit / skip? (approve / edit / skip)". On **approve**, point the human at the tracker to flip the PRDR `Status: Accepted` (FAFF-255's human gesture — `/faff-plot` never self-Accepts); on **edit**, take the human's DoD edit (that edit wins — human-set > methodology-default) and record it before approval; on **skip**, leave the PRDR `Proposed` for a later pass.

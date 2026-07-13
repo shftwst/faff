@@ -440,8 +440,12 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
   const mark = (s) => (s === "live" ? "●" : s === "degraded" ? "◐" : "○");
   const enf = enforced || {};
   const lines = [];
-  lines.push(`faff lights-out — L4 run banner`);
-  lines.push(`  level: L4   container: ${probes && probes.container === "contained" ? "contained" : "refused"}`);
+  // FAFF-351 — L4 is shipped-and-reachable but not yet proven on a real end-to-end
+  // holdout run, so the banner carries a "(preview)" caveat on the runtime surface an
+  // operator actually confirms an L4 run against (mirrors the gateway levels table's L4
+  // row + guarantee table). Dropped when FAFF-435's frontier holdout run passes.
+  lines.push(`faff lights-out — L4 (preview) run banner`);
+  lines.push(`  level: L4 (preview)   container: ${probes && probes.container === "contained" ? "contained" : "refused"}`);
   lines.push(`  guardrails (${LIGHTS_OUT_GUARDRAILS.length}):`);
   for (const g of LIGHTS_OUT_GUARDRAILS) {
     const st = armed[g.id];
@@ -861,6 +865,9 @@ function lightsOutSelftest() {
   // Banner is derivable 1:1 from armed: every guardrail id + state appears.
   for (const id of LIGHTS_OUT_GUARDRAIL_IDS) check(`banner names ${id}`, happy.banner.includes(id));
   check("banner reports ARMED on proceed", /ARMED/.test(happy.banner));
+  // FAFF-351 — the L4 preview caveat rides the banner headline + level line.
+  check("banner headline carries the L4 (preview) caveat", happy.banner.includes("L4 (preview) run banner"));
+  check("banner level line carries the L4 (preview) caveat", happy.banner.includes("level: L4 (preview)"));
 
   // FAFF-305 — enforced map: reported alongside armed, fail-closed via strict === true.
   check("preflight returns an enforced map", happy.enforced && typeof happy.enforced === "object");

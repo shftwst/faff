@@ -1,0 +1,175 @@
+name: "faff governance-check"
+description: >-
+  Harness-independent enforcement binding (FAFF-363). Validates the run artifacts a PR
+  carries (ledger completeness, budget, merge-floor conditions) as a required status
+  check — thin wrapper over the `faff governance-check` CLI verb, which composes
+  already-shipped governance cores and adds no new invariant. Emitting the artifact
+  format is NOT the same as being governed until this check is marked required in
+  branch protection; this check validates conformance, never artifact authenticity.
+author: "faff"
+
+inputs:
+  faff-binary:
+    description: >-
+      Path to an in-checkout faff binary, relative to the consuming repo's checkout root.
+      Used as-is when present (checkout-first resolution).
+    required: false
+    default: "plugin/skills/faff/bin/faff"
+  faff-version:
+    description: >-
+      Release ref (commit sha or tag) to fetch the binary from raw.githubusercontent.com
+      when no in-checkout binary is found. Pin a COMMIT SHA for external consumers — a tag
+      is a mutable ref, and a moved tag silently swaps the enforcement binary.
+    required: false
+    default: ""
+  artifacts-path:
+    description: "Where carried run dirs live in the checkout."
+    required: false
+    default: ".faff/runs"
+  on-missing:
+    description: >-
+      Policy when the PR's diff carries no governance artifacts at all: "pass" (adoption
+      mode — the default; a required check must not block every human PR on a mixed repo)
+      or "fail" (locked-down mode, for agent-only branches).
+    required: false
+    default: "pass"
+  issue:
+    description: >-
+      Explicit issue id for the merge-floor leg. Defaults to a case-insensitive
+      [A-Za-z]+-[0-9]+ match against the PR's head branch name, upcased. When neither
+      resolves, the verb itself falls back to every admitted issue with a terminal
+      outcome in the carried run dir(s).
+    required: false
+    default: ""
+  level:
+    description: "Floor level (L1|L2|L3|L4)."
+    required: false
+    default: "L3"
+
+outputs:
+  verdict:
+    description: "pass | fail | no-artifacts — mirrors the step's exit code / on-missing outcome."
+    value: ${{ steps.governance-check.outputs.verdict || steps.on-missing.outputs.verdict }}
+
+runs:
+  using: "composite"
+  steps:
+    # 1. Resolve the faff binary: in-checkout path first, else fetch-by-pinned-ref.
+    - name: Resolve faff binary
+      id: resolve-binary
+      shell: bash
+      run: |
+        set -euo pipefail
+        BIN="${{ inputs.faff-binary }}"
+        if [ -f "$BIN" ]; then
+          echo "faff governance-check: using in-checkout binary: $BIN"
+          chmod +x "$BIN" 2>/dev/null || true
+        else
+          if [ -z "${{ inputs.faff-version }}" ]; then
+            echo "::error::faff governance-check: setup fault — no in-checkout binary at $BIN and no faff-version pinned to fetch one (pin a commit sha, preferably, or a tag)"
+            exit 1
+          fi
+          BIN="${RUNNER_TEMP}/faff-governance-check-bin"
+          URL="https://raw.githubusercontent.com/shftwst/faff/${{ inputs.faff-version }}/plugin/skills/faff/bin/faff"
+          echo "faff governance-check: no in-checkout binary at ${{ inputs.faff-binary }} — fetching pinned ref from $URL"
+          if ! curl -fsSL "$URL" -o "$BIN"; then
+            echo "::error::faff governance-check: setup fault — failed to fetch the faff binary from $URL (faff-version=${{ inputs.faff-version }})"
+            exit 1
+          fi
+          chmod +x "$BIN"
+        fi
+        echo "bin=$BIN" >> "$GITHUB_OUTPUT"
+
+    # 2/3. Discover carried run dirs from the PR's own diff (never "newest dir in the
+    # checkout" — a stale merged run must not satisfy a new PR). A changed path whose
+    # run dir no longer exists at HEAD (the PR itself deleted it) is skipped — "not
+    # carried anymore", never a stale false positive.
+    - name: Discover carried run dirs
+      id: discover
+      shell: bash
+      run: |
+        set -euo pipefail
+        ARTIFACTS_PATH="${{ inputs.artifacts-path }}"
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        DIRS=""
+        if [ -n "$BASE_SHA" ] && [ -n "$HEAD_SHA" ]; then
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "$ARTIFACTS_PATH" || true)"
+          DIRS="$(printf '%s\n' "$CHANGED" | awk -F/ -v p="$ARTIFACTS_PATH" 'NF>=2 {print p"/"$2}' | sort -u | while read -r d; do [ -n "$d" ] && [ -d "$d" ] && echo "$d"; done)"
+        else
+          echo "faff governance-check: not a pull_request event with base/head shas — skipping diff-based discovery"
+        fi
+        {
+          echo "dirs<<GOVDIRSEOF"
+          echo "$DIRS"
+          echo "GOVDIRSEOF"
+        } >> "$GITHUB_OUTPUT"
+        # A dedicated boolean output — never branch subsequent steps on whether the
+        # multiline `dirs` output STRINGIFIES to '' (GitHub's heredoc-style multiline
+        # capture of an empty value is not guaranteed to compare equal to the empty
+        # string literal in an `if:` expression — an ambiguity worth avoiding entirely
+        # rather than relying on).
+        if [ -n "$DIRS" ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
+
+    # Derive a default --issue from the PR head branch name when the caller didn't pass
+    # one explicitly. A miss here is fine — the verb's own branch-name/admitted fallback
+    # still applies (belt and braces; this saves the verb a git spawn when it's cheap
+    # to resolve here from an already-known ref).
+    - name: Derive issue from head branch (fallback default)
+      id: derive-issue
+      shell: bash
+      run: |
+        set -euo pipefail
+        ISSUE="${{ inputs.issue }}"
+        if [ -z "$ISSUE" ]; then
+          BRANCH="${GITHUB_HEAD_REF:-}"
+          ISSUE="$(printf '%s' "$BRANCH" | grep -ioE '[a-z]+-[0-9]+' | head -n1 | tr '[:lower:]' '[:upper:]' || true)"
+        fi
+        echo "issue=$ISSUE" >> "$GITHUB_OUTPUT"
+
+    # 3. No carried run dirs ⇒ apply on-missing (write the summary line either way —
+    # "emitting the format ≠ being governed" must always be visible, greppable).
+    - name: Apply on-missing policy (no carried artifacts)
+      id: on-missing
+      if: steps.discover.outputs.found == 'false'
+      shell: bash
+      run: |
+        set -euo pipefail
+        {
+          echo "## faff governance-check"
+          echo ""
+          echo "_no governance artifacts carried under \`${{ inputs.artifacts-path }}\` — on-missing: \`${{ inputs.on-missing }}\`_"
+        } >> "$GITHUB_STEP_SUMMARY"
+        if [ "${{ inputs.on-missing }}" = "fail" ]; then
+          echo "verdict=fail" >> "$GITHUB_OUTPUT"
+          echo "::error::faff governance-check: no governance artifacts carried and on-missing is 'fail'"
+          exit 1
+        fi
+        echo "verdict=no-artifacts" >> "$GITHUB_OUTPUT"
+        echo "faff governance-check: no governance artifacts carried — on-missing 'pass' (adoption mode)"
+
+    # 4/5. Run the verb; exit with the verb's code (the status-check verdict). No `set -e`
+    # here — the exit code is deliberately observed and re-emitted, not merely propagated.
+    - name: Run governance-check
+      id: governance-check
+      if: steps.discover.outputs.found == 'true'
+      shell: bash
+      run: |
+        set -uo pipefail
+        BIN="${{ steps.resolve-binary.outputs.bin }}"
+        ARGS=()
+        while IFS= read -r d; do
+          [ -n "$d" ] && ARGS+=(--run-dir "$d")
+        done <<< "${{ steps.discover.outputs.dirs }}"
+        if [ -n "${{ steps.derive-issue.outputs.issue }}" ]; then
+          ARGS+=(--issue "${{ steps.derive-issue.outputs.issue }}")
+        fi
+        ARGS+=(--level "${{ inputs.level }}")
+        node "$BIN" governance-check "${ARGS[@]}" --summary-md "$GITHUB_STEP_SUMMARY"
+        CODE=$?
+        if [ "$CODE" -eq 0 ]; then
+          echo "verdict=pass" >> "$GITHUB_OUTPUT"
+        else
+          echo "verdict=fail" >> "$GITHUB_OUTPUT"
+        fi
+        exit "$CODE"

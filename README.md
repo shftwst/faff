@@ -74,6 +74,7 @@ Everything past the pitch lives in `docs/`:
 - [Configuration](docs/guide/configuration.md) — the `.faffrc.yaml` reference, plus the two knobs (appetite, slots).
 - [Skills & slots](docs/guide/skills.md) — the skill catalogue, the slot model, and swapping in third-party or your own doing-skills.
 - [The `faff` CLI](docs/guide/cli.md) — the bundled command-line tool and its subcommands, grouped by purpose.
+- [governance-check](docs/guide/governance-check.md) — the harness-independent enforcement binding: wiring the GitHub Action as a required status check, the artifact-passing convention per emitter class, and sha-pinning the binary fetch.
 - [Architecture](docs/guide/architecture.md) — the segregated orchestrator / implementor / evaluator agent lanes.
 
 ## Credits

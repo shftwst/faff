@@ -119,6 +119,11 @@ const REGION_MAP = {
   // mirrors the factory container-check assert-don't-enforce probe.
   "merge-gate": "factory",
   "branch-protection-check": "factory",
+  // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
+  // (readAcComplete/readReviewVerdict/readHoldout from merge-gate.js, which themselves
+  // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
+  // sits in factory, not governance, despite the name.
+  "governance-check": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -193,6 +198,7 @@ const REGION_SELFTEST_ARGV = {
   "regions": ["regions", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],
   "branch-protection-check": ["branch-protection-check", "--selftest"],
+  "governance-check": ["governance-check", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

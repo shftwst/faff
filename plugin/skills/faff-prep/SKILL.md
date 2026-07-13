@@ -416,6 +416,8 @@ Return to caller one of:
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 
+**Self-verify before an attach-expecting return (FAFF-258 — the belt; the caller's ground-truth reconciliation is the braces regardless).** Before returning `refreshed` / `promoted` / `promoted-needs-review` — the outcomes above that assert a spec was attached — self-check `faff prepcheck --issue <ISSUE> --json`. If `state != "attached"`, the attach chain did not actually complete: do not emit the false success. Retry the attach **once** inline (stamp → validate → save_comment → flip marker), then re-check. Still not `attached` → downgrade the return to `errored`, so the caller's reconciliation recovers rather than trusting the claim. This turns the FAFF-178 same-turn-attach rule into a self-checked precondition of the *return value* itself, not just of the turn ending.
+
 ## Notes
 
 - When a `methodology` slot is configured, prep appends a `## Methodology critique` block to every prepped spec (invoking the methodology for issue-level findings). In autonomous prep the critique is written but does not block confidence-high promotion.

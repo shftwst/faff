@@ -278,3 +278,137 @@ test("prepcheck is clean when no markers exist at all", () => {
     assert.match(r.out, /clean/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ===========================================================================
+// FAFF-258 — `prepcheck --issue`: the single-issue five-state verdict, the
+// orchestrator↔prep delegation reconciliation primitive. Reads ONLY
+// .faff/prep/<ISSUE>.json (never the global scan) and is additive to --hook
+// (verified above, unchanged). Exit map: 0/0/1/2/2 for
+// attached/parked/open/missing/malformed.
+// ===========================================================================
+
+test("prepcheck --issue: attached marker → state=attached, exit 0", () => {
+  const root = rootWith({
+    "FAFF-501": { issue: "FAFF-501", spec_produced: true, attached: true, mode: "tracker", ts: "2026-07-10T00:00:00Z" },
+  });
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-501", "--json", "--root", root]);
+    assert.equal(r.code, 0);
+    const payload = JSON.parse(r.out.trim());
+    assert.deepEqual(payload, {
+      issue: "FAFF-501", spec_produced: true, attached: true, disposition: null,
+      owner: null, ts: "2026-07-10T00:00:00Z", owner_matches_run: null, state: "attached",
+    });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: parked disposition (attach not expected, by-design non-attach) → state=parked, exit 0", () => {
+  const root = rootWith({
+    "FAFF-502": { issue: "FAFF-502", spec_produced: true, attached: false, disposition: "parked" },
+  });
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-502", "--json", "--root", root]);
+    assert.equal(r.code, 0);
+    assert.equal(JSON.parse(r.out.trim()).state, "parked");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: produced-but-unattached, no park disposition → state=open, exit 1 (the FAFF-258 drop)", () => {
+  const root = rootWith({
+    "FAFF-503": { issue: "FAFF-503", spec_produced: true, attached: false },
+  });
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-503", "--json", "--root", root]);
+    assert.equal(r.code, 1);
+    assert.equal(JSON.parse(r.out.trim()).state, "open");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: no marker file for the issue → state=missing, exit 2", () => {
+  const root = rootWith({});
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-NOPE", "--json", "--root", root]);
+    assert.equal(r.code, 2);
+    assert.equal(JSON.parse(r.out.trim()).state, "missing");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: unparseable marker JSON → state=malformed, exit 2", () => {
+  const root = rootWith({ "FAFF-504": "not json{" });
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-504", "--json", "--root", root]);
+    assert.equal(r.code, 2);
+    assert.equal(JSON.parse(r.out.trim()).state, "malformed");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: marker missing the required spec_produced key → state=malformed, exit 2", () => {
+  const root = rootWith({ "FAFF-505": { issue: "FAFF-505", attached: false } });
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-505", "--json", "--root", root]);
+    assert.equal(r.code, 2);
+    assert.equal(JSON.parse(r.out.trim()).state, "malformed");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: owner_matches_run true/false/null against --run-dir", () => {
+  const root = rootWith({
+    "FAFF-506": { issue: "FAFF-506", spec_produced: true, attached: true, owner: { run_dir: "/runs/MINE" } },
+  });
+  try {
+    const matched = run(["prepcheck", "--issue", "FAFF-506", "--run-dir", "/runs/MINE", "--json", "--root", root]);
+    assert.equal(JSON.parse(matched.out.trim()).owner_matches_run, true);
+
+    const mismatched = run(["prepcheck", "--issue", "FAFF-506", "--run-dir", "/runs/OTHER", "--json", "--root", root]);
+    assert.equal(JSON.parse(mismatched.out.trim()).owner_matches_run, false);
+
+    const omitted = run(["prepcheck", "--issue", "FAFF-506", "--json", "--root", root]);
+    assert.equal(JSON.parse(omitted.out.trim()).owner_matches_run, null, "null when --run-dir is omitted");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue reads ONLY the named issue's marker — an unrelated open marker never surfaces", () => {
+  const root = rootWith({
+    "FAFF-507": { issue: "FAFF-507", spec_produced: true, attached: true },
+    "FAFF-508": { issue: "FAFF-508", spec_produced: true, attached: false }, // open, but a different issue
+  });
+  try {
+    const r = run(["prepcheck", "--issue", "FAFF-507", "--json", "--root", root]);
+    assert.equal(r.code, 0);
+    assert.equal(JSON.parse(r.out.trim()).state, "attached", "the --issue mode is scoped to the named marker, never the global scan");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("prepcheck --issue: --hook stays byte-unchanged when --issue is also passed to a --hook invocation (additive dispatch only)", () => {
+  // --issue takes precedence as a distinct mode; it does not leak into --hook's own
+  // decision path (--hook's own tests above already cover it in isolation).
+  const root = rootWith({
+    "FAFF-509": { issue: "FAFF-509", spec_produced: true, attached: false, owner: { run_dir: "/runs/MINE" } },
+  });
+  try {
+    const r = run(["prepcheck", "--hook", "--issue", "FAFF-509", "--root", root], { FAFF_RUN_DIR: "/runs/MINE" });
+    // cmdPrepcheck checks --issue before consulting the hook branch, so this exercises
+    // the --issue exit-coded report path, not the hook's stdout decision payload.
+    assert.equal(r.code, 1, "still the --issue exit map (open), proving --issue is checked first without touching --hook's own code path");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-258 integration smoke test (per spec §8): seed open → flip attached → re-verify", () => {
+  const root = rootWith({
+    "FAFF-TEST": { issue: "FAFF-TEST", spec_produced: true, attached: false },
+  });
+  try {
+    const opened = run(["prepcheck", "--issue", "FAFF-TEST", "--json", "--root", root]);
+    assert.equal(opened.code, 1);
+    assert.equal(JSON.parse(opened.out.trim()).state, "open");
+
+    writeFileSync(
+      join(root, ".faff", "prep", "FAFF-TEST.json"),
+      JSON.stringify({ issue: "FAFF-TEST", spec_produced: true, attached: true }),
+    );
+
+    const attached = run(["prepcheck", "--issue", "FAFF-TEST", "--json", "--root", root]);
+    assert.equal(attached.code, 0);
+    assert.equal(JSON.parse(attached.out.trim()).state, "attached");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

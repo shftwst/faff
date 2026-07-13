@@ -7,13 +7,21 @@
 const { runEligibleCases } = require("./eligible");
 
 const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
+// FAFF-484: the single terminal-state set (the one definition of "terminal" in the normalised-status
+// layer). WORKABLE_STATUSES is derived from it, so the two never drift. The gateway's "Workable vs
+// terminal states" prose owns the agent-facing per-tracker mapping that resolves TO these statuses.
+const TERMINAL_STATUSES = ["done", "cancelled", "duplicate"];
+const WORKABLE_STATUSES = NEXT_STATUSES.filter((s) => !TERMINAL_STATUSES.includes(s));
 const NEXT_SPECS = ["none", "low", "medium", "high"];
 
 function nextStep({ status, spec, eligible, parked, blocked, ifEligible }) {
   if (!NEXT_STATUSES.includes(status)) return ["error", `unknown --status '${status}'`];
   if (!NEXT_SPECS.includes(spec)) return ["error", `unknown --spec '${spec}'`];
-  if (status === "cancelled" || status === "duplicate") return ["none", "cancelled/duplicate — ignored"];
-  if (status === "done") return ["done", "complete"];
+  // FAFF-484: membership via TERMINAL_STATUSES; the two branches keep their distinct returns
+  // (done → done; cancelled/duplicate → none). Not one collapsed literal — two semantics.
+  if (TERMINAL_STATUSES.includes(status)) {
+    return status === "done" ? ["done", "complete"] : ["none", "cancelled/duplicate — ignored"];
+  }
   // FAFF-83: --if-eligible is advisory — when a not-eligible item carries it, bypass the
   // skip-ineligible short-circuit and compute the hypothetical route it WOULD take if cranked up.
   // Terminal states (above) still win; the live skip-ineligible path is unchanged when the flag is absent.
@@ -88,10 +96,10 @@ function cmdNext(args) {
   if (next === "error") { process.stderr.write(`faff next: ${reason}\n`); return 2; }
   // would_be_eligible is set only when the hypothetical path was actually taken: the item is
   // not eligible, --if-eligible bypassed the short-circuit, and it wasn't a terminal short-circuit.
-  const hypothetical = !state.eligible && state.ifEligible && !["cancelled", "duplicate", "done"].includes(state.status);
+  const hypothetical = !state.eligible && state.ifEligible && !TERMINAL_STATUSES.includes(state.status);
   console.log(JSON.stringify(hypothetical ? { next, reason, would_be_eligible: true } : { next, reason }));
   return 0;
 }
 
 
-module.exports = { NEXT_SPECS, NEXT_STATUSES, cmdNext, nextSelftest, nextStep };
+module.exports = { NEXT_SPECS, NEXT_STATUSES, TERMINAL_STATUSES, WORKABLE_STATUSES, cmdNext, nextSelftest, nextStep };

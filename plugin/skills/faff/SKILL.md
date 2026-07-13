@@ -342,6 +342,20 @@ This wider definition matters because a tidy run that suggests cancelling ticket
 
 No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by graft, never counted in beep-boop queues.
 
+### Workable vs terminal states
+
+The partition `faff next` **already owns as code**: `TERMINAL_STATUSES = ["done","cancelled","duplicate"]` and `WORKABLE_STATUSES` derived from it (`bin/lib/next.js`, both `module.exports`ed). *Terminal* = no further work flows; *workable* = work can still be picked up (`backlog`, `todo`, `in-progress`, `in-review`). This is the sibling of **Ignore cancelled and archived** above: that rule drops only cancelled/archived *after* the fetch; this one names the **whole** partition — Done included — so a caller can constrain its **query** to the workable side instead of pulling everything and dropping terminal work afterwards.
+
+**Per-tracker mapping** (category-driven first, name-based fallback — the same shape as *What counts as cancelled*):
+
+| Tracker | Workable | Terminal | Constrain the query by |
+|---|---|---|---|
+| **Linear** | `stateCategory` ∈ {`backlog`, `unstarted`, `started`} | {`completed`, `canceled`} | pass the wanted state/category to `list_issues`'s `state` param; set `includeArchived: false` |
+| **GitHub Issues** | `state = open` | `state = closed` (Done = closed-completed; cancelled = closed + `state_reason = not_planned`) | fetch `state = open` only |
+| **Jira / other via MCP** | non-terminal status category | `done`/`completed` + cancellation category | category filter if exposed, else name-based fallback against the state names |
+
+**Shared vocabulary, not a shared constraint.** Any caller may *name* this partition; the decision to **constrain a fetch to the workable side** is `/faff-beep-boop`-local (its no-issue-set query sites — see its SKILL.md). The read skills (`/faff-wtf`, `/faff-map`, `/faff-tidy`) legitimately need terminal issues and are never constrained by it.
+
 ### Automation eligibility
 
 Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, auto-promoted, or auto-built — is its **automation eligibility**. The default posture is **fail-safe opt-in**: nothing is automatable unless a human explicitly cranks it up, so a forgotten label means "left alone," never "picked up." A human steers the backlog with two labels plus one config knob; read/report skills are never gated by eligibility.

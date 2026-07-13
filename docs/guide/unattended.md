@@ -2,6 +2,52 @@
 
 `/faff-beep-boop` runs the whole pipeline without a human in the loop — the *on the loop* level. Good for overnight, meetings, or anything you want off your plate. This page is the deep-dive on how it stays safe to walk away from.
 
+## Before your first unattended run
+
+The first time you run `/faff-beep-boop` on a fresh backlog, it can look like nothing happened: the run finishes and every ticket is still sitting there, listed under **On-hold**. That's not a bug and nothing is lost — it's the safety default doing its job. Nothing is automatable until *you* say so, ticket by ticket. This section is what to know before you leave the building.
+
+### What makes work eligible: the crank-up gate
+
+An **automation-eligible** ticket is one the *autonomous* pipeline (`/faff-beep-boop`) may auto-spec, auto-promote, and auto-build. (Your read and planning skills — `/faff-wtf`, `/faff-map`, `/faff-tidy` — are never gated by this; they always see everything.)
+
+Eligibility ships **fail-safe `opt-in`**: nothing is eligible until a human explicitly opts a ticket in. A human steers the backlog with two tracker labels and one config knob:
+
+| Signal | Effect |
+|---|---|
+| `faff-automate` label | **Crank up** — this ticket may be picked up by the autonomous pipeline. Removing it *cranks down*. |
+| `faff-automation-hold` label | **Hard exclude** — never automate this ticket, even if it also carries `faff-automate`. |
+| `automation_default` (`.faffrc.yaml`) | Decides an *unlabelled* ticket. Ships `opt-in` (unlabelled ⇒ not eligible); flip to `opt-out` to invert. |
+
+Precedence is **hold > automate > default**. So on a fresh, `opt-in` backlog with no labels yet, *nothing* is eligible — which is why the first run skips everything.
+
+**The labels are tracker-owned — you toggle them, not faff.** You add or remove `faff-automate` and `faff-automation-hold` in your tracker's UI. faff's own label CLI *refuses* to write either one in any direction; the most it will do is advise you which label to toggle. That refusal is deliberate: it makes `faff-automate` present ⟹ **a human set it directly**, true by construction. That by-construction human intent is exactly the provenance L3's trust rests on (see the trust premise below).
+
+A not-eligible ticket is **On-hold, not parked** — the two are different:
+
+- **On-hold** is a *pre-emptive human posture* (you haven't cranked it up). It surfaces in its own section in `/faff-wtf` and `/faff-tidy`, is never auto-picked-up, and never auto-clears — only you cranking it up changes it.
+- **Parked** means automation *tried* and hit a blocker; `/faff-tidy` may auto-clear it when the blocker resolves.
+
+Cranking a ticket up does **not** jump it to Todo — it simply rejoins normal eligibility, and prep/tidy consider it on the next pass. (The terse CLI view of the eligibility function is `faff eligible` in [the CLI reference](cli.md).)
+
+### Per-level readiness checklist
+
+Each level adds to the one below it. Before you run at a given level, make sure its row is satisfied:
+
+| Level | Needs |
+|---|---|
+| **L1** · as the loop | `node`, `git`, and a tracker MCP (or [git-only mode](configuration.md)). That's the planning tooling — no build handoff. |
+| **L2** · in the loop | everything above, **+** `gh` and a forge — `/faff-graft` opens PRs — against the same tracker. |
+| **L3** · on the loop | everything above, **+** at least one ticket **cranked up** (`faff-automate`), or the run has nothing eligible to do; **+** `tmux`/`screen` if you launch over SSH (see [Running over SSH](#running-over-ssh)). |
+| **L4** · out of the loop | everything above, **+** a host-isolated container (`faff container-check`), a spend/time **budget ceiling**, and a reachable **adversarial** `review` + `spec_review` — all assembled and enforced for you by `faff lights-out` (see [Going lights-out](#going-lights-out-l4--faff-lights-out)). |
+
+### The trust premise: a single-owner, human-gated tracker
+
+L3 and L4 lean on one assumption worth stating plainly before you hand a shared tracker to an unattended run: your tracker is **single-owner and human-gated** — write access is controlled by the same human who owns the repo.
+
+Because the spec lives in that tracker, and the tracker is gated by the same human who gates a pull request, faff treats the spec as **trusted — exactly as trustworthy as a PR-reviewed artefact**. That trust is load-bearing: it's what lets a spec's *live-exercise* acceptance criterion (one that names a real command to run) direct **sandboxed, worktree-isolated execution** during a build. Everything else — ticket descriptions, the issue body, third-party comments — stays never-execute: it may describe *what* to build, but its text is never run as a command.
+
+**Revisit trigger.** The moment your tracker stops being human-gated — it becomes **shared, multi-tenant, or externally-writable** — that carve-out lapses. The spec drops back to *untrusted* and the full no-execute floor reapplies to it, exactly as to any description or comment. If you're evaluating faff for a team tracker where anyone can file or edit a ticket, that's the line to weigh. (The authoritative rule is the gateway's "Untrusted input (no-execute floor)" in `plugin/skills/faff/SKILL.md`.)
+
 ## How the loop works
 
 ```

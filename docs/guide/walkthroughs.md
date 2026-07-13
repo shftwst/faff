@@ -21,7 +21,7 @@ jot: A few questions… (which formats? fix-in-place or report-only? CI mode?)
      Create these 3 tickets? (yes / edit / no)
 ```
 
-`y` → they're created in your tracker, tagged so prep picks them up. Then it chains: *"Prep the first one for build now? (y/n)"* — say yes and you're into the build loop below.
+`y` → they're created in your tracker (tagged `faff-jot-intake`, which records that they came in the front door). Then jot chains straight into interactive prep: *"Prep the first one for build now? (y/n)"* — say yes and you're into the build loop below. (Unattended pickup by `/faff-beep-boop` is a separate opt-in — you crank a ticket up first; see [Before your first unattended run](unattended.md#before-your-first-unattended-run).)
 
 **Bigger than a feature?** If you describe a whole application, jot spots the scale and offers the top-down route instead:
 

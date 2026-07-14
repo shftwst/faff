@@ -248,6 +248,97 @@ function contractPostMergeVerification(extraction) {
   return { contractData };
 }
 
+// --- ci-triage (FAFF-391) ---
+// `faff ci-triage`'s pure classification core: a CI failure sits in a three-axis space
+// (transience/fault-domain/origin, two of the three mechanically observable — a clean
+// same-sha re-run diffs transience, reading main's head decides origin; fault domain is
+// mechanical-first from check-run metadata, LLM tiebreaker only on the metadata residue).
+// `deriveTriageAction` is registered as CONTRACTS["ci-triage"] (mirrors decideFloor/
+// integrity-floor exactly) so `action` is ALWAYS a pure function of the three axes — never
+// re-derived from, or blindly trusted from, a caller-supplied `action` field (a forged/stale
+// action can never widen past what the axes themselves justify).
+const CI_TRIAGE_TRANSIENCE = ["transient", "persistent", "unknown"];
+const CI_TRIAGE_FAULT_DOMAIN = ["infra", "code", "unknown"];
+const CI_TRIAGE_ORIGIN = ["mine", "main-was-red", "unknown"];
+const CI_TRIAGE_ACTIONS = ["proceed-to-merge-gate", "fix-attempt", "park-errored", "park-needs-human"];
+const CI_TRIAGE_FAULT_DOMAIN_SOURCES = ["metadata", "llm", "none"];
+
+// PURE: origin=main-was-red wins outright (never spend a fix attempt fixing main from inside a
+// feature mandate, and never merge past it either way) — checked FIRST, ahead of transience, since
+// the real procedure short-circuits there before any re-run is even attempted. An unresolved
+// origin fails CLOSED the same way. A `transient` result then proceeds REGARDLESS of fault domain —
+// the procedure's own flow never even asks the fault-domain question when the clean re-run already
+// went green (the LLM tiebreaker step is skipped entirely on that path), so fault_domain may
+// legitimately still be `unknown` here without that forcing a park. An unresolved transience (the
+// pre-rerun first call, or a budget-exhausted "persistent by fiat" caller that still passed
+// `unknown`) fails closed. Only a genuinely `persistent` failure inspects fault domain: `infra` ->
+// park-errored (not a code defect), `code` -> fix-attempt (the one-iteration autonomous path), and
+// a still-`unknown` fault domain (metadata AND the LLM tiebreaker both inconclusive) falls to the
+// same fail-closed park. Every axis combination is covered, including all-`unknown` -> park-needs-human.
+function deriveTriageAction(transience, fault_domain, origin) {
+  if (origin === "main-was-red" || origin === "unknown") return "park-needs-human";
+  if (transience === "transient") return "proceed-to-merge-gate";
+  if (transience === "unknown") return "park-needs-human";
+  if (fault_domain === "infra") return "park-errored";
+  if (fault_domain === "code") return "fix-attempt";
+  return "park-needs-human";
+}
+
+function computeCiTriage(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  let transience = extraction.transience;
+  if (!CI_TRIAGE_TRANSIENCE.includes(transience)) {
+    violations.push(`transience ${JSON.stringify(transience)} not in {${CI_TRIAGE_TRANSIENCE.join(",")}} — coerced to unknown`);
+    transience = "unknown";
+  }
+  let fault_domain = extraction.fault_domain;
+  if (!CI_TRIAGE_FAULT_DOMAIN.includes(fault_domain)) {
+    violations.push(`fault_domain ${JSON.stringify(fault_domain)} not in {${CI_TRIAGE_FAULT_DOMAIN.join(",")}} — coerced to unknown`);
+    fault_domain = "unknown";
+  }
+  let origin = extraction.origin;
+  if (!CI_TRIAGE_ORIGIN.includes(origin)) {
+    violations.push(`origin ${JSON.stringify(origin)} not in {${CI_TRIAGE_ORIGIN.join(",")}} — coerced to unknown`);
+    origin = "unknown";
+  }
+  const action = deriveTriageAction(transience, fault_domain, origin);
+  if (CI_TRIAGE_ACTIONS.includes(extraction.action) && extraction.action !== action) {
+    violations.push(`action ${JSON.stringify(extraction.action)} disagrees with the derived action ${JSON.stringify(action)} — the derived action always governs`);
+  }
+  const pr = Number.isInteger(extraction.pr) ? extraction.pr : 0;
+  if (!Number.isInteger(extraction.pr)) violations.push("pr must be an integer");
+  const head_sha = typeof extraction.head_sha === "string" && extraction.head_sha.trim() ? extraction.head_sha : "";
+  if (!head_sha) violations.push("head_sha missing");
+  const ev = extraction.evidence && typeof extraction.evidence === "object" && !Array.isArray(extraction.evidence) ? extraction.evidence : {};
+  let fault_domain_source = ev.fault_domain_source;
+  if (!CI_TRIAGE_FAULT_DOMAIN_SOURCES.includes(fault_domain_source)) {
+    violations.push(`evidence.fault_domain_source ${JSON.stringify(fault_domain_source)} not in {${CI_TRIAGE_FAULT_DOMAIN_SOURCES.join(",")}} — coerced to none`);
+    fault_domain_source = "none";
+  }
+  const evidence = {
+    reruns_used: Number.isInteger(ev.reruns_used) ? ev.reruns_used : 0,
+    main_head_sha: typeof ev.main_head_sha === "string" ? ev.main_head_sha : null,
+    main_ci_state: typeof ev.main_ci_state === "string" ? ev.main_ci_state : null,
+    fault_domain_source,
+    flaky_signatures: Array.isArray(ev.flaky_signatures) ? ev.flaky_signatures.filter((s) => typeof s === "string") : [],
+  };
+  return {
+    contractData: { pr, head_sha, transience, fault_domain, origin, action, evidence, conformant: violations.length === 0, violations },
+    failLoud: null,
+  };
+}
+
+function contractCiTriage(extraction) {
+  const { contractData, failLoud } = computeCiTriage(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "ci-triage");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- prd-readiness (FAFF-253) ---
 // The product-axis analog of spec-readiness: the LLM PRD-admissibility validator (FAFF-260, deferred)
 // reads a container's PRD and emits a verdict; THIS deterministic half validates the verdict's SHAPE.
@@ -1279,6 +1370,22 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "ci-triage": {
+    run: contractCiTriage,
+    fixtures: [
+      { name: "transient-mine-proceeds-regardless-of-fault-domain", in: { pr: 1, head_sha: "a1", transience: "transient", fault_domain: "unknown", origin: "mine", action: "proceed-to-merge-gate", evidence: { reruns_used: 1, main_head_sha: "m1", main_ci_state: "ci-green", fault_domain_source: "none", flaky_signatures: ["build"] } }, wantExit: 0 },
+      { name: "persistent-code-mine-fix-attempt", in: { pr: 2, head_sha: "a2", transience: "persistent", fault_domain: "code", origin: "mine", action: "fix-attempt", evidence: { reruns_used: 1, main_head_sha: "m2", main_ci_state: "ci-green", fault_domain_source: "llm", flaky_signatures: [] } }, wantExit: 0 },
+      { name: "persistent-infra-park-errored", in: { pr: 3, head_sha: "a3", transience: "persistent", fault_domain: "infra", origin: "mine", action: "park-errored", evidence: { reruns_used: 1, main_head_sha: "m3", main_ci_state: "ci-green", fault_domain_source: "metadata", flaky_signatures: [] } }, wantExit: 0 },
+      { name: "main-was-red-wins-even-over-transient", in: { pr: 4, head_sha: "a4", transience: "transient", fault_domain: "code", origin: "main-was-red", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: "m4", main_ci_state: "ci-red", fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 0 },
+      { name: "all-unknown-fails-closed", in: { pr: 5, head_sha: "a5", transience: "unknown", fault_domain: "unknown", origin: "unknown", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 0 },
+      { name: "coerce-bad-transience", in: { pr: 6, head_sha: "a6", transience: "flaky-ish", fault_domain: "code", origin: "mine", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 1 },
+      { name: "coerce-bad-fault-domain", in: { pr: 7, head_sha: "a7", transience: "persistent", fault_domain: "vibes", origin: "mine", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 1 },
+      { name: "coerce-bad-origin", in: { pr: 8, head_sha: "a8", transience: "transient", fault_domain: "code", origin: "theirs", action: "park-needs-human", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 1 },
+      { name: "action-mismatch-flagged-but-derived-action-governs", in: { pr: 9, head_sha: "a9", transience: "persistent", fault_domain: "infra", origin: "mine", action: "proceed-to-merge-gate", evidence: { reruns_used: 1, main_head_sha: "m9", main_ci_state: "ci-green", fault_domain_source: "metadata", flaky_signatures: [] } }, wantExit: 1 },
+      { name: "missing-head-sha", in: { pr: 10, head_sha: "", transience: "transient", fault_domain: "code", origin: "mine", action: "proceed-to-merge-gate", evidence: { reruns_used: 0, main_head_sha: null, main_ci_state: null, fault_domain_source: "none", flaky_signatures: [] } }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "prd-readiness": {
     run: contractPrdReadiness,
     fixtures: [
@@ -1480,4 +1587,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, holdoutGateResult, isKnownStopReason, prdrGatesPass, resolveGateLevel };
+module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, prdrGatesPass, resolveGateLevel };

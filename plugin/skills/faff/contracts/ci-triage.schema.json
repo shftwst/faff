@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/ci-triage",
+  "title": "ci-triage contract data",
+  "description": "FAFF-391. The SHAPE of `faff ci-triage`'s TriageVerdict — a CI failure classified across three axes (transience/fault_domain/origin) into one derived `action`. `action` is ALWAYS the pure function `deriveTriageAction(transience, fault_domain, origin)` recomputes (never a caller-supplied value trusted as-is): origin `main-was-red` wins outright; any `unknown` routing axis fails closed to `park-needs-human`; `transient` proceeds regardless of fault domain; a `persistent` failure routes on fault domain (`infra` -> park-errored, `code` -> fix-attempt). This schema is NEVER consulted by `faff merge-gate` — the triage verdict is never an input to the merge floor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pr", "head_sha", "transience", "fault_domain", "origin", "action", "evidence", "conformant", "violations"],
+  "properties": {
+    "pr": { "type": "integer" },
+    "head_sha": { "type": "string" },
+    "transience": { "type": "string", "enum": ["transient", "persistent", "unknown"] },
+    "fault_domain": { "type": "string", "enum": ["infra", "code", "unknown"] },
+    "origin": { "type": "string", "enum": ["mine", "main-was-red", "unknown"] },
+    "action": { "type": "string", "enum": ["proceed-to-merge-gate", "fix-attempt", "park-errored", "park-needs-human"] },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reruns_used", "main_head_sha", "main_ci_state", "fault_domain_source", "flaky_signatures"],
+      "properties": {
+        "reruns_used": { "type": "integer" },
+        "main_head_sha": { "description": "String | null — the sha origin was judged against, or null when main's head was unreadable." },
+        "main_ci_state": { "description": "String | null — classifyHeadShaChecks' reading of main's head, or null when unreadable." },
+        "fault_domain_source": { "type": "string", "enum": ["metadata", "llm", "none"] },
+        "flaky_signatures": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

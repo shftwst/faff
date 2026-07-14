@@ -1,17 +1,19 @@
 // ===========================================================================
-// === region:factory — regions — the region map + direction lint + region selftest runner ===
+// === region:factory — regions — the region map + require-graph direction lint + region selftest runner ===
 //
-// Phase 1 of the extraction topology (ADR 0042): the governance boundary is
-// LOGICAL — region tags on section banners + this lint — not a repo split. The
-// direction invariant: a governance span never references a factory identifier;
-// a shared-infra span references neither region's. factory→governance stays
-// legal (the future package-consumer relationship). The dispatch shell (USAGE +
-// COMMANDS + main) is exempt — it references everything by design. Self-spawns
-// (`<self> <cmd> …`) are invisible to the lint by design: they are process
-// boundaries, the exact shape extraction preserves; the lint's claim is scoped
-// to in-file identifier references. NO suppression mechanism exists (an escape
-// hatch on a boundary lint is the boundary leaking) — a residual false positive
-// is fixed by renaming toward clarity.
+// The CLI is real CommonJS modules (ADR 0052): each file under bin/lib (+ the
+// entrypoint) carries exactly one region banner, and every cross-region
+// reference is necessarily a `require("./…")` edge — there are no cross-file
+// globals. `regions check` builds the file→region map from those banners and
+// asserts the ADR-0042 direction invariant directly on the require graph: a
+// governance file never requires a factory file; a shared-infra file requires
+// no local module at all. factory→governance stays legal (the future
+// package-consumer relationship). The dispatch shell (USAGE + COMMANDS + main)
+// is exempt — it references everything by design. Self-spawns (`<self> <cmd>
+// …`) are invisible to the lint by design: they are process boundaries, not
+// require edges. NO suppression mechanism exists (an escape hatch on a
+// boundary lint is the boundary leaking) — a residual violation is fixed by
+// moving the code, never by silencing the lint.
 // ===========================================================================
 
 // The single in-code region map: command name → region. Drives BOTH the
@@ -218,7 +220,6 @@ const REGION_SELFTEST_ARGV = {
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);
 const REGION_TAG_RE = /^\/\/ === region:([a-z-]+) — (.*) ===$/;
-const REGION_DIVIDER_RE = /^\/\/ ={4,}$/;
 
 // Keywords a `/` may legally follow while still opening a REGEX literal (the
 // standard lexer heuristic: `return /re/`, `typeof /re/`, `case /re/:` …).
@@ -319,277 +320,257 @@ function regionsStripSource(src) {
   return out.join("");
 }
 
-// Parse a source file's section banners into contiguous region spans. A banner
-// is a maximal run of `//` comment lines containing >=1 full-width divider
-// (`// ====…`); its tag line is `// === region:<name> — <text> ===`. Content
-// before the first banner is the require preamble — exempt by construction (it
-// defines no region code). Returns { spans, malformed }; line numbers 1-based.
-function regionsParseSpans(rawLines) {
-  const banners = [];
+// Build the file→region map from each file's OWN region banner(s) — the
+// module system now carries attribution, so no second list is needed. A file
+// with no banner, with banners naming MORE THAN ONE distinct region, or with a
+// banner naming an unknown region is malformed: attribution must be
+// unambiguous (economics.js's two factory banners, or the entrypoint's two
+// shell banners, are legal — same region repeated). Returns
+// { fileRegion: Map<path,region>, malformed: [string] }.
+function regionsFileMap(files) {
+  const fileRegion = new Map();
   const malformed = [];
-  let i = 0;
-  while (i < rawLines.length) {
-    if (!rawLines[i].startsWith("//")) { i++; continue; }
-    let j = i, hasDiv = false, tag = null, tagLine = -1;
-    while (j < rawLines.length && rawLines[j].startsWith("//")) {
-      if (REGION_DIVIDER_RE.test(rawLines[j])) hasDiv = true;
-      if (tag === null) {
-        const m = rawLines[j].match(REGION_TAG_RE);
-        if (m) { tag = m; tagLine = j; }
-      }
-      j++;
+  for (const file of files) {
+    const rawLines = fs.readFileSync(file, "utf8").split("\n");
+    const names = new Set();
+    for (const line of rawLines) {
+      const m = line.match(REGION_TAG_RE);
+      if (m) names.add(m[1]);
     }
-    if (hasDiv) {
-      if (!tag) {
-        const nameLine = rawLines.slice(i, j).find((l) => !REGION_DIVIDER_RE.test(l)) || rawLines[i];
-        malformed.push(`untagged section banner at line ${i + 1}: ${nameLine}`);
-      } else if (!REGION_NAMES.has(tag[1])) {
-        malformed.push(`unknown region '${tag[1]}' at line ${tagLine + 1} (legal: ${[...REGION_NAMES].join(" | ")})`);
+    const base = path.basename(file);
+    if (names.size === 0) {
+      malformed.push(`${base}: no region banner (every source-set file must declare exactly one region)`);
+    } else if (names.size > 1) {
+      malformed.push(`${base}: mixed-region banners (${[...names].sort().join(", ")}) — a file must attribute to exactly one region`);
+    } else {
+      const [name] = names;
+      if (!REGION_NAMES.has(name)) {
+        malformed.push(`${base}: unknown region '${name}' (legal: ${[...REGION_NAMES].join(" | ")})`);
       } else {
-        banners.push({ start: i, region: tag[1], name: tag[2] });
+        fileRegion.set(file, name);
       }
     }
-    i = j;
   }
-  const spans = banners.map((b, k) => ({
-    region: b.region,
-    name: b.name,
-    start: b.start, // 0-based inclusive
-    end: k + 1 < banners.length ? banners[k + 1].start - 1 : rawLines.length - 1,
-  }));
-  return { spans, malformed };
+  return { fileRegion, malformed };
 }
 
-// Collect top-level definitions (column-0 `function` / `const` / `let` / `var`)
-// per span, from the STRIPPED lines (so template-literal content can never fake
-// a definition). Returns [{ name, line (1-based), span }].
-//
-// Require-preamble exemption (load-bearing): everything before the first banner
-// — `fs`/`path`/`os`/`spawnSync`/`HERE` — is destructured/derived require state
-// in NO region's definition set, so a reference to it from any span is never a
-// violation. That is deliberate: the preamble is the module system, not region
-// code.
-//
-// Property-access-skip soundness (see scanSpan's `before === "."` skip): in a
-// single-file CommonJS script, module-scoped top-level bindings are NOT
-// reachable via property or computed access (`obj.loadConfig` can only name a
-// property on some object, never the top-level `loadConfig` binding), so
-// skipping dotted matches cannot hide an in-file cross-region edge. Revisit at
-// physical extraction, where exports become properties.
-// Module-system names present in EVERY module's require preamble (fs/path/os/
-// spawnSync, plus HERE/ENTRYPOINT derived in shared-infra). Post-modularisation
-// (FAFF-441) these live inside each file's tagged span rather than a single
-// pre-banner preamble, so the collector skips them BY NAME to preserve the original
-// require-preamble exemption: they are the module system, not region code, and a
-// re-require of `fs` in a factory file and a governance file is not a cross-region
-// duplicate. Their references are likewise never region edges (a governance file
-// using `fs` is not reaching into factory). Real cross-region require edges are
-// still caught — the imported factory identifier is used at call sites the scan sees.
-const REQUIRE_PRELUDE = new Set(["fs", "path", "os", "spawnSync", "HERE", "ENTRYPOINT"]);
-function regionsCollectDefs(strippedLines, spans) {
-  const defs = [];
-  for (const span of spans) {
-    for (let ln = span.start; ln <= span.end && ln < strippedLines.length; ln++) {
-      const m = strippedLines[ln].match(/^(?:async\s+)?(?:function\s+|const\s+|let\s+|var\s+)([A-Za-z_$][A-Za-z0-9_$]*)/);
-      if (m && !REQUIRE_PRELUDE.has(m[1])) defs.push({ name: m[1], line: ln + 1, span });
-    }
-  }
-  return defs;
+// Resolve a relative require literal against the requiring file's directory,
+// against the SOURCE SET (extension-optional, mirroring Node's own resolution
+// for these flat `.js` modules). Returns the resolved absolute path, or null
+// if it lands outside the source set (a layout escape — malformed, not missed).
+function regionsResolveRelative(fromFile, spec, sourceSet) {
+  const dir = path.dirname(fromFile);
+  const joined = path.normalize(path.join(dir, spec));
+  if (sourceSet.has(joined)) return joined;
+  const withExt = joined.endsWith(".js") ? joined : `${joined}.js`;
+  return sourceSet.has(withExt) ? withExt : null;
 }
 
-// The direction-lint core, factored over a file path so the selftest can drive
-// it against synthetic fixtures. Rules: a governance span must not reference a
-// factory-span identifier; a shared-infra span must not reference either
-// region's. factory and shell spans are unchecked (legal consumers). Returns
-// { malformed: [string], violations: [string] }.
-// Multi-file direction lint (FAFF-441): parse spans + collect defs PER FILE, union
-// the definitions across the whole module set, then run the direction scan on each
-// file's spans against the union's forbidden sets — so a governance module that
-// destructure-requires a factory identifier is caught at the require line and every
-// call site, the same invariant as the pre-split single file. Single-file is the
-// one-element case (the fixture selftest drives that via regionsCheckFile below), so
-// its output is byte-identical. Returns { malformed: [string], violations: [string] }.
-function regionsCheckFiles(filePaths) {
+// Extract require() edges from a BOUND (governance | shared-infra) file. Scans
+// the STRIPPED source for genuine `require(` call sites (comment/string-embedded
+// require-shaped text is blanked by regionsStripSource and so never matches
+// here), then re-reads the ORIGINAL source at that same offset — stripping
+// blanks string content too, so the literal argument itself must come from the
+// raw text — to parse a single-quoted or double-quoted string-literal argument.
+// A non-literal argument, or a relative literal that does not resolve inside the
+// source set, is malformed (an unattributable/escaping edge — fail-closed, never
+// silently skipped). node:*/bare-package literals are outside the region model
+// and are skipped. Returns { edges: [{toFile, toRegion, line}], malformed }.
+function regionsRequireEdges(file, fileRegion, sourceSet) {
+  const raw = fs.readFileSync(file, "utf8");
+  const stripped = regionsStripSource(raw);
+  const base = path.basename(file);
+  const edges = [];
   const malformed = [];
-  const perFile = [];   // { spans, strippedLines } per source file
-  const defs = [];      // union of top-level defs across all files, each tagged with its span
-  const multi = filePaths.length > 1;
-  for (const filePath of filePaths) {
-    const src = fs.readFileSync(filePath, "utf8");
-    const rawLines = src.split("\n");
-    const { spans, malformed: mf } = regionsParseSpans(rawLines);
-    const tag = multi ? `${path.basename(filePath)}: ` : "";
-    for (const m of mf) malformed.push(`${tag}${m}`);
-    const strippedLines = regionsStripSource(src).split("\n");
-    perFile.push({ spans, strippedLines });
-    for (const d of regionsCollectDefs(strippedLines, spans)) defs.push(d);
-  }
-  if (malformed.length) return { malformed, violations: [] };
-  // A top-level name defined in TWO DIFFERENT regions makes reference attribution
-  // ambiguous (last-write-wins would mis-blame or false-pass) — malformed-class
-  // failure naming both definition sites. Same-region duplicates stay legal.
-  const defByName = new Map();
-  for (const d of defs) {
-    const prev = defByName.get(d.name);
-    if (prev && prev.span.region !== d.span.region) {
-      malformed.push(
-        `cross-region duplicate definition of '${d.name}': line ${prev.line} ` +
-        `(${prev.span.region} — ${prev.span.name}) and line ${d.line} (${d.span.region} — ${d.span.name})`);
+  const CALL_RE = /\brequire\s*\(/g;
+  let m;
+  while ((m = CALL_RE.exec(stripped)) !== null) {
+    const argStart = m.index + m[0].length;
+    const line = raw.slice(0, m.index).split("\n").length;
+    const tail = raw.slice(argStart);
+    const lit = tail.match(/^\s*(['"])((?:\\.|(?!\1)[^\\])*)\1\s*\)/);
+    if (!lit) {
+      malformed.push(`${base}:${line}: require() argument is not a single string literal — unattributable edge`);
+      continue;
     }
-    if (!prev) defByName.set(d.name, d);
+    const spec = lit[2];
+    if (!spec.startsWith(".")) continue; // node:*/bare package — outside the region model
+    const resolved = regionsResolveRelative(file, spec, sourceSet);
+    if (!resolved) {
+      malformed.push(`${base}:${line}: require("${spec}") does not resolve inside the source set — unattributable edge`);
+      continue;
+    }
+    edges.push({ toFile: resolved, toRegion: fileRegion.get(resolved), line });
   }
-  if (malformed.length) return { malformed, violations: [] };
-  const defsByRegion = (regions) => {
-    const map = new Map();
-    for (const d of defs) if (regions.includes(d.span.region)) map.set(d.name, d);
-    return map;
-  };
+  return { edges, malformed };
+}
+
+// The direction-lint core, over the REAL require graph: build the file→region
+// map from banners, then for every BOUND file (governance | shared-infra),
+// extract its require edges and assert the ADR-0042 direction invariant —
+// governance never requires factory; shared-infra requires no local module at
+// all. factory and shell files are unchecked (legal consumers) and are never
+// scanned for edges. Returns { malformed: [string], violations: [string] }.
+function regionsCheck(files) {
+  const { fileRegion, malformed: mapMalformed } = regionsFileMap(files);
+  if (mapMalformed.length) return { malformed: mapMalformed, violations: [] };
+  const sourceSet = new Set(files);
+  const malformed = [];
   const violations = [];
-  const scanSpan = (span, strippedLines, forbidden) => {
-    if (forbidden.size === 0) return;
-    const re = new RegExp(`\\b(${[...forbidden.keys()].join("|")})\\b`, "g");
-    for (let ln = span.start; ln <= span.end && ln < strippedLines.length; ln++) {
-      const line = strippedLines[ln];
-      let m;
-      while ((m = re.exec(line)) !== null) {
-        const before = m.index > 0 ? line[m.index - 1] : "";
-        const after = line[m.index + m[0].length] || "";
-        if (before === ".") continue;  // property access, not the top-level binding
-        if (after === ":") continue;   // object-literal key, not a reference
-        const d = forbidden.get(m[0]);
-        violations.push(
-          `${m[0]} referenced at line ${ln + 1} (${span.region} — ${span.name}) ` +
-          `but defined at line ${d.line} (${d.span.region} — ${d.span.name})`);
+  for (const file of files) {
+    const region = fileRegion.get(file);
+    if (region !== "governance" && region !== "shared-infra") continue;
+    const { edges, malformed: edgeMalformed } = regionsRequireEdges(file, fileRegion, sourceSet);
+    for (const em of edgeMalformed) malformed.push(em);
+    const fromBase = path.basename(file);
+    for (const e of edges) {
+      const toBase = path.basename(e.toFile);
+      if (region === "governance" && e.toRegion === "factory") {
+        violations.push(`${fromBase} (governance) requires ${toBase} (factory) — line ${e.line}`);
+      } else if (region === "shared-infra") {
+        violations.push(`${fromBase} (shared-infra) requires ${toBase} (${e.toRegion}) — line ${e.line}`);
       }
-    }
-  };
-  const factoryDefs = defsByRegion(["factory"]);
-  const regionDefs = defsByRegion(["factory", "governance"]);
-  for (const { spans, strippedLines } of perFile) {
-    for (const span of spans) {
-      if (span.region === "governance") scanSpan(span, strippedLines, factoryDefs);
-      else if (span.region === "shared-infra") scanSpan(span, strippedLines, regionDefs);
     }
   }
   return { malformed, violations };
 }
 
-// The direction-lint core, factored over a file path so the selftest can drive it
-// against synthetic fixtures. The union is the single file (byte-identical to the
-// pre-split single-file behaviour).
-function regionsCheckFile(filePath) {
-  return regionsCheckFiles([filePath]);
-}
-
 const regionsExitFor = (res) => (res.malformed.length ? 2 : (res.violations.length ? 1 : 0));
 
-// Fixture-table selftest for the lint core: synthetic files in a tmp dir prove
-// clean → 0, a governance→factory reference → 1 naming both ends, an untagged
-// banner → 2, and string/comment mentions are ignored. Also pins the
+// Fixture-table selftest for the require-graph core: each fixture is a small
+// synthetic MODULE SET (two or three files with banners + require lines) in a
+// tmp dir, driven through regionsCheck exactly as `check` drives the real
+// source set. Proves: a clean set → 0; a governance→factory require → 1 naming
+// both ends + line; a shared-infra→local require → 1; a bannerless file,
+// mixed-region-banner file, non-literal require, and unresolvable relative
+// require (all in a bound file) → 2; a require("./x") inside a comment/string
+// → 0 (no edge); factory→governance stays legal → 0. Also pins the
 // REGION_MAP ↔ COMMANDS bijection (the single-list invariant).
 function regionsSelftest(COMMANDS) {
-  const B = "// ==========";
-  const mk = (...lns) => lns.join("\n") + "\n";
   const fixtures = {
-    "clean": {
-      text: mk(
-        B, "// === region:shared-infra — helpers ===", B,
-        "function sharedHelper() { return 1; }",
-        B, "// === region:governance — gov ===", B,
-        "function govThing() { return sharedHelper(); }",
-        B, "// === region:factory — fact ===", B,
-        "const factConst = 2;",
-        "function factThing() { return govThing() + sharedHelper() + factConst; }",
-        B, "// === region:shell — dispatch ===", B,
-        "const SHELL_MAP = { run: factThing, gov: govThing };"),
+    "clean set": {
+      files: {
+        "shared.js": [
+          "// === region:shared-infra — helpers ===",
+          "function sharedHelper() { return 1; }",
+        ].join("\n"),
+        "gov.js": [
+          "// === region:governance — gov ===",
+          'const { sharedHelper } = require("./shared");',
+          "function govThing() { return sharedHelper(); }",
+        ].join("\n"),
+        "fact.js": [
+          "// === region:factory — fact ===",
+          'const { govThing } = require("./gov");',
+          "function factThing() { return govThing(); }",
+        ].join("\n"),
+      },
       wantExit: 0,
     },
-    "governance→factory reference": {
-      text: mk(
-        B, "// === region:governance — gov ===", B,
-        "function govThing() { return factThing(); }",
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }"),
+    "governance→factory require": {
+      files: {
+        "gov.js": [
+          "// === region:governance — gov ===",
+          'const { factThing } = require("./fact");',
+        ].join("\n"),
+        "fact.js": [
+          "// === region:factory — fact ===",
+          "function factThing() { return 2; }",
+        ].join("\n"),
+      },
       wantExit: 1,
-      wantViolation: /factThing referenced at line 4 \(governance — gov\) but defined at line 8 \(factory — fact\)/,
+      wantViolation: /gov\.js \(governance\) requires fact\.js \(factory\) — line 2/,
     },
-    "shared-infra→governance reference": {
-      text: mk(
-        B, "// === region:shared-infra — helpers ===", B,
-        "function sharedHelper() { return govThing(); }",
-        B, "// === region:governance — gov ===", B,
-        "function govThing() { return 1; }"),
+    "shared-infra→local require": {
+      files: {
+        "shared.js": [
+          "// === region:shared-infra — helpers ===",
+          'const { govThing } = require("./gov");',
+        ].join("\n"),
+        "gov.js": [
+          "// === region:governance — gov ===",
+          "function govThing() { return 1; }",
+        ].join("\n"),
+      },
       wantExit: 1,
-      wantViolation: /govThing referenced at line 4 \(shared-infra — helpers\)/,
+      wantViolation: /shared\.js \(shared-infra\) requires gov\.js \(governance\) — line 2/,
     },
-    "untagged banner": {
-      text: mk(
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }",
-        B, "// a section with no region tag", B,
-        "function mystery() { return 3; }"),
+    "bannerless file": {
+      files: {
+        "gov.js": [
+          "// === region:governance — gov ===",
+          "function govThing() { return 1; }",
+        ].join("\n"),
+        "nobanner.js": "function mystery() { return 2; }",
+      },
       wantExit: 2,
-      wantMalformed: /untagged section banner at line 5/,
+      wantMalformed: /nobanner\.js: no region banner/,
     },
-    "string/comment mentions ignored": {
-      text: mk(
-        B, "// === region:governance — gov ===", B,
-        'const a = "factThing()";',
-        "const b = `factThing`;",
-        "// factThing in a line comment",
-        "/* factThing in a block comment */",
-        "function govThing() { return a + b; }",
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }"),
+    "mixed-region banners in one file": {
+      files: {
+        "mixed.js": [
+          "// === region:governance — gov ===",
+          "function govThing() { return 1; }",
+          "// === region:factory — fact ===",
+          "function factThing() { return 2; }",
+        ].join("\n"),
+      },
+      wantExit: 2,
+      wantMalformed: /mixed\.js: mixed-region banners \(factory, governance\)/,
+    },
+    "non-literal require in a bound file": {
+      files: {
+        "gov.js": [
+          "// === region:governance — gov ===",
+          'const name = "./fact";',
+          "require(name);",
+        ].join("\n"),
+        "fact.js": [
+          "// === region:factory — fact ===",
+          "function factThing() { return 2; }",
+        ].join("\n"),
+      },
+      wantExit: 2,
+      wantMalformed: /gov\.js:3: require\(\) argument is not a single string literal/,
+    },
+    "unresolvable relative require in a bound file": {
+      files: {
+        "gov.js": [
+          "// === region:governance — gov ===",
+          'require("./missing");',
+        ].join("\n"),
+      },
+      wantExit: 2,
+      wantMalformed: /gov\.js:2: require\("\.\/missing"\) does not resolve inside the source set/,
+    },
+    "require(\"./x\") inside a comment or string produces no edge": {
+      files: {
+        "gov.js": [
+          "// === region:governance — gov ===",
+          '// require("./fact") in a line comment',
+          'const note = "require(\\"./fact\\")";',
+          "function govThing() { return note; }",
+        ].join("\n"),
+        "fact.js": [
+          "// === region:factory — fact ===",
+          "function factThing() { return 2; }",
+        ].join("\n"),
+      },
       wantExit: 0,
     },
-    "template interpolation still counts": {
-      text: mk(
-        B, "// === region:governance — gov ===", B,
-        "function govThing() { return `x ${factThing()} y`; }",
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }"),
-      wantExit: 1,
-      wantViolation: /factThing referenced at line 4/,
-    },
-    "regex literal cannot hide a reference on its line": {
-      text: mk(
-        B, "// === region:governance — gov ===", B,
-        "function govThing(x) { if (/https:\\/\\//.test(x)) factThing(); return 1; }",
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }"),
-      wantExit: 1,
-      wantViolation: /factThing referenced at line 4 \(governance — gov\)/,
-    },
-    "regex literal does not swallow subsequent lines": {
-      text: mk(
-        B, "// === region:governance — gov ===", B,
-        "const starRe = /\\*/;",
-        "const slashStarRe = /x\\/*y/;",
-        "const classRe = /[/]z/;",
-        "function govThing() { return factThing(); }",
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }"),
-      wantExit: 1,
-      wantViolation: /factThing referenced at line 7 \(governance — gov\)/,
-    },
-    "cross-region duplicate definition is malformed": {
-      text: mk(
-        B, "// === region:factory — fact ===", B,
-        "function dupThing() { return 1; }",
-        B, "// === region:governance — gov ===", B,
-        "function dupThing() { return 2; }"),
-      wantExit: 2,
-      wantMalformed: /cross-region duplicate definition of 'dupThing': line 4 \(factory — fact\) and line 8 \(governance — gov\)/,
-    },
-    "braces inside strings inside an interpolation": {
-      text: mk(
-        B, "// === region:governance — gov ===", B,
-        'function govThing(x) { return `a ${ x ? "{" : "}" } b ${factThing()} c`; }',
-        B, "// === region:factory — fact ===", B,
-        "function factThing() { return 2; }"),
-      wantExit: 1,
-      wantViolation: /factThing referenced at line 4 \(governance — gov\)/,
+    "factory→governance require is legal": {
+      files: {
+        "fact.js": [
+          "// === region:factory — fact ===",
+          'const { govThing } = require("./gov");',
+          "function factThing() { return govThing(); }",
+        ].join("\n"),
+        "gov.js": [
+          "// === region:governance — gov ===",
+          "function govThing() { return 1; }",
+        ].join("\n"),
+      },
+      wantExit: 0,
     },
   };
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-regions-"));
@@ -601,9 +582,15 @@ function regionsSelftest(COMMANDS) {
   try {
     let n = 0;
     for (const [name, f] of Object.entries(fixtures)) {
-      const p = path.join(tmp, `fixture-${n++}.js`);
-      fs.writeFileSync(p, f.text);
-      const res = regionsCheckFile(p);
+      const dir = path.join(tmp, `fx-${n++}`);
+      fs.mkdirSync(dir);
+      const filePaths = [];
+      for (const [rel, content] of Object.entries(f.files)) {
+        const p = path.join(dir, rel);
+        fs.writeFileSync(p, `${content}\n`);
+        filePaths.push(p);
+      }
+      const res = regionsCheck(filePaths);
       const exit = regionsExitFor(res);
       let ok = exit === f.wantExit;
       if (ok && f.wantViolation) ok = res.violations.some((v) => f.wantViolation.test(v));
@@ -745,7 +732,7 @@ function cmdRegions(args, COMMANDS) {
   }
 
   if (sub === "check") {
-    const res = regionsCheckFiles(regionSources());
+    const res = regionsCheck(regionSources());
     if (res.malformed.length) {
       for (const m of res.malformed) process.stderr.write(`faff regions check: MALFORMED — ${m}\n`);
       return 2;
@@ -761,10 +748,10 @@ function cmdRegions(args, COMMANDS) {
     }
     if (res.violations.length) {
       for (const v of res.violations) process.stderr.write(`faff regions check: VIOLATION — ${v}\n`);
-      process.stderr.write(`faff regions check: ${res.violations.length} direction violation(s) — governance must not reference factory; shared-infra must reference neither region\n`);
+      process.stderr.write(`faff regions check: ${res.violations.length} direction violation(s) — governance must not require factory; shared-infra must require no local module\n`);
       return 1;
     }
-    console.log("PASS  regions check: direction invariant holds (governance↛factory, shared-infra↛regions)");
+    console.log("PASS  regions check: require-graph direction invariant holds (governance↛factory, shared-infra↛any local module)");
     return 0;
   }
 
@@ -778,4 +765,4 @@ function cmdRegions(args, COMMANDS) {
 }
 
 
-module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_DIVIDER_RE, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheckFile, regionsCollectDefs, regionsExitFor, regionsFnRange, regionsParseSpans, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };
+module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsExitFor, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };

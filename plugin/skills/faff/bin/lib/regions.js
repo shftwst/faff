@@ -142,6 +142,9 @@ const REGION_MAP = {
   // FAFF-261: mechanical adversarial-backends assembly reads config via loadConfig/dig
   // (factory identifiers, config.js) — same family as config/eligible/models → factory.
   "adversarial-backends": "factory",
+  // FAFF-341: review-iteration-cap requires config.js's VALID_APPETITES (factory identifier,
+  // same family as models/eligible) → factory.
+  "review-iteration-cap": "factory",
 };
 
 // Selftest invocation per member, where it differs from `<cmd> --selftest`:
@@ -221,6 +224,7 @@ const REGION_SELFTEST_ARGV = {
   "ci-triage": ["ci-triage", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],
   "adversarial-backends": ["adversarial-backends", "--selftest"],
+  "review-iteration-cap": ["review-iteration-cap", "--selftest"],
 };
 
 const REGION_NAMES = new Set(["governance", "factory", "shared-infra", "shell"]);

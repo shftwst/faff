@@ -140,9 +140,9 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 | Scope strictness | Strict — any out-of-scope line is a `fail` | Strict | Allows trivial adjacent cleanups (typo fixes, import sorting in touched files) | Same as high |
 | Bug scan depth | Standard | Standard | Standard | Standard |
 | Human-judgement threshold | Conservative — lower bar for `needs-human` | Standard | Standard | Standard |
-| Review→fix→review iterations before escalation | 1 | 3 | 5 | 10 |
+| Review→fix→review iterations before escalation (FAFF-341: materialized by `faff review-iteration-cap`) | 1 | 3 | 5 | 10 |
 
-Review quality (what counts as a finding) does not loosen at any appetite level. Appetite governs **persistence** — how many fix→review cycles the pipeline attempts before escalating to `needs-human`. At `low`, one failed iteration and it escalates. At `full`, it keeps trying up to 10 passes.
+Review quality (what counts as a finding) does not loosen at any appetite level. Appetite governs **persistence** — how many fix→review cycles the pipeline attempts before escalating to `needs-human`. At `low`, one failed iteration and it escalates. At `full`, it keeps trying up to 10 passes. This row is the human-readable statement of the policy; `faff review-iteration-cap --appetite <appetite>` is the runtime/machine form `faff-graft`'s Step 9 loop actually consumes (single literal source — FAFF-341), so the two cannot silently drift.
 
 ## Rules
 

@@ -42,6 +42,9 @@ const DEFAULTS = {
   "adr.mode": "offer",
   "intake_gate": "warn",
   "gates.fallback": "advisory",
+  // FAFF-385: post-merge verification (re-run the declared UNIT rung against the merge sha) —
+  // consulted in autonomous mode only; default on so a repo opts OUT, never opts in.
+  "post_merge.check": "on",
   "budget.at_ceiling": "stop",
   "budget.price_per_mtok": "0",
   // FAFF-255: PRDR thrash-ratchet bounds. thrash_max = supersessions a single lineage may accrue
@@ -1079,7 +1082,7 @@ function cmdConfig(args) {
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
           "slots.env", "slots.prd",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
-          "gates.fallback", "budget.at_ceiling", "budget.price_per_mtok",
+          "gates.fallback", "post_merge.check", "budget.at_ceiling", "budget.price_per_mtok",
           "models.build", "models.prep_explore",
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
           "models.architecture",

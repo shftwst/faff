@@ -208,6 +208,46 @@ function contractQualityGates(extraction) {
   return { contractData };
 }
 
+// --- post-merge-verification (FAFF-385) ---
+// The post-merge health verdict `faff post-merge-check`'s impure shell (post-merge.js) computes
+// after re-running the project's own declared UNIT rung (the SAME `discoverRungs`/`runRung`
+// gates.js resolver, reused verbatim) against an ephemeral detached worktree at the merge-record.json
+// sha (FAFF-397). Validates SHAPE + the cross-field consistency the shell's own classification must
+// respect — mirrors quality-gates EXACTLY: safe coerce target for a malformed verdict is
+// `unverified` (never `verified-ok` — the spec's own "never guess ok" fallback precedence),
+// fail-loud only on an unparseable (non-object) extraction. This contract is the consumer-side
+// conformance check over the shell's computed extraction, exactly like quality-gates is over
+// `gatesContractExtraction`'s output — neither validates an LLM producer's prose.
+const POST_MERGE_VERIFICATION_VERDICTS = ["verified-ok", "verified-fail", "unverified"];
+function computePostMergeVerification(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  let verdict = extraction.verdict;
+  if (!POST_MERGE_VERIFICATION_VERDICTS.includes(verdict)) {
+    violations.push(`verdict ${JSON.stringify(verdict)} not in {verified-ok,verified-fail,unverified} — coerced to unverified`);
+    verdict = "unverified";
+  }
+  const command = typeof extraction.command === "string" && extraction.command.trim() ? extraction.command : null;
+  const basis = typeof extraction.basis === "string" ? extraction.basis : "";
+  if (!basis.trim()) violations.push(`${verdict} carries no basis`);
+  // A verified verdict (ok or fail) must name the rung it actually ran; `unverified` may or may not
+  // (no-rung → null; an errored worktree/spawn path → the rung it attempted) — never enforced there.
+  if ((verdict === "verified-ok" || verdict === "verified-fail") && !command) {
+    violations.push(`${verdict} carries no command — a verified verdict must name the rung it ran`);
+  }
+  return { contractData: { verdict, command, basis, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractPostMergeVerification(extraction) {
+  const { contractData, failLoud } = computePostMergeVerification(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "post-merge-verification");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- prd-readiness (FAFF-253) ---
 // The product-axis analog of spec-readiness: the LLM PRD-admissibility validator (FAFF-260, deferred)
 // reads a container's PRD and emits a verdict; THIS deterministic half validates the verdict's SHAPE.
@@ -1225,6 +1265,20 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "post-merge-verification": {
+    run: contractPostMergeVerification,
+    fixtures: [
+      { name: "conformant-ok", in: { verdict: "verified-ok", command: "npm run test", basis: "npm run test exit 0" }, wantExit: 0 },
+      { name: "conformant-fail", in: { verdict: "verified-fail", command: "npm run test", basis: "npm run test failed: exit 1" }, wantExit: 0 },
+      { name: "conformant-unverified-no-rung", in: { verdict: "unverified", command: null, basis: "no UNIT rung discovered" }, wantExit: 0 },
+      { name: "conformant-unverified-errored", in: { verdict: "unverified", command: "npm run test", basis: "npm run test errored: spawn ENOENT" }, wantExit: 0 },
+      { name: "ok-missing-command", in: { verdict: "verified-ok", command: null, basis: "npm run test exit 0" }, wantExit: 1 },
+      { name: "fail-missing-command", in: { verdict: "verified-fail", command: "", basis: "failed" }, wantExit: 1 },
+      { name: "missing-basis", in: { verdict: "unverified", command: null, basis: "" }, wantExit: 1 },
+      { name: "coerce-malformed-verdict", in: { verdict: "maybe", command: "npm run test", basis: "?" }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "prd-readiness": {
     run: contractPrdReadiness,
     fixtures: [
@@ -1426,4 +1480,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeLaneBoundary, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractLaneBoundary, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, holdoutGateResult, isKnownStopReason, prdrGatesPass, resolveGateLevel };
+module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, holdoutGateResult, isKnownStopReason, prdrGatesPass, resolveGateLevel };

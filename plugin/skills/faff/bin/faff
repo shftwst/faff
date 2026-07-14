@@ -71,6 +71,7 @@ const { cmdMergeFence } = require("./lib/merge-fence");
 const { cmdBranchProtectionCheck, cmdMergeGate } = require("./lib/merge-gate");
 const { cmdNext } = require("./lib/next");
 const { cmdParkHistory } = require("./lib/park-history");
+const { cmdPostMergeCheck } = require("./lib/post-merge");
 const { cmdPrd } = require("./lib/prd");
 const { cmdPrdr } = require("./lib/prdr");
 const { cmdPrepcheck } = require("./lib/prepcheck");
@@ -202,6 +203,7 @@ const COMMANDS = {
   "corrective": cmdCorrective,
   "merge-gate": cmdMergeGate,
   "branch-protection-check": cmdBranchProtectionCheck,
+  "post-merge-check": cmdPostMergeCheck,
   "governance-check": cmdGovernanceCheck,
   "next": cmdNext,
   "project-next": cmdProjectNext,

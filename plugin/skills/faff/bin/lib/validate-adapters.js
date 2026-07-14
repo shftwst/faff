@@ -36,9 +36,10 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1100, "faff-beep-boop": 650 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
+const SKILL_LINE_CAP_OVERRIDE = { faff: 1100, "faff-beep-boop": 660 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
                                                   // structurally with each new slot/contract. faff-beep-boop is the L4 orchestration hub and grows the same
-                                                  // way with each new run-start/guardrail step (the PRD-admissibility pre-check pushed it past 600) — both caps
+                                                  // way with each new run-start/guardrail step (the PRD-admissibility pre-check pushed it past 600; FAFF-385's
+                                                  // post-merge-verification reconciliation step + ledger annotations pushed it past 650) — both caps
                                                   // are calibrated to the hub's real size while still forcing leanness per addition.
 const PARA_WORD_CAP = 200;                         // longest single prose line (≈ one paragraph) — nudge bullets over walls of prose
 const DUP_BLOCK_WINDOW = 6;                         // identical run of significant lines across 2+ skills = copied prose; single-source it

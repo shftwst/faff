@@ -18,6 +18,19 @@ Beep-boop uses these `slots` from `.faffrc` when set:
 - `concurrency` — the build-pass executor. Default `faffter-noon-concurrency-sequential` (one build at a time); swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge.
 - `spec`, `review`, `ship` — passed through to the sub-skills; beep-boop doesn't use them directly.
 
+## Install-health preflight (doctor-at-entry surfacing)
+
+The gateway-load preamble (gateway → **Install health (doctor-at-entry)**) already runs `"$faff" doctor` once on entry; in autonomous mode it never prompts and never runs `faff sync` — that rule is unchanged. What beep-boop adds is **surfacing**: the same doctor exit code is threaded into *this run's own* report, so a dirty install is loud up front instead of discoverable only via a mid-run symptom or the next `/faff-wtf`.
+
+- **exit 1 (install not clean)** — prepend `"$faff" doctor`'s own `RESULT: …` line to `.faff/runs/<run-id>/summary.md`, ahead of the Methodology line (see `## Reporting`), as a loud warning:
+
+      ⚠ INSTALL-HEALTH: <doctor's RESULT line, verbatim> — remediation: run `faff sync`.
+
+  The same line leads the condensed tracker status post (`## Reporting` → step 2) — the first thing a human reads, not buried after the outcome buckets.
+- **exit 0 / exit 2** — no line added; nothing changes.
+
+Surface-only: this never runs `faff sync` itself, and it does not downgrade any issue's spec confidence or annotate a per-build audit trail — install health is a run-wide fact, not evidence about any one build.
+
 ## Invocation
 
 Two forms:
@@ -481,11 +494,13 @@ On run completion, produce:
 
 ### 1. `.faff/runs/<run-id>/summary.md`
 
-When a `methodology` skill is configured, the first line of the summary file is the literal string:
+When this run's install-health preflight (above) found the install not clean, the file's **first line** is that section's `⚠ INSTALL-HEALTH: …` warning — ahead of everything else below.
+
+When a `methodology` skill is configured, the next line (the first line, when install-health is clean) is the literal string:
 
     Methodology: [skill-name]
 
-(followed by the existing summary layout below). When no methodology is configured, this line is omitted and the file starts with the `# Beep-Boop Run …` heading as normal.
+(followed by the existing summary layout below). When neither applies, the file starts with the `# Beep-Boop Run …` heading as normal.
 
 ```markdown
 # Beep-Boop Run — YYYY-MM-DD HH:MM:SS
@@ -607,6 +622,8 @@ The ban below is on inventing an additional **outcome bucket** — a euphemism t
 If the report contains one of those headings AND no budget ceiling was set or breached, the run is incomplete: re-enter the build pass and dispatch the queue. The only legitimate path to ending with a non-empty build queue is a budget dimension firing.
 
 ### 2. Tracker status update
+
+When this run's install-health preflight found the install not clean, lead the post with the same `⚠ INSTALL-HEALTH: …` line (see `## Install-health preflight` above) — ahead of everything else.
 
 Post the summary content (or a condensed version) to the tracker as a status update / project comment, so team members see the overnight outcome alongside the issues themselves. **Append the condensed one-line economics form (FAFF-357):** `Economics: <tokens_total> tokens (<tokens_source>)[, $<cost_total>] · <shipped_count> shipped · <cost_per_shipped or ZERO-SHIP>` — so the headline cost rides alongside the issues (the full block stays in `summary.md` + the in-conversation output).
 

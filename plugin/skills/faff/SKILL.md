@@ -93,25 +93,24 @@ Resolve the binary via **Resolving the `faff` executable** (never hardcode `~/.c
   - **Interactive** — a one-time **soft-offer** (mirrors the First-run offer; never a gate): `faff skills look stale (copy-installs, not symlinks) — repo changes won't be live. Re-link now? (y/n)`. On **accept** → run **`"$faff" sync`** (the skill-owned repair — re-links the skill dirs + the CLI via `scripts/link-skills.sh --global --replace`), then continue the original command. On **decline** → continue on the stale install; do **not** nag again this turn.
   - **Autonomous/beep-boop** — **never prompt, never run `faff sync`, never mutate `~/.claude`.** Re-linking deletes real dirs in the user's global skills dir — a **side-effect outside the PR flow** (gateway → **Autonomous Mode Contract**), which the autonomous lane never performs unattended. Log the stale-install finding to `.faff/logs/…` and surface it for `/faff-wtf`, then continue.
 
-`faff sync` is a **CLI subcommand** (a thin wrapper over the tested `link-skills.sh`), so it is invoked directly via the resolved binary — **not** through the Skill tool (unlike `faff-onboard`).
+`faff sync` is a **CLI subcommand** (a thin wrapper over the tested `link-skills.sh`), so it is invoked directly via the resolved binary — **not** through the Skill tool (unlike `faff-onboard`). The same preamble also runs **`faff config check`** (read-only) and treats its findings as **advisory** — never a block/gate/prompt: interactive surfaces **one** line when findings exist (never nagging twice a turn), autonomous/beep-boop **logs** them for `/faff-wtf` and continues (the container/branch-protection `warn` default). A config finding is never a run-stopper.
 
 ## Configuration (shared across all sub-skills)
 
-All faff sub-skills read their configuration from a **`.faffrc.yaml`** file at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule):
+All faff sub-skills read their configuration from a **two-file** model at the repo root, **resolved via the `faff config` CLI — never by hand-reading the file** (see **Resolver** below and the **CLI-only config access** rule):
 
-- **Single accepted filename.** A legacy **`.faffrc`** or **`.faffrc.yml`** at the root triggers a **loud error** naming the fix (rename it to `.faffrc.yaml`), **never a silent default** — so a present config is never dropped by eyeballing the wrong filename.
-- **Missing keys fall back** to faff's built-in default.
-- **No file at all → all defaults**, and, in interactive entry, offers first-run setup via `/faff-onboard` before proceeding (see **First run** above).
-- **Template files are exempt** — any name containing `.example` is never counted or loaded.
+- **Two files (FAFF-387).** `.faffrc.yaml` is the **base** — durable, shareable behaviour, **recommended committed** (git is its backup + drift alarm; it holds no secrets by construction, since `api_key_env` names an env var and the value is read from the environment). `.faffrc.local.yaml` is an optional **gitignored overlay** for machine-local values. Resolution is overlay **deep-merged over** base over defaults: maps merge per leaf, sequences replace wholesale, the overlay wins scalars. An overlay parse failure is a **loud** exit (never a silent partial-apply). With no overlay, behaviour is byte-for-byte the single-file behaviour. A legacy **`.faffrc`** / **`.faffrc.yml`** (or legacy-shaped overlay **`.faffrc.local`** / **`.faffrc.local.yml`**) triggers a **loud error**, **never a silent default**.
+- **Missing keys fall back** to faff's built-in default. **No file at all → all defaults**, and, in interactive entry, offers first-run setup via `/faff-onboard` before proceeding (see **First run** above).
+- **Template files are exempt** — any name containing `.example` is never counted or loaded. **`faff config check`** verifies posture (base committed? overlay ignored? no secret-shaped values?) — read-only, advisory everywhere in faff (warn, never block); run it before committing the base.
 
 `CLAUDE.md` is **no longer a faff config source.** It remains the consuming project's own documentation — sub-skills may still read it for soft *context* (current-workstream priority, naming/grouping conventions) but never for configuration values.
 
 **Resolver.** The bundled `faff` CLI — a dependency-free Node CLI (a thin shebang entrypoint plus modules under `bin/lib/`) run directly via its shebang — performs config file resolution and parsing mechanically under its `config` subcommand, so sub-skills don't hand-parse YAML:
 
-- `faff config path` — print the resolved config file (exit 3 if none; `.example` files are never loaded).
-- `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
+- `faff config path` — print each resolved config file on its own line, base first (exit 3 only when **neither** exists; `.example` files are never loaded).
+- `faff config get <dotted.key> [-d DEFAULT]` — print a scalar value from the **merged** document (e.g. `faff config get tracking.team_key`); prints DEFAULT / empty and exits 3 when absent.
 - `faff config spec-docs-path [--create]` — print the spec-docs directory with the default rule already applied; `--create` makes it.
-- `faff config resolved` — echo the resolved **non-default** config (config-file path, `appetite`, and every slot the file sets), for a run banner so a dropped/overridden slot is **visible**, not silent.
+- `faff config resolved` — echo the resolved **non-default** config (both file paths — `config:` + `config local:`, `appetite`, and every slot the file sets), for a run banner so a dropped/overridden slot **or an active overlay** is **visible**, not silent. (`faff config check` is the read-only posture checker — exit 0 clean / 1 ≥1 finding / 2 unreadable.)
 
 **Resolving the `faff` executable (canonical — sub-skills reference this).** Invoke it as bare **`faff`** — the link/install step symlinks it to `~/.local/bin/faff`, so it's on `PATH` for most setups. When `faff` isn't on `PATH` (e.g. a marketplace plugin that didn't symlink it), resolve the bundled binary — **don't hardcode `~/.claude/skills/faff/bin/faff`**, which is only the dev-linked location (a plugin lives under `${CLAUDE_PLUGIN_ROOT}` instead):
 
@@ -127,6 +126,7 @@ It parses the documented YAML subset with a built-in parser — no dependencies.
 **CLI-only config access (load-bearing).** Every config read — slots, `appetite`, `tracking.*`, the spec-docs path — goes through `faff config`:
 
 - **No hand-reading.** No sub-skill, and no agent acting for one, reads the rc file by hand — no shell-reading it, no `Read` tool on it, no eyeballing the raw bytes. Softer values the agent only reasons with (e.g. `appetite`) go the same way — `faff config get appetite`.
+- **No hand-writing (FAFF-387).** The rule runs both directions: no skill or agent hand-*writes* any rc file either (base or overlay). **`faff config init` is the only writer** — matching `/faff-onboard`'s existing rule. A hand-written wholesale rewrite is exactly the silent-corruption failure the committed-base posture exists to catch.
 - **Why.** Reading by hand silently dropped configured slots **twice**: an agent shell-read a bare-named rc file, found nothing (the real one is `.faffrc.yaml`), and fell through to defaults. The resolver handles every accepted name and errors loudly on a legacy one, so the CLI is the only correct path.
 - **Enforced mechanically.** `faff validate-adapters` **fails** any skill `SKILL.md` that shell-reads the rc file directly (it runs in the CI gate).
 
@@ -599,7 +599,7 @@ Each log entry captures:
 
 Logs are plain markdown — agent-readable and human-readable. A log must contain enough context that a follow-up agent, given only the log file, can pick up intelligently without needing the original conversation.
 
-**Gitignore:** `.faff/` and `.faffrc` are gitignored by `faff gitignore-ensure`, run at bootstrap/first-run; idempotent and non-destructive. Users may un-ignore to commit logs.
+**Gitignore:** `.faff/`, the legacy `.faffrc` / `.faffrc.yml`, and the machine-local overlay `.faffrc.local.yaml` are gitignored by `faff gitignore-ensure` (idempotent, append-only). The **base `.faffrc.yaml` is NOT ignored on new bootstraps** (FAFF-387 — it is the committable base); an existing repo that already ignores it keeps that line (the command never removes one), migrate deliberately when ready (`faff config check`'s posture finding names the steps).
 
 ### Issue claim & status monotonicity (multi-orchestrator safety — FAFF-82)
 

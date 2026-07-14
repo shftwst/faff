@@ -180,6 +180,115 @@ test("AC3: the stall window is a config value (sentry.stall_window_secs tightens
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// ===========================================================================
+// FAFF-447 — budget-metering-degraded: closes FAFF-428's named follow-up. A live
+// L4 run reading tokens_source:"estimate" (the FAFF-428 degrade) past a
+// configurable exposure window (sentry.estimate_metering_exposure_secs, default
+// 1800s) trips a `pause` — never abort/correct (a blind meter is a blind spot,
+// not a proven breach). --budget-json is the hermetic test hook (mirrors the
+// AC2 pattern) — production reads it off the consumed `faff budget check` JSON.
+// ===========================================================================
+
+test("FAFF-447: a running L4 ledger + estimate-only tokens past the exposure window trips budget-metering-degraded → pause", () => {
+  const dir = tmp();
+  try {
+    const started = new Date(Date.now() - 40 * 60 * 1000).toISOString(); // 40 min ago > 1800s default
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--budget-json", JSON.stringify({ breached: [], outcome: "none", tokens_source: "estimate" })]).out);
+    const v = out.verdicts.find((x) => x.signal === "budget-metering-degraded");
+    assert.ok(v, "budget-metering-degraded verdict present");
+    assert.equal(v.severity, "trip");
+    assert.equal(v.evidence.tokens_source, "estimate");
+    assert.equal(out.intervention, "pause");
+    assert.equal(out.tripped, true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-447: the SAME ledger WELL WITHIN the exposure window carries no budget-metering-degraded verdict", () => {
+  const dir = tmp();
+  try {
+    const started = new Date(Date.now() - 10 * 1000).toISOString(); // 10s ago, well under 1800s
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--budget-json", JSON.stringify({ breached: [], outcome: "none", tokens_source: "estimate" })]).out);
+    assert.equal(out.verdicts.find((v) => v.signal === "budget-metering-degraded"), undefined);
+    assert.equal(out.intervention, "continue");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-447: the same aged-past-threshold L4 ledger with a MEASURED transcript (tokens_source:transcript) carries no verdict", () => {
+  const dir = tmp();
+  try {
+    const started = new Date(Date.now() - 40 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--budget-json", JSON.stringify({ breached: [], outcome: "none", tokens_source: "transcript" })]).out);
+    assert.equal(out.verdicts.find((v) => v.signal === "budget-metering-degraded"), undefined,
+      "a measured meter is never a blind spot, regardless of elapsed time");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-447: the same aged-past-threshold ledger with NO level field (or level:L3) carries no verdict (L1-L3 unaffected)", () => {
+  const dir = tmp();
+  try {
+    const started = new Date(Date.now() - 40 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const budgetJson = JSON.stringify({ breached: [], outcome: "none", tokens_source: "estimate" });
+
+    const rdNoLevel = mkRun(dir, "no-level", { run_id: "no-level", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const outNoLevel = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rdNoLevel, "--json", "--budget-json", budgetJson]).out);
+    assert.equal(outNoLevel.verdicts.find((v) => v.signal === "budget-metering-degraded"), undefined, "no level field at all -> unaffected");
+
+    const rdL3 = mkRun(dir, "l3", { run_id: "l3", level: "L3", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const outL3 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rdL3, "--json", "--budget-json", budgetJson]).out);
+    assert.equal(outL3.verdicts.find((v) => v.signal === "budget-metering-degraded"), undefined, "level:L3 -> unaffected");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-447: sentry.estimate_metering_exposure_secs is a config value (tightens the window)", () => {
+  const dir = tmp();
+  try {
+    writeFileSync(join(dir, ".faffrc.yaml"), "sentry:\n  estimate_metering_exposure_secs: 5\n");
+    const started = new Date(Date.now() - 10 * 1000).toISOString(); // 10s ago > tightened 5s window
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--budget-json", JSON.stringify({ breached: [], outcome: "none", tokens_source: "estimate" })]).out);
+    assert.equal(out.thresholds.estimate_metering_exposure_secs, 5, "config value resolved");
+    assert.ok(out.verdicts.some((v) => v.signal === "budget-metering-degraded"), "10s-old estimate-only run trips a tightened 5s window");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-447: a co-tripping genuine budget-breach still wins the ladder-max (abort) over the degrade's pause; the degrade verdict is still present", () => {
+  const dir = tmp();
+  try {
+    const started = new Date(Date.now() - 40 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--budget-json", JSON.stringify({ breached: ["max_attempts"], outcome: "escalate", tokens_source: "estimate" })]).out);
+    assert.equal(out.intervention, "abort", "budget-breach's mapped abort wins the ladder-max");
+    assert.ok(out.verdicts.some((v) => v.signal === "budget-metering-degraded"), "the co-tripping degrade verdict is still reported, just outranked");
+    assert.ok(out.verdicts.some((v) => v.signal === "budget-breach"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-447: authority:'available' never upgrades budget-metering-degraded past pause (only fix-review-thrash upgrades)", () => {
+  const dir = tmp();
+  try {
+    const started = new Date(Date.now() - 40 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", level: "L4", admitted: [], outcomes: {}, owner: { status: "running", started_at: started, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--authority", "available",
+      "--budget-json", JSON.stringify({ breached: [], outcome: "none", tokens_source: "estimate" })]).out);
+    assert.equal(out.intervention, "pause");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // --- AC4: trip→abort commits WIP, marks aborted-resumable, run is re-enterable -----
 
 test("AC4: abort commits worktree WIP to its branch, marks the ledger aborted-resumable, run re-enterable", () => {

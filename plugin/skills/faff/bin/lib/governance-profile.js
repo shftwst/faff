@@ -17,6 +17,14 @@
 // fixture (disjoint vocabulary, test-only) proves the engines actually READ the
 // profile rather than staying hardcoded — see `profilesSelftest` below.
 //
+// FAFF-447: `sentry.thresholds` gains a fifth key, `estimate_metering_exposure_
+// secs` — the run-elapsed window (seconds) an L4 run may spend on estimate-only
+// budget metering before sentry's `budget-metering-degraded` predicate trips.
+// Additive to the closed threshold vocabulary (`PROFILE_SENTRY_THRESHOLD_KEYS`),
+// so every profile (DELIVERY_PROFILE, SECOND_PROFILE, and any future override
+// file) must declare it — `validateProfileShape` enforces this like every other
+// threshold key, never a silently-optional fifth.
+//
 // Profiles are pure closed-vocab DATA — the design-doc guard: a leaf is a string,
 // a finite number, an array of strings, or a flat object of those; no functions,
 // no regexes, no conditional/nested-policy shape. `validateProfileShape` is the
@@ -75,6 +83,9 @@ const DELIVERY_PROFILE = {
       failure_k: 3,
       stall_window_secs: RUN_HEARTBEAT_STALE_SECS_DEFAULT,
       run_elapsed_ceiling_secs: 14400,
+      // FAFF-447: exposure window (run-elapsed seconds) an L4 run may spend on
+      // estimate-only budget metering before `budget-metering-degraded` trips.
+      estimate_metering_exposure_secs: 1800,
     },
     thrash: { start_type: "build-start", ship_type: "issue-outcome", ship_outcome: "shipped" },
     failure: { park_type: "park", outcome_type: "issue-outcome", errored_outcome: "errored" },
@@ -94,7 +105,7 @@ const SECOND_PROFILE = {
   outcome_required_types: ["job-outcome"],
   ledger_outcomes: ["done", "open", "dropped", "aborted"],
   sentry: {
-    thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200 },
+    thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
     thrash: { start_type: "job-start", ship_type: "job-outcome", ship_outcome: "done" },
     failure: { park_type: "job-outcome", outcome_type: "job-outcome", errored_outcome: "aborted" },
   },
@@ -113,7 +124,7 @@ const PROFILE_TOP_ARRAY_KEYS = [
   "terminal_states", "event_phases", "event_types",
   "issue_scoped_types", "outcome_required_types", "ledger_outcomes",
 ];
-const PROFILE_SENTRY_THRESHOLD_KEYS = ["thrash_n", "failure_k", "stall_window_secs", "run_elapsed_ceiling_secs"];
+const PROFILE_SENTRY_THRESHOLD_KEYS = ["thrash_n", "failure_k", "stall_window_secs", "run_elapsed_ceiling_secs", "estimate_metering_exposure_secs"];
 const PROFILE_SENTRY_THRASH_KEYS = ["start_type", "ship_type", "ship_outcome"];
 const PROFILE_SENTRY_FAILURE_KEYS = ["park_type", "outcome_type", "errored_outcome"];
 

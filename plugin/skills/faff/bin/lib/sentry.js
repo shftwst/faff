@@ -66,6 +66,20 @@
 // run-scoped response it always did. In-flight-member derivation and fleet
 // evaluation are both auto-detected from the existing events+ledger surface — a run
 // with no in-flight members computes an empty set and is byte-equivalent to pre-327.
+//
+// FAFF-447: a NEW v1 predicate, `budget-metering-degraded` — closes FAFF-428's named
+// follow-up ("teaching the kill-switch to react to the [estimate-only] degrade").
+// `sentryReadBudget` now forwards `tokens_source` off the consumed `faff budget check`
+// JSON (one additive field, no new child call, no re-derived math). `evalBudget
+// MeteringDegraded` trips when a RUNNING L4 ledger (`ledger.level === "L4"`) is
+// reading `tokens_source: "estimate"` for longer than `sentry.estimate_metering_
+// exposure_secs` (run-elapsed-since-`started_at`, the SAME proxy evalWallClock's
+// run-elapsed check already uses — no new ledger-write surface). Maps to `pause`
+// ONLY (SIGNAL_TRIP_INTERVENTION) — an unmetered run is a blind spot, not a proven
+// breach, so it is never routed to `abort`/`correct`; a co-tripping hard-evidence
+// signal (e.g. a genuine budget-breach on the same degraded run) still wins the
+// ladder-max exactly as before. Run-scoped (no `scope`/`member` — one meter, one
+// ledger, unlike the fleet-attributed signals above).
 // ===========================================================================
 
 
@@ -80,6 +94,7 @@ const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFaul
 const DERAILMENT_SIGNALS = new Set([
   "fix-review-thrash", "budget-breach", "repeated-identical-failure",
   "wall-clock-runaway", "scope-drift", "forbidden-side-effect-attempt",
+  "budget-metering-degraded",
 ]);
 // The v1+Sentry-2 intervention ladder, ASCENDING severity (index = rank). `correct`
 // (FAFF-326) sits BETWEEN `pause` and `abort` — a narrowing of a pause-class response
@@ -100,6 +115,8 @@ const SIGNAL_TRIP_INTERVENTION = {
   "forbidden-side-effect-attempt": "abort",
   "fix-review-thrash": "pause",
   "scope-drift": "continue",
+  // FAFF-447: a blind meter is not a proven breach — never escalated to abort/correct.
+  "budget-metering-degraded": "pause",
 };
 // The one signal Channel A may upgrade to `correct`, and only when authority is
 // available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
@@ -123,6 +140,9 @@ function sentryThresholds(cfg, profile = activeProfile()) {
     failure_k: num(dig(cfg, "sentry.failure_k"), d.failure_k),
     stall_window_secs: num(dig(cfg, "sentry.stall_window_secs"), d.stall_window_secs),
     run_elapsed_ceiling_secs: num(dig(cfg, "sentry.run_elapsed_ceiling_secs"), d.run_elapsed_ceiling_secs),
+    // FAFF-447: how long (run-elapsed secs) an L4 run may read tokens_source:
+    // "estimate" before budget-metering-degraded trips.
+    estimate_metering_exposure_secs: num(dig(cfg, "sentry.estimate_metering_exposure_secs"), d.estimate_metering_exposure_secs),
   };
 }
 
@@ -139,6 +159,9 @@ function normalizeSentrySignals(raw) {
     budget: {
       breached: Array.isArray(b.breached) ? b.breached.filter((x) => typeof x === "string") : [],
       outcome: typeof b.outcome === "string" ? b.outcome : "none",
+      // FAFF-447: sanitized passthrough (string or null) — mirrors `outcome`'s
+      // closed-allowlist posture; consumed only by evalBudgetMeteringDegraded.
+      tokens_source: typeof b.tokens_source === "string" ? b.tokens_source : null,
     },
     now_ms: Number.isFinite(r.now_ms) ? r.now_ms : Date.now(),
     // Advisory hints the ORCHESTRATOR (never the build subagent) may set; default off.
@@ -298,6 +321,34 @@ function evalRepeatedFailure(events, th, profile = activeProfile()) {
   return verdict;
 }
 
+// budget-metering-degraded (FAFF-447) — a RUNNING L4 run whose consumed budget
+// check reads tokens_source:"estimate" for longer than the configured exposure
+// window. PURE, mirrors evalWallClock's shape exactly: only a RUNNING owner can be
+// "currently" degraded (a done/aborted run cannot burn further); `ledger.level` is
+// read straight off the raw ledger object (already unfiltered inside this module —
+// no new plumbing); exposure is approximated by run-elapsed-since-`started_at`
+// (sentryRunElapsedSecs, the SAME proxy evalWallClock's run-elapsed check already
+// uses — no separate "degrade started at" timestamp exists anywhere on the ledger).
+// L1-L3 (no `level`, or `level !== "L4"`) never trips — the estimate-fallback is an
+// unwarned count-idiom there (FAFF-428 parity). Strict `>` (never `>=`), mirroring
+// evalWallClock's `age > th.stall_window_secs` convention.
+function evalBudgetMeteringDegraded(ledger, budget, nowMs, th) {
+  const owner = ledger && ledger.owner;
+  if (!owner || owner.status !== "running") return null;
+  if (!ledger || ledger.level !== "L4") return null;
+  if (!budget || budget.tokens_source !== "estimate") return null;
+  const elapsed = sentryRunElapsedSecs(ledger, nowMs);
+  if (elapsed == null || elapsed <= th.estimate_metering_exposure_secs) return null;
+  return {
+    signal: "budget-metering-degraded", severity: "trip",
+    evidence: {
+      tokens_source: "estimate",
+      run_elapsed_secs: Math.round(elapsed),
+      exposure_threshold_secs: th.estimate_metering_exposure_secs,
+    },
+  };
+}
+
 // scope-drift — ADVISORY (warn only, never trips). v1 heuristic: surfaced when the
 // orchestrator flags it (signals.scope_drift) or an event carries data.scope_drift.
 function evalScopeDrift(signals) {
@@ -413,6 +464,9 @@ function evaluateDerailment(rawSignals, thresholds, authority, profile = activeP
   const verdicts = [];
   const push = (v) => { if (v && DERAILMENT_SIGNALS.has(v.signal) && (v.severity === "warn" || v.severity === "trip")) verdicts.push(v); };
   push(evalBudgetBreach(s.budget));
+  // FAFF-447: adjacent to budget-breach — the other consumer of the sanitized
+  // budget object, no new I/O.
+  push(evalBudgetMeteringDegraded(s.ledger, s.budget, s.now_ms, th));
   push(evalWallClock(s.ledger, s.now_ms, th, s.heartbeat_source));
   push(evalThrash(s.events, th, profile));
   push(evalRepeatedFailure(s.events, th, profile));
@@ -491,19 +545,26 @@ function sentryReadBudget(runDir) {
     const r = spawnSync(process.execPath, [ENTRYPOINT, "budget", "check", "--json", "--run-dir", runDir], { encoding: "utf8" });
     if (r.status === 0 && r.stdout) {
       const j = JSON.parse(r.stdout.trim());
-      if (j.outcome === "indeterminate") return { breached: [], outcome: "indeterminate" };
-      return { breached: Array.isArray(j.breached) ? j.breached : [], outcome: typeof j.outcome === "string" ? j.outcome : "none" };
+      // FAFF-447: tokens_source forwarded verbatim (string, else null) — the ONE
+      // field this ticket plumbs through the existing CONSUME boundary; no new
+      // token/cost math, no second child call.
+      if (j.outcome === "indeterminate") return { breached: [], outcome: "indeterminate", tokens_source: null };
+      return {
+        breached: Array.isArray(j.breached) ? j.breached : [],
+        outcome: typeof j.outcome === "string" ? j.outcome : "none",
+        tokens_source: typeof j.tokens_source === "string" ? j.tokens_source : null,
+      };
     }
     // FAFF-425 (adversarial-review follow-up): the child itself faulted — exit 3
     // (its OWN ledger fault) lands here (status!==0), as does exit 2/any other
     // non-zero and a zero-status-but-empty-stdout. EXPLICIT, not a fall-through
     // relying on the catch below's default: a non-OK child is itself a read
     // fault and must never be read as "no breach".
-    return { breached: [], outcome: "indeterminate" };
+    return { breached: [], outcome: "indeterminate", tokens_source: null };
   } catch {
     // spawnSync/JSON.parse threw outright (e.g. the child binary itself is
     // unreachable) — same own-fault classification as above.
-    return { breached: [], outcome: "indeterminate" };
+    return { breached: [], outcome: "indeterminate", tokens_source: null };
   }
 }
 
@@ -752,6 +813,27 @@ function sentrySelftest() {
   ok("budget narrow → warn", evalBudgetBreach({ breached: ["tokens"], outcome: "narrow" }).severity === "warn");
   ok("budget unbreached → null", evalBudgetBreach({ breached: [], outcome: "none" }) === null);
 
+  // --- FAFF-447: budget-metering-degraded — L4 + estimate-only + past exposure ---
+  const l4Running = (startedAgoSecs) => ({ level: "L4", owner: { status: "running", started_at: ago(startedAgoSecs), last_heartbeat: ago(0) } });
+  const estBudget = { tokens_source: "estimate" };
+  const measuredBudget = { tokens_source: "transcript" };
+  const pastThreshold = TH.estimate_metering_exposure_secs + 60;
+  const m1 = evalBudgetMeteringDegraded(l4Running(pastThreshold), estBudget, NOW, TH);
+  ok("L4 + estimate-only past the exposure window → trip", m1 && m1.signal === "budget-metering-degraded" && m1.severity === "trip"
+    && m1.evidence.tokens_source === "estimate" && m1.evidence.exposure_threshold_secs === TH.estimate_metering_exposure_secs);
+  ok("L4 + estimate-only WITHIN the exposure window → null", evalBudgetMeteringDegraded(l4Running(10), estBudget, NOW, TH) === null);
+  ok("exactly at the threshold → null (strict > , mirrors evalWallClock)",
+    evalBudgetMeteringDegraded(l4Running(TH.estimate_metering_exposure_secs), estBudget, NOW, TH) === null);
+  ok("L4 + measured transcript past the window → null (never keyed on elapsed alone)",
+    evalBudgetMeteringDegraded(l4Running(pastThreshold), measuredBudget, NOW, TH) === null);
+  ok("non-L4 ledger (no level field) + estimate-only past the window → null (L1-L3 unaffected)",
+    evalBudgetMeteringDegraded({ owner: { status: "running", started_at: ago(pastThreshold), last_heartbeat: ago(0) } }, estBudget, NOW, TH) === null);
+  ok("level:L3 + estimate-only past the window → null", evalBudgetMeteringDegraded({ ...l4Running(pastThreshold), level: "L3" }, estBudget, NOW, TH) === null);
+  ok("done owner never trips (mirrors evalWallClock's running-only guard)",
+    evalBudgetMeteringDegraded({ level: "L4", owner: { status: "done", started_at: ago(pastThreshold), last_heartbeat: ago(0) } }, estBudget, NOW, TH) === null);
+  ok("no budget object → null", evalBudgetMeteringDegraded(l4Running(pastThreshold), null, NOW, TH) === null);
+  ok("ownerless ledger → null", evalBudgetMeteringDegraded({ level: "L4" }, estBudget, NOW, TH) === null);
+
   // --- wall-clock-runaway: heartbeat staleness (AC3) + run-elapsed ceiling ---
   const stale = { owner: { status: "running", last_heartbeat: ago(TH.stall_window_secs + 60), started_at: ago(100) } };
   const w1 = evalWallClock(stale, NOW, TH);
@@ -800,6 +882,26 @@ function sentrySelftest() {
   ok("warn-only (scope-drift) → continue, not tripped", aggCont.intervention === "continue" && aggCont.tripped === false && aggCont.verdicts.length === 1);
   const aggNone = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [] }, TH);
   ok("clean run → continue, no verdicts", aggNone.intervention === "continue" && aggNone.verdicts.length === 0);
+
+  // --- FAFF-447: budget-metering-degraded through the full aggregation fold ---
+  const degradedL4Ledger = { level: "L4", owner: { status: "running", started_at: ago(TH.estimate_metering_exposure_secs + 60), last_heartbeat: ago(0) } };
+  // now_ms: NOW is pinned explicitly here (unlike the ago()-relative fixtures
+  // above) — this predicate is elapsed-time-sensitive, and evaluateDerailment
+  // defaults now_ms to the real Date.now() when absent, which against a fixed
+  // 2026-06-29 started_at would ALSO spuriously trip wall-clock-runaway's
+  // run_elapsed_ceiling_secs (a real multi-day gap), masking the very isolation
+  // ("alone" / "never upgrades") these assertions are testing for.
+  const aggDegradedAlone = evaluateDerailment({ ledger: degradedL4Ledger, budget: { breached: [], outcome: "none", tokens_source: "estimate" }, events: [], now_ms: NOW }, TH);
+  ok("estimate-only degrade alone → pause, tripped", aggDegradedAlone.intervention === "pause" && aggDegradedAlone.tripped === true
+    && aggDegradedAlone.verdicts.some((v) => v.signal === "budget-metering-degraded"));
+  const aggDegradedPlusBreach = evaluateDerailment({ ledger: degradedL4Ledger, budget: { breached: ["max_attempts"], outcome: "escalate", tokens_source: "estimate" }, events: [], now_ms: NOW }, TH);
+  ok("estimate-only degrade + a co-tripping budget-breach → abort wins the ladder-max, degrade verdict still present",
+    aggDegradedPlusBreach.intervention === "abort"
+    && aggDegradedPlusBreach.verdicts.some((v) => v.signal === "budget-metering-degraded")
+    && aggDegradedPlusBreach.verdicts.some((v) => v.signal === "budget-breach"));
+  const aggDegradedAuthAvailable = evaluateDerailment({ ledger: degradedL4Ledger, budget: { breached: [], outcome: "none", tokens_source: "estimate" }, events: [], now_ms: NOW }, TH, "available");
+  ok("authority available never upgrades budget-metering-degraded (only fix-review-thrash upgrades)",
+    aggDegradedAuthAvailable.intervention === "pause");
 
   // --- FAFF-326: `correct` reachable ONLY under the explicit authority parameter ---
   const aggPauseNoAuth = evaluateDerailment({ events: thr, ledger: {}, budget: { breached: [], outcome: "none" } }, TH, "channel-D-only");
@@ -1029,4 +1131,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

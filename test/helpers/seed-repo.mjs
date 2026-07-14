@@ -97,6 +97,15 @@ export function seedRepo(spec = {}) {
   function provision() {
     if (useGit) {
     git("init", "-b", spec.defaultBranch || "main");
+    // Repo-local identity (not just the DETERMINISM_ENV vars above): a nested `faff`
+    // CLI child's own `git commit` doesn't inherit this process's env, so it falls
+    // through to repo-local .git/config, then global ~/.gitconfig. Without a repo-local
+    // identity, an identity-less environment (CI: no global gitconfig) leaves that child
+    // commit with no identity and it silently no-ops — false-red only in CI. Same
+    // literal values as DETERMINISM_ENV's GIT_AUTHOR_*/GIT_COMMITTER_* so a commit made
+    // via either path is attributed identically. See FAFF-476.
+    git("config", "user.email", DETERMINISM_ENV.GIT_AUTHOR_EMAIL);
+    git("config", "user.name", DETERMINISM_ENV.GIT_AUTHOR_NAME);
 
     for (const c of commits) {
       for (const [rel, body] of Object.entries(c.files ?? {})) writeRel(rel, body);

@@ -109,6 +109,9 @@ jobs:
       - name: Validate post-merge-verification contract script (FAFF-385)
         run: node plugin/skills/faff/bin/faff contract post-merge-verification --selftest
 
+      - name: Validate ci-triage contract script (FAFF-391)
+        run: node plugin/skills/faff/bin/faff contract ci-triage --selftest
+
       - name: Validate merge-gate pure cores (FAFF-350)
         run: node plugin/skills/faff/bin/faff merge-gate --selftest
 
@@ -117,6 +120,9 @@ jobs:
 
       - name: Validate post-merge-check (FAFF-385)
         run: node plugin/skills/faff/bin/faff post-merge-check --selftest
+
+      - name: Validate ci-triage pure cores (FAFF-391)
+        run: node plugin/skills/faff/bin/faff ci-triage --selftest
 
       - name: Validate governance-check leg-table + AND-aggregation + malformed-ledger table (FAFF-363)
         run: node plugin/skills/faff/bin/faff governance-check --selftest

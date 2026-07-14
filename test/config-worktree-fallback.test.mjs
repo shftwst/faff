@@ -20,7 +20,8 @@ function git(cwd, ...args) {
 
 // A temp parent holding a main checkout (repo/) + a linked worktree (wt/) whose checkout
 // does NOT contain the uncommitted .faffrc.yaml. Returns { parent, root, wt }.
-function setup(faffrcBody) {
+// FAFF-387: `overlayBody` optionally seeds a .faffrc.local.yaml in the MAIN checkout.
+function setup(faffrcBody, overlayBody) {
   const parent = mkdtempSync(path.join(tmpdir(), "faff208-"));
   const root = path.join(parent, "repo");
   mkdirSync(root);
@@ -31,8 +32,9 @@ function setup(faffrcBody) {
   git(root, "add", "README.md");
   git(root, "commit", "-q", "-m", "init");
   if (faffrcBody !== undefined) writeFileSync(path.join(root, ".faffrc.yaml"), faffrcBody);
+  if (overlayBody !== undefined) writeFileSync(path.join(root, ".faffrc.local.yaml"), overlayBody);
   const wt = path.join(parent, "wt");
-  git(root, "worktree", "add", "-q", "--detach", wt); // checks out HEAD — no .faffrc.yaml
+  git(root, "worktree", "add", "-q", "--detach", wt); // checks out HEAD — no rc files
   return { parent, root, wt };
 }
 
@@ -66,6 +68,25 @@ test("no false resolution: a worktree returns the -d default (exit 3) when the m
     const { stdout, code } = runCli(["config", "get", "faffter_dark.adversarial.host", "-d", "DEFAULT"], { cwd: wt });
     assert.equal(code, 3, "absent everywhere → -d default path");
     assert.equal(stdout.trim(), "DEFAULT");
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+// FAFF-387: the overlay's worktree fallback is PER-FILE — a linked worktree lacking
+// both rc files falls back to the main checkout's base AND its overlay, and the
+// overlay still deep-merges over the fallen-back base.
+test("config get from a linked worktree merges the main checkout's overlay OVER its base (FAFF-387 per-file fallback)", () => {
+  const { parent, wt } = setup(
+    "slots:\n  spec: base-spec\n  review: base-review\n",
+    "slots:\n  review: overlay-review\n",
+  );
+  try {
+    const review = runCli(["config", "get", "slots.review"], { cwd: wt });
+    assert.equal(review.code, 0);
+    assert.equal(review.stdout.trim(), "overlay-review", "overlay leaf resolves via the worktree fallback");
+    const spec = runCli(["config", "get", "slots.spec"], { cwd: wt });
+    assert.equal(spec.stdout.trim(), "base-spec", "base sibling leaf still resolves");
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }

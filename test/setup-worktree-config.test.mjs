@@ -24,6 +24,13 @@ test("the copy loop includes .faffrc.yaml (so builds get the repo's faff config)
   assert.ok(files.includes(".faffrc.yaml"), `copy list must include .faffrc.yaml; got: ${files.join(" ")}`);
 });
 
+// FAFF-387: the gitignored machine-local overlay must be copied too, so a linked
+// worktree resolves the same MERGED config as the main checkout.
+test("the copy loop includes .faffrc.local.yaml (FAFF-387 overlay)", () => {
+  const files = loop[1].trim().split(/\s+/);
+  assert.ok(files.includes(".faffrc.local.yaml"), `copy list must include .faffrc.local.yaml; got: ${files.join(" ")}`);
+});
+
 test("the copy loop does NOT copy legacy .faffrc / .faffrc.yml (the resolver errors on them)", () => {
   const files = loop[1].trim().split(/\s+/);
   assert.ok(!files.includes(".faffrc"), "must not copy bare .faffrc (legacy — resolver errors on it)");

@@ -95,7 +95,7 @@ Example shape (values illustrative):
 
 After the write succeeds, run two idempotent, non-destructive ensurers:
 
-- `"$faff" gitignore-ensure` — so `.faff/` and the rc file are ignored (a no-op when already ignored).
+- `"$faff" gitignore-ensure` — so `.faff/`, the legacy rc names, and the machine-local overlay `.faffrc.local.yaml` are ignored (a no-op when already ignored, append-only). The **base `.faffrc.yaml` is deliberately NOT ignored** (FAFF-387): it is the committable base — git is its backup and drift alarm. **Recommend committing it** in the closing report (below); the operator commits — onboard never runs `git add`/`git commit` itself.
 - `"$faff" hooks-ensure` — registers faff's Stop-hook command set (`runcheck --hook` + `prepcheck --hook`) in `.claude/settings.json` so the run-ledger and same-turn-attach guards actually fire (FAFF-192). A byte-stable no-op when already wired; it **skips** a command the resolved `faff` can't serve (a stale/copy install) rather than wiring a session-blocking hook, and names the re-link remedy.
 
 ### 6. Re-run never clobbers
@@ -104,7 +104,7 @@ Onboard relies on an idempotent, conflict-guarded writer: re-running `/faff-onbo
 
 ### 7. Report and log
 
-Close with a skimmable summary: the config path written, the keys set, the gitignore result, and (if git-only) a note that tracker-keyed values were skipped. Write a log per the gateway `.faff/logging` rule: the detected values, which MCP was inspected, what was confirmed vs. asked, the exact `config init` command run, and the outcome — enough that a follow-up agent can see how this repo's config came to exist.
+Close with a skimmable summary: the config path written, the keys set, the gitignore result, **a recommendation to commit `.faffrc.yaml`** (git is its backup + drift alarm; put any machine-local values in a gitignored `.faffrc.local.yaml` overlay, and run `faff config check` to verify posture), and (if git-only) a note that tracker-keyed values were skipped. Write a log per the gateway `.faff/logging` rule: the detected values, which MCP was inspected, what was confirmed vs. asked, the exact `config init` command run, and the outcome — enough that a follow-up agent can see how this repo's config came to exist.
 
 ## Rules
 

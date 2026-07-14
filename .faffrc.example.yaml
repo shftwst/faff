@@ -1,9 +1,22 @@
 # .faffrc.example.yaml — faff configuration template.
 #
-# Copy this to `.faffrc.yaml`, `.faffrc.yml`, or `.faffrc` at your repo root and
-# edit. The `.example` file is a template only — faff never loads it as config.
-# Keep exactly ONE real config file — having more than one form at the repo root
-# is an error (faff refuses to guess which wins).
+# Copy this to `.faffrc.yaml` at your repo root and edit. The `.example` file is a
+# template only — faff never loads it as config.
+#
+# TWO-FILE MODEL (FAFF-387). faff config resolves from two optional files at the repo root:
+#   .faffrc.yaml        — the BASE. Durable, shareable behaviour (slots, appetite,
+#                         tracking paths, adversarial routing). RECOMMENDED: commit it —
+#                         git is then its backup (`git checkout` restores a corrupted file)
+#                         and its drift alarm (a silent wholesale rewrite shows up as a diff).
+#                         It holds NO secrets by construction: `api_key_env` names an env var;
+#                         the key value is read from the environment, never stored here.
+#   .faffrc.local.yaml  — the OVERLAY. Optional, gitignored, machine-local. Put anything an
+#                         operator considers private (an internal hostname, a personal model
+#                         preference) here — it deep-merges OVER the base (maps merge per leaf,
+#                         sequences replace wholesale, the overlay wins scalars).
+# Run `faff config check` to verify posture (base committed? overlay ignored? no secret-shaped
+# values?) — it's read-only and never writes or commits anything. A corrupted/lost file is
+# `git checkout -- .faffrc.yaml` away from recovery only once the base is committed.
 #
 # Every key is optional; anything you omit falls back to faff's built-in default.
 # Holds stable config only — never mutable tracker state (no milestones, dates,

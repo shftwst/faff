@@ -370,16 +370,36 @@ function dig(data, dotted) {
 const CANONICAL_CONFIG = ".faffrc.yaml";
 const LEGACY_CONFIG = [".faffrc.yml", ".faffrc"];
 
-function findConfigIn(base) {
+// FAFF-387: the gitignored, machine-local OVERLAY that merges over the (now
+// committable) base file. Same legacy-name discipline as the base: a
+// legacy-shaped overlay name is a LOUD error, never a silent skip.
+const CANONICAL_OVERLAY_CONFIG = ".faffrc.local.yaml";
+const LEGACY_OVERLAY_CONFIG = [".faffrc.local.yml", ".faffrc.local"];
+
+// Shared existence-check + legacy-name-loud-error resolver, parameterised by
+// filename set so the base and overlay finders (below) are one implementation,
+// never two hand-copies that can drift.
+function findNamedIn(base, canonicalName, legacyNames, errorTag) {
   const isFile = (n) => !n.includes(".example") &&
     fs.existsSync(path.join(base, n)) && fs.statSync(path.join(base, n)).isFile();
-  const legacy = LEGACY_CONFIG.filter(isFile);
+  const legacy = legacyNames.filter(isFile);
   if (legacy.length) {
-    const err = new Error("legacy-config-name");
+    const err = new Error(errorTag);
     err.legacy = legacy;
     throw err;
   }
-  return isFile(CANONICAL_CONFIG) ? path.join(base, CANONICAL_CONFIG) : null;
+  return isFile(canonicalName) ? path.join(base, canonicalName) : null;
+}
+
+function findConfigIn(base) {
+  return findNamedIn(base, CANONICAL_CONFIG, LEGACY_CONFIG, "legacy-config-name");
+}
+
+// FAFF-387: overlay counterpart of findConfigIn — same shape, own legacy-name tag
+// (legacy-overlay-config-name) so callers can distinguish a base-file problem from
+// an overlay-file problem in their error message.
+function findOverlayIn(base) {
+  return findNamedIn(base, CANONICAL_OVERLAY_CONFIG, LEGACY_OVERLAY_CONFIG, "legacy-overlay-config-name");
 }
 
 // FAFF-208: the MAIN worktree's root for a linked git worktree, resolved via git's
@@ -410,5 +430,86 @@ function findConfig(root) {
   return null;
 }
 
+// FAFF-387/FAFF-208: the overlay's own worktree fallback, resolved INDEPENDENTLY of
+// findConfig's base-file fallback — a per-file resolution, not a per-pair one. A
+// linked worktree carrying its own .faffrc.local.yaml keeps it (even when its base
+// falls back to the main checkout's); a worktree with neither falls back to the main
+// checkout's overlay, mirroring the base's existing guarantee.
+function findOverlay(root) {
+  const here = findOverlayIn(root);
+  if (here) return here;
+  const mainRoot = mainWorktreeRoot(root);
+  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findOverlayIn(mainRoot);
+  return null;
+}
 
-module.exports = { CANONICAL_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, containerParent, dig, findConfig, findConfigIn, findRoot, latestRunDir, mainWorktreeRoot, parseAncestry, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+// FAFF-387: a plain, non-array object — the shape both a parsed config document
+// and any of its nested blocks must have to be map-merged (as opposed to a
+// sequence or scalar, which are always replaced wholesale by the overlay).
+function isPlainConfigMap(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+// FAFF-387: MERGE(base, overlay) per the spec's resolution model — maps deep-merge
+// per key (overlay wins per leaf), sequences are replaced wholesale by the overlay
+// (never element-merged — ambiguous by index/key), and scalars/type-mismatches let
+// the overlay win outright. PURE; never mutates either input.
+function deepMergeConfig(base, overlay) {
+  if (!isPlainConfigMap(overlay)) return isPlainConfigMap(base) ? base : {};
+  if (!isPlainConfigMap(base)) return overlay;
+  const out = { ...base };
+  for (const key of Object.keys(overlay)) {
+    const bv = base[key], ov = overlay[key];
+    out[key] = (isPlainConfigMap(bv) && isPlainConfigMap(ov)) ? deepMergeConfig(bv, ov) : ov;
+  }
+  return out;
+}
+
+// FAFF-387: does a config file's text carry any MEANINGFUL line — a non-blank,
+// non-comment, non-`---`-document-marker line? Used to tell an intentionally-empty
+// overlay (valid, allowed) from a non-empty file that parses to an empty mapping
+// (malformed — a top-level sequence/scalar, which parseYamlSubset silently yields
+// {} for). PURE.
+function hasMeaningfulYamlContent(text) {
+  return text.split("\n").some((line) => {
+    const t = line.trim();
+    return t !== "" && !t.startsWith("#") && t !== "---";
+  });
+}
+
+// FAFF-387: the OVERLAY's strict read+parse — a parse failure here is LOUD (thrown
+// as "overlay-parse-error", never silently coerced to {}), unlike the base file's
+// existing lenient behaviour (a non-map base silently reads as {} today, and that
+// byte-for-byte back-compat is load-bearing — see config.js's loadConfig). A
+// half-applied overlay silently reverting to base values is the FAFF-50 silent-
+// default failure mode reborn, so this is fail-loud by design. "Parse failure"
+// covers: (a) an unreadable file (permission/race after the existence check); and
+// (b) a file that HAS content but parses to an empty mapping — because
+// parseYamlSubset is a forgiving line-based parser that never throws and yields {}
+// for a top-level sequence or scalar document, the empty-map-from-non-empty-file
+// signal is how a malformed (non-mapping) overlay is caught. An intentionally-empty
+// or comment-only overlay parses to {} from an EMPTY file and is allowed (valid,
+// no-op overlay).
+function parseOverlayStrict(filePath) {
+  let text;
+  try {
+    text = fs.readFileSync(filePath, "utf8");
+  } catch (e) {
+    const err = new Error("overlay-parse-error");
+    err.file = filePath;
+    err.detail = `unreadable (${e.code || e.message})`;
+    throw err;
+  }
+  const parsed = parseYamlSubset(text);
+  const emptyMap = isPlainConfigMap(parsed) && Object.keys(parsed).length === 0;
+  if (!isPlainConfigMap(parsed) || (emptyMap && hasMeaningfulYamlContent(text))) {
+    const err = new Error("overlay-parse-error");
+    err.file = filePath;
+    err.detail = "does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping)";
+    throw err;
+  }
+  return parsed;
+}
+
+
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, containerParent, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, isPlainConfigMap, latestRunDir, mainWorktreeRoot, parseAncestry, parseOverlayStrict, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

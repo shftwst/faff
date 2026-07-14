@@ -11,10 +11,18 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { findRoot } = require("./shared-infra");
 
+// FAFF-387: `.faffrc.yaml` is NO LONGER ignored on new bootstraps — it is the
+// committable, durable base config (git is its backup + drift alarm). The
+// gitignored machine-local artifact is now the OVERLAY, `.faffrc.local.yaml`.
+// The legacy names (`.faffrc`, `.faffrc.yml`) stay ignored (the resolver errors
+// loudly on them anyway). This command is append-only: it NEVER removes an existing
+// `.faffrc.yaml` line from a repo that already ignores it — an existing install
+// migrates deliberately (see `faff config check`'s posture finding), never by an
+// automated line-drop that could sweep a private value into a commit.
 const FAFF_GITIGNORE_PATTERNS = [
   ".faffrc",            // bare legacy form
   ".faffrc.yml",        // legacy YAML form
-  ".faffrc.yaml",       // canonical form
+  ".faffrc.local.yaml", // FAFF-387: the gitignored machine-local overlay
   ".faff/",             // the local artifacts dir (trailing slash = dir-only)
 ];
 const GITIGNORE_HEADER = "# faff local artifacts (added by `faff gitignore-ensure`)";

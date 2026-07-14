@@ -150,13 +150,16 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
   // validated against the closed enum; anything else (missing flag, malformed, out-of-enum) coerces
   // to unknown, mirroring the metadata-only mechanical read. metadata is tried FIRST regardless (the
   // spec's "never the reverse order" rule) — an explicit flag only ever narrows an already-unknown
-  // metadata read, it can't override a metadata-resolved `infra`.
+  // metadata read, it can't override a metadata-resolved `infra`. The two flags are a PAIR — the
+  // override only applies when BOTH `--fault-domain` and `--fault-domain-source llm` are present, so
+  // `fault_domain_source` always accurately names HOW `fault_domain` was resolved (never `llm` for a
+  // value that was actually just the mechanical default because the source flag was missing/wrong).
   const metadataFaultDomain = classifyFaultDomainFromMetadata(failingRuns);
   let fault_domain = metadataFaultDomain;
   let fault_domain_source = metadataFaultDomain === "unknown" ? "none" : "metadata";
-  if (metadataFaultDomain === "unknown" && faultDomainFlag != null) {
+  if (metadataFaultDomain === "unknown" && faultDomainFlag != null && faultDomainSource === "llm") {
     fault_domain = CI_TRIAGE_FAULT_DOMAIN.includes(faultDomainFlag) ? faultDomainFlag : "unknown";
-    fault_domain_source = faultDomainSource === "llm" ? "llm" : "none";
+    fault_domain_source = "llm";
   }
 
   // transience: fed in by the caller (graft) AFTER it performs the clean same-sha re-run itself —

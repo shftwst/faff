@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.11.0](https://github.com/shftwst/faff/compare/faff--v0.10.0...faff--v0.11.0) (2026-07-14)
+
+
+### Features
+
+* **FAFF-258:** reconcile every delegated/autonomous prep return against attach ground truth ([#363](https://github.com/shftwst/faff/issues/363)) ([d28dd73](https://github.com/shftwst/faff/commit/d28dd7303b20afde5e7b2c3634ea85afb9bed3b6))
+* **FAFF-261:** mechanical adversarial-backends assembly ([#364](https://github.com/shftwst/faff/issues/364)) ([517cbbb](https://github.com/shftwst/faff/commit/517cbbb7d99467f0b94defe3bd175fc2582a3e01))
+* **FAFF-275:** holdout-scenario selection — the holdout: marker + faff dod split ([#336](https://github.com/shftwst/faff/issues/336)) ([7444ada](https://github.com/shftwst/faff/commit/7444adadf0d73e7b3940e0206d110b48a49e78ad))
+* **FAFF-276:** lane-boundary contract + refusing evaluator-preflight (assert-only, ship-not-wire) ([#340](https://github.com/shftwst/faff/issues/340)) ([cdfad48](https://github.com/shftwst/faff/commit/cdfad484fb6955b6eb93c661ef33527dda4b2f4f))
+* **FAFF-279:** faff-map / unlock-value — filter blocker edges by live target status ([#358](https://github.com/shftwst/faff/issues/358)) ([ca84c8d](https://github.com/shftwst/faff/commit/ca84c8de038ffa7cec09ac0ccadf9a6f690d5120))
+* **FAFF-317:** holdout-exercise eval kind + fix cli-driver holdout gap ([#339](https://github.com/shftwst/faff/issues/339)) ([6a448fd](https://github.com/shftwst/faff/commit/6a448fded7e2e5120953ede9529e311618f9bc65))
+* **FAFF-320:** stream raw eval judgements to .faff per rep — durable crash-salvage capture ([#357](https://github.com/shftwst/faff/issues/357)) ([ba16548](https://github.com/shftwst/faff/commit/ba16548f41210f9cee9bc22ed9a85dea379d698a))
+* **FAFF-325:** wire the trusted attestation signal into the corrective-integrity gate + the merge-floor consumer ([#328](https://github.com/shftwst/faff/issues/328)) ([b5f2e63](https://github.com/shftwst/faff/commit/b5f2e63747929c7b1d0d48adcab3ae33fbf4a9ad))
+* **FAFF-326:** Channel A subtractive corrective authority for Sentry ([#329](https://github.com/shftwst/faff/issues/329)) ([37549b5](https://github.com/shftwst/faff/commit/37549b52db2853d5a7cef7ec48454b6abd18e61c))
+* **FAFF-327:** member-resolved fleet Sentry supervision ([#332](https://github.com/shftwst/faff/issues/332)) ([19079f5](https://github.com/shftwst/faff/commit/19079f58c0d3a055c10922abb8bd5f7d9d1fdcf5))
+* **FAFF-333:** host-socket detection probe on the lights-out preflight (assert-only) + correct socket/dind guidance ([#337](https://github.com/shftwst/faff/issues/337)) ([67e06b9](https://github.com/shftwst/faff/commit/67e06b97160fa9d0d1ec47d4165a214370751d51))
+* **FAFF-336:** reconcile control-label manifest with lens/tidy tagging prose ([#344](https://github.com/shftwst/faff/issues/344)) ([d9d87da](https://github.com/shftwst/faff/commit/d9d87da6d6aabfc96cb7f273d0dcf7913a439688))
+* **FAFF-340:** thematic lens refers back to beep-boop's conflict analysis ([#361](https://github.com/shftwst/faff/issues/361)) ([b7d53b6](https://github.com/shftwst/faff/commit/b7d53b65beb6b010130676dbe7ad640b711e201d))
+* **FAFF-352:** wire faff sentry check into beep-boop's between-units checkpoints ([#326](https://github.com/shftwst/faff/issues/326)) ([01b7ba2](https://github.com/shftwst/faff/commit/01b7ba2d1fca1c2f6c1b79bafd038ea7ba0f741b))
+* **FAFF-354:** harden faff contain against agent-supplied ancestry ([#338](https://github.com/shftwst/faff/issues/338)) ([a7004b7](https://github.com/shftwst/faff/commit/a7004b7c7d316ca5092fefad2184f05ea5033014))
+* **FAFF-362:** governance profiles — declared vocabulary table for runcheck/events/sentry ([#365](https://github.com/shftwst/faff/issues/365)) ([ec71f38](https://github.com/shftwst/faff/commit/ec71f385fd6d39b617b4d1e87090f204deda7682))
+* **FAFF-363:** governance-check as a GitHub Action / required status check ([#359](https://github.com/shftwst/faff/issues/359)) ([96de590](https://github.com/shftwst/faff/commit/96de590aa225a1de663506bf576eccf047f049f6))
+* **FAFF-383:** instrument faff effects declare/observe at the graft merge chokepoint ([#333](https://github.com/shftwst/faff/issues/333)) ([04411df](https://github.com/shftwst/faff/commit/04411df044747c013364d357df1dba368ba2a030))
+* **FAFF-384:** evaluator hard cage — evaluate-call spawner + spawner-attested code-blindness ([#354](https://github.com/shftwst/faff/issues/354)) ([016223a](https://github.com/shftwst/faff/commit/016223aec7acb11ada8241b8aa60c3191eced032))
+* **FAFF-387:** factory-state backup — committed-config two-file model ([#368](https://github.com/shftwst/faff/issues/368)) ([db6bd7f](https://github.com/shftwst/faff/commit/db6bd7f4ac322f3a099727bf9987ed87b61575d9))
+* **FAFF-396:** faff disposition — run-end verdict + non-zero exit for headless runs ([#352](https://github.com/shftwst/faff/issues/352)) ([8a8c98b](https://github.com/shftwst/faff/commit/8a8c98b9a70a2a29fbe328cf873bc563fc62c752))
+* **FAFF-436:** rehome-set methodology named output — outcome-led grouping proposals for loose Backlog work ([#355](https://github.com/shftwst/faff/issues/355)) ([358bdfd](https://github.com/shftwst/faff/commit/358bdfdde194acaab79d529f06133d6935c96a36))
+* **FAFF-437:** backlog rehoming pass — plot-hosted human-gated apply of a rehome-set ([#356](https://github.com/shftwst/faff/issues/356)) ([935e76d](https://github.com/shftwst/faff/commit/935e76d2a888226efb26723532609cf35ebb299c))
+* **FAFF-484:** constrain beep-boop no-issue-set fetch to workable states ([#353](https://github.com/shftwst/faff/issues/353)) ([bba4ef9](https://github.com/shftwst/faff/commit/bba4ef987e53affc9bb0827ba704f618c48ecc97))
+* **FAFF-488:** per-subagent four-class token capture — pin measurement root + session ([#360](https://github.com/shftwst/faff/issues/360)) ([cadc3b6](https://github.com/shftwst/faff/commit/cadc3b637fcc0c4092779275895aa4aa5fd5eab2))
+
+
+### Bug Fixes
+
+* **FAFF-345:** correct TerminalToken outcome domain to the four build buckets ([#362](https://github.com/shftwst/faff/issues/362)) ([7c086eb](https://github.com/shftwst/faff/commit/7c086ebcef222b77f6d24cc939a3f5a562967435))
+* **FAFF-433:** run gitignore-ensure + hooks-ensure on the first-run decline path ([#343](https://github.com/shftwst/faff/issues/343)) ([37e7a18](https://github.com/shftwst/faff/commit/37e7a181cc6c54cfdce2dca51d8f89e657a34ab9))
+* **FAFF-457:** stage selectively in build worktrees — never git add -A (secret-leak vector) ([#341](https://github.com/shftwst/faff/issues/341)) ([e25104d](https://github.com/shftwst/faff/commit/e25104daa293a572df2f6f2b68b962b80fdd2632))
+* **FAFF-464:** make aggregate.mjs CLI-entrypoint guard URL-safe via pathToFileURL ([#342](https://github.com/shftwst/faff/issues/342)) ([38880ea](https://github.com/shftwst/faff/commit/38880ea49cce92fed9e7616ace4b2de217a8f3be))
+* **FAFF-476:** seed-repo provisions repo-local git identity ([#369](https://github.com/shftwst/faff/issues/369)) ([cf44871](https://github.com/shftwst/faff/commit/cf44871ba5c648eac112155815bb19c73edc490b))
+
 ## [0.10.0](https://github.com/shftwst/faff/compare/faff--v0.9.0...faff--v0.10.0) (2026-07-12)
 
 

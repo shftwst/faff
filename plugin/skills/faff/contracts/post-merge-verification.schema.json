@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/post-merge-verification",
+  "title": "post-merge-verification contract data",
+  "description": "Reference schema (FAFF-385). The SHAPE of the post-merge verification verdict faff-graft Step 10's shipped arm branches on, after `faff post-merge-check` re-runs the project's own declared UNIT rung (`faff gates`' discoverRungs/runRung, reused verbatim) against an ephemeral detached worktree at the merge-record.json sha. Shape is normative here; the gate SEMANTICS (tracker comment + discovered-scope entry on failure, never auto-revert, never a status flip, never a PR) live in the gateway / faff-graft prose. Coercion target for a malformed verdict is `unverified` (never `verified-ok`), mirroring quality-gates's `needs-human`-never-`pass` rule — the check must never guess green.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "command", "basis", "conformant", "violations"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["verified-ok", "verified-fail", "unverified"] },
+    "command": { "description": "The resolved UNIT-rung command actually run, or null on unverified-by-no-rung." },
+    "basis": { "type": "string" },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

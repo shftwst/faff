@@ -755,5 +755,53 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "post-merge-verification",
+    "name": "valid-verified-ok",
+    "input": "{\"verdict\":\"verified-ok\",\"command\":\"npm run test\",\"basis\":\"npm run test exit 0\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "verified-ok",
+      "command": "npm run test",
+      "basis": "npm run test exit 0",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "post-merge-verification",
+    "name": "valid-unverified-no-rung",
+    "input": "{\"verdict\":\"unverified\",\"command\":null,\"basis\":\"no UNIT rung discovered\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "unverified",
+      "command": null,
+      "basis": "no UNIT rung discovered",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "post-merge-verification",
+    "name": "coerce-malformed-verdict-to-unverified",
+    "input": "{\"verdict\":\"maybe\",\"command\":\"npm run test\",\"basis\":\"?\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "unverified",
+      "command": "npm run test",
+      "basis": "?",
+      "conformant": false,
+      "violations": [
+        "verdict \"maybe\" not in {verified-ok,verified-fail,unverified} — coerced to unverified"
+      ]
+    }
+  },
+  {
+    "contract": "post-merge-verification",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

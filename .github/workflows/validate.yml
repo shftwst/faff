@@ -106,11 +106,17 @@ jobs:
       - name: Validate integrity-floor contract script (FAFF-350)
         run: node plugin/skills/faff/bin/faff contract integrity-floor --selftest
 
+      - name: Validate post-merge-verification contract script (FAFF-385)
+        run: node plugin/skills/faff/bin/faff contract post-merge-verification --selftest
+
       - name: Validate merge-gate pure cores (FAFF-350)
         run: node plugin/skills/faff/bin/faff merge-gate --selftest
 
       - name: Validate branch-protection classifier (FAFF-350)
         run: node plugin/skills/faff/bin/faff branch-protection-check --selftest
+
+      - name: Validate post-merge-check (FAFF-385)
+        run: node plugin/skills/faff/bin/faff post-merge-check --selftest
 
       - name: Validate governance-check leg-table + AND-aggregation + malformed-ledger table (FAFF-363)
         run: node plugin/skills/faff/bin/faff governance-check --selftest

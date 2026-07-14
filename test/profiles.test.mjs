@@ -74,7 +74,7 @@ test("profiles validate --file: a well-formed second-dialect profile is shape-va
     outcome_required_types: ["job-end"],
     ledger_outcomes: ["done", "open"],
     sentry: {
-      thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200 },
+      thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
       thrash: { start_type: "job-start", ship_type: "job-end", ship_outcome: "done" },
       failure: { park_type: "job-end", outcome_type: "job-end", errored_outcome: "open" },
     },
@@ -93,7 +93,7 @@ test("profiles validate --file: an object-of-objects at a scalar leaf is rejecte
     terminal_states: ["a"], event_phases: ["p"], event_types: ["t"],
     issue_scoped_types: [], outcome_required_types: [], ledger_outcomes: ["a"],
     sentry: {
-      thresholds: { thrash_n: { nested: "policy" }, failure_k: 1, stall_window_secs: 1, run_elapsed_ceiling_secs: 1 },
+      thresholds: { thrash_n: { nested: "policy" }, failure_k: 1, stall_window_secs: 1, run_elapsed_ceiling_secs: 1, estimate_metering_exposure_secs: 1 },
       thrash: { start_type: "t", ship_type: "t", ship_outcome: "a" },
       failure: { park_type: "t", outcome_type: "t", errored_outcome: "a" },
     },
@@ -148,7 +148,7 @@ test("override: a well-formed second-dialect profile activates cleanly (list ref
     outcome_required_types: ["job-end"],
     ledger_outcomes: ["done", "open", "dropped"],
     sentry: {
-      thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200 },
+      thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
       thrash: { start_type: "job-start", ship_type: "job-end", ship_outcome: "done" },
       failure: { park_type: "job-end", outcome_type: "job-end", errored_outcome: "open" },
     },
@@ -189,7 +189,7 @@ test("override: applies uniformly to a DIFFERENT governance command (events vali
     terminal_states: ["done"], event_phases: ["job"], event_types: ["job-start"],
     issue_scoped_types: ["job-start"], outcome_required_types: [], ledger_outcomes: ["done"],
     sentry: {
-      thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200 },
+      thresholds: { thrash_n: 5, failure_k: 5, stall_window_secs: 600, run_elapsed_ceiling_secs: 7200, estimate_metering_exposure_secs: 300 },
       thrash: { start_type: "job-start", ship_type: "job-start", ship_outcome: "done" },
       failure: { park_type: "job-start", outcome_type: "job-start", errored_outcome: "done" },
     },

@@ -46,7 +46,11 @@ const DEFAULTS = {
   // consulted in autonomous mode only; default on so a repo opts OUT, never opts in.
   "post_merge.check": "on",
   "budget.at_ceiling": "stop",
-  "budget.price_per_mtok": "0",
+  // FAFF-446: budget.price_per_mtok REMOVED — the ADR-0048 per-model x per-class
+  // price map is the sole pricing source now (budget.price_per_mtok_by_model stays,
+  // a different knob: a map override, not a competing flat price). A `.faffrc.yaml`
+  // that still sets it > 0 is named on the resolved envelope's `price_per_mtok_removed`
+  // field (budget.js's envelopeFrom) rather than synthesized a default here.
   // FAFF-255: PRDR thrash-ratchet bounds. thrash_max = supersessions a single lineage may accrue
   // within thrash_window (days) before `prdr admit` escalates (ratchet.breached). Conservative defaults.
   "prdr.thrash_max": "3",
@@ -1082,7 +1086,7 @@ function cmdConfig(args) {
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
           "slots.env", "slots.prd",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
-          "gates.fallback", "post_merge.check", "budget.at_ceiling", "budget.price_per_mtok",
+          "gates.fallback", "post_merge.check", "budget.at_ceiling",
           "models.build", "models.prep_explore",
           "models.spec", "models.spec_review", "models.methodology", "models.intake",
           "models.architecture",

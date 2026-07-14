@@ -93,3 +93,19 @@ reconciliation is resolved here.
 - **`budget.price_per_mtok` is not removed** — it stays accepted, deprecated,
   and explicit-wins, so no in-flight config breaks. Removing it is tracked
   separately (FAFF-446).
+
+## Amendment (FAFF-446, 2026-07-14)
+
+FAFF-446 has now removed `budget.price_per_mtok` — the map is the sole pricing
+source for any FRESH config resolve; the scalar can no longer be *set* to
+activate flat pricing. A `.faffrc.yaml` that still sets it is ignored (never
+applied) and named on the resolved envelope's `price_per_mtok_removed` field:
+`faff budget check`/`economics` degrade this to a `warnings` entry (a hard
+exit there would fail-open the whole budget signal, masking a real breach —
+the FAFF-364 `until_invalid` precedent this ADR's own governance region
+already established), while `faff lights-out`'s mint-time preflight refuses
+outright (no fail-open risk at that call site). The one thing this amendment
+deliberately does **not** touch: a ledger already minted under `pricing:"flat"`
+by a pre-FAFF-446 binary keeps its recorded price verbatim via
+`envelopeFromLedger` — an in-flight run's dollar ceiling never silently
+changes mid-run just because the config schema changed underneath it.

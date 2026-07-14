@@ -787,6 +787,13 @@ function cmdEconomics(args) {
       mapWarnings.push(`top-line excludes unpriced model(s) from cost (reported as cost:null, never silently free): ${unpriced.join(", ")}`);
     }
   }
+  // FAFF-446 — budget.price_per_mtok is REMOVED; economics reports, never gates,
+  // so this is warn-and-ignore too (same posture as `budget check`, for the same
+  // reason: a hard failure on a reporting-only read has no upside and would just
+  // break a --by breakdown for an operator who hasn't migrated yet).
+  if (env.price_per_mtok_removed != null) {
+    mapWarnings.push(`budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; economics prices from the ADR-0048 map. Unset budget.price_per_mtok in .faffrc.yaml (set budget.price_per_mtok_by_model to override specific models).`);
+  }
 
   const econ = computeUnitEconomics(ledger, {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,

@@ -230,21 +230,65 @@ test("PURE: runs fully offline (no network env) and reads no tracker", () => {
   } finally { f.cleanup(); }
 });
 
-test("cost dimension: price>0 computes cost=tokens×price and can breach", () => {
+test("cost dimension: an unconfigured price_per_mtok computes cost from the map and can breach", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 0.2\n  at_ceiling: stop\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-cost";
+    // claude-opus-4-8: input $5/MTok. 50,000 input tokens → $0.25 ≥ $0.2.
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 50000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.ok(Math.abs(s.spent.cost - 0.25) < 1e-9, `spent.cost=${s.spent.cost}`);
+    assert.deepEqual(s.breached, ["cost"]);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-446: budget.price_per_mtok in FRESH config is REMOVED — ignored (cost still prices from the map), named in a warning, never a hard exit", () => {
   const f = fixture({
     rc: "budget:\n  cost: 4\n  price_per_mtok: 100\n  at_ceiling: stop\n",
     ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
   });
   try {
-    const sid = "sess-cost";
-    const cfg = withTranscripts(f.root, f.root, sid, {
-      [`${sid}.jsonl`]: [{ input_tokens: 50000, output_tokens: 0 }], // 50k tok × 100/Mtok = $5 ≥ $4
+    const sid = "sess-cost-removed";
+    // claude-opus-4-8: input $5/MTok. 50,000 input tokens → $0.25 (map-priced) — NOT
+    // 50000 × 100/1e6 = $5, the figure the removed flat scalar would have produced
+    // (and which would have breached the $4 ceiling; the map-priced figure does not).
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 50000 } }],
     });
-    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
     const s = JSON.parse(r.out);
-    assert.equal(s.spent.cost, 5);
-    assert.deepEqual(s.breached, ["cost"]);
+    assert.ok(Math.abs(s.spent.cost - 0.25) < 1e-9, `map-priced, not the removed flat scalar: spent.cost=${s.spent.cost}`);
+    assert.deepEqual(s.breached, [], "the removed scalar's $5 figure would have breached $4 — the map-priced $0.25 must not");
+    assert.ok(Array.isArray(s.warnings) && s.warnings.some((w) => /removed/.test(w) && /price_per_mtok_by_model/.test(w) && /100/.test(w)),
+      `expected a removed-knob warning naming the ignored value: ${JSON.stringify(s.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-446: budget.price_per_mtok: 0 (explicit no-op) never fires the removed-knob warning", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 4\n  price_per_mtok: 0\n  at_ceiling: stop\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const sid = "sess-cost-zero";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 1000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.ok(!(Array.isArray(s.warnings) && s.warnings.some((w) => /removed/.test(w))),
+      `price_per_mtok:0 must not trigger the removed-knob warning: ${JSON.stringify(s.warnings)}`);
   } finally { f.cleanup(); }
 });
 
@@ -530,24 +574,52 @@ test("FAFF-427: budget.cost with NO price_per_mtok configured (map pricing defau
   } finally { f.cleanup(); }
 });
 
-test("FAFF-427: explicit budget.price_per_mtok > 0 keeps byte-for-byte flat-scalar cost + a deprecation warning naming the map", () => {
+test("FAFF-446: a LEGACY ledger already recording pricing:'flat' keeps its byte-for-byte flat-scalar cost — an in-flight run's ceiling never silently changes mid-run", () => {
+  // Simulates a ledger minted by the pre-FAFF-446 binary (pricing:"flat" recorded
+  // at mint time, from a `.faffrc.yaml` that then set price_per_mtok:100). The LIVE
+  // config below has since had price_per_mtok removed (unset) — proving the
+  // ledger's own recorded pricing governs, not the live config.
   const f = fixture({
-    rc: "budget:\n  cost: 4\n  price_per_mtok: 100\n  at_ceiling: stop\n",
-    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+    rc: "budget:\n  cost: 4\n  at_ceiling: stop\n",
+    ledger: baseLedger({
+      budget: {
+        tokens_at_start: 0,
+        envelope: {
+          ceilings: { until: null, max_attempts: null, tokens: null, cost: 4 },
+          at_ceiling: "stop", price_per_mtok: 100, pricing: "flat",
+        },
+      },
+    }),
   });
   try {
-    const sid = "sess-flat-deprecated";
-    // Same fixture shape as the pre-FAFF-427 "cost dimension" test: 50k tokens @ $100/Mtok = $5.
+    const sid = "sess-legacy-flat";
     const cfg = withModelTranscripts(f.root, f.root, sid, {
-      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 50000 } }],
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 50000 } }], // 50k × 100/Mtok = $5, NOT the map's $0.25
     });
     const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--json"],
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
     const s = JSON.parse(r.out);
-    assert.equal(s.spent.cost, 5, "flat-scalar figure unchanged, byte-for-byte");
+    assert.equal(s.spent.cost, 5, "the ledger's own recorded flat pricing governs, byte-for-byte, regardless of the live config");
     assert.deepEqual(s.breached, ["cost"]);
     assert.ok(Array.isArray(s.warnings) && s.warnings.some((w) => /deprecated/.test(w) && /price_per_mtok_by_model/.test(w)),
-      `expected a deprecation warning naming the map override key: ${JSON.stringify(s.warnings)}`);
+      `expected the legacy flat-pricing deprecation warning: ${JSON.stringify(s.warnings)}`);
+    assert.ok(!s.warnings.some((w) => /removed \(FAFF-446\)/.test(w)),
+      `the live config no longer sets price_per_mtok, so the removed-knob warning must not fire: ${JSON.stringify(s.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-446: lights-out --check refuses when budget.price_per_mtok is still configured (mint-time hard-refuse — no fail-open risk)", () => {
+  const f = fixture({
+    rc: "budget:\n  cost: 4\n  price_per_mtok: 100\n  at_ceiling: stop\n",
+    ledger: baseLedger(),
+  });
+  try {
+    const r = run(["lights-out", "--check", "--root", f.root, "--json"]);
+    const out = JSON.parse(r.out);
+    assert.equal(out.proceed, false);
+    assert.ok(out.refusals.some((x) => x.gate === "budget-price-per-mtok-removed" && /100/.test(x.detail)),
+      `expected a budget-price-per-mtok-removed refusal naming the raw value: ${JSON.stringify(out.refusals)}`);
   } finally { f.cleanup(); }
 });
 

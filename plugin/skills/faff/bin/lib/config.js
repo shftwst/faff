@@ -9,9 +9,14 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
-const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readLedger, scalar, stripInlineComment } = require("./shared-infra");
+const {
+  CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG,
+  deepMergeConfig, dig, findConfig, findOverlay, findRoot, isPlainConfigMap,
+  parseOverlayStrict, parseYamlSubset, readLedger, scalar, stripInlineComment,
+} = require("./shared-infra");
 
 const DEFAULTS = {
   "slots.intake": "faffter-noon-intake",
@@ -278,11 +283,25 @@ function fmt(value) {
   return String(value);
 }
 
+// FAFF-387: two-file merged resolution — .faffrc.local.yaml (overlay) deep-merged
+// over .faffrc.yaml (base) per shared-infra's deepMergeConfig (maps merge per-leaf,
+// sequences/scalars are replaced wholesale by the overlay). BACK-COMPAT: the base
+// half is byte-for-byte the pre-FAFF-387 behaviour (a non-map base silently reads
+// as {}); with no overlay present (findOverlay returns null, the common case today)
+// this returns the exact same 2-meaningful-values shape as before, so every
+// existing `const [data] = loadConfig(root)` / `const [data, p] = loadConfig(root)`
+// call site is unaffected. The overlay half is STRICT (parseOverlayStrict throws
+// "overlay-parse-error" on unreadable/non-map content) — an overlay parse failure
+// is loud, never a silent partial-apply (the FAFF-50 failure mode reborn). Returns
+// [mergedData, basePath|null, overlayPath|null].
 function loadConfig(root) {
   const p = findConfig(root);
-  if (p === null) return [{}, null];
-  const data = parseYamlSubset(fs.readFileSync(p, "utf8"));
-  return [(data && typeof data === "object" && !Array.isArray(data)) ? data : {}, p];
+  const baseRaw = p === null ? {} : parseYamlSubset(fs.readFileSync(p, "utf8"));
+  const baseData = isPlainConfigMap(baseRaw) ? baseRaw : {};
+  const overlayPath = findOverlay(root);          // may throw legacy-overlay-config-name
+  if (overlayPath === null) return [baseData, p, null];
+  const overlayData = parseOverlayStrict(overlayPath); // may throw overlay-parse-error
+  return [deepMergeConfig(baseData, overlayData), p, overlayPath];
 }
 
 // One docs-path resolver for the spec / PRD / PRDR axes (FAFF-252, FAFF-245).
@@ -662,6 +681,325 @@ function configInitSelftest() {
   return fail ? 1 : 0;
 }
 
+// ---------------------------------------------------------------------------
+// FAFF-387 — `faff config check`: deterministic posture + integrity checker.
+// Read-only, NO tracker/network/writes. Exit 0 clean / 1 >=1 finding / 2 unreadable.
+// Part of the factory `config` region (no own banner — a plain sub-section).
+// ---------------------------------------------------------------------------
+
+// Secret-scan table (spec Appendix A). Two complementary detectors, tuned for
+// near-zero false positives on real config (hosts, model ids, paths all carry the
+// `. : /` separators the generic detector excludes; `*_env` keys are exempt by
+// design). The table is DATA — one row per pattern — so extending it is a one-line
+// change plus a selftest row. `known` matches the VALUE anywhere; `generic` gates on
+// the KEY name AND a high-entropy value shape.
+const SECRET_KNOWN_PREFIXES = [
+  "sk-", "ghp_", "gho_", "ghu_", "ghs_", "github_pat_", "AKIA",
+  "nvapi-", "AIza", "-----BEGIN ",
+];
+// xox[baps]- (Slack) is a shape, not a bare prefix — kept as an explicit regex.
+const SECRET_KNOWN_REGEXES = [/xox[baps]-/];
+const SECRET_KEYNAME_RE = /key|token|secret|password|credential/i;
+const SECRET_GENERIC_VALUE_RE = /^[A-Za-z0-9+/=_-]{32,}$/;
+
+// PURE: does this (keyName, value) look like a leaked credential? Returns a reason
+// string ("known-prefix" | "generic-high-entropy") or null. Never returns the value.
+function secretScanLeaf(keyName, value) {
+  if (typeof value !== "string" || value === "") return null;
+  for (const pfx of SECRET_KNOWN_PREFIXES) if (value.startsWith(pfx)) return "known-prefix";
+  for (const re of SECRET_KNOWN_REGEXES) if (re.test(value)) return "known-prefix";
+  // Generic: key-name-gated, `*_env` exempt (the name-indirection pattern), and the
+  // value must be a long separator-free high-entropy blob (excludes hosts/ids/paths).
+  if (SECRET_KEYNAME_RE.test(keyName) && !/_env$/.test(keyName) && SECRET_GENERIC_VALUE_RE.test(value)) {
+    return "generic-high-entropy";
+  }
+  return null;
+}
+
+// Redact a suspected secret to key-path + length + first-4-chars ONLY — NEVER the
+// value. The raw value must never reach any output stream (spec: a checker that
+// prints the secret recreates the leak it guards against).
+function redactSecret(keyPath, value) {
+  const v = String(value);
+  return `${keyPath} (len=${v.length}, starts "${v.slice(0, 4)}")`;
+}
+
+// PURE: walk a parsed config document, applying secretScanLeaf to every scalar
+// (string) leaf. Recurses maps and sequences; keys the finding by dotted path (and
+// [i] for sequence items). `fileLabel` prefixes the finding surface so a base vs
+// overlay hit is distinguishable. Returns [{severity,surface,message}].
+function scanDocForSecrets(doc, fileLabel) {
+  const findings = [];
+  const walk = (node, keyPath, leafName) => {
+    if (typeof node === "string") {
+      const reason = secretScanLeaf(leafName, node);
+      if (reason) findings.push({ severity: "warn", surface: `${fileLabel}:${keyPath}`, message: `possible secret (${reason}) — ${redactSecret(keyPath, node)}. Move it to an env var (\`*_env\` names the var; the value never lives in config).` });
+      return;
+    }
+    if (Array.isArray(node)) { node.forEach((item, i) => walk(item, `${keyPath}[${i}]`, leafName)); return; }
+    if (isPlainConfigMap(node)) { for (const k of Object.keys(node)) walk(node[k], keyPath ? `${keyPath}.${k}` : k, k); }
+  };
+  walk(doc, "", "");
+  return findings;
+}
+
+// Git posture probes — read-only, stdlib child_process. Return true/false/null
+// (null = probe unavailable, i.e. not in a git repo or git absent).
+function gitInRepo(root) {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--is-inside-work-tree"], { encoding: "utf8" });
+  return r.status === 0 && (r.stdout || "").trim() === "true";
+}
+function gitIsIgnored(root, relPath) {
+  // exit 0 = ignored, 1 = not ignored, other = error.
+  const r = spawnSync("git", ["-C", root, "check-ignore", "-q", relPath], { encoding: "utf8" });
+  return r.status === 0;
+}
+function gitIsTracked(root, relPath) {
+  const r = spawnSync("git", ["-C", root, "ls-files", "--error-unmatch", relPath], { encoding: "utf8" });
+  return r.status === 0;
+}
+
+const MIGRATION_STEPS = [
+  "1. Move machine-local values (private hosts, personal model prefs) into .faffrc.local.yaml",
+  "2. Edit .gitignore: drop the `.faffrc.yaml` line; add `.faffrc.local.yaml`",
+  "3. Run `faff config check`, then commit .faffrc.yaml",
+];
+
+// PURE core of `config check` — takes the already-resolved inputs and returns
+// { findings, skipped, exit }. Split from cmdConfigCheck's I/O so --selftest can
+// drive the secret scan + posture logic in-memory without a real git repo.
+// `probes` supplies { inRepo, isIgnored(rel), isTracked(rel) } (nullable inRepo).
+function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, probes }) {
+  const findings = [];
+  const skipped = [];
+  const rel = (p) => (p ? path.basename(p) : null);
+
+  // Check 5: legacy filenames present (mirror the loud resolver error as a finding).
+  for (const n of [...(legacyBase || []), ...(legacyOverlay || [])]) {
+    findings.push({ severity: "error", surface: n, message: `legacy config filename \`${n}\` present — faff uses only \`.faffrc.yaml\` / \`.faffrc.local.yaml\`; rename it.` });
+  }
+
+  // Check 2 + 3: posture (git). Skipped entirely outside a git repo.
+  if (probes.inRepo) {
+    if (basePath) {
+      const baseRel = rel(basePath);
+      if (probes.isIgnored(baseRel) || !probes.isTracked(baseRel)) {
+        findings.push({ severity: "warn", surface: baseRel, message: `\`${baseRel}\` is unmigrated/uncommitted (git-ignored or untracked) — unrecoverable if corrupted. Migrate:\n${MIGRATION_STEPS.map((s) => "     " + s).join("\n")}` });
+      }
+    }
+    if (overlayPath) {
+      const ovRel = rel(overlayPath);
+      if (!probes.isIgnored(ovRel)) {
+        findings.push({ severity: "warn", surface: ovRel, message: `\`${ovRel}\` is NOT git-ignored — the machine-local overlay is about to be committed. Add it to .gitignore.` });
+      }
+    }
+  } else {
+    skipped.push("posture checks skipped (not a git repo)");
+  }
+
+  // Check 4: secret scan over both files' scalar leaves (redacted output).
+  if (baseDoc) findings.push(...scanDocForSecrets(baseDoc, rel(basePath) || ".faffrc.yaml"));
+  if (overlayDoc) findings.push(...scanDocForSecrets(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml"));
+
+  return { findings, skipped, exit: findings.length ? 1 : 0 };
+}
+
+function cmdConfigCheck(args, root) {
+  if (args.includes("--selftest")) return configCheckSelftest();
+  const json = args.includes("--json");
+
+  // Check 1: parse. Resolve both files, reading each independently so a parse fault
+  // in EITHER is a loud exit 2 (never a silent skip). Legacy names are collected as
+  // findings, not thrown, so `config check` reports them rather than aborting.
+  let basePath = null, baseDoc = null, overlayPath = null, overlayDoc = null;
+  const legacyBase = [], legacyOverlay = [];
+  try {
+    basePath = findConfig(root);
+  } catch (e) {
+    if (e.message === "legacy-config-name") legacyBase.push(...e.legacy);
+    else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
+  }
+  try {
+    overlayPath = findOverlay(root);
+  } catch (e) {
+    if (e.message === "legacy-overlay-config-name") legacyOverlay.push(...e.legacy);
+    else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
+  }
+  if (basePath) {
+    try {
+      const raw = parseYamlSubset(fs.readFileSync(basePath, "utf8"));
+      baseDoc = isPlainConfigMap(raw) ? raw : {};
+    } catch (e) {
+      process.stderr.write(`faff config check: ${basePath} unreadable (${e.code || e.message})\n`);
+      return 2;
+    }
+  }
+  if (overlayPath) {
+    try {
+      overlayDoc = parseOverlayStrict(overlayPath);
+    } catch (e) {
+      process.stderr.write(`faff config check: ${e.file || overlayPath} failed to parse (${e.detail || e.message})\n`);
+      return 2;
+    }
+  }
+
+  const inRepo = gitInRepo(root);
+  const probes = {
+    inRepo,
+    isIgnored: (relPath) => gitIsIgnored(root, relPath),
+    isTracked: (relPath) => gitIsTracked(root, relPath),
+  };
+  const { findings, skipped, exit } = computeConfigCheck({
+    basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, probes,
+  });
+
+  if (json) {
+    console.log(JSON.stringify({ ok: exit === 0, findings, skipped }, null, 2));
+    return exit;
+  }
+  for (const s of skipped) console.log(`skip  ${s}`);
+  for (const f of findings) console.log(`${f.severity === "error" ? "ERROR" : "warn "} ${f.surface}: ${f.message}`);
+  if (exit === 0) {
+    console.log(skipped.length ? "config check: no findings (some checks skipped)" : "config check: clean");
+  }
+  return exit;
+}
+
+// In-memory selftest of the secret-pattern table + the merge (deepMergeConfig)
+// behaviour + the posture logic (via computeConfigCheck's pure core). Mirrors the
+// other --selftest commands: per-case ok/FAIL + a RESULT line, non-zero on any fail.
+function configCheckSelftest() {
+  let fail = 0;
+  const check = (label, cond) => { if (!cond) fail++; console.log(`${cond ? "ok  " : "FAIL"} ${label}`); };
+
+  // --- secret-pattern table -------------------------------------------------
+  check("secret: sk- prefix flagged", secretScanLeaf("api_key", "sk-abcdefghijklmnopqrstuvwxyz0123456789ABCD") === "known-prefix");
+  check("secret: ghp_ prefix flagged", secretScanLeaf("anything", "ghp_0123456789abcdefghij") === "known-prefix");
+  check("secret: AKIA prefix flagged", secretScanLeaf("aws", "AKIAIOSFODNN7EXAMPLE") === "known-prefix");
+  check("secret: nvapi- prefix flagged", secretScanLeaf("k", "nvapi-xxxxxxxxxxxxxxxxxxxx") === "known-prefix");
+  check("secret: AIza prefix flagged", secretScanLeaf("k", "AIzaSyBhydeSomethingLong") === "known-prefix");
+  check("secret: xoxb- shape flagged", secretScanLeaf("k", "xoxb-123-456-abcdef") === "known-prefix");
+  check("secret: PEM header flagged", secretScanLeaf("k", "-----BEGIN RSA PRIVATE KEY-----") === "known-prefix");
+  check("secret: generic high-entropy on key-named field flagged",
+    secretScanLeaf("api_token", "aB3dEf6hIj9lMn2pQr5tUv8xYz1AbC4d") === "generic-high-entropy");
+  // exemptions / non-secrets
+  check("secret: *_env key exempt", secretScanLeaf("api_key_env", "NVIDIA_API_KEY") === null);
+  check("secret: host NOT flagged", secretScanLeaf("host", "https://integrate.api.nvidia.com/v1") === null);
+  check("secret: model id NOT flagged", secretScanLeaf("model", "qwen3-next:80b-a3b-instruct-q4_K_M") === null);
+  check("secret: path NOT flagged", secretScanLeaf("spec_docs_path", "docs/specs/") === null);
+  check("secret: short value on key-named field NOT flagged (below 32)", secretScanLeaf("token", "shortish") === null);
+  check("secret: non-key-named long blob NOT flagged (generic gated on key name)",
+    secretScanLeaf("some_field", "aB3dEf6hIj9lMn2pQr5tUv8xYz1AbC4d") === null);
+
+  // redaction NEVER emits the raw value.
+  {
+    const raw = "sk-SUPERSECRETVALUE1234567890abcdef";
+    const red = redactSecret("faffter_dark.adversarial.api_key", raw);
+    check("redact: raw value absent from redacted output", !red.includes("SECRETVALUE") && !red.includes(raw));
+    check("redact: shows len + 4-char prefix", red.includes("len=") && red.includes(`"sk-S"`));
+  }
+  {
+    // scanDocForSecrets full-path: the raw value must not appear in ANY finding message.
+    const raw = "ghp_ZZZZZZZZZZ0123456789abcdefghij";
+    const doc = { faffter_dark: { adversarial: { api_key: raw } } };
+    const fs2 = scanDocForSecrets(doc, ".faffrc.yaml");
+    check("scan: nested leaf flagged by dotted path", fs2.length === 1 && fs2[0].surface === ".faffrc.yaml:faffter_dark.adversarial.api_key");
+    check("scan: raw value NEVER in finding message", !fs2[0].message.includes(raw) && !fs2[0].message.includes("ZZZZZZZZZZ"));
+    // sequence-item leaf scanning.
+    const doc2 = { fallbacks: [{ api_key: raw }] };
+    const fs3 = scanDocForSecrets(doc2, "x");
+    check("scan: sequence-item leaf flagged with [i] path", fs3.length === 1 && fs3[0].surface === "x:fallbacks[0].api_key");
+  }
+
+  // --- merge table (deepMergeConfig) ---------------------------------------
+  check("merge: overlay wins scalar",
+    deepMergeConfig({ appetite: "high" }, { appetite: "low" }).appetite === "low");
+  check("merge: deep-merge maps per leaf (base sibling survives)", (() => {
+    const m = deepMergeConfig({ slots: { spec: "a", review: "b" } }, { slots: { review: "c" } });
+    return m.slots.spec === "a" && m.slots.review === "c";
+  })());
+  check("merge: sequences replaced wholesale (never element-merged)", (() => {
+    const m = deepMergeConfig({ hosts: ["a", "b", "c"] }, { hosts: ["x"] });
+    return Array.isArray(m.hosts) && m.hosts.length === 1 && m.hosts[0] === "x";
+  })());
+  check("merge: overlay-only key added", deepMergeConfig({ a: 1 }, { b: 2 }).b === 2);
+  check("merge: no overlay → base unchanged (identity)", (() => {
+    const base = { a: 1, b: { c: 2 } };
+    return deepMergeConfig(base, {}).a === 1 && deepMergeConfig(base, {}).b.c === 2;
+  })());
+  check("merge: type mismatch (map over scalar) → overlay wins", (() => {
+    const m = deepMergeConfig({ x: "scalar" }, { x: { nested: 1 } });
+    return isPlainConfigMap(m.x) && m.x.nested === 1;
+  })());
+  check("merge: does not mutate base input", (() => {
+    const base = { slots: { spec: "a" } };
+    deepMergeConfig(base, { slots: { spec: "z" } });
+    return base.slots.spec === "a";
+  })());
+
+  // --- posture logic (computeConfigCheck pure core) ------------------------
+  {
+    // base git-ignored → posture warn with migration steps; exit 1.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => true, isTracked: () => false },
+    });
+    check("posture: ignored base → 1 finding, exit 1", r.findings.length === 1 && r.exit === 1);
+    check("posture: finding carries migration steps", r.findings[0].message.includes("Migrate:") && r.findings[0].message.includes(".faffrc.local.yaml"));
+  }
+  {
+    // base tracked + not ignored → clean, exit 0.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("posture: tracked base → clean, exit 0", r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    // overlay NOT ignored → hygiene finding.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: "/r/.faffrc.local.yaml", overlayDoc: {},
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: (n) => n === ".faffrc.yaml" ? false : false, isTracked: () => true },
+    });
+    check("hygiene: un-ignored overlay flagged", r.findings.some((f) => f.surface === ".faffrc.local.yaml" && /NOT git-ignored/.test(f.message)));
+  }
+  {
+    // not a git repo → posture skipped (reported), parse/secret still run; clean → exit 0.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { slots: { spec: "x" } }, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: false, isIgnored: () => false, isTracked: () => false },
+    });
+    check("not-a-repo: posture skipped + reported", r.skipped.length === 1 && r.exit === 0);
+  }
+  {
+    // secret in base doc → exit 1, redacted (no raw value in any message).
+    const raw = "sk-abcdefghijklmnopqrstuvwxyz0123456789";
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { api_key: raw }, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("secret-in-doc: exit 1", r.exit === 1);
+    check("secret-in-doc: no raw value in output", !JSON.stringify(r.findings).includes(raw));
+  }
+  {
+    // legacy filename present → error finding, exit 1.
+    const r = computeConfigCheck({
+      basePath: null, baseDoc: null, overlayPath: null, overlayDoc: null,
+      legacyBase: [".faffrc.yml"], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("legacy: present filename → error finding, exit 1", r.exit === 1 && r.findings.some((f) => f.severity === "error"));
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config check, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 function cmdConfig(args) {
   let root = null;
   const rest = [];
@@ -673,10 +1011,19 @@ function cmdConfig(args) {
   const cmd = rest[0];
   try {
     if (cmd === "path") {
-      const p = findConfig(root);
-      if (p === null) return 3;
-      console.log(p);
+      // FAFF-387: multi-line — each resolved file on its own line, base first;
+      // exit 3 only when NEITHER file exists (first-run offer semantics preserved).
+      // BACK-COMPAT: with no overlay (the common case), output is the exact same
+      // single line as before.
+      const basePath = findConfig(root);
+      const overlayPath = findOverlay(root);       // may throw legacy-overlay-config-name
+      if (basePath === null && overlayPath === null) return 3;
+      if (basePath !== null) console.log(basePath);
+      if (overlayPath !== null) console.log(overlayPath);
       return 0;
+    }
+    if (cmd === "check") {
+      return cmdConfigCheck(rest.slice(1), root);
     }
     if (cmd === "get") {
       // FAFF-26: --json prints the value as JSON (structured: lists/objects survive instead of
@@ -810,11 +1157,16 @@ function cmdConfig(args) {
       // FAFF-50: loud, human-readable echo of the resolved NON-default config — what a run
       // actually uses that overrides a built-in default. Print it in run banners so a dropped
       // slot is visible, not silent.
-      const [data, p] = loadConfig(root);
+      const [data, p, overlayPath] = loadConfig(root);
       const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
       const SLOTS = ["intake", "spec", "spec_review", "architecture", "env", "review", "ship", "concurrency", "methodology",
         "routing_adaptor", "rendering_adaptor"];
       console.log(`config:   ${p || "(none — all defaults)"}`);
+      // FAFF-387: an active overlay is echoed on its own line — never silent — so a
+      // run banner shows both files in play. BACK-COMPAT: with no overlay (the
+      // common case) this line is simply omitted, so output is byte-for-byte the
+      // pre-FAFF-387 form.
+      if (overlayPath) console.log(`config local: ${overlayPath}`);
       console.log(`appetite: ${dig(data, "appetite") ?? "high (default)"}`);
       // FAFF-212 review F3: surface a non-default intake_gate so a typo'd/overridden
       // value is visible in the run banner, not silently coerced behind the user's back.
@@ -870,9 +1222,20 @@ function cmdConfig(args) {
       process.stderr.write(`faff config: multiple config files at the repo root (${names}); keep only one.\n`);
       return 2;
     }
+    // FAFF-387: the overlay's own legacy-name + parse-fault tags — same LOUD,
+    // never-silent discipline as the base file's legacy-config-name above.
+    if (e.message === "legacy-overlay-config-name") {
+      const names = e.legacy.join(", ");
+      process.stderr.write(`faff config: legacy overlay config filename found (${names}). faff uses only \`${CANONICAL_OVERLAY_CONFIG}\` — rename it to \`${CANONICAL_OVERLAY_CONFIG}\`. (FAFF-387: single canonical overlay name; never a silent default.)\n`);
+      return 2;
+    }
+    if (e.message === "overlay-parse-error") {
+      process.stderr.write(`faff config: ${e.file} failed to parse (${e.detail}) — an overlay parse failure is never silently skipped (FAFF-387).\n`);
+      return 2;
+    }
     throw e;
   }
-  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved|init\n");
+  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved|init|check\n");
   return 2;
 }
 
@@ -973,4 +1336,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigInit, cmdModels, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, resolveAppetite, resolveBuildModel, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };

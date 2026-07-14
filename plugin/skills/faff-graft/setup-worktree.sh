@@ -47,9 +47,13 @@ cd "$WORKTREE_PATH"
 
 # Copy common gitignored config files from main worktree. .faffrc.yaml is per-repo faff config
 # (slots, appetite, adversarial backend) the build needs; without it `faff config` resolves to
-# defaults and the build silently ignores the repo's config (FAFF-186). Canonical name only — the
-# resolver errors loudly on legacy .faffrc / .faffrc.yml, so copying those would break the worktree.
-for f in .env .env.local .env.development .env.production.local .claude/settings.local.json .faffrc.yaml; do
+# defaults and the build silently ignores the repo's config (FAFF-186). .faffrc.local.yaml is the
+# gitignored machine-local overlay (FAFF-387) — copied too so a linked worktree resolves the same
+# merged config as the main checkout (both are still covered by the FAFF-208 fallback per-file).
+# Keep .faffrc.yaml in the list: an unmigrated repo still keeps it gitignored, so a worktree needs
+# the copy. Canonical names only — the resolver errors loudly on legacy .faffrc / .faffrc.yml, so
+# copying those would break the worktree.
+for f in .env .env.local .env.development .env.production.local .claude/settings.local.json .faffrc.yaml .faffrc.local.yaml; do
   if [ -f "$CWD/$f" ]; then
     mkdir -p "$WORKTREE_PATH/$(dirname "$f")"
     cp "$CWD/$f" "$WORKTREE_PATH/$f"

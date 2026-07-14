@@ -236,14 +236,28 @@ function resolveUntil(raw) {
 // Flags (--until / --max) override config (parity with beep-boop's existing flags).
 // An unset dimension is `null` (unbounded).
 //
-// FAFF-427: `budget.cost` is now parsed UNCONDITIONALLY — it no longer waits on
-// `price_per_mtok > 0` to mean something, because the per-model x per-class price
-// map (above) can always price it by default. `pricing` names WHICH rule governs
-// the cost dimension: `"flat"` when a human has explicitly set `price_per_mtok >
-// 0` (byte-for-byte legacy behaviour, human-explicit outranks the default), else
-// `"map"` (the ADR-0048 map prices every model it can, and the costliest-known-rate
-// fallback prices the rest — so `pricing:"map"` always has SOME price to apply).
-// Returns { ceilings: {until,max_attempts,tokens,cost}, at_ceiling, price_per_mtok, pricing }.
+// FAFF-427: `budget.cost` is parsed UNCONDITIONALLY — it never waits on a flat
+// price to mean something, because the per-model x per-class price map (above)
+// always prices it by default.
+//
+// FAFF-446: `budget.price_per_mtok` is REMOVED — it can no longer be freshly
+// configured, so `pricing` is always `"map"` and `price_per_mtok` is always `0`
+// from THIS function (a legacy-recorded ledger may still carry a `"flat"`
+// pricing + a >0 price — see `envelopeFromLedger` below, untouched by this
+// change: reinterpreting an already-minted ledger's recorded price is OUT OF
+// SCOPE, so an in-flight L4 run's dollar ceiling never silently changes
+// mid-run). A `.faffrc.yaml` that still sets `budget.price_per_mtok > 0` is
+// named on `price_per_mtok_removed` (mirrors `until_invalid`'s shape) rather
+// than thrown from here — this function is called from selftest tables and
+// several production sites with genuinely different fail-open exposure, so
+// each caller picks its own posture: `cmdBudget`/`economics` degrade to a
+// warning (a hard exit there would fail-open the whole budget signal, masking
+// a real breach — the same reasoning FAFF-364 established for `until_invalid`),
+// while `lights-out`'s mint-time preflight hard-refuses (refusing a mint
+// carries no fail-open risk). `price_per_mtok: 0` (the historical no-op
+// sentinel) or absent never sets `price_per_mtok_removed` — only a value that
+// would actually have activated flat pricing does.
+// Returns { ceilings: {until,max_attempts,tokens,cost}, at_ceiling, price_per_mtok_removed, price_per_mtok, pricing }.
 function envelopeFrom(cfg, flags) {
   const b = (cfg && typeof cfg === "object" && cfg.budget && typeof cfg.budget === "object") ? cfg.budget : {};
   const num = (v) => { if (v == null || v === "") return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
@@ -252,17 +266,19 @@ function envelopeFrom(cfg, flags) {
   const { until, until_invalid } = resolveUntil(rawUntil); // FAFF-364: malformed → null ceiling + loud flag
   const maxAttempts = (flags && flags.max_attempts != null) ? num(flags.max_attempts) : num(b.max_attempts);
   const tokens = num(b.tokens);
-  const price = num(b.price_per_mtok) || 0;
+  const rawPrice = num(b.price_per_mtok);
+  const price_per_mtok_removed = (rawPrice != null && rawPrice > 0) ? String(b.price_per_mtok) : null;
   // FAFF-427: cost is no longer gated on price>0 — the map prices it by default.
   const cost = num(b.cost);
-  const pricing = price > 0 ? "flat" : "map";
+  const pricing = "map"; // FAFF-446: flat pricing can no longer be freshly configured
   let atCeiling = b.at_ceiling != null ? String(b.at_ceiling).trim().toLowerCase() : "stop";
   if (!AT_CEILING_OUTCOMES.has(atCeiling)) atCeiling = "stop"; // unknown coerces to the safe default
   return {
     ceilings: { until, max_attempts: maxAttempts, tokens, cost },
     until_invalid,
+    price_per_mtok_removed,
     at_ceiling: atCeiling,
-    price_per_mtok: price,
+    price_per_mtok: 0,
     pricing,
   };
 }
@@ -641,7 +657,7 @@ function cmdBudget(args) {
     }
   } else if (tokensSource === "estimate") {
     cost = null;
-    costWarnings.push("cost ceiling not meterable from estimates (no per-model data) — resolve a transcript, or set budget.price_per_mtok for the flat-scalar estimate path");
+    costWarnings.push("cost ceiling not meterable from estimates (no per-model data to price against the ADR-0048 map) — resolve a transcript so per-model token spend can be measured");
   } else {
     const priceMap = resolveEconomicsPriceMap(cfg);
     const priced = priceModelClassSums(tokensByModelDelta, priceMap);
@@ -672,6 +688,18 @@ function cmdBudget(args) {
   const warnings = [];
   if (env.until_invalid != null) {
     const msg = `budget.until '${env.until_invalid}' is not a valid HH:MM — until ceiling ignored`;
+    warnings.push(msg);
+    process.stderr.write(`faff budget check: ${msg}\n`);
+  }
+  // FAFF-446 — budget.price_per_mtok is REMOVED; a `.faffrc.yaml` that still sets it
+  // > 0 is ignored (cost prices from the ADR-0048 map regardless) and named here,
+  // unconditionally (not gated on costConfigured — this is about stale config, not
+  // specifically the cost dimension). Never a non-zero exit: sentryReadBudget/
+  // run-done --budget treat any non-zero child exit as the unbreached default, so a
+  // hard failure here would fail-OPEN the whole budget signal (the same FAFF-364
+  // until_invalid reasoning immediately above).
+  if (env.price_per_mtok_removed != null) {
+    const msg = `budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; cost prices from the ADR-0048 map. Unset budget.price_per_mtok in .faffrc.yaml (set budget.price_per_mtok_by_model to override specific models).`;
     warnings.push(msg);
     process.stderr.write(`faff budget check: ${msg}\n`);
   }
@@ -739,6 +767,12 @@ function envelopeFromLedger(rec, flags, cfg) {
       cost: num(recCeil.cost),
     },
     until_invalid,
+    // FAFF-446: the RECORDED price/pricing above are untouched (a legacy ledger's
+    // own baked-in flat pricing must never silently reinterpret mid-run), but the
+    // LIVE config may separately still set the removed key — forward `fresh`'s
+    // signal so `cmdBudget`'s one call site warns regardless of which resolve path
+    // fired.
+    price_per_mtok_removed: fresh.price_per_mtok_removed,
     at_ceiling: atCeiling,
     price_per_mtok,
     pricing,
@@ -762,14 +796,18 @@ function budgetSelftest() {
   ok("unset dims are null + default stop", e3.ceilings.max_attempts === null && e3.ceilings.tokens === null && e3.at_ceiling === "stop");
   const e4 = envelopeFrom({ budget: { at_ceiling: "bogus" } }, {});
   ok("unknown at_ceiling coerces to stop", e4.at_ceiling === "stop");
-  // FAFF-427: `budget.cost` is now UNCONDITIONAL — the map prices it by default,
-  // so it is no longer gated on price_per_mtok>0 (that dead zone is gone).
+  // FAFF-427: `budget.cost` is UNCONDITIONAL — the map prices it by default.
+  // FAFF-446: `price_per_mtok: 0` stays a harmless no-op — it never triggers the
+  // removed-knob signal (it was always behaviourally identical to absent).
   const e5 = envelopeFrom({ budget: { cost: 5, price_per_mtok: 0 } }, {});
-  ok("no explicit price → cost still SET, pricing:map (the dollar ceiling now needs no flat scalar)",
-    e5.ceilings.cost === 5 && e5.pricing === "map");
+  ok("no explicit price → cost still SET, pricing:map (the dollar ceiling now needs no flat scalar); price_per_mtok:0 is a no-op, not `removed`",
+    e5.ceilings.cost === 5 && e5.pricing === "map" && e5.price_per_mtok_removed === null);
+  // FAFF-446: `budget.price_per_mtok` is REMOVED — a config that still sets it > 0
+  // no longer activates flat pricing (pricing stays "map", price_per_mtok stays 0);
+  // it is ignored and named on `price_per_mtok_removed` instead.
   const e6 = envelopeFrom({ budget: { cost: 5, price_per_mtok: 3 } }, {});
-  ok("explicit price>0 → cost set AND pricing:flat (human-explicit wins)",
-    e6.ceilings.cost === 5 && e6.price_per_mtok === 3 && e6.pricing === "flat");
+  ok("explicit price>0 in FRESH config is REMOVED → ignored, pricing stays map, named on price_per_mtok_removed",
+    e6.ceilings.cost === 5 && e6.price_per_mtok === 0 && e6.pricing === "map" && e6.price_per_mtok_removed === "3");
   const e7 = envelopeFrom({ budget: {} }, {});
   ok("no budget.cost at all → ceilings.cost null regardless of pricing", e7.ceilings.cost === null && e7.pricing === "map");
 
@@ -821,7 +859,7 @@ function budgetSelftest() {
   ok("until breached when now >= until-epoch", s4.breached[0] === "until" && s4.outcome === "stop");
   const s4b = computeBudgetState(envUntil, { now_epoch: NOW, until_epoch: NOW + 1000, attempts: 0, tokens: 0 }, "transcript");
   ok("until not breached when now < until-epoch", s4b.breached.length === 0);
-  const envCost = envelopeFrom({ budget: { cost: 4, price_per_mtok: 2 } }, {});
+  const envCost = envelopeFrom({ budget: { cost: 4 } }, {}); // FAFF-446: breach math is price-source agnostic
   const s5 = computeBudgetState(envCost, { now_epoch: NOW, attempts: 0, tokens: 0, cost: 5 }, "transcript");
   ok("cost breached → stop", s5.breached[0] === "cost");
   const envMulti = envelopeFrom({ budget: { max_attempts: 1, tokens: 10, at_ceiling: "stop" } }, {});

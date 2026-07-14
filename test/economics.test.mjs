@@ -101,26 +101,31 @@ test("INTEGRATION: mixed ledger, unpriced/estimate → buckets, counts, no dolla
   } finally { f.cleanup(); }
 });
 
-test("INTEGRATION: transcript path, priced ledger → cost twins on every figure", () => {
+test("FAFF-446: budget.price_per_mtok in FRESH config is REMOVED — ignored (economics still prices from the map), named in a warning", () => {
   // Non-zero tokens_at_start isolates the pricing assertion from the inflation
   // warning (which fires on tokens_at_start=0 with spend — covered separately).
   const ledger = baseLedger({ budget: { tokens_at_start: 10 } });
   const f = fixture({ rc: "budget:\n  price_per_mtok: 5\n", ledger });
   try {
     const sid = "sess-price";
-    const cfg = withTranscripts(f.root, f.root, sid, {
-      [`${sid}.jsonl`]: { usage: [{ input_tokens: 4000010 }] },
+    // claude-opus-4-8: input $5/MTok — same numeric rate the removed flat scalar
+    // used here, so cost_total is coincidentally unchanged; `pricing` and the
+    // warning prove it now comes from the map, not the removed scalar.
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ message: { model: "claude-opus-4-8", usage: { input_tokens: 4000010 } }, timestamp: "2026-07-01T10:00:00Z" }],
     });
     const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
     const e = JSON.parse(r.out);
     assert.equal(e.tokens_source, "transcript");
     assert.equal(e.tokens_total, 4000000);  // 4000010 measured − 10 baseline
-    assert.equal(e.price_per_mtok, 5);
-    assert.equal(e.pricing, "flat");        // FAFF-427: explicit price_per_mtok>0 → flat, byte-for-byte
-    assert.equal(e.cost_total, 20);         // 4M/1e6 * 5
-    assert.equal(e.cost_per_shipped.cost_each, 20);
-    assert.deepEqual(e.warnings, []);       // no inflation warning: tokens_at_start > 0
+    assert.equal(e.price_per_mtok, 0);      // FAFF-446: legacy echo — the removed scalar is never applied
+    assert.equal(e.pricing, "map");         // FAFF-446: flat pricing can no longer be freshly configured
+    assert.ok(Math.abs(e.cost_total - 20) < 1e-6, `cost_total=${e.cost_total}`);
+    assert.ok(Math.abs(e.cost_per_shipped.cost_each - 20) < 1e-6);
+    assert.ok(e.warnings.some((w) => /removed \(FAFF-446\)/.test(w) && /price_per_mtok_by_model/.test(w) && /'5'/.test(w)),
+      `expected the removed-knob warning naming the ignored value: ${JSON.stringify(e.warnings)}`);
   } finally { f.cleanup(); }
 });
 

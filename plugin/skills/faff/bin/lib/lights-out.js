@@ -362,6 +362,15 @@ function lightsOutPreflight(probes) {
   // both refusals present, each naming its own remedy.
   if (probes.budgetUntilInvalid != null)
     refusals.push({ gate: "budget-until-invalid", detail: `budget.until / --until '${probes.budgetUntilInvalid}' is not a valid HH:MM (00-23:00-59) — fix budget.until in .faffrc.yaml or the --until flag` });
+  // FAFF-446 — budget.price_per_mtok is REMOVED (the ADR-0048 map is the sole
+  // pricing source now). Refusing an L4 mint here carries NO fail-open risk (a
+  // refusal blocks the mint outright; it can never mask an in-flight breach the
+  // way a `budget check` non-zero exit could — that surface instead degrades to a
+  // warning, see cmdBudget), so this is the one call site where the honest,
+  // anti-divergence hard-refuse is unconditionally the right posture: an L4 run
+  // must not launch under stale config that no longer means what it appears to.
+  if (probes.budgetPriceRemoved != null)
+    refusals.push({ gate: "budget-price-per-mtok-removed", detail: `budget.price_per_mtok ('${probes.budgetPriceRemoved}') is removed (FAFF-446) — unset it in .faffrc.yaml; budget.cost prices from the ADR-0048 map by default (set budget.price_per_mtok_by_model to override specific models)` });
   // FAFF-325 — the L4 admission side of the corrective-integrity Punt-1 disposition (human
   // decision 2026-07-10): an absent pid-1 FAFF_INTEGRITY_BOUNDARY declaration REFUSES admission
   // here, fail-fast, never a mid-run merge surprise (the merge-floor consumer, cmdMergeGate,
@@ -712,9 +721,12 @@ function cmdLightsOut(args) {
   // FAFF-428: forward the metering-measurability probe + resolved posture + whether
   // a token-dependent ceiling is armed, so the preflight can refuse/degrade estimate-
   // only metering under a real ceiling.
+  // FAFF-446: forward the resolved envelope's price_per_mtok_removed flag so the
+  // preflight can hard-refuse a still-configured removed knob at mint time.
   const probes = {
     container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet,
-    budgetUntilInvalid: envelope.until_invalid, floor, floor_detail: floorDetail, dial: coherenceDial,
+    budgetUntilInvalid: envelope.until_invalid, budgetPriceRemoved: envelope.price_per_mtok_removed,
+    floor, floor_detail: floorDetail, dial: coherenceDial,
     meteringMeasurable, estimateOnlyPosture: onEstimateOnlyPosture, tokenDependentCeiling,
     // FAFF-325 — reuse the ONE probe call above; never a second, possibly-divergent read.
     correctiveIntegrityBasis: correctiveProbe.basis,
@@ -983,6 +995,16 @@ function lightsOutSelftest() {
   // A null budgetUntilInvalid (the common/valid case) never fires the gate.
   check("null budgetUntilInvalid never fires budget-until-invalid",
     !happy.refusals.some((r) => r.gate === "budget-until-invalid"));
+
+  // FAFF-446 — a still-configured budget.price_per_mtok hard-refuses the L4 mint
+  // (no fail-open risk at this call site, unlike `budget check`'s warn-and-ignore).
+  const priceRemoved = lightsOutPreflight(armedProbes({ budgetPriceRemoved: "3" }));
+  check("a still-configured budget.price_per_mtok refuses the mint",
+    priceRemoved.proceed === false && priceRemoved.refusals.some((r) => r.gate === "budget-price-per-mtok-removed"));
+  check("budget-price-per-mtok-removed refusal names the raw value",
+    priceRemoved.refusals.find((r) => r.gate === "budget-price-per-mtok-removed").detail.includes("'3'"));
+  check("null budgetPriceRemoved (the common/unset case) never fires budget-price-per-mtok-removed",
+    !happy.refusals.some((r) => r.gate === "budget-price-per-mtok-removed"));
 
   // FAFF-325 — the L4 admission side of the Punt-1 disposition: no declaration -> refuse
   // (fail-fast, exact remedy line); a violation basis -> refuse, naming the fault; "asserted"

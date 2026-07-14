@@ -51,3 +51,11 @@ separate, later decision.
   `cost: null` with the model-id visible, prompting a human to extend the map.
 - **The rate card ages** — the built-in constant is a point-in-time snapshot; the
   config override is the escape hatch when the shipped defaults drift from billing.
+
+**Reconciliation note (ADR-0059, FAFF-427 / FAFF-446):** the "two cost figures
+coexist" item above is superseded — ADR-0059 wired this map into `budget.cost`
++ `economics`'s top-line as the default pricing source, and FAFF-446 has since
+removed the legacy flat `budget.price_per_mtok` scalar entirely (it can no
+longer be freshly configured; see ADR-0059's amendment). This map + the
+`budget.price_per_mtok_by_model` override, unchanged, remain the one pricing
+source.

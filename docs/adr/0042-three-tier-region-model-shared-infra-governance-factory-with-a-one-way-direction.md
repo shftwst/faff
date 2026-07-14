@@ -1,6 +1,6 @@
 # ADR 0042 — Three-tier region model: shared-infra / governance / factory with a one-way direction invariant
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-07-04
 - **Issue:** FAFF-359
 

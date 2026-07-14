@@ -100,8 +100,6 @@ const MATRIX = [
     "worktree-prune", "worktree-root",
   ].map((s) => [s, "--selftest"]),
   ["config", "init", "--selftest"],     // config's selftest is under `init`
-  ["regions", "--selftest"],
-  ["regions", "selftest", "--region", "governance"],
   ...CONTRACT_NAMES.map((n) => ["contract", n, "--selftest"]),
 
   // 3. Pure-read rows against the seeded fixture — exercise real argv→dispatch→read→stdout paths
@@ -129,6 +127,10 @@ const EXCLUSIONS = [
   { subcommand: "sync", reason: "side-effecting" },            // re-links ~/.local/bin + skill dirs
   { subcommand: "gitignore-ensure", reason: "side-effecting" }, // writes .gitignore
   { subcommand: "gates", reason: "wall-clock" },               // even --selftest embeds live duration_ms
+  // FAFF-444: regions --selftest's fixture table and regions check's output both changed shape
+  // (banner-tagged identifier lint → require-graph enforcement) — parity vs the pre-split
+  // baseline is definitionally broken for this surface, not a regression to chase.
+  { subcommand: "regions", reason: "require-graph enforcement (FAFF-444) changed selftest/check output shape" },
 ];
 // Exclusion ⇒ "no live-run row", not "untested". `gates`'s --selftest runs real timed checks whose
 // duration_ms is non-deterministic (proven by a HEAD-vs-HEAD self-parity FAIL), so it has no

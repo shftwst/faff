@@ -184,13 +184,13 @@ jobs:
       - name: Validate run-termination contract script (FAFF-38)
         run: node plugin/skills/faff/bin/faff contract run-termination --selftest
 
-      - name: Validate region-boundary lint fixture table (FAFF-359)
+      - name: Validate region require-graph fixture table (FAFF-444)
         run: node plugin/skills/faff/bin/faff regions --selftest
 
-      - name: Enforce the governance/factory direction invariant (FAFF-359)
+      - name: Enforce the governance/factory require-graph direction invariant (FAFF-444)
         run: node plugin/skills/faff/bin/faff regions check
 
-      - name: Governance region standalone selftests (FAFF-359)
+      - name: Governance region standalone selftests (FAFF-444)
         run: node plugin/skills/faff/bin/faff regions selftest --region governance
 
       - name: Prompt-size budget gate (advisory)

@@ -114,6 +114,24 @@ export function assembleUserMessage({ contextFiles = [], diff = "" }) {
   return s;
 }
 
+// FAFF-445: oversized-diff preflight — a conservative default well below the request-body limits
+// commonly enforced by LLM API gateways (frequently 10MB+), chosen so a payload this large already
+// all but guarantees either an outright 413 or such a degraded/truncated review that flagging it up
+// front is strictly better than attempting the dispatch (see the FAFF-445 spec, Decision 1).
+export const DEFAULT_MAX_PAYLOAD_BYTES = 5_000_000; // 5MB
+
+// PURE (FAFF-445): does the assembled payload (system + user — the exact two strings every chain
+// element's orchestration function places in its wire request) exceed a size threshold? Checked ONCE,
+// before the fallback chain is entered, so an oversized diff is flagged deterministically at zero
+// network cost rather than discovered only via a provider 413 mid-chain (FAFF-414 hardened the
+// *reaction* to that throw; this guards the *precondition* that produces it — the two compose, neither
+// supersedes the other). Strict `>` — a payload sitting exactly on the boundary dispatches normally.
+export function checkPayloadSize({ system, user, maxBytes = DEFAULT_MAX_PAYLOAD_BYTES } = {}) {
+  const bytes = Buffer.byteLength(String(system == null ? "" : system), "utf8")
+    + Buffer.byteLength(String(user == null ? "" : user), "utf8");
+  return { oversized: bytes > maxBytes, bytes, maxBytes };
+}
+
 // --- FAFF-194: deterministic guards for machine-checkable findings + output-format enforcement ---
 //
 // The adversarial reviewer's findings are hypotheses from a deliberately fallible LLM; two things the
@@ -746,6 +764,7 @@ export function parseArgs(argv) {
     else if (k === "--backends-json") a.backendsJson = argv[++i];   // FAFF-232: ordered fallback chain
     else if (k === "--lights-out") a.mandatory = true;   // FAFF-398: mark this review MANDATORY (L4) — a no-opinion chain exhaustion fails closed → needs-human
     else if (k === "--run-dir") a.runDir = argv[++i];   // FAFF-401: the run whose run-ledger.json derives mandatory-ness (level:"L4"); FAFF_RUN_DIR is the ambient fallback
+    else if (k === "--max-payload-bytes") a.maxPayloadBytes = Number(argv[++i]);   // FAFF-445: oversized-diff preflight threshold override (test-only escape hatch; default DEFAULT_MAX_PAYLOAD_BYTES applies when absent)
   }
   return a;
 }
@@ -982,7 +1001,7 @@ export async function runReviewChain(chain = [], shared = {}) {
 export async function main(argv, { runReviewFn = runReview, checkFn = realCheck } = {}) {
   const a = parseArgs(argv);
   if (!a.system || !a.diff) {
-    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off]\n");
+    process.stderr.write("usage: review-call.mjs (--host H --model M | --backends-json FILE) --system FILE --diff FILE [--context FILE]... [--num-predict N] [--timeout S] [--deadline S] [--host-source config|default] [--provider P] [--api-key-env VAR] [--reasoning-off] [--max-payload-bytes N]\n");
     return EXIT.USAGE;
   }
 
@@ -1034,6 +1053,18 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   const diff = readFileSync(a.diff, "utf8");
   const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
   const user = assembleUserMessage({ contextFiles, diff });
+
+  // FAFF-445: oversized-diff preflight — size-check the assembled payload BEFORE any chain element is
+  // dispatched (before mandatory-ness is even resolved, before runReviewChain is called). An oversized
+  // payload is flagged and refused, never silently trimmed — the exact material a preflight would drop is
+  // what the reviewer needs to do its job. Reuses EXIT.USAGE (2), the same needs-human-class terminal
+  // FAFF-414 established for a caught non-transient throw (see the FAFF-445 spec, Decision 2) — no new
+  // exit code, no new SKILL.md table row beyond broadening the existing exit-2 description.
+  const sizeCheck = checkPayloadSize({ system, user, maxBytes: a.maxPayloadBytes });
+  if (sizeCheck.oversized) {
+    process.stderr.write(`oversized-diff preflight: assembled payload ${sizeCheck.bytes} bytes exceeds the ${sizeCheck.maxBytes} byte threshold — flagged before dispatch, no backend called (exit ${EXIT.USAGE})\n`);
+    return EXIT.USAGE;
+  }
 
   // FAFF-401: derive mandatory-ness mechanically from the run ledger BEFORE the mandatoryRemap chokepoint,
   // so no model step sits between the resolved L4 level and the flag. The explicit --lights-out flag still

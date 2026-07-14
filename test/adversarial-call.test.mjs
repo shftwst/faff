@@ -16,6 +16,7 @@ import {
   ledgerMandatory,
   splitFindings, validateFindingsShape, attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
+  checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 
 test("buildChatPayload sets think:false + stream:true + the default token budget", () => {
@@ -1928,4 +1929,131 @@ test("FAFF-194: no new config-key reads were introduced (grep-level assertion �
   const src = readFileSync(new URL("../plugin/skills/faffter-dark-adversarial-review/review-call.mjs", import.meta.url), "utf8");
   assert.ok(!/process\.env\.FAFFRC/.test(src));
   assert.ok(!/faff config get/.test(src), "review-call.mjs never shells out to faff config — it only reads CLI flags + run-ledger.json");
+});
+
+// ===========================================================================
+// FAFF-445 — oversized-diff preflight: size-check the assembled payload BEFORE any chain dispatch
+// ===========================================================================
+
+// ── checkPayloadSize (pure) ──
+
+test("FAFF-445 checkPayloadSize: under threshold → not oversized", () => {
+  const r = checkPayloadSize({ system: "sys", user: "user text", maxBytes: 100 });
+  assert.equal(r.oversized, false);
+  assert.equal(r.bytes, Buffer.byteLength("sys") + Buffer.byteLength("user text"));
+  assert.equal(r.maxBytes, 100);
+});
+
+test("FAFF-445 checkPayloadSize: over threshold → oversized", () => {
+  const r = checkPayloadSize({ system: "a".repeat(60), user: "b".repeat(60), maxBytes: 100 });
+  assert.equal(r.oversized, true);
+  assert.equal(r.bytes, 120);
+});
+
+test("FAFF-445 checkPayloadSize: exactly at the threshold → NOT oversized (strict >)", () => {
+  const r = checkPayloadSize({ system: "a".repeat(50), user: "b".repeat(50), maxBytes: 100 });
+  assert.equal(r.bytes, 100);
+  assert.equal(r.oversized, false, "a payload sitting exactly on the boundary dispatches normally");
+});
+
+test("FAFF-445 checkPayloadSize: sums system + user, not user alone", () => {
+  // A huge system (the review lens) with a tiny user/diff must still trip the threshold — the real wire
+  // payload includes the system message in every provider family's chat payload.
+  const r = checkPayloadSize({ system: "x".repeat(200), user: "tiny", maxBytes: 100 });
+  assert.equal(r.oversized, true);
+});
+
+test("FAFF-445 checkPayloadSize: defaults to DEFAULT_MAX_PAYLOAD_BYTES (5MB) when maxBytes is omitted", () => {
+  const r = checkPayloadSize({ system: "S", user: "U" });
+  assert.equal(r.maxBytes, DEFAULT_MAX_PAYLOAD_BYTES);
+  assert.equal(r.oversized, false);
+});
+
+test("FAFF-445 checkPayloadSize: tolerates missing/null system+user", () => {
+  const r = checkPayloadSize({});
+  assert.equal(r.bytes, 0);
+  assert.equal(r.oversized, false);
+});
+
+// ── main(): the preflight gates entry to runReviewChain — zero dispatch on an oversized payload ──
+
+test("FAFF-445 main(): an oversized payload returns EXIT.USAGE (2) and NEVER calls the injected runReviewFn", async () => {
+  const { sys, diff } = writeMainFixtures();
+  let called = false;
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--max-payload-bytes", "1"],
+    { runReviewFn: async () => { called = true; return { status: "ok", content: "### observation: x" }; } },
+  );
+  assert.equal(code, EXIT.USAGE);
+  assert.equal(called, false, "the preflight must gate ENTRY to the chain — zero backend calls on an oversized payload");
+});
+
+test("FAFF-445 main(): a payload under the (overridden) threshold is unaffected — normal dispatch proceeds", async () => {
+  const { sys, diff } = writeMainFixtures();
+  let called = false;
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--max-payload-bytes", "1000000"],
+    { runReviewFn: async () => { called = true; return { status: "ok", content: "### observation: x" }; } },
+  );
+  assert.equal(code, EXIT.OK);
+  assert.equal(called, true, "a payload under threshold must reach the real dispatch, unaffected by this change");
+});
+
+test("FAFF-445 main(): with NO --max-payload-bytes override, the default (5MB) applies and small fixtures are unaffected", async () => {
+  const { sys, diff } = writeMainFixtures();
+  let called = false;
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+    { runReviewFn: async () => { called = true; return { status: "ok", content: "### observation: x" }; } },
+  );
+  assert.equal(code, EXIT.OK, "byte-for-byte parity with pre-FAFF-445 behaviour for any payload under the default threshold");
+  assert.equal(called, true);
+});
+
+test("FAFF-445 main(): the oversized block fires identically for a --backends-json chain (chain-length-agnostic)", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff445-"));
+  const sys = join(dir, "system.txt"); const diff = join(dir, "diff.txt"); const bf = join(dir, "backends.json");
+  writeFileSync(sys, "REVIEW LENS"); writeFileSync(diff, "DIFF");
+  writeFileSync(bf, JSON.stringify([
+    { provider: "nvidia", model: "m1", host: "https://nv/v1" },
+    { provider: "ollama", model: "m2", host: "http://ollama:11434" },
+  ]));
+  let calls = 0;
+  const code = await main(
+    ["--backends-json", bf, "--system", sys, "--diff", diff, "--max-payload-bytes", "1"],
+    { runReviewFn: async () => { calls += 1; return { status: "ok", content: "### observation: x" }; } },
+  );
+  assert.equal(code, EXIT.USAGE);
+  assert.equal(calls, 0, "no chain element — of either backend — is attempted when the preflight blocks");
+});
+
+test("FAFF-445 main(): an oversized payload under --lights-out returns EXIT.USAGE (2), NOT EXIT.MANDATORY_OUTAGE (9) — mandatoryRemap is never reached", async () => {
+  const { sys, diff } = writeMainFixtures();
+  let called = false;
+  const code = await main(
+    ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--max-payload-bytes", "1", "--lights-out"],
+    { runReviewFn: async () => { called = true; return { status: "ok", content: "### observation: x" }; } },
+  );
+  assert.equal(code, EXIT.USAGE);
+  assert.notEqual(code, EXIT.MANDATORY_OUTAGE, "the preflight returns before runReviewChain produces an exit to remap");
+  assert.equal(called, false);
+});
+
+test("FAFF-445 main(): an oversized payload logs a loud stderr line naming the measured size and threshold", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const origErr = process.stderr.write.bind(process.stderr);
+  let errOut = "";
+  process.stderr.write = (c) => { errOut += c; return true; };
+  let code;
+  try {
+    code = await main(
+      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--max-payload-bytes", "1"],
+      { runReviewFn: async () => ({ status: "ok", content: "### observation: x" }) },
+    );
+  } finally {
+    process.stderr.write = origErr;
+  }
+  assert.equal(code, EXIT.USAGE);
+  assert.match(errOut, /oversized-diff preflight/);
+  assert.match(errOut, /exceeds the 1 byte threshold/);
 });

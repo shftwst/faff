@@ -31,13 +31,16 @@ cat > .faffrc.yaml <<'EOF'
 # NOTE: the full leash + steer-via-comment loop is richest on a REAL tracker. To upgrade:
 #   add a `tracking:` block (project_id / team_key), drop `automation_default`, and let the
 #   tracker own eligibility labels. git-only here is enough to exercise the PRD/PRDR gates.
+# The three L4 lights-out dials this SUT needs to clear `faff lights-out --check` dial-coherence:
+# slots.review (adversarial), slots.spec_review (adversarial), gates.fallback (fail-closed).
 slots:
   methodology: faffter-dark-methodology-agile-delivery
   spec: faffter-dark-nlspec
   architecture: faffter-noon-architecture
   env: faffter-noon-env-compose
   evaluator: faffter-noon-evaluate
-  review: faffter-noon-review
+  review: faffter-dark-adversarial-review     # L4 dial: adversarial second-opinion (was faffter-noon-review)
+  spec_review: faffter-dark-spec-review       # L4 dial: adversarial spec_review (was unset -> single-pass default)
 appetite: high
 automation_default: opt-out
 intake_gate: warn
@@ -49,6 +52,8 @@ budget:
   # cost: 25   # optional: budget.cost (dollars, priced from the ADR-0048 map) is the FAFF-427
               # recommended L4 spend governor; max_attempts is a count, excluded from the L4
               # budget-ceiling gate and kept only as an extra backstop.
+gates:
+  fallback: fail-closed                        # L4 dial: unattended runs need fail-closed engineering gates (was unset -> advisory)
 EOF
 
 cat > PRD.md <<'EOF'
@@ -131,6 +136,10 @@ conditions weren't machine-checkable — a real finding.
     /faff-prep  <first-increment>
     /faff-graft <that-increment>            # or, for the full unattended loop:
     /faff-beep-boop --converge              # drains discovered scope IN-RUN until both tributaries run dry
+
+Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
+pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — that leg is operator-supplied, not scaffolded. All
+three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml`.
 
 ## 4. Observe the two gates
     faff prdr coverage --prd-goals '<JSON array of the PRD "In scope" goals>' --dod-verdicts ...   # lower gate: refuses "done" before every stop condition verdicts GO

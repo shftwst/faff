@@ -29,13 +29,16 @@ EOF
 
 cat > .faffrc.yaml <<'EOF'
 # faff config — SUT P3 (landing page). git-only, agile lens, lights-out eligible.
+# The three L4 lights-out dials this SUT needs to clear `faff lights-out --check` dial-coherence:
+# slots.review (adversarial), slots.spec_review (adversarial), gates.fallback (fail-closed).
 slots:
   methodology: faffter-dark-methodology-agile-delivery
   spec: faffter-dark-nlspec
   architecture: faffter-noon-architecture
   env: faffter-noon-env-compose
   evaluator: faffter-noon-evaluate
-  review: faffter-noon-review
+  review: faffter-dark-adversarial-review     # L4 dial: adversarial second-opinion (was faffter-noon-review)
+  spec_review: faffter-dark-spec-review       # L4 dial: adversarial spec_review (was unset -> single-pass default)
 appetite: high
 automation_default: opt-out
 intake_gate: warn
@@ -43,6 +46,8 @@ budget:
   max_attempts: 6
   tokens: 30000000
   at_ceiling: stop
+gates:
+  fallback: fail-closed                        # L4 dial: unattended runs need fail-closed engineering gates (was unset -> advisory)
 EOF
 
 cat > BRIEF.md <<'EOF'
@@ -89,6 +94,10 @@ Open a Claude Code session with cwd = THIS repo:
     /faff-jot   "<paste BRIEF.md>"
     /faff-prep  <first-ticket>      # WATCH: does the spec mark the subjective Scenarios distinctly from the verifiable ones?
     /faff-graft <that-ticket>
+
+Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
+pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — that leg is operator-supplied, not scaffolded. All
+three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml`.
 
 ## 2. The critical observation — read the holdout-verdict closely
     faff holdout verdicts --association <json>

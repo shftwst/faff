@@ -15,7 +15,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { adrField, adrFlag, adrSlug, recordSupersede, recordSupersededBy, recordSupersessionProblems } = require("./adr");
+const { adrField, adrFlag, adrSlug, recordSupersede, recordSupersededBy, recordSupersessionProblems, renumberRefsTo } = require("./adr");
 const { DEFAULTS, loadConfig, resolvePrdrDocsPath } = require("./config");
 const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
@@ -107,6 +107,137 @@ function prdrValidate(dir) {
   return problems;
 }
 
+// === FAFF-463: PRDR git-landing (accept sole-writer + renumber port + git-aware validate tier) ===
+// The one place the CLI edits/commits a PRDR record's Status into `Accepted`. All git is local
+// (spawnSync per stage.js precedent, FAFF-457) — push/PR is the calling skill's job.
+const { spawnSync } = require("node:child_process");
+const git = (root, a, opts) => spawnSync("git", ["-C", root, ...a], { encoding: "utf8", ...(opts || {}) });
+const gitOk = (root, a) => git(root, a).status === 0;
+const gitOut = (root, a) => { const r = git(root, a); return r.status === 0 ? (r.stdout || "").trim() : null; };
+
+// Git-awareness tier (P: FAIL accepted-uncommitted, NOTE proposed-uncommitted). `prdr.validate_git`:
+// auto (default; degrades to silent outside a git work tree) | off. Presence-only elsewhere; tracked-ness
+// is a shape fact, not content. Returns { fails: string[], notes: string[] }.
+function prdrGitTier(dir, root, cfg) {
+  const mode = (cfg && cfg["prdr.validate_git"]) || DEFAULTS["prdr.validate_git"];
+  if (mode === "off") return { fails: [], notes: [] };
+  if (!gitOk(root, ["rev-parse", "--is-inside-work-tree"])) return { fails: [], notes: [] };
+  const fails = [], notes = [];
+  for (const a of listPrdrs(dir)) {
+    const rel = path.relative(root, path.join(dir, a.file)) || a.file;
+    const tracked = gitOk(root, ["ls-files", "--error-unmatch", "--", rel]);
+    const modified = !!gitOut(root, ["status", "--porcelain", "--", rel]);
+    const st = a.status || "";
+    if (/^Accepted/i.test(st) && (!tracked || modified)) fails.push(`${a.file}: accepted-uncommitted — Status Accepted but the file is untracked-or-modified vs HEAD`);
+    else if (/^Proposed/i.test(st) && !tracked) notes.push(`${a.file}: proposed-uncommitted — a Proposed record not yet tracked (the legitimate authoring state)`);
+  }
+  return { fails, notes };
+}
+
+// Resolve the base branch to land off (merge-gate.js:566-567 precedent: gh → origin/HEAD → "main").
+function resolveDefaultBase(root) {
+  const gh = spawnSync("gh", ["repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name"], { cwd: root, encoding: "utf8" });
+  if (gh.status === 0 && gh.stdout.trim()) return gh.stdout.trim();
+  const originHead = gitOut(root, ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"]);
+  if (originHead) return originHead.replace(/^origin\//, "");
+  return "main";
+}
+
+// THE sole writer of `Status: Accepted`. Atomic-or-clean: any failure leaves the working tree, the
+// original branch, and the record's Status exactly as they were.
+function prdrAccept(dir, root, number, { actor, admitVerdictJson, noBranch, cfg } = {}) {
+  const rec = (() => { const d = String(number || "").match(/^(\d{1,4})/); return d ? listPrdrs(dir).find((a) => a.num === d[1].padStart(4, "0")) : null; })();
+  if (!rec) return { code: 1, err: `faff prdr accept: no PRDR matching "${number}" in ${path.relative(root, dir) || dir}\n` };
+  if (/^(Accepted|Rejected|Superseded)/i.test(rec.status || "")) return { code: 1, err: `faff prdr accept: PRDR-${rec.num} Status is already terminal ("${(rec.status || "").split(/[ (.]/)[0]}") — accept only flips Proposed\n` };
+  if (!gitOk(root, ["rev-parse", "--is-inside-work-tree"])) return { code: 1, err: `faff prdr accept: not a git work tree — accept is a git gesture\n` };
+  const curBranch = gitOut(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  if (!curBranch) return { code: 1, err: `faff prdr accept: HEAD is detached — no branch to restore or to carry the commit\n` };
+
+  if (actor === "loop") {
+    if (!admitVerdictJson) return { code: 2, err: `faff prdr accept: --actor loop requires --admit-verdict '<json>'\n` };
+    let parsed; try { parsed = JSON.parse(admitVerdictJson); } catch { return { code: 2, err: `faff prdr accept: --admit-verdict is not valid JSON\n` }; }
+    const sc = schemaCheck(parsed, "prdr-admission");
+    if (sc) return { code: 2, err: `faff prdr accept: --admit-verdict fails prdr-admission schema: ${sc}\n` };
+    if (parsed.disposition !== "admit") return { code: 1, err: `faff prdr accept: --admit-verdict disposition is "${parsed.disposition}", not "admit" — the loop may only accept an admitted PRDR\n` };
+  }
+
+  const filePath = path.join(dir, rec.file);
+  const base = noBranch ? curBranch : resolveDefaultBase(root);
+  const prefix = (cfg && cfg["prdr.accept_branch_prefix"]) || DEFAULTS["prdr.accept_branch_prefix"];
+  const landing = `${prefix}${rec.num}-${adrSlug(rec.title || rec.slug || "prdr")}`;
+
+  // --- branch setup (skipped for --no-branch): NOTHING is mutated until a switch succeeds ---
+  if (!noBranch) {
+    if (gitOut(root, ["diff", "--cached", "--name-only"])) return { code: 1, err: `faff prdr accept: the index has staged changes — commit or reset them first (accept must not smuggle unrelated work)\n` };
+    if (gitOk(root, ["show-ref", "--verify", "--quiet", `refs/heads/${landing}`])) return { code: 1, err: `faff prdr accept: landing branch "${landing}" already exists — delete it or use --no-branch\n` };
+    const sw = git(root, ["switch", "-c", landing, base]);
+    if (sw.status !== 0) return { code: 1, err: `faff prdr accept: could not create landing branch "${landing}" off "${base}" (nothing mutated): ${(sw.stderr || "").trim()}\n` };
+  }
+
+  // --- the mutation, strictly AFTER a successful switch — on the landing branch, never the original ---
+  const orig = fs.readFileSync(filePath, "utf8");
+  const restore = (extra) => {  // full rollback: unstage, restore file content, restore branch, drop landing
+    try { git(root, ["reset", "-q"]); } catch {}          // unstage (never `git checkout -- file`, which restores the staged Accepted copy)
+    try { fs.writeFileSync(filePath, orig); } catch {}     // content back to Proposed
+    if (!noBranch) { git(root, ["switch", curBranch]); git(root, ["branch", "-D", landing]); }
+    return extra;
+  };
+  fs.writeFileSync(filePath, orig.replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, "$1Accepted"));
+  const relPath = path.relative(root, filePath) || rec.file;
+  const add = git(root, ["add", "--", relPath]);
+  if (add.status !== 0) return { code: 1, ...restore({ err: `faff prdr accept: git add failed (rolled back — Status still Proposed): ${(add.stderr || "").trim()}\n` }) };
+  const commit = git(root, ["commit", "-m", `docs(prdr): accept PRDR-${rec.num} — ${rec.title || rec.slug}`]);
+  if (commit.status !== 0) return { code: 1, ...restore({ err: `faff prdr accept: git commit failed (rolled back — Status still Proposed): ${(commit.stderr || "").trim()}\n` }) };
+
+  // --- success: return to the original branch (the landing branch holds the commit) ---
+  let warn = "";
+  if (!noBranch) { const back = git(root, ["switch", curBranch]); if (back.status !== 0) warn = `warning: commit landed on "${landing}" but could not switch back to "${curBranch}" — run: git switch ${curBranch}\n`; }
+  return { code: 0, out: JSON.stringify({ file: filePath, branch: noBranch ? curBranch : landing, base }) + "\n", err: warn };
+}
+
+// Merge-time collision repair — port of adrRenumber for PRDR (uses the shared renumberRefsTo).
+// selector = a filename or a bare number (a DUPLICATED bare number is rejected — pass the filename);
+// target = a 1–4 digit number or "next". Renames the file, fixes the heading, rewrites in-ref-scope
+// back-refs, re-validates. git-agnostic (pure fs; the caller stages the rename).
+function prdrRenumber(dir, root, selector, target, refScopeArg) {
+  if (!selector || !target) return { code: 2, err: `usage: faff prdr renumber <file-or-number> --to next|<NNNN> [--ref-scope <scope>]\n` };
+  const prdrs = listPrdrs(dir);
+  let rec;
+  if (/^\d{1,4}$/.test(String(selector))) {
+    const num = String(selector).padStart(4, "0");
+    const hits = prdrs.filter((a) => a.num === num);
+    if (hits.length > 1) return { code: 2, err: `faff prdr renumber: bare number ${num} is ambiguous (${hits.length} files) — pass the filename\n` };
+    rec = hits[0];
+  } else {
+    const base = path.basename(String(selector));
+    rec = prdrs.find((a) => a.file === base);
+  }
+  if (!rec) return { code: 1, err: `faff prdr renumber: no PRDR matching "${selector}" in ${path.relative(root, dir) || dir}\n` };
+  const newNum = target === "next" ? prdrNextNumber(dir) : String(target).padStart(4, "0");
+  if (newNum === rec.num) return { code: 0, out: `${rec.file} (no-op — already ${newNum})\n` };
+  if (prdrs.some((a) => a.num === newNum)) return { code: 1, err: `faff prdr renumber: target ${newNum} is already occupied — pick a free slot or use --to next\n` };
+  const oldPath = path.join(dir, rec.file);
+  const newFile = `${newNum}-${rec.file.replace(/^\d{1,4}-/, "")}`;
+  const newPath = path.join(dir, newFile);
+  if (fs.existsSync(newPath)) return { code: 1, err: `faff prdr renumber: ${newFile} already exists\n` };
+  // Fix the heading number in the moved file's own text.
+  let text = fs.readFileSync(oldPath, "utf8").replace(/^(#\s*PRDR\s+)\d+(\s*[—\-])/mi, `$1${newNum}$2`);
+  fs.writeFileSync(oldPath, text);
+  fs.renameSync(oldPath, newPath);
+  // Rewrite canonical supersession back-refs pointing at oldNum within the ref-scope (default: all PRDRs).
+  const scope = refScopeArg ? refScopeArg.split(/\s+/).filter(Boolean).map((s) => path.basename(s)) : null;
+  for (const a of listPrdrs(dir)) {
+    if (scope && !scope.includes(a.file)) continue;
+    const p = path.join(dir, a.file);
+    const before = fs.readFileSync(p, "utf8");
+    const after = renumberRefsTo(before, rec.num, newNum, "PRDR");
+    if (after !== before) fs.writeFileSync(p, after);
+  }
+  const problems = prdrValidate(dir);
+  if (problems.length) return { code: 1, err: `faff prdr renumber: tree does not re-validate after renumber:\n${problems.map((p) => "  FAIL " + p).join("\n")}\n` };
+  return { code: 0, out: `${rec.file} → ${newFile}\n` };
+}
+
 function cmdPrdr(args) {
   if (args.includes("--selftest")) return prdrSelftest();
   const action = args[0];
@@ -142,9 +273,34 @@ function cmdPrdr(args) {
 
   if (action === "validate") {
     const problems = prdrValidate(dir);
-    if (!problems.length) { console.log(`OK — ${listPrdrs(dir).length} PRDR(s) in ${path.relative(root, dir) || dir} valid.`); return 0; }
-    for (const p of problems) console.log(`FAIL  ${p}`);
+    const { fails, notes } = prdrGitTier(dir, root, loadConfig(root)[0]); // FAFF-463: git-awareness tier
+    const allFails = problems.concat(fails);
+    if (!allFails.length) { console.log(`OK — ${listPrdrs(dir).length} PRDR(s) in ${path.relative(root, dir) || dir} valid.`); for (const n of notes) console.log(`NOTE  ${n}`); return 0; }
+    for (const p of allFails) console.log(`FAIL  ${p}`);
+    for (const n of notes) console.log(`NOTE  ${n}`);
     return 1;
+  }
+
+  if (action === "accept") {
+    const number = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
+    if (!number) { process.stderr.write("faff prdr accept: <number> is required\n"); return 2; }
+    const actor = adrFlag(args, "--actor") || "human";
+    if (!["human", "loop"].includes(actor)) { process.stderr.write("faff prdr accept: --actor must be human|loop\n"); return 2; }
+    const r = prdrAccept(dir, root, number, {
+      actor, admitVerdictJson: adrFlag(args, "--admit-verdict"),
+      noBranch: args.includes("--no-branch"), cfg: loadConfig(root)[0],
+    });
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
+  }
+
+  if (action === "renumber") {
+    const selector = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
+    const r = prdrRenumber(dir, root, selector, adrFlag(args, "--to"), adrFlag(args, "--ref-scope"));
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
   }
 
   if (action === "new") {
@@ -458,6 +614,91 @@ function prdrSelftest() {
     return v.uncovered_goals.length === 1 && v.uncovered_goals[0] === "g1" && computePrdCoverage(v).contractData.conformant === true;
   })());
 
+  // === FAFF-463: git-landing (accept sole-writer, renumber, git-aware validate tier) ===
+  {
+    const mkRepo = () => {
+      const r = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-git-"));
+      git(r, ["init", "-q"]); git(r, ["config", "user.email", "t@t"]); git(r, ["config", "user.name", "t"]);
+      git(r, ["commit", "-q", "--allow-empty", "-m", "init"]); git(r, ["checkout", "-q", "-B", "main"]);
+      const d = path.join(r, "docs", "prdr"); fs.mkdirSync(d, { recursive: true });
+      return { r, d };
+    };
+    const seed = (d, num = "0001", status) => fs.writeFileSync(path.join(d, `${num}-smoke.md`),
+      prdrTemplate({ num, title: "smoke", date: "2026-07-15", container: "c", prdGoal: "g", provenance: "human", status }));
+    const statusOf = (d, num = "0001") => (fs.readFileSync(path.join(d, `${num}-smoke.md`), "utf8").match(/^[\s>*-]*\*{0,2}Status[\s*]*:[\s*]*(\S+)/mi) || [])[1];
+    const hasLanding = (r) => !!gitOut(r, ["for-each-ref", "--format=%(refname:short)", "refs/heads/prdr/"]);
+
+    // happy path
+    { const { r, d } = mkRepo(); seed(d); const res = prdrAccept(d, r, "1", {});
+      const out = res.code === 0 ? JSON.parse(res.out) : {};
+      t("accept: happy path exits 0, prints branch+base", res.code === 0 && out.branch === "prdr/0001-smoke" && out.base === "main");
+      t("accept: original branch restored (main)", gitOut(r, ["symbolic-ref", "--short", "HEAD"]) === "main");
+      t("accept: landing branch holds Status Accepted", gitOut(r, ["show", "prdr/0001-smoke:docs/prdr/0001-smoke.md"]).match(/Status:\*\* Accepted/) != null);
+      t("accept: exactly one commit on the landing branch touching only the PRDR file",
+        gitOut(r, ["show", "--name-only", "--format=", "prdr/0001-smoke"]).trim() === "docs/prdr/0001-smoke.md");
+      t("accept: validate on the landing branch is clean (no FAIL, no NOTE)", (() => { git(r, ["switch", "-q", "prdr/0001-smoke"]); const gt = prdrGitTier(d, r, {}); return gt.fails.length === 0 && gt.notes.length === 0; })());
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // refusals — each mutates nothing
+    { const { r, d } = mkRepo(); seed(d, "0001", "Accepted"); const res = prdrAccept(d, r, "1", {});
+      t("accept: refuses an already-terminal Status (exit 1)", res.code === 1 && /terminal/.test(res.err) && !hasLanding(r)); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d); git(r, ["checkout", "-q", "--detach"]); const res = prdrAccept(d, r, "1", {});
+      t("accept: refuses detached HEAD (exit 1), Status unflipped", res.code === 1 && /detached/.test(res.err) && statusOf(d) === "Proposed" && !hasLanding(r)); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d); fs.writeFileSync(path.join(r, "other.txt"), "x"); git(r, ["add", "other.txt"]); const res = prdrAccept(d, r, "1", {});
+      t("accept: refuses a staged index (exit 1), Status unflipped", res.code === 1 && /staged/.test(res.err) && statusOf(d) === "Proposed" && !hasLanding(r)); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d); git(r, ["branch", "prdr/0001-smoke"]); const res = prdrAccept(d, r, "1", {});
+      t("accept: refuses an existing landing branch (exit 1), Status unflipped", res.code === 1 && /already exists/.test(res.err) && statusOf(d) === "Proposed"); fs.rmSync(r, { recursive: true, force: true }); }
+    { const noGit = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-nogit-")); const d = path.join(noGit, "docs", "prdr"); fs.mkdirSync(d, { recursive: true }); seed(d);
+      const res = prdrAccept(d, noGit, "1", {}); t("accept: refuses a non-git tree (exit 1)", res.code === 1 && /not a git/.test(res.err)); fs.rmSync(noGit, { recursive: true, force: true }); }
+
+    // rollback on injected commit failure (a failing pre-commit hook) — file restored, branch restored, landing gone
+    { const { r, d } = mkRepo(); seed(d);
+      const hooks = path.join(r, ".git", "hooks"); fs.mkdirSync(hooks, { recursive: true });
+      fs.writeFileSync(path.join(hooks, "pre-commit"), "#!/bin/sh\nexit 1\n"); fs.chmodSync(path.join(hooks, "pre-commit"), 0o755);
+      const res = prdrAccept(d, r, "1", {});
+      t("accept: rollback on commit failure — exit non-zero", res.code !== 0);
+      t("accept: rollback — Status back to Proposed", statusOf(d) === "Proposed");
+      t("accept: rollback — original branch restored, landing branch deleted", gitOut(r, ["symbolic-ref", "--short", "HEAD"]) === "main" && !hasLanding(r));
+      fs.rmSync(r, { recursive: true, force: true }); }
+
+    // loop-actor gating — the FAFF-255 admit verdict is the key to the writer
+    { const { r, d } = mkRepo(); seed(d); const res = prdrAccept(d, r, "1", { actor: "loop" });
+      t("accept --actor loop without --admit-verdict → refused (exit 2), no mutation", res.code === 2 && statusOf(d) === "Proposed" && !hasLanding(r)); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d); const res = prdrAccept(d, r, "1", { actor: "loop", admitVerdictJson: JSON.stringify({ disposition: "propose-only" }) });
+      t("accept --actor loop with a non-admit disposition → refused, Status still Proposed, no branch", res.code !== 0 && statusOf(d) === "Proposed" && !hasLanding(r)); fs.rmSync(r, { recursive: true, force: true }); }
+
+    // --no-branch: commits on the current branch, no branch ops
+    { const { r, d } = mkRepo(); seed(d); const res = prdrAccept(d, r, "1", { noBranch: true });
+      t("accept --no-branch: commits on current branch, Status Accepted, no landing branch",
+        res.code === 0 && gitOut(r, ["symbolic-ref", "--short", "HEAD"]) === "main" && statusOf(d) === "Accepted" && !hasLanding(r) &&
+        /accept PRDR-0001/.test(gitOut(r, ["log", "-1", "--format=%s"]))); fs.rmSync(r, { recursive: true, force: true }); }
+
+    // validator git-tier
+    { const { r, d } = mkRepo(); seed(d, "0001", "Accepted"); const gt = prdrGitTier(d, r, {});
+      t("git-tier: Accepted + untracked → FAIL accepted-uncommitted", gt.fails.some((f) => /accepted-uncommitted/.test(f)) && gt.notes.length === 0); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d); const gt = prdrGitTier(d, r, {});
+      t("git-tier: Proposed + untracked → NOTE proposed-uncommitted (no FAIL)", gt.notes.some((n) => /proposed-uncommitted/.test(n)) && gt.fails.length === 0); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d, "0001", "Accepted"); const gt = prdrGitTier(d, r, { "prdr.validate_git": "off" });
+      t("git-tier: validate_git=off → silent (no FAIL)", gt.fails.length === 0 && gt.notes.length === 0); fs.rmSync(r, { recursive: true, force: true }); }
+    { const noGit = fs.mkdtempSync(path.join(os.tmpdir(), "faff-prdr-nogit2-")); const d = path.join(noGit, "docs", "prdr"); fs.mkdirSync(d, { recursive: true }); seed(d, "0001", "Accepted");
+      t("git-tier: non-git tree → degrades silent (no FAIL)", prdrGitTier(d, noGit, {}).fails.length === 0); fs.rmSync(noGit, { recursive: true, force: true }); }
+
+    // renumber — the merge-collision case: a DUPLICATE number renumbered to next makes the tree contiguous
+    { const { r, d } = mkRepo(); seed(d, "0001"); seed(d, "0002");
+      fs.writeFileSync(path.join(d, "0002-dup.md"), fs.readFileSync(path.join(d, "0002-smoke.md"), "utf8")); // a second 0002 (collision)
+      t("renumber: tree with a duplicate 0002 does not validate", prdrValidate(d).some((p) => /duplicate PRDR number 0002/.test(p)));
+      const res = prdrRenumber(d, r, "0002-dup.md", "next");
+      t("renumber: duplicate 0002-dup → next (0003) renames + fixes heading + re-validates clean",
+        res.code === 0 && fs.existsSync(path.join(d, "0003-dup.md")) && !fs.existsSync(path.join(d, "0002-dup.md")) &&
+        /# PRDR 0003 —/.test(fs.readFileSync(path.join(d, "0003-dup.md"), "utf8")) && prdrValidate(d).length === 0);
+      fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d, "0001"); seed(d, "0002");
+      const res = prdrRenumber(d, r, "0002-smoke.md", "0001");
+      t("renumber: refuses an already-occupied target (exit 1)", res.code === 1 && /already occupied/.test(res.err)); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d, "0001"); const res = prdrRenumber(d, r, "0001-smoke.md", "0001");
+      t("renumber: to the same number is a no-op exit 0", res.code === 0 && /no-op/.test(res.out)); fs.rmSync(r, { recursive: true, force: true }); }
+  }
+
   let failed = 0;
   for (const [name, ok] of cases) { if (!ok) { process.stderr.write(`prdr --selftest FAIL: ${name}\n`); failed++; } }
   if (failed) { process.stderr.write(`prdr --selftest: ${failed}/${cases.length} failed\n`); return 1; }
@@ -466,4 +707,4 @@ function prdrSelftest() {
 }
 
 
-module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, cmdPrdr, listPrdrs, prdrDir, prdrNextNumber, prdrSelftest, prdrTemplate, prdrValidate };
+module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, cmdPrdr, listPrdrs, prdrAccept, prdrDir, prdrGitTier, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate };

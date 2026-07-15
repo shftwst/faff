@@ -55,6 +55,11 @@ const DEFAULTS = {
   // within thrash_window (days) before `prdr admit` escalates (ratchet.breached). Conservative defaults.
   "prdr.thrash_max": "3",
   "prdr.thrash_window": "21",
+  // FAFF-463: PRDR git-landing. accept_branch_prefix = the landing-branch prefix `faff prdr accept`
+  // commits onto. validate_git = auto (default; the git-awareness validate tier runs, degrading to
+  // silent outside a git work tree) | off (skip the git tier entirely).
+  "prdr.accept_branch_prefix": "prdr/",
+  "prdr.validate_git": "auto",
   // FAFF-315: per-lane model selection. build/prep_explore take the closed Agent-tool token set
   // (MODEL_LANE_VOCAB below); "inherit" = dispatch with no model param (byte-for-byte today).
   // models.eval is the eval frontier driver's pinned default — NEVER the account default (budget guard).

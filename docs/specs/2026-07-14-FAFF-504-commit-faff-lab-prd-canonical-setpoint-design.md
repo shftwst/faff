@@ -44,7 +44,7 @@ This spec is for the build agent implementing FAFF-504 and for the human reviewe
 
 - **Provisioning a Linear container for faff-lab** — creating the team/project, adding a `tracking:` block, dropping `automation_default`.
   - **Why excluded:** this ticket *decides* git-only-first and *records* the upgrade path; it does not execute the upgrade.
-  - **Extension point:** a follow-up ticket that adds the `tracking:` block to the faff-lab config per ADR 0067's documented path, once the loop is proven in anger.
+  - **Extension point:** a follow-up ticket that adds the `tracking:` block to the faff-lab config per ADR 0070's documented path, once the loop is proven in anger.
 
 - **Fixing the P2 scaffold's wrong runbook** — correcting `scaffold-p2-task-api.sh`'s citations of `faff prd new --from` / `faff prd admit`.
   - **Why excluded:** it is a discovered adjacent defect in a different file; correcting it here would scope-creep FAFF-504. Filed as FAFF-507.
@@ -77,7 +77,7 @@ FILE docs/external-verification/faff-lab/PRD.md      # NEW
   CONSTRAINT: content == ticket PRD text, transcribed unaltered
   CONSTRAINT: does NOT name `faff prd new --from` or `faff prd admit`
 
-FILE docs/adr/0067-faff-lab-tracker-vs-git-only.md   # NEW
+FILE docs/adr/0070-faff-lab-tracker-vs-git-only.md   # NEW
   - Nygard format: title / metadata / Context / Decision / Consequences
   - Status: Accepted   Ticket: FAFF-504
   - records: git-only-first + the documented upgrade path
@@ -93,7 +93,7 @@ RUNBOOK-PROSE (in PRD.md or a sibling doc it references)
 
 ## 4. HOW — Behavior
 
-**Approach:** Three sequential, mechanical steps: (1) write the canonical PRD doc; (2) write ADR 0067; (3) record the real admission flow. No code, no build. The only non-trivial judgement is *fidelity* (verbatim PRD, real commands only), which the DONE checklist makes grep-checkable.
+**Approach:** Three sequential, mechanical steps: (1) write the canonical PRD doc; (2) write ADR 0070; (3) record the real admission flow. No code, no build. The only non-trivial judgement is *fidelity* (verbatim PRD, real commands only), which the DONE checklist makes grep-checkable.
 
 **Where the PRD lives — and why not the obvious alternatives.**
 
@@ -122,11 +122,11 @@ PROCEDURE record_real_admission_flow():
   # NON-EXISTENT (never name these): `faff prd new --from`, `faff prd admit`
 ```
 
-**ADR 0067 shape.** Follow the house Nygard format exactly (as in the 66 existing ADRs):
+**ADR 0070 shape.** Follow the house Nygard format exactly (as in the 66 existing ADRs):
 
 ```
 PROCEDURE write_adr_0067():
-  1. Header:   "# ADR 0067 — faff-lab: tracker vs git-only for the first run"
+  1. Header:   "# ADR 0070 — faff-lab: tracker vs git-only for the first run"
   2. Metadata: Status: Accepted | Date: 2026-07-14 | Ticket: FAFF-504 | Supersedes: —
   3. ## Context:
      - faff-lab is the 6th external-verification rung, a long-lived deliverable
@@ -164,8 +164,8 @@ Then the content matches verbatim (whitespace-only differences permitted)
 ```
 
 ```
-Given ADR 0067 is committed
-When a reader opens docs/adr/0067-faff-lab-tracker-vs-git-only.md
+Given ADR 0070 is committed
+When a reader opens docs/adr/0070-faff-lab-tracker-vs-git-only.md
 Then it is valid Nygard format (Context / Decision / Consequences), Status: Accepted,
   Ticket: FAFF-504, and its Decision records git-only-first plus the tracking-block upgrade path
 ```
@@ -187,7 +187,7 @@ And the recorded admission flow names `faff contract prd-readiness` and `faff pr
 **Tracker vs git-only for the first faff-lab run?**
 - *Options:* (a) git-only-first, upgrade path documented; (b) provision a dedicated Linear container up front (tracker+team_key+project_id+repo).
 - *(b)* front-loads Linear provisioning before the loop is proven, delaying the active priority.
-- **Chosen:** git-only-first — it exercises the full PRD/PRDR + prd-readiness gates with zero Linear setup; the upgrade (add `tracking:` block, drop `automation_default`, let the tracker own eligibility labels) is a proven, documented follow-up. Recorded as ADR 0067. (decides: product)
+- **Chosen:** git-only-first — it exercises the full PRD/PRDR + prd-readiness gates with zero Linear setup; the upgrade (add `tracking:` block, drop `automation_default`, let the tracker own eligibility labels) is a proven, documented follow-up. Recorded as ADR 0070. (decides: product)
 
 **Which admission flow do we record?**
 - *Options:* (a) the real flow — `faffter-noon-prd` → `faff contract prd-readiness` gate, plus `faff prdr new/admit`; (b) the P2 runbook's `faff prd new --from` / `faff prd admit`.
@@ -212,10 +212,10 @@ And the recorded admission flow names `faff contract prd-readiness` and `faff pr
 
 ### From WHAT (artifacts)
 - [ ] `docs/external-verification/faff-lab/PRD.md` exists and contains the full PRD verbatim
-- [ ] `docs/adr/0067-faff-lab-tracker-vs-git-only.md` exists
+- [ ] `docs/adr/0070-faff-lab-tracker-vs-git-only.md` exists
 
-### From HOW (ADR 0067)
-- [ ] ADR 0067 is valid Nygard format: `# ADR 0067 — …`, metadata block, `## Context` / `## Decision` / `## Consequences`
+### From HOW (ADR 0070)
+- [ ] ADR 0070 is valid Nygard format: `# ADR 0070 — …`, metadata block, `## Context` / `## Decision` / `## Consequences`
 - [ ] Metadata shows Status: Accepted and Ticket: FAFF-504
 - [ ] Decision section uses `Chosen:` + Options considered, records git-only-first, and documents the upgrade path (add `tracking:` block, drop `automation_default`)
 
@@ -231,8 +231,8 @@ And the recorded admission flow names `faff contract prd-readiness` and `faff pr
 ```
 PROCEDURE faff_504_smoke():
   1. test -f docs/external-verification/faff-lab/PRD.md            # PRD home exists
-  2. test -f docs/adr/0067-faff-lab-tracker-vs-git-only.md          # ADR exists
-  3. grep -q "## Decision" docs/adr/0067-faff-lab-tracker-vs-git-only.md
+  2. test -f docs/adr/0070-faff-lab-tracker-vs-git-only.md          # ADR exists
+  3. grep -q "## Decision" docs/adr/0070-faff-lab-tracker-vs-git-only.md
   4. ! grep -RqE 'faff prd (new --from|admit)' docs/external-verification/faff-lab/
   # all four pass => the docs plumbing FAFF-505 depends on is in place
 ```

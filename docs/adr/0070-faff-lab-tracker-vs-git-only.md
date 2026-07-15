@@ -1,4 +1,4 @@
-# ADR 0067 — faff-lab: tracker vs git-only for the first run
+# ADR 0070 — faff-lab: tracker vs git-only for the first run
 
 - **Status:** Accepted
 - **Date:** 2026-07-15

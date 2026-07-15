@@ -3,7 +3,7 @@
 faff-lab is the public gallery site — itself faff-built — that puts a raw one-shot model run and a faff L4 run side by side against the same shared brief, per task category. Unlike the throwaway SUTs P1–P5 (which live only as a scaffolded repo and are discarded after the rung is scored), faff-lab is a **long-lived, real deliverable**, so its setpoint lives here as a real committed document rather than as a heredoc inside a scaffold script.
 
 - **[`PRD.md`](./PRD.md)** — the canonical, immutable human setpoint. It is committed verbatim; a lights-out run reads it and never edits it. The FAFF-505 scaffold (`scaffold-faff-lab.sh`) copies this file into the SUT rather than heredocing its own copy, so the PRD stays singly-sourced.
-- **Tracker decision:** git-only-first — see [ADR 0067](../../adr/0067-faff-lab-tracker-vs-git-only.md).
+- **Tracker decision:** git-only-first — see [ADR 0070](../../adr/0070-faff-lab-tracker-vs-git-only.md).
 
 ## Running faff-lab (the real admission flow)
 
@@ -34,4 +34,4 @@ faff prdr admit <prdr> --actor loop|human …
 
 ## Git-only-first, with a documented upgrade path
 
-The first faff-lab run is **git-only** — it exercises the full PRD/PRDR + prd-readiness gates with zero Linear provisioning. Once the loop is proven in anger, upgrade to a dedicated tracker container by adding a `tracking:` block (`project_id` / `team_key`) to the SUT's `.faffrc.yaml`, dropping `automation_default`, and letting the tracker own the eligibility labels. Rationale and trade-offs: [ADR 0067](../../adr/0067-faff-lab-tracker-vs-git-only.md).
+The first faff-lab run is **git-only** — it exercises the full PRD/PRDR + prd-readiness gates with zero Linear provisioning. Once the loop is proven in anger, upgrade to a dedicated tracker container by adding a `tracking:` block (`project_id` / `team_key`) to the SUT's `.faffrc.yaml`, dropping `automation_default`, and letting the tracker own the eligibility labels. Rationale and trade-offs: [ADR 0070](../../adr/0070-faff-lab-tracker-vs-git-only.md).

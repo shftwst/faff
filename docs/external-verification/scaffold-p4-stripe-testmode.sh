@@ -104,9 +104,15 @@ cat > RUNBOOK.md <<'EOF'
     colima status && docker context show && docker info >/dev/null && docker compose version
 
 ## 1. Author the leash (with its NEVER boundaries)
+See authoring-and-admitting-a-prd.md for the current verb surface (the two commands this RUNBOOK
+used to list here — a `prd new` invocation with a `--from` flag, and an `admit` verb under
+`prd` — never existed as written; see that doc for what NOT to run).
+`PRD.md` stays hand-authored; this SUT runs interactively so the L4 run-start auto-gate never
+fires. For an explicit admissibility check, invoke the `prd` slot on `PRD.md` and pipe its block
+to `faff contract prd-readiness` by hand (same contract as the L4 gate). Otherwise the PRD's Stop
+conditions and NEVER boundaries stand as the read leash — this SUT's real signal is B7 (the park
+boundary), not the gate.
 Open a Claude Code session with cwd = THIS repo:
-    faff prd new --from PRD.md
-    faff prd admit
     /faff-plot "<paste BRIEF.md + PRD.md>"
 
 ## 2. Drive INTERACTIVELY — do NOT lights-out this one
@@ -130,6 +136,8 @@ Open a Claude Code session with cwd = THIS repo:
 EOF
 
 faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")"
+"$faff" gitignore-ensure 2>/dev/null && echo "gitignored .faff/ via gitignore-ensure" \
+  || echo "  (faff gitignore-ensure unavailable here — run it from the SUT once faff is on PATH)"
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
 

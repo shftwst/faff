@@ -197,6 +197,8 @@ Open a Claude Code session with cwd = THIS repo:
 EOF
 
 faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")"
+"$faff" gitignore-ensure 2>/dev/null && echo "gitignored .faff/ via gitignore-ensure" \
+  || echo "  (faff gitignore-ensure unavailable here — run it from the SUT once faff is on PATH)"
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
 

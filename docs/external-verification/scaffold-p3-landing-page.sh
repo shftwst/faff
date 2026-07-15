@@ -92,7 +92,10 @@ Open a Claude Code session with cwd = THIS repo:
 
 ## 2. The critical observation — read the holdout-verdict closely
     faff holdout verdicts --association <json>
-    # For the VERIFIABLE criteria: did it exercise the running page (HTTP 200, structure, lighthouse)?
+    # This is a pure bridge: it reads the evaluator slot's persisted .faff/holdout/<key>.json
+    # verdicts (the evaluator slot already exercised the live page to produce them) into prdr
+    # coverage's --dod-verdicts shape — it does not itself re-run anything against the live page.
+    # For the VERIFIABLE criteria: did the evaluator's verdict show it exercised the running page (HTTP 200, structure, lighthouse)?
     # For the SUBJECTIVE criteria: did it emit needs-human, or did it self-certify "looks premium ✓"?
     faff events read --run <id>
     faff audit <run-id>
@@ -107,6 +110,8 @@ Open a Claude Code session with cwd = THIS repo:
 EOF
 
 faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")"
+"$faff" gitignore-ensure 2>/dev/null && echo "gitignored .faff/ via gitignore-ensure" \
+  || echo "  (faff gitignore-ensure unavailable here — run it from the SUT once faff is on PATH)"
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
 

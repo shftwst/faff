@@ -13,6 +13,8 @@
 // (tool_name, command, run_in_background), plus a thin stdin shell.
 // ===========================================================================
 
+const fs = require("node:fs");
+
 // PURE: does this command look like a gate/test-family invocation? A
 // deliberately narrow set of token shapes — the ones actually observed
 // (`node --test`, the Step 7.5 ladder's `"$faff" gates run`) plus the common
@@ -106,7 +108,6 @@ function cmdBackgroundFence(args) {
   // filesystem read — but hooks-ensure's probeServes always invokes `<sub> --hook
   // --root <probeRoot>`, so an unrecognised --root must never become a usage error
   // (that would make probeServes misclassify a perfectly-served bin as unserved).
-  const fs = require("node:fs");
   let raw;
   try { raw = fs.readFileSync(0, "utf8"); } catch { return 0; } // no/closed stdin → never block
   if (!raw || !raw.trim()) return 0; // empty stdin → never block

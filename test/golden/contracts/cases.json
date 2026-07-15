@@ -803,5 +803,36 @@
     "input": "\"not an object\"",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "l4-topology-envelope",
+    "name": "container-create-accepted-root-admit",
+    "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false,\"contained_under_accepted_prd\":true},\"verdict\":{\"disposition\":\"admit\",\"reason\":\"prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)\",\"reversible\":true}}",
+    "expectExit": 0,
+    "expectStdout": {
+      "op": { "kind": "container-create", "level": "L4", "provenance": "faff-authored", "parent_confirmed": false, "contained_under_accepted_prd": true },
+      "verdict": { "disposition": "admit", "reason": "prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)", "reversible": true },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "l4-topology-envelope",
+    "name": "container-create-signal-false-gated",
+    "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false,\"contained_under_accepted_prd\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"outside the accepted-root envelope \u2014 container-confirm holds\",\"reversible\":true}}",
+    "expectExit": 0,
+    "expectStdout": {
+      "op": { "kind": "container-create", "level": "L4", "provenance": "faff-authored", "parent_confirmed": false, "contained_under_accepted_prd": false },
+      "verdict": { "disposition": "propose-only", "reason": "outside the accepted-root envelope \u2014 container-confirm holds", "reversible": true },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "l4-topology-envelope",
+    "name": "fail-loud-missing-contained-under-accepted-prd",
+    "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"\",\"reversible\":true}}",
+    "expectExit": 2,
+    "expectStderrIncludes": "fail-loud"
   }
 ]

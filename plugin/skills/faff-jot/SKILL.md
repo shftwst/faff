@@ -156,7 +156,7 @@ Reads the suite-wide `appetite` dial but is lightly modulated, since creation is
 
 - `low` / `medium` — always show the full proposed structure and wait for explicit confirmation before creating anything.
 - `high` (default) — same confirmation gate for creation, but resolve minor shaping ambiguities itself (recorded in the brief's open questions) rather than asking mid-discovery.
-- `full` — may create the shaped tickets directly when the brief is unambiguous and a tracker is configured, posting the shaped structure as the audit trail. Still never creates a top-level **project/initiative container** without confirmation (containers are expensive to undo), and the hard floor applies — no cancellation/deletion, ever.
+- `full` — may create the shaped tickets directly when the brief is unambiguous and a tracker is configured, posting the shaped structure as the audit trail. Still never creates a top-level **project/initiative container** without confirmation (containers are expensive to undo; the one carve-out is the L4 accepted-root envelope, ADR-0072 — a loop-authored container contained under the run's admitted root PRD), and the hard floor applies — no cancellation/deletion, ever.
 
 ## Logging
 
@@ -168,5 +168,5 @@ Write a log per the gateway `.faff/logging` rule: the detected mode, which intak
 - The existing-ticket interactor (`/faff-jot ISSUE-XX`) is **shaping/eligibility only** (crank up/crank down + hold/unhold in v1) and **interactive-only**. It never specs (→ `/faff-prep`), grooms (→ `/faff-tidy`), or builds (→ `/faff-graft`), never re-runs discovery on a ticket that already exists, and never edits the ticket's title/description/status in place.
 - Discovery is delegated (`intake` slot), shaping is delegated (`methodology` slot). `/faff-jot` orchestrates: detect mode, route the brief, confirm, create, chain. It owns no ideation opinions and no structural opinions of its own.
 - Never write a spec here. A created ticket is a `Backlog` item with a seeded description and open questions — `/faff-prep` turns it into a buildable spec. (A description is never a spec — gateway shared rule.)
-- Ticket creation is gated on human confirmation except at `full` appetite for non-container tickets. Containers always confirm.
+- Ticket creation is gated on human confirmation except at `full` appetite for non-container tickets. Containers always confirm (except within the L4 accepted-root envelope — ADR-0072).
 - Chaining uses the standard explicit yes/no gate (gateway → Chaining pattern). No passive "you should run /faff-prep next".

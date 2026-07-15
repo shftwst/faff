@@ -64,6 +64,7 @@ function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}
     budget_ceiling: envelope.ceilings,
     dial_profile: { appetite: "full", slots: {}, gates: null },
     prd_creative_licence: null,
+    prd_root_container: null,
     corrective_authority: "available",
     container: "contained",
     floor,

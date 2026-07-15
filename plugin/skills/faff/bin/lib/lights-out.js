@@ -603,6 +603,21 @@ function prdCreativeLicenceFromFlag(value) {
   return { value: null, ok: false };
 }
 
+// FAFF-515 (ADR-0072): the admitted root PRD's container identity, handed by the same run-start PRD
+// gate via `--prd-root-container` and persisted beside `prd_creative_licence` — the durable referent
+// the FAFF-494 caller asserts `contained_under_accepted_prd` from (ledger record ∧ `faff contain`).
+// Pure resolver, same fail-safe stance as the licence flag: no flag == no PRD gate ran → null record
+// (downstream signal false → container-create stays gated); the container flag WITHOUT the licence
+// flag means the gate didn't actually run → fail loud, never a silent null; an empty/blank value is
+// equally fail-loud (a referent that names nothing cannot anchor containment).
+function prdRootContainerFromFlags(container, licence) {
+  if (container == null) return { value: null, ok: true };
+  if (licence == null) return { value: null, ok: false };
+  const v = String(container).trim();
+  if (!v) return { value: null, ok: false };
+  return { value: v, ok: true };
+}
+
 function cmdLightsOut(args) {
   if (args.includes("--selftest")) return lightsOutSelftest();
   const json = args.includes("--json");
@@ -621,6 +636,18 @@ function cmdLightsOut(args) {
   if (!prdLicence.ok) {
     const raw = get("--prd-creative-licence");
     const msg = `lights-out: --prd-creative-licence must be "broad" or "tight" (got ${JSON.stringify(raw)})`;
+    if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", error: msg }) + "\n");
+    else process.stderr.write(msg + "\n");
+    return 2;
+  }
+
+  // FAFF-515 (ADR-0072): the admitted root PRD's container referent rides beside the licence flag.
+  // The container flag without the licence flag is a mint refusal (the PRD gate didn't run, so there
+  // is no admissibility verdict this referent could be anchored to) — fail loud, never a silent null.
+  const prdRoot = prdRootContainerFromFlags(get("--prd-root-container"), get("--prd-creative-licence"));
+  if (!prdRoot.ok) {
+    const raw = get("--prd-root-container");
+    const msg = `lights-out: --prd-root-container requires --prd-creative-licence (the run-start PRD gate's verdict) and a non-empty container (got ${JSON.stringify(raw)})`;
     if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", error: msg }) + "\n");
     else process.stderr.write(msg + "\n");
     return 2;
@@ -814,6 +841,7 @@ function cmdLightsOut(args) {
     budget_ceiling: envelope.ceilings,
     dial_profile,
     prd_creative_licence: prdLicence.value,
+    prd_root_container: prdRoot.value,
     corrective_authority: correctiveAuthority,
     container: "contained",
     floor,
@@ -1145,6 +1173,12 @@ function lightsOutSelftest() {
   check("prd licence: broad → broad", prdCreativeLicenceFromFlag("broad").ok === true && prdCreativeLicenceFromFlag("broad").value === "broad");
   check("prd licence: tight → tight", prdCreativeLicenceFromFlag("tight").ok === true && prdCreativeLicenceFromFlag("tight").value === "tight");
   check("prd licence: off-vocabulary → not ok (fail loud, never a silent null)", prdCreativeLicenceFromFlag("wide").ok === false && prdCreativeLicenceFromFlag("wide").value === null);
+
+  // FAFF-515 — --prd-root-container flag → ledger prd_root_container resolution (rides the licence flag).
+  check("prd root: absent flag → null record (no PRD gate ran)", prdRootContainerFromFlags(null, null).ok === true && prdRootContainerFromFlags(null, null).value === null);
+  check("prd root: container + licence → value persisted", prdRootContainerFromFlags("Top of the loop", "broad").ok === true && prdRootContainerFromFlags("Top of the loop", "broad").value === "Top of the loop");
+  check("prd root: container WITHOUT licence → not ok (mint refusal, never a silent null)", prdRootContainerFromFlags("Top of the loop", null).ok === false && prdRootContainerFromFlags("Top of the loop", null).value === null);
+  check("prd root: blank container → not ok (a referent naming nothing anchors nothing)", prdRootContainerFromFlags("  ", "tight").ok === false);
 
   // Keystone (sentry) probe fails → refuse, no reduced mode.
   const noSentry = lightsOutPreflight(armedProbes({ reachable: { ...allReach(), kill_switch: false } }));

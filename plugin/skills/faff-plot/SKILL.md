@@ -64,7 +64,7 @@ Drawing this line crisply is the whole game: it is what keeps plot from inventin
 
 Confirm **level by level** as the recursion descends, not as one giant dump at the end:
 
-- **Containers (initiative / project) always confirm** — present the proposed children of the current node as a short tree and gate before writing ("Create these N initiatives? / these N projects under <initiative>? (yes / edit / no)"). Containers are expensive to undo.
+- **Containers (initiative / project) always confirm** — present the proposed children of the current node as a short tree and gate before writing ("Create these N initiatives? / these N projects under <initiative>? (yes / edit / no)"). Containers are expensive to undo. *One carve-out (ADR-0072): within the L4 accepted-root envelope, a loop-authored container contained under the run's admitted root PRD is admitted — interactive plot is unchanged.*
 - **First-slice epics** may be auto-created per the `appetite` dial (gateway → **Appetite for destruction**): `low` surfaces only; `medium`/`high` create the epics under a confirmed project; `full` may create a whole confirmed branch's epics at once. The hard floor still applies — no cancellation/deletion, ever.
 - On `edit`, take the human's adjustments and re-shape that level before descending. On `no` for a branch, skip it (leave it un-planned) and continue with the rest.
 
@@ -134,7 +134,7 @@ Gate **per proposed project** — plot's yes/edit/no shape (Step 4) extended wit
 
 The prompt states the manual-undo path explicitly: *un-homing is manual — Linear UI/API only; the MCP's `save_issue.project` is reassign-only and cannot null a project* — so approval is high-consequence.
 
-**Composition with the topology-write dial.** This pass inherits plot's **Containers always confirm** floor: every approved rehome creates a container, and no appetite level auto-creates a container, so the whole apply sits behind this gate at every appetite. The gateway topology-write-authority dial's rehome authority (gateway → **Appetite for destruction → Topology-write authority**) still governs the methodology's *other, narrower* call sites (gating-chain rehome, MVP scope-cut, thematic conversion) — the dial adds the topology axis to the hard floor, it never relaxes it.
+**Composition with the topology-write dial.** This pass inherits plot's **Containers always confirm** floor: every approved rehome creates a container, and no appetite level auto-creates a container outside the L4 accepted-root envelope (ADR-0072), so the whole apply sits behind this gate at every appetite. The gateway topology-write-authority dial's rehome authority (gateway → **Appetite for destruction → Topology-write authority**) still governs the methodology's *other, narrower* call sites (gating-chain rehome, MVP scope-cut, thematic conversion) — the dial adds the topology axis to the hard floor, it never relaxes it.
 
 ### R5. Apply approved projects
 
@@ -197,7 +197,7 @@ For a **rehoming pass** (`/faff-plot rehome`), log instead: the pulled loose-bac
 
 - **Discovery lives in jot, not here.** plot consumes a brief; it only runs `intake` itself when invoked standalone with no brief. It never re-does discovery on a brief jot already gathered.
 - **Recurse, don't enumerate.** The stop rule is non-negotiable: skeleton down to first-slice epics + deps, never the leaves. Leaves grow from specs and the bottom-up tributaries.
-- **Containers always confirm.** No appetite level auto-creates an initiative or project container. Only first-slice epics are appetite-creatable, and only under a confirmed parent.
+- **Containers always confirm.** No appetite level auto-creates an initiative or project container — except within the L4 accepted-root envelope (ADR-0072): a loop-authored container contained under the run's admitted root PRD is admitted. Only first-slice epics are otherwise appetite-creatable, and only under a confirmed parent.
 - **plot writes; map audits.** Keep the write/read split with map absolute — plot never just "synthesises", map never writes.
 - **Shaping opinions are the methodology's.** plot owns descent, stop rule, gating, and writes — never the per-level shaping (naming, right-sizing, sequencing). That is `ticket-shaping`'s job at each `shape-level`.
 - Chaining uses the standard explicit yes/no gate (gateway → Chaining pattern). No passive "you should run /faff-map next".

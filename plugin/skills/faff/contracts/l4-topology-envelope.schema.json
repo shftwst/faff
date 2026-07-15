@@ -10,12 +10,13 @@
     "op": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "level", "provenance", "parent_confirmed"],
+      "required": ["kind", "level", "provenance", "parent_confirmed", "contained_under_accepted_prd"],
       "properties": {
         "kind": { "type": "string", "enum": ["container-create", "epic-create", "reparent", "convert", "rehome", "cancel", "delete"] },
         "level": { "type": "string", "enum": ["L1", "L2", "L3", "L4"] },
         "provenance": { "type": "string", "enum": ["faff-authored", "human-curated"] },
-        "parent_confirmed": { "type": "boolean" }
+        "parent_confirmed": { "type": "boolean" },
+        "contained_under_accepted_prd": { "type": "boolean" }
       }
     },
     "verdict": {

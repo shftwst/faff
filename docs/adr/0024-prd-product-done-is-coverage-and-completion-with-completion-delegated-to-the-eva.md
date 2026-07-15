@@ -1,6 +1,6 @@
 # ADR 0024 — PRD product-done is coverage AND completion, with completion delegated to the evaluator under an unverified-not-done conservative default
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-257
 - **Initiative:** L4 — Lights-out AI factory

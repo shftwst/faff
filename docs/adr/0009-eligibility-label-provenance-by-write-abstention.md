@@ -1,6 +1,6 @@
 # ADR 0009 — Eligibility-label provenance by write-abstention
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-22
 - **Issue:** FAFF-218
 

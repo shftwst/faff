@@ -1,6 +1,6 @@
 # ADR 0021 — Container status is derived bookkeeping, applied forward-only from the Orchestrator lane via a pure predicate
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-248
 

@@ -1,6 +1,6 @@
 # ADR 0014 — Subcommand registry as the single source of truth for the CLI command set
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-26
 - **Issue:** FAFF-237
 

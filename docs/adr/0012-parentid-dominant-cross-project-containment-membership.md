@@ -1,6 +1,6 @@
 # ADR 0012 — parentId-dominant cross-project containment membership
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-23
 - **Issue:** FAFF-222
 

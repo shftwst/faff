@@ -1,6 +1,6 @@
 # ADR 0018 — PRD born-verifiable form-check lives in the CLI file-parse and reuses FAFF-253's prd-readiness contract surface
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-254
 

@@ -1,6 +1,6 @@
 # ADR 0023 — Level-scaled PRDR authoring: methodology authors, the caller's level admits via the single FAFF-255 gate
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-251
 

@@ -1,6 +1,6 @@
 # ADR 0026 — Spec-review depth scales by level — L1–L3 single-pass vs L4 adversarial
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-266
 

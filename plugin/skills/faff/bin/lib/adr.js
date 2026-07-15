@@ -170,6 +170,43 @@ function adrValidate(dir) {
   return problems;
 }
 
+// FAFF-342 (Part B): advisory-only coherence hint — an Accepted ADR whose body cites a
+// still-Proposed ADR as a deciding reference. STRICTLY NOT a `problems` entry: advisories never
+// enter the problem list and never change adr validate's exit code (gating Accepted-cites-Proposed
+// would break CI on legitimately-in-flight ADRs). Pure: (adrs, texts) -> string[].
+// Self-references, citations of Superseded/Rejected ADRs, and unknown refs produce no line;
+// a duplicate (accepted, proposed) pair in one body emits at most one line.
+function computeAdrAdvisories(adrs, texts) {
+  const statusByNum = new Map(adrs.map((a) => [a.num, a.status || ""]));
+  const advisories = [];
+  for (const a of adrs) {
+    if (!/^Accepted/i.test(a.status || "")) continue;
+    const text = texts.get(a.num) || "";
+    const seen = new Set();
+    const re = /\bADR-(\d{4})\b/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const cited = m[1];
+      if (cited === a.num) continue;                              // self-reference
+      const st = statusByNum.get(cited);
+      if (st === undefined) continue;                             // unknown ref
+      if (!/^Proposed/i.test(st)) continue;                       // only a Proposed foundation triggers
+      if (seen.has(cited)) continue;                              // de-dup per (accepted, proposed) pair
+      seen.add(cited);
+      advisories.push(`advisory: ADR-${a.num} (Accepted) cites ADR-${cited} (Proposed)`);
+    }
+  }
+  return advisories;
+}
+
+// Thin dir-reading wrapper (mirrors adrValidate's read shape); the pure core is computeAdrAdvisories.
+function adrAdvisories(dir) {
+  const adrs = listAdrs(dir);
+  const texts = new Map();
+  for (const a of adrs) texts.set(a.num, fs.readFileSync(path.join(dir, a.file), "utf8"));
+  return computeAdrAdvisories(adrs, texts);
+}
+
 // FAFF-368: rewrite canonical supersession refs that POINT AT `oldNum` → `newNum`, in one
 // file's text. Mirrors the canonical forms `recordSupersededBy`/`recordSupersedesSet` match
 // ("Superseded by <prefix>-NNNN" status value; "Supersedes: <prefix>-NNNN") so a freeform
@@ -346,8 +383,14 @@ function cmdAdr(args) {
 
   if (action === "validate") {
     const problems = adrValidate(dir);
-    if (!problems.length) { console.log(`OK — ${listAdrs(dir).length} ADR(s) in ${path.relative(root, dir) || dir} valid.`); return 0; }
+    const advisories = adrAdvisories(dir); // FAFF-342: informational only — never gates the exit code
+    if (!problems.length) {
+      console.log(`OK — ${listAdrs(dir).length} ADR(s) in ${path.relative(root, dir) || dir} valid.`);
+      for (const adv of advisories) console.log(adv);
+      return 0;
+    }
     for (const p of problems) console.log(`FAIL  ${p}`);
+    for (const adv of advisories) console.log(adv);
     return 1;
   }
 
@@ -422,6 +465,26 @@ function adrSelftest() {
     const tpl = adrTemplate({ num: "0007", title: "T", date: "2026-06-21", issue: "FAFF-16" });
     return /# ADR 0007 — T/.test(tpl) && /\*\*Status:\*\* Proposed/.test(tpl) && /## Context/.test(tpl) && /## Decision/.test(tpl) && /## Consequences/.test(tpl) && /\*\*Issue:\*\* FAFF-16/.test(tpl);
   })());
+
+  // FAFF-342 (Part B) — Accepted-cites-Proposed advisory: informational, never a `problems` entry.
+  {
+    const adv = path.join(tmp, "adv", "docs", "adr");
+    fs.mkdirSync(adv, { recursive: true });
+    const w = (n, slug, status, body) => fs.writeFileSync(path.join(adv, `${n}-${slug}.md`),
+      `# ADR ${n} — ${slug}\n\n- **Status:** ${status}\n- **Date:** 2026-07-15\n\n## Context\n${body || "x"}\n`);
+    w("0001", "proposed-foundation", "Proposed", "base");
+    w("0002", "accepted-cites-proposed", "Accepted", "founded on ADR-0001; also cites ADR-0001 again");
+    w("0003", "superseded-ref", "Accepted", "cites ADR-0004 which is superseded");
+    w("0004", "dead", "Superseded", "gone");
+    w("0005", "self-and-accepted", "Accepted", "cites ADR-0005 (self) and ADR-0002 (accepted)");
+    const advs = adrAdvisories(adv);
+    t("advisory: fires for Accepted-cites-Proposed", advs.some((l) => /ADR-0002 \(Accepted\) cites ADR-0001 \(Proposed\)/.test(l)));
+    t("advisory: de-dups a pair cited twice (one line for 0002→0001)", advs.filter((l) => /ADR-0002 .* ADR-0001/.test(l)).length === 1);
+    t("advisory: a citation of a Superseded ADR produces no line", !advs.some((l) => /ADR-0004/.test(l)));
+    t("advisory: self-reference produces no line", !advs.some((l) => /ADR-0005 \(Accepted\) cites ADR-0005/.test(l)));
+    t("advisory: a citation of an Accepted ADR produces no line", !advs.some((l) => /cites ADR-0002/.test(l)));
+    t("advisory: NEVER enters the problems list / never changes exit (validate stays clean)", adrValidate(adv).length === 0 && advs.length >= 1);
+  }
 
   // FAFF-197 — supersession canonical-ref parsing + back-reference validation
   t("parse Superseded-by ref", adrSupersededBy("Superseded by ADR-0002") === "0002");
@@ -562,4 +625,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_STATUSES, adrDecisionBody, adrDir, adrField, adrFlag, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_STATUSES, adrAdvisories, adrDecisionBody, adrDir, adrField, adrFlag, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };

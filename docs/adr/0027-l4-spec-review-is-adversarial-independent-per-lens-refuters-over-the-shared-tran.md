@@ -1,6 +1,6 @@
 # ADR 0027 — L4 spec review is adversarial — independent per-lens refuters over the shared transport
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-267
 

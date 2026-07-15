@@ -1,6 +1,6 @@
 # ADR 0019 — Born-verifiable recognition rule for PRD done-criteria: scenario-by-Then, assertion-by-MUST-or-comparator, else prose
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-254
 

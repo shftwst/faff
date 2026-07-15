@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/l4-topology-envelope",
+  "title": "l4-topology-envelope contract data",
+  "description": "Reference schema (FAFF-493, ADR-0071). The SHAPE of the L4 topology-write-authority envelope verdict: a producer-emitted {op, verdict} pair which `faff contract l4-topology-envelope` re-derives from `op` via the ADR-0071 decision table and validates the declared `verdict` conforms (consumer-side conformance, mirroring prdr-admission). NO safe coerce target — an out-of-enum op.kind/level/provenance or verdict.disposition is a fail-loud, never coerced. The load-bearing invariant (the declared verdict matches the decision table's derivation for the given op) is enforced in code as a conformance violation; it is not expressible in this shape schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["op", "verdict", "conformant", "violations"],
+  "properties": {
+    "op": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "level", "provenance", "parent_confirmed"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["container-create", "epic-create", "reparent", "convert", "rehome", "cancel", "delete"] },
+        "level": { "type": "string", "enum": ["L1", "L2", "L3", "L4"] },
+        "provenance": { "type": "string", "enum": ["faff-authored", "human-curated"] },
+        "parent_confirmed": { "type": "boolean" }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "reason", "reversible"],
+      "properties": {
+        "disposition": { "type": "string", "enum": ["admit", "propose-only", "reject"] },
+        "reason": { "type": "string" },
+        "reversible": { "type": "boolean" }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

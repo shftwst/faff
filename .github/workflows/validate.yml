@@ -82,6 +82,9 @@ jobs:
       - name: Validate prdr-admission contract script
         run: node plugin/skills/faff/bin/faff contract prdr-admission --selftest
 
+      - name: Validate l4-topology-envelope contract script (FAFF-493)
+        run: node plugin/skills/faff/bin/faff contract l4-topology-envelope --selftest
+
       - name: Validate prdr-yagni (upper/YAGNI gate) contract script
         run: node plugin/skills/faff/bin/faff contract prdr-yagni --selftest
 

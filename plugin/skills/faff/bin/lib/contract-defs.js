@@ -932,6 +932,102 @@ function computePrdrAdmissionVerdict(input) {
   return { disposition, upper, lower, authority, ratchet, reasons, conformant: true, violations: [] };
 }
 
+// --- l4-topology-envelope (FAFF-493) ---
+// The L4 topology-write-authority envelope — the de-risk spike's emitted deliverable (ADR-0071).
+// A separate referencing contract that composes the existing appetite-keyed topology-write-authority
+// dial (SKILL.md:712-729) via the ADR-0037 `full`-at-L4 pin — NOT a new dial-table row. Scope is
+// epic-only: autonomous first-slice epic-create at L4, plus the reversible reparent/convert/rehome ops
+// the dial already grants at `full`. Container creation stays confirm-gated at every level (the
+// faff-plot container-confirm floor, faff-plot/SKILL.md:67); human-curated provenance always degrades
+// to propose-only (SKILL.md:485,725); cancel/delete are forbidden at every level (the reversibility
+// floor, SKILL.md:724,731). See ADR-0071's Two-floor conformance proof + 216-independence trace for the
+// clause-by-clause grounding of every row below.
+//
+// `l4TopologyDecision(op)` is the PRODUCER-side pure decision table (Pattern-C-style core). THIS is the
+// consumer-side Pattern-B validator (mirrors computePrdrAdmission): given an extraction shaped
+// `{op, verdict}`, it re-derives the expected verdict from `op` via the SAME table and checks the
+// declared `verdict` conforms — never trusts a claimed disposition at face value. Disposition vocabulary
+// is deliberately `PRDR_DISPOSITIONS` (admit/propose-only/reject) — reused verbatim, not redefined, so a
+// consumer that already reads `faff prdr admit` verdicts (FAFF-495) reads this one with no translation.
+const L4_ENVELOPE_OP_KINDS = ["container-create", "epic-create", "reparent", "convert", "rehome", "cancel", "delete"];
+const L4_ENVELOPE_LEVELS = ["L1", "L2", "L3", "L4"];
+const L4_ENVELOPE_PROVENANCE = ["faff-authored", "human-curated"];
+
+// The pure decision table (ADR-0071 §Decision). No tracker/network/LLM call — a plain function of the
+// four `op` fields. Order matters: floors are checked outermost-in (reversibility floor first — cancel/
+// delete are forbidden regardless of provenance or kind; then the human-curated floor — it pre-empts
+// every op kind including epic-create/reparent; then the per-kind rows).
+function l4TopologyDecision(op) {
+  const { kind, level, provenance, parent_confirmed } = op;
+  if (kind === "cancel" || kind === "delete") {
+    return { disposition: "reject", reason: "reversibility-floor: cancel/delete forbidden at every level, always (SKILL.md:724,731)", reversible: false };
+  }
+  if (provenance === "human-curated") {
+    return { disposition: "propose-only", reason: "human-curated-structure-floor: never silently restructure human-curated structure — propose-and-confirm (SKILL.md:485,725)", reversible: true };
+  }
+  if (kind === "container-create") {
+    return { disposition: "propose-only", reason: "container-confirm-floor: containers always confirm, expensive to undo (faff-plot/SKILL.md:67)", reversible: true };
+  }
+  if (kind === "epic-create") {
+    if (level === "L4" && parent_confirmed === true) {
+      return { disposition: "admit", reason: "L4 topology-write envelope: first-slice epic under a confirmed parent, faff-authored, admitted via the ADR-0037 full-at-L4 pin (ADR-0071)", reversible: true };
+    }
+    return { disposition: "propose-only", reason: "outside the L4 envelope (not L4, or parent unconfirmed) — falls back to the base appetite-keyed dial", reversible: true };
+  }
+  if (kind === "reparent" || kind === "convert" || kind === "rehome") {
+    return { disposition: "admit", reason: "reversibility-floor: reparent/convert/rehome are reversible ops the dial already grants at full (SKILL.md:724)", reversible: true };
+  }
+  return { disposition: "reject", reason: `unrecognised op kind: ${JSON.stringify(kind)}`, reversible: false };
+}
+
+function computeL4TopologyEnvelope(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const o = extraction.op;
+  if (o === null || typeof o !== "object" || Array.isArray(o)) {
+    return { contractData: null, failLoud: "op must be an object" };
+  }
+  if (!L4_ENVELOPE_OP_KINDS.includes(o.kind)) return { contractData: null, failLoud: `op.kind ${JSON.stringify(o.kind)} not in {${L4_ENVELOPE_OP_KINDS.join(",")}}` };
+  if (!L4_ENVELOPE_LEVELS.includes(o.level)) return { contractData: null, failLoud: `op.level ${JSON.stringify(o.level)} not in {${L4_ENVELOPE_LEVELS.join(",")}}` };
+  if (!L4_ENVELOPE_PROVENANCE.includes(o.provenance)) return { contractData: null, failLoud: `op.provenance ${JSON.stringify(o.provenance)} not in {${L4_ENVELOPE_PROVENANCE.join(",")}}` };
+  if (typeof o.parent_confirmed !== "boolean") return { contractData: null, failLoud: "op.parent_confirmed must be a boolean" };
+
+  const v = extraction.verdict;
+  if (v === null || typeof v !== "object" || Array.isArray(v)) {
+    return { contractData: null, failLoud: "verdict must be an object" };
+  }
+  if (!PRDR_DISPOSITIONS.includes(v.disposition)) {
+    return { contractData: null, failLoud: `verdict.disposition ${JSON.stringify(v.disposition)} not in {admit,propose-only,reject} — no safe coerce target` };
+  }
+  if (typeof v.reversible !== "boolean") return { contractData: null, failLoud: "verdict.reversible must be a boolean" };
+
+  const op = { kind: o.kind, level: o.level, provenance: o.provenance, parent_confirmed: o.parent_confirmed };
+  const verdict = { disposition: v.disposition, reason: typeof v.reason === "string" ? v.reason : "", reversible: v.reversible };
+
+  const violations = [];
+  const expected = l4TopologyDecision(op);
+  if (verdict.disposition !== expected.disposition) {
+    violations.push(`declared disposition ${JSON.stringify(verdict.disposition)} does not match the envelope decision table's ${JSON.stringify(expected.disposition)} for op ${JSON.stringify(op)}`);
+  }
+  if (verdict.reversible !== expected.reversible) {
+    violations.push(`declared reversible ${JSON.stringify(verdict.reversible)} does not match the envelope decision table's ${JSON.stringify(expected.reversible)} for op ${JSON.stringify(op)}`);
+  }
+  if (Array.isArray(extraction.violations)) {
+    for (const v2 of extraction.violations) if (typeof v2 === "string" && v2.trim()) violations.push(v2);
+  }
+
+  return { contractData: { op, verdict, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractL4TopologyEnvelope(extraction) {
+  const { contractData, failLoud } = computeL4TopologyEnvelope(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "l4-topology-envelope");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // --- prdr-yagni (FAFF-256) ---
 // The UPPER (YAGNI / value) gate FAFF-255 delegates to: given an AuthoredPrdr (FAFF-251), produce
 // 255's `upper: {admit, reason}` verdict — "is this PRDR warranted (serves the PRD without exceeding
@@ -1415,6 +1511,35 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "l4-topology-envelope": {
+    run: contractL4TopologyEnvelope,
+    fixtures: [
+      // Scenario rows straight from the ADR-0071 decision table / FAFF-493 spec §5.
+      { name: "conformant-epic-create-l4-admit", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "L4 envelope", reversible: true } }, wantExit: 0 },
+      { name: "conformant-container-create-propose-only", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "container-confirm floor", reversible: true } }, wantExit: 0 },
+      { name: "conformant-cancel-reject", in: { op: { kind: "cancel", level: "L1", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "reject", reason: "reversibility floor", reversible: false } }, wantExit: 0 },
+      { name: "conformant-delete-reject", in: { op: { kind: "delete", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "reject", reason: "reversibility floor", reversible: false } }, wantExit: 0 },
+      { name: "conformant-reparent-human-curated-propose-only", in: { op: { kind: "reparent", level: "L4", provenance: "human-curated", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "human-curated floor", reversible: true } }, wantExit: 0 },
+      { name: "conformant-reparent-faff-authored-admit", in: { op: { kind: "reparent", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
+      { name: "conformant-convert-faff-authored-admit", in: { op: { kind: "convert", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
+      { name: "conformant-rehome-faff-authored-admit", in: { op: { kind: "rehome", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
+      { name: "conformant-epic-create-not-l4-propose-only", in: { op: { kind: "epic-create", level: "L3", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "outside the L4 envelope", reversible: true } }, wantExit: 0 },
+      { name: "conformant-epic-create-l4-unconfirmed-propose-only", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "propose-only", reason: "outside the L4 envelope", reversible: true } }, wantExit: 0 },
+      // Non-conformant: a producer that mis-declares a verdict the table wouldn't derive — the load-bearing
+      // "validator re-derives, never trusts" check. The spec's smoke test names this exact case (container-
+      // create claimed admit).
+      { name: "container-create-admit-mismatch", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "wrong", reversible: true } }, wantExit: 1 },
+      { name: "epic-create-l4-confirmed-reject-mismatch", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "reject", reason: "wrong", reversible: false } }, wantExit: 1 },
+      { name: "reversible-mismatch", in: { op: { kind: "cancel", level: "L1", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "reject", reason: "wrong reversible", reversible: true } }, wantExit: 1 },
+      { name: "fail-loud-bad-op-kind", in: { op: { kind: "rename", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-bad-op-level", in: { op: { kind: "epic-create", level: "L5", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-bad-provenance", in: { op: { kind: "epic-create", level: "L4", provenance: "ai-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-bad-disposition", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "maybe", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-missing-verdict", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true } }, wantExit: 2 },
+      { name: "fail-loud-missing-op", in: { verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "prdr-yagni": {
     run: contractPrdrYagni,
     fixtures: [
@@ -1587,4 +1712,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, prdrGatesPass, resolveGateLevel };
+module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

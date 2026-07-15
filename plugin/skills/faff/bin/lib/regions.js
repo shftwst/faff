@@ -53,6 +53,12 @@ const REGION_MAP = {
   // references (D2: kept OUT of sentry.js to preserve that module's "mutates
   // nothing on the check path" purity claim).
   "sentry-poller": "governance",
+  // sentrycheck — FAFF-471: ADR-0065's cheap ASSIST watchdog locus, a Stop-hook
+  // staleness consult sibling of runcheck/prepcheck. Reuses runcheck's
+  // runIsOwned/runIsHeld verbatim + child-spawns the unmodified sentry CLI — same
+  // governance family (a pure gate core behind a thin I/O shell), no
+  // factory-identifier references.
+  "sentrycheck": "governance",
   "audit": "governance",
   // reconcile — FAFF-397: the run-end GROUND-TRUTH gate, part of the same flight-recorder
   // family as runcheck (completeness) / effects (declared-vs-observed) / audit (forensics) —
@@ -174,6 +180,7 @@ const REGION_SELFTEST_ARGV = {
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
   "sentry-poller": ["sentry-poller", "--selftest"],
+  "sentrycheck": ["sentrycheck", "--selftest"],
   "audit": ["audit", "--selftest"],
   "reconcile": ["reconcile", "--selftest"],
   "profiles": ["profiles", "--selftest"],

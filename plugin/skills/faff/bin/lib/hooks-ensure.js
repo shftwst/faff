@@ -15,7 +15,12 @@ const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const { findRoot } = require("./shared-infra");
 
-const FAFF_STOP_HOOKS = ["runcheck", "prepcheck"];
+// FAFF-471: sentrycheck joins the Stop family as ADR-0065's cheap assist watchdog
+// locus — a staleness-triggered `faff sentry check` consult on any session's
+// turn-end, gated by the FAFF-205 ownership/liveness shape (never a re-derived
+// predicate). planStopHooks/isPresent/normalization all generalise over this list
+// already; nothing else in this registrar changes.
+const FAFF_STOP_HOOKS = ["runcheck", "prepcheck", "sentrycheck"];
 // FAFF-434: the PreToolUse hook set — currently just the raw-gh-pr-merge fence.
 // A distinct list from FAFF_STOP_HOOKS because it registers under a different
 // settings.json event array (hooks.PreToolUse, matcher-scoped to Bash) with a
@@ -267,19 +272,27 @@ function cmdHooksEnsure(args) {
 // Selftest drives the pure planner over in-memory cases (no filesystem), as the
 // park-history / eligible / prepcheck selftests do.
 // [label, settings, present, served, +added, =already, skip, ~normalized] (canonical inv = "faff <sub> --hook")
+// FAFF-471: sentrycheck joined FAFF_STOP_HOOKS as the third member — every case
+// below carries it through served/present/added/skip so the table stays exact
+// against the live three-member planner (a stale two-member fixture would pass
+// vacuously by under-covering the new member, not by testing it).
 const HOOKS_ENSURE_SELFTEST_CASES = [
-  ["empty + both served", {}, [], ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], [], []],
-  ["runcheck present (divergent path), prepcheck served",
+  ["empty + all three served", {}, [], ["runcheck", "prepcheck", "sentrycheck"], ["runcheck", "prepcheck", "sentrycheck"], [], [], []],
+  ["runcheck present (divergent path), prepcheck+sentrycheck served",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/x/bin/faff runcheck --hook" }] }] } },
-    ["runcheck"], ["runcheck", "prepcheck"], ["prepcheck"], ["runcheck"], [], ["runcheck"]],
-  ["both present, canonical → no-op",
-    { hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }, { type: "command", command: "faff prepcheck --hook" }] }] } },
-    ["runcheck", "prepcheck"], ["runcheck", "prepcheck"], [], ["runcheck", "prepcheck"], [], []],
-  ["stale bin serves neither", {}, [], [], [], [], ["runcheck", "prepcheck"], []],
-  ["present-but-unserved counts present (not skipped)", {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], [], []],
-  ["present-but-divergent-path → normalized",
+    ["runcheck"], ["runcheck", "prepcheck", "sentrycheck"], ["prepcheck", "sentrycheck"], ["runcheck"], [], ["runcheck"]],
+  ["all three present, canonical → no-op",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "faff runcheck --hook" }, { type: "command", command: "faff prepcheck --hook" }, { type: "command", command: "faff sentrycheck --hook" }] }] } },
+    ["runcheck", "prepcheck", "sentrycheck"], ["runcheck", "prepcheck", "sentrycheck"], [], ["runcheck", "prepcheck", "sentrycheck"], [], []],
+  ["stale bin serves none", {}, [], [], [], [], ["runcheck", "prepcheck", "sentrycheck"], []],
+  ["present-but-unserved counts present (not skipped); sentrycheck unserved → skipped",
+    {}, ["prepcheck"], ["runcheck"], ["runcheck"], ["prepcheck"], ["sentrycheck"], []],
+  ["present-but-divergent-path → normalized (prepcheck); runcheck+sentrycheck added",
     { hooks: { Stop: [{ hooks: [{ type: "command", command: "/abs/repo/path/faff prepcheck --hook" }] }] } },
-    ["prepcheck"], ["runcheck", "prepcheck"], ["runcheck"], ["prepcheck"], [], ["prepcheck"]],
+    ["prepcheck"], ["runcheck", "prepcheck", "sentrycheck"], ["runcheck", "sentrycheck"], ["prepcheck"], [], ["prepcheck"]],
+  ["sentrycheck present (divergent path), others served",
+    { hooks: { Stop: [{ hooks: [{ type: "command", command: "/y/bin/faff sentrycheck --hook" }] }] } },
+    ["sentrycheck"], ["runcheck", "prepcheck", "sentrycheck"], ["runcheck", "prepcheck"], ["sentrycheck"], [], ["sentrycheck"]],
 ];
 
 // FAFF-434: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
@@ -317,12 +330,12 @@ function hooksEnsureSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} PreToolUse: ${label} → +${JSON.stringify(p.added)} =${JSON.stringify(p.already)} ~${JSON.stringify(p.normalized)} skip${JSON.stringify(p.skipped_stale)}`);
   }
-  // structural: adding into {} builds one Stop group carrying the two command hooks
-  const built = planStopHooks({}, [], ["runcheck", "prepcheck"], inv).nextSettings;
+  // structural: adding into {} builds one Stop group carrying the three command hooks
+  const built = planStopHooks({}, [], ["runcheck", "prepcheck", "sentrycheck"], inv).nextSettings;
   const cmds = (((built.hooks || {}).Stop || [])[0] || {}).hooks || [];
-  const structOk = cmds.length === 2 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck) --hook/.test(h.command));
+  const structOk = cmds.length === 3 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck|sentrycheck) --hook/.test(h.command));
   if (!structOk) fail++;
-  console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 2 command hooks`);
+  console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 3 command hooks`);
   // structural: adding into {} builds one Bash-matcher PreToolUse group carrying the fence
   const builtPre = planPreToolUseHooks({}, [], ["merge-fence"], inv).nextSettings;
   const preCmds = (((builtPre.hooks || {}).PreToolUse || [])[0] || {}).hooks || [];
@@ -339,6 +352,11 @@ function hooksEnsureSelftest() {
     ["faff merge-fence --hook", "merge-fence", true],
     ["/abs/faff merge-fence --hook", "merge-fence", true],
     ["faff merge-fence", "merge-fence", false],
+    ["faff sentrycheck --hook", "sentrycheck", true],
+    ["/abs/faff sentrycheck --hook", "sentrycheck", true],
+    ["FOO=1 /x/faff sentrycheck --hook", "sentrycheck", true],
+    ["faff sentrycheck", "sentrycheck", false],
+    ["faff runcheck --hook", "sentrycheck", false],
   ];
   for (const [cmd, sub, want] of idCases) {
     const got = commandInvokesFaffHook(cmd, sub);

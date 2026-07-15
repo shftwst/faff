@@ -201,6 +201,7 @@ function prdrAccept(dir, root, number, { actor, admitVerdictJson, noBranch, cfg 
 // back-refs, re-validates. git-agnostic (pure fs; the caller stages the rename).
 function prdrRenumber(dir, root, selector, target, refScopeArg) {
   if (!selector || !target) return { code: 2, err: `usage: faff prdr renumber <file-or-number> --to next|<NNNN> [--ref-scope <scope>]\n` };
+  if (target !== "next" && !/^\d{1,4}$/.test(String(target))) return { code: 2, err: `faff prdr renumber: --to must be "next" or a 1–4 digit number (got ${JSON.stringify(target)})\n` }; // mirror adrRenumber's target guard
   const prdrs = listPrdrs(dir);
   let rec;
   if (/^\d{1,4}$/.test(String(selector))) {
@@ -695,6 +696,9 @@ function prdrSelftest() {
     { const { r, d } = mkRepo(); seed(d, "0001"); seed(d, "0002");
       const res = prdrRenumber(d, r, "0002-smoke.md", "0001");
       t("renumber: refuses an already-occupied target (exit 1)", res.code === 1 && /already occupied/.test(res.err)); fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); seed(d, "0001");
+      const res = prdrRenumber(d, r, "0001-smoke.md", "abc");
+      t("renumber: refuses a non-numeric --to (exit 2), never mints a regex-invalid filename", res.code === 2 && /must be "next" or a 1–4 digit/.test(res.err) && fs.existsSync(path.join(d, "0001-smoke.md")) && prdrValidate(d).length === 0); fs.rmSync(r, { recursive: true, force: true }); }
     { const { r, d } = mkRepo(); seed(d, "0001"); const res = prdrRenumber(d, r, "0001-smoke.md", "0001");
       t("renumber: to the same number is a no-op exit 0", res.code === 0 && /no-op/.test(res.out)); fs.rmSync(r, { recursive: true, force: true }); }
   }

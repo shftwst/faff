@@ -28,13 +28,16 @@ EOF
 
 cat > .faffrc.yaml <<'EOF'
 # faff config — SUT P1 (link-shortener). git-only, agile lens, lights-out eligible.
+# The three L4 lights-out dials this SUT needs to clear `faff lights-out --check` dial-coherence:
+# slots.review (adversarial), slots.spec_review (adversarial), gates.fallback (fail-closed).
 slots:
   methodology: faffter-dark-methodology-agile-delivery
   spec: faffter-dark-nlspec
   architecture: faffter-noon-architecture
   env: faffter-noon-env-compose
   evaluator: faffter-noon-evaluate
-  review: faffter-noon-review
+  review: faffter-dark-adversarial-review     # L4 dial: adversarial second-opinion (was faffter-noon-review)
+  spec_review: faffter-dark-spec-review       # L4 dial: adversarial spec_review (was unset -> single-pass default)
 appetite: high
 # git-only autonomous on-switch: default opt-in keeps autonomous OFF; opt-out enables it.
 automation_default: opt-out
@@ -49,6 +52,8 @@ budget:
   tokens: 30000000
   # cost: 15   # optional: budget.cost — the recommended L4 governor (FAFF-427)
   at_ceiling: stop
+gates:
+  fallback: fail-closed                        # L4 dial: unattended runs need fail-closed engineering gates (was unset -> advisory)
 EOF
 
 cat > BRIEF.md <<'EOF'
@@ -109,6 +114,10 @@ Open a Claude Code session with cwd = THIS repo, then:
     /faff-jot   "<paste BRIEF.md>"     # shapes tickets; git-only → writes .faff/intake/
     /faff-prep  <first-ticket>         # → spec with born-verifiable Scenarios + DONE.  WATCH: does an architecture-proposal block appear?
     /faff-graft <that-ticket>          # builds the service.  WATCH: does `faff env up` stand a stack up + a holdout-verdict get emitted against the RUNNING endpoints?
+
+Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
+pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — that leg is operator-supplied, not scaffolded. All
+three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml`.
 
 ## 3. If a lane doesn't auto-fire, drive it directly (this is the value — establishing the wiring)
     faff env compose-gen --profile <p>     # → ProvisionPlan + compose file

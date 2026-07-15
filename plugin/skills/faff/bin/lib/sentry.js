@@ -591,6 +591,39 @@ function sentryReadCorrectiveAuthority(runDir) {
   }
 }
 
+// Sanitize a raw { trusted, disposition, basis }-shaped reply — from either the real
+// spawned child or the --detection-json hermetic test hook — into a well-formed
+// DetectionTrust. `trusted` is derived ONLY from a strict `=== true` check on the
+// raw value, so a truthy-but-wrong-typed field (e.g. "yes") is NEVER coerced to
+// trust, regardless of the reply's source.
+function sanitizeDetectionTrust(j) {
+  const trusted = j && j.trusted === true;
+  return {
+    trusted,
+    disposition: trusted ? "trusted" : (j && typeof j.disposition === "string" ? j.disposition : "reconcile-only"),
+    basis: j && typeof j.basis === "string" ? j.basis : "unknown",
+  };
+}
+
+// FAFF-466: derive `detection_trust` from the FAFF-373/FAFF-325 corrective-integrity
+// gate's `detection` consumer, via the SAME child-invocation pattern as
+// sentryReadCorrectiveAuthority above — sentry.js owns no direct require of the
+// factory-region gate module (region direction, ADR-0042). Fail-safe: ANY non-OK
+// child (non-zero exit, unparseable stdout, spawn failure) degrades to
+// { trusted: false, disposition: "reconcile-only", basis: "read-fault" } — NEVER
+// "trusted". A clean reply is sanitized via sanitizeDetectionTrust above.
+function sentryReadDetectionIntegrity(runDir) {
+  try {
+    const r = spawnSync(process.execPath, [ENTRYPOINT, "corrective-integrity", "--consumer", "detection", "--run-dir", runDir, "--json"], { encoding: "utf8" });
+    if (r.status === 0 && r.stdout) {
+      return sanitizeDetectionTrust(JSON.parse(r.stdout.trim()));
+    }
+    return { trusted: false, disposition: "reconcile-only", basis: "read-fault" };
+  } catch {
+    return { trusted: false, disposition: "reconcile-only", basis: "read-fault" };
+  }
+}
+
 // Hermetic, TEST-ONLY clock seam for `sentry check` (FAFF-301). Resolves the
 // instant time-based signals (wall-clock-runaway) are computed against, so a test
 // can pin `now` across two subprocess calls and stop flaking on the time of day.
@@ -712,6 +745,24 @@ function cmdSentry(args) {
     } else {
       authority = resolved.empty ? "channel-D-only" : sentryReadCorrectiveAuthority(resolved.runDir);
     }
+    // FAFF-466: `detection_trust` — the FAFF-373/FAFF-325 corrective-integrity gate's
+    // `detection` consumer, wired via the same child-spawn pattern as `authority`
+    // above. --detection-json is a hermetic TEST-ONLY seam mirroring --budget-json:
+    // an unparseable injected value is itself a read-fault (never a silent "trusted"
+    // fall-through), a well-formed injected value is consumed verbatim; production
+    // always derives it from sentryReadDetectionIntegrity (a self-spawn child call).
+    // Predicate evaluation below (evaluateDerailment) is UNCHANGED by this value in
+    // both dispositions (Scenario 2) — it is attached to the output payload only.
+    const injectedDetection = get("--detection-json");
+    let detectionTrust;
+    if (injectedDetection != null) {
+      try { detectionTrust = sanitizeDetectionTrust(JSON.parse(injectedDetection)); }
+      catch { detectionTrust = { trusted: false, disposition: "reconcile-only", basis: "read-fault" }; }
+    } else {
+      detectionTrust = resolved.empty
+        ? { trusted: false, disposition: "reconcile-only", basis: "no-run-dir" }
+        : sentryReadDetectionIntegrity(resolved.runDir);
+    }
     // FAFF-327: read each in-flight member's OWN heartbeat.<issue> file (the only
     // filesystem access for the fleet path — evalMemberStall itself stays pure). Uses
     // the SAME in-flight derivation evaluateDerailment applies internally, so the two
@@ -730,7 +781,7 @@ function cmdSentry(args) {
       }
     }
     const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile);
-    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority };
+    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
     else {
@@ -1131,4 +1182,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

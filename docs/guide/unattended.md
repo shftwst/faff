@@ -112,7 +112,7 @@ L3 keeps you *on* the loop: you walk away, but you're the one who reviews the mo
 2. **Mint + banner.** On a clean preflight it mints a strict-defaults **L4 run-ledger** under `.faff/runs/` carrying an `armed` map of each guardrail's `live`/`degraded`/`absent` state, and **persists a banner** derivable one-to-one from that map. The banner is your trust contract: a glance tells a fully-armed L4 run from a degraded one without re-deriving any config.
 3. **Hand off.** It prints the minted run dir; launch the drain with that run armed — `FAFF_RUN_DIR=<run-dir> /faff-beep-boop`. From there the guardrails fire at their boundaries: admissibility filters the queue, the budget + terminating predicates end the run, Sentry watches for derailment with kill-switch authority, and the code-blind holdout verdict gates the merge.
 
-**Satisfying L4 dial-coherence without touching the committed base.** If `--check` refuses on `dial-coherence:adversarial-spec-review` or `dial-coherence:gates-fallback`, set the two L4-required dials in a gitignored **`.faffrc.local.yaml`** — the FAFF-387 / [ADR-0067](../adr/0067-committed-config-posture-two-file-model.md) operator-local overlay, deep-merged over `.faffrc.yaml` with overlay scalars winning — rather than editing the shared committed base:
+**Satisfying L4 dial-coherence without touching the committed base.** If `--check` refuses on `dial-coherence:adversarial-spec-review` or `dial-coherence:gates-fallback`, set the two L4-required dials in a gitignored **`.faffrc.local.yaml`** — an operator-local overlay that is deep-merged over the committed `.faffrc.yaml`, with the overlay's scalar values winning — rather than editing the shared committed base:
 
 ```yaml
 # .faffrc.local.yaml  (gitignored; overlays .faffrc.yaml)

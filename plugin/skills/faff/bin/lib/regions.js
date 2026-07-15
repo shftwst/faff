@@ -90,6 +90,9 @@ const REGION_MAP = {
   "run-done": "factory",
   "hooks-ensure": "factory",
   "merge-fence": "factory",
+  // FAFF-491: the self-backgrounded-gate PreToolUse fence — same family as merge-fence
+  // (a pure matcher + --hook stdin shell + --selftest), factory for the identical reason.
+  "background-fence": "factory",
   "validate-adapters": "factory",
   "labels": "factory",
   "label": "factory",
@@ -197,6 +200,7 @@ const REGION_SELFTEST_ARGV = {
   "run-done": ["run-done", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
   "merge-fence": ["merge-fence", "--selftest"],
+  "background-fence": ["background-fence", "--selftest"],
   "validate-adapters": null,
   "labels": null,
   "label": ["label", "--selftest"],

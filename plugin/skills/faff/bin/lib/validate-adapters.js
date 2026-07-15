@@ -438,6 +438,21 @@ function cmdValidateAdapters(args) {
       console.log(`FAIL  ${name} (rendering pass)`);
       console.log(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
     }
+    // FAFF-491: faff-graft's build phase (Steps 7–8b) must carry the foreground-posture
+    // rule — a build subagent that self-backgrounds its own gate/test command and ends
+    // its turn strands the build (two live occurrences, FAFF-466/FAFF-446). Substring-only
+    // (case-insensitive), same honesty caveat as FAFF-439: this asserts the instruction is
+    // PRESENT, not runtime-obeyed — the FAFF-491 background-fence hook is the mechanical floor.
+    if (name === "faff-graft") {
+      const lower = text.toLowerCase();
+      const hasRunInBackground = lower.includes("run_in_background: true");
+      const hasNeverEndATurn = lower.includes("never end a turn");
+      if (!hasRunInBackground || !hasNeverEndATurn) {
+        failed = true;
+        console.log(`FAIL  ${name} (build-phase posture)`);
+        console.log(`        ✗ missing the FAFF-491 foreground-posture declaration — Step 7.5 must carry both "run_in_background: true" and "never end a turn" (case-insensitive)`);
+      }
+    }
   }
   // FAFF-50: CLI-only config access — no skill may hand-read the rc file with a shell command;
   // config is resolved via `faff config`. Conservative: flags only an explicit shell read of

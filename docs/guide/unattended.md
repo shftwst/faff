@@ -112,6 +112,18 @@ L3 keeps you *on* the loop: you walk away, but you're the one who reviews the mo
 2. **Mint + banner.** On a clean preflight it mints a strict-defaults **L4 run-ledger** under `.faff/runs/` carrying an `armed` map of each guardrail's `live`/`degraded`/`absent` state, and **persists a banner** derivable one-to-one from that map. The banner is your trust contract: a glance tells a fully-armed L4 run from a degraded one without re-deriving any config.
 3. **Hand off.** It prints the minted run dir; launch the drain with that run armed — `FAFF_RUN_DIR=<run-dir> /faff-beep-boop`. From there the guardrails fire at their boundaries: admissibility filters the queue, the budget + terminating predicates end the run, Sentry watches for derailment with kill-switch authority, and the code-blind holdout verdict gates the merge.
 
+**Satisfying L4 dial-coherence without touching the committed base.** If `--check` refuses on `dial-coherence:adversarial-spec-review` or `dial-coherence:gates-fallback`, set the two L4-required dials in a gitignored **`.faffrc.local.yaml`** — an operator-local overlay that is deep-merged over the committed `.faffrc.yaml`, with the overlay's scalar values winning — rather than editing the shared committed base:
+
+```yaml
+# .faffrc.local.yaml  (gitignored; overlays .faffrc.yaml)
+slots:
+  spec_review: faffter-dark-spec-review
+gates:
+  fallback: fail-closed
+```
+
+The dial-coherence probe reads the merged (base ⊕ overlay) config, so the overlay values satisfy the gate. Each refusal's message names its own fix (`— fix <key> in .faffrc.local.yaml (set: <value>)`).
+
 Use `faff lights-out --check` to dry-run the preflight (it mints nothing) — handy for confirming the cage and the slots are wired before you actually leave.
 
 ## Running over SSH

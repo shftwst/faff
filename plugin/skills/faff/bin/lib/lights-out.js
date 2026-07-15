@@ -243,7 +243,7 @@ function dialCoherence(dial) {
   if (!isAdversarial(slots.spec_review, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS)) {
     refusals.push({
       gate: "dial-coherence:adversarial-spec-review",
-      detail: `L4 lights-out requires an adversarial spec_review occupant; '${slots.spec_review == null ? "" : slots.spec_review}' is the single-pass default — the approach-challenge would not be adversarial`,
+      detail: `L4 lights-out requires an adversarial spec_review occupant; '${slots.spec_review == null ? "" : slots.spec_review}' is the single-pass default — the approach-challenge would not be adversarial — fix slots.spec_review in .faffrc.local.yaml (set: faffter-dark-spec-review)`,
     });
   }
   // Rule (B) — the engineering gate ladder must fail closed under lights-out; advisory
@@ -251,7 +251,7 @@ function dialCoherence(dial) {
   if (d.gates_fallback !== "fail-closed") {
     refusals.push({
       gate: "dial-coherence:gates-fallback",
-      detail: `gates.fallback is '${d.gates_fallback == null ? "" : d.gates_fallback}' — an unattended run needs fail-closed engineering gates; advisory lets a repo with no declared gates pass silently`,
+      detail: `gates.fallback is '${d.gates_fallback == null ? "" : d.gates_fallback}' — an unattended run needs fail-closed engineering gates; advisory lets a repo with no declared gates pass silently — fix gates.fallback in .faffrc.local.yaml (set: fail-closed)`,
     });
   }
   return refusals;

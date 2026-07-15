@@ -1,6 +1,6 @@
 # ADR 0011 — eligibility-gesture: a write-abstained label admitted as a distinct intake-provenance basis
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-23
 - **Issue:** FAFF-223
 

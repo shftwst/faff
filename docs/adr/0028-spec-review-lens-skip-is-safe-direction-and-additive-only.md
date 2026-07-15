@@ -1,6 +1,6 @@
 # ADR 0028 — Spec-review lens-skip is safe-direction and additive-only
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-268
 

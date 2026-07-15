@@ -1,6 +1,6 @@
 # ADR 0020 — Lights-out admissibility is a deterministic structural check, never LLM self-judgement
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-224
 

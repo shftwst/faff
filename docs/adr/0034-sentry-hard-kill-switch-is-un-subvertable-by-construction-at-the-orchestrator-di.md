@@ -1,6 +1,6 @@
 # ADR 0034 — Sentry hard kill-switch is un-subvertable by construction at the orchestrator dispatch boundary
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-29
 - **Issue:** FAFF-49
 

@@ -1,6 +1,6 @@
 # ADR 0037 — Appetite is level-scoped; L4 forces full
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-07-01
 - **Issue:** FAFF-308
 

@@ -1,6 +1,6 @@
 # ADR 0022 — PRDR two-gate admission authority: loop proposes, human ratifies, by-level immutability
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-255
 - **Initiative:** L4 — Lights-out AI factory

@@ -1,6 +1,6 @@
 # ADR 0025 — Distinct spec_review slot + fixed spec-review-verdict contract
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-27
 - **Issue:** FAFF-265
 

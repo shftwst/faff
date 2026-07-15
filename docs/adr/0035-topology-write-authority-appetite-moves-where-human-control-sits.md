@@ -1,6 +1,6 @@
 # ADR 0035 — Topology-write authority — appetite moves where human control sits
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-29
 - **Issue:** FAFF-291
 

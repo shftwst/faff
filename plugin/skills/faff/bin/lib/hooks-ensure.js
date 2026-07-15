@@ -21,11 +21,14 @@ const { findRoot } = require("./shared-infra");
 // predicate). planStopHooks/isPresent/normalization all generalise over this list
 // already; nothing else in this registrar changes.
 const FAFF_STOP_HOOKS = ["runcheck", "prepcheck", "sentrycheck"];
-// FAFF-434: the PreToolUse hook set — currently just the raw-gh-pr-merge fence.
-// A distinct list from FAFF_STOP_HOOKS because it registers under a different
+// FAFF-434/491: the PreToolUse hook set — the raw-gh-pr-merge fence, plus
+// (FAFF-491) the self-backgrounded-gate fence: a build subagent that runs its
+// own gate/test command with run_in_background:true and ends its turn strands
+// the build mid-flight (heartbeat staleness is the only recovery today). A
+// distinct list from FAFF_STOP_HOOKS because it registers under a different
 // settings.json event array (hooks.PreToolUse, matcher-scoped to Bash) with a
 // different group shape ({matcher, hooks}, not the Stop set's bare {hooks}).
-const FAFF_PRE_TOOL_USE_HOOKS = ["merge-fence"];
+const FAFF_PRE_TOOL_USE_HOOKS = ["merge-fence", "background-fence"];
 // The full served-probe set resolveHookBin/probeServes must clear together — a
 // resolved bin that can't serve every hook (Stop OR PreToolUse) is not fit to
 // register any of them under the single canonical bin path.
@@ -295,18 +298,23 @@ const HOOKS_ENSURE_SELFTEST_CASES = [
     ["sentrycheck"], ["runcheck", "prepcheck", "sentrycheck"], ["runcheck", "prepcheck"], ["sentrycheck"], [], ["sentrycheck"]],
 ];
 
-// FAFF-434: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
+// FAFF-434/491: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
 // planPreToolUseHooks instead of planStopHooks — same [label, settings, present,
-// served, +added, =already, skip, ~normalized] shape.
+// served, +added, =already, skip, ~normalized] shape. FAFF-491 extends the table to
+// the two-member set (merge-fence + background-fence) so the planner is exercised over
+// the live FAFF_PRE_TOOL_USE_HOOKS list, not a stale one-member fixture.
 const HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES = [
-  ["empty + served → added", {}, [], ["merge-fence"], ["merge-fence"], [], [], []],
+  ["empty + both served → both added", {}, [], ["merge-fence", "background-fence"], ["merge-fence", "background-fence"], [], [], []],
   ["present, canonical → no-op",
-    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] } },
-    ["merge-fence"], ["merge-fence"], [], ["merge-fence"], [], []],
+    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }, { type: "command", command: "faff background-fence --hook" }] }] } },
+    ["merge-fence", "background-fence"], ["merge-fence", "background-fence"], [], ["merge-fence", "background-fence"], [], []],
   ["present, divergent path → normalized",
-    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "/abs/repo/path/faff merge-fence --hook" }] }] } },
-    ["merge-fence"], ["merge-fence"], [], ["merge-fence"], [], ["merge-fence"]],
-  ["stale bin serves nothing → skipped", {}, [], [], [], [], ["merge-fence"], []],
+    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "/abs/repo/path/faff merge-fence --hook" }, { type: "command", command: "/abs/repo/path/faff background-fence --hook" }] }] } },
+    ["merge-fence", "background-fence"], ["merge-fence", "background-fence"], [], ["merge-fence", "background-fence"], [], ["merge-fence", "background-fence"]],
+  ["stale bin serves nothing → both skipped", {}, [], [], [], [], ["merge-fence", "background-fence"], []],
+  ["merge-fence present, background-fence served → background-fence added",
+    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] } },
+    ["merge-fence"], ["merge-fence", "background-fence"], ["background-fence"], ["merge-fence"], [], []],
 ];
 
 function hooksEnsureSelftest() {
@@ -336,13 +344,16 @@ function hooksEnsureSelftest() {
   const structOk = cmds.length === 3 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck|sentrycheck) --hook/.test(h.command));
   if (!structOk) fail++;
   console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 3 command hooks`);
-  // structural: adding into {} builds one Bash-matcher PreToolUse group carrying the fence
-  const builtPre = planPreToolUseHooks({}, [], ["merge-fence"], inv).nextSettings;
+  // structural: adding into {} builds one Bash-matcher PreToolUse group carrying BOTH fences
+  const builtPre = planPreToolUseHooks({}, [], ["merge-fence", "background-fence"], inv).nextSettings;
   const preCmds = (((builtPre.hooks || {}).PreToolUse || [])[0] || {}).hooks || [];
   const preGroup = ((builtPre.hooks || {}).PreToolUse || [])[0] || {};
-  const structPreOk = preGroup.matcher === "Bash" && preCmds.length === 1 && preCmds[0].type === "command" && /faff merge-fence --hook/.test(preCmds[0].command);
+  const structPreOk = preGroup.matcher === "Bash" && preCmds.length === 2
+    && preCmds.every((h) => h.type === "command")
+    && /faff merge-fence --hook/.test(preCmds[0].command)
+    && /faff background-fence --hook/.test(preCmds[1].command);
   if (!structPreOk) fail++;
-  console.log(`${structPreOk ? "ok  " : "FAIL"} structural: {} → Bash-matcher PreToolUse group carrying merge-fence`);
+  console.log(`${structPreOk ? "ok  " : "FAIL"} structural: {} → Bash-matcher PreToolUse group carrying both merge-fence and background-fence`);
   // identity: token match ignores path / env prefix, requires --hook
   const idCases = [
     ["/abs/faff prepcheck --hook", "prepcheck", true],
@@ -357,6 +368,11 @@ function hooksEnsureSelftest() {
     ["FOO=1 /x/faff sentrycheck --hook", "sentrycheck", true],
     ["faff sentrycheck", "sentrycheck", false],
     ["faff runcheck --hook", "sentrycheck", false],
+    ["faff background-fence --hook", "background-fence", true],
+    ["/abs/faff background-fence --hook", "background-fence", true],
+    ["FOO=1 /x/faff background-fence --hook", "background-fence", true],
+    ["faff background-fence", "background-fence", false],
+    ["faff merge-fence --hook", "background-fence", false],
   ];
   for (const [cmd, sub, want] of idCases) {
     const got = commandInvokesFaffHook(cmd, sub);

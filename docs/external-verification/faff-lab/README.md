@@ -7,7 +7,7 @@ faff-lab is the public gallery site — itself faff-built — that puts a raw on
 
 ## Running faff-lab (the real admission flow)
 
-A lights-out run admits the PRD through two distinct layers. **These are the real `faff` commands** — do not use `faff prd new --from …` or `faff prd admit …`, which do not exist (see the note below).
+A lights-out run admits the PRD through two distinct layers. **These are the real `faff` commands** — do not use the non-existent `faff prd` file-ingest (`--from`) or `admit` forms that some earlier scaffold runbooks cite (see the note below).
 
 ### Layer 1 — PRD-readiness (the L4 run-start gate)
 
@@ -30,7 +30,7 @@ faff prdr admit <prdr> --actor loop|human …
 
 ### The real `faff prd` surface
 
-`faff prd` exposes exactly: `path | new <container> | link | list | validate`. `faff prd new` writes a **fresh template** to `docs/prd/<slug>.md` — it does **not** ingest an existing PRD file, and there is **no** `--from` flag and **no** `admit` subcommand on `faff prd`. (The `faff prd new --from PRD.md` / `faff prd admit` commands cited by some earlier scaffold runbooks are not real — tracked for correction in FAFF-507.)
+`faff prd` exposes exactly: `path | new <container> | link | list | validate`. `faff prd new` writes a **fresh template** to `docs/prd/<slug>.md` — it does **not** ingest an existing PRD file, and there is **no** `--from` flag and **no** `admit` subcommand on `faff prd`. (Some earlier scaffold runbooks cite a `faff prd` `--from` ingest and a `faff prd` `admit` gate; neither exists — tracked for correction in FAFF-507.)
 
 ## Git-only-first, with a documented upgrade path
 

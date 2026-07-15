@@ -9,6 +9,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { runCli } from "./helpers/run-cli.mjs";
 import faff from "../plugin/skills/faff/bin/faff";
 
@@ -157,6 +159,38 @@ test("correctiveIntegrityDirs(runDir, issue): 5 entries — 2 base + the 3 merge
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "holdout.json")));
 });
 
+// FAFF-466: the additive opts.events extension — detection-consumer-only, never
+// changing the corrective/merge-floor 2-/5-entry shape above.
+test("correctiveIntegrityDirs(runDir, issue, {events:true}): additive events.jsonl, existing 2-/5-entry shapes stay byte-identical", () => {
+  assert.equal(correctiveIntegrityDirs(runDir).length, 2, "no-opts base shape unchanged");
+  assert.equal(correctiveIntegrityDirs(runDir, "FAFF-1").length, 5, "no-opts with-issue shape unchanged");
+  const withEvents = correctiveIntegrityDirs(runDir, null, { events: true });
+  assert.equal(withEvents.length, 3);
+  assert.ok(withEvents.includes(path.join(runDir, "events.jsonl")));
+  const withIssueAndEvents = correctiveIntegrityDirs(runDir, "FAFF-1", { events: true });
+  assert.equal(withIssueAndEvents.length, 6);
+  assert.ok(withIssueAndEvents.includes(path.join(runDir, "events.jsonl")));
+});
+
+// Scenario 4 (FAFF-466): a declaration covering run-ledger.json + corrective/ but NOT
+// events.jsonl → dir-mismatch/reconcile-only when checked against the detection
+// consumer's (events-inclusive) required-dir set, while the SAME declaration, checked
+// against the corrective consumer's narrower (no-events) required-dir set, is
+// unaffected — the events.jsonl requirement is detection-only, not a global tightening.
+test("Scenario 4 (FAFF-466): a declaration omitting events.jsonl → dir-mismatch for detection's required-dir set, but still fully covers corrective's narrower set", () => {
+  const declCoveringBaseOnly = `v1:${path.join(runDir, "corrective")},${path.join(runDir, "run-ledger.json")}`;
+  const detectionReqDirs = correctiveIntegrityDirs(runDir, null, { events: true });
+  const pDetection = correctiveIntegrityProbe({}, mkFsq(`FAFF_INTEGRITY_BOUNDARY=${declCoveringBaseOnly}`), detectionReqDirs);
+  assert.equal(pDetection.asserted, false);
+  assert.equal(pDetection.basis, "dir-mismatch");
+  assert.equal(integrityGate(pDetection, "detection").disposition, "reconcile-only");
+
+  const correctiveReqDirs = correctiveIntegrityDirs(runDir); // base 2-entry set, no events param
+  const pCorrective = correctiveIntegrityProbe({}, mkFsq(`FAFF_INTEGRITY_BOUNDARY=${declCoveringBaseOnly}`), correctiveReqDirs);
+  assert.equal(pCorrective.asserted, true, "the SAME declaration fully covers the corrective consumer's required-dir set (events.jsonl is detection-only)");
+  assert.equal(integrityGate(pCorrective, "corrective").disposition, "trusted");
+});
+
 // CLI seam: the selftest table passes (exit 0).
 test("corrective-integrity --selftest: table passes (exit 0)", () => {
   const { stdout, code } = runCli(["corrective-integrity", "--selftest"]);
@@ -174,6 +208,21 @@ test("corrective-integrity --json: asserted:false / no-declaration / channel-D, 
   assert.equal(out.basis, "no-declaration");
   assert.equal(out.trusted, false);
   assert.equal(out.disposition, "channel-D");
+});
+
+// FAFF-466: consumer=detection with a REAL --run-dir whose events.jsonl does not
+// (yet) exist — a fresh run — must not crash. correctiveIntegrityDirs/dirsCoverAll
+// only ever compare declared strings, never touch the filesystem, so an unwritten
+// required path degrades the same honest way as any other.
+test("corrective-integrity --consumer detection --run-dir <fresh, no events.jsonl> --json: no crash, reconcile-only, exit 0", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "faff466-"));
+  try {
+    const { stdout, code } = runCli(["corrective-integrity", "--consumer", "detection", "--run-dir", dir, "--json"]);
+    assert.equal(code, 0, stdout);
+    const out = JSON.parse(stdout);
+    assert.equal(out.trusted, false);
+    assert.equal(out.disposition, "reconcile-only");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 // CLI seam: consumer=detection → reconcile-only, still exit 0 (degrade, not refuse).

@@ -794,15 +794,77 @@ test("FAFF-324 vector 7: deleting repeated-failure events suppresses repeated-id
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("FAFF-324: structural guard — `sentry check` never consults integrityGate's 'detection' consumer (the reconcile-only disposition FAFF-373 shipped is not wired into the detection path)", () => {
+test("FAFF-466: structural guard — `sentry check` now DOES reach integrityGate's 'detection' consumer, via a child spawn only (never a direct require, ADR-0042 region direction) — flipped from FAFF-324's absence-assertion now that the wiring landed. The 'reconcile-only' disposition's ENFORCEMENT behaviour (what sentry DOES with it) is a deliberately separate, still-open question owned by FAFF-511 — this guard only pins the WIRING, not that follow-on decision.", () => {
   const src = readFileSync(SENTRY_SRC, "utf8");
+  assert.ok(/"corrective-integrity",\s*"--consumer",\s*"detection"/.test(src),
+    "sentry.js spawns `corrective-integrity --consumer detection` (sentryReadDetectionIntegrity) — the " +
+    "detection consumer is now reachable from `sentry check`, mirroring the pre-existing `--consumer " +
+    "corrective` spawn (sentryReadCorrectiveAuthority) byte-for-byte in pattern.");
   assert.ok(!/correctiveIntegrityProbe|integrityGate/.test(src),
-    "sentry.js never in-process-calls the FAFF-373/325 corrective-integrity gate module. The only " +
-    "spawned corrective-integrity call it makes is `--consumer corrective` (for the Channel-A authority " +
-    "parameter) — never `--consumer detection`, whose 'reconcile-only' disposition exists in " +
-    "corrective-integrity.js only to be asserted by its own --selftest. A future wiring of the " +
-    "'detection' consumer into `sentry check` touches this file and should also update the ADR-0034 " +
-    "amendment this ticket wrote.");
+    "sentry.js STILL never in-process-calls the FAFF-373/325 corrective-integrity gate module directly " +
+    "— region direction (ADR-0042: a governance span never references a factory identifier) holds even " +
+    "though the detection consumer is now wired: both `--consumer corrective` and `--consumer detection` " +
+    "reach the gate ONLY via a child spawn of this same bin, never a require of corrective-integrity.js.");
+});
+
+// ===========================================================================
+// FAFF-466 Scenarios 1-3: `detection_trust` on `sentry check --json`. Scenario 1
+// (a genuine pid-1 declaration) is not fakeable from an in-process test (no ambient
+// way to synthesize asserted:true via the real CLI — same constraint noted for the
+// AC6 authority tests above), so Scenarios 1 and 3 exercise the --detection-json
+// hermetic seam (mirrors --budget-json: a well-formed value is consumed verbatim, an
+// unparseable one is itself a read-fault). Scenario 2 (the common, no-declaration
+// case) is exercised with NO override at all — the real, unfaked path.
+// ===========================================================================
+
+test("FAFF-466 Scenario 1: asserted-true wiring — a genuine covering declaration (simulated via --detection-json, the hermetic seam) yields detection_trust.disposition === 'trusted'", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--detection-json", JSON.stringify({ trusted: true, disposition: "trusted", basis: "asserted" })]).out);
+    assert.equal(out.detection_trust.trusted, true);
+    assert.equal(out.detection_trust.disposition, "trusted");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-466 Scenario 2: unasserted (the common, no-declaration case, NO override) — detection_trust.disposition === 'reconcile-only', and predicate evaluation (verdicts/intervention) is BYTE-IDENTICAL to the pre-this-ticket payload shape", () => {
+  const dir = tmp();
+  try {
+    const events = [0, 1, 2].map((seq) => ({ type: "build-start", issue: "A", seq }));
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: ["A"], outcomes: {}, owner: { status: "running", started_at: new Date().toISOString(), last_heartbeat: new Date().toISOString() } }, events);
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json"]).out);
+    assert.equal(out.detection_trust.trusted, false);
+    assert.equal(out.detection_trust.disposition, "reconcile-only", "no real pid-1 declaration exists in this sandbox — honest unasserted degrade");
+    // Same thrash trip as the pre-FAFF-466 "unasserted authority" test above (line ~570)
+    // — detection_trust is annotate-only; it changes nothing about verdict evaluation.
+    assert.equal(out.intervention, "pause", "thrash trip, unchanged by detection_trust — annotate-only per Scenario 2");
+    assert.equal(out.authority, "channel-D-only");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-466 Scenario 3: read-fault fail-safe — an unparseable --detection-json (simulating a non-OK spawned child) degrades to {trusted:false, disposition:'reconcile-only', basis:'read-fault'}, and `sentry check` still exits 0", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--detection-json", "{ not json"]);
+    assert.equal(r.code, 0, "sentry check still exits 0 on a detection read-fault");
+    const out = JSON.parse(r.out);
+    assert.deepEqual(out.detection_trust, { trusted: false, disposition: "reconcile-only", basis: "read-fault" });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-466: a malformed-but-parseable --detection-json reply (trusted:'yes', a truthy-but-wrong-typed value) is NEVER coerced to trusted", () => {
+  const dir = tmp();
+  try {
+    const now = new Date().toISOString();
+    const rd = mkRun(dir, "r", { run_id: "r", admitted: [], outcomes: {}, owner: { status: "running", started_at: now, last_heartbeat: now } });
+    const out = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--detection-json", JSON.stringify({ trusted: "yes", disposition: "trusted", basis: "asserted" })]).out);
+    assert.equal(out.detection_trust.trusted, false, "only a strict === true on the reply's `trusted` field ever asserts trust");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("FAFF-324: `faff reconcile` (FAFF-397, wired at beep-boop run-end) DOES catch a forged TERMINAL 'shipped' claim — the backstop that exists, demonstrated end-to-end. It catches only the terminal claim, never the mid-run event/attempt-count tampering vectors 1-3/7 demonstrate above (those can suppress a real-time trip and let the run keep grinding WITHOUT ever having to fake a final shipped outcome).", () => {

@@ -145,7 +145,11 @@ function integrityGate(probeResult, consumer) {
 // existing callers are unaffected. Single-sourced from the SAME run-dir layout
 // readAcComplete/readReviewVerdict/readHoldout use in merge-gate.js; never a
 // second, divergent hand-written list. PURE — derives paths only.
-function correctiveIntegrityDirs(runDir, issue) {
+// FAFF-466: an additive, opt-in third `opts.events` param appends events.jsonl to
+// the forge surface for the `detection` consumer only — the `corrective`/`merge-floor`
+// 2-/5-entry shapes those callers (`merge-gate.js`'s `resolveIntegrity`, `corrective.js`)
+// depend on stay byte-identical (opts omitted ⇒ unchanged return).
+function correctiveIntegrityDirs(runDir, issue, opts) {
   const dirs = [
     path.join(runDir, "corrective"),
     path.join(runDir, "run-ledger.json"),
@@ -156,6 +160,9 @@ function correctiveIntegrityDirs(runDir, issue) {
       path.join(runDir, issue, "review-verdict.json"),
       path.join(runDir, issue, "holdout.json"),
     );
+  }
+  if (opts && opts.events === true) {
+    dirs.push(path.join(runDir, "events.jsonl"));
   }
   return dirs;
 }
@@ -180,7 +187,9 @@ function cmdCorrectiveIntegrity(args) {
   const issue = isi !== -1 ? args[isi + 1] : null;
   // No --run-dir -> no required dirs (the probe can still surface no-declaration /
   // env-injection / malformed; dir-mismatch needs a concrete dir set to check).
-  const dirs = runDir ? correctiveIntegrityDirs(runDir, issue) : [];
+  // FAFF-466: the `detection` consumer's forge surface additionally covers
+  // events.jsonl — the consumer name alone is enough to opt in, no new CLI flag.
+  const dirs = runDir ? correctiveIntegrityDirs(runDir, issue, consumer === "detection" ? { events: true } : undefined) : [];
   const probe = correctiveIntegrityProbe(process.env, realFsq(), dirs);
   const gate = integrityGate(probe, consumer);
   const out = { asserted: probe.asserted, basis: probe.basis, trusted: gate.trusted, disposition: gate.disposition };
@@ -267,6 +276,15 @@ function correctiveIntegritySelftest() {
   ok(withIssue.includes(path.join(runDir, "FAFF-1", "ac-checklist.json")), "correctiveIntegrityDirs(runDir, issue): includes ac-checklist.json");
   ok(withIssue.includes(path.join(runDir, "FAFF-1", "review-verdict.json")), "correctiveIntegrityDirs(runDir, issue): includes review-verdict.json");
   ok(withIssue.includes(path.join(runDir, "FAFF-1", "holdout.json")), "correctiveIntegrityDirs(runDir, issue): includes holdout.json");
+
+  // --- correctiveIntegrityDirs: additive opts.events extension (FAFF-466) ---
+  ok(correctiveIntegrityDirs(runDir).length === 2, "correctiveIntegrityDirs(runDir) with no opts stays byte-identical (2 entries)");
+  ok(correctiveIntegrityDirs(runDir, "FAFF-1").length === 5, "correctiveIntegrityDirs(runDir, issue) with no opts stays byte-identical (5 entries)");
+  const withEvents = correctiveIntegrityDirs(runDir, null, { events: true });
+  ok(withEvents.length === 3, "correctiveIntegrityDirs(runDir, null, {events:true}): 3 entries (2 base + events.jsonl)");
+  ok(withEvents.includes(path.join(runDir, "events.jsonl")), "correctiveIntegrityDirs with {events:true} includes events.jsonl");
+  const withIssueAndEvents = correctiveIntegrityDirs(runDir, "FAFF-1", { events: true });
+  ok(withIssueAndEvents.length === 6, "correctiveIntegrityDirs(runDir, issue, {events:true}): 6 entries (5 + events.jsonl)");
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} checks, ${fail} failed)`);
   return fail ? 1 : 0;

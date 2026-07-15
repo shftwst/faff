@@ -46,6 +46,9 @@ budget:
   tokens: 80000000
   # the leash wants a loud stop, not a silent drain, when a ceiling is hit.
   at_ceiling: escalate
+  # cost: 25   # optional: budget.cost (dollars, priced from the ADR-0048 map) is the FAFF-427
+              # recommended L4 spend governor; max_attempts is a count, excluded from the L4
+              # budget-ceiling gate and kept only as an extra backstop.
 EOF
 
 cat > PRD.md <<'EOF'
@@ -116,9 +119,13 @@ Open a Claude Code session with cwd = THIS repo:
     # WATCH: are increments backlog-defaulted and sequenced, blockers dragged in structurally?
 
 ## 2. Author + admit the PRD as the leash
-    faff prd new   --from PRD.md            # author the human setpoint
-    faff prd admit                          # admissibility gate: REJECTS a PRD with no machine-checkable stop-conditions
-    # (If admit refuses, that's a real finding — the stop conditions weren't verifiable.)
+See authoring-and-admitting-a-prd.md for the current verb surface (the two commands this RUNBOOK
+used to list here — a `prd new` invocation with a `--from` flag, and an `admit` verb under
+`prd` — never existed as written; see that doc for what NOT to run).
+`PRD.md` stays hand-authored; the L4 run-start `prd-readiness` gate admits/refuses it
+automatically when `/faff-beep-boop --converge` mints the run. A refusal means the stop
+conditions weren't machine-checkable — a real finding.
+    # (If the gate refuses, that's a real finding — the stop conditions weren't verifiable.)
 
 ## 3. Drive the multi-increment build with convergence
     /faff-prep  <first-increment>
@@ -126,7 +133,7 @@ Open a Claude Code session with cwd = THIS repo:
     /faff-beep-boop --converge              # drains discovered scope IN-RUN until both tributaries run dry
 
 ## 4. Observe the two gates
-    faff prdr coverage --dod-verdicts ...   # lower gate: refuses "done" before every stop condition verdicts GO
+    faff prdr coverage --prd-goals '<JSON array of the PRD "In scope" goals>' --dod-verdicts ...   # lower gate: refuses "done" before every stop condition verdicts GO
     faff events read --run <id>             # look for a YAGNI refusal if anything tried to exceed "In scope"
     faff audit <run-id>
     git log --oneline                       # the PRD.md commit must be UNTOUCHED after the run
@@ -141,6 +148,8 @@ Open a Claude Code session with cwd = THIS repo:
 EOF
 
 faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")"
+"$faff" gitignore-ensure 2>/dev/null && echo "gitignored .faff/ via gitignore-ensure" \
+  || echo "  (faff gitignore-ensure unavailable here — run it from the SUT once faff is on PATH)"
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
 

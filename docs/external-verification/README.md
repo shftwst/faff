@@ -31,9 +31,12 @@ SUT_ROOT=~/workspace/shftwst/faff-suts/p1-link-shortener \
 ```
 
 It will: create the repo, write `.faffrc.yaml` + `BRIEF.md` + `RUNBOOK.md` (+ `PRD.md` for
-P2/P4, + a seeded legacy app for P5), wire faff's Stop hooks via `faff hooks-ensure` (never a
-hand-edited `settings.json`), and make the initial commit. It **refuses** to scaffold into a
-non-empty dir unless you pass `FORCE=1`.
+P2/P4, + a seeded legacy app for P5), auto-gitignore `.faff/` via `faff gitignore-ensure` and wire
+faff's Stop hooks via `faff hooks-ensure` (never a hand-edited `settings.json`), and make the
+initial commit. It **refuses** to scaffold into a non-empty dir unless you pass `FORCE=1`.
+
+See [`authoring-and-admitting-a-prd.md`](authoring-and-admitting-a-prd.md) for the current verb
+surface P2/P4's RUNBOOKs use to author + admit their PRD leash.
 
 Then open a **new Claude Code session with cwd = the SUT repo** (the faff skills are global and
 the `faff` CLI is on PATH, so they operate on the SUT and read its local `.faffrc.yaml`) and
@@ -45,8 +48,11 @@ follow that SUT's `RUNBOOK.md`.
   skill-owned and repeatable; a hardcoded `faff` path in a committed `settings.json` rots.
 - **Token ceilings are tens of millions, not single-digit.** `faff budget check` sums
   `cache_read` tokens; subagent + orchestrator cache-reads dominate, so a 4 M ceiling breaches
-  *before any build lands* (logged: 17 M actual vs 4 M ceiling → 0 builds). `max_attempts` is the
-  predictable cap here; `tokens` is only a runaway backstop.
+  *before any build lands* (logged: 17 M actual vs 4 M ceiling → 0 builds). For L4 lights-out the
+  budget-ceiling gate deliberately excludes `max_attempts` (a count is not an L4 governor); the
+  real spend governors are `budget.cost` (dollars, priced from the ADR-0048 map — FAFF-427, the
+  recommended default), `budget.tokens`, and `budget.until`. `max_attempts` may stay wired as an
+  optional extra backstop only.
 
 ## Scoring
 

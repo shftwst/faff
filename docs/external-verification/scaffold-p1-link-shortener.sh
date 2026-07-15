@@ -40,10 +40,14 @@ appetite: high
 automation_default: opt-out
 intake_gate: warn
 budget:
-  # max_attempts is the predictable cap. tokens is a runaway backstop only:
-  # `faff budget check` sums cache_read, so a small ceiling breaches before a build lands.
+  # For L4 lights-out the budget-ceiling gate deliberately EXCLUDES max_attempts (a count is not
+  # an L4 governor) — the real spend governors are budget.cost (dollars, priced from the ADR-0048
+  # map — FAFF-427, the recommended default), budget.tokens, and budget.until. max_attempts may
+  # stay wired as an optional extra backstop only.
+  # `faff budget check` sums cache_read, so a small tokens ceiling breaches before a build lands.
   max_attempts: 6
   tokens: 30000000
+  # cost: 15   # optional: budget.cost — the recommended L4 governor (FAFF-427)
   at_ceiling: stop
 EOF
 
@@ -110,8 +114,12 @@ Open a Claude Code session with cwd = THIS repo, then:
     faff env compose-gen --profile <p>     # → ProvisionPlan + compose file
     faff env up   --plan <plan>            # docker compose up -d + health-wait → env-handle (status: ready|failed)
     faff env seed                          # seed synthetic data
-    faff holdout verdicts --association <json>   # code-blind verdict of the spec DoD against the RUNNING env
-    faff prdr coverage --dod-verdicts ...        # roll the verdicts into prd-satisfied
+    faff holdout verdicts --association <json>   # pure bridge: reads the evaluator's persisted
+                                                  # .faff/holdout/<key>.json verdicts (the
+                                                  # evaluator slot already exercised the live
+                                                  # endpoints to produce them) into prdr
+                                                  # coverage's --dod-verdicts shape
+    faff prdr coverage --prd-goals '<JSON array of DONE goals>' --dod-verdicts ...   # roll the verdicts into prd-satisfied
     faff env down                          # tear down (ephemeral)
 
 ## 4. Observe (the run's real signal)
@@ -132,6 +140,8 @@ EOF
 
 # Hooks: skill-owned + repeatable. Never a hand-edited settings.json with a hardcoded faff path.
 faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")"
+"$faff" gitignore-ensure 2>/dev/null && echo "gitignored .faff/ via gitignore-ensure" \
+  || echo "  (faff gitignore-ensure unavailable here — run it from the SUT once faff is on PATH)"
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
 

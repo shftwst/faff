@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-07-15
 - **Issue:** FAFF-493
+- **Amended:** 2026-07-15 — container-create row superseded in part by ADR-0072 (FAFF-515); all other rows, the epic-create scope, and the two-floor methodology unchanged.
 
 ## Context
 

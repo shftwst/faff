@@ -935,13 +935,17 @@ function computePrdrAdmissionVerdict(input) {
 // --- l4-topology-envelope (FAFF-493) ---
 // The L4 topology-write-authority envelope — the de-risk spike's emitted deliverable (ADR-0071).
 // A separate referencing contract that composes the existing appetite-keyed topology-write-authority
-// dial (SKILL.md:712-729) via the ADR-0037 `full`-at-L4 pin — NOT a new dial-table row. Scope is
-// epic-only: autonomous first-slice epic-create at L4, plus the reversible reparent/convert/rehome ops
-// the dial already grants at `full`. Container creation stays confirm-gated at every level (the
-// faff-plot container-confirm floor, faff-plot/SKILL.md:67); human-curated provenance always degrades
-// to propose-only (SKILL.md:485,725); cancel/delete are forbidden at every level (the reversibility
-// floor, SKILL.md:724,731). See ADR-0071's Two-floor conformance proof + 216-independence trace for the
-// clause-by-clause grounding of every row below.
+// dial (SKILL.md:712-729) via the ADR-0037 `full`-at-L4 pin — NOT a new dial-table row. Scope:
+// autonomous first-slice epic-create at L4, the reversible reparent/convert/rehome ops the dial
+// already grants at `full`, and (ADR-0072, superseding ADR-0071's container row in part) L4
+// container-create inside the accepted-root envelope — a loop-authored container contained under the
+// run's admitted root PRD (`contained_under_accepted_prd`, caller-asserted from the run ledger's
+// `prd_root_container` + `faff contain`; the PRDR two-gate rule applied to the tracker medium: the
+// human Accept sits at the root, once). Outside that envelope container-create stays confirm-gated
+// (the faff-plot container-confirm floor, faff-plot/SKILL.md:67); human-curated provenance always
+// degrades to propose-only (SKILL.md:485,725); cancel/delete are forbidden at every level (the
+// reversibility floor, SKILL.md:724,731). See ADR-0071's Two-floor conformance proof +
+// 216-independence trace, and ADR-0072's two-floor citation for the container-create admit row.
 //
 // `l4TopologyDecision(op)` is the PRODUCER-side pure decision table (Pattern-C-style core). THIS is the
 // consumer-side Pattern-B validator (mirrors computePrdrAdmission): given an extraction shaped
@@ -953,12 +957,13 @@ const L4_ENVELOPE_OP_KINDS = ["container-create", "epic-create", "reparent", "co
 const L4_ENVELOPE_LEVELS = ["L1", "L2", "L3", "L4"];
 const L4_ENVELOPE_PROVENANCE = ["faff-authored", "human-curated"];
 
-// The pure decision table (ADR-0071 §Decision). No tracker/network/LLM call — a plain function of the
-// four `op` fields. Order matters: floors are checked outermost-in (reversibility floor first — cancel/
-// delete are forbidden regardless of provenance or kind; then the human-curated floor — it pre-empts
-// every op kind including epic-create/reparent; then the per-kind rows).
+// The pure decision table (ADR-0071 §Decision, container-create row per ADR-0072). No tracker/network/
+// LLM call — a plain function of the five `op` fields. Order matters: floors are checked outermost-in
+// (reversibility floor first — cancel/delete are forbidden regardless of provenance or kind; then the
+// human-curated floor — it pre-empts every op kind including container-create/epic-create/reparent;
+// then the per-kind rows).
 function l4TopologyDecision(op) {
-  const { kind, level, provenance, parent_confirmed } = op;
+  const { kind, level, provenance, parent_confirmed, contained_under_accepted_prd } = op;
   if (kind === "cancel" || kind === "delete") {
     return { disposition: "reject", reason: "reversibility-floor: cancel/delete forbidden at every level, always (SKILL.md:724,731)", reversible: false };
   }
@@ -966,7 +971,10 @@ function l4TopologyDecision(op) {
     return { disposition: "propose-only", reason: "human-curated-structure-floor: never silently restructure human-curated structure — propose-and-confirm (SKILL.md:485,725)", reversible: true };
   }
   if (kind === "container-create") {
-    return { disposition: "propose-only", reason: "container-confirm-floor: containers always confirm, expensive to undo (faff-plot/SKILL.md:67)", reversible: true };
+    if (level === "L4" && contained_under_accepted_prd === true) {
+      return { disposition: "admit", reason: "prdr-lifecycle: loop-authored container contained under the run's admitted root PRD — the human Accept sits at the root, once (ADR-0072)", reversible: true };
+    }
+    return { disposition: "propose-only", reason: "outside the accepted-root envelope — container-confirm holds (faff-plot/SKILL.md:67, ADR-0072)", reversible: true };
   }
   if (kind === "epic-create") {
     if (level === "L4" && parent_confirmed === true) {
@@ -992,6 +1000,7 @@ function computeL4TopologyEnvelope(extraction) {
   if (!L4_ENVELOPE_LEVELS.includes(o.level)) return { contractData: null, failLoud: `op.level ${JSON.stringify(o.level)} not in {${L4_ENVELOPE_LEVELS.join(",")}}` };
   if (!L4_ENVELOPE_PROVENANCE.includes(o.provenance)) return { contractData: null, failLoud: `op.provenance ${JSON.stringify(o.provenance)} not in {${L4_ENVELOPE_PROVENANCE.join(",")}}` };
   if (typeof o.parent_confirmed !== "boolean") return { contractData: null, failLoud: "op.parent_confirmed must be a boolean" };
+  if (typeof o.contained_under_accepted_prd !== "boolean") return { contractData: null, failLoud: "op.contained_under_accepted_prd must be a boolean" };
 
   const v = extraction.verdict;
   if (v === null || typeof v !== "object" || Array.isArray(v)) {
@@ -1002,7 +1011,7 @@ function computeL4TopologyEnvelope(extraction) {
   }
   if (typeof v.reversible !== "boolean") return { contractData: null, failLoud: "verdict.reversible must be a boolean" };
 
-  const op = { kind: o.kind, level: o.level, provenance: o.provenance, parent_confirmed: o.parent_confirmed };
+  const op = { kind: o.kind, level: o.level, provenance: o.provenance, parent_confirmed: o.parent_confirmed, contained_under_accepted_prd: o.contained_under_accepted_prd };
   const verdict = { disposition: v.disposition, reason: typeof v.reason === "string" ? v.reason : "", reversible: v.reversible };
 
   const violations = [];
@@ -1514,28 +1523,35 @@ const CONTRACTS = {
   "l4-topology-envelope": {
     run: contractL4TopologyEnvelope,
     fixtures: [
-      // Scenario rows straight from the ADR-0071 decision table / FAFF-493 spec §5.
-      { name: "conformant-epic-create-l4-admit", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "L4 envelope", reversible: true } }, wantExit: 0 },
-      { name: "conformant-container-create-propose-only", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "container-confirm floor", reversible: true } }, wantExit: 0 },
-      { name: "conformant-cancel-reject", in: { op: { kind: "cancel", level: "L1", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "reject", reason: "reversibility floor", reversible: false } }, wantExit: 0 },
-      { name: "conformant-delete-reject", in: { op: { kind: "delete", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "reject", reason: "reversibility floor", reversible: false } }, wantExit: 0 },
-      { name: "conformant-reparent-human-curated-propose-only", in: { op: { kind: "reparent", level: "L4", provenance: "human-curated", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "human-curated floor", reversible: true } }, wantExit: 0 },
-      { name: "conformant-reparent-faff-authored-admit", in: { op: { kind: "reparent", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
-      { name: "conformant-convert-faff-authored-admit", in: { op: { kind: "convert", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
-      { name: "conformant-rehome-faff-authored-admit", in: { op: { kind: "rehome", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
-      { name: "conformant-epic-create-not-l4-propose-only", in: { op: { kind: "epic-create", level: "L3", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "outside the L4 envelope", reversible: true } }, wantExit: 0 },
-      { name: "conformant-epic-create-l4-unconfirmed-propose-only", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "propose-only", reason: "outside the L4 envelope", reversible: true } }, wantExit: 0 },
+      // Scenario rows straight from the ADR-0071 decision table (container-create row per ADR-0072) /
+      // FAFF-493 + FAFF-515 spec scenarios.
+      { name: "conformant-epic-create-l4-admit", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "L4 envelope", reversible: true } }, wantExit: 0 },
+      { name: "conformant-container-create-l4-accepted-root-admit", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: true }, verdict: { disposition: "admit", reason: "prdr-lifecycle: contained under the run's admitted root PRD (ADR-0072)", reversible: true } }, wantExit: 0 },
+      { name: "conformant-container-create-propose-only", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "propose-only", reason: "outside the accepted-root envelope — container-confirm holds", reversible: true } }, wantExit: 0 },
+      { name: "conformant-container-create-l3-with-signal-propose-only", in: { op: { kind: "container-create", level: "L3", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: true }, verdict: { disposition: "propose-only", reason: "outside the accepted-root envelope — not L4", reversible: true } }, wantExit: 0 },
+      // Floor-ordering proof: the human-curated floor pre-empts the container-create row — a true
+      // signal never punches through it.
+      { name: "conformant-container-create-human-curated-with-signal-propose-only", in: { op: { kind: "container-create", level: "L4", provenance: "human-curated", parent_confirmed: false, contained_under_accepted_prd: true }, verdict: { disposition: "propose-only", reason: "human-curated floor", reversible: true } }, wantExit: 0 },
+      { name: "conformant-cancel-reject", in: { op: { kind: "cancel", level: "L1", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: false }, verdict: { disposition: "reject", reason: "reversibility floor", reversible: false } }, wantExit: 0 },
+      { name: "conformant-delete-reject", in: { op: { kind: "delete", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "reject", reason: "reversibility floor", reversible: false } }, wantExit: 0 },
+      { name: "conformant-reparent-human-curated-propose-only", in: { op: { kind: "reparent", level: "L4", provenance: "human-curated", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "propose-only", reason: "human-curated floor", reversible: true } }, wantExit: 0 },
+      { name: "conformant-reparent-faff-authored-admit", in: { op: { kind: "reparent", level: "L4", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
+      { name: "conformant-convert-faff-authored-admit", in: { op: { kind: "convert", level: "L4", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
+      { name: "conformant-rehome-faff-authored-admit", in: { op: { kind: "rehome", level: "L4", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "reversibility floor grants at full", reversible: true } }, wantExit: 0 },
+      { name: "conformant-epic-create-not-l4-propose-only", in: { op: { kind: "epic-create", level: "L3", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "propose-only", reason: "outside the L4 envelope", reversible: true } }, wantExit: 0 },
+      { name: "conformant-epic-create-l4-unconfirmed-propose-only", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: false }, verdict: { disposition: "propose-only", reason: "outside the L4 envelope", reversible: true } }, wantExit: 0 },
       // Non-conformant: a producer that mis-declares a verdict the table wouldn't derive — the load-bearing
       // "validator re-derives, never trusts" check. The spec's smoke test names this exact case (container-
-      // create claimed admit).
-      { name: "container-create-admit-mismatch", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "wrong", reversible: true } }, wantExit: 1 },
-      { name: "epic-create-l4-confirmed-reject-mismatch", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "reject", reason: "wrong", reversible: false } }, wantExit: 1 },
-      { name: "reversible-mismatch", in: { op: { kind: "cancel", level: "L1", provenance: "faff-authored", parent_confirmed: false }, verdict: { disposition: "reject", reason: "wrong reversible", reversible: true } }, wantExit: 1 },
-      { name: "fail-loud-bad-op-kind", in: { op: { kind: "rename", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
-      { name: "fail-loud-bad-op-level", in: { op: { kind: "epic-create", level: "L5", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
-      { name: "fail-loud-bad-provenance", in: { op: { kind: "epic-create", level: "L4", provenance: "ai-authored", parent_confirmed: true }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
-      { name: "fail-loud-bad-disposition", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "maybe", reason: "", reversible: true } }, wantExit: 2 },
-      { name: "fail-loud-missing-verdict", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true } }, wantExit: 2 },
+      // create with a false accepted-root signal claiming admit).
+      { name: "container-create-admit-mismatch", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "wrong", reversible: true } }, wantExit: 1 },
+      { name: "epic-create-l4-confirmed-reject-mismatch", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "reject", reason: "wrong", reversible: false } }, wantExit: 1 },
+      { name: "reversible-mismatch", in: { op: { kind: "cancel", level: "L1", provenance: "faff-authored", parent_confirmed: false, contained_under_accepted_prd: false }, verdict: { disposition: "reject", reason: "wrong reversible", reversible: true } }, wantExit: 1 },
+      { name: "fail-loud-bad-op-kind", in: { op: { kind: "rename", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-bad-op-level", in: { op: { kind: "epic-create", level: "L5", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-bad-provenance", in: { op: { kind: "epic-create", level: "L4", provenance: "ai-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-bad-disposition", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false }, verdict: { disposition: "maybe", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-missing-contained-under-accepted-prd", in: { op: { kind: "container-create", level: "L4", provenance: "faff-authored", parent_confirmed: true }, verdict: { disposition: "propose-only", reason: "", reversible: true } }, wantExit: 2 },
+      { name: "fail-loud-missing-verdict", in: { op: { kind: "epic-create", level: "L4", provenance: "faff-authored", parent_confirmed: true, contained_under_accepted_prd: false } }, wantExit: 2 },
       { name: "fail-loud-missing-op", in: { verdict: { disposition: "admit", reason: "", reversible: true } }, wantExit: 2 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],

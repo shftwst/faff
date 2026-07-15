@@ -47,6 +47,12 @@ const REGION_MAP = {
   "build-progress": "governance",
   "budget": "governance",
   "sentry": "governance",
+  // sentry-poller — FAFF-470: the mint-scoped detached watchdog poller (ADR-0065's
+  // primary invocation locus). Same governance family as sentry/events/heartbeat —
+  // a pure tick-decision core behind a thin I/O shell, no factory-identifier
+  // references (D2: kept OUT of sentry.js to preserve that module's "mutates
+  // nothing on the check path" purity claim).
+  "sentry-poller": "governance",
   "audit": "governance",
   // reconcile — FAFF-397: the run-end GROUND-TRUTH gate, part of the same flight-recorder
   // family as runcheck (completeness) / effects (declared-vs-observed) / audit (forensics) —
@@ -167,6 +173,7 @@ const REGION_SELFTEST_ARGV = {
   "build-progress": ["build-progress", "--selftest"],
   "budget": ["budget", "--selftest"],
   "sentry": ["sentry", "--selftest"],
+  "sentry-poller": ["sentry-poller", "--selftest"],
   "audit": ["audit", "--selftest"],
   "reconcile": ["reconcile", "--selftest"],
   "profiles": ["profiles", "--selftest"],

@@ -112,6 +112,9 @@ jobs:
       - name: Validate integrity-floor contract script (FAFF-350)
         run: node plugin/skills/faff/bin/faff contract integrity-floor --selftest
 
+      - name: Validate integrity-boundary emitter round-trip (FAFF-514)
+        run: node plugin/skills/faff/bin/faff integrity-boundary --selftest
+
       - name: Validate post-merge-verification contract script (FAFF-385)
         run: node plugin/skills/faff/bin/faff contract post-merge-verification --selftest
 

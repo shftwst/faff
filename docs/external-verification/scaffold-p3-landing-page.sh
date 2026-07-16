@@ -96,7 +96,7 @@ Open a Claude Code session with cwd = THIS repo:
     /faff-graft <that-ticket>
 
 Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
-pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — that leg is operator-supplied, not scaffolded. All
+pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — compose that value with `faff integrity-boundary` (an automating cage will supply it later; FAFF-514), operator-supplied not scaffolded. All
 three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml`.
 
 ## 2. The critical observation — read the holdout-verdict closely

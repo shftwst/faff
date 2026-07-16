@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/adr-admission",
+  "title": "adr-admission contract data",
+  "description": "Reference schema (FAFF-199). The SHAPE of the ADR two-gate-bound admission verdict that `faff adr admit` PRODUCES and `faff contract adr-admission` VALIDATES (consumer-side conformance, mirroring prdr-admission — ADR 0022's pattern ported onto the ADR axis with the PRD-specific upper/lower value gates replaced by one folded `challenge` gate, the per-move adversarial drift review). NO safe coerce target — faff's own producer emits it, so an out-of-enum disposition/authority/challenge value is a fail-loud, never coerced toward `admit`. The load-bearing invariant (an `admit` disposition implies the two-gate constraint — challenge.outcome==survived ∧ by_level==ok ∧ ¬ratchet.breached ∧ ¬(loop supersedes human)) is enforced in code as a conformance violation; it is not expressible in this shape schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["disposition", "authority", "challenge", "ratchet", "reasons", "conformant", "violations"],
+  "properties": {
+    "disposition": { "type": "string", "enum": ["admit", "propose-only", "reject"] },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "supersedes_provenance", "by_level"],
+      "properties": {
+        "actor": { "type": "string", "enum": ["loop", "human"] },
+        "supersedes_provenance": { "type": "string", "enum": ["human", "loop", "none"] },
+        "by_level": { "type": "string", "enum": ["ok", "violation"] }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ran", "outcome"],
+      "properties": {
+        "ran": { "type": "boolean" },
+        "outcome": { "type": "string", "enum": ["survived", "overturned", "absent"] }
+      }
+    },
+    "ratchet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lineage_supersessions", "breached"],
+      "properties": {
+        "lineage_supersessions": { "type": "integer" },
+        "breached": { "type": "boolean" }
+      }
+    },
+    "reasons": { "type": "array", "items": { "type": "string" } },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -199,6 +199,13 @@ sentry:
 # always available regardless; this only gates the prep-time promotion offer.
 adr:
   mode: offer   # offer (default): surface candidates + human-gated y/n write · surface: list only · off: nothing
+  # ADR two-gate bound (FAFF-199) — the same thrash-ratchet shape as prdr.* below, ported to the ADR
+  # axis: `faff adr admit` escalates (reject) a loop-provenance ADR lineage that accrues thrash_max
+  # supersessions within thrash_window (days), even when each move individually passed the drift
+  # challenge. Applies only to the autonomous admit-gated auto-supersede path; human/legacy-provenance
+  # ADRs always stay propose-only regardless of the ratchet.
+  thrash_max: 3       # max supersessions per lineage in the window before the ratchet breaches
+  thrash_window: 21   # rolling window in days (the agent filters the lineage count to this)
 
 # PRDR two-gate bound (FAFF-255). The thrash-ratchet bounds `faff prdr admit` uses to escalate a
 # churning PRDR lineage: thrash_max supersessions accrued within thrash_window (days) on a single

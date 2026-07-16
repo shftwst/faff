@@ -1,0 +1,14 @@
+{
+  "id": "adr-drift-001",
+  "kind": "adr-drift",
+  "fixture": {
+    "old_decision": "Store the run ledger as a single flat JSON file per run, keyed by issue id. Rationale (2026-05): the run set was small (<20 issues/run) and a single file was simplest to read/write atomically.",
+    "new_decision": "Store the run ledger as one JSON file per issue under a per-run directory, plus a small index file listing issue ids. Rationale: overnight beep-boop runs now regularly admit 200+ issues; a single flat file means every heartbeat tick and every per-issue status write serialises through one lock, and a single corrupt byte loses the whole run's state. Per-issue files bound the blast radius of a corrupt write to one issue and let concurrent builds write without contending on one file.",
+    "why": "The single-file design's own stated rationale (small run, simplicity) no longer holds — runs are 10x larger than assumed, and the concurrency executor (shipped since) now writes many issues in parallel, which the flat-file design never accounted for. The new design directly fixes the two concrete failure modes (lock contention, single-corrupt-byte blast radius) the old design didn't anticipate, while keeping the same on-disk directory root and adding only an index file for backward discovery."
+  },
+  "question": "Given the old ADR's Decision, the new ADR's Decision, and the argument for superseding the former with the latter, does the argument for supersession hold?",
+  "oracle": {
+    "closed_set": []
+  },
+  "_comment": "SHOULD SURVIVE: the argument names a concrete, verifiable premise shift (run size, concurrent writers) the old decision's own stated rationale didn't anticipate, ties it to two specific failure modes the new design fixes, and doesn't discard anything load-bearing (same root, additive index). A drift challenge should let this stand."
+}

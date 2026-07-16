@@ -224,8 +224,18 @@ import { fileURLToPath } from "node:url";
 //                     tripwire); the completeness invariant (every input ticket once) is a skill AC
 //                     noted in the fixture, not new grade math. Surface = the agile lens (its
 //                     judgement_seam flips ordering → grouping); thematic keeps ordering.
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger"]);
+// FAFF-199 — the ADR L4 admission gate adds one closed-set kind:
+//   adr-drift       — SHIPPED. The per-move adversarial drift challenge `faff-graft` Step 3b runs
+//                     before a loop-provenance ADR may be auto-superseded (`faff adr admit --challenge
+//                     <outcome>`). Structurally identical to refutation-code (different-model second
+//                     opinion, BINARY outcome) but over an ADR argument, not a diff — given {old
+//                     Decision body, new Decision body, why}, judge whether the supersession argument
+//                     holds. Oracle = ["overturned"] if the argument SHOULD be overturned, else [] (it
+//                     should survive). predictedSet = ["overturned"] iff env.challenge_outcome ===
+//                     "overturned", else []. Surface = faffter-dark-adversarial-review (the same
+//                     adversarial engine refutation-code uses — a distinct question, same mechanism).
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
@@ -318,6 +328,11 @@ const FIXTURE_SHAPE = {
   // with blockedBy edges + trigger-gate markers) faff-map synthesises over. validateCase asserts the
   // `issues` field is present; the predicted synthesis rides env.roadmap.
   roadmap: ["issues"],
+  // FAFF-199 — adr-drift: the drift-challenge fixture carries the `old_decision` + `new_decision`
+  // bodies under comparison plus the `why` argument for superseding the former with the latter (the
+  // driver renders all three). validateCase asserts all three are present; the binary survived/
+  // overturned verdict rides env.challenge_outcome (the closed-set arm).
+  "adr-drift": ["old_decision", "new_decision", "why"],
   // FAFF-155 — verdict-build deliberately carries NO validateCase FIXTURE_SHAPE entry: the FAFF-148
   // contract test asserts a fixture-less verdict-build oracle validates (validateCase is oracle-shape
   // only for this kind), so the load-bearing `spec`/`diff` presence check lives in verdictBuildLiveDriver
@@ -634,6 +649,12 @@ function predictedSet(c, env) {
       const findings = Array.isArray(env.findings) ? env.findings : [];
       return findings.some((f) => f && ABOVE_MINOR.has(String(f.severity))) ? ["flagged"] : [];
     }
+    // FAFF-199 — adr-drift: a BINARY survived/overturned, read straight off env.challenge_outcome (no
+    // severity threshold — the drift challenge itself is already a single verdict, unlike
+    // refutation-code's per-finding severity list). A missing/garbage value → [] (the "survived"
+    // default), never a crash.
+    case "adr-drift":
+      return env.challenge_outcome === "overturned" ? ["overturned"] : [];
     default:
       return (env.classifications && env.classifications[c.kind]) || [];
   }

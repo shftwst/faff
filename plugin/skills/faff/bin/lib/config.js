@@ -55,6 +55,10 @@ const DEFAULTS = {
   // within thrash_window (days) before `prdr admit` escalates (ratchet.breached). Conservative defaults.
   "prdr.thrash_max": "3",
   "prdr.thrash_window": "21",
+  // FAFF-199: ADR thrash-ratchet bounds — the same conservative defaults, ported verbatim for the
+  // ADR axis (`adr admit`'s ratchet gate). See prdr.thrash_max/window above for the shape.
+  "adr.thrash_max": "3",
+  "adr.thrash_window": "21",
   // FAFF-463: PRDR git-landing. accept_branch_prefix = the landing-branch prefix `faff prdr accept`
   // commits onto. validate_git = auto (default; the git-awareness validate tier runs, degrading to
   // silent outside a git work tree) | off (skip the git tier entirely).

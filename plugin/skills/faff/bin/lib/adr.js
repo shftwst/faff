@@ -3,14 +3,25 @@
 // repo's append-only docs/adr/NNNN-title.md Nygard log: number / scaffold / list / validate.
 // The judgement (is a decision significant? record it?) stays with the human in faff-prep;
 // this command owns only the mechanical parts. Append-only: `new` never overwrites.
+// FAFF-199 (ADR L4): adds an optional Provenance field (human|loop, default human — the
+// harder-to-supersede tier) + the `admit` two-gate action, porting ADR 0022's PRDR pattern onto
+// the ADR axis so the loop may supersede its OWN loop-provenance ADRs under a deterministic gate.
+// `supersede`/`recordSupersede` stay authority-blind — enforcement lives only in `admit`.
 // ===========================================================================
 
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { findRoot } = require("./shared-infra");
+// FAFF-199: PRDR_ACTORS/PRDR_SUPERSEDES are reused verbatim (aliased) — the actor/supersedes
+// vocabularies are identical across the ADR and PRDR admission axes (design principle: share
+// enum constants where identical, don't fork a byte-identical enum under a new name).
+const { PRDR_ACTORS: ADR_ACTORS, PRDR_SUPERSEDES: ADR_SUPERSEDES, computeAdrAdmission, computeAdrAdmissionVerdict } = require("./contract-defs");
+const { schemaCheck } = require("./contract-engine");
+const { DEFAULTS, loadConfig } = require("./config");
+const { dig, findRoot } = require("./shared-infra");
 
 const ADR_STATUSES = ["Proposed", "Accepted", "Superseded", "Deprecated", "Rejected"];
+const ADR_PROVENANCES = ["human", "loop"];
 const ADR_FILE_RE = /^(\d{4})-(.+)\.md$/;
 
 function adrDir(root) { return path.join(root, "docs", "adr"); }
@@ -43,6 +54,10 @@ function listAdrs(dir) {
       number: parseInt(m[1], 10), num: m[1], slug: m[2], file: f,
       title: titleM ? titleM[1].trim() : null,
       status: adrField(text, "Status"), date: adrField(text, "Date"),
+      // FAFF-199: read-time default — absent Provenance ⇒ "human" (the harder-to-supersede tier;
+      // no back-fill of the 66 legacy files). A present-but-bad value (e.g. "robot") passes through
+      // unchanged here so adrValidate can flag it; only genuine absence defaults.
+      provenance: adrField(text, "Provenance") || "human",
     });
   }
   return out.sort((a, b) => a.number - b.number);
@@ -151,6 +166,11 @@ function adrValidate(dir) {
     if (!a.status) problems.push(`${a.file}: missing Status field`);
     else if (!ADR_STATUSES.some((s) => new RegExp(`^${s}`, "i").test(a.status))) problems.push(`${a.file}: Status "${a.status.slice(0, 30)}" must start with one of ${ADR_STATUSES.join("|")}`);
     if (!a.date) problems.push(`${a.file}: missing Date field`);
+    // FAFF-199: legacy-lenient — Provenance is NEVER required (unlike PRDR, born with it; the 66
+    // existing ADRs carry none and must keep validating clean). `a.provenance` is already
+    // read-time-defaulted to "human" by listAdrs, so this only ever fires on a genuinely present,
+    // out-of-enum value (e.g. "Provenance: robot").
+    if (!ADR_PROVENANCES.some((p) => new RegExp(`^${p}$`, "i").test(a.provenance.trim()))) problems.push(`${a.file}: Provenance "${a.provenance.slice(0, 30)}" must be one of ${ADR_PROVENANCES.join("|")}`);
   }
   // FAFF-368: a duplicate number names EVERY colliding filename (one message per number),
   // so both the CI backstop and the graft merge-guard can identify which files collide
@@ -290,8 +310,10 @@ function adrRenumber(dir, selector, target, refScope) {
   return { code: 0, out: `${oldPath} -> ${newPath}\n`, err: "" };
 }
 
-function adrTemplate({ num, title, date, issue, initiative, status }) {
-  const lines = [`# ADR ${num} — ${title}`, "", `- **Status:** ${status || "Proposed"}`, `- **Date:** ${date}`];
+function adrTemplate({ num, title, date, issue, initiative, status, provenance }) {
+  // FAFF-199: mirror prdrTemplate's field order (Status, Provenance, Date) — default "human", the
+  // harder-to-supersede tier (fail-safe direction; the loop passes --provenance loop explicitly).
+  const lines = [`# ADR ${num} — ${title}`, "", `- **Status:** ${status || "Proposed"}`, `- **Provenance:** ${provenance || "human"}`, `- **Date:** ${date}`];
   if (issue) lines.push(`- **Issue:** ${issue}`);
   if (initiative) lines.push(`- **Initiative:** ${initiative}`);
   lines.push("", "## Context", "", "_TODO: what forces this decision._", "",
@@ -325,7 +347,9 @@ function adrLiveDecisions(dir, excludeId) {
     if (adrSupersededBy(a.status)) continue;          // skip already-superseded (dead) ADRs
     if (exclude && a.num === exclude) continue;       // exclude the new ADR from its own set
     const text = fs.readFileSync(path.join(dir, a.file), "utf8");
-    out.push({ adr: a.num, title: a.title || a.slug || null, decision: adrDecisionBody(text) });
+    // FAFF-199: carry provenance in the candidate set too — the L4 caller (graft Step 3b) reads it
+    // straight off this same call rather than a second `adr list` round trip.
+    out.push({ adr: a.num, title: a.title || a.slug || null, decision: adrDecisionBody(text), provenance: a.provenance });
   }
   return out;
 }
@@ -363,12 +387,12 @@ function cmdAdr(args) {
   if (action === "list") {
     const adrs = listAdrs(dir);
     if (args.includes("--json")) {
-      console.log(JSON.stringify(adrs.map(({ number, num, title, status, date, file }) =>
-        ({ number, id: num, title, status, date, file })), null, 2));
+      console.log(JSON.stringify(adrs.map(({ number, num, title, status, date, provenance, file }) =>
+        ({ number, id: num, title, status, date, provenance, file })), null, 2));
     } else if (!adrs.length) {
       console.log(`No ADRs in ${path.relative(root, dir) || dir}.`);
     } else {
-      for (const a of adrs) console.log(`${a.num}  ${a.title || a.slug}  [${(a.status || "?").split(/[ (.]/)[0]}]  ${a.date || ""}`.trimEnd());
+      for (const a of adrs) console.log(`${a.num}  ${a.title || a.slug}  [${(a.status || "?").split(/[ (.]/)[0]}]  ${a.provenance}  ${a.date || ""}`.trimEnd());
     }
     return 0;
   }
@@ -397,13 +421,17 @@ function cmdAdr(args) {
   if (action === "new") {
     const title = adrFlag(args, "--title");
     if (!title) { process.stderr.write("faff adr new: --title is required\n"); return 2; }
+    // FAFF-199: --provenance human|loop, default "human" (fail-safe: the harder-to-supersede tier;
+    // the loop passes --provenance loop explicitly — mirrors `prdr new` ~L165 verbatim).
+    const provenance = adrFlag(args, "--provenance");
+    if (provenance && !ADR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff adr new: --provenance must be one of ${ADR_PROVENANCES.join("|")}\n`); return 2; }
     const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
     const num = adrNextNumber(dir);
     const file = `${num}-${adrSlug(title)}.md`;
     const full = path.join(dir, file);
     if (fs.existsSync(full)) { process.stderr.write(`faff adr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: adrFlag(args, "--issue"), initiative: adrFlag(args, "--initiative"), status: adrFlag(args, "--status") }));
+    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: adrFlag(args, "--issue"), initiative: adrFlag(args, "--initiative"), status: adrFlag(args, "--status"), provenance: provenance || "human" }));
     process.stdout.write(full + "\n");
     return 0;
   }
@@ -416,6 +444,40 @@ function cmdAdr(args) {
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
     return r.code;
+  }
+
+  if (action === "admit") {
+    // FAFF-199: the two-gate admission gate, ADR 0022's PRDR pattern ported. Pure — no
+    // tracker/network call (parity with `faff prdr admit` / `faff next`): the agent maps the
+    // move's state onto these closed-vocabulary flags; the verdict is a pure function of them.
+    const actor = adrFlag(args, "--actor");
+    if (!ADR_ACTORS.includes(actor)) { process.stderr.write("faff adr admit: --actor must be loop|human\n"); return 2; }
+    const sup = adrFlag(args, "--supersedes-provenance");
+    if (!ADR_SUPERSEDES.includes(sup)) { process.stderr.write("faff adr admit: --supersedes-provenance must be human|loop|none\n"); return 2; }
+    const cfg = loadConfig(root)[0];
+    const tmRaw = adrFlag(args, "--thrash-max") ?? dig(cfg, "adr.thrash_max") ?? DEFAULTS["adr.thrash_max"];
+    const thrashMax = parseInt(tmRaw, 10);
+    // thrash_max + lineage are COUNTS — a negative is nonsensical and would breach the ratchet at
+    // lineage 0 (lineage >= negative is always true), spuriously rejecting every admit. Reject it.
+    if (!Number.isInteger(thrashMax) || thrashMax < 0) { process.stderr.write(`faff adr admit: thrash_max "${tmRaw}" must be a non-negative integer\n`); return 2; }
+    const lsRaw = adrFlag(args, "--lineage-supersessions");
+    const lineageSupersessions = lsRaw != null ? parseInt(lsRaw, 10) : 0;
+    if (!Number.isInteger(lineageSupersessions) || lineageSupersessions < 0) { process.stderr.write(`faff adr admit: --lineage-supersessions "${lsRaw}" must be a non-negative integer\n`); return 2; }
+    const challengeRaw = adrFlag(args, "--challenge");
+    if (challengeRaw != null && challengeRaw !== "survived" && challengeRaw !== "overturned") {
+      process.stderr.write("faff adr admit: --challenge must be survived|overturned (omit when the drift challenge did not run or did not conclude)\n"); return 2;
+    }
+    const verdict = computeAdrAdmissionVerdict({
+      actor, supersedesProvenance: sup,
+      self: args.includes("--self"),
+      challenge: challengeRaw || undefined,
+      lineageSupersessions, thrashMax,
+    });
+    // Belt-and-braces: the produced verdict must itself conform to the adr-admission contract schema.
+    const schemaErr = schemaCheck(verdict, "adr-admission");
+    if (schemaErr) { process.stderr.write(`faff adr admit: ${schemaErr}\n`); return 2; }
+    process.stdout.write(JSON.stringify(verdict) + "\n");
+    return 0;   // report-only (parity with `faff next` / `prdr admit`): the disposition is in the payload, never the exit code
   }
 
   if (action === "renumber") {
@@ -434,7 +496,7 @@ function cmdAdr(args) {
     return r.code;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | renumber (or --selftest)\n");
+  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber (or --selftest)\n");
   return 2;
 }
 
@@ -465,6 +527,47 @@ function adrSelftest() {
     const tpl = adrTemplate({ num: "0007", title: "T", date: "2026-06-21", issue: "FAFF-16" });
     return /# ADR 0007 — T/.test(tpl) && /\*\*Status:\*\* Proposed/.test(tpl) && /## Context/.test(tpl) && /## Decision/.test(tpl) && /## Consequences/.test(tpl) && /\*\*Issue:\*\* FAFF-16/.test(tpl);
   })());
+
+  // FAFF-199 — Provenance field: template default + explicit, legacy-lenient validate (absent
+  // never flagged, out-of-enum always flagged), listAdrs read-time default.
+  t("template defaults Provenance to human", /\*\*Provenance:\*\* human/.test(adrTemplate({ num: "0008", title: "T", date: "2026-06-21" })));
+  t("template carries an explicit loop Provenance", /\*\*Provenance:\*\* loop/.test(adrTemplate({ num: "0008", title: "T", date: "2026-06-21", provenance: "loop" })));
+  t("validate: legacy ADR with NO Provenance field is never flagged", adrValidate(dir).every((p) => !/Provenance/.test(p)));   // `dir` above carries zero Provenance lines
+  t("listAdrs: absent Provenance read-time-defaults to human", listAdrs(dir).every((a) => a.provenance === "human"));
+  {
+    const pdir = path.join(tmp, "prov", "docs", "adr");
+    fs.mkdirSync(pdir, { recursive: true });
+    fs.writeFileSync(path.join(pdir, "0001-loopy.md"), `# ADR 0001 — loopy\n\n- **Status:** Accepted\n- **Provenance:** loop\n- **Date:** 2026-07-16\n\n## Context\nx\n`);
+    fs.writeFileSync(path.join(pdir, "0002-legacy.md"), `# ADR 0002 — legacy\n\n- **Status:** Accepted\n- **Date:** 2026-07-16\n\n## Context\nx\n`);
+    fs.writeFileSync(path.join(pdir, "0003-bad.md"), `# ADR 0003 — bad\n\n- **Status:** Accepted\n- **Provenance:** robot\n- **Date:** 2026-07-16\n\n## Context\nx\n`);
+    const plist = listAdrs(pdir);
+    t("listAdrs: explicit loop Provenance read back", plist.find((a) => a.num === "0001").provenance === "loop");
+    t("listAdrs: absent Provenance defaults to human (not null)", plist.find((a) => a.num === "0002").provenance === "human");
+    const pprob = adrValidate(pdir);
+    t("validate: out-of-enum Provenance IS flagged", pprob.some((p) => /Provenance .* must be one of/.test(p) && /0003-bad\.md/.test(p)));
+    t("validate: absent/valid Provenance entries are NOT flagged for it", !pprob.some((p) => /0001-loopy.*Provenance|0002-legacy.*Provenance/.test(p)));
+  }
+
+  // FAFF-199 — `faff adr admit`: the two-gate admission matrix (mirrors the PRDR admit selftest
+  // block verbatim in shape — computeAdrAdmissionVerdict is imported directly, no fs needed).
+  {
+    const adm = (o) => computeAdrAdmissionVerdict({ actor: "loop", supersedesProvenance: "loop", thrashMax: 3, challenge: "survived", ...o });
+    t("admit: loop→loop, challenge survived, gates pass → admit", adm({}).disposition === "admit");
+    t("admit: loop→human → propose-only (needs ratification)", adm({ supersedesProvenance: "human" }).disposition === "propose-only");
+    t("admit: human→human → admit (human is the encloser)", adm({ actor: "human", supersedesProvenance: "human" }).disposition === "admit");
+    t("admit: inner-loop self-supersede → reject (by-level)", (() => { const v = adm({ self: true }); return v.disposition === "reject" && v.authority.by_level === "violation"; })());
+    t("admit: challenge absent → reject, never a pass (missing skeptic)", (() => { const v = adm({ challenge: undefined }); return v.disposition === "reject" && v.challenge.ran === false && v.challenge.outcome === "absent"; })());
+    t("admit: challenge overturned → reject", (() => { const v = adm({ challenge: "overturned" }); return v.disposition === "reject" && v.challenge.outcome === "overturned"; })());
+    t("admit: ratchet breach (lineage ≥ thrash_max) → reject + breached", (() => { const v = adm({ lineageSupersessions: 3 }); return v.disposition === "reject" && v.ratchet.breached === true; })());
+    t("admit: under thrash_max → not breached", adm({ lineageSupersessions: 2 }).ratchet.breached === false);
+    t("admit: hard violation beats propose-only (loop→human + self → reject)", adm({ supersedesProvenance: "human", self: true }).disposition === "reject");
+    t("admit: hard violation beats propose-only (loop→human + challenge absent → reject)", adm({ supersedesProvenance: "human", challenge: undefined }).disposition === "reject");
+    t("admit: every produced verdict is contract-conformant", [
+      adm({}),                                              // admit
+      adm({ supersedesProvenance: "human" }),                // propose-only
+      adm({ self: true }),                                   // reject (by-level)
+    ].every((v) => computeAdrAdmission(v).contractData.conformant === true));
+  }
 
   // FAFF-342 (Part B) — Accepted-cites-Proposed advisory: informational, never a `problems` entry.
   {
@@ -625,4 +728,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_STATUSES, adrAdvisories, adrDecisionBody, adrDir, adrField, adrFlag, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, adrAdvisories, adrDecisionBody, adrDir, adrField, adrFlag, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };

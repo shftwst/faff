@@ -41,12 +41,13 @@ contract**, which takes a PRD file's *content*, not a container slug.
   **This resolution is `docs/prd/`-scoped** (confirmed against `prd.js`: `prdDir()` always joins
   the configured `tracking.prd_docs_path`, default `docs/prd`). A bare root `PRD.md` is invisible
   to it — `faff prd list --json` returns zero entries for a SUT that only has a root file, which
-  step 0a treats as the **no-PRD case** (skip, no gate fires) rather than admit/refuse. Making the
-  automatic gate fire against a SUT's root `PRD.md` would require either registering it under
-  `docs/prd/` or reformatting it with the `- **Container:**` / `- **Status:**` metadata header
-  `prd.js` parses — both are changes to the SUT fixture, out of scope here. Today, a lights-out SUT
-  gets the *manual* path below as its real leash-admission exercise; the automatic gate is the
-  target shape once the PRD is registered.
+  step 0a treats as the **no-PRD case** (skip, no gate fires) rather than admit/refuse.
+  **P2 (FAFF-524, post this doc's original writing):** registered — its PRD now lives at
+  `docs/prd/task-api.md` with a `- **Container:** task-api` line matching `tracking.container` in
+  `.faffrc.yaml`, so `faff prd list` sees it and the automatic gate fires for real on a P2
+  lights-out run. **P4** stays on the manual path below — it runs interactively (gated, autonomous
+  OFF by construction), so the L4 auto-gate never fires for it regardless of registration, and its
+  root `PRD.md` is left untouched (out of scope for FAFF-524, which only registered P2).
 - **Any level — the manual path.** Invoke the `prd` slot directly against `PRD.md` (no `docs/prd/`
   involvement at all — the slot just reads the file's content) and pipe its block to `faff contract
   prd-readiness` by hand. This is the one every SUT can run today, and it's what a PRD's

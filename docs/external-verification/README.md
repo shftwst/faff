@@ -30,10 +30,14 @@ SUT_ROOT=~/workspace/shftwst/faff-suts/p1-link-shortener \
   bash docs/external-verification/scaffold-p1-link-shortener.sh
 ```
 
-It will: create the repo, write `.faffrc.yaml` + `BRIEF.md` + `RUNBOOK.md` (+ `PRD.md` for
-P2/P4, + a seeded legacy app for P5), auto-gitignore `.faff/` via `faff gitignore-ensure` and wire
-faff's Stop hooks via `faff hooks-ensure` (never a hand-edited `settings.json`), and make the
-initial commit. It **refuses** to scaffold into a non-empty dir unless you pass `FORCE=1`.
+It will: create the repo, write `.faffrc.yaml` + `BRIEF.md` + `RUNBOOK.md` (+ a PRD for P2/P4 —
+P2's lands at `docs/prd/task-api.md` so `faff prd list` can discover it, P4's stays a root
+`PRD.md`; + a seeded legacy app for P5), auto-gitignore `.faff/` via `faff gitignore-ensure` and
+wire faff's Stop hooks via `faff hooks-ensure` (never a hand-edited `settings.json`), and make the
+initial commit. P1/P2/P3 (the lights-out-eligible SUTs) also copy `.env.claude-box` from the faff
+root (gitignored first, so it's never staged) and emit a `faffter_dark.adversarial` backend block,
+so their adversarial-review gate can actually resolve. It **refuses** to scaffold into a non-empty
+dir unless you pass `FORCE=1`.
 
 See [`authoring-and-admitting-a-prd.md`](authoring-and-admitting-a-prd.md) for the current verb
 surface P2/P4's RUNBOOKs use to author + admit their PRD leash.

@@ -151,7 +151,7 @@ slots:             # optional delegation slots; each has a faff default when uns
   ship: gstack:land-and-deploy                       # delivery producer inside faff-graft (default faffter-noon-ship)
   profile: my-org:infra-acquirer                     # infra-profile acquirer (default: built-in repo-miner → faff profile mine)
 
-# mode: delivery-lead is DEPRECATED — use slots.methodology instead. gates.fallback: advisory | fail-closed — what Step 7.5 does when NO declared gates are found (default advisory: surface + pass; fail-closed: needs-human)
+# mode: delivery-lead is DEPRECATED — use slots.methodology instead. gates.fallback: fail-closed | advisory — what Step 7.5 does when NO declared gates are found (default fail-closed: needs-human; advisory: surface + pass, explicit opt-out)
 
 models:            # optional per-lane model selection (FAFF-315); every key optional, unset ⇒ inherit (byte-for-byte today)
   build: sonnet            # Agent-token (sonnet|opus|haiku|fable) — the concurrency executors' build subagents (per-run scalar)

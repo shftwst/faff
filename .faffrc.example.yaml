@@ -146,11 +146,11 @@ automation_default: opt-in   # opt-in | opt-out
 intake_gate: warn   # warn (default) | block | off
 
 # Engineering-quality gate ladder (FAFF-11), /faff-graft Step 7.5. When NO declared cheap checks
-# are discoverable in the repo (discovery: none): advisory (default) surfaces "no declared gates
-# found" and passes — never blocks a legitimately gate-less repo; fail-closed treats the absence
-# as needs-human (parks, no PR) — for a strict lights-out repo that must never build ungated.
+# are discoverable in the repo (discovery: none): fail-closed (default) treats the absence as
+# needs-human (parks, no PR) — never green by silence; advisory is the explicit, loud opt-out that
+# surfaces "no declared gates found" and passes, for a repo that legitimately has no gates.
 gates:
-  fallback: advisory   # advisory (default) | fail-closed
+  fallback: fail-closed   # fail-closed (default) | advisory
 
 # Within-run convergence (FAFF-87), /faff-beep-boop. Off by default (L4 discipline). When enabled
 # (or run with --converge, which overrides this), beep-boop folds execution-discovered scope into

@@ -16,6 +16,17 @@ appetite: high
 automation_default: opt-in # fail-safe: a ticket is automatable ONLY when a human adds `faff-automate` in the tracker (the control-plane gesture, FAFF-19/125/218)
 intake_gate: warn
 
+# FAFF-522 resolve-attempt: this repo's real gates (node --test, validate-adapters, …) run only via
+# .github/workflows/validate.yml — `faff gates discover` v1 parses pre-commit/package.json/Makefile
+# ONLY (no CI source yet), so THIS repo resolves discovery:none despite genuinely having gates. Since
+# FAFF-522 flips the discovery:none default to fail-closed, an unset gates.fallback here would newly
+# park every future autonomous build at Step 7.5 — a regression the ticket's own "repos WITH gates are
+# unaffected" scope statement did not intend. Explicit advisory keeps this repo's Step 7.5 behaviour
+# unchanged (CI is still the real, enforced gate via branch protection) pending a v2 discoverRungs CI
+# source (tracked as discovered scope on FAFF-522).
+gates:
+    fallback: advisory
+
 budget: # FABLE-WEEK (frontier --converge): spend/time BACKSTOP, not a count-cap (FAFF-312 model).
     max_attempts: 40 # runaway backstop ONLY (won't bind the scoped bulk slice); NOT the terminator
     tokens: 3000000000 # 3B runaway backstop (subscription covers the week; catches a true runaway)

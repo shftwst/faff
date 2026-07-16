@@ -41,7 +41,7 @@ const DEFAULTS = {
   "appetite": "high",
   "adr.mode": "offer",
   "intake_gate": "warn",
-  "gates.fallback": "advisory",
+  "gates.fallback": "fail-closed",
   // FAFF-385: post-merge verification (re-run the declared UNIT rung against the merge sha) —
   // consulted in autonomous mode only; default on so a repo opts OUT, never opts in.
   "post_merge.check": "on",

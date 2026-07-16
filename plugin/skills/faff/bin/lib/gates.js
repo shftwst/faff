@@ -4,7 +4,8 @@
 // ordered List<Rung> cheapest-first + a discovery classification (confident/none). Sources read
 // (v1): pre-commit hooks, package.json scripts, Makefile targets. (The spec also names CLAUDE.md
 // and cheap CI jobs as future sources — not yet parsed here; a repo declaring checks ONLY in those
-// resolves `discovery: none`, which the advisory-default surfaces rather than silently skipping.)
+// resolves `discovery: none`, which the fail-closed default routes to needs-human rather than
+// silently passing — never green by silence. `gates.fallback: advisory` is the explicit opt-out.)
 // `faff gates run` discovers then executes the rungs cheapest-first in the worktree sandbox
 // (execution_target = cwd; the single FAFF-12 seam) and emits a GatesOutcome + a fenced
 // faff-contract:quality-gates block. Pure-deterministic: NO LLM judgement decides what counts as a
@@ -142,14 +143,14 @@ function runRung(rung, root) {
   return { kind: rung.kind, name: rung.name, command: rung.command, status, duration_ms, detail: tail };
 }
 
-// Resolve the fallback policy for `discovery: none` from config: advisory (default) | fail-closed.
+// Resolve the fallback policy for `discovery: none` from config: fail-closed (default) | advisory.
 function gatesFallbackPolicy(root) {
   try {
     const [data] = loadConfig(root);
     const v = dig(data, "gates.fallback");
-    if (v === "fail-closed") return "fail-closed";
+    if (v === "advisory") return "advisory";
   } catch { /* default */ }
-  return "advisory";
+  return "fail-closed";
 }
 
 // Run the ladder: cheapest-first, fail-fast on the first failing REQUIRED rung. An errored rung at
@@ -249,14 +250,17 @@ function gatesSelftest() {
   cases.push(["fail-fast: signal fail", out3.signal === "fail"]);
   cases.push(["fail-fast: stopped before UNIT (1 result)", out3.rungs.length === 1 && out3.rungs[0].kind === "LINT" && out3.rungs[0].status === "fail"]);
 
-  // 4. no declared checks → discovery none; advisory default → pass; fail-closed config → needs-human.
+  // 4. no declared checks → discovery none; fail-closed default → needs-human; explicit advisory → pass.
   const dNone = mk("none", { "README.md": "hi" });
   const out4 = runLadder(dNone);
   cases.push(["none: discovery none", out4.discovery === "none"]);
-  cases.push(["none: advisory default → pass", out4.signal === "pass"]);
+  cases.push(["none: fail-closed default → needs-human", out4.signal === "needs-human"]);
+  const dAdvisory = mk("advisory", { "README.md": "hi", ".faffrc.yaml": "gates:\n  fallback: advisory\n" });
+  const outAdvisory = runLadder(dAdvisory);
+  cases.push(["none: explicit advisory opt-out → pass", outAdvisory.signal === "pass"]);
   const dClosed = mk("closed", { "README.md": "hi", ".faffrc.yaml": "gates:\n  fallback: fail-closed\n" });
   const out5 = runLadder(dClosed);
-  cases.push(["none: fail-closed config → needs-human", out5.signal === "needs-human"]);
+  cases.push(["none: explicit fail-closed config → needs-human", out5.signal === "needs-human"]);
 
   // 5. errored rung (command not found) → needs-human, not fail.
   const dErr = mk("err", { "package.json": JSON.stringify({ scripts: { lint: "this-command-does-not-exist-xyz" } }) });

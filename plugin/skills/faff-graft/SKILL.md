@@ -276,13 +276,13 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 
 | Signal | Meaning | Action |
 |---|---|---|
-| `pass` | All required rungs passed (or no declared gates found — advisory). | Proceed to Step 8. |
+| `pass` | All required rungs passed (or no declared gates found under the explicit `advisory` opt-out). | Proceed to Step 8. |
 | `fail` | A required rung failed (fail-fast stopped at it). | Fix the failing rung's cause, re-run `faff gates run`. **Do not** proceed to review/PR/CI. Loop until `pass` or `needs-human`. |
-| `needs-human` | A rung **errored** (tool missing/crash — can't conclude the code is bad), or `discovery: none` under the `gates.fallback: fail-closed` knob. | Park per the shared protocol, **no PR** (same handoff as a Step-9 `needs-human`). |
+| `needs-human` | A rung **errored** (tool missing/crash — can't conclude the code is bad), or `discovery: none` under the `gates.fallback: fail-closed` default (or explicit setting). | Park per the shared protocol, **no PR** (same handoff as a Step-9 `needs-human`). |
 
 **Autonomy gradient.** L1–L2 (interactive) → advisory-only: surface the rung results, never gate (`signal: pass`). L3 (autonomous / beep-boop default) → declared rungs are **required**; fail-fast gates the build. L4 (strict, future) → may add a check the repo lacks and treats absence of tests for changed code as a fail. The CLI runs the declared rungs; the gradient decides whether they gate (advisory at L1–L2, required at L3).
 
-**Discovery-fallback (Q2 interim).** `discovery: none` (no declared gates) defaults to **advisory-surface** — surface "no declared engineering gates found; ran none" and `signal: pass` (don't block a repo that legitimately has none). A strict repo flips this to `needs-human` by setting `gates.fallback` to `fail-closed` (resolved via `faff config get gates.fallback`). The default is advisory.
+**Discovery-fallback.** `discovery: none` (no declared gates) defaults to **fail-closed** — `signal: needs-human`, never a silent green (the "never green by silence" floor). A repo that legitimately has no gates opts out explicitly by setting `gates.fallback: advisory` (resolved via `faff config get gates.fallback`), which surfaces "no declared engineering gates found; ran none" and `signal: pass`.
 
 **Step-8 reconciliation — one resolver, one suite run (no double-run).** The ladder's discovery **is** Step 8's "find the runner, don't guess" resolution — `faff gates discover` is the single resolver. The ladder's **UNIT rung** is the test run and its **LINT rung** is the lint run; Step 8 **consumes** the ladder's UNIT-rung result for AC verification rather than re-resolving and re-running the suite. Do **not** run a second, divergent resolver in Step 8, and do **not** run the full suite twice — the ladder already ran it as the top-`cost_rank` rung. (`execution_target` is the worktree sandbox — the single FAFF-12 seam; do not hardcode any other environment.)
 

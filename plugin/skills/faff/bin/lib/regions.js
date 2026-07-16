@@ -88,6 +88,10 @@ const REGION_MAP = {
   // into a QualityReport, touches no producer → factory (FAFF-418).
   "quality": "factory",
   "run-done": "factory",
+  // run-outward — the signals.outward producer feeding run-start's outward floor. A
+  // pure decision core over caller-supplied TargetRef/SelfRef, no extractable
+  // flight-recorder layer → factory (same shape as run-start/contain).
+  "run-outward": "factory",
   // run-start — FAFF-496: the run-START trigger predicate (mirror of run-done). A pure
   // signal-composing verb + belt-and-braces schemaCheck, no extractable flight-recorder
   // layer → factory.
@@ -204,6 +208,7 @@ const REGION_SELFTEST_ARGV = {
   "disposition": ["disposition", "--selftest"],
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
+  "run-outward": ["run-outward", "--selftest"],
   "run-start": ["run-start", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
   "merge-fence": ["merge-fence", "--selftest"],

@@ -179,10 +179,16 @@ When no tracker MCP is available (gateway → Configuration), there are no conta
 
 The **`--autonomous` argument** (FAFF-494) adds the one exception: a *manually-ignited* pass that answers its own per-level gates within the L4 topology-write envelope, recursing top-down to first-slice epics with no interactive prompt. It is purely **additive** — bare `/faff-plot` and `/faff-plot rehome` are byte-unchanged, and an accidental autonomous invocation **without** `--autonomous` still uses the surface-only fallback (writes the skeleton to `.faff/intake/…` and surfaces it, creating nothing). The whole ticket is the **gate→verdict seam** below; everything else is the driver, the logging, and the parking around it.
 
-### Ignition (`/faff-plot --autonomous`) + the stub guard
+### Ignition (`/faff-plot --autonomous`) + the outward-only guard
 
-- **Self-mint an L4 run-ledger** via the existing lights-out preflight (the same one `faff lights-out` runs — reused, not reimplemented), then run the §gate-seam driver against the discovery brief.
-- **Stub ignition guard (~5 lines, fail-closed).** Before descending, assert the pass ignited behind a minted L4 run-ledger — if none resolves, **refuse** (no writes) and stop. This is the *shape* **FAFF-521** hardens into full run-start OUTWARD-only enforcement; ship only the stub, commented with `FAFF-521` as its hardening extension. Run-start OUTWARD-only enforcement + the refusal taxonomy are **out of scope** here (FAFF-521 / FAFF-496).
+Replaces the former FAFF-494 stub guard (a minted-ledger-only assert) with the real run-start OUTWARD-only predicate (FAFF-521), sequenced before any write:
+
+- **Resolve the target** — `TargetRef {container, repo, source}` — **explicit > inherited > methodology-default** (FAFF-40 order), from live reads only (never hard-coded `true` — the `contain.js` honesty rule). This is the same container the §gate→verdict seam below records as the run ledger's `prd_root_container`.
+- **Resolve `SelfRef`** via the repo-slug oracle (no `tracking.self` knob): `self.repo := faff config get tracking.repo`; `self.container := faff config get tracking.container` (null by ADR-0069 construction); `self.is_self := target.repo != null AND target.repo == self.repo`.
+- **Compute the signal** — `faff run-outward --target <TargetRef> --self <SelfRef> --json` → `OutwardSignal {target, outward, reason}`. A non-zero exit (malformed input) is treated as **refuse**, fail-safe, never an implicit proceed.
+- **Self-mint an L4 run-ledger** via the existing lights-out preflight (the same one `faff lights-out` runs — reused, not reimplemented), capturing `target_resolved` + the resolved target.
+- **Assert via `faff run-start`** — `faff run-start --signals { target_resolved, outward: <sig.outward>, prd_present, prd_ambiguous, prd_admissible, coverage_measurable, coverage_covered }` (each sibling signal from its own producer; this ticket supplies only `outward` — run-start owns the `{verdict, reason}` taxonomy and the refusal ladder, FAFF-496, unchanged and re-derived nowhere else). **`refuse` (any reason, including `self-directed`) → REFUSE ignition: zero tracker/structure writes, outcome `needs-human`, surface for `/faff-wtf`, STOP — never park-and-retry** (a self-directed target is a policy boundary, ADR-0069, not a transient condition a retry could clear). A non-`plan`/`drain` verdict outside the closed enum defaults to refuse (defensive).
+- Only on `plan` / `drain` does the pass proceed to the §gate→verdict seam below.
 
 ### The gate→verdict seam (the core seam)
 

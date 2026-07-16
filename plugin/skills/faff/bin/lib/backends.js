@@ -52,6 +52,14 @@ function deriveEgress(b) {
   if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return "local";
   if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return "local";
   if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return "local";
+  // `.ts.net` (Tailscale MagicDNS) is classified `local` BY POLICY, not by
+  // accident: a tailnet is a private overlay network, and `ts.net` itself is
+  // a Tailscale-controlled, non-publicly-registrable suffix — an attacker
+  // cannot stand up an arbitrary `evil.ts.net` the way they could register
+  // an arbitrary public domain. This is an intended trust boundary, not a
+  // residency leak; see checkRealizable's fresh re-derivation below for why
+  // an EXPLICIT `egress: local` claim on a genuinely public host still can't
+  // ride on this classification.
   if (/\.ts\.net$/i.test(hostname)) return "local";
   return "external";
 }
@@ -171,6 +179,13 @@ function portableMatrixAdmits(harness, provider, auth) {
   return false;
 }
 
+// The documented `consumer.requires` vocabulary (spec §3): "local", alias
+// "no-egress". A CLOSED enum — checkRealizable/backendsConfigCheckFindings
+// must fail loud on anything else present-but-unrecognized (a typo like
+// "locla"/"Local"/a trailing space must never silently disable the
+// residency gate — see checkRealizable below).
+const RESIDENCY_REQUIRED_VALUES = ["local", "no-egress"];
+
 // PURE: run-start realizability — fail closed (spec §4 "Run-start
 // realizability", the security surface). `consumer` is a BackendReferenceList
 // shape: { refs: [name...], requires?: "local", deadline?: N }. Residency is
@@ -181,9 +196,35 @@ function checkRealizable(cfg, consumer, harness) {
   const h = harness || CURRENT_HARNESS;
   const resolved = resolveBackendRefs(cfg, (consumer && consumer.refs) || []);
   if (resolved.error) return { refuse: true, reason: resolved.error };
+
+  // consumer.requires is a CLOSED enum, validated fail-closed: a present but
+  // unrecognized value must surface a hard/needs-human refusal, never a
+  // silent skip of the residency gate (that would fail OPEN on a typo).
+  const requiresRaw = consumer && consumer.requires;
+  let residencyRequired = false;
+  if (present(requiresRaw)) {
+    if (RESIDENCY_REQUIRED_VALUES.includes(requiresRaw)) {
+      residencyRequired = true;
+    } else {
+      return {
+        refuse: true,
+        needsHuman: true,
+        reason: `unrecognized consumer.requires "${requiresRaw}" — legal set: ${RESIDENCY_REQUIRED_VALUES.join(" | ")}. A misspelled residency constraint is never silently skipped: fix the value or the residency gate would not engage.`,
+      };
+    }
+  }
+
   let realizableCount = 0;
   for (const b of resolved.chain) {
-    if (consumer && consumer.requires === "local" && b.egress === "external") {
+    // Re-derive egress at CHECK time (spec §4's PROCEDURE literally calls
+    // deriveEgress(b) here) instead of trusting the stored/normalized
+    // b.egress. deriveEgress is purely host-based, so this closes the
+    // "explicit egress: local lie on a public host slips through" gap: a
+    // backend can set egress: local explicitly (and that explicit value
+    // still wins for the STORED field / config-check guard / resolve
+    // output), but the residency GATE never takes that claim on faith — it
+    // re-checks the actual host every time.
+    if (residencyRequired && deriveEgress(b) === "external") {
       return { refuse: true, reason: `residency-violation: ${b.name} egresses` };
     }
     if (!present(b.host)) continue;
@@ -219,15 +260,27 @@ function backendsConfigCheckFindings(cfg) {
     return findings;
   }
   const adv = dig(cfg, "faffter_dark.adversarial");
-  if (adv && typeof adv === "object" && !Array.isArray(adv) && adv.requires === "local" && Array.isArray(adv.refs)) {
-    for (const name of adv.refs) {
-      const b = merged.backends[name];
-      if (b && b.egress === "local" && !b._egress_explicit) {
-        findings.push({
-          severity: "warn",
-          surface: `faffter_dark.adversarial.refs[${name}]`,
-          message: `backend "${name}" is admitted into a requires: local chain on a DERIVED (not explicit) egress: local classification — set egress: local explicitly on backends.${name} so the residency guarantee is asserted against an explicit value, not a convenience default.`,
-        });
+  if (adv && typeof adv === "object" && !Array.isArray(adv) && present(adv.requires) && Array.isArray(adv.refs)) {
+    if (!RESIDENCY_REQUIRED_VALUES.includes(adv.requires)) {
+      // Same fail-closed enum as checkRealizable: an unrecognized requires:
+      // value must surface loudly here too — this is the config-check path a
+      // human actually reads, and a silently-skipped residency gate is
+      // exactly the failure a typo like "locla"/"Local" would otherwise hide.
+      findings.push({
+        severity: "error",
+        surface: "faffter_dark.adversarial.requires",
+        message: `faffter_dark.adversarial.requires: unrecognized value "${adv.requires}" — legal set: ${RESIDENCY_REQUIRED_VALUES.join(" | ")}. Not silently skipped: fix the typo, or the residency gate never engages for this consumer.`,
+      });
+    } else {
+      for (const name of adv.refs) {
+        const b = merged.backends[name];
+        if (b && b.egress === "local" && !b._egress_explicit) {
+          findings.push({
+            severity: "warn",
+            surface: `faffter_dark.adversarial.refs[${name}]`,
+            message: `backend "${name}" is admitted into a requires: local chain on a DERIVED (not explicit) egress: local classification — set egress: local explicitly on backends.${name} so the residency guarantee is asserted against an explicit value, not a convenience default.`,
+          });
+        }
       }
     }
   }
@@ -353,6 +406,33 @@ function backendsSelftest() {
     ok("checkRealizable: requires:local + external ref -> refuse residency-violation naming the backend", res.refuse === true && /residency-violation: gemini-gemma/.test(res.reason));
   }
   {
+    // the fixed critical: an EXPLICIT egress: local claim on a genuinely public
+    // host must NOT slip the residency gate — checkRealizable re-derives at
+    // check time (spec §4's literal deriveEgress(b) call) rather than trusting
+    // the stored/normalized value.
+    const cfg = { backends: {
+      "lying-backend": { provider: "nvidia", model: "m1", host: "https://integrate.api.nvidia.com/v1", api_key_env: "K", egress: "local" },
+    } };
+    const res = checkRealizable(cfg, { refs: ["lying-backend"], requires: "local" });
+    ok("checkRealizable: explicit egress:local LIE on a public host -> re-derived, still refuses", res.refuse === true && /residency-violation: lying-backend/.test(res.reason));
+    // the stored field itself keeps "explicit value wins" — only the gate re-derives
+    const merged = mergeBackendsNamespace(cfg);
+    ok("checkRealizable: stored b.egress still honors explicit value (only the GATE re-derives)", merged.backends["lying-backend"].egress === "local");
+  }
+  {
+    // consumer.requires is a CLOSED enum: alias "no-egress" behaves identically to "local"
+    const cfg = { backends: { ext: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K" } } };
+    const res = checkRealizable(cfg, { refs: ["ext"], requires: "no-egress" });
+    ok("checkRealizable: requires: no-egress (documented alias) behaves like requires: local", res.refuse === true && /residency-violation: ext/.test(res.reason));
+  }
+  {
+    // consumer.requires FAIL-CLOSED on an unrecognized value — a typo must never silently
+    // skip the residency gate
+    const cfg = { backends: { ext: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K" } } };
+    const res = checkRealizable(cfg, { refs: ["ext"], requires: "locla" });
+    ok("checkRealizable: unrecognized requires value -> fail-closed refusal (never a silent skip)", res.refuse === true && res.needsHuman === true && /unrecognized consumer\.requires/.test(res.reason));
+  }
+  {
     // whole chain unrealizable: every ref host-unset
     const cfg = { backends: { a: { provider: "nvidia", model: "m1" } } }; // no host
     const res = checkRealizable(cfg, { refs: ["a"] });
@@ -411,13 +491,29 @@ function backendsSelftest() {
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: name collision surfaced as an error finding", findings.some((f) => f.severity === "error" && /name collision/.test(f.message)));
   }
+  {
+    const cfg = {
+      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
+      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "no-egress" } }, // documented alias
+    };
+    const findings = backendsConfigCheckFindings(cfg);
+    ok("configCheck: requires: no-egress (alias) processes the chain same as requires: local", !findings.some((f) => f.severity === "error"));
+  }
+  {
+    const cfg = {
+      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
+      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "Local" } }, // typo/case mismatch
+    };
+    const findings = backendsConfigCheckFindings(cfg);
+    ok("configCheck: unrecognized requires value -> fail-loud error finding, not a silent skip", findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message)));
+  }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (backends, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 module.exports = {
-  AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES,
+  AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES, RESIDENCY_REQUIRED_VALUES,
   backendsConfigCheckFindings, backendsSelftest, checkRealizable, cmdBackends,
   deriveAuth, deriveEgress, mergeBackendsNamespace, normalizeBackend,
   portableMatrixAdmits, resolveBackendRefs, resolveTokenSource, validateBackendConstraints,

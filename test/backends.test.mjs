@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import {
-  CURRENT_HARNESS, backendsConfigCheckFindings, checkRealizable, deriveAuth, deriveEgress,
+  CURRENT_HARNESS, RESIDENCY_REQUIRED_VALUES, backendsConfigCheckFindings, checkRealizable, deriveAuth, deriveEgress,
   mergeBackendsNamespace, normalizeBackend, portableMatrixAdmits, resolveBackendRefs,
   resolveTokenSource, validateBackendConstraints,
 } from "../plugin/skills/faff/bin/lib/backends.js";
@@ -132,6 +132,61 @@ test("checkRealizable: egress derivation for a requires:local check (studio-olla
   assert.equal(deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }), "external");
 });
 
+// --- fix for the parked Phase-2 adversarial critical: checkRealizable must re-derive egress
+// at CHECK time (spec §4's literal deriveEgress(b) call), not trust the stored/normalized
+// value — an explicit egress: local LIE on a genuinely public host must not pass the gate.
+test("checkRealizable: an EXPLICIT egress:local lie on a public host is re-derived and still refuses", () => {
+  const cfg = { backends: {
+    "lying-backend": { provider: "nvidia", model: "m1", host: "https://integrate.api.nvidia.com/v1", api_key_env: "K", egress: "local" },
+  } };
+  const res = checkRealizable(cfg, { refs: ["lying-backend"], requires: "local" });
+  assert.equal(res.refuse, true);
+  assert.match(res.reason, /^residency-violation: lying-backend/);
+});
+
+test("checkRealizable: the stored/normalized b.egress still honors 'explicit value wins' — only the GATE re-derives", () => {
+  const cfg = {
+    backends: { "lying-backend": { provider: "nvidia", model: "m1", host: "https://integrate.api.nvidia.com/v1", api_key_env: "K", egress: "local" } },
+  };
+  const merged = mergeBackendsNamespace(cfg);
+  assert.equal(merged.backends["lying-backend"].egress, "local", "the stored field is untouched by the gate's re-derivation");
+});
+
+test("checkRealizable: an explicit egress:local claim that IS actually local (host agrees) still passes", () => {
+  const cfg = { backends: {
+    "honest-backend": { provider: "ollama", model: "m1", host: "http://10.0.0.5:11434", egress: "local" },
+  } };
+  const res = checkRealizable(cfg, { refs: ["honest-backend"], requires: "local" });
+  assert.equal(res.ok, true);
+});
+
+// --- fix: consumer.requires is a CLOSED enum ("local", alias "no-egress"), FAIL-CLOSED on
+// an unrecognized value — a typo must never silently skip the residency gate.
+test("checkRealizable: requires: no-egress (documented alias) behaves identically to requires: local", () => {
+  assert.deepEqual(RESIDENCY_REQUIRED_VALUES, ["local", "no-egress"]);
+  const cfg = { backends: { ext: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K" } } };
+  const res = checkRealizable(cfg, { refs: ["ext"], requires: "no-egress" });
+  assert.equal(res.refuse, true);
+  assert.match(res.reason, /^residency-violation: ext/);
+});
+
+test("checkRealizable: an unrecognized requires value fails closed (never a silent skip of the residency gate)", () => {
+  const cfg = { backends: { ext: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K" } } };
+  for (const bad of ["locla", "Local", "local ", ""]) {
+    if (bad === "") continue; // empty is "absent" — no residency constraint, not a typo
+    const res = checkRealizable(cfg, { refs: ["ext"], requires: bad });
+    assert.equal(res.refuse, true, `requires: ${JSON.stringify(bad)} must refuse, not silently pass`);
+    assert.equal(res.needsHuman, true);
+    assert.match(res.reason, /unrecognized consumer\.requires/);
+  }
+});
+
+test("checkRealizable: requires absent entirely -> no residency constraint, chain can still be realizable", () => {
+  const cfg = { backends: { ext: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K" } } };
+  const res = checkRealizable(cfg, { refs: ["ext"] });
+  assert.equal(res.ok, true);
+});
+
 test("checkRealizable: a whole chain unrealizable on this harness -> refuse chain-unrealizable, never pass+skip", () => {
   const cfg = { backends: { a: { provider: "nvidia", model: "m1" } } }; // host unset
   const res = checkRealizable(cfg, { refs: ["a"] });
@@ -195,6 +250,24 @@ test("configCheck guard: requires:local chain on an EXPLICIT egress:local backen
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(!findings.some((f) => /DERIVED/.test(f.message)));
+});
+
+test("configCheck guard: requires: no-egress (documented alias) processes the chain same as requires: local", () => {
+  const cfg = {
+    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
+    faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "no-egress" } },
+  };
+  const findings = backendsConfigCheckFindings(cfg);
+  assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
+});
+
+test("configCheck guard: an unrecognized requires value -> fail-loud error finding, never a silent skip", () => {
+  const cfg = {
+    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
+    faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "Local" } }, // case-typo
+  };
+  const findings = backendsConfigCheckFindings(cfg);
+  assert.ok(findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message) && /Local/.test(f.message)));
 });
 
 // ===========================================================================

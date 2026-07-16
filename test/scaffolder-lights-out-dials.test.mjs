@@ -24,8 +24,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import {
   ADVERSARIAL_REVIEW_OCCUPANTS,
   ADVERSARIAL_SPEC_REVIEW_OCCUPANTS,
@@ -127,12 +129,74 @@ test("P1/P2/P3 .gitignore heredoc precedes the box-env copy step (never staged)"
   for (const name of ELIGIBLE) {
     const text = readScript(name);
     const gitignoreIdx = text.indexOf("cat > .gitignore <<'EOF'");
-    const copyIdx = text.indexOf(".env.claude-box");
-    // .env.claude-box's FIRST mention must be inside the .gitignore heredoc itself, i.e. the
-    // gitignore write precedes any copy-step mention of the file.
+    // Match the ACTUAL cp command line, not just any mention of the filename — the naive
+    // text.indexOf(".env.claude-box") this test used pre-FAFF-524 matched the string's occurrence
+    // INSIDE the .gitignore heredoc body itself (line 33/34), making gitignoreIdx < copyIdx
+    // trivially/tautologically true regardless of where the real copy step lived.
+    const copyMatch = text.match(/cp\s+"\$FAFF_ROOT\/\.env\.claude-box"\s+\.env\.claude-box/);
     assert.ok(gitignoreIdx >= 0, `${name}: no .gitignore heredoc found`);
-    assert.ok(copyIdx >= 0, `${name}: .env.claude-box never mentioned`);
-    assert.ok(gitignoreIdx < copyIdx, `${name}: .env.claude-box is referenced before .gitignore is written — secret-staging ordering risk`);
+    assert.ok(copyMatch, `${name}: no cp "$FAFF_ROOT/.env.claude-box" .env.claude-box copy step found`);
+    const copyIdx = text.indexOf(copyMatch[0]);
+    assert.ok(gitignoreIdx < copyIdx, `${name}: the box-env copy step precedes .gitignore being written — secret-staging ordering risk`);
+  }
+});
+
+test("P1/P2/P3 unstage .env.claude-box (git rm --cached) before git add -A, guarding against a stale-tracked secret", () => {
+  for (const name of ELIGIBLE) {
+    const text = readScript(name);
+    const rmIdx = text.indexOf("git rm --cached --ignore-unmatch .env.claude-box");
+    // Anchor to the actual command line (start of line), not any prose mention of "git add -A" —
+    // the guard's own explanatory comment above it names both commands.
+    const addMatch = text.match(/^git add -A$/m);
+    const addIdx = addMatch ? addMatch.index : -1;
+    // A prior scaffold over a re-used (FORCE=1) $SUT_ROOT can carry a stale .git where
+    // .env.claude-box was already tracked — .gitignore never untracks an already-tracked file,
+    // so `git add -A` alone would re-stage the secret and the commit below would carry it
+    // forward. The unstage step must run first, unconditionally (FAFF-524 critical fix).
+    assert.ok(rmIdx >= 0, `${name}: no "git rm --cached --ignore-unmatch .env.claude-box" unstage guard found`);
+    assert.ok(addIdx >= 0, `${name}: no "git add -A" found`);
+    assert.ok(rmIdx < addIdx, `${name}: the unstage guard must run BEFORE git add -A`);
+  }
+});
+
+test("P1 re-scaffold over a stale .git with .env.claude-box already tracked does NOT leak it into the new commit (integration, actually executes the scaffolder)", () => {
+  const sutRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-p1-stale-scaffold-"));
+  try {
+    // Simulate the leak precondition: a PRIOR scaffold run (or an old, pre-FAFF-524 version of
+    // this script) left .env.claude-box tracked in $SUT_ROOT's git history.
+    const gitEnv = { ...process.env, GIT_AUTHOR_NAME: "test", GIT_AUTHOR_EMAIL: "test@test", GIT_COMMITTER_NAME: "test", GIT_COMMITTER_EMAIL: "test@test" };
+    const run = (args) => spawnSync("git", args, { cwd: sutRoot, env: gitEnv, encoding: "utf8" });
+    assert.equal(run(["init", "-q"]).status, 0);
+    fs.writeFileSync(path.join(sutRoot, ".env.claude-box"), "NVIDIA_API_KEY=super-secret-stale-value\n");
+    assert.equal(run(["add", "-A"]).status, 0);
+    assert.equal(run(["commit", "-q", "-m", "stale prior scaffold (simulated leak precondition)"]).status, 0);
+    // Precondition check: the secret really is tracked going in.
+    const preFiles = run(["ls-files"]).stdout;
+    assert.match(preFiles, /\.env\.claude-box/, "test setup did not actually track .env.claude-box");
+
+    // Re-scaffold over it, FORCE=1 (non-empty $SUT_ROOT) — this is the exact re-use path the
+    // critical describes. No FAFF_ROOT/.env.claude-box source is provided, so the copy step
+    // warns-and-continues; the leak comes from the FILE ALREADY ON DISK from the stale repo,
+    // which `git add -A` would otherwise re-stage.
+    const scriptPath = path.join(EV_DIR, "scaffold-p1-link-shortener.sh");
+    const result = spawnSync("bash", [scriptPath], {
+      cwd: sutRoot,
+      env: { ...process.env, SUT_ROOT: sutRoot, FORCE: "1", PATH: "/usr/bin:/bin:/usr/local/bin" },
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+    assert.equal(result.status, 0, `scaffolder exited non-zero: ${result.stderr}`);
+
+    const postFiles = run(["ls-files"]).stdout;
+    assert.doesNotMatch(postFiles, /\.env\.claude-box/, "the secret leaked back into the tracked file list on re-scaffold");
+
+    // git ls-tree walks the committed TREE at HEAD (the file's actual content-bearing presence in
+    // the snapshot that would be pushed) — unlike `git show --stat`, which legitimately mentions
+    // the filename when it records the file being DELETED (the correct, intended diff here).
+    const headTree = run(["ls-tree", "-r", "--name-only", "HEAD"]).stdout;
+    assert.doesNotMatch(headTree, /\.env\.claude-box/, "the secret leaked into the new HEAD commit's tree on re-scaffold");
+  } finally {
+    fs.rmSync(sutRoot, { recursive: true, force: true });
   }
 });
 

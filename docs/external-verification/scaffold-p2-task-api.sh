@@ -209,6 +209,12 @@ faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faf
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
 
+# Secret-leak guard (FAFF-524 critical fix): a stale $SUT_ROOT re-used via FORCE=1 may carry a
+# prior .git where .env.claude-box was already tracked — .gitignore never untracks an
+# already-tracked file, so `git add -A` would re-stage the secret and the commit below would
+# push it. Force it out of the index unconditionally (no-op on a fresh repo / untracked file).
+git rm --cached --ignore-unmatch .env.claude-box >/dev/null 2>&1 || true
+
 git add -A
 git commit -q -m "chore: scaffold P2 task-API SUT (faff external testbed)" || true
 

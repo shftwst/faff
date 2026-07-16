@@ -173,11 +173,65 @@ The shape of the tree is the methodology's call, per level (`ticket-shaping` wit
 
 When no tracker MCP is available (gateway → Configuration), there are no containers to create. plot still recurses and writes the full skeleton to `.faff/intake/<date>-<slug>-roadmap.md` as a nested checklist (initiatives → projects → first-slice epics + deps), notes that creation was skipped, and offers the same prep/map hand-off against the written file. Nothing is lost.
 
-## Autonomous mode
+## Autonomous mode (`--autonomous`) — the gate-answering harness
 
-`/faff-plot` is **primarily interactive**, for the same reason `/faff-jot` is: deciding the shape of a whole application is direction-setting that belongs to the human, not the unattended loop. `/faff-beep-boop` does **not** invoke `/faff-plot` — beep-boop drains the existing backlog; it does not plan new applications. (Autonomous, lights-out planning — "describe an app at night, wake up to a built first slice" — is a documented future L4 capability; see `design/planning-loop.md`. It is not this skill's job yet.)
+`/faff-plot` is **primarily interactive**, for the same reason `/faff-jot` is: deciding the shape of a whole application is direction-setting. `/faff-beep-boop` does **not** invoke `/faff-plot` (unchanged) — beep-boop drains the backlog; it does not plan new applications.
 
-If `/faff-plot` is somehow invoked autonomously, it recurses and writes the skeleton to `.faff/intake/…` and surfaces it for human review rather than creating containers unattended.
+The **`--autonomous` argument** (FAFF-494) adds the one exception: a *manually-ignited* pass that answers its own per-level gates within the L4 topology-write envelope, recursing top-down to first-slice epics with no interactive prompt. It is purely **additive** — bare `/faff-plot` and `/faff-plot rehome` are byte-unchanged, and an accidental autonomous invocation **without** `--autonomous` still uses the surface-only fallback (writes the skeleton to `.faff/intake/…` and surfaces it, creating nothing). The whole ticket is the **gate→verdict seam** below; everything else is the driver, the logging, and the parking around it.
+
+### Ignition (`/faff-plot --autonomous`) + the stub guard
+
+- **Self-mint an L4 run-ledger** via the existing lights-out preflight (the same one `faff lights-out` runs — reused, not reimplemented), then run the §gate-seam driver against the discovery brief.
+- **Stub ignition guard (~5 lines, fail-closed).** Before descending, assert the pass ignited behind a minted L4 run-ledger — if none resolves, **refuse** (no writes) and stop. This is the *shape* **FAFF-521** hardens into full run-start OUTWARD-only enforcement; ship only the stub, commented with `FAFF-521` as its hardening extension. Run-start OUTWARD-only enforcement + the refusal taxonomy are **out of scope** here (FAFF-521 / FAFF-496).
+
+### The gate→verdict seam (the core seam)
+
+For each per-level gate the interactive flow presents to a human, build an **op** `{kind, level:"L4", provenance, parent_confirmed, contained_under_accepted_prd}`, pipe `{op, verdict}` to **`faff contract l4-topology-envelope`**, and act on the **CLI-validated disposition** — never a harness-computed one. The contract re-derives the expected disposition from `op` via `l4TopologyDecision` and rejects a non-conforming claim (Pattern-B validator); the harness re-implements **none** of that table. Write only on a validated `admit`.
+
+| Interactive gate | Op (`kind` / key fields) | Disposition | Autonomous action |
+|---|---|---|---|
+| Container under the accepted root | `container-create`, faff-authored, `contained_under_accepted_prd=true` | **admit** | create idempotently, stamp `initiated: autonomous`, log; descend |
+| Container outside the accepted root | `container-create`, `contained_under_accepted_prd=false` | **propose-only** | create nothing; surface; HALT descent; park |
+| Epic under a confirmed project | `epic-create`, faff-authored, `parent_confirmed=true` | **admit** | create idempotently, stamp, `intake-record --initiated autonomous`, log |
+| Epic under an unconfirmed parent | `epic-create`, `parent_confirmed=false` | **propose-only** | surface; HALT descent; park |
+| Reparent/convert/rehome of a loop node | `reparent`\|`convert`\|`rehome`, faff-authored | **admit** | do idempotently (reversible), stamp, log |
+| Any op on human-curated structure | any kind, `provenance=human-curated` | **propose-only** | never restructure; surface + park |
+| Cancel/delete | `cancel`\|`delete` | **reject** | never taken — a reject halts + logs a refusal |
+| Step-5b project DoD | *(not an envelope op — see below)* | n/a | author a `Proposed` PRDR; never admit |
+
+- **Anti-pattern:** re-checking reversibility/containment in the harness before calling the contract — the contract *is* that check.
+- **Fail-safe:** a contract fail-loud (malformed op / disposition mismatch) is treated as a **park**, never an implicit admit. Absence of a clean `admit` is never a write.
+
+### Honest op construction (write-time, not agent-asserted)
+
+The three admit-gating booleans are **derived from live reads at construction time**, never hard-coded and never carried from a cached read (a literal `true` at the op-build site is the anti-pattern this rule forbids):
+
+- **`contained_under_accepted_prd`** *is* the verdict of `faff contain <node> --parent <resolved-parent> --ancestry <live-ancestry> --record <run-id> --phase plot`, where `<live-ancestry>` is read fresh from the tracker (the node's parent chain up to the run ledger's `prd_root_container`): `contained` (exit 0) → `true`; `outward` (exit 3) → `false`. The boolean is the *recorded* contain verdict — so the audit trail exists by construction.
+- **`parent_confirmed`** is `true` **only** for a parent created/confirmed earlier in *this* pass (the pass's created-set) or the admitted root itself — never inferred for a pre-existing node.
+- **`provenance`** is `faff-authored` **only** for a node this pass created (or a prior loop node carrying `initiated: autonomous`); anything else is `human-curated`. **When in doubt → `human-curated`** (fail-safe to propose-only).
+
+**Write-time containment gate.** Every autonomous container/epic create is **immediately preceded by its recorded `faff contain --record … --phase plot` containment-check**. A create with no matching recorded `contained` verdict is an integrity violation `faff audit` flags (recompute-and-compare over the recorded ancestry — the detective control) — turning the backstop from advisory into a mechanical, born-verifiable gate. (Residual, out of scope: a *falsified* live ancestry read is the custody/write-authority axis, FAFF-518/519 — not this harness.)
+
+### Decompose-only HALT
+
+Two triggers stop descent while the pass **finishes forward** on its siblings (never a rollback — that would itself be a destructive write):
+
+1. **Branch not concretely derivable** — park `plot-halt: branch needs discovery`; continue siblings; create nothing. (The interactive stop rule, turned into a HALT-and-park — new-scope conjuring stays human-owned.)
+2. **Would need a new root (outward)** — the `faff contain … --record … --phase plot` above returned `outward`: create nothing, record `containment: outward-new-root`, surface for `/faff-jot`, park.
+
+### Logging, reversibility, parking
+
+- **Logging** — every gate answer writes one durable `.faff/` log entry `{op, disposition, reason, outcome}` (outcome ∈ created / proposed-only / refused / skipped-idempotent), per the gateway `.faff/logging` rule.
+- **Reversibility (structural)** — every created node is stamped `initiated: autonomous` (the marker a human greps to undo the pass, one query); the envelope `reject`s `cancel`/`delete`, so the harness *cannot* take an irreversible answer. Idempotent create reuses the single-homed MCP-write seam (`faff-jot` → **Idempotent create + link authoring**) — re-query before retry; create only the gap on re-slice.
+- **Parking** — any `propose-only` / `reject` / fail-loud parks via the shared **Park protocol** (gateway); the pass finishes forward and surfaces the park set for `/faff-wtf`.
+
+### Step 5b — defer, never admit
+
+For each created project: request the methodology's `prdr-author` DoD, then `faff prdr new --provenance loop --status Proposed` — and **stop**. Do **not** admit. Admission (the two-gate `faff prdr admit` → `prdr accept --actor loop`) is **FAFF-495**; the `Proposed` record is the handoff point it picks up. This keeps the 494/495 boundary crisp.
+
+### Integration smoke (acceptance)
+
+Ignite one `--autonomous` pass over a two-node brief (child container `C` under an admitted root PRD `R`, one epic `E` under `C`) and assert: `container-create` for `C` → admit → `C` created + stamped `initiated: autonomous`; `epic-create` for `E` (`parent_confirmed=true`) → admit → `E` created + stamped; exactly one `Proposed` PRDR authored for `C`'s project tier, none admitted; one log entry per gate; zero cancel/delete ops; `faff audit` clean (no `containment_mismatches`, no unrecorded creates).
 
 ## Appetite
 

@@ -185,9 +185,16 @@ for (const name of ELIGIBLE) {
       // warns-and-continues; the leak comes from the FILE ALREADY ON DISK from the stale repo,
       // which `git add -A` would otherwise re-stage.
       const scriptPath = path.join(EV_DIR, name);
+      // Carry the SAME git identity env into the scaffolder's own `git commit` — a CI runner
+      // (or any fresh machine/container) has no global user.name/user.email configured, which
+      // makes the scaffolder's `git commit -q -m ... || true` fail SILENTLY (swallowed by the
+      // `|| true`, a pre-existing masked-failure the adversarial review separately flagged).
+      // Without an identity, HEAD never advances past the stale precondition commit created
+      // above, so `git ls-tree HEAD` would still show the OLD (pre-fix) tree and the test would
+      // misreport that as a fresh leak, when no new commit was made at all.
       const result = spawnSync("bash", [scriptPath], {
         cwd: sutRoot,
-        env: { ...process.env, SUT_ROOT: sutRoot, FORCE: "1", PATH: "/usr/bin:/bin:/usr/local/bin" },
+        env: { ...process.env, ...gitEnv, SUT_ROOT: sutRoot, FORCE: "1", PATH: "/usr/bin:/bin:/usr/local/bin" },
         encoding: "utf8",
         timeout: 30_000,
       });

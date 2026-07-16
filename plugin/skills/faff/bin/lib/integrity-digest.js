@@ -31,14 +31,28 @@ function sha256(bytes) {
   return m[1];
 }
 
-// Recursively list files under a directory, relative to it, sorted (deterministic order).
-function walkFiles(absDir) {
+// Digest a regular file, or record a SYMLINK without ever following it. A symlink where evidence
+// should be is itself a same-uid tamper (redirecting the hash to a lane-stable external file is
+// the cheapest bypass), so we NEVER `readFileSync` through one — we record its target instead, so
+// a file→symlink swap (or a re-pointed link) reads as tampering. lstat, never stat.
+function digestLeaf(abs) {
+  const lst = fs.lstatSync(abs);
+  if (lst.isSymbolicLink()) return { symlink: true, target: fs.readlinkSync(abs) };
+  return { sha256: sha256(fs.readFileSync(abs)) };
+}
+
+// Recursively list leaf entries under a directory (relative, sorted), lstat-only so a symlinked
+// subtree is recorded as a leaf symlink, never traversed/followed. Resilient: an entry that
+// vanishes mid-walk is skipped (its disappearance surfaces as a removed member at verify, not a throw).
+function walkLeaves(absDir) {
   const out = [];
   const rec = (d, rel) => {
-    for (const name of fs.readdirSync(d).sort()) {
+    let names; try { names = fs.readdirSync(d).sort(); } catch { return; }
+    for (const name of names) {
       const abs = path.join(d, name);
-      const st = fs.statSync(abs);
-      if (st.isDirectory()) rec(abs, path.join(rel, name));
+      let lst; try { lst = fs.lstatSync(abs); } catch { continue; }
+      if (lst.isSymbolicLink()) out.push({ sub: path.join(rel, name), abs, symlink: true });
+      else if (lst.isDirectory()) rec(abs, path.join(rel, name));
       else out.push({ sub: path.join(rel, name), abs });
     }
   };
@@ -46,20 +60,23 @@ function walkFiles(absDir) {
   return out;
 }
 
-// Snapshot ONE evidence member into a comparable record. events.jsonl is prefix-preserving
+// Snapshot ONE evidence member into a comparable record. `isEvents` (structural — the caller passes
+// it only for the runDir-root events.jsonl, never by basename) makes that member prefix-preserving
 // (append-only by construction): record {length, prefix_sha256}. A directory member records a
-// per-sub-file digest map (which-file granularity). A plain file records its sha256. A member
-// that doesn't exist yet is recorded absent (a freeze must catch appear/disappear, not only edits).
-function snapshotMember(abs) {
-  let st;
-  try { st = fs.statSync(abs); } catch { return { present: false }; }
-  if (path.basename(abs) === "events.jsonl") {
+// per-sub-leaf digest/symlink map (which-file granularity). A plain file records its sha256 (or a
+// symlink marker). A member that doesn't exist yet is recorded absent (a freeze must catch
+// appear/disappear/symlink-swap, not only content edits). lstat throughout — never follows a symlink.
+function snapshotMember(abs, isEvents) {
+  let lst;
+  try { lst = fs.lstatSync(abs); } catch { return { present: false }; }
+  if (lst.isSymbolicLink()) return { present: true, symlink: true, target: fs.readlinkSync(abs) };
+  if (isEvents) {
     const bytes = fs.readFileSync(abs);
     return { present: true, events: { length: bytes.length, prefix_sha256: sha256(bytes) } };
   }
-  if (st.isDirectory()) {
+  if (lst.isDirectory()) {
     const files = {};
-    for (const f of walkFiles(abs)) files[f.sub] = sha256(fs.readFileSync(f.abs));
+    for (const f of walkLeaves(abs)) files[f.sub] = f.symlink ? { symlink: true, target: fs.readlinkSync(f.abs) } : { sha256: sha256(fs.readFileSync(f.abs)) };
     return { present: true, dir: true, files };
   }
   return { present: true, sha256: sha256(fs.readFileSync(abs)) };
@@ -67,33 +84,55 @@ function snapshotMember(abs) {
 
 // The manifest the caller holds in context. `members` keyed by path RELATIVE to runDir (portable
 // + readable). One resolver: correctiveIntegrityDirs — never a second hand-written list.
+// The evidence-set member paths (relative to runDir). One resolver — correctiveIntegrityDirs —
+// never a second hand-written list. `events.jsonl` is identified STRUCTURALLY (its exact runDir-root
+// rel), never by basename, so a future `corrective/events.jsonl` never gets the weaker prefix rule.
+function memberRels(runDir, issue, events) {
+  return correctiveIntegrityDirs(runDir, issue || null, events ? { events: true } : undefined)
+    .map((abs) => path.relative(runDir, abs));
+}
+const isEventsRel = (rel) => rel === "events.jsonl";
+
 function buildManifest(runDir, issue, events) {
   const members = {};
-  for (const abs of correctiveIntegrityDirs(runDir, issue || null, events ? { events: true } : undefined)) {
-    members[path.relative(runDir, abs)] = snapshotMember(abs);
-  }
+  for (const rel of memberRels(runDir, issue, events)) members[rel] = snapshotMember(path.join(runDir, rel), isEventsRel(rel));
   return { version: MANIFEST_VERSION, grain: issue ? "per-issue" : "run", members };
 }
 
-// Compare the current evidence against a held manifest. Returns the mismatched paths (each named
-// down to the sub-file for a directory member). events.jsonl matches iff the on-disk bytes still
-// START WITH the snapshotted prefix (a legitimate append extends it; a truncation/rewrite does not).
+// True iff `rel` is a plain relative path that stays inside runDir (no absolute, no `..` escape).
+// A held manifest is the trusted dispatcher's own snapshot, but validating rel is cheap
+// defense-in-depth: it prevents a swapped/crafted manifest from redirecting a hash read outside
+// the run dir (path.join(runDir, "../../etc/passwd")).
+function relWithinRunDir(rel) {
+  if (typeof rel !== "string" || rel === "" || path.isAbsolute(rel)) return false;
+  return !path.normalize(rel).split(/[/\\]/).includes("..");
+}
+
+// Compare current evidence against a held manifest. Returns the mismatched paths (named down to the
+// sub-file for a directory member). A symlink where a file was (or vice versa, or a re-pointed link)
+// is tampering. events.jsonl matches iff the on-disk bytes still START WITH the snapshotted prefix
+// (a legitimate append extends it; truncation/rewrite does not — the appended tail is the lane's own,
+// deliberately mutable per the FAFF-519 write-authority split).
+function leafEq(a, b) {
+  if (!!a.symlink !== !!b.symlink) return false;
+  return a.symlink ? a.target === b.target : a.sha256 === b.sha256;
+}
 function diffAgainstManifest(runDir, manifest) {
   const diffs = [];
-  const cur = {};
-  for (const rel of Object.keys(manifest.members || {})) cur[rel] = snapshotMember(path.join(runDir, rel));
   for (const [rel, was] of Object.entries(manifest.members || {})) {
-    const now = cur[rel];
+    if (!relWithinRunDir(rel)) { diffs.push(String(rel) + " (invalid member path — outside run dir)"); continue; }
+    const now = snapshotMember(path.join(runDir, rel), isEventsRel(rel));
     if (!!was.present !== !!now.present) { diffs.push(rel + (was.present ? " (disappeared)" : " (appeared)")); continue; }
     if (!was.present) continue;
-    if (was.events) {
-      const abs = path.join(runDir, rel);
-      const bytes = fs.readFileSync(abs);
+    if (was.symlink || now.symlink) {
+      if (!leafEq(was, now)) diffs.push(rel + (!!was.symlink !== !!now.symlink ? " (symlink swapped)" : " (symlink re-pointed)"));
+    } else if (was.events) {
+      const bytes = fs.readFileSync(path.join(runDir, rel));
       const okPrefix = bytes.length >= was.events.length && sha256(bytes.subarray(0, was.events.length)) === was.events.prefix_sha256;
       if (!okPrefix) diffs.push(rel + (bytes.length < was.events.length ? " (truncated)" : " (prefix rewritten)"));
     } else if (was.dir) {
       const wf = was.files || {}, nf = now.files || {};
-      for (const sub of Object.keys(wf)) { if (!(sub in nf)) diffs.push(path.join(rel, sub) + " (removed)"); else if (nf[sub] !== wf[sub]) diffs.push(path.join(rel, sub)); }
+      for (const sub of Object.keys(wf)) { if (!(sub in nf)) diffs.push(path.join(rel, sub) + " (removed)"); else if (!leafEq(wf[sub], nf[sub])) diffs.push(path.join(rel, sub)); }
       for (const sub of Object.keys(nf)) { if (!(sub in wf)) diffs.push(path.join(rel, sub) + " (added)"); }
     } else if (was.sha256 !== now.sha256) {
       diffs.push(rel);
@@ -201,6 +240,20 @@ function integrityDigestSelftest() {
   // a member that DISAPPEARS is tampering
   fs.rmSync(path.join(rd, iss, "holdout.json"));
   ok(diffAgainstManifest(rd, man).some((d) => d.includes("holdout.json") && d.includes("disappeared")), "verify: removed holdout.json → named disappeared");
+  fs.writeFileSync(path.join(rd, iss, "holdout.json"), '{"aggregate":"meets-spec"}'); // restore (test hygiene — extension-safe)
+
+  // SYMLINK SWAP: a same-uid lane replaces a member file with a symlink to a lane-stable external
+  // file → must be detected (we never follow it to hash the target). The cheapest same-uid tamper.
+  const ext = path.join(os.tmpdir(), "faff-idig-ext-" + process.pid);
+  fs.writeFileSync(ext, '{"run":"x"}'); // identical content to the original run-ledger.json
+  fs.rmSync(path.join(rd, "run-ledger.json")); fs.symlinkSync(ext, path.join(rd, "run-ledger.json"));
+  ok(diffAgainstManifest(rd, man).some((d) => d.startsWith("run-ledger.json") && d.includes("symlink")), "verify: file→symlink swap (even to identical content) → tampered (never followed)");
+  fs.rmSync(path.join(rd, "run-ledger.json")); fs.writeFileSync(path.join(rd, "run-ledger.json"), '{"run":"x"}'); fs.rmSync(ext); // restore
+  ok(diffAgainstManifest(rd, man).length === 0, "verify: restored → clean again");
+
+  // rel-traversal: a crafted manifest member escaping runDir is rejected, never read
+  const evil = { version: "d1", grain: "run", members: { "../../../etc/passwd": { present: true, sha256: "0".repeat(64) } } };
+  ok(diffAgainstManifest(rd, evil).some((d) => d.includes("invalid member path")), "verify: a manifest member escaping runDir (..) is rejected, never read");
 
   // hashing uses the absolute /usr/bin/sha256sum (never PATH)
   ok(SHA256SUM === "/usr/bin/sha256sum" && path.isAbsolute(SHA256SUM), "hashing binary is the absolute /usr/bin/sha256sum (never PATH)");

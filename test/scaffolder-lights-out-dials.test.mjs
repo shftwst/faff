@@ -159,46 +159,53 @@ test("P1/P2/P3 unstage .env.claude-box (git rm --cached) before git add -A, guar
   }
 });
 
-test("P1 re-scaffold over a stale .git with .env.claude-box already tracked does NOT leak it into the new commit (integration, actually executes the scaffolder)", () => {
-  const sutRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-p1-stale-scaffold-"));
-  try {
-    // Simulate the leak precondition: a PRIOR scaffold run (or an old, pre-FAFF-524 version of
-    // this script) left .env.claude-box tracked in $SUT_ROOT's git history.
-    const gitEnv = { ...process.env, GIT_AUTHOR_NAME: "test", GIT_AUTHOR_EMAIL: "test@test", GIT_COMMITTER_NAME: "test", GIT_COMMITTER_EMAIL: "test@test" };
-    const run = (args) => spawnSync("git", args, { cwd: sutRoot, env: gitEnv, encoding: "utf8" });
-    assert.equal(run(["init", "-q"]).status, 0);
-    fs.writeFileSync(path.join(sutRoot, ".env.claude-box"), "NVIDIA_API_KEY=super-secret-stale-value\n");
-    assert.equal(run(["add", "-A"]).status, 0);
-    assert.equal(run(["commit", "-q", "-m", "stale prior scaffold (simulated leak precondition)"]).status, 0);
-    // Precondition check: the secret really is tracked going in.
-    const preFiles = run(["ls-files"]).stdout;
-    assert.match(preFiles, /\.env\.claude-box/, "test setup did not actually track .env.claude-box");
+// Adversarial review (Phase-2 re-run, nvidia glm-5.2) major finding: an earlier version of this
+// integration test covered ONLY scaffold-p1-link-shortener.sh — P2/P3 carry the byte-identical
+// guard line but a future edit reordering just one of them would pass the (P1-only) behavioral
+// proof while silently breaking P2/P3. Parameterised across all three ELIGIBLE scaffolders so the
+// guard is behaviorally proven for every scaffolder that claims it, not spot-checked on one.
+for (const name of ELIGIBLE) {
+  test(`${name}: re-scaffold over a stale .git with .env.claude-box already tracked does NOT leak it into the new commit (integration, actually executes the scaffolder)`, () => {
+    const sutRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-stale-scaffold-"));
+    try {
+      // Simulate the leak precondition: a PRIOR scaffold run (or an old, pre-FAFF-524 version of
+      // this script) left .env.claude-box tracked in $SUT_ROOT's git history.
+      const gitEnv = { ...process.env, GIT_AUTHOR_NAME: "test", GIT_AUTHOR_EMAIL: "test@test", GIT_COMMITTER_NAME: "test", GIT_COMMITTER_EMAIL: "test@test" };
+      const run = (args) => spawnSync("git", args, { cwd: sutRoot, env: gitEnv, encoding: "utf8" });
+      assert.equal(run(["init", "-q"]).status, 0);
+      fs.writeFileSync(path.join(sutRoot, ".env.claude-box"), "NVIDIA_API_KEY=super-secret-stale-value\n");
+      assert.equal(run(["add", "-A"]).status, 0);
+      assert.equal(run(["commit", "-q", "-m", "stale prior scaffold (simulated leak precondition)"]).status, 0);
+      // Precondition check: the secret really is tracked going in.
+      const preFiles = run(["ls-files"]).stdout;
+      assert.match(preFiles, /\.env\.claude-box/, "test setup did not actually track .env.claude-box");
 
-    // Re-scaffold over it, FORCE=1 (non-empty $SUT_ROOT) — this is the exact re-use path the
-    // critical describes. No FAFF_ROOT/.env.claude-box source is provided, so the copy step
-    // warns-and-continues; the leak comes from the FILE ALREADY ON DISK from the stale repo,
-    // which `git add -A` would otherwise re-stage.
-    const scriptPath = path.join(EV_DIR, "scaffold-p1-link-shortener.sh");
-    const result = spawnSync("bash", [scriptPath], {
-      cwd: sutRoot,
-      env: { ...process.env, SUT_ROOT: sutRoot, FORCE: "1", PATH: "/usr/bin:/bin:/usr/local/bin" },
-      encoding: "utf8",
-      timeout: 30_000,
-    });
-    assert.equal(result.status, 0, `scaffolder exited non-zero: ${result.stderr}`);
+      // Re-scaffold over it, FORCE=1 (non-empty $SUT_ROOT) — this is the exact re-use path the
+      // critical describes. No FAFF_ROOT/.env.claude-box source is provided, so the copy step
+      // warns-and-continues; the leak comes from the FILE ALREADY ON DISK from the stale repo,
+      // which `git add -A` would otherwise re-stage.
+      const scriptPath = path.join(EV_DIR, name);
+      const result = spawnSync("bash", [scriptPath], {
+        cwd: sutRoot,
+        env: { ...process.env, SUT_ROOT: sutRoot, FORCE: "1", PATH: "/usr/bin:/bin:/usr/local/bin" },
+        encoding: "utf8",
+        timeout: 30_000,
+      });
+      assert.equal(result.status, 0, `${name}: scaffolder exited non-zero: ${result.stderr}`);
 
-    const postFiles = run(["ls-files"]).stdout;
-    assert.doesNotMatch(postFiles, /\.env\.claude-box/, "the secret leaked back into the tracked file list on re-scaffold");
+      const postFiles = run(["ls-files"]).stdout;
+      assert.doesNotMatch(postFiles, /\.env\.claude-box/, `${name}: the secret leaked back into the tracked file list on re-scaffold`);
 
-    // git ls-tree walks the committed TREE at HEAD (the file's actual content-bearing presence in
-    // the snapshot that would be pushed) — unlike `git show --stat`, which legitimately mentions
-    // the filename when it records the file being DELETED (the correct, intended diff here).
-    const headTree = run(["ls-tree", "-r", "--name-only", "HEAD"]).stdout;
-    assert.doesNotMatch(headTree, /\.env\.claude-box/, "the secret leaked into the new HEAD commit's tree on re-scaffold");
-  } finally {
-    fs.rmSync(sutRoot, { recursive: true, force: true });
-  }
-});
+      // git ls-tree walks the committed TREE at HEAD (the file's actual content-bearing presence in
+      // the snapshot that would be pushed) — unlike `git show --stat`, which legitimately mentions
+      // the filename when it records the file being DELETED (the correct, intended diff here).
+      const headTree = run(["ls-tree", "-r", "--name-only", "HEAD"]).stdout;
+      assert.doesNotMatch(headTree, /\.env\.claude-box/, `${name}: the secret leaked into the new HEAD commit's tree on re-scaffold`);
+    } finally {
+      fs.rmSync(sutRoot, { recursive: true, force: true });
+    }
+  });
+}
 
 test("P1/P2/P3 heredocs emit a faffter_dark.adversarial backend block, keyed via .env.claude-box", () => {
   for (const name of ELIGIBLE) {

@@ -79,6 +79,14 @@ Surface every issue that is **not automation-eligible** **and** notable (gateway
 
 Surface every issue tagged `faff-awaiting-review` via a **live tracker label query** (this label is not `faff-parked`'s query above and is easy to miss otherwise — wtf's parked query is scoped to `faff-parked` only). **Distinct from both Parked and On-hold above:** this is neither a human park nor a human-set eligibility hold — it means the built work is durable (branch pushed) and the review is waiting on a **machine** (the provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no rebuild. For each: issue id + title, the outage-retry attempt count (`n`/`graft.review_outage_retry_limit`), and a note that no action is needed — it self-resolves next drain, or escalates to an ordinary park after the retry bound. Skip the section if none.
 
+### 4d. ADR supersession proposals awaiting ratification (FAFF-199)
+
+Surface every **propose-only** ADR-admission candidate recorded by an autonomous `faff-graft` Step 3b run — a **loop-authored** ADR proposing to supersede a **human/legacy-provenance** ADR, which the admit gate correctly refused to auto-write (guardrails ratify only by human gesture; the loop never self-ratifies). Read `.faff/adr-proposals/*.json` (one file per candidate, keyed by the new ADR's number; written by graft, never by `/faff-wtf`). **Distinct from Parked / On-hold / Awaiting-review above:** this isn't a stalled issue — the build that authored the proposing ADR already shipped; the proposal is a standing, git-native artifact (an ADR pair, not a tracker issue) waiting on a **ratification gesture**, not a build retry.
+
+For each entry with `disposition: propose-only`: surface the new ADR (number + title) and the old ADR it proposes to supersede (number + title), the recorded `why`, and the issue that authored it. Offer a yes/no gate: **"Ratify supersession of ADR-`<old>` by ADR-`<new>`? (y/n)"**. On confirm, run `faff adr supersede <old> --by <new>` (the shipped mechanical linker — no new write mechanics, per FAFF-199's ratified design), then delete the now-resolved `.faff/adr-proposals/<new>.json`. On deny, leave the file — it resurfaces on the next `/faff-wtf` pass unchanged. This is the **only** place a human ratifies a loop-over-human ADR supersession; the admit gate never asks elsewhere.
+
+`disposition: reject` entries are informational only (the admit gate's own gates — challenge, by-level, ratchet — already refused these; there is nothing to ratify) — mention a one-line count ("N supersession(s) refused by the admit gate — see the log") rather than itemising, unless appetite is `high`/`full` (prominent) per the gateway's appetite-graded-surfacing rule. Skip the section entirely if `.faff/adr-proposals/` is absent or empty.
+
 ### 5. Today's Focus
 Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**; the thematic default orders by priority → chainable unlock value):
 - **Never suggest cancelled or archived** issues or projects as candidates (shared rule)
@@ -204,6 +212,10 @@ Source of truth is the configured issue tracker. Snapshot below — re-query via
 
 ### Awaiting review (adversarial outage)
 - ISSUE-XX  [synthesis gloss] — review provider unavailable, attempt n/N; auto-resumes next drain, no action needed
+
+### ADR supersession proposals awaiting ratification
+- ADR-NNNN proposes to supersede ADR-MMMM (authored by ISSUE-XX): [why]. Ratify? (y/n)
+- N supersession(s) refused by the admit gate — see the log (appetite `high`/`full` itemises)
 
 ### Do this
 Ordered by the configured methodology's `pick-ordering`. Items freshly unblocked by recent shipping are annotated as just-appeared leverage.

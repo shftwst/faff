@@ -2,7 +2,7 @@
 name: faffter-dark-adversarial-review
 description: "Adversarial second-opinion code review for the `review` slot: a standard structural pass plus an adversarial review by a different LLM to catch correlated blind spots. Returns the fixed pass/fail/needs-human verdict. Swappable review occupant; runs as a configured slot, not the user `/` menu."
 user-invocable: false
-judgement_seam: refutation-code
+judgement_seam: refutation-code, adr-drift
 ---
 
 # faffter-dark-adversarial-review
@@ -276,6 +276,10 @@ On **any autonomous run** (L3 overnight or L4 lights-out), a Phase-2 `critical` 
 - **Fail-safe direction.** When the `autonomous` signal is false, absent, or unresolved, do **not** escalate — author the block exactly as the advisory path does. This fails safe *off* on an unresolvable signal, matching the interactive default.
 
 On an **interactive (L2)** run — `autonomous` false — this section is inert: the block is authored byte-for-byte as it is today, with Phase-2 findings advisory. This escalation (findings present, exit 0) is **mutually exclusive** with the **Full-chain outage annotation** (no findings, exit 5) — a single review can never trigger both.
+
+## ADR drift challenge (FAFF-199)
+
+This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return **`survived`** (the argument stands) or **`overturned`** (it doesn't; name why). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as **absent** (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
 
 ## Rules
 

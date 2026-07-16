@@ -933,6 +933,127 @@ function computePrdrAdmissionVerdict(input) {
   return { disposition, upper, lower, authority, ratchet, reasons, conformant: true, violations: [] };
 }
 
+// --- adr-admission (FAFF-199) ---
+// The ADR-axis sibling of prdr-admission: a two-gate-bound admission verdict that lets the loop
+// supersede its OWN earlier ADRs ("loop-provenance") while human/legacy-provenance ADRs stay
+// guardrails ("propose-only"). Ports ADR 0022's PRDR pattern verbatim for authority/by-level/ratchet;
+// the PRD-specific upper(YAGNI)/lower(coverage) value gates have no ADR analogue, so they are
+// replaced by ONE folded `challenge` gate — the per-move adversarial drift review (a different
+// model re-examines the supersession argument). `faff adr admit` is the PRODUCER
+// (computeAdrAdmissionVerdict); THIS is the consumer-side SHAPE validator (mirrors
+// computePrdrAdmission). NO safe coerce target — faff's own producer emits it, so an out-of-enum
+// disposition/authority/challenge value is an assignment bug → fail-loud (never coerced toward
+// `admit`). The load-bearing invariant guarded here: an `admit` disposition MUST satisfy the
+// two-gate constraint (challenge.outcome==survived ∧ by_level==ok ∧ ¬ratchet.breached ∧
+// ¬(loop supersedes human)). A missing/unreachable challenge (`outcome: absent`) is a REJECT
+// reason, never coerced to `survived` — "a missing adversarial challenge is a reject, never a
+// pass" (fail-safe toward the harder-to-supersede tier).
+const ADR_CHALLENGE_OUTCOMES = ["survived", "overturned", "absent"];
+
+// Does the verdict's gate state permit `admit`? Shared by producer + validator so the constraint
+// has one definition (mirrors prdrGatesPass). A missing/overturned challenge never passes.
+function adrGatesPass(challengeOutcome, by_level, ratchet) {
+  return challengeOutcome === "survived" && by_level === "ok" && !ratchet.breached;
+}
+
+function computeAdrAdmission(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  if (!PRDR_DISPOSITIONS.includes(extraction.disposition)) {
+    return { contractData: null, failLoud: `disposition ${JSON.stringify(extraction.disposition)} not in {admit,propose-only,reject} — no safe coerce target` };
+  }
+  const a = extraction.authority;
+  if (a === null || typeof a !== "object" || Array.isArray(a)) {
+    return { contractData: null, failLoud: "authority must be an object" };
+  }
+  if (!PRDR_ACTORS.includes(a.actor)) return { contractData: null, failLoud: `authority.actor ${JSON.stringify(a.actor)} not in {loop,human}` };
+  if (!PRDR_SUPERSEDES.includes(a.supersedes_provenance)) return { contractData: null, failLoud: `authority.supersedes_provenance ${JSON.stringify(a.supersedes_provenance)} not in {human,loop,none}` };
+  if (!PRDR_BY_LEVEL.includes(a.by_level)) return { contractData: null, failLoud: `authority.by_level ${JSON.stringify(a.by_level)} not in {ok,violation}` };
+
+  const ch = extraction.challenge;
+  if (ch === null || typeof ch !== "object" || Array.isArray(ch)) {
+    return { contractData: null, failLoud: "challenge must be an object" };
+  }
+  if (!ADR_CHALLENGE_OUTCOMES.includes(ch.outcome)) return { contractData: null, failLoud: `challenge.outcome ${JSON.stringify(ch.outcome)} not in {survived,overturned,absent}` };
+  const challenge = { ran: !!ch.ran, outcome: ch.outcome };
+
+  const violations = [];
+  const ra = (extraction.ratchet && typeof extraction.ratchet === "object" && !Array.isArray(extraction.ratchet)) ? extraction.ratchet : {};
+  let lineage = ra.lineage_supersessions;
+  if (!Number.isInteger(lineage)) { violations.push(`ratchet.lineage_supersessions ${JSON.stringify(lineage)} not an integer — normalised to 0`); lineage = 0; }
+  const ratchet = { lineage_supersessions: lineage, breached: !!ra.breached };
+  const authority = { actor: a.actor, supersedes_provenance: a.supersedes_provenance, by_level: a.by_level };
+  const reasons = Array.isArray(extraction.reasons) ? extraction.reasons.filter((r) => typeof r === "string") : [];
+
+  const loopSupersedesHuman = authority.actor === "loop" && authority.supersedes_provenance === "human";
+  const gatesPass = adrGatesPass(challenge.outcome, authority.by_level, ratchet);
+  // The load-bearing conformance: an `admit` must have actually passed every gate AND not be a
+  // loop→human move; a `propose-only` is valid ONLY when gates pass and that move is the sole bar.
+  if (extraction.disposition === "admit" && !(gatesPass && !loopSupersedesHuman)) {
+    violations.push("admit disposition violates the two-gate constraint (requires challenge.outcome==survived ∧ by_level==ok ∧ ¬ratchet.breached ∧ ¬(loop supersedes human))");
+  }
+  if (extraction.disposition === "propose-only" && !(gatesPass && loopSupersedesHuman)) {
+    violations.push("propose-only is valid only when all gates pass and the sole bar is a loop superseding a human-provenance ADR");
+  }
+  return { contractData: { disposition: extraction.disposition, authority, challenge, ratchet, reasons, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractAdrAdmission(extraction) {
+  const { contractData, failLoud } = computeAdrAdmission(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "adr-admission");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
+// The PRODUCER (`faff adr admit`): the deterministic two-gate gate, ported from
+// computePrdrAdmissionVerdict with the upper/lower value gates replaced by the folded `challenge`
+// gate. Computes authority (provenance), by_level (recursive invariant — a loop cannot supersede
+// the ADR governing its own current increment), and the count-ratchet itself; folds in the
+// agent-supplied drift-challenge outcome (or its fail-safe `absent` default). Pure — no
+// tracker/network call (parity with `faff next` / `faff prdr admit`); the agent maps state → these
+// closed-vocabulary inputs. Emits a verdict that is conformant by construction (validated
+// belt-and-braces by the caller via schemaCheck).
+function computeAdrAdmissionVerdict(input) {
+  const reasons = [];
+  // Recursive invariant: human is the outermost encloser (always ok); a loop operating UNDER the
+  // ADR it would supersede (`self`) cannot move its own setpoint → by_level violation.
+  const by_level = input.actor === "human" ? "ok" : (input.self ? "violation" : "ok");
+  const authority = { actor: input.actor, supersedes_provenance: input.supersedesProvenance, by_level };
+
+  // Thrash-ratchet (count half): lineage count within window is agent-supplied; the CLI compares
+  // it to thrash_max. (The per-supersession adversarial drift review is the `challenge` gate below.)
+  const lineage = Number.isInteger(input.lineageSupersessions) ? input.lineageSupersessions : 0;
+  const breached = lineage >= input.thrashMax;
+  const ratchet = { lineage_supersessions: lineage, breached };
+
+  // challenge — the ADR-axis value gate (no PRD-goal analogue exists, so unlike PRDR's upper/lower
+  // fail-safe defaults, an absent/unreachable challenge is simply `absent`: never coerced toward
+  // `survived`, so it can only ever block admit/propose-only, never grant them.
+  const outcome = (input.challenge === "survived" || input.challenge === "overturned") ? input.challenge : "absent";
+  const challenge = { ran: outcome !== "absent", outcome };
+
+  const loopSupersedesHuman = authority.actor === "loop" && authority.supersedes_provenance === "human";
+  const gatesPass = adrGatesPass(challenge.outcome, by_level, ratchet);
+
+  let disposition;
+  if (gatesPass && !loopSupersedesHuman) {
+    disposition = "admit";
+  } else if (gatesPass && loopSupersedesHuman) {
+    disposition = "propose-only";
+    reasons.push("loop supersedes a human-provenance ADR — propose-only; effective only when a human ratifies via /faff-wtf running the existing interactive `faff adr supersede`. The loop never self-ratifies.");
+  } else {
+    disposition = "reject";
+    if (challenge.outcome === "overturned") reasons.push("drift challenge overturned — the adversarial reviewer found the supersession argument unsound");
+    else if (challenge.outcome === "absent") reasons.push("drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass");
+    if (by_level === "violation") reasons.push("by-level violation — actor cannot supersede the ADR governing its own increment (per-increment immutability)");
+    if (breached) reasons.push(`thrash ratchet breached — lineage accrued ${lineage} supersession(s) (≥ thrash_max ${input.thrashMax}) within window — escalate to human`);
+    if (loopSupersedesHuman) reasons.push("note: also a loop→human supersession (would be propose-only were it not for the hard violation above)");
+  }
+  return { disposition, authority, challenge, ratchet, reasons, conformant: true, violations: [] };
+}
+
 // --- l4-topology-envelope (FAFF-493) ---
 // The L4 topology-write-authority envelope — the de-risk spike's emitted deliverable (ADR-0071).
 // A separate referencing contract that composes the existing appetite-keyed topology-write-authority
@@ -1568,6 +1689,24 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "adr-admission": {
+    run: contractAdrAdmission,
+    fixtures: [
+      { name: "conformant-admit", in: { disposition: "admit", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 1, breached: false }, reasons: [] }, wantExit: 0 },
+      { name: "conformant-propose-only", in: { disposition: "propose-only", authority: { actor: "loop", supersedes_provenance: "human", by_level: "ok" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: ["needs ratification"] }, wantExit: 0 },
+      { name: "conformant-reject-by-level", in: { disposition: "reject", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: ["by-level violation"] }, wantExit: 0 },
+      { name: "conformant-reject-challenge-absent", in: { disposition: "reject", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: false, outcome: "absent" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: ["missing skeptic"] }, wantExit: 0 },
+      { name: "admit-violates-constraint", in: { disposition: "admit", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "admit-while-ratchet-breached", in: { disposition: "admit", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 5, breached: true }, reasons: [] }, wantExit: 1 },
+      { name: "admit-with-absent-challenge-invalid", in: { disposition: "admit", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: false, outcome: "absent" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "propose-only-invalid", in: { disposition: "propose-only", authority: { actor: "loop", supersedes_provenance: "human", by_level: "ok" }, challenge: { ran: true, outcome: "overturned" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "bad-lineage-normalised", in: { disposition: "reject", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "violation" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: "3", breached: false }, reasons: [] }, wantExit: 1 },
+      { name: "fail-loud-bad-disposition", in: { disposition: "maybe", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
+      { name: "fail-loud-bad-actor", in: { disposition: "reject", authority: { actor: "robot", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: true, outcome: "survived" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
+      { name: "fail-loud-bad-challenge-outcome", in: { disposition: "reject", authority: { actor: "loop", supersedes_provenance: "loop", by_level: "ok" }, challenge: { ran: true, outcome: "maybe" }, ratchet: { lineage_supersessions: 0, breached: false }, reasons: [] }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "l4-topology-envelope": {
     run: contractL4TopologyEnvelope,
     fixtures: [
@@ -1802,4 +1941,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

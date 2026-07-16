@@ -19,6 +19,7 @@ const { FLOOR_LEVELS, computeLaneBoundary, computeReviewVerdict, decideFloor, ho
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
+const { runLadder } = require("./gates");
 const { tryReadLedger } = require("./prepcheck");
 
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
@@ -422,10 +423,186 @@ function observeMergeEffects(runDir, issue, effects) {
   }
 }
 
+// ===========================================================================
+// === FAFF-526: the git-only `--local` branch of the SAME merge locus. ====================
+// A sibling condition, never a second command: it substitutes the CI-green floor leg with a
+// FRESH `faff gates run` (gates.js's runLadder — the identical cost-ordered ladder graft's Step
+// 7.5 trusts) on the exact branch tip about to land, and substitutes `gh pr merge` with a local
+// ff-only `git update-ref` move of the base branch. decideFloor is reused VERBATIM — this only
+// populates its floor inputs from local sources. Detected (remote-absence), never forced: a repo
+// WITH a remote (or one whose remote-state can't be determined) self-refuses (exit 2), so
+// `--local` can never be used to dodge real CI on a remote-backed repo. The internal `git
+// update-ref` is a spawnSync CHILD PROCESS — not a Bash tool call — so it is structurally
+// invisible to the merge-fence PreToolUse hook, exactly like the PR path's own `gh pr merge`
+// (see the file header comment); no fence allowlisting is needed for the sanctioned merge itself.
+// ===========================================================================
+
+// Impure git helper mirroring ghJson's shape: run `git <args>` in cwd.
+function gitRun(cwd, args, timeout = 15000) {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", timeout });
+  if (r.error) return { ok: false, stdout: "", stderr: String(r.error.message || ""), status: null };
+  return { ok: r.status === 0, stdout: (r.stdout || "").trim(), stderr: (r.stderr || "").trim(), status: r.status };
+}
+
+// Does this repo have a configured, pushable remote? `git remote` empty stdout => no remote
+// (`--local` may activate / the fence matcher may activate). A git-command failure (not a repo,
+// git unreachable) is INDETERMINATE (null) — every call site treats indeterminate as "NOT
+// confirmed-empty", i.e. fails toward the existing PR path / fence-dormant, never toward
+// silently activating a new merge/enforcement surface on a repo whose remote state is unreadable.
+function gitRemoteEmpty(cwd) {
+  const r = gitRun(cwd, ["remote"], 5000);
+  if (r.status !== 0) return null;
+  return r.stdout === "";
+}
+
+// Resolve the LOCAL base branch a feature merges into. An explicit --base wins outright;
+// otherwise `main` if it exists locally, else `master`, else null (unresolvable — the caller
+// refuses). Deliberately simple (spec §2 OUT OF SCOPE: no general ancestry/fork-point search) —
+// git-only SUTs are single-session/sequential, so "the" long-lived branch is main-or-master.
+// Shared verbatim with merge-fence.js's matchesRawLocalBaseMerge so the gate and the fence always
+// name the same base branch for a given repo (spec §6 assumption).
+function resolveLocalBase(cwd, explicitBase) {
+  if (explicitBase) return explicitBase;
+  for (const cand of ["main", "master"]) {
+    const r = gitRun(cwd, ["show-ref", "--verify", "--quiet", `refs/heads/${cand}`], 5000);
+    if (r.status === 0) return cand;
+  }
+  return null;
+}
+
+// PURE: map a `faff gates run` GatesOutcome onto floor.ci_state — the WHOLE CI-equivalent
+// substitution (spec §3 WHAT table). `discovery === "none"` is checked FIRST and always maps to
+// no-ci-coverage, regardless of runLadder's own gates.fallback-derived signal (which folds
+// discovery:none into a bare "needs-human"/"pass" signal under its OWN advisory/fail-closed
+// knob) — the git-only floor's no-CI-coverage leg must be governed by decideFloor's own
+// `no_ci_policy` (merge-gate's --allow-no-ci), never silently double-gated by a second,
+// divergent repo-level config knob. Any unrecognised/future signal also falls to the fail-closed
+// no-ci-coverage leg rather than a fabricated green.
+function gatesSignalToCiState(outcome) {
+  if (!outcome || outcome.discovery === "none") return "no-ci-coverage";
+  if (outcome.signal === "pass") return "ci-green";
+  if (outcome.signal === "fail") return "ci-red";
+  if (outcome.signal === "needs-human") return "indeterminate";
+  return "no-ci-coverage";
+}
+
+function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, allowNoCi, noCiPolicy, mergeArgsRaw, json, cwd }) {
+  const emit = (res, status) => {
+    if (json) process.stdout.write(JSON.stringify(res) + "\n");
+    else {
+      console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}, integrity ${res.integrity || "unasserted"}`);
+      for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
+      for (const w of (res.warnings || [])) console.log(`  ⚠ ${w}`);
+    }
+    return status;
+  };
+
+  // Step 1 (spec HOW pseudocode): bypass-guard, BEFORE any other work — detected-not-forced,
+  // bypass-proof. `null` (indeterminate) is treated as "has a remote": never silently drop to an
+  // un-CI'd local merge on a repo whose remote state couldn't be established.
+  const remoteEmpty = gitRemoteEmpty(cwd);
+  if (remoteEmpty !== true) {
+    process.stderr.write("faff merge-gate --local: repo has a remote (or its remote-state is indeterminate) — use the PR path (faff merge-gate --pr)\n");
+    return 2;
+  }
+
+  const parsedMerge = parseMergeArgs(mergeArgsRaw);
+  if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
+
+  const fence = fenceHumanFlags({ human_override: humanOverride, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
+  if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
+
+  const ledger = tryReadLedger(runDir);
+  const ledgerLevel = (ledger && FLOOR_LEVELS.includes(ledger.level)) ? ledger.level : null;
+  const { level, mismatch } = resolveGateLevel(ledgerLevel, flagLevel);
+  if (mismatch) {
+    process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} contradicts run-ledger level ${JSON.stringify(ledgerLevel)} (${path.join(runDir, "run-ledger.json")}); the ledger level governs — drop --level or pass --level ${ledgerLevel}\n`);
+    return 2;
+  }
+
+  const branch = branchFlag || (() => { const r = gitRun(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]); return r.ok ? r.stdout : null; })();
+  if (!branch || branch === "HEAD") { process.stderr.write("faff merge-gate --local: cannot resolve the current branch (detached HEAD?) — pass --branch explicitly\n"); return 2; }
+  const base = resolveLocalBase(cwd, baseFlag);
+  if (!base) { process.stderr.write("faff merge-gate --local: cannot resolve a local base branch (no --base, and neither main nor master exists locally)\n"); return 2; }
+  if (base === branch) { process.stderr.write(`faff merge-gate --local: branch and base are the same ref (${branch}) — nothing to merge\n`); return 2; }
+
+  const integrity = resolveIntegrity(runDir, issue, level);
+
+  // Idempotent: a peer/earlier invocation that already landed this branch is a no-op, never a
+  // double-merge (gateway → status monotonicity; mirrors the PR path's already-MERGED short-circuit).
+  const headShaBefore = gitRun(cwd, ["rev-parse", branch]).stdout;
+  if (gitRun(cwd, ["merge-base", "--is-ancestor", branch, base]).ok) {
+    writeMergeRecord(runDir, issue, null, headShaBefore, integrity.display);
+    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headShaBefore, integrity: integrity.display, warnings: [], note: "already merged" }, 0);
+  }
+
+  // ff-only (spec §5 decision — rebase-first if the base moved; non-ff is out of scope).
+  if (!gitRun(cwd, ["merge-base", "--is-ancestor", base, branch]).ok) {
+    return emit({ verdict: "refuse", blockers: [`base branch '${base}' moved; rebase '${branch}' onto '${base}' first (ff-only local merge)`], merged: false, ci_state: "n/a", head_sha: headShaBefore, integrity: integrity.display, warnings: [] }, 1);
+  }
+
+  // Fresh CI-equivalent (spec: NEVER reuse graft's earlier Step-7.5 result — the gate observes
+  // the CI-equivalent itself on the final head sha, mirroring the FAFF-350 keystone property).
+  const gatesOutcome = runLadder(cwd);
+  const ci_state = gatesSignalToCiState(gatesOutcome);
+
+  const floor = {
+    ac_complete: readAcComplete(runDir, issue),
+    review_verdict: readReviewVerdict(runDir, issue),
+    ci_state,
+    head_sha_matches: true, // the gates just ran against this EXACT branch tip — no drift leg to model
+    level,
+    holdout: level === "L4" ? readHoldout(runDir, issue) : "not-applicable",
+    no_ci_policy: noCiPolicy,
+    integrity: integrity.state,
+  };
+  const { verdict, blockers } = decideFloor(floor); // UNCHANGED pure core
+  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [] };
+
+  if (verdict === "refuse") {
+    if (interactive && humanOverride) {
+      try {
+        fs.mkdirSync(path.join(runDir, issue), { recursive: true });
+        fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ issue, head_sha: headShaBefore, blockers, overridden_at: new Date().toISOString() }, null, 2) + "\n");
+      } catch (e) { process.stderr.write(`faff merge-gate: could not record human override: ${e.message}\n`); return 2; }
+      // fall through to execute — the recorded human override REPLACES the autonomous refusal.
+    } else {
+      return emit(result, 1);
+    }
+  }
+  if (mode === "check-only") return emit({ ...result, verdict: "merge-ok" }, 0);
+
+  // Re-assert the head sha is unchanged since the gates run (the local analogue of the PR path's
+  // --match-head-commit head-pin) — refuse rather than land a merge the gates never actually ran against.
+  const baseShaBefore = gitRun(cwd, ["rev-parse", base]).stdout;
+  const headShaNow = gitRun(cwd, ["rev-parse", branch]).stdout;
+  if (headShaNow !== headShaBefore) {
+    result.verdict = "refuse";
+    result.blockers = [...blockers, `branch head moved during the gate run (was ${headShaBefore}, now ${headShaNow}) — re-run faff merge-gate --local`];
+    return emit(result, 1);
+  }
+
+  // Land it: move the base ref to the (fast-forwardable) branch tip. `--old-value` makes this a
+  // compare-and-swap — it fails rather than clobbering a base that moved since baseShaBefore was
+  // read. This is the ONE sanctioned path onto the base branch on a no-remote repo (merge-fence's
+  // matchesRawLocalBaseMerge denies every raw equivalent); as a spawnSync child process it is
+  // structurally invisible to that PreToolUse hook, exactly like the PR path's `gh pr merge`.
+  const upd = gitRun(cwd, ["update-ref", `refs/heads/${base}`, headShaNow, baseShaBefore]);
+  if (!upd.ok) {
+    result.verdict = "refuse";
+    result.blockers = [...blockers, `local base-branch update failed: ${upd.stderr || "git update-ref rejected the fast-forward"}`];
+    return emit(result, 1);
+  }
+  result.merged = true;
+  result.verdict = "merge-ok";
+  writeMergeRecord(runDir, issue, null, headShaNow, integrity.display); // FAFF-397: pr:0 (null coerced by Number())
+  return emit(result, 0);
+}
+
 function cmdMergeGate(args) {
   if (args.includes("--selftest")) return mergeGateSelftest();
   const json = args.includes("--json");
-  const pr = adrFlag(args, "--pr");
+  const local = args.includes("--local");
   const issue = adrFlag(args, "--issue");
   const runDir = adrFlag(args, "--run-dir");
   const flagLevel = adrFlag(args, "--level");
@@ -435,6 +612,22 @@ function cmdMergeGate(args) {
   const allowNoCi = args.includes("--allow-no-ci");
   const noCiPolicy = allowNoCi ? "allow" : "needs-human";
   const mergeArgsRaw = adrFlag(args, "--merge-args") || "";
+
+  // FAFF-526: --local is a git-only BRANCH of this same command, not a sibling verb — everything
+  // below this block (the `gh`-sourced PR path) is untouched, and `--pr` is neither required nor
+  // read in local mode. See cmdMergeGateLocal's header comment for the full rationale.
+  if (local) {
+    if (!issue || !runDir) { process.stderr.write("faff merge-gate --local: --issue and --run-dir are required\n"); return 2; }
+    if (flagLevel != null && !FLOOR_LEVELS.includes(flagLevel)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
+    return cmdMergeGateLocal({
+      issue, runDir, branchFlag: adrFlag(args, "--branch"), baseFlag: adrFlag(args, "--base"),
+      flagLevel, mode, interactive, humanOverride, allowNoCi, noCiPolicy, mergeArgsRaw, json,
+      cwd: process.cwd(),
+    });
+  }
+
+  const pr = adrFlag(args, "--pr");
   const repoFlag = adrFlag(args, "--repo");
 
   if (!pr || !issue || !runDir) { process.stderr.write("faff merge-gate: --pr, --issue and --run-dir are required\n"); return 2; }
@@ -774,6 +967,129 @@ function mergeGateSelftest() {
     finally { process.stderr.write = origWrite; fs.rmSync(tmp, { recursive: true, force: true }); }
     return /observed merge pr:9 with no covering declaration — declare it at graft Step 10/.test(captured);
   })());
+  // === FAFF-526: git-only `--local` branch — pure + integration coverage ===================
+  // gatesSignalToCiState: the WHOLE CI-equivalent substitution table (spec §3 WHAT).
+  check("gatesSignalToCiState: pass → ci-green", gatesSignalToCiState({ signal: "pass", discovery: "confident" }) === "ci-green");
+  check("gatesSignalToCiState: fail → ci-red", gatesSignalToCiState({ signal: "fail", discovery: "confident" }) === "ci-red");
+  check("gatesSignalToCiState: needs-human (errored rung, gates WERE discovered) → indeterminate", gatesSignalToCiState({ signal: "needs-human", discovery: "confident" }) === "indeterminate");
+  check("gatesSignalToCiState: discovery:none → no-ci-coverage EVEN THOUGH runLadder folds it into signal=needs-human under gates.fallback:fail-closed (must not collide with a genuine errored-rung indeterminate)", gatesSignalToCiState({ signal: "needs-human", discovery: "none" }) === "no-ci-coverage");
+  check("gatesSignalToCiState: discovery:none under gates.fallback:advisory (signal=pass) → still no-ci-coverage (discovery, not signal, governs)", gatesSignalToCiState({ signal: "pass", discovery: "none" }) === "no-ci-coverage");
+  check("gatesSignalToCiState: unrecognised/other signal → no-ci-coverage (fail-closed, never a fabricated green)", gatesSignalToCiState({ signal: "something-else", discovery: "confident" }) === "no-ci-coverage");
+  check("gatesSignalToCiState: null/undefined outcome → no-ci-coverage (fail-closed)", gatesSignalToCiState(null) === "no-ci-coverage");
+
+  // gitRemoteEmpty / resolveLocalBase / cmdMergeGateLocal — integration coverage against REAL git
+  // repos (mirrors post-merge.js's postMergeSelftest pattern: no mocking of git itself).
+  (() => {
+    const gitTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-gate-local-"));
+    const git = (cwd, ...gitArgs) => spawnSync("git", ["-C", cwd, ...gitArgs], { encoding: "utf8" });
+    const makeRepo = (dir, testScript) => {
+      fs.mkdirSync(dir, { recursive: true });
+      git(dir, "init", "-q", "-b", "main");
+      git(dir, "config", "user.email", "t@t.t");
+      git(dir, "config", "user.name", "t");
+      if (testScript !== null) fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ scripts: { test: testScript } }));
+      else fs.writeFileSync(path.join(dir, "README.md"), "no gates declared\n");
+      git(dir, "add", "-A");
+      git(dir, "commit", "-qm", "base");
+      git(dir, "checkout", "-qb", "feature");
+      fs.writeFileSync(path.join(dir, "feature.txt"), "x");
+      git(dir, "add", "-A");
+      git(dir, "commit", "-qm", "feature work");
+    };
+    const writeFloor = (runDir, issue, acVerified, reviewSignal) => {
+      fs.mkdirSync(path.join(runDir, issue), { recursive: true });
+      fs.writeFileSync(path.join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: acVerified }));
+      fs.writeFileSync(path.join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: reviewSignal, findings: [] }));
+    };
+    const runLocal = (issue, runDir, cwd, overrides) => cmdMergeGateLocal({
+      issue, runDir, branchFlag: null, baseFlag: null, flagLevel: null, mode: "execute",
+      interactive: false, humanOverride: false, allowNoCi: false, noCiPolicy: "needs-human",
+      mergeArgsRaw: "", json: true, cwd, ...overrides,
+    });
+    try {
+      // --- repo A: no remote, a passing UNIT rung, a clean feature branch ---
+      const repoA = path.join(gitTmp, "repo-a");
+      makeRepo(repoA, "true");
+      const featureShaA = git(repoA, "rev-parse", "feature").stdout.trim();
+
+      check("gitRemoteEmpty: no remote configured → true", gitRemoteEmpty(repoA) === true);
+      check("resolveLocalBase: explicit --base wins", resolveLocalBase(repoA, "custom") === "custom");
+      check("resolveLocalBase: main exists locally → 'main'", resolveLocalBase(repoA, null) === "main");
+
+      const runDirA = path.join(gitTmp, "run-dir-a");
+      writeFloor(runDirA, "FAFF-526A", true, "pass");
+      const okRes = runLocal("FAFF-526A", runDirA, repoA);
+      check("cmdMergeGateLocal: clean build (AC+review+gates green) → exit 0 merge-ok", okRes === 0);
+      check("cmdMergeGateLocal: base ref advanced to the feature tip", git(repoA, "rev-parse", "main").stdout.trim() === featureShaA);
+      const recordA = JSON.parse(fs.readFileSync(path.join(runDirA, "FAFF-526A", "merge-record.json"), "utf8"));
+      check("cmdMergeGateLocal: merge-record.json carries head_sha + pr:0 (null pr coerced by Number())", recordA.head_sha === featureShaA && recordA.pr === 0 && recordA.merged === true);
+
+      // idempotent: a second invocation on the now-already-merged branch is a no-op merge-ok
+      const idempotentRes = runLocal("FAFF-526A", runDirA, repoA);
+      check("cmdMergeGateLocal: already-merged branch → idempotent exit 0 (no double-merge)", idempotentRes === 0);
+
+      // --- repo B: no remote, a FAILING UNIT rung ---
+      const repoB = path.join(gitTmp, "repo-b");
+      makeRepo(repoB, "false");
+      const baseBeforeB = git(repoB, "rev-parse", "main").stdout.trim();
+      const runDirB = path.join(gitTmp, "run-dir-b");
+      writeFloor(runDirB, "FAFF-526B", true, "pass");
+      const failRes = runLocal("FAFF-526B", runDirB, repoB);
+      check("cmdMergeGateLocal: failing gates run (signal=fail → ci-red) → exit 1 refuse", failRes === 1);
+      check("cmdMergeGateLocal: failing gates → base ref NOT advanced", git(repoB, "rev-parse", "main").stdout.trim() === baseBeforeB);
+      check("cmdMergeGateLocal: failing gates → no merge-record.json written", !fs.existsSync(path.join(runDirB, "FAFF-526B", "merge-record.json")));
+
+      // --- repo C: no remote, no declared gates at all (discovery:none) ---
+      const repoC = path.join(gitTmp, "repo-c");
+      makeRepo(repoC, null);
+      const runDirC = path.join(gitTmp, "run-dir-c");
+      writeFloor(runDirC, "FAFF-526C", true, "pass");
+      const noGatesRes = runLocal("FAFF-526C", runDirC, repoC);
+      check("cmdMergeGateLocal: discovery:none (no declared gates) → refuse fail-closed (no_ci_policy default needs-human)", noGatesRes === 1);
+
+      // --- repo D: HAS a configured remote → bypass-guard refuses --local outright ---
+      const repoD = path.join(gitTmp, "repo-d");
+      const remoteD = path.join(gitTmp, "remote-d.git");
+      git(gitTmp, "init", "-q", "--bare", remoteD);
+      makeRepo(repoD, "true");
+      git(repoD, "remote", "add", "origin", remoteD);
+      check("gitRemoteEmpty: a configured remote → false", gitRemoteEmpty(repoD) === false);
+      const remoteRes = runLocal("FAFF-526D", path.join(gitTmp, "run-dir-d"), repoD);
+      check("cmdMergeGateLocal: repo WITH a remote → bypass-guard refuses exit 2 (never usable as a CI-skip)", remoteRes === 2);
+
+      // --- repo E: base branch moved (not fast-forwardable) after the feature branched ---
+      const repoE = path.join(gitTmp, "repo-e");
+      makeRepo(repoE, "true");
+      git(repoE, "checkout", "-q", "main");
+      fs.writeFileSync(path.join(repoE, "main-moved.txt"), "y");
+      git(repoE, "add", "-A");
+      git(repoE, "commit", "-qm", "main moved on independently");
+      git(repoE, "checkout", "-q", "feature");
+      const runDirE = path.join(gitTmp, "run-dir-e");
+      writeFloor(runDirE, "FAFF-526E", true, "pass");
+      const notFfRes = runLocal("FAFF-526E", runDirE, repoE);
+      check("cmdMergeGateLocal: base moved since branching (non-ff) → refuse 'rebase first' (ff-only)", notFfRes === 1);
+
+      // --- repo F: non-pass review verdict ---
+      const repoF = path.join(gitTmp, "repo-f");
+      makeRepo(repoF, "true");
+      const runDirF = path.join(gitTmp, "run-dir-f");
+      writeFloor(runDirF, "FAFF-526F", true, "needs-human");
+      const nonPassRes = runLocal("FAFF-526F", runDirF, repoF);
+      check("cmdMergeGateLocal: review verdict != pass → refuse (identical fail-closed floor as the PR path)", nonPassRes === 1);
+
+      // --- repo G: AC not all verified ---
+      const repoG = path.join(gitTmp, "repo-g");
+      makeRepo(repoG, "true");
+      const runDirG = path.join(gitTmp, "run-dir-g");
+      writeFloor(runDirG, "FAFF-526G", false, "pass");
+      const acRes = runLocal("FAFF-526G", runDirG, repoG);
+      check("cmdMergeGateLocal: AC not all verified → refuse", acRes === 1);
+    } finally {
+      fs.rmSync(gitTmp, { recursive: true, force: true });
+    }
+  })();
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (merge-gate pure cores, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -790,4 +1106,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, fenceHumanFlags, ghJson, ghRepoSlug, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

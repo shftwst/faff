@@ -229,6 +229,9 @@ function cmdIntegrityBoundary(args) {
   if (runDir !== null) {
     if (!runDir) { process.stderr.write("faff integrity-boundary: --run-dir requires a directory argument\n"); return 2; }
     if (issue === "") { process.stderr.write("faff integrity-boundary: --issue requires an argument\n"); return 2; }
+    // --issue composes a run-dir SUBPATH (path.join(runDir, issue, …)); a separator or `..` would
+    // escape the run-dir and emit a silently-wrong forge-surface declaration — fail loud instead.
+    if (issue && (/[/\\]/.test(issue) || issue.split(/[/\\]/).includes("..") || issue.includes(".."))) { process.stderr.write(`faff integrity-boundary: --issue must not contain a path separator or '..' (got ${JSON.stringify(issue)})\n`); return 2; }
     res = integrityBoundaryDeclaration({ runDir, issue: issue || null, events });
   } else {
     const rootArg = val("--root");
@@ -278,6 +281,13 @@ function integrityBoundarySelftest() {
   const weird = `weird-7:${correctiveIntegrityDirs(someRun, "FAFF-9", { events: true }).join(",")}`;
   ok(correctiveIntegrityProbe({ [INTEGRITY_DECL_ENV]: weird }, mkFsq(`${INTEGRITY_DECL_ENV}=${weird}`),
     correctiveIntegrityDirs(someRun, "FAFF-9", { events: true })).asserted === true, "reader ungated: arbitrary version token still asserts");
+
+  // NEGATIVE round-trip: a SIBLING of the runs ancestor must NOT assert over a run under .faff/runs
+  // (proves pathCovered's separator-bounding actually bites — the ancestor acceptance isn't a substring match).
+  const siblingDecl = `v1:${path.join(R, ".faff", "runs-other")}`;
+  ok(correctiveIntegrityProbe({ [INTEGRITY_DECL_ENV]: siblingDecl }, mkFsq(`${INTEGRITY_DECL_ENV}=${siblingDecl}`),
+    correctiveIntegrityDirs(someRun, "FAFF-9", { events: true })).asserted === false,
+    "negative round-trip: a sibling `.faff/runs-other` ancestor does NOT assert over a run under `.faff/runs`");
 
   // comma-in-path fails loud
   ok(integrityBoundaryDeclaration({ root: path.join("/tmp", "has,comma") }).err != null, "comma in any emitted path -> err (never a corrupt declaration)");

@@ -77,3 +77,9 @@ test("--issue / --events without --run-dir exit 2 (they modify the per-run set o
 test("an unknown flag exits 2", () => {
   assert.equal(runCli(["integrity-boundary", "--bogus"]).code, 2);
 });
+
+test("--issue containing a path separator or '..' exits 2 (never escapes the run-dir)", () => {
+  assert.equal(runCli(["integrity-boundary", "--run-dir", "/tmp/r", "--issue", "../corrective"]).code, 2);
+  assert.equal(runCli(["integrity-boundary", "--run-dir", "/tmp/r", "--issue", "a/b"]).code, 2);
+  assert.equal(runCli(["integrity-boundary", "--run-dir", "/tmp/r", "--issue", "FAFF-9"]).code, 0); // a normal id still works
+});

@@ -115,6 +115,9 @@ jobs:
       - name: Validate integrity-boundary emitter round-trip (FAFF-514)
         run: node plugin/skills/faff/bin/faff integrity-boundary --selftest
 
+      - name: Validate integrity-digest snapshot/verify tamper detection (FAFF-518)
+        run: node plugin/skills/faff/bin/faff integrity-digest --selftest
+
       - name: Validate post-merge-verification contract script (FAFF-385)
         run: node plugin/skills/faff/bin/faff contract post-merge-verification --selftest
 

@@ -834,5 +834,78 @@
     "input": "{\"op\":{\"kind\":\"container-create\",\"level\":\"L4\",\"provenance\":\"faff-authored\",\"parent_confirmed\":false},\"verdict\":{\"disposition\":\"propose-only\",\"reason\":\"\",\"reversible\":true}}",
     "expectExit": 2,
     "expectStderrIncludes": "fail-loud"
+  },
+  {
+    "contract": "run-trigger",
+    "name": "conformant-plan-coverage-thin",
+    "input": "{\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"plan\",\"reason\":\"coverage-thin\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "plan",
+      "reason": "coverage-thin",
+      "signals": {
+        "target_resolved": true,
+        "outward": true,
+        "prd_present": true,
+        "prd_ambiguous": false,
+        "prd_admissible": true,
+        "coverage_measurable": true,
+        "coverage_covered": false
+      },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "run-trigger",
+    "name": "conformant-refuse-self-directed",
+    "input": "{\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"refuse\",\"reason\":\"self-directed\"}",
+    "expectExit": 0,
+    "expectStdout": {
+      "verdict": "refuse",
+      "reason": "self-directed",
+      "signals": {
+        "target_resolved": true,
+        "outward": false,
+        "prd_present": true,
+        "prd_ambiguous": false,
+        "prd_admissible": true,
+        "coverage_measurable": true,
+        "coverage_covered": false
+      },
+      "conformant": true,
+      "violations": []
+    }
+  },
+  {
+    "contract": "run-trigger",
+    "name": "reject-hand-altered-drain-on-plan-signals",
+    "input": "{\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"verdict\":\"drain\",\"reason\":\"prd-covered\"}",
+    "expectExit": 1,
+    "expectStdout": {
+      "verdict": "plan",
+      "reason": "coverage-thin",
+      "signals": {
+        "target_resolved": true,
+        "outward": true,
+        "prd_present": true,
+        "prd_ambiguous": false,
+        "prd_admissible": true,
+        "coverage_measurable": true,
+        "coverage_covered": false
+      },
+      "conformant": false,
+      "violations": [
+        "declared verdict \"drain\" does not match the re-derived \"plan\" for the given signals",
+        "declared reason \"prd-covered\" does not match the re-derived \"coverage-thin\" for the given signals"
+      ]
+    }
+  },
+  {
+    "contract": "run-trigger",
+    "name": "fail-loud-non-object",
+    "input": "\"not an object\"",
+    "expectExit": 2,
+    "expectStderrIncludes": "extraction must be a JSON object"
   }
 ]

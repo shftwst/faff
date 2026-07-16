@@ -107,6 +107,7 @@ const REGION_MAP = {
   "evaluator-preflight": "factory",
   "corrective-integrity": "factory",
   "integrity-boundary": "factory", // FAFF-514: the emitter half, lives in corrective-integrity.js (region:factory)
+  "integrity-digest": "factory",   // FAFF-518: custody-based tamper detection over the evidence set (region:factory)
   // FAFF-326: corrective requires corrective-integrity (factory) directly and
   // sentry.js's sentryThresholds (governance) — factory→governance is legal (ADR
   // 0042); sentry.js itself stays governance-pure by deriving authority through a
@@ -214,6 +215,7 @@ const REGION_SELFTEST_ARGV = {
   "evaluator-preflight": ["evaluator-preflight", "--selftest"],
   "corrective-integrity": ["corrective-integrity", "--selftest"],
   "integrity-boundary": ["integrity-boundary", "--selftest"],
+  "integrity-digest": ["integrity-digest", "--selftest"],
   "corrective": ["corrective", "--selftest"],
   "next": ["next", "--selftest"],
   "project-next": ["project-next", "--selftest"],

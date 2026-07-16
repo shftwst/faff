@@ -1,6 +1,7 @@
 # ADR 0061 — Assert-the-boundary over signatures for corrective-artifact integrity
 
 - **Status:** Proposed
+- **Amended:** 2026-07-16 — ADR-0074 (FAFF-514) adds the content-origin/boundary-origin split: faff owns the declaration's *content* (the `faff integrity-boundary` emitter) while the launcher still owns *setting* it and the cage owns the mount. Every consequence below stays in force.
 - **Date:** 2026-07-12
 - **Issue:** FAFF-325
 

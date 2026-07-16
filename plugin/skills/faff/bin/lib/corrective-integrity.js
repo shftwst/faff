@@ -19,9 +19,14 @@
 // ===========================================================================
 
 const path = require("node:path");
+const fs = require("node:fs");
 const { realFsq } = require("./container-check");
 
 const INTEGRITY_DECL_ENV = "FAFF_INTEGRITY_BOUNDARY";
+// FAFF-514: faff owns the (version, dir-set) content of the declaration. The version token is
+// PROVENANCE, not a gate — the reader (correctiveIntegrityProbe) never compares it. Bump only if the
+// MEANING of the canonical print changes incompatibly; a dir-set addition under the ancestor is not a bump.
+const INTEGRITY_BOUNDARY_VERSION = "v1";
 // The three "a declaration exists but fails verification" bases — tamper evidence
 // or misconfiguration, as distinct from the honest "no-declaration" absence case.
 // Violation is NEVER level-graded (spec §3): every consumer refuses on these.
@@ -167,6 +172,130 @@ function correctiveIntegrityDirs(runDir, issue, opts) {
   return dirs;
 }
 
+// === FAFF-514: the integrity-boundary EMITTER — faff originates the declaration's CONTENT ===
+// The cage (and today's hand-operator) shells this to compose FAFF_INTEGRITY_BOUNDARY instead of
+// hand-writing faff-internal dir names, so a future dir-set change is a faff-only change. Origin
+// only — never reads/validates pid-1 environ (that is the reader's separate authority).
+
+// Strict root resolution — NEVER a guessed path (an emitter whose output becomes a trust declaration
+// must fail rather than guess). Deliberately tightens findRoot (which falls back to path.resolve(cwd)):
+// an explicit --root must EXIST; without it, walk up for the first .git/.faff/.faffrc.yaml ancestor.
+function integrityBoundaryResolveRoot(explicitRoot) {
+  if (explicitRoot != null) {
+    const abs = path.resolve(explicitRoot);
+    try { if (!fs.statSync(abs).isDirectory()) throw 0; } catch { return { root: null, err: `--root ${JSON.stringify(explicitRoot)} is not an existing directory` }; }
+    return { root: abs };
+  }
+  let dir = process.cwd();
+  for (;;) {
+    if (fs.existsSync(path.join(dir, ".git")) || fs.existsSync(path.join(dir, ".faff")) || fs.existsSync(path.join(dir, ".faffrc.yaml"))) return { root: dir };
+    const parent = path.dirname(dir);
+    if (parent === dir) return { root: null, err: "no .git/.faff/.faffrc.yaml marker found walking up from cwd — never printing a guessed path" };
+    dir = parent;
+  }
+}
+
+// Pure: (resolved opts) -> {version, mode, dirs, declaration} | {err}. Launch grain (default) prints
+// the stable ancestor <root>/.faff/runs (coverage math accepts ancestors, and per-run paths can't
+// exist at cage launch); run-dir grain prints the exact correctiveIntegrityDirs set. A comma in any
+// emitted path fails loud — it would re-parse into a different (silently-wrong) dir set.
+function integrityBoundaryDeclaration(opts) {
+  const version = INTEGRITY_BOUNDARY_VERSION;
+  let dirs, mode;
+  if (opts.runDir != null) {
+    mode = "run-dir";
+    dirs = correctiveIntegrityDirs(opts.runDir, opts.issue || null, opts.events ? { events: true } : undefined);
+  } else {
+    mode = "launch";
+    dirs = [path.join(opts.root, ".faff", "runs")];
+  }
+  for (const d of dirs) if (String(d).includes(",")) return { err: `emitted path contains a comma (would corrupt the comma-separated declaration): ${d}` };
+  return { version, mode, dirs, declaration: `${version}:${dirs.join(",")}` };
+}
+
+const INTEGRITY_BOUNDARY_FLAGS = new Set(["--root", "--run-dir", "--issue", "--events", "--json", "--selftest"]);
+
+function cmdIntegrityBoundary(args) {
+  if (args.includes("--selftest")) return integrityBoundarySelftest();
+  for (const a of args) if (a.startsWith("--") && !INTEGRITY_BOUNDARY_FLAGS.has(a)) { process.stderr.write(`faff integrity-boundary: unknown flag ${a}\n`); return 2; }
+  const json = args.includes("--json");
+  const val = (name) => { const i = args.indexOf(name); if (i === -1) return null; const v = args[i + 1]; return (v && !v.startsWith("--")) ? v : ""; };
+  const runDir = val("--run-dir");
+  const issue = val("--issue");
+  const events = args.includes("--events");
+
+  if (runDir === null && (issue !== null || events)) { process.stderr.write("faff integrity-boundary: --issue/--events modify the per-run set only — pass them with --run-dir\n"); return 2; }
+  let res;
+  if (runDir !== null) {
+    if (!runDir) { process.stderr.write("faff integrity-boundary: --run-dir requires a directory argument\n"); return 2; }
+    if (issue === "") { process.stderr.write("faff integrity-boundary: --issue requires an argument\n"); return 2; }
+    // --issue composes a run-dir SUBPATH (path.join(runDir, issue, …)); a separator or `..` would
+    // escape the run-dir and emit a silently-wrong forge-surface declaration — fail loud instead.
+    if (issue && (/[/\\]/.test(issue) || issue.split(/[/\\]/).includes("..") || issue.includes(".."))) { process.stderr.write(`faff integrity-boundary: --issue must not contain a path separator or '..' (got ${JSON.stringify(issue)})\n`); return 2; }
+    res = integrityBoundaryDeclaration({ runDir, issue: issue || null, events });
+  } else {
+    const rootArg = val("--root");
+    if (rootArg === "") { process.stderr.write("faff integrity-boundary: --root requires a directory argument\n"); return 2; }
+    const r = integrityBoundaryResolveRoot(rootArg);
+    if (r.err) { process.stderr.write(`faff integrity-boundary: ${r.err}\n`); return 2; }
+    res = integrityBoundaryDeclaration({ root: r.root });
+  }
+  if (res.err) { process.stderr.write(`faff integrity-boundary: ${res.err}\n`); return 2; }
+  if (json) console.log(JSON.stringify({ version: res.version, mode: res.mode, dirs: res.dirs, declaration: res.declaration }));
+  else console.log(res.declaration);
+  return 0;
+}
+
+// The round-trip property IS the emitter's contract: the default launch print for root R makes a
+// pid-1 environ fixture assert against correctiveIntegrityDirs for a run under R (the ancestor covers
+// the full per-issue, events-on surface); and the per-run print equals the declaration of exactly
+// that set — both sides are the same function, so emitter and reader can never drift.
+function integrityBoundarySelftest() {
+  let total = 0, fail = 0;
+  const ok = (cond, label) => { total++; if (!cond) fail++; console.log(`${cond ? "ok  " : "FAIL"} ${label}`); };
+  const mkFsq = (environText) => ({ readEnviron: () => environText || "" });
+  const R = path.join("/tmp", "faff-ib-root");
+  const runsAncestor = path.join(R, ".faff", "runs");
+
+  // launch grain
+  const launch = integrityBoundaryDeclaration({ root: R });
+  ok(launch.declaration === `v1:${runsAncestor}` && launch.mode === "launch" && launch.dirs.length === 1, "launch: v1:<root>/.faff/runs, single dir");
+
+  // ROUND-TRIP: the launch ancestor asserts against the full per-issue, events-on forge surface
+  const someRun = path.join(runsAncestor, "run-20260716");
+  for (const [iss, ev] of [[null, false], ["FAFF-9", false], ["FAFF-9", true]]) {
+    const req = correctiveIntegrityDirs(someRun, iss, ev ? { events: true } : undefined);
+    ok(correctiveIntegrityProbe({ [INTEGRITY_DECL_ENV]: launch.declaration },
+      mkFsq(`${INTEGRITY_DECL_ENV}=${launch.declaration}`), req).asserted === true,
+      `round-trip: launch ancestor asserts over correctiveIntegrityDirs(issue=${iss}, events=${ev})`);
+  }
+
+  // run-dir grain equals the declaration of exactly that set, for every issue×events combination
+  for (const [iss, ev] of [[null, false], ["FAFF-9", false], ["FAFF-9", true]]) {
+    const d = integrityBoundaryDeclaration({ runDir: someRun, issue: iss, events: ev });
+    const expect = `v1:${correctiveIntegrityDirs(someRun, iss, ev ? { events: true } : undefined).join(",")}`;
+    ok(d.declaration === expect && d.mode === "run-dir", `run-dir grain equals correctiveIntegrityDirs join (issue=${iss}, events=${ev})`);
+  }
+
+  // reader stays version-ungated: an arbitrary token still asserts
+  const weird = `weird-7:${correctiveIntegrityDirs(someRun, "FAFF-9", { events: true }).join(",")}`;
+  ok(correctiveIntegrityProbe({ [INTEGRITY_DECL_ENV]: weird }, mkFsq(`${INTEGRITY_DECL_ENV}=${weird}`),
+    correctiveIntegrityDirs(someRun, "FAFF-9", { events: true })).asserted === true, "reader ungated: arbitrary version token still asserts");
+
+  // NEGATIVE round-trip: a SIBLING of the runs ancestor must NOT assert over a run under .faff/runs
+  // (proves pathCovered's separator-bounding actually bites — the ancestor acceptance isn't a substring match).
+  const siblingDecl = `v1:${path.join(R, ".faff", "runs-other")}`;
+  ok(correctiveIntegrityProbe({ [INTEGRITY_DECL_ENV]: siblingDecl }, mkFsq(`${INTEGRITY_DECL_ENV}=${siblingDecl}`),
+    correctiveIntegrityDirs(someRun, "FAFF-9", { events: true })).asserted === false,
+    "negative round-trip: a sibling `.faff/runs-other` ancestor does NOT assert over a run under `.faff/runs`");
+
+  // comma-in-path fails loud
+  ok(integrityBoundaryDeclaration({ root: path.join("/tmp", "has,comma") }).err != null, "comma in any emitted path -> err (never a corrupt declaration)");
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} checks, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 const CONSUMERS = ["corrective", "detection", "merge-floor"];
 
 function cmdCorrectiveIntegrity(args) {
@@ -294,4 +423,6 @@ function correctiveIntegritySelftest() {
 module.exports = {
   cmdCorrectiveIntegrity, correctiveIntegrityDirs, correctiveIntegrityProbe,
   correctiveIntegritySelftest, integrityGate, parseIntegrityDeclaration, VIOLATION_BASES,
+  INTEGRITY_BOUNDARY_VERSION, cmdIntegrityBoundary, integrityBoundaryDeclaration,
+  integrityBoundaryResolveRoot, integrityBoundarySelftest,
 };

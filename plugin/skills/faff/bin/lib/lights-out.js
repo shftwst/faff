@@ -383,7 +383,7 @@ function lightsOutPreflight(probes) {
   // the merge-floor consumer). "asserted" (or an absent/undefined probe result, for callers of
   // this pure function that predate FAFF-325) never refuses here.
   if (probes.correctiveIntegrityBasis === "no-declaration") {
-    refusals.push({ gate: "corrective-integrity", detail: "no FAFF_INTEGRITY_BOUNDARY declaration in pid-1 environ — set the FAFF_INTEGRITY_BOUNDARY declaration in the cage launch config" });
+    refusals.push({ gate: "corrective-integrity", detail: "no FAFF_INTEGRITY_BOUNDARY declaration in pid-1 environ — compose the value with `faff integrity-boundary` and set it in the cage launch config" });
   } else if (probes.correctiveIntegrityBasis && probes.correctiveIntegrityBasis !== "asserted") {
     refusals.push({ gate: "corrective-integrity", detail: `corrective-artifact integrity attestation failed verification (basis: ${probes.correctiveIntegrityBasis}) — the FAFF_INTEGRITY_BOUNDARY declaration is present but invalid` });
   }
@@ -1041,8 +1041,8 @@ function lightsOutSelftest() {
     !happy.refusals.some((r) => r.gate === "corrective-integrity"));
   const noDecl = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: "no-declaration" }));
   check("no-declaration refuses admission", noDecl.proceed === false && noDecl.refusals.some((r) => r.gate === "corrective-integrity"));
-  check("no-declaration refusal names the exact remedy line",
-    /set the FAFF_INTEGRITY_BOUNDARY declaration in the cage launch config/.test(noDecl.refusals.find((r) => r.gate === "corrective-integrity").detail));
+  check("no-declaration refusal names the exact remedy line (composed via the emitter — FAFF-514)",
+    /compose the value with `faff integrity-boundary` and set it in the cage launch config/.test(noDecl.refusals.find((r) => r.gate === "corrective-integrity").detail));
   for (const basis of ["env-injection", "malformed", "dir-mismatch"]) {
     const viol = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: basis }));
     check(`violation basis '${basis}' refuses admission, naming the fault`,

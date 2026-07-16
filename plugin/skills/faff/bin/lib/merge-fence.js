@@ -32,12 +32,99 @@
 // false sense of a guarantee a regex cannot provide).
 
 const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
+const { gitRemoteEmpty, resolveLocalBase } = require("./merge-gate");
 
 function matchesRawGhMerge(toolName, command) {
   if (toolName !== "Bash") return false;
   if (typeof command !== "string" || command.length === 0) return false;
   return /(^|[^\w])gh\s+pr\s+merge(\s|$)/.test(command);
 }
+
+// ===========================================================================
+// === FAFF-526: matchesRawLocalBaseMerge — the no-remote-gated local sibling of matchesRawGhMerge. ===
+// On a repo with NO configured remote, `faff merge-gate --local` (this same fence's sanctioned
+// escape valve, invisible here as a spawnSync child process) is meant to be the ONLY path that
+// lands code on the base branch. This matcher makes that mechanical: it denies the raw base-
+// branch MUTATION spellings (`git merge <feature>` while sitting ON the base branch, `git
+// update-ref refs/heads/<base>`, `git push . HEAD:<base>`) — but it NEVER denies base-branch
+// CONSUMPTION (`git merge <base>` run FROM a feature branch, a legitimate update).
+//
+// Activation is gated on CONFIRMED remote-absence (gitRemoteEmpty === true, shared verbatim with
+// merge-gate.js's own bypass-guard and `resolveLocalBase` so both name the same base branch for a
+// given repo, spec §6 assumption). An INDETERMINATE remote read (git unreachable, cwd not a repo)
+// or an unresolvable base branch (no --base equivalent here, and neither main nor master exists)
+// resolves to a definite non-match — this is a NEW enforcement surface, so ambiguity fails toward
+// dormant, never toward a surprise deny on an ambiguous repo. On any remote-backed repo the whole
+// matcher is a no-op: existing `matchesRawGhMerge` behaviour stays byte-identical (regression-pinned
+// below).
+//
+// LIMITATION (same stance as matchesRawGhMerge, FAFF-434): a token-sequence regex, not a shell
+// parser. A command that BREAKS the required tokens with quoting/splicing/variable/substitution
+// is NOT caught. The real boundary is "`faff merge-gate --local` is the only sanctioned path", not
+// this regex — it is the outermost guard-rail against the naive/literal form.
+// ===========================================================================
+
+function gitQuiet(cwd, args, timeout = 5000) {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", timeout });
+  if (r.error || r.status !== 0) return null;
+  return (r.stdout || "").trim();
+}
+
+function currentBranchForFence(cwd) {
+  const b = gitQuiet(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  return b && b !== "HEAD" ? b : null; // detached HEAD => no meaningful "current branch"
+}
+
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// `git merge <ref>` — a landing attempt. Excludes the conflict-resolution subcommands
+// --abort/--continue/--quit, which never land new commits onto the current branch.
+function matchesGitMergeLandingCommand(command) {
+  if (!/(^|[^\w])git\s+merge\b/.test(command)) return false;
+  if (/git\s+merge\s+(--abort|--continue|--quit)\b/.test(command)) return false;
+  return true;
+}
+
+// `git update-ref refs/heads/<base> …` — a direct base-ref move.
+function matchesUpdateRefBase(command, base) {
+  return new RegExp(`(^|[^\\w])git\\s+update-ref\\s+refs/heads/${escapeRegExp(base)}\\b`).test(command);
+}
+
+// `git push <local-target> HEAD:<base>` (`.`, another local path, or any non-URL target) — a
+// local push whose refspec lands HEAD directly onto the base ref.
+function matchesLocalPushToBase(command, base) {
+  return new RegExp(`(^|[^\\w])git\\s+push\\s+\\S+\\s+HEAD:${escapeRegExp(base)}\\b`).test(command);
+}
+
+function matchesRawLocalBaseMerge(command, cwd) {
+  if (typeof command !== "string" || command.length === 0) return false;
+  if (typeof cwd !== "string" || cwd.length === 0) return false;
+  if (gitRemoteEmpty(cwd) !== true) return false; // remote present, OR indeterminate => dormant
+  const base = resolveLocalBase(cwd, null);
+  if (!base) return false; // no resolvable base branch => nothing to protect yet
+
+  if (matchesUpdateRefBase(command, base)) return true;
+  if (matchesLocalPushToBase(command, base)) return true;
+  if (matchesGitMergeLandingCommand(command)) {
+    // Deny only when landing INTO the base branch (current branch IS base) — base-branch
+    // MUTATION. A `git merge <base>` run FROM a feature branch (current branch != base) is
+    // base-branch CONSUMPTION, a legitimate update, and falls through to `false` below.
+    return currentBranchForFence(cwd) === base;
+  }
+  return false;
+}
+
+// The deny message for the local-base variant — points at the SAME sanctioned remedy as the
+// gh-merge fence, so a denied command always names one consistent escape valve.
+const LOCAL_BASE_FENCE_DENY_MESSAGE =
+  "faff merge-fence: raw base-branch mutation is not the sanctioned merge path on a no-remote repo — route this merge through " +
+  "`faff merge-gate --local` (the sole sanctioned path). If you are a human operator, run merge-gate yourself " +
+  "in a real terminal.\n";
 
 // The single-line stderr deny message — names `faff merge-gate` as the sanctioned
 // remedy (never just "denied"), plus the human-operator escape hatch (run
@@ -48,15 +135,29 @@ const MERGE_FENCE_DENY_MESSAGE =
   "`faff merge-gate` (the sole sanctioned path). If you are a human operator, run merge-gate yourself " +
   "in a real terminal.\n";
 
-// PURE: fold a parsed PreToolUse event down to the matcher's two inputs. A
-// non-object event, or one missing tool_input, resolves to a definite non-match
-// rather than throwing — the --hook shell's JSON.parse already fail-safes a
-// malformed event to exit 0 before this is ever called with a non-null event.
-function mergeFenceDecision(event) {
-  if (event === null || typeof event !== "object") return false;
+// Fold a parsed PreToolUse event down into a full deny decision — {deny, message}. Checks
+// matchesRawGhMerge FIRST (a pure check, no cwd needed); FAFF-526's matchesRawLocalBaseMerge is
+// checked only for a Bash command carrying a string command AND the event's own `cwd` (never a
+// caller-supplied override — the hook event is the sole cwd source, mirroring the WorktreeCreate
+// hook's own event.cwd convention). A non-object event, missing tool_input, or an absent/
+// non-string cwd all resolve to a definite non-match rather than throwing — the --hook shell's
+// JSON.parse already fail-safes a malformed event to exit 0 before this is ever called with a
+// non-null event.
+function mergeFenceDecisionDetail(event) {
+  if (event === null || typeof event !== "object") return { deny: false, message: null };
   const toolInput = event.tool_input;
   const command = toolInput && typeof toolInput === "object" ? toolInput.command : undefined;
-  return matchesRawGhMerge(event.tool_name, command);
+  if (matchesRawGhMerge(event.tool_name, command)) return { deny: true, message: MERGE_FENCE_DENY_MESSAGE };
+  if (event.tool_name === "Bash" && typeof command === "string" && typeof event.cwd === "string" && event.cwd
+      && matchesRawLocalBaseMerge(command, event.cwd)) {
+    return { deny: true, message: LOCAL_BASE_FENCE_DENY_MESSAGE };
+  }
+  return { deny: false, message: null };
+}
+
+// PURE boolean wrapper — preserves the original matcher-only decision shape for existing callers.
+function mergeFenceDecision(event) {
+  return mergeFenceDecisionDetail(event).deny;
 }
 
 function cmdMergeFence(args) {
@@ -74,8 +175,9 @@ function cmdMergeFence(args) {
   if (!raw || !raw.trim()) return 0; // empty stdin → never block
   let event;
   try { event = JSON.parse(raw); } catch { return 0; } // malformed JSON → never block
-  if (!mergeFenceDecision(event)) return 0;
-  process.stderr.write(MERGE_FENCE_DENY_MESSAGE);
+  const { deny, message } = mergeFenceDecisionDetail(event);
+  if (!deny) return 0;
+  process.stderr.write(message);
   return 2;
 }
 
@@ -116,6 +218,8 @@ const MERGE_FENCE_SELFTEST_CASES = [
 
 function mergeFenceSelftest() {
   let fail = 0;
+  let extraChecks = 0;
+  const check = (label, cond) => { const ok = !!cond; if (!ok) fail++; extraChecks++; console.log(`${ok ? "ok  " : "FAIL"} ${label}`); };
   for (const [label, toolName, command, want] of MERGE_FENCE_SELFTEST_CASES) {
     const got = matchesRawGhMerge(toolName, command);
     const ok = got === want;
@@ -138,10 +242,89 @@ function mergeFenceSelftest() {
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} event: ${label} → ${got} (want ${want})`);
   }
-  const total = MERGE_FENCE_SELFTEST_CASES.length + eventCases.length;
+
+  // === FAFF-526: matchesRawLocalBaseMerge — integration coverage against REAL git repos =====
+  // (the matcher reads live `git remote`/branch state via cwd, so it cannot be driven purely).
+  const localBaseTmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-merge-fence-local-base-"));
+  const git = (cwd, ...gitArgs) => spawnSync("git", ["-C", cwd, ...gitArgs], { encoding: "utf8" });
+  let localBaseCases = 0;
+  try {
+    // --- no-remote repo, sitting ON the base branch (main) ---
+    const repoNoRemote = path.join(localBaseTmp, "no-remote");
+    fs.mkdirSync(repoNoRemote, { recursive: true });
+    git(repoNoRemote, "init", "-q", "-b", "main");
+    git(repoNoRemote, "config", "user.email", "t@t.t");
+    git(repoNoRemote, "config", "user.name", "t");
+    fs.writeFileSync(path.join(repoNoRemote, "a.txt"), "1");
+    git(repoNoRemote, "add", "-A");
+    git(repoNoRemote, "commit", "-qm", "base");
+    git(repoNoRemote, "checkout", "-qb", "feature");
+    fs.writeFileSync(path.join(repoNoRemote, "b.txt"), "2");
+    git(repoNoRemote, "add", "-A");
+    git(repoNoRemote, "commit", "-qm", "feature work");
+    git(repoNoRemote, "checkout", "-q", "main"); // sitting ON the base branch
+
+    const localBaseCheck = (label, command, cwd, want) => {
+      const got = matchesRawLocalBaseMerge(command, cwd);
+      const ok = got === want;
+      if (!ok) fail++;
+      localBaseCases++;
+      console.log(`${ok ? "ok  " : "FAIL"} local-base: ${label} → ${got} (want ${want})`);
+    };
+
+    localBaseCheck("no-remote, ON base, git merge <feature> → DENY (base-branch mutation)", "git merge feature", repoNoRemote, true);
+    localBaseCheck("no-remote, ON base, git update-ref refs/heads/main <sha> → DENY", `git update-ref refs/heads/main ${git(repoNoRemote, "rev-parse", "feature").stdout.trim()}`, repoNoRemote, true);
+    localBaseCheck("no-remote, ON base, git push . HEAD:main → DENY", "git push . HEAD:main", repoNoRemote, true);
+    localBaseCheck("no-remote, ON base, git push /some/local/path HEAD:main → DENY", "git push /some/local/path HEAD:main", repoNoRemote, true);
+    localBaseCheck("no-remote, ON base, git merge --abort → ALLOW (conflict resolution, not a landing attempt)", "git merge --abort", repoNoRemote, false);
+    localBaseCheck("no-remote, ON base, git merge --continue → ALLOW", "git merge --continue", repoNoRemote, false);
+
+    // --- base-branch CONSUMPTION: `git merge <base>` run FROM a feature branch — always ALLOWED ---
+    git(repoNoRemote, "checkout", "-q", "feature");
+    localBaseCheck("no-remote, ON feature, git merge main (consumption) → ALLOW", "git merge main", repoNoRemote, false);
+    localBaseCheck("no-remote, ON feature, git update-ref refs/heads/main <sha> → still DENY (mutation, regardless of current branch)", `git update-ref refs/heads/main ${git(repoNoRemote, "rev-parse", "feature").stdout.trim()}`, repoNoRemote, true);
+    localBaseCheck("no-remote, ON feature, unrelated command (git status) → ALLOW", "git status", repoNoRemote, false);
+
+    // --- a repo WITH a remote: the matcher is a no-op regardless of the raw command ---
+    const repoWithRemote = path.join(localBaseTmp, "with-remote");
+    const bareRemote = path.join(localBaseTmp, "bare-remote.git");
+    git(localBaseTmp, "init", "-q", "--bare", bareRemote);
+    fs.mkdirSync(repoWithRemote, { recursive: true });
+    git(repoWithRemote, "init", "-q", "-b", "main");
+    git(repoWithRemote, "config", "user.email", "t@t.t");
+    git(repoWithRemote, "config", "user.name", "t");
+    git(repoWithRemote, "remote", "add", "origin", bareRemote);
+    fs.writeFileSync(path.join(repoWithRemote, "a.txt"), "1");
+    git(repoWithRemote, "add", "-A");
+    git(repoWithRemote, "commit", "-qm", "base");
+    git(repoWithRemote, "checkout", "-qb", "feature");
+    fs.writeFileSync(path.join(repoWithRemote, "b.txt"), "2");
+    git(repoWithRemote, "add", "-A");
+    git(repoWithRemote, "commit", "-qm", "feature work");
+    git(repoWithRemote, "checkout", "-q", "main");
+    localBaseCheck("remote-backed repo, ON base, git merge <feature> → ALLOW (matcher dormant, zero L1-L3 impact)", "git merge feature", repoWithRemote, false);
+    localBaseCheck("remote-backed repo, ON base, git update-ref refs/heads/main <sha> → ALLOW (matcher dormant)", `git update-ref refs/heads/main ${git(repoWithRemote, "rev-parse", "feature").stdout.trim()}`, repoWithRemote, false);
+
+    // --- non-repo / unresolvable cwd → definite non-match, never a throw ---
+    const notARepo = path.join(localBaseTmp, "not-a-repo");
+    fs.mkdirSync(notARepo, { recursive: true });
+    localBaseCheck("non-git directory → ALLOW (indeterminate remote-state fails toward dormant)", "git merge feature", notARepo, false);
+
+    // --- regression: matchesRawGhMerge / the gh-merge event path is byte-identical on a no-remote repo ---
+    git(repoNoRemote, "checkout", "-q", "main"); // back onto the base branch for the deny-shape checks below
+    check("regression: matchesRawGhMerge unaffected by the new matcher (still denies gh pr merge)", matchesRawGhMerge("Bash", "gh pr merge 1 --squash") === true);
+    check("mergeFenceDecisionDetail: local-base deny carries the local-base remedy message", mergeFenceDecisionDetail({ tool_name: "Bash", tool_input: { command: "git merge feature" }, cwd: repoNoRemote }).message === LOCAL_BASE_FENCE_DENY_MESSAGE);
+    check("mergeFenceDecisionDetail: gh-merge deny carries the ORIGINAL remedy message (checked first)", mergeFenceDecisionDetail({ tool_name: "Bash", tool_input: { command: "gh pr merge 1" }, cwd: repoNoRemote }).message === MERGE_FENCE_DENY_MESSAGE);
+    check("mergeFenceDecisionDetail: event with no cwd → local-base check never fires (cwd is the sole source, never inferred)", mergeFenceDecisionDetail({ tool_name: "Bash", tool_input: { command: "git merge feature" } }).deny === false);
+    check("mergeFenceDecision: boolean wrapper agrees with the detail form (local-base deny)", mergeFenceDecision({ tool_name: "Bash", tool_input: { command: "git merge feature" }, cwd: repoNoRemote }) === true);
+  } finally {
+    fs.rmSync(localBaseTmp, { recursive: true, force: true });
+  }
+
+  const total = MERGE_FENCE_SELFTEST_CASES.length + eventCases.length + localBaseCases + extraChecks;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { MERGE_FENCE_DENY_MESSAGE, MERGE_FENCE_SELFTEST_CASES, cmdMergeFence, matchesRawGhMerge, mergeFenceDecision, mergeFenceSelftest };
+module.exports = { LOCAL_BASE_FENCE_DENY_MESSAGE, MERGE_FENCE_DENY_MESSAGE, MERGE_FENCE_SELFTEST_CASES, cmdMergeFence, matchesGitMergeLandingCommand, matchesLocalPushToBase, matchesRawGhMerge, matchesRawLocalBaseMerge, matchesUpdateRefBase, mergeFenceDecision, mergeFenceDecisionDetail, mergeFenceSelftest };

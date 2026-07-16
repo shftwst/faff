@@ -12,6 +12,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
+const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
 const {
   CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG,
   deepMergeConfig, dig, findConfig, findOverlay, findRoot, isPlainConfigMap,
@@ -160,17 +161,19 @@ const ENGINE_PROVIDER_FAMILY = {
   deepseek: "openai", "openai-compatible": "openai", gemini: "openai",
 };
 
-// PURE: validate an `engine:<name>` value's reference against the `engines:` map — the
-// resolution-time half of the FAFF-422 fail-loud surface. Returns null | a named error.
+// PURE: validate an `engine:<name>` value's reference against the shared
+// `backends:` namespace (FAFF-523 — `engines:` folds into it at load, name
+// collision is a hard error there) — the resolution-time half of the
+// FAFF-422 fail-loud surface. Returns null | a named error.
 function validateEngineRef(cfg, value) {
   const name = String(value).slice("engine:".length).trim();
   if (!name) return `engine value "${value}": missing engine name (expected engine:<name>)`;
-  const enginesRaw = dig(cfg, "engines");
-  const engines = (enginesRaw && typeof enginesRaw === "object" && !Array.isArray(enginesRaw)) ? enginesRaw : {};
-  const entry = engines[name];
-  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-    const configured = Object.keys(engines);
-    return `unknown engine "${name}" — configured engines: ${configured.length ? configured.join(", ") : "(none — add a top-level engines: block)"}`;
+  const merged = mergeBackendsNamespace(cfg);
+  if (merged.error) return merged.error;
+  const entry = merged.backends[name];
+  if (!entry) {
+    const configured = Object.keys(merged.backends);
+    return `unknown engine "${name}" — configured engines: ${configured.length ? configured.join(", ") : "(none — add a top-level engines: or backends: block)"}`;
   }
   for (const field of ["provider", "model", "host"]) {
     const v = entry[field];
@@ -212,13 +215,15 @@ function resolveEngineForLane(cfg, lane) {
     return { error: `effort.${lane} is "${effort}" but ${key} is an engine value — Agent-tool reasoning-effort does not map onto a local engine; set effort.${lane} to inherit and tune the engine in engines.<name> (reasoning_off, timeout)` };
   }
   const name = value.slice("engine:".length).trim();
-  // validateEngineRef above already proved engines.<name> exists with provider/model/host,
-  // so this re-dig is non-null today; guard it anyway (parity with validateEngineRef) so a
-  // future change loosening that guarantee fails loud, never with a bare TypeError.
-  const enginesRaw = dig(cfg, "engines");
-  const engines = (enginesRaw && typeof enginesRaw === "object" && !Array.isArray(enginesRaw)) ? enginesRaw : {};
-  const entry = engines[name];
-  if (!entry || typeof entry !== "object") return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
+  // validateEngineRef above already proved the merged backends:+engines: namespace has
+  // this entry with provider/model/host, so this re-resolve is non-null today; guard it
+  // anyway (parity with validateEngineRef) so a future change loosening that guarantee
+  // fails loud, never with a bare TypeError. FAFF-523: resolves against the MERGED
+  // namespace (engines: folds into backends: at load), so a backend declared only under
+  // top-level `backends:` is equally reachable via engine:<name>.
+  const merged = mergeBackendsNamespace(cfg);
+  const entry = merged.backends && merged.backends[name];
+  if (!entry) return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
   const provider = String(entry.provider).toLowerCase();
   return {
     name, provider,
@@ -816,6 +821,13 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // Check 4: secret scan over both files' scalar leaves (redacted output).
   if (baseDoc) findings.push(...scanDocForSecrets(baseDoc, rel(basePath) || ".faffrc.yaml"));
   if (overlayDoc) findings.push(...scanDocForSecrets(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml"));
+
+  // Check 6 (FAFF-523): backends: namespace soundness — a name collision with
+  // engines: (error) and the derived-egress residency guard (warn) over the
+  // MERGED document (overlay wins scalars over base, same posture as every
+  // other resolved value).
+  const mergedDoc = overlayDoc ? deepMergeConfig(baseDoc || {}, overlayDoc) : (baseDoc || {});
+  findings.push(...backendsConfigCheckFindings(mergedDoc));
 
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }

@@ -80,15 +80,52 @@ models:
   intake: # Agent-token or engine:<name> — the intake producer dispatch (default: inherit)
   eval: # model id for the eval frontier driver's `claude -p --model` (default: claude-sonnet-4-6)
 
+# Shared model/provider/auth backend namespace (FAFF-523). A top-level, NAMED map — the
+# generalization of the legacy top-level engines: map below (engines: folds into this
+# namespace at load; a name declared in BOTH is a hard error, never last-wins) and of the
+# faffter_dark.adversarial block further down. Referenced BY NAME from anywhere that needs
+# a model/backend: an engine:<name> lane value above, or an ordered `refs:` list (e.g. the
+# faffter_dark.adversarial block's own refs: form — see below). auth (subscription-seat |
+# api-key | none) and egress (local | external) are explicit-preferred, else DERIVED:
+# api_key_env present → api-key; keyless provider: anthropic → subscription-seat (binds to
+# the AMBIENT interactive session — there is no seat_ref handle field); loopback/RFC1918/
+# tailscale (*.ts.net) host → local egress, else external. provider: anthropic is accepted
+# HERE (needed to name a subscription/API Claude endpoint) but still REFUSED at the
+# `faff engine call` consumer boundary (that transport has no anthropic support — use the
+# Agent-token models.<lane> vocabulary for Claude lanes instead).
+# backends:
+#   nvidia-glm:
+#     provider: nvidia
+#     model: z-ai/glm-5.2
+#     host: https://integrate.api.nvidia.com/v1
+#     api_key_env: NVIDIA_API_KEY   # → auth: api-key (derived); egress: external (derived, public host)
+#     timeout: 480
+#   studio-ollama:
+#     provider: ollama
+#     model: qwen3-next:80b-a3b-instruct-q4_K_M
+#     host: http://studio.example.ts.net:11434   # → auth: none, egress: local (both derived)
+#   claude-sub:
+#     provider: anthropic
+#     model: claude-frontier
+#     host: https://api.anthropic.com   # no api_key_env → auth: subscription-seat (derived; binds to the ambient session)
+#
+# A residency-sensitive consumer asserts `requires: local` on its OWN refs: list (see the
+# faffter_dark.adversarial example below) — any resolved egress: external ref in that
+# chain refuses at run start (fail closed, never a silent leak); `faff backends realizable
+# --refs a,b,c [--requires local]` runs this check standalone. `faff backends resolve
+# --refs a,b,c` prints the resolved chain as JSON.
+
 # Named local/self-hosted engines (FAFF-422). Referenced by an engine:<name> lane value
 # above (v1: models.methodology / models.intake only). One definition serves many lanes.
 # provider families: ollama, or the openai-compatible aliases (openai | vllm | openrouter |
-# nvidia | deepseek | openai-compatible | gemini) — provider: anthropic is REFUSED (Anthropic
-# models are what the Agent-token vocabulary is for). Dispatch is ONE non-streaming
-# completion, fail-loud, no fallback chain: an invalid/unreachable engine is a named
-# dispatch failure, never a silent session-model fallback. Secrets via api_key_env
-# indirection (the env var NAME, never the key). Same flat-object idiom as the
-# faffter_dark.adversarial block below — separate block, compose-not-subsume.
+# nvidia | deepseek | openai-compatible | gemini) — provider: anthropic is REFUSED at THIS
+# consumer (Anthropic models are what the Agent-token vocabulary is for), even though the
+# shared backends: namespace above accepts it. Dispatch is ONE non-streaming completion,
+# fail-loud, no fallback chain: an invalid/unreachable engine is a named dispatch failure,
+# never a silent session-model fallback. Secrets via api_key_env indirection (the env var
+# NAME, never the key). FAFF-523: entries here fold into the shared backends: namespace
+# above at load (a name in both blocks is a hard error) — this block remains the familiar
+# spelling for an engine-only consumer; new work can declare directly under backends:.
 # engines:
 #   studio:
 #     provider: ollama          # ollama | openai-compatible aliases; anthropic refused
@@ -223,6 +260,17 @@ prdr:
 # openai path (see the gemini example below). For anthropic, set host: https://api.anthropic.com.
 # INDEPENDENCE: don't set provider: anthropic when Claude wrote/ran the primary review — a same-family
 # reviewer defeats the point (a *different* model family is the value). See the skill's independence note.
+#
+# FAFF-523: the form below (provider/model/host + fallbacks, inline) is the LEGACY shape —
+# still fully supported, unchanged. The preferred shape for a config that already declares a
+# backends: namespace (above) is a named refs: list instead, e.g.:
+#   faffter_dark:
+#     adversarial:
+#       refs: [nvidia-glm, studio-ollama]   # ordered — index 0 first-served, no "primary"
+#       requires: local                     # OPTIONAL: refuse at run start if any ref resolves egress: external
+#       deadline: 480
+# Named backends: entries do NOT inherit omitted optional fields from one another (unlike
+# the legacy fallbacks form below) — each backend stands alone.
 faffter_dark:
   adversarial:
     provider: ollama # ollama | openai | vllm | openrouter | nvidia | deepseek | gemini | anthropic

@@ -9,10 +9,18 @@
 // signal (exit 3) so a calling skill's existing --host-source default →
 // needs-human path is byte-for-byte unchanged; a malformed `fallbacks` value
 // fails loud (exit 2) rather than silently emitting a [primary]-only chain.
+//
+// FAFF-523: a `refs:` block sequence of backend NAMES is a third, newest form
+// (checked first) — an ordered reference into the shared top-level `backends:`
+// namespace (subsumes FAFF-261's own un-filed "flip to the native array"
+// follow-up onto a by-NAME reference). `assembleAdversarialBackends` stays the
+// single entry point; the native inline `backends:` array (FAFF-262) and the
+// legacy primary+fallbacks form are both accepted unchanged for back-compat.
 // ===========================================================================
 
 const { dig, findRoot } = require("./shared-infra");
 const { loadConfig } = require("./config");
+const { resolveBackendRefs } = require("./backends");
 
 // The Backend record's field set (snake_case — the shape review-call.mjs's
 // mapper reads verbatim: b.api_key_env || b.apiKeyEnv, b.reasoning_off ??
@@ -56,6 +64,17 @@ function inheritOptionalFromPrimary(fallback, primary) {
 function assembleAdversarialBackends(cfg) {
   const adv = dig(cfg, "faffter_dark.adversarial");
   if (!adv || typeof adv !== "object" || Array.isArray(adv)) return { error: "unset" };
+
+  // FAFF-523: named `refs:` block sequence — an ordered reference into the
+  // shared top-level `backends:` namespace (checked first; a list of STRINGS
+  // distinguishes it from the native `backends:` array below, a list of MAPS).
+  // An unknown name or a namespace merge error (e.g. an engines:/backends:
+  // collision) is fail-loud malformed — never a silent fallback to legacy.
+  if (Array.isArray(adv.refs) && adv.refs.length > 0 && adv.refs.every((r) => typeof r === "string")) {
+    const res = resolveBackendRefs(cfg, adv.refs);
+    if (res.error) return { error: "malformed", detail: res.error };
+    return { chain: res.chain.map(pickBackendKeys) };
+  }
 
   // Native `backends:` array form (FAFF-262) — each element stands alone, used
   // as-is (no primary-key inheritance; review-call.mjs's mapper supplies its

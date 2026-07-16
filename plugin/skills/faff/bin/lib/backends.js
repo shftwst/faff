@@ -1,0 +1,424 @@
+// ===========================================================================
+// === region:factory — backends — FAFF-523: shared model/provider/auth backend ===
+// config namespace. A top-level `backends:` map (name -> Backend record) that
+// generalizes the top-level `engines:` map: every entry carries the same core
+// fields (provider/model/host/api_key_env/reasoning_off/timeout) PLUS two new
+// first-class dimensions — `auth: subscription-seat|api-key|none` and
+// `egress: local|external` — so a consumer can be referenced by NAME from
+// anywhere (a slot occupant, a models.X lane, a fallback chain), and a
+// residency-sensitive consumer can fail closed rather than silently egress.
+// `engines:` entries fold into this namespace at load (collision = hard
+// error); `engine:<name>` keeps resolving against the MERGED namespace
+// (config.js's resolveEngineForLane/validateEngineRef call into here).
+// No `seat_ref` field — `auth: subscription-seat` binds to the ambient
+// interactive session (2026-07-16 operator resolution; see the ADR).
+// ===========================================================================
+
+const { dig } = require("./shared-infra");
+
+function present(v) { return v !== null && v !== undefined && v !== ""; }
+
+// The full Backend field set a normalized entry carries (beyond `name`).
+const BACKEND_RECORD_KEYS = [
+  "provider", "model", "host", "auth", "api_key_env", "egress", "reasoning_off", "timeout",
+];
+
+const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
+const EGRESS_VALUES = ["local", "external"];
+
+// PURE: derive `auth` when not explicitly set (explicit value always wins —
+// callers only invoke this on an absent/unset raw auth). Mirrors the spec's
+// deriveAuth procedure exactly: api_key_env present -> api-key; keyless
+// anthropic -> subscription-seat (binds to the ambient interactive session,
+// no handle field); else none.
+function deriveAuth(b) {
+  if (present(b.api_key_env)) return "api-key";
+  if (String(b.provider || "").toLowerCase() === "anthropic") return "subscription-seat";
+  return "none";
+}
+
+// PURE: classify a host as local (loopback / RFC1918 / tailscale *.ts.net) or
+// external (any public host) — mirrors the spec's deriveEgress procedure. A
+// missing/unparsable host derives "external" — the conservative choice: an
+// unknown host must never be silently treated as safe-local (the residency
+// check runs BEFORE the host-presence check, so this is the value that
+// governs a requires:local refusal for an as-yet-unrealizable backend too).
+function deriveEgress(b) {
+  const raw = String(b.host || "");
+  if (!raw) return "external";
+  let hostname = raw;
+  try { hostname = new URL(raw).hostname; } catch { /* not a valid URL — fall through, test the raw string */ }
+  if (/^(localhost|127\.0\.0\.1|::1|\[::1\])$/i.test(hostname)) return "local";
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return "local";
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return "local";
+  if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return "local";
+  if (/\.ts\.net$/i.test(hostname)) return "local";
+  return "external";
+}
+
+// PURE: the three CONSTRAINT rules from the Backend record (spec §3) — each
+// auth value ties to exactly one token source. Returns null | a named error.
+function validateBackendConstraints(name, b) {
+  if (!AUTH_VALUES.includes(b.auth)) {
+    return `backends.${name}: invalid auth "${b.auth}" — legal set: ${AUTH_VALUES.join(" | ")}`;
+  }
+  if (!EGRESS_VALUES.includes(b.egress)) {
+    return `backends.${name}: invalid egress "${b.egress}" — legal set: ${EGRESS_VALUES.join(" | ")}`;
+  }
+  if (b.auth === "api-key" && !present(b.api_key_env)) {
+    return `backends.${name}: auth: api-key requires api_key_env`;
+  }
+  if (b.auth === "subscription-seat" && present(b.api_key_env)) {
+    return `backends.${name}: auth: subscription-seat must not carry api_key_env (it binds to the ambient interactive session — no handle field, FAFF-523)`;
+  }
+  if (b.auth === "none" && present(b.api_key_env)) {
+    return `backends.${name}: auth: none must not carry api_key_env`;
+  }
+  return null;
+}
+
+// PURE: normalize one raw config-shaped record into a Backend. Applies
+// auth/egress derivation (explicit value always wins) and validates the
+// constraints. Deliberately does NOT require provider/model/host presence —
+// an empty host makes a backend merely unrealizable (checkRealizable), not a
+// normalize-time error; the engine-lane consumer enforces its own stricter
+// presence requirement at its own boundary (config.js's validateEngineRef).
+function normalizeBackend(name, raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { error: `backends.${name}: not a valid backend record` };
+  }
+  const b = { name };
+  b.provider = present(raw.provider) ? String(raw.provider) : undefined;
+  b.model = present(raw.model) ? String(raw.model) : undefined;
+  b.host = present(raw.host) ? String(raw.host) : undefined;
+  b.api_key_env = present(raw.api_key_env) ? String(raw.api_key_env) : undefined;
+  b.reasoning_off = raw.reasoning_off === true ? true : undefined;
+  b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
+  b.auth = present(raw.auth) ? String(raw.auth) : deriveAuth(b);
+  const egressExplicit = present(raw.egress);
+  b.egress = egressExplicit ? String(raw.egress) : deriveEgress(b);
+  b._egress_explicit = egressExplicit; // internal marker — the derived-egress config-check guard only
+
+  const err = validateBackendConstraints(name, b);
+  if (err) return { error: err };
+  return { backend: b };
+}
+
+// PURE: fold the top-level `engines:` map into `backends:` at load (spec §4
+// "Load-time merge + normalize"). A name present in BOTH is a hard error
+// (ambiguous reference, never last-wins). Every entry — from either source —
+// is normalized (derivation + constraint validation) so callers see one
+// canonical shape regardless of which block it was declared under. Returns
+// { backends: {name: Backend} } | { error }.
+function mergeBackendsNamespace(cfg) {
+  const backendsRaw = dig(cfg, "backends");
+  const enginesRaw = dig(cfg, "engines");
+  const backendsBlock = (backendsRaw && typeof backendsRaw === "object" && !Array.isArray(backendsRaw)) ? backendsRaw : {};
+  const enginesBlock = (enginesRaw && typeof enginesRaw === "object" && !Array.isArray(enginesRaw)) ? enginesRaw : {};
+
+  const collisions = Object.keys(enginesBlock).filter((k) => Object.prototype.hasOwnProperty.call(backendsBlock, k));
+  if (collisions.length > 0) {
+    return { error: `engines:/backends: name collision at merge — declared in BOTH blocks: ${collisions.join(", ")} (rename one; never last-wins)` };
+  }
+
+  const merged = {};
+  for (const name of Object.keys(backendsBlock)) {
+    const res = normalizeBackend(name, backendsBlock[name]);
+    if (res.error) return { error: res.error };
+    merged[name] = res.backend;
+  }
+  for (const name of Object.keys(enginesBlock)) {
+    const res = normalizeBackend(name, enginesBlock[name]);
+    if (res.error) return { error: res.error };
+    merged[name] = res.backend;
+  }
+  return { backends: merged };
+}
+
+// PURE: resolve an ordered list of backend NAMES against the merged
+// namespace, preserving order (index 0 = first-served, no "primary" —
+// FAFF-261's flip). An unknown name hard-fails — fail loud, never a silent
+// skip (spec §4 "Reference resolution").
+function resolveBackendRefs(cfg, refs) {
+  const merged = mergeBackendsNamespace(cfg);
+  if (merged.error) return { error: merged.error };
+  const chain = [];
+  for (const name of refs) {
+    const b = merged.backends[name];
+    if (!b) {
+      const configured = Object.keys(merged.backends);
+      return { error: `unknown backend: ${name} — configured backends: ${configured.length ? configured.join(", ") : "(none)"}` };
+    }
+    chain.push(b);
+  }
+  return { chain };
+}
+
+// The single harness value the CLI passes today (spec §7 Assumptions: "the
+// harness axis ... is fixed to the single value the CLI passes today"). The
+// harness-varying half of the model x harness matrix (design/portable-
+// runtime.md) lands with FAFF-395's `faff run` spine; v1 only needs enough of
+// the matrix to gate `subscription-seat` to the interactive session it
+// actually exists on.
+const CURRENT_HARNESS = "claude-code";
+
+// PURE: (harness, provider, auth) admission. subscription-seat only exists on
+// the interactive/claude-code harness (the ambient session IS the seat); api-key
+// and none are harness-agnostic direct-transport auth modes.
+function portableMatrixAdmits(harness, provider, auth) {
+  if (auth === "subscription-seat") return harness === CURRENT_HARNESS;
+  if (auth === "api-key" || auth === "none") return true;
+  return false;
+}
+
+// PURE: run-start realizability — fail closed (spec §4 "Run-start
+// realizability", the security surface). `consumer` is a BackendReferenceList
+// shape: { refs: [name...], requires?: "local", deadline?: N }. Residency is
+// checked per-ENTRY and absolute (any egressing ref in a requires:local chain
+// refuses, before host/matrix realizability is even considered); host/matrix
+// realizability is checked per-CHAIN (>=1 served ref admits; zero -> refuse).
+function checkRealizable(cfg, consumer, harness) {
+  const h = harness || CURRENT_HARNESS;
+  const resolved = resolveBackendRefs(cfg, (consumer && consumer.refs) || []);
+  if (resolved.error) return { refuse: true, reason: resolved.error };
+  let realizableCount = 0;
+  for (const b of resolved.chain) {
+    if (consumer && consumer.requires === "local" && b.egress === "external") {
+      return { refuse: true, reason: `residency-violation: ${b.name} egresses` };
+    }
+    if (!present(b.host)) continue;
+    if (!portableMatrixAdmits(h, b.provider, b.auth)) continue;
+    realizableCount++;
+  }
+  if (realizableCount === 0) return { refuse: true, reason: "chain-unrealizable" };
+  return { ok: true };
+}
+
+// PURE: where a resolved Backend's token comes from — the DONE-listed
+// "auth: api-key resolves to the named env var; auth: subscription-seat
+// resolves to the ambient interactive session (no handle)" behaviour.
+function resolveTokenSource(b) {
+  if (b.auth === "api-key") return { source: "env", env: b.api_key_env || null };
+  if (b.auth === "subscription-seat") return { source: "ambient-session" };
+  return { source: "none" };
+}
+
+// PURE: `faff config check`'s derived-egress residency-soundness guard (spec
+// DONE list). Scans the one reference-list consumer the spec names today
+// (faffter_dark.adversarial's refs:+requires:) for a requires:local chain
+// that leans on a DERIVED (not explicit) egress:local classification — a
+// convenience default is not the residency guarantee's asserted basis.
+// Also surfaces a namespace-level merge error (e.g. a name collision) as a
+// finding, so it is visible without invoking any specific consumer.
+function backendsConfigCheckFindings(cfg) {
+  const findings = [];
+  const merged = mergeBackendsNamespace(cfg);
+  if (merged.error) {
+    const severity = /name collision/.test(merged.error) ? "error" : "warn";
+    findings.push({ severity, surface: "backends", message: merged.error });
+    return findings;
+  }
+  const adv = dig(cfg, "faffter_dark.adversarial");
+  if (adv && typeof adv === "object" && !Array.isArray(adv) && adv.requires === "local" && Array.isArray(adv.refs)) {
+    for (const name of adv.refs) {
+      const b = merged.backends[name];
+      if (b && b.egress === "local" && !b._egress_explicit) {
+        findings.push({
+          severity: "warn",
+          surface: `faffter_dark.adversarial.refs[${name}]`,
+          message: `backend "${name}" is admitted into a requires: local chain on a DERIVED (not explicit) egress: local classification — set egress: local explicitly on backends.${name} so the residency guarantee is asserted against an explicit value, not a convenience default.`,
+        });
+      }
+    }
+  }
+  return findings;
+}
+
+function cmdBackends(args) {
+  if (args.includes("--selftest")) return backendsSelftest();
+  const { findRoot } = require("./shared-infra");
+  const { loadConfig } = require("./config");
+  const sub = args.find((a) => !a.startsWith("-"));
+  const json = args.includes("--json");
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const [cfg] = loadConfig(root);
+
+  if (sub === "resolve") {
+    const refsArg = get("--refs");
+    const refs = refsArg ? refsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const res = resolveBackendRefs(cfg, refs);
+    if (res.error) { process.stderr.write(`faff backends resolve: ${res.error}\n`); return 2; }
+    console.log(JSON.stringify(res.chain.map((b) => {
+      const out = {};
+      for (const k of BACKEND_RECORD_KEYS) if (b[k] !== undefined) out[k] = b[k];
+      out.name = b.name;
+      return out;
+    })));
+    return 0;
+  }
+
+  if (sub === "realizable") {
+    const refsArg = get("--refs");
+    const refs = refsArg ? refsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const requires = get("--requires") || undefined;
+    const harness = get("--harness") || undefined;
+    const res = checkRealizable(cfg, { refs, requires }, harness);
+    if (json) { console.log(JSON.stringify(res)); }
+    else if (res.ok) { console.log("ok: realizable"); }
+    else { console.log(`refuse: ${res.reason}`); }
+    return res.ok ? 0 : 1;
+  }
+
+  process.stderr.write("usage: faff backends <resolve|realizable> --refs a,b,c [--requires local] [--harness NAME] [--json] [--root DIR]\n");
+  return 2;
+}
+
+function backendsSelftest() {
+  let fail = 0;
+  const ok = (label, cond) => { console.log(`${cond ? "ok  " : "FAIL"} ${label}`); if (!cond) fail++; };
+
+  // --- deriveAuth ------------------------------------------------------------
+  ok("deriveAuth: api_key_env present -> api-key", deriveAuth({ api_key_env: "K" }) === "api-key");
+  ok("deriveAuth: keyless anthropic -> subscription-seat", deriveAuth({ provider: "anthropic" }) === "subscription-seat");
+  ok("deriveAuth: keyless non-anthropic -> none", deriveAuth({ provider: "ollama" }) === "none");
+  ok("deriveAuth: api_key_env wins over anthropic", deriveAuth({ provider: "anthropic", api_key_env: "K" }) === "api-key");
+
+  // --- deriveEgress ------------------------------------------------------------
+  ok("deriveEgress: tailscale host -> local", deriveEgress({ host: "http://studio.longhair-escalator.ts.net:11434" }) === "local");
+  ok("deriveEgress: public host -> external", deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }) === "external");
+  ok("deriveEgress: localhost -> local", deriveEgress({ host: "http://localhost:11434" }) === "local");
+  ok("deriveEgress: 127.0.0.1 -> local", deriveEgress({ host: "http://127.0.0.1:11434" }) === "local");
+  ok("deriveEgress: RFC1918 10.x -> local", deriveEgress({ host: "http://10.0.0.5:1234" }) === "local");
+  ok("deriveEgress: RFC1918 192.168.x -> local", deriveEgress({ host: "http://192.168.1.5:1234" }) === "local");
+  ok("deriveEgress: RFC1918 172.16-31.x -> local", deriveEgress({ host: "http://172.20.0.5:1234" }) === "local");
+  ok("deriveEgress: empty host -> external (conservative, never a false-safe local)", deriveEgress({ host: "" }) === "external");
+
+  // --- validateBackendConstraints ------------------------------------------------------------
+  ok("constraints: api-key without api_key_env -> error",
+    !!validateBackendConstraints("x", { auth: "api-key" }));
+  ok("constraints: subscription-seat WITH api_key_env -> error (no handle field)",
+    !!validateBackendConstraints("x", { auth: "subscription-seat", api_key_env: "K" }));
+  ok("constraints: none WITH api_key_env -> error",
+    !!validateBackendConstraints("x", { auth: "none", api_key_env: "K" }));
+  ok("constraints: subscription-seat, no api_key_env -> ok",
+    validateBackendConstraints("x", { auth: "subscription-seat", egress: "local" }) === null);
+  ok("constraints: invalid auth value -> error",
+    !!validateBackendConstraints("x", { auth: "bogus", egress: "local" }));
+  ok("constraints: invalid egress value -> error",
+    !!validateBackendConstraints("x", { auth: "none", egress: "bogus" }));
+
+  // --- mergeBackendsNamespace ------------------------------------------------------------
+  {
+    const cfg = {
+      backends: { a: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K1" } },
+      engines: { b: { provider: "ollama", model: "m2", host: "http://studio.x.ts.net:11434" } },
+    };
+    const res = mergeBackendsNamespace(cfg);
+    ok("merge: no collision -> both present", !res.error && !!res.backends.a && !!res.backends.b);
+    ok("merge: engines entry normalized (derived auth=none, egress=local)", res.backends.b.auth === "none" && res.backends.b.egress === "local");
+    ok("merge: backends entry normalized (derived auth=api-key)", res.backends.a.auth === "api-key");
+  }
+  {
+    const cfg = {
+      backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
+      engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
+    };
+    const res = mergeBackendsNamespace(cfg);
+    ok("merge: name collision -> hard error, never last-wins", /name collision/.test(res.error || ""));
+  }
+
+  // --- resolveBackendRefs ------------------------------------------------------------
+  {
+    const cfg = { backends: {
+      a: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K1" },
+      b: { provider: "gemini", model: "m2", host: "https://b/v1", api_key_env: "K2" },
+    } };
+    const res = resolveBackendRefs(cfg, ["b", "a"]);
+    ok("resolveBackendRefs: order preserved (index 0 first-served, no primary)", !res.error && res.chain[0].name === "b" && res.chain[1].name === "a");
+  }
+  {
+    const res = resolveBackendRefs({ backends: {} }, ["nope"]);
+    ok("resolveBackendRefs: unknown name hard-fails (fail loud)", /unknown backend/.test(res.error || ""));
+  }
+
+  // --- checkRealizable ------------------------------------------------------------
+  {
+    // residency-violation scenario straight from the spec's holdout example
+    const cfg = { backends: {
+      "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" },
+      "gemini-gemma": { provider: "gemini", model: "m2", host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY" },
+    } };
+    const res = checkRealizable(cfg, { refs: ["studio-ollama", "gemini-gemma"], requires: "local" });
+    ok("checkRealizable: requires:local + external ref -> refuse residency-violation naming the backend", res.refuse === true && /residency-violation: gemini-gemma/.test(res.reason));
+  }
+  {
+    // whole chain unrealizable: every ref host-unset
+    const cfg = { backends: { a: { provider: "nvidia", model: "m1" } } }; // no host
+    const res = checkRealizable(cfg, { refs: ["a"] });
+    ok("checkRealizable: whole chain host-unset -> chain-unrealizable", res.refuse === true && res.reason === "chain-unrealizable");
+  }
+  {
+    // subscription-seat on the current (claude-code) harness admits
+    const cfg = { backends: { a: { provider: "anthropic", model: "claude-frontier", host: "https://api.anthropic.com" } } };
+    const res = checkRealizable(cfg, { refs: ["a"] }, "claude-code");
+    ok("checkRealizable: subscription-seat on claude-code harness -> ok", res.ok === true);
+  }
+  {
+    // subscription-seat on a non-claude-code harness -> matrix miss -> refuse if whole chain
+    const cfg = { backends: { a: { provider: "anthropic", model: "claude-frontier", host: "https://api.anthropic.com" } } };
+    const res = checkRealizable(cfg, { refs: ["a"] }, "some-other-harness");
+    ok("checkRealizable: subscription-seat on a non-claude-code harness -> chain-unrealizable", res.refuse === true && res.reason === "chain-unrealizable");
+  }
+  {
+    // a served fallback admits — not any backend down -> refuse
+    const cfg = { backends: {
+      down: { provider: "nvidia", model: "m1" }, // no host, unrealizable
+      up: { provider: "nvidia", model: "m2", host: "https://a/v1", api_key_env: "K" },
+    } };
+    const res = checkRealizable(cfg, { refs: ["down", "up"] });
+    ok("checkRealizable: a served fallback admits (not any-backend-down -> refuse)", res.ok === true);
+  }
+
+  // --- resolveTokenSource ------------------------------------------------------------
+  ok("resolveTokenSource: api-key -> named env var", resolveTokenSource({ auth: "api-key", api_key_env: "NVIDIA_API_KEY" }).source === "env"
+    && resolveTokenSource({ auth: "api-key", api_key_env: "NVIDIA_API_KEY" }).env === "NVIDIA_API_KEY");
+  ok("resolveTokenSource: subscription-seat -> ambient session, no handle", resolveTokenSource({ auth: "subscription-seat" }).source === "ambient-session");
+  ok("resolveTokenSource: none -> no source", resolveTokenSource({ auth: "none" }).source === "none");
+
+  // --- backendsConfigCheckFindings (derived-egress guard) ------------------------------------------------------------
+  {
+    const cfg = {
+      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
+      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "local" } },
+    };
+    const findings = backendsConfigCheckFindings(cfg);
+    ok("configCheck: requires:local chain on a DERIVED-local backend -> warns", findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
+  }
+  {
+    const cfg = {
+      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } }, // EXPLICIT local
+      faffter_dark: { adversarial: { refs: ["studio-ollama"], requires: "local" } },
+    };
+    const findings = backendsConfigCheckFindings(cfg);
+    ok("configCheck: requires:local chain on an EXPLICIT-local backend -> silent", !findings.some((f) => /DERIVED/.test(f.message)));
+  }
+  {
+    const cfg = {
+      backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
+      engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
+    };
+    const findings = backendsConfigCheckFindings(cfg);
+    ok("configCheck: name collision surfaced as an error finding", findings.some((f) => f.severity === "error" && /name collision/.test(f.message)));
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (backends, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
+module.exports = {
+  AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES,
+  backendsConfigCheckFindings, backendsSelftest, checkRealizable, cmdBackends,
+  deriveAuth, deriveEgress, mergeBackendsNamespace, normalizeBackend,
+  portableMatrixAdmits, resolveBackendRefs, resolveTokenSource, validateBackendConstraints,
+};

@@ -60,7 +60,7 @@ const { RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./shared-infra");
 // out-of-scope carve.
 const DELIVERY_PROFILE = {
   terminal_states: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"],
-  event_phases: ["run", "tidy", "prep", "build"],
+  event_phases: ["run", "tidy", "prep", "build", "plot"],
   event_types: [
     "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
     "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",

@@ -309,6 +309,23 @@ test("FAFF-354: --phase without --record is a usage error (exit 2)", () => {
   assert.match(r.err, /--phase only makes sense alongside --record/);
 });
 
+// FAFF-494: `plot` is a first-class event phase — the autonomous plot re-entry
+// harness records each write-time containment-check with `--phase plot`, so audit
+// can recompute-and-compare the pass's creates. Before FAFF-494 `--phase plot`
+// exited 2 ("must be one of run, tidy, prep, build"); it is now accepted and tags
+// the recorded containment-check event `phase: "plot"`, identical mechanics to the
+// other phases.
+test("FAFF-494: --phase plot is accepted and tags the recorded containment-check event", () => {
+  const root = tmpRunDir("r1");
+  const r = runIn(root, "contain", "R", "--parent", "R", "--record", "r1", "--phase", "plot");
+  assert.equal(r.code, 0);
+  assert.match(r.out, /contained/);
+  const ev = JSON.parse(readFileSync(join(root, ".faff", "runs", "r1", "events.jsonl"), "utf8").trim());
+  assert.equal(ev.phase, "plot");
+  assert.equal(ev.type, "containment-check");
+  assert.deepEqual(ev.data, { mandate: "R", parent: "R", root: false, ancestry_raw: null, verdict: "contained", exit: 0 });
+});
+
 test("FAFF-354: --record with a run-id containing a path separator is a usage error (traversal guard)", () => {
   const root = tmpRunDir("r1");
   const r = runIn(root, "contain", "M", "--parent", "M", "--record", "nested/path");

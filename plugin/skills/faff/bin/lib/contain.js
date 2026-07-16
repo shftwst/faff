@@ -100,7 +100,7 @@ function cmdContain(args) {
     }
   }
   const asJson = flags["--json"] === true;
-  const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--record <run-id>] [--phase run|tidy|prep|build] [--json]";
+  const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--record <run-id>] [--phase run|tidy|prep|build|plot] [--json]";
 
   if (danglingValueFlag) { process.stderr.write(`faff contain: ${danglingValueFlag} needs a value.\n`); return 2; }
   if (!mandate) { process.stderr.write(`${usage}\n`); return 2; }

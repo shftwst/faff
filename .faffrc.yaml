@@ -38,30 +38,44 @@ convergence:
     enabled: true # within-run convergence on by default: drain execution-discovered scope in-run
     max_waves: 8 # reported runaway backstop only (dryness is the normal exit, never this)
 
-# faffter-dark: LLM provider config for the adversarial `review` slot (faffter-dark-adversarial-review).
-faffter_dark:
-    adversarial: # PRIMARY backend = chain element 0
+# FAFF-523: the shared named model/provider/auth backend namespace — migrated off the
+# legacy faffter_dark.adversarial primary+fallbacks scalar block (below) onto named
+# entries referenced by an ordered `refs:` list. auth/egress are left implicit
+# (derived): nvidia-glm/gemini-gemma derive auth: api-key (api_key_env present) +
+# egress: external (public host); studio-ollama derives auth: none + egress: local
+# (tailscale *.ts.net host). `timeout: 480` is restated on every entry — the legacy
+# form applied it to the primary and let both fallbacks INHERIT it; named backends:
+# entries never inherit, so byte-equivalence requires restating it explicitly.
+# Migration deviation (documented, per the spec's own named example of this exact
+# case): the legacy fallback inheritance also spuriously carried NVIDIA_API_KEY onto
+# the keyless ollama fallback (api_key_env inherited from the primary even though
+# ollama needs no key) — NOT restated here; studio-ollama correctly derives auth: none.
+backends:
+    nvidia-glm:
         provider: nvidia
         model: z-ai/glm-5.2
         host: https://integrate.api.nvidia.com/v1
         api_key_env: NVIDIA_API_KEY # confirmed set in env (name only; never the key itself)
         timeout: 480
-        fallbacks:
-            # - provider: nvidia
-            #   model: deepseek-ai/deepseek-v4-pro
-            #   host: https://integrate.api.nvidia.com/v1
-            #   api_key_env: NVIDIA_API_KEY
-            # - provider: nvidia
-            #   model: nvidia/nemotron-3-super-120b-a12b
-            #   host: https://integrate.api.nvidia.com/v1
-            #   api_key_env: NVIDIA_API_KEY
-            - provider: gemini
-              model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
-              host: https://generativelanguage.googleapis.com/v1beta/openai
-              api_key_env: GEMINI_API_KEY
-            - provider: ollama
-              model: qwen3-next:80b-a3b-instruct-q4_K_M
-              host: http://studio.longhair-escalator.ts.net:11434
+    gemini-gemma:
+        provider: gemini
+        model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
+        host: https://generativelanguage.googleapis.com/v1beta/openai
+        api_key_env: GEMINI_API_KEY
+        timeout: 480
+    studio-ollama:
+        provider: ollama
+        model: qwen3-next:80b-a3b-instruct-q4_K_M
+        host: http://studio.longhair-escalator.ts.net:11434
+        timeout: 480
+
+# faffter-dark: LLM provider config for the adversarial `review` slot (faffter-dark-adversarial-review).
+faffter_dark:
+    adversarial: # ordered refs: list — index 0 first-served, no "primary" (FAFF-261/523)
+        refs:
+            - nvidia-glm
+            - gemini-gemma
+            - studio-ollama
 
 models:
     #build: opus # Agent-token — the concurrency executors' build subagents (default: inherit)

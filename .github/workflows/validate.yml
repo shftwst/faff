@@ -187,6 +187,9 @@ jobs:
       - name: Validate run-done terminating-condition predicate table (FAFF-38)
         run: node plugin/skills/faff/bin/faff run-done --selftest
 
+      - name: Validate signals.outward producer decision table (FAFF-521)
+        run: node plugin/skills/faff/bin/faff run-outward --selftest
+
       - name: Validate run-start trigger predicate decision table (FAFF-496)
         run: node plugin/skills/faff/bin/faff run-start --selftest
 

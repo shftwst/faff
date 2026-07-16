@@ -187,6 +187,9 @@ jobs:
       - name: Validate run-done terminating-condition predicate table (FAFF-38)
         run: node plugin/skills/faff/bin/faff run-done --selftest
 
+      - name: Validate run-start trigger predicate decision table (FAFF-496)
+        run: node plugin/skills/faff/bin/faff run-start --selftest
+
       - name: Validate economics unit-economics + --by breakdown table (FAFF-357/410)
         run: node plugin/skills/faff/bin/faff economics --selftest
 
@@ -201,6 +204,9 @@ jobs:
 
       - name: Validate run-termination contract script (FAFF-38)
         run: node plugin/skills/faff/bin/faff contract run-termination --selftest
+
+      - name: Validate run-trigger contract script (FAFF-496)
+        run: node plugin/skills/faff/bin/faff contract run-trigger --selftest
 
       - name: Validate region require-graph fixture table (FAFF-444)
         run: node plugin/skills/faff/bin/faff regions --selftest

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/run-trigger",
+  "title": "run-trigger contract data",
+  "description": "Reference schema (FAFF-496). The SHAPE of the run-START trigger verdict that `faff run-start` PRODUCES and `faff contract run-trigger` VALIDATES (consumer-side Pattern-B conformance — it re-derives {verdict, reason} from `signals` and rejects a non-conforming declared verdict, mirroring l4-topology-envelope / prdr-admission). run-start is the MIRROR of `faff run-done`: run-done is the terminating predicate (fails toward `escalate`), run-start the starting predicate (fails toward `refuse`). It composes faff's already-shipped run-start signals — target resolution, the ADR-0069 outward-only read (`signals.outward`, mechanism = FAFF-521), the `prd-readiness` admissibility verdict, and `faff prdr coverage`'s `.covered` — into the one decision that opens a `/faff-beep-boop` run: plan | drain | refuse. The ladder is a FIXED refusal-biased floor (spec §4, first-failing-check-wins): target -> outward -> PRD presence/ambiguity -> admissibility -> coverage. `verdict` is the fixed three-valued contract; `reason` carries the closed reason vocabulary bound 1:1 to the verdict; there is no policy layer (unlike run-termination) — the floor is entirely fixed, which is the whole point of the refusal bias. Fail-safe toward `refuse`: a malformed/all-false signal bundle derives `refuse / no-target`, so the privileged `plan` is unreachable unless every affirmative signal is explicitly true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "reason", "signals", "conformant", "violations"],
+  "properties": {
+    "verdict": { "enum": ["plan", "drain", "refuse"] },
+    "reason": { "enum": ["coverage-thin", "prd-covered", "no-prd-nothing-to-plan", "no-target", "self-directed", "prd-ambiguous", "prd-inadmissible", "coverage-unmeasurable"] },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_resolved", "outward", "prd_present", "prd_ambiguous", "prd_admissible", "coverage_measurable", "coverage_covered"],
+      "properties": {
+        "target_resolved": { "type": "boolean" },
+        "outward": { "type": "boolean" },
+        "prd_present": { "type": "boolean" },
+        "prd_ambiguous": { "type": "boolean" },
+        "prd_admissible": { "type": "boolean" },
+        "coverage_measurable": { "type": "boolean" },
+        "coverage_covered": { "type": "boolean" }
+      }
+    },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -14,6 +14,7 @@ const path = require("node:path");
 const { HERE } = require("./shared-infra");
 const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engine");
 const { RUN_DONE_VERDICTS } = require("./run-done");
+const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, deriveRunTrigger, normalizeRunTriggerSignals } = require("./run-start");
 
 const MARKER_CLASS = { chosen: "closed", punt: "open", assumes: "external" };
 
@@ -1214,6 +1215,48 @@ function contractRunTermination(extraction) {
   return { contractData };
 }
 
+// --- run-trigger (FAFF-496) ---
+// `faff run-start` is the PRODUCER (deriveRunTrigger — the pure refusal-biased ladder); THIS is the
+// consumer-side Pattern-B validator (mirrors l4-topology-envelope / prdr-admission): given an extraction
+// shaped `{signals, verdict, reason}`, it RE-DERIVES the expected {verdict, reason} from `signals` via the
+// SAME ladder and checks the declared pair conforms — never trusting a claimed verdict at face value. The
+// re-derived pair is what the contractData carries (the derived governs — a forged/hand-altered verdict can
+// never widen past what the signals themselves justify), and any declared mismatch is a conformance
+// violation (exit 1). FAIL-SAFE toward `refuse`: normalizeRunTriggerSignals coerces every non-true signal
+// to false, so a malformed/all-false bundle derives `refuse / no-target` — the privileged `plan` is
+// structurally unreachable unless every affirmative signal is explicitly true. Fail-loud (exit 2) ONLY on a
+// non-object extraction (nothing to re-derive from), never on a bad declared verdict (that is a violation,
+// not a crash — the derived pair still governs), which is the run-start refusal bias, distinct from
+// run-termination's "no safe coerce target" fail-loud on an out-of-enum verdict.
+function computeRunTrigger(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { contractData: null, failLoud: "extraction must be a JSON object" };
+  }
+  const violations = [];
+  if (extraction.signals !== undefined && (extraction.signals === null || typeof extraction.signals !== "object" || Array.isArray(extraction.signals))) {
+    violations.push("signals is not an object — treated as empty (fail-safe → refuse)");
+  }
+  const signals = normalizeRunTriggerSignals(extraction.signals);
+  const expected = deriveRunTrigger(signals);
+  // The declared pair is checked against the re-derivation; a mismatch is the load-bearing Pattern-B
+  // violation ("validator re-derives, never trusts"). The derived pair is authoritative in contractData.
+  if (extraction.verdict !== undefined && extraction.verdict !== expected.verdict) {
+    violations.push(`declared verdict ${JSON.stringify(extraction.verdict)} does not match the re-derived ${JSON.stringify(expected.verdict)} for the given signals`);
+  }
+  if (extraction.reason !== undefined && extraction.reason !== expected.reason) {
+    violations.push(`declared reason ${JSON.stringify(extraction.reason)} does not match the re-derived ${JSON.stringify(expected.reason)} for the given signals`);
+  }
+  return { contractData: { verdict: expected.verdict, reason: expected.reason, signals, conformant: violations.length === 0, violations }, failLoud: null };
+}
+
+function contractRunTrigger(extraction) {
+  const { contractData, failLoud } = computeRunTrigger(extraction);
+  if (failLoud) return { failLoud };
+  const schemaErr = schemaCheck(contractData, "run-trigger");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // The PRODUCER (`faff prdr coverage`): the pure roll-up. No tracker/network call (parity with `faff prdr
 // yagni` / `admit` / `faff next`); the agent maps the PRD's declared goals + the live-PRDR set (and the
 // FAFF-34 per-PRDR DoD verdicts, when the evaluator exists) onto these closed-vocabulary inputs. Emits a
@@ -1243,7 +1286,12 @@ function computePrdCoverageVerdict(input) {
   let reason = "";
   if (!covered) reason = `uncovered goals (no live PRDR covers): ${uncovered_goals.join(", ")}`;
   else if (!all_met) reason = `DoD unmet/unverified (FAFF-34 verdict ≠ met): ${unmet_or_unverified.join(", ")}`;
-  return { covered, uncovered_goals, satisfied, reason, completion, conformant: true, violations: [] };
+  // FAFF-496 §3a: the additive, NON-GATING `measure` block (observability + the future ratio-tolerance
+  // knob's reserved home). Purely derived from the SAME distinct-goal set the coverage gate already uses —
+  // it changes NO existing covered/satisfied/completion semantics; run-start reads `.covered`, not `.measure`.
+  const total_goals = new Set(goals).size;
+  const measure = { total_goals, covered_goals: total_goals - uncovered_goals.length };
+  return { covered, uncovered_goals, satisfied, reason, completion, measure, conformant: true, violations: [] };
 }
 
 // The PRODUCER (`faff prdr yagni`): the deterministic two-phase arbitration. Pure — no tracker/network
@@ -1685,6 +1733,32 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "run-trigger": {
+    run: contractRunTrigger,
+    fixtures: [
+      // One conformant row per §3b verdict x reason (the producer emits declared == re-derived).
+      { name: "conformant-plan-coverage-thin", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: false, prd_admissible: true, coverage_measurable: true, coverage_covered: false }, verdict: "plan", reason: "coverage-thin" }, wantExit: 0 },
+      { name: "conformant-drain-prd-covered", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: false, prd_admissible: true, coverage_measurable: true, coverage_covered: true }, verdict: "drain", reason: "prd-covered" }, wantExit: 0 },
+      { name: "conformant-drain-no-prd", in: { signals: { target_resolved: true, outward: true, prd_present: false, prd_ambiguous: false, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "drain", reason: "no-prd-nothing-to-plan" }, wantExit: 0 },
+      { name: "conformant-refuse-no-target", in: { signals: { target_resolved: false, outward: false, prd_present: false, prd_ambiguous: false, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "refuse", reason: "no-target" }, wantExit: 0 },
+      { name: "conformant-refuse-self-directed", in: { signals: { target_resolved: true, outward: false, prd_present: false, prd_ambiguous: false, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "refuse", reason: "self-directed" }, wantExit: 0 },
+      { name: "conformant-refuse-prd-ambiguous", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: true, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "refuse", reason: "prd-ambiguous" }, wantExit: 0 },
+      { name: "conformant-refuse-prd-inadmissible", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: false, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "refuse", reason: "prd-inadmissible" }, wantExit: 0 },
+      { name: "conformant-refuse-coverage-unmeasurable", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: false, prd_admissible: true, coverage_measurable: false, coverage_covered: false }, verdict: "refuse", reason: "coverage-unmeasurable" }, wantExit: 0 },
+      // Ordering proof: the outward floor pre-empts the PRD checks (inward+no-PRD => self-directed, NOT drain).
+      { name: "ordering-inward-no-prd-is-self-directed", in: { signals: { target_resolved: true, outward: false, prd_present: false, prd_ambiguous: false, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "refuse", reason: "self-directed" }, wantExit: 0 },
+      // Pattern-B: a hand-altered verdict on plan-shaped signals is rejected (the smoke test's exact case).
+      { name: "reject-hand-altered-drain-on-plan-signals", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: false, prd_admissible: true, coverage_measurable: true, coverage_covered: false }, verdict: "drain", reason: "prd-covered" }, wantExit: 1 },
+      { name: "reject-declared-verdict-mismatch", in: { signals: { target_resolved: true, outward: true, prd_present: true, prd_ambiguous: false, prd_admissible: true, coverage_measurable: true, coverage_covered: true }, verdict: "plan", reason: "coverage-thin" }, wantExit: 1 },
+      // Fail-safe: an out-of-enum declared verdict is a VIOLATION (the derived governs), never a fail-loud —
+      // the run-start refusal bias (distinct from run-termination's fail-loud on a bad verdict).
+      { name: "out-of-enum-declared-verdict-is-violation-not-fail-loud", in: { signals: { target_resolved: false, outward: false, prd_present: false, prd_ambiguous: false, prd_admissible: false, coverage_measurable: false, coverage_covered: false }, verdict: "bogus", reason: "no-target" }, wantExit: 1 },
+      // Fail-safe: missing/malformed signals derive refuse/no-target; a bare verdict-less extraction is conformant to the derivation.
+      { name: "missing-signals-derives-refuse-no-target", in: { verdict: "refuse", reason: "no-target" }, wantExit: 0 },
+      { name: "malformed-signals-object-is-violation", in: { signals: "nope", verdict: "refuse", reason: "no-target" }, wantExit: 1 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
 };
 
 function contractSelftest(name) {
@@ -1728,4 +1802,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, cmdContract, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

@@ -88,6 +88,10 @@ const REGION_MAP = {
   // into a QualityReport, touches no producer → factory (FAFF-418).
   "quality": "factory",
   "run-done": "factory",
+  // run-start — FAFF-496: the run-START trigger predicate (mirror of run-done). A pure
+  // signal-composing verb + belt-and-braces schemaCheck, no extractable flight-recorder
+  // layer → factory.
+  "run-start": "factory",
   "hooks-ensure": "factory",
   "merge-fence": "factory",
   // FAFF-491: the self-backgrounded-gate PreToolUse fence — same family as merge-fence
@@ -200,6 +204,7 @@ const REGION_SELFTEST_ARGV = {
   "disposition": ["disposition", "--selftest"],
   "quality": ["quality", "--selftest"],
   "run-done": ["run-done", "--selftest"],
+  "run-start": ["run-start", "--selftest"],
   "hooks-ensure": ["hooks-ensure", "--selftest"],
   "merge-fence": ["merge-fence", "--selftest"],
   "background-fence": ["background-fence", "--selftest"],

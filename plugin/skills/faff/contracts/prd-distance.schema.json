@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/contracts/prd-distance",
+  "title": "prd-distance contract data",
+  "description": "Reference schema (FAFF-535). The SHAPE of the PRD-satisfaction-greedy drain-ordering signal that `faff prdr distance` PRODUCES and `faff contract prd-distance` VALIDATES (consumer-side conformance, mirroring prd-coverage / prdr-yagni). One `entries` list of per-sibling remainders, each classified onto the coarse four-class steps-remaining ladder (met 0 / unverified 1 / unmet 2 / uncovered 3 — lower class_rank = nearer to advancing the parent PRD), plus a `prd_satisfied` echo of the coverage roll-up (observability, NOT a gate). It is NOT consumed by any gate: it is a pure, PRD-scoped INPUT the methodology composes as a within-band ordering tiebreaker (gateway Standard-envelope floor: distance never crosses human-set priority bands; absent ⇒ every ordering output byte-identical). NO safe coerce target — faff's own producer emits it, so a malformed extraction is a fail-loud. Load-bearing invariants (class_rank pinned to distance_class per the ladder; kind === 'goal' ⟺ distance_class === 'uncovered') are enforced in code as conformance violations. `id` / `container` / `dod_verdict` are nullable (goal entries and absent-verdict siblings carry null), so their type is left unconstrained here and pinned in the producer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entries", "prd_satisfied", "conformant", "violations"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "id", "container", "prd_goal", "dod_verdict", "distance_class", "class_rank"],
+        "properties": {
+          "kind": { "enum": ["prdr", "goal"] },
+          "id": {},
+          "container": {},
+          "prd_goal": { "type": "string" },
+          "dod_verdict": {},
+          "distance_class": { "enum": ["met", "unverified", "unmet", "uncovered"] },
+          "class_rank": { "type": "integer" }
+        }
+      }
+    },
+    "prd_satisfied": { "type": "boolean" },
+    "conformant": { "type": "boolean" },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  }
+}

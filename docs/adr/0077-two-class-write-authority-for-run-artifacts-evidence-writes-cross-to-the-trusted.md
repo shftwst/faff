@@ -1,0 +1,49 @@
+# ADR 0077 — Two-class write authority for run artifacts — evidence writes cross to the trusted side of the dispatch cut
+
+- **Status:** Proposed
+- **Provenance:** loop
+- **Date:** 2026-07-17
+- **Issue:** FAFF-519
+- **Governing lineage:** ADR-0039 (Channel A corrective authority), ADR-0061 (assert-the-boundary), ADR-0074 (faff owns the declaration content); adjacent: ADR-0043 (merge-floor interlock), ADR-0034 (sentry at the orchestrator dispatch boundary), ADR-0073 (single-session lanes defer process isolation).
+- **Mis-cite correction:** the originating ticket cited "ADR-0072 §5". ADR-0072 is *Container-create follows the PRDR lifecycle* and has no §5 — it does not govern write authority. The governing lineage is the set above; this ADR records the correction so the mis-cite is not propagated.
+
+## Context
+
+Trust in a `.faff/runs/<id>/` artifact comes from *who could have written it*, not from what it says. Today that principle is only half-applied. The digest evidence roster is single-sourced (`correctiveIntegrityDirs()`, `corrective-integrity.js`) and declared read-only-to-lanes via `FAFF_INTEGRITY_BOUNDARY` — yet the build lane itself currently writes three of that roster's members: `<issue>/ac-checklist.json` (graft Step 8), `<issue>/review-verdict.json` (graft Step 9), and the per-issue-gate copy of `<issue>/holdout.json` (graft Step 10). The declared forge surface and the actual write sites contradict each other: the build subagent authors the very verdict files that judge its own work — structurally self-marked homework.
+
+This is named debt with a decided direction, not an emergency. Under ADR-0073, lanes are same-session subagents with no enforced read-only mount, so the current in-lane writes are the sanctioned rung-0 posture rather than an active exploit. But two downstream tickets need the class line ruled before they can proceed: FAFF-520 (executor digest bracketing) is blocked until the freeze-set semantics are decided, and FAFF-518's verify code already forward-references "the FAFF-519 write-authority split" (`integrity-digest.js`). A custody digest taken *over* a lane-written file proves only "not tampered after the untrusted party wrote it" — worthless against self-marked homework — so the bracket is meaningless until the writer moves above the cut.
+
+The precedent to generalise is shipped: FAFF-384's caged holdout, where the *spawner* derives `code_blind` and writes `holdout.json` and the inner evaluator never does. Detection (the `digest-verified` custody digest, ADR-0061) and prevention (the `asserted` read-only mount, ADR-0074) are separate authorities that must stay honestly labelled; the class split serves both — it defines what a future mount covers *and* what the digest bracket may expect to stay frozen.
+
+## Decision
+
+**Every `.faff/runs/<id>/` artifact carries one of two write-authority classes, and the classes bind actors relative to the orchestrator→lane dispatch cut.**
+
+- **Evidence class** — artifacts a downstream gate (merge floor, corrective, detection, reconcile) consumes as trust-bearing input. **Write authority: the trusted side of the active dispatch cut only.** Untrusted lanes *return* the data in their terminal payload; the dispatcher verifies the digest bracket, then persists. The evidence roster **is** `correctiveIntegrityDirs()` (never a second hand-written list) plus the two merge-tail records `merge-record.json` and `post-merge-verification.json`.
+- **Sensor/resume class** — artifacts whose value is liveness telemetry or crash-resumability (narrative logs, `graft.md`/`prep.md`/`park.md`, `build-progress.json`, `review-progress.json`, `.faff/resume/<issue>/`, `heartbeat*`, `discovered-scope.json`, `merge-gate-override.json`). **Write authority: the producing lane, single-writer per file.** Mid-lane writes are the feature: a dead subagent must leave them behind to resume from, and a live one must tick them mid-flight for the sentry poller. They stay lane-writable, treated as untrusted sensor input (reconcile-only when unasserted, per FAFF-466) — never bare gate evidence.
+
+**The dispatch cut and the interactive carve-out.** The cut is the orchestrator→lane *dispatch* (beep-boop → build subagent; graft/beep-boop → spawned reviewer/evaluator process), and the classes bind **only across an active cut**. Interactive graft (L2, top-level) has no cut above it: the human-supervised session *is* the trusted side, so it legitimately writes every class directly, exactly as today — unasserted boundary at rung-0, `merge-gate --interactive` level-branch unchanged. The evidence rule activates only for dispatched (autonomous-orchestration) lanes. This is a carve-out by construction, not an exception list.
+
+**Two classes, not three.** A mechanical CLI's output (e.g. `faff merge-gate` writing `merge-record.json`) is evidence whose authority derives from *where the CLI is invoked from*, not a third kind of trust. Two classes suffice.
+
+**Mandated relocations — follow-up work, explicitly NOT built in FAFF-519:**
+
+1. The three contested per-issue evidence writes move above the cut. The lane returns the AC result, the reviewer's extraction JSON, and (per-issue gate) the holdout dispatch responsibility in its terminal payload; the dispatcher digest-verifies then persists. Only the holdout artifact gets the full FAFF-384 spawner treatment (trusted side runs the judge and derives the attestation from a provably-withheld launch). **Honest scope:** for `ac-checklist.json` and `review-verdict.json` the lane still *authors* the content it returns — the dispatcher persisting it changes the *writer*, not the *author*. Content-independence comes only from the trusted-side code-blind holdout gate; lane-authored review/AC content is an acknowledged residual until a later follow-up mandates trusted-side re-derivation.
+2. The merge locus moves with them. `faff merge-gate` fail-closes on a missing `ac-checklist.json` and a missing `review-verdict.json`, so dispatcher-persisted evidence that lands only after lane return cannot feed an in-lane merge. The `merge-gate` invocation (the ship handoff, and with it `merge-record.json` + the post-merge tail) therefore moves to the trusted side — which also serialises shared-`main` mutation at the orchestrator, coherent with ADR-0043's single mechanical merge locus. In the enforced-cut world lanes end at "gates green, PR ready, evidence returned".
+
+**Freeze-set semantics (settles FAFF-520 without re-litigation):**
+
+- **Decision 5 — `events.jsonl` stays prefix-preserving, not byte-exact.** The parallel executor's poll loop legitimately appends orchestrator events (`sentry-checkpoint`) while lanes are in flight, so a byte-exact rule would false-flag the orchestrator's own appends. Keep FAFF-518's shipped prefix-preserving rule for `events.jsonl`; every *other* evidence member is byte-exact across a dispatch bracket once the relocations land.
+- **Decision 6 — FAFF-520's interim bracket is run-grain.** Until the relocation ticket lands, the per-issue members are still legitimately lane-written mid-dispatch, so bracketing them now would demand re-baselining bookkeeping the relocation deletes anyway. FAFF-520 brackets the run-grain set (`correctiveIntegrityDirs(runDir)` + `--events`: `corrective/`, `run-ledger.json`, `events.jsonl`-prefix) byte-exact/prefix now; per-issue members join the bracket when their writes relocate.
+- **Decision 7 — merge-tail digest membership deferred.** `merge-record.json` and `post-merge-verification.json` are not in `correctiveIntegrityDirs()` today and appear mid-lane. Defer adding them to the evidence set until the merge locus has moved; then it is a one-line additive change at the single resolver, mirroring the FAFF-466 `--events` pattern.
+
+## Consequences
+
+- **The declared forge surface and the write sites become consistent** once the relocations land — a genuinely mounted boundary (FAFF-517) would make today's graft Step 8/9 writes impossible, and this ruling points the code at that world rather than contradicting it.
+- **FAFF-520 unblocks immediately** on the run-grain interim bracket (Decision 6) with the `events.jsonl` prefix rule (Decision 5) as its one citable operative rule — no open write-authority question remains for its prep.
+- **Rung-0 operation is unbroken.** Under ADR-0073 the current in-lane sequence remains the sanctioned posture until the follow-ups land; nothing in this ADR executes against a mount, and interactive graft is untouched.
+- **The relocation may prove oversized** (moving ship out of graft ripples through both concurrency slot contracts and the delivery-outcome consumer). If the follow-up's prep parks or splits, stage per-artifact — `ac-checklist`/`review-verdict` first, merge locus second; the class ruling here stands regardless.
+- **Dispatcher-persisted evidence must not weaken crash-resume.** Resume-critical copies stay in the sensor/resume store (`.faff/resume/<issue>/`, checkpoints), which is exactly why that class stays lane-writable; evidence is re-derived or re-persisted by the trusted side, never trusted from a lane-writable stash.
+- **Anti-pattern, recorded:** treating `digest-verified` over a lane-written file as trust in its *content*. Custody detection starts at snapshot time; it cannot launder authorship (the ADR-0061 lying-attestation failure).
+- **Assumes FAFF-517.** This ruling is custody-detected, not mount-prevented, until an outer-layer cage with a real read-only mount (FAFF-517, still open/planned) exists to convert it. Nothing in FAFF-519's deliverable executes against that mount.
+- **Landing surface (Decision 8):** this ADR plus one operative shared-rule paragraph in the gateway (`plugin/skills/faff/SKILL.md`), referenced — never copied — by the graft and concurrency SKILL.mds. The executors need one referenceable operative rule; the *why* and the rejected alternatives live here, not in the runtime prompt.

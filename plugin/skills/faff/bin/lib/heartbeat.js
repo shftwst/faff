@@ -167,6 +167,53 @@ function atomicWriteLedger(runDir, ledger) {
   fs.renameSync(tmp, target);
 }
 
+// FAFF-527 — owner-epoch write fence (takeover safety). A resume of a *dead-running*
+// run mints a new owner epoch (owner.epoch++ + a new session_id); the original driver
+// may be live-but-quiet (its effective heartbeat aged past the staleness window while an
+// isolated build subagent was legitimately mid-step). Every ledger write path re-reads
+// `owner.{epoch, session_id}` immediately before writing and YIELDS — a no-op, never a
+// crash — when its own epoch/session no longer matches, so the stale driver structurally
+// cannot clobber the resumed ledger. This mirrors the status-monotonicity local-compare
+// pattern (no CAS): a purely local pre-write check against the on-disk owner block.
+//
+// PURE: given the disk owner block and the writer's expected {epoch, session_id}, is the
+// writer stale? A missing `expected` (a caller not participating in the fence) is NEVER
+// stale — the fence is strictly opt-in, so unfenced callers keep byte-for-byte today's
+// behaviour. Epoch is compared with the default-0 convention (absent ⇒ 0), so a pre-527
+// ledger (no epoch anywhere) and an unfenced writer never trip. When a session_id is
+// carried on both sides it must also match (a same-epoch different-session write is a
+// race the epoch alone wouldn't catch on a legacy ledger).
+function ownerEpochFenceStale(diskOwner, expected) {
+  if (!expected || typeof expected !== "object") return false;
+  const de = Number((diskOwner && diskOwner.epoch) || 0);
+  const ee = Number(expected.epoch || 0);
+  if (de !== ee) return true;
+  const ds = diskOwner && diskOwner.session_id;
+  const es = expected.session_id;
+  if (es != null && ds != null && ds !== es) return true;
+  return false;
+}
+
+// Fenced atomic ledger write. Re-reads the on-disk owner block and, if the writer's
+// epoch/session no longer owns the run (a newer resume took it over), YIELDS: writes
+// nothing, logs loudly to stderr, and returns { written:false, yielded:true }. On a
+// clean match (or no `expected` — the unfenced default) it writes and returns
+// { written:true }. Never throws on a stale fence — a yielded write is a designed no-op,
+// not a fault (the takeover is the intended outcome).
+function atomicWriteLedgerFenced(runDir, ledger, expected) {
+  if (expected) {
+    let disk = null;
+    try { disk = readLedger(runDir); } catch { disk = null; }
+    if (disk && ownerEpochFenceStale(disk.owner, expected)) {
+      process.stderr.write(`ledger write yielded: owner epoch/session moved on in ${runDir} ` +
+        `(writer epoch ${expected.epoch ?? 0}/${expected.session_id ?? "?"}, on-disk epoch ${(disk.owner && disk.owner.epoch) ?? 0}/${(disk.owner && disk.owner.session_id) ?? "?"}) — a newer resume owns this run\n`);
+      return { written: false, yielded: true };
+    }
+  }
+  atomicWriteLedger(runDir, ledger);
+  return { written: true, yielded: false };
+}
+
 // Resolution order (spec §3): explicit arg → $FAFF_RUN_DIR → latest run under .faff/runs.
 // A subagent should always pass RUN_DIR explicitly — "latest" can resolve the wrong
 // ledger under concurrent/overlapping runs (the anti-pattern the spec calls out).
@@ -329,7 +376,7 @@ function heartbeatSelftest() {
 
 
 module.exports = {
-  atomicWriteLedger, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest, isValidIssueId,
-  memberHeartbeatFileName, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile,
-  resolveHeartbeatRunDir, writeHeartbeatFile, writeMemberHeartbeatFile,
+  atomicWriteLedger, atomicWriteLedgerFenced, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
+  isValidIssueId, memberHeartbeatFileName, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
+  readMemberHeartbeatFile, resolveHeartbeatRunDir, writeHeartbeatFile, writeMemberHeartbeatFile,
 };

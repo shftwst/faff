@@ -34,13 +34,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { AT_CEILING_OUTCOMES, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
+const { AT_CEILING_OUTCOMES, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { eventLineCount } = require("./events");
-const { atomicWriteLedger } = require("./heartbeat");
-const { dig, findRoot, mainWorktreeRoot } = require("./shared-infra");
+const { atomicWriteLedger, atomicWriteLedgerFenced, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
+const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
+const { dig, findRoot, mainWorktreeRoot, readLedger } = require("./shared-infra");
 
 const LIGHTS_OUT_GUARDRAILS = [
   { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible", enforced: true },
@@ -656,6 +657,54 @@ function cmdLightsOut(args) {
   const [cfg] = loadConfig(root);
   const binPath = process.argv[1];
 
+  // FAFF-527: --resume <run-id> re-enters an EXISTING run's ledger instead of minting a
+  // new one. Mutually exclusive with --id (a resume never renames). The resume path
+  // re-fires the SAME preflight assembly below, so it shares the mint's guardrail wiring.
+  const resumeId = get("--resume");
+  if (resumeId != null) {
+    if (get("--id") != null) {
+      const msg = "lights-out: --resume and --id are mutually exclusive (a resume continues an existing run-id, never renames a mint)";
+      if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", error: msg }) + "\n");
+      else process.stderr.write(msg + "\n");
+      return 2;
+    }
+    return resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId });
+  }
+
+  // FAFF-527: the preflight assembly (all 8 guardrails + the floor + dial coherence) is
+  // shared verbatim between the mint path and the `--resume` re-fire, so a resumed run is
+  // judged against the CURRENT config/environment exactly as a fresh mint is. One home for
+  // the probe wiring means the two can never drift.
+  const A = assembleLightsOutPreflight(root, cfg, binPath, get, unreachable);
+  const { pf, envelope, metering, correctiveAuthority, dial_profile, container, floor } = A;
+
+  // REFUSE (fail-closed): print the banner + refusals, mint nothing, emit no work.
+  if (!pf.proceed) {
+    if (json) {
+      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, refusals: pf.refusals, banner: pf.banner }) + "\n");
+    } else {
+      console.log(pf.banner);
+      console.log(`\nREFUSED — lights-out preflight not satisfied:`);
+      for (const r of pf.refusals) console.log(`  ✗ ${r.gate}: ${r.detail}`);
+    }
+    return 1;
+  }
+
+  // --check: would-proceed, but mint nothing (a side-effect-free preflight probe).
+  if (checkOnly) {
+    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true, degrades: pf.degrades }) + "\n");
+    else { console.log(pf.banner); console.log(`\nPreflight PASS (--check: no run minted).`); }
+    return 0;
+  }
+
+  return mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiveAuthority, dial_profile, floor, prdLicence, prdRoot });
+}
+
+// FAFF-527 — the shared preflight assembly: build every guardrail/floor/dial probe from
+// the CURRENT config + environment and run the pure preflight core. Returns everything
+// both the mint path and the resume re-fire consume. Extracted verbatim from the mint
+// path (byte-for-byte the same probe wiring) so mint/resume never diverge.
+function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
   // Container preflight (the containerisation ADR / claude-box): WARN→BLOCK on the
   // lights-out path only — L1–L3 keep today's warn-don't-block behaviour.
   const container = containerCheck(process.env, realFsq()).result;
@@ -774,25 +823,13 @@ function cmdLightsOut(args) {
     gates: resolveSlotOccupant(cfg, "gates"),
   };
 
-  // REFUSE (fail-closed): print the banner + refusals, mint nothing, emit no work.
-  if (!pf.proceed) {
-    if (json) {
-      process.stdout.write(JSON.stringify({ proceed: false, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, refusals: pf.refusals, banner: pf.banner }) + "\n");
-    } else {
-      console.log(pf.banner);
-      console.log(`\nREFUSED — lights-out preflight not satisfied:`);
-      for (const r of pf.refusals) console.log(`  ✗ ${r.gate}: ${r.detail}`);
-    }
-    return 1;
-  }
+  return { pf, envelope, metering, correctiveAuthority, dial_profile, container, floor };
+}
 
-  // --check: would-proceed, but mint nothing (a side-effect-free preflight probe).
-  if (checkOnly) {
-    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", container, corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, banner: pf.banner, checked: true, degrades: pf.degrades }) + "\n");
-    else { console.log(pf.banner); console.log(`\nPreflight PASS (--check: no run minted).`); }
-    return 0;
-  }
-
+// FAFF-527: the mint tail — extracted from cmdLightsOut so the resume path can reuse the
+// shared assembly above WITHOUT re-minting a new run. Mints the strict-defaults L4
+// run-ledger, persists the banner, emits the run-start event.
+function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiveAuthority, dial_profile, floor, prdLicence, prdRoot }) {
   // PROCEED: mint the strict-defaults L4 run-ledger, persist the banner, emit run-start.
   // FAFF-312: apply the level-scoped mint-time at_ceiling default (escalate-when-unset,
   // explicit-config-verbatim) into the ledger envelope. envelopeFromLedger reads it back
@@ -873,6 +910,224 @@ function cmdLightsOut(args) {
     console.log(`Launch the unattended drain with this run armed:  FAFF_APPETITE=full FAFF_RUN_DIR=${runDir} /faff-beep-boop`);
   }
   return 0;
+}
+
+// FAFF-527 — the resume impure shell (spec §4). Steps 1–4 are side-effect-free; the
+// first write is step 5, so `--check` runs 1–4 and prints the plan. Returns the CLI exit.
+function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable, resumeId }) {
+  const emitRefuse = (code, msg, extra) => {
+    if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", resume: resumeId, error: msg, ...(extra || {}) }) + "\n");
+    else process.stderr.write(msg + "\n");
+    return code;
+  };
+
+  // STEP 1a: resolve run_dir; a missing dir or unparseable ledger is fail-loud (exit 2,
+  // ledger untouched) — never reconstruct a ledger from the events stream.
+  const runDir = path.join(root, ".faff", "runs", resumeId);
+  if (!fs.existsSync(path.join(runDir, "run-ledger.json"))) {
+    return emitRefuse(2, `lights-out --resume: no run-ledger.json under ${runDir} (unknown run-id, or a corrupt/absent ledger — never reconstructed from events)`);
+  }
+  let ledger;
+  try { ledger = readLedger(runDir); }
+  catch (e) { return emitRefuse(2, `lights-out --resume: malformed ledger in ${runDir}: ${e.message} (fail-loud; the ledger is the single source of truth)`); }
+
+  // STEP 1b: classify re-enterability. Overlay the dedicated heartbeat file over the
+  // ledger field, then use runIsHeld to distinguish a live (fresh) from a dead (stale)
+  // running owner — the SAME liveness read every other seam uses (no second constant).
+  const { runIsHeld } = require("./runcheck");
+  const clone = JSON.parse(JSON.stringify(ledger));
+  overlayHeartbeat(clone, readHeartbeatFile(runDir));
+  const held = runIsHeld(clone, Date.now(), process.env);
+  const cls = classifyReEnterable(ledger, { held });
+  if (!cls.reEnterable) return emitRefuse(2, `lights-out --resume: ${cls.refuseReason}`, { state: cls.state });
+  const priorState = cls.state;
+
+  // STEP 1c: v1 is sequential-executor only — a parallel concurrency slot refuses (the
+  // worktree-contention + merge-race reconstruction is out of scope; see the spec).
+  const concurrency = resolveSlotOccupant(cfg, "concurrency");
+  if (concurrency && /parallel/i.test(concurrency)) {
+    return emitRefuse(2, `lights-out --resume: the configured concurrency slot '${concurrency}' is parallel; v1 resume is sequential-executor only (unset slots.concurrency or select the sequential default to resume)`, { state: priorState });
+  }
+
+  // STEP 2: RE-FIRE the full mint preflight against CURRENT config/environment. Any
+  // refusal leaves the ledger untouched (mirrors the mint refuse path).
+  const A = assembleLightsOutPreflight(root, cfg, binPath, get, unreachable);
+  const { pf } = A;
+  if (!pf.proceed) {
+    if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", resume: resumeId, state: priorState, refusals: pf.refusals, banner: pf.banner }) + "\n");
+    else { console.log(pf.banner); console.log(`\nREFUSED — resume preflight not satisfied (ledger untouched):`); for (const r of pf.refusals) console.log(`  ✗ ${r.gate}: ${r.detail}`); }
+    return 1;
+  }
+
+  // STEP 2b: escalated-budget gate — a budget-escalated re-entry must not silently
+  // continue under the same ceiling. Re-resolve the envelope from config (done in the
+  // assembly) and confront accumulated spend; still at/over → refuse, naming the key.
+  if (priorState === "escalated" && typeof ledger.stop_reason === "string" && ledger.stop_reason.startsWith("budget-escalated")) {
+    const stillOver = resumeBudgetStillOverCeiling(binPath, runDir);
+    if (stillOver.over) {
+      return emitRefuse(1, `lights-out --resume: accumulated spend still at/over the budget ceiling (${stillOver.breached.join(", ") || "budget"}) — raise budget.* in .faffrc and re-run --resume (the human's fix is the config edit; resume never auto-inherits headroom it cannot prove)`, { state: priorState });
+    }
+  }
+
+  // STEP 4 (pre-write): gather forge/artifact evidence and reconstruct the plan (pure).
+  const evidence = gatherResumeEvidence(runDir, root, ledger, binPath);
+  const plan = reconstructResumePlan(ledger, evidence);
+  const priorEpoch = Number((ledger.owner && ledger.owner.epoch) || 0);
+  const wipCommit = ledger.abort && ledger.abort.wip_commit ? ledger.abort.wip_commit : null;
+  const banner = renderResumeBanner(resumeId, priorState, priorEpoch + 1, plan, wipCommit);
+
+  // --check: steps 1–4 + print, NO writes (ledger + events byte-identical).
+  if (checkOnly) {
+    if (json) process.stdout.write(JSON.stringify({ proceed: true, level: "L4", resume: resumeId, state: priorState, checked: true, plan, banner }) + "\n");
+    else { console.log(pf.banner); console.log("\n" + banner); console.log("\nResume PASS (--check: no ledger write)."); }
+    return 0;
+  }
+
+  // STEP 3: budget close-out + re-baseline (shape (a)) — close the prior open span into a
+  // measured delta, open a new span baselined at the resume instant. Never closes at zero.
+  const nowIso = new Date().toISOString();
+  const budgetSessions = closeAndOpenBudgetSessions(ledger, root, nowIso);
+
+  // STEP 5: WRITE the re-entry (first side effect) — owner history + new epoch owner +
+  // abort→history + cleared stop_reason + resume[] + budget.sessions. The new owner block
+  // is the epoch-fence anchor; the write is fenced against a concurrent takeover.
+  const sessionId = process.env.FAFF_SESSION_ID || null;
+  const { ledger: next, epoch } = applyResumeToLedger(ledger, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
+  const writeRes = atomicWriteLedgerFenced(runDir, next, { epoch: priorEpoch, session_id: (ledger.owner && ledger.owner.session_id) || null });
+  if (writeRes.yielded) return emitRefuse(1, `lights-out --resume: a concurrent resume already took over ${resumeId} — yielding (no write)`, { state: priorState });
+
+  // Append the run-resume event, continuing the existing seq stream (no second run-start).
+  const eventsPath = path.join(runDir, "events.jsonl");
+  const seq = eventLineCount(eventsPath);
+  const evt = runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch });
+  fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
+
+  // STEP 6: HAND OFF exactly as mint does.
+  if (json) {
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", resume: resumeId, run_id: resumeId, run_dir: runDir, epoch, state: priorState, plan, banner }) + "\n");
+  } else {
+    console.log(banner);
+    console.log(`\nRe-entered L4 run (epoch ${epoch}): ${runDir}`);
+    console.log(`Continue the unattended drain:  FAFF_APPETITE=full FAFF_RUN_DIR=${runDir} /faff-beep-boop`);
+  }
+  return 0;
+}
+
+// FAFF-527 — dry budget confrontation for the escalated-budget gate. Shells the SAME
+// `faff budget check` the governor uses (never a re-derived counter); a token/cost breach
+// on the re-resolved ceiling means spend is still at/over. Fail-safe: any child failure is
+// treated as NOT-over (proceed) — the ship-time/Sentry backstops remain the real gate, and
+// refusing a resume on a flaky meter would strand the run.
+function resumeBudgetStillOverCeiling(binPath, runDir) {
+  try {
+    const r = spawnSync(process.execPath, [binPath, "budget", "check", "--run-dir", runDir, "--json"], { encoding: "utf8" });
+    if (r.status !== 0 || !r.stdout) return { over: false, breached: [] };
+    const out = JSON.parse(r.stdout.trim().split("\n").pop());
+    const breached = Array.isArray(out.breached) ? out.breached.filter((b) => b === "tokens" || b === "cost") : [];
+    return { over: breached.length > 0, breached };
+  } catch { return { over: false, breached: [] }; }
+}
+
+// FAFF-527 — the impure evidence gatherer for reconstruction (spec §4 step 4). Per
+// admitted issue, reads the durable per-issue artifacts and confronts the forge, so the
+// pure reconstructResumePlan can classify. Fail-closed by construction: a shipped claim we
+// cannot prove merged (no gh, no merge-record) reconciles to `claimed-shipped-unmerged`
+// and parks; never a silent skip.
+function gatherResumeEvidence(runDir, root, ledger, binPath) {
+  const ev = {};
+  const admitted = Array.isArray(ledger.admitted) ? ledger.admitted : [];
+  const outcomes = (ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
+  for (const issue of admitted) {
+    const e = {};
+    const issueDir = path.join(runDir, issue);
+    if (outcomes[issue] === "shipped") {
+      const recorded = readJsonSafe(path.join(issueDir, "merge-record.json"));
+      e.recorded = recorded && recorded.head_sha ? { pr: recorded.pr ?? null, head_sha: recorded.head_sha, merged: true } : null;
+      e.observed = observeForgeMerge(recorded);
+    } else if (outcomes[issue] === undefined) {
+      // in-flight when the run died — is it at a resumable boundary?
+      e.resumeStore = fs.existsSync(path.join(root, ".faff", "resume", issue))
+        || fs.existsSync(path.join(issueDir, "review-progress.json"));
+      const bp = readJsonSafe(path.join(issueDir, "build-progress.json"));
+      const complete = !!(bp && bp.build && bp.build.status === "complete");
+      e.buildComplete = complete;
+      if (complete && bp.build.branch) e.branchExists = branchExistsOnForge(bp.build.branch);
+      if (ledger.abort && ledger.abort.wip_commit && ledger.abort.issue === issue) e.wipCommit = ledger.abort.wip_commit;
+    }
+    ev[issue] = e;
+  }
+  return ev;
+}
+
+// Observe a PR's live merge state from the forge (best-effort). Returns the reconcile
+// `observed` shape { pr_merged, merged_head_sha }. No merge-record or no gh ⇒ not-merged
+// (fail-closed → the issue parks rather than skipping unproven).
+function observeForgeMerge(recorded) {
+  if (!recorded || recorded.pr == null) return { pr_merged: false, merged_head_sha: null };
+  try {
+    const r = spawnSync("gh", ["pr", "view", String(recorded.pr), "--json", "state,mergeCommit"], { encoding: "utf8" });
+    if (r.status !== 0 || !r.stdout) return { pr_merged: false, merged_head_sha: null };
+    const j = JSON.parse(r.stdout);
+    const merged = j.state === "MERGED";
+    return { pr_merged: merged, merged_head_sha: merged && j.mergeCommit ? j.mergeCommit.oid : null };
+  } catch { return { pr_merged: false, merged_head_sha: null }; }
+}
+
+// Does a build-complete-recorded branch still resolve on the forge? A gh/git failure is
+// fail-closed to "missing" (the issue parks rather than a silent duplicate rebuild).
+function branchExistsOnForge(branch) {
+  try {
+    const r = spawnSync("git", ["ls-remote", "--heads", "origin", branch], { encoding: "utf8" });
+    return r.status === 0 && typeof r.stdout === "string" && r.stdout.trim() !== "";
+  } catch { return false; }
+}
+
+// FAFF-527 — budget close-out + re-baseline (spec §4 step 3, shape (a)). Closes the prior
+// open span into a measured per-model delta and opens a fresh span baselined at the resume
+// instant. Never closes at zero: an unresolvable prior transcript degrades the close_source
+// to "degraded" but still records the last-known figure (unknown spend consumes the benefit
+// of the doubt, never grants headroom).
+function closeAndOpenBudgetSessions(ledger, root, nowIso) {
+  const budget = (ledger.budget && typeof ledger.budget === "object") ? ledger.budget : {};
+  // Existing sessions, or synthesize span 0 from the mint baseline + minting session.
+  let sessions = Array.isArray(budget.sessions) ? budget.sessions.slice() : null;
+  if (!sessions) {
+    sessions = [{
+      session_id: (ledger.owner && ledger.owner.session_id) || null,
+      baseline_by_model_class: (budget.tokens_at_start_by_model_class && typeof budget.tokens_at_start_by_model_class === "object") ? budget.tokens_at_start_by_model_class : {},
+      closed_delta_by_model_class: null, closed_at: null, close_source: null,
+    }];
+  }
+  // Close the current open span (the last with a null delta).
+  const openIdx = (() => { for (let i = sessions.length - 1; i >= 0; i--) if (sessions[i] && sessions[i].closed_delta_by_model_class == null) return i; return -1; })();
+  if (openIdx >= 0) {
+    const open = sessions[openIdx];
+    const priorStart = (ledger.owner && ledger.owner.started_at) ? Date.parse(ledger.owner.started_at) : null;
+    let measured = null, closeSource = "degraded";
+    try {
+      const env = open.session_id ? { ...process.env, CLAUDE_CODE_SESSION_ID: open.session_id } : process.env;
+      const m = measureTokensByModelClass({ cwd: root, env, runStartMs: Number.isFinite(priorStart) ? priorStart : null });
+      if (m.source === "transcript") { measured = m.by_model; closeSource = "transcript"; }
+    } catch { /* degrade */ }
+    const closed = measured ? closeSpanDeltaByModel(open.baseline_by_model_class, measured)
+      : (open.baseline_by_model_class && typeof open.baseline_by_model_class === "object" ? {} : {});
+    sessions[openIdx] = { ...open, closed_delta_by_model_class: closed, closed_at: nowIso, close_source: closeSource };
+  }
+  // Open the new span, baselined at the resume instant with the resuming session's sid.
+  let newBaseline = {};
+  try {
+    const m = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs: Date.parse(nowIso) });
+    if (m.source === "transcript") newBaseline = Object.fromEntries(m.by_model);
+  } catch { /* empty baseline degrade */ }
+  sessions.push({
+    session_id: process.env.CLAUDE_CODE_SESSION_ID || null,
+    baseline_by_model_class: newBaseline, closed_delta_by_model_class: null, closed_at: null, close_source: null,
+  });
+  return sessions;
+}
+
+function readJsonSafe(p) {
+  try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
 }
 
 // In-memory selftest of the pure preflight core over synthetic probe fixtures —
@@ -1320,6 +1575,11 @@ function lightsOutSelftest() {
   const noDial = lightsOutPreflight({ container: "contained", reachable: allReach(), reviewReachable: true, specReviewSlot: true, budgetCeilingSet: true, floor: { ...okFloor } });
   check("no-dial preflight proceeds (coherence guard skips absent dial)",
     noDial.proceed === true && !noDial.refusals.some((r) => r.gate.startsWith("dial-coherence:")));
+
+  // FAFF-527: fold the resume pure-core selftest under the same CLI --selftest path so
+  // CI's `lights-out --selftest` exercises the re-entry classification / plan / ledger math.
+  const { resumeSelftest } = require("./resume");
+  if (resumeSelftest() !== 0) failed++;
 
   if (failed) { console.log(`lights-out --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("lights-out --selftest: ok");

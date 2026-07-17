@@ -67,6 +67,9 @@ const DELIVERY_PROFILE = {
     "sentry-checkpoint",
     "corrective-authored", "corrective-consumed",
     "containment-check",
+    // FAFF-527: one run-scoped event per L4 re-entry (epoch, prior_state, skipped_shipped,
+    // rebuilt_coarse) — continues the SAME run_id's seq stream, never a second run-start.
+    "run-resume",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",

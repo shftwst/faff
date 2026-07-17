@@ -439,6 +439,20 @@ function mergeTrackingBlock(rawText, sets, force) {
   let insertAt = bodyEnd;
   while (insertAt > trackIdx + 1 && lines[insertAt - 1].trim() === "") insertAt--;
 
+  // Sample the block's existing child indentation so an inserted key lands at the
+  // SAME column as its siblings. parseYamlSubset's parseMap requires exact-indent
+  // children (shared-infra.js:340): a line inserted at the wrong indent is read as
+  // outside the block → dig() returns null → the round-trip guard fail-closes. The
+  // first indented body line wins (a well-formed block's keys share one column);
+  // fall back to 2 for an empty block (no indented child to sample). This honours
+  // the user's own formatting (e.g. this repo's 4-space tracking body) without
+  // touching any existing byte — the surgical-merge invariant. FAFF-531.
+  let blockIndent = 2;
+  for (let i = trackIdx + 1; i < bodyEnd; i++) {
+    if (lines[i].trim() !== "" && indentOf(lines[i]) > 0) { blockIndent = indentOf(lines[i]); break; }
+  }
+  const pad = " ".repeat(blockIndent);
+
   for (const fq of TRACKING_KEYS) {
     const leaf = fq.slice("tracking.".length);
     if (!(leaf in sets)) continue;
@@ -462,8 +476,9 @@ function mergeTrackingBlock(rawText, sets, force) {
       lines[foundIdx] = indent + leaf + ": " + emitScalar(rawValue);  // drops inline comment (force)
       changed = true;
     } else {
-      // Insert a new child line at the end of the block body.
-      lines.splice(insertAt, 0, "  " + leaf + ": " + emitScalar(rawValue));
+      // Insert a new child line at the end of the block body, at the block's own
+      // child indent (sampled above) so it round-trips — never a hardcoded 2 (FAFF-531).
+      lines.splice(insertAt, 0, pad + leaf + ": " + emitScalar(rawValue));
       insertAt++;
       bodyEnd++;
       changed = true;
@@ -664,6 +679,39 @@ function configInitSelftest() {
     const { text, changed } = mergeTrackingBlock(orig, { repo: "a/b" }, false);
     check("empty-block: inserts child", changed === true && reads(text, "repo") === "a/b");
     check("empty-block: slots untouched", text.includes("slots:\n  spec: x"));
+  }
+
+  // FAFF-531: insert into a 4-space-indented tracking block (like this repo's own
+  // .faffrc.yaml). The inserted key must land at the block's own indent (4), not a
+  // hardcoded 2, or parseYamlSubset reads it as outside the block → null → the
+  // round-trip guard aborts. The `/` in the repro value is coincidental — a
+  // non-slash key reproduces the same failure, so both are asserted.
+  {
+    const orig = "tracking:\n    spec_docs_path: docs/specs/ # where graft commits\n";
+    const { text, changed, conflicts } = mergeTrackingBlock(orig, { repo: "shftwst/faff" }, false);
+    check("4-space-insert: changed, no conflict", changed === true && conflicts.length === 0);
+    check("4-space-insert: slash value round-trips", reads(text, "repo") === "shftwst/faff");
+    check("4-space-insert: sibling key + inline comment byte-intact",
+      text.includes("    spec_docs_path: docs/specs/ # where graft commits"));
+    check("4-space-insert: sibling reads back", reads(text, "spec_docs_path") === "docs/specs/");
+    check("4-space-insert: inserted line at 4-space indent",
+      text.split("\n").some((l) => l === "    repo: shftwst/faff"));
+  }
+  {
+    // non-slash new key into a 4-space block — proves the fix is indent-general,
+    // not slash-specific (a bare `team_key=FAFF` also returned null pre-fix).
+    const orig = "tracking:\n    spec_docs_path: docs/specs/\n";
+    const { text } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("4-space-insert: non-slash key round-trips", reads(text, "team_key") === "FAFF");
+    check("4-space-insert: non-slash sibling intact", reads(text, "spec_docs_path") === "docs/specs/");
+  }
+  {
+    // regression guard: inserting into a 2-space block is byte-identical to pre-fix
+    // (blockIndent samples 2), so no existing merge selftest output shifts.
+    const orig = "tracking:\n  tracker: linear\n";
+    const { text } = mergeTrackingBlock(orig, { team_key: "FAFF" }, false);
+    check("2-space-insert: byte-identical to pre-fix (2-space pad)",
+      text === "tracking:\n  tracker: linear\n  team_key: FAFF\n");
   }
 
   // FAFF-262: block-sequence parsing (arrays of maps + arrays of scalars).

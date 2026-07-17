@@ -210,6 +210,13 @@ function checksFor(meta, t) {
       // gate (parallel's). Substring-only: this asserts the instruction is PRESENT, not runtime-obeyed.
       out.push([t.toLowerCase().includes("run_in_background: false") || t.toLowerCase().includes("never end a turn"),
                 'declares a turn-safe dispatch posture ("run_in_background: false", or a "never end a turn" await-all gate)']);
+      // FAFF-530: a concurrency executor must ALSO stamp the foreground-to-terminal discipline
+      // into its BuildDispatch prompt — the dispatched build's OWN turn contract (run every
+      // gate/test/review step foreground; never end a turn without the terminal token). This is
+      // the defence-in-depth clause the build subagent sees at its highest-salience surface; the
+      // same distinctive phrase anchors the faff-graft build-phase lint. Substring-only.
+      out.push([t.toLowerCase().includes("foreground-to-terminal"),
+                'stamps the foreground-to-terminal dispatch clause into its BuildDispatch prompt (FAFF-530)']);
       break;
     case "producer-spec":
       // FAFF-109: conformance is artifact-emission (the spec_adaptor was retired) — the
@@ -438,19 +445,22 @@ function cmdValidateAdapters(args) {
       console.log(`FAIL  ${name} (rendering pass)`);
       console.log(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
     }
-    // FAFF-491: faff-graft's build phase (Steps 7–8b) must carry the foreground-posture
-    // rule — a build subagent that self-backgrounds its own gate/test command and ends
-    // its turn strands the build (two live occurrences, FAFF-466/FAFF-446). Substring-only
+    // FAFF-491/530: faff-graft's build phase (Steps 7–9b) must carry the foreground-posture
+    // rule — a build subagent that self-backgrounds its own gate/test/review step and ends
+    // its turn strands the build (live occurrences, FAFF-466/FAFF-446/FAFF-530). Substring-only
     // (case-insensitive), same honesty caveat as FAFF-439: this asserts the instruction is
-    // PRESENT, not runtime-obeyed — the FAFF-491 background-fence hook is the mechanical floor.
+    // PRESENT, not runtime-obeyed — the FAFF-491/530 background-fence hook is the mechanical floor.
+    // FAFF-530 adds the third anchor `foreground-to-terminal` — the dispatched build's turn
+    // contract (terminal token or sanctioned hold, never a progress report).
     if (name === "faff-graft") {
       const lower = text.toLowerCase();
       const hasRunInBackground = lower.includes("run_in_background: true");
       const hasNeverEndATurn = lower.includes("never end a turn");
-      if (!hasRunInBackground || !hasNeverEndATurn) {
+      const hasForegroundToTerminal = lower.includes("foreground-to-terminal");
+      if (!hasRunInBackground || !hasNeverEndATurn || !hasForegroundToTerminal) {
         failed = true;
         console.log(`FAIL  ${name} (build-phase posture)`);
-        console.log(`        ✗ missing the FAFF-491 foreground-posture declaration — Step 7.5 must carry both "run_in_background: true" and "never end a turn" (case-insensitive)`);
+        console.log(`        ✗ missing the FAFF-491/530 foreground-posture declaration — must carry all three of "run_in_background: true", "never end a turn", and "foreground-to-terminal" (case-insensitive)`);
       }
     }
   }

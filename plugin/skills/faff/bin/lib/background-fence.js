@@ -66,18 +66,37 @@ function matchesGateFamily(command) {
   return GATE_FAMILY_PATTERNS.some((re) => re.test(command));
 }
 
-// PURE: the fence's whole decision. Keys on the CONJUNCTION — a gate-family
-// command alone (foreground) is never denied, and a backgrounded non-gate
-// command (a dev server, a Monitor loop) is never denied. run_in_background is
-// checked STRICTLY against the boolean `true`: absent, `false`, or any
-// non-boolean (e.g. the string `"true"`) all resolve to allow — the harness
-// serialises a genuine JSON boolean for this field, so anything else is not
-// the failure mode this fence exists for, and fail-safe is allow.
+// PURE: the fence's whole decision, over two tool arms (FAFF-530):
+//   • Bash: keys on the CONJUNCTION — a gate-family command alone (foreground)
+//     is never denied, and a backgrounded non-gate command (a dev server, a
+//     Monitor loop) is never denied. run_in_background is checked STRICTLY
+//     against the boolean `true`: absent, `false`, or any non-boolean (e.g. the
+//     string `"true"`) all resolve to allow — the harness serialises a genuine
+//     JSON boolean for this field, so anything else is not the failure mode this
+//     fence exists for, and fail-safe is allow.
+//   • Monitor: background-BY-CONSTRUCTION (it streams a long-running command's
+//     output and hands control back), so there is NO run_in_background conjunct —
+//     a gate/test command run under Monitor is exactly the self-backgrounded-gate
+//     stall this fence exists for. A build subagent that runs `node --test` (or the
+//     Step-7.5 ladder) via Monitor and ends its turn strands the build the same way
+//     the backgrounded-Bash form does. Only the gate-family membership + a non-empty
+//     string command are required; a Monitor poll-loop / log-tail (non-gate command)
+//     is never denied, and a malformed/`ws`-mode event with no string command
+//     fail-safes to allow.
+// Any other tool (Read, an Agent dispatch, …) is never the fence's business — the
+// hook cannot distinguish a build subagent's Agent call from the orchestrator's
+// deliberate backgrounded dispatch, so it never fences it (spec §2, out of scope).
 function matchesBackgroundedGate(toolName, command, runInBackground) {
-  if (toolName !== "Bash") return false;
-  if (runInBackground !== true) return false;
-  if (typeof command !== "string" || command.length === 0) return false;
-  return matchesGateFamily(command);
+  if (toolName === "Bash") {
+    if (runInBackground !== true) return false;
+    if (typeof command !== "string" || command.length === 0) return false;
+    return matchesGateFamily(command);
+  }
+  if (toolName === "Monitor") {
+    if (typeof command !== "string" || command.length === 0) return false;
+    return matchesGateFamily(command);
+  }
+  return false;
 }
 
 // The single-line stderr deny message — names the foreground remedy (never
@@ -88,6 +107,16 @@ const BACKGROUND_FENCE_DENY_MESSAGE =
   "end a turn with a background job in flight. Re-issue this command in the foreground with a generous timeout " +
   "(chunk/poll across successive foreground calls if it risks exceeding the tool's max timeout — never background it). " +
   "If you are a human operator intentionally backgrounding this, run it yourself in a real terminal.\n";
+
+// FAFF-530: the Monitor arm's own remedy. Monitor is background-by-construction,
+// so the fix is not "un-background it" (there is no foreground Monitor) but "run
+// the gate/test as a foreground Bash call" — Monitor is for event streams, never a
+// gate run. Names the foreground-Bash remedy, same single-line stderr shape.
+const BACKGROUND_FENCE_MONITOR_DENY_MESSAGE =
+  "faff background-fence: a gate/test command must NOT run under Monitor — Monitor is background-by-construction and " +
+  "ending a turn on it strands the build. Run the gate/test as a FOREGROUND Bash call instead (chunk/poll across " +
+  "successive foreground calls if it risks exceeding the tool's max timeout); Monitor is for event streams, never a gate run. " +
+  "If you are a human operator intentionally doing this, run the command yourself in a real terminal.\n";
 
 // PURE: fold a parsed PreToolUse event down to the matcher's three inputs. A
 // non-object event, or one missing tool_input, resolves to a definite
@@ -118,7 +147,12 @@ function cmdBackgroundFence(args) {
   let event;
   try { event = JSON.parse(raw); } catch { return 0; } // malformed JSON → never block
   if (!backgroundFenceDecision(event)) return 0;
-  process.stderr.write(BACKGROUND_FENCE_DENY_MESSAGE);
+  // Pick the per-arm remedy (FAFF-530): Monitor gets the "run it as a foreground
+  // Bash call" wording; Bash keeps the "never run_in_background" wording.
+  const msg = event && event.tool_name === "Monitor"
+    ? BACKGROUND_FENCE_MONITOR_DENY_MESSAGE
+    : BACKGROUND_FENCE_DENY_MESSAGE;
+  process.stderr.write(msg);
   return 2;
 }
 
@@ -186,6 +220,23 @@ const BACKGROUND_FENCE_SELFTEST_CASES = [
   // actual `node --test` invocation through backgrounded — the failure mode this fence
   // exists for.
   ["LIMITATION: node script.js --test (script's own flag, not node's test runner) → also denied (safe-direction over-match)", "Bash", "node script.js --test", true, true],
+  // --- FAFF-530: Monitor arm — a gate/test command run under Monitor is denied
+  // REGARDLESS of run_in_background (Monitor is background-by-construction, so
+  // there is no run_in_background conjunct on this arm). ---
+  ["Monitor node --test → deny", "Monitor", "node --test", undefined, true],
+  ["Monitor pytest → deny", "Monitor", "pytest -x", undefined, true],
+  ["Monitor quoted-variable ladder form → deny", "Monitor", '"$faff" gates run --json', undefined, true],
+  ["Monitor npm test, run_in_background present-and-false → still deny (no conjunct)", "Monitor", "npm test", false, true],
+  ["Monitor go test → deny", "Monitor", "go test ./...", undefined, true],
+  // --- Monitor allow: a poll-loop (the parallel executor's await-all shape), a
+  // log tail, and non-gate commands are never denied. ---
+  ["Monitor await-all poll loop → allow (not gate-family)", "Monitor", "until test -f .faff/runs/r1/done; do :; done", undefined, false],
+  ["Monitor tail -f log watch → allow", "Monitor", "tail -f .faff/runs/r1/build.log", undefined, false],
+  ["Monitor npm run dev → allow (not gate-family)", "Monitor", "npm run dev", undefined, false],
+  // --- Monitor malformed/ws-mode shapes → allow (fail-safe, mirrors Bash arm) ---
+  ["Monitor absent command → allow", "Monitor", undefined, undefined, false],
+  ["Monitor non-string command (ws-mode) → allow", "Monitor", 123, undefined, false],
+  ["Monitor empty-string command → allow", "Monitor", "", undefined, false],
 ];
 
 function backgroundFenceSelftest() {
@@ -206,6 +257,10 @@ function backgroundFenceSelftest() {
     ["tool_input missing → allow", { tool_name: "Bash" }, false],
     ["tool_input non-object → allow", { tool_name: "Bash", tool_input: "node --test" }, false],
     ["null event → allow", null, false],
+    // FAFF-530: Monitor event-shape cases — a well-formed deny event, and a
+    // ws-mode event with no command → allow (fail-safe).
+    ["Monitor well-formed deny event", { tool_name: "Monitor", tool_input: { command: "node --test" } }, true],
+    ["Monitor ws-mode event (no command) → allow", { tool_name: "Monitor", tool_input: { ws: "wss://x" } }, false],
   ];
   for (const [label, event, want] of eventCases) {
     const got = backgroundFenceDecision(event);
@@ -219,4 +274,4 @@ function backgroundFenceSelftest() {
 }
 
 
-module.exports = { BACKGROUND_FENCE_DENY_MESSAGE, BACKGROUND_FENCE_SELFTEST_CASES, GATE_FAMILY_PATTERNS, backgroundFenceDecision, backgroundFenceSelftest, cmdBackgroundFence, matchesBackgroundedGate, matchesGateFamily };
+module.exports = { BACKGROUND_FENCE_DENY_MESSAGE, BACKGROUND_FENCE_MONITOR_DENY_MESSAGE, BACKGROUND_FENCE_SELFTEST_CASES, GATE_FAMILY_PATTERNS, backgroundFenceDecision, backgroundFenceSelftest, cmdBackgroundFence, matchesBackgroundedGate, matchesGateFamily };

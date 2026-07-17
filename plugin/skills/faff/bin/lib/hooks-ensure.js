@@ -29,6 +29,19 @@ const FAFF_STOP_HOOKS = ["runcheck", "prepcheck", "sentrycheck"];
 // settings.json event array (hooks.PreToolUse, matcher-scoped to Bash) with a
 // different group shape ({matcher, hooks}, not the Stop set's bare {hooks}).
 const FAFF_PRE_TOOL_USE_HOOKS = ["merge-fence", "background-fence"];
+// FAFF-530: the PreToolUse registration is matcher-scoped — a hook may register
+// under more than one tool-name matcher, in its own settings.json group. The Bash
+// group carries BOTH fences (merge-fence + background-fence, unchanged from
+// FAFF-434/491); a SECOND `matcher: "Monitor"` group carries ONLY background-fence,
+// so a gate/test command run under Monitor (background-by-construction) is fenced
+// the same way a backgrounded-Bash gate command is. merge-fence never joins the
+// Monitor group — it only ever needs to see a raw `gh pr merge`, a Bash-tool shape.
+// FAFF_PRE_TOOL_USE_HOOKS above stays the flat SERVING-probe set (each sub is
+// probed once); this structure drives the per-matcher registration/presence.
+const FAFF_PRE_TOOL_USE_MATCHER_GROUPS = [
+  { matcher: "Bash", subs: ["merge-fence", "background-fence"] },
+  { matcher: "Monitor", subs: ["background-fence"] },
+];
 // The full served-probe set resolveHookBin/probeServes must clear together — a
 // resolved bin that can't serve every hook (Stop OR PreToolUse) is not fit to
 // register any of them under the single canonical bin path.
@@ -69,6 +82,28 @@ function preToolUseCommands(settings) {
     for (const h of hooks) if (h && typeof h.command === "string") out.push(h.command);
   }
   return out;
+}
+
+// FAFF-530: matcher-scoped variant — the PreToolUse commands in ONLY the group(s)
+// whose `matcher` equals the given one. Presence of background-fence under Bash is
+// independent of its presence under Monitor, so registration must key on (matcher, sub).
+function preToolUseCommandsForMatcher(settings, matcher) {
+  const pre = settings && settings.hooks && settings.hooks.PreToolUse;
+  if (!Array.isArray(pre)) return [];
+  const out = [];
+  for (const group of pre) {
+    if (!group || group.matcher !== matcher) continue;
+    const hooks = group.hooks;
+    if (!Array.isArray(hooks)) continue;
+    for (const h of hooks) if (h && typeof h.command === "string") out.push(h.command);
+  }
+  return out;
+}
+
+// FAFF-530: is `sub` registered under the given matcher's group? (token-identity,
+// path-agnostic, same as isPresent — just matcher-scoped.)
+function isPresentInMatcher(sub, settings, matcher) {
+  return preToolUseCommandsForMatcher(settings, matcher).some((c) => commandInvokesFaffHook(c, sub));
 }
 
 // Dispatches to whichever event's command array the given sub registers under —
@@ -119,23 +154,41 @@ function planStopHooks(settings, present, served, binInvocation) {
   return { added, already, skipped_stale, normalized, nextSettings: next };
 }
 
-// FAFF-434: sibling of planStopHooks for the PreToolUse event — same idempotent
-// add/normalize shape, targeting hooks.PreToolUse instead of hooks.Stop. The
-// PreToolUse group carries a matcher ("Bash" — the fence only ever needs to see
-// Bash tool_input), unlike the matcher-less Stop groups.
+// FAFF-434/530: sibling of planStopHooks for the PreToolUse event — same idempotent
+// add/normalize shape, targeting hooks.PreToolUse instead of hooks.Stop. Registration
+// is MATCHER-SCOPED (FAFF-530): it iterates FAFF_PRE_TOOL_USE_MATCHER_GROUPS and
+// ensures each (matcher, sub) pair is registered in that matcher's own group, so
+// background-fence lands in BOTH the Bash group and a distinct Monitor group. The
+// `added` / `already` / `skipped_stale` / `normalized` outputs are `"<matcher>::<sub>"`
+// keys (not bare sub-names), because presence/absence is now per-matcher. `present`
+// is a Set (or array) of those same keys. Stop hooks are unaffected (matcher-less).
 function planPreToolUseHooks(settings, present, served, binInvocation) {
-  const P = new Set(present), S = new Set(served);
-  const added = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => !P.has(s) && S.has(s));
-  const already = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => P.has(s));
-  const skipped_stale = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => !P.has(s) && !S.has(s));
+  const P = present instanceof Set ? present : new Set(present);
+  const S = new Set(served);
+  const added = [], already = [], skipped_stale = [];
+  for (const { matcher, subs } of FAFF_PRE_TOOL_USE_MATCHER_GROUPS) {
+    for (const sub of subs) {
+      const key = `${matcher}::${sub}`;
+      if (P.has(key)) already.push(key);
+      else if (S.has(sub)) added.push(key);
+      else skipped_stale.push(key);
+    }
+  }
   const next = JSON.parse(JSON.stringify(settings ?? {}));
   if (added.length) {
     if (!next.hooks || typeof next.hooks !== "object") next.hooks = {};
     if (!Array.isArray(next.hooks.PreToolUse)) next.hooks.PreToolUse = [];
-    let group = next.hooks.PreToolUse.find((g) => g && g.matcher === "Bash" && Array.isArray(g.hooks));
-    if (!group) { group = { matcher: "Bash", hooks: [] }; next.hooks.PreToolUse.push(group); }
-    for (const s of added) group.hooks.push({ type: "command", command: binInvocation(s) });
+    for (const { matcher, subs } of FAFF_PRE_TOOL_USE_MATCHER_GROUPS) {
+      const toAdd = subs.filter((s) => added.includes(`${matcher}::${s}`));
+      if (!toAdd.length) continue;
+      let group = next.hooks.PreToolUse.find((g) => g && g.matcher === matcher && Array.isArray(g.hooks));
+      if (!group) { group = { matcher, hooks: [] }; next.hooks.PreToolUse.push(group); }
+      for (const s of toAdd) group.hooks.push({ type: "command", command: binInvocation(s) });
+    }
   }
+  // Normalization pass: rewrite any present faff PreToolUse command that differs
+  // from canonical, keyed by the group's own matcher (so a divergent-path command
+  // in the Monitor group normalizes to "Monitor::<sub>", the Bash group to "Bash::<sub>").
   const normalized = [];
   const pre = next.hooks && Array.isArray(next.hooks.PreToolUse) ? next.hooks.PreToolUse : [];
   for (const group of pre) {
@@ -145,7 +198,8 @@ function planPreToolUseHooks(settings, present, served, binInvocation) {
       for (const s of FAFF_PRE_TOOL_USE_HOOKS) {
         if (commandInvokesFaffHook(h.command, s) && h.command.trim() !== binInvocation(s)) {
           h.command = binInvocation(s);
-          if (!normalized.includes(s)) normalized.push(s);
+          const key = `${group.matcher}::${s}`;
+          if (!normalized.includes(key)) normalized.push(key);
         }
       }
     }
@@ -236,7 +290,15 @@ function cmdHooksEnsure(args) {
   // the PreToolUse plan is composed on TOP OF the Stop plan's nextSettings (not the
   // original targetObj), so a single write carries both sets of changes atomically.
   const stopPresent = FAFF_STOP_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
-  const preToolUsePresent = FAFF_PRE_TOOL_USE_HOOKS.filter((s) => isPresent(s, targetObj) || isPresent(s, localObj));
+  // FAFF-530: PreToolUse presence is per (matcher, sub) — a Set of "<matcher>::<sub>" keys.
+  const preToolUsePresent = new Set();
+  for (const { matcher, subs } of FAFF_PRE_TOOL_USE_MATCHER_GROUPS) {
+    for (const sub of subs) {
+      if (isPresentInMatcher(sub, targetObj, matcher) || isPresentInMatcher(sub, localObj, matcher)) {
+        preToolUsePresent.add(`${matcher}::${sub}`);
+      }
+    }
+  }
   const stopPlan = planStopHooks(targetObj, stopPresent, served, (s) => `${bin} ${s} --hook`);
   const preToolUsePlan = planPreToolUseHooks(stopPlan.nextSettings, preToolUsePresent, served, (s) => `${bin} ${s} --hook`);
 
@@ -298,23 +360,38 @@ const HOOKS_ENSURE_SELFTEST_CASES = [
     ["sentrycheck"], ["runcheck", "prepcheck", "sentrycheck"], ["runcheck", "prepcheck"], ["sentrycheck"], [], ["sentrycheck"]],
 ];
 
-// FAFF-434/491: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
-// planPreToolUseHooks instead of planStopHooks — same [label, settings, present,
-// served, +added, =already, skip, ~normalized] shape. FAFF-491 extends the table to
-// the two-member set (merge-fence + background-fence) so the planner is exercised over
-// the live FAFF_PRE_TOOL_USE_HOOKS list, not a stale one-member fixture.
+// FAFF-434/491/530: the PreToolUse-event sibling of HOOKS_ENSURE_SELFTEST_CASES, driving
+// planPreToolUseHooks instead of planStopHooks — same [label, settings, present, served,
+// +added, =already, skip, ~normalized] shape, but the present/added/already/skip/norm
+// entries are now `"<matcher>::<sub>"` keys (FAFF-530: registration is matcher-scoped, so
+// background-fence lands in BOTH the Bash and Monitor groups). `served` stays bare sub-names.
 const HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES = [
-  ["empty + both served → both added", {}, [], ["merge-fence", "background-fence"], ["merge-fence", "background-fence"], [], [], []],
-  ["present, canonical → no-op",
+  ["empty + both served → Bash{merge,bg} + Monitor{bg} added", {}, [],
+    ["merge-fence", "background-fence"],
+    ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], [], [], []],
+  ["present, canonical (both groups) → no-op",
+    { hooks: { PreToolUse: [
+      { matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }, { type: "command", command: "faff background-fence --hook" }] },
+      { matcher: "Monitor", hooks: [{ type: "command", command: "faff background-fence --hook" }] }] } },
+    ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], ["merge-fence", "background-fence"],
+    [], ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], [], []],
+  ["present, divergent path (both groups) → all normalized",
+    { hooks: { PreToolUse: [
+      { matcher: "Bash", hooks: [{ type: "command", command: "/abs/repo/path/faff merge-fence --hook" }, { type: "command", command: "/abs/repo/path/faff background-fence --hook" }] },
+      { matcher: "Monitor", hooks: [{ type: "command", command: "/abs/repo/path/faff background-fence --hook" }] }] } },
+    ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], ["merge-fence", "background-fence"],
+    [], ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], [],
+    ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]],
+  ["stale bin serves nothing → all three skipped", {}, [], [],
+    [], [], ["Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], []],
+  ["MIGRATION: existing Bash group (both fences), no Monitor group → only Monitor::background-fence added",
     { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }, { type: "command", command: "faff background-fence --hook" }] }] } },
-    ["merge-fence", "background-fence"], ["merge-fence", "background-fence"], [], ["merge-fence", "background-fence"], [], []],
-  ["present, divergent path → normalized",
-    { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "/abs/repo/path/faff merge-fence --hook" }, { type: "command", command: "/abs/repo/path/faff background-fence --hook" }] }] } },
-    ["merge-fence", "background-fence"], ["merge-fence", "background-fence"], [], ["merge-fence", "background-fence"], [], ["merge-fence", "background-fence"]],
-  ["stale bin serves nothing → both skipped", {}, [], [], [], [], ["merge-fence", "background-fence"], []],
-  ["merge-fence present, background-fence served → background-fence added",
+    ["Bash::merge-fence", "Bash::background-fence"], ["merge-fence", "background-fence"],
+    ["Monitor::background-fence"], ["Bash::merge-fence", "Bash::background-fence"], [], []],
+  ["Bash group has merge-fence only → Bash::background-fence + Monitor::background-fence added",
     { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] } },
-    ["merge-fence"], ["merge-fence", "background-fence"], ["background-fence"], ["merge-fence"], [], []],
+    ["Bash::merge-fence"], ["merge-fence", "background-fence"],
+    ["Bash::background-fence", "Monitor::background-fence"], ["Bash::merge-fence"], [], []],
 ];
 
 function hooksEnsureSelftest() {
@@ -344,16 +421,24 @@ function hooksEnsureSelftest() {
   const structOk = cmds.length === 3 && cmds.every((h) => h.type === "command" && /faff (runcheck|prepcheck|sentrycheck) --hook/.test(h.command));
   if (!structOk) fail++;
   console.log(`${structOk ? "ok  " : "FAIL"} structural: {} → Stop group with 3 command hooks`);
-  // structural: adding into {} builds one Bash-matcher PreToolUse group carrying BOTH fences
+  // structural (FAFF-530): adding into {} builds a Bash-matcher group carrying BOTH
+  // fences AND a distinct Monitor-matcher group carrying only background-fence.
   const builtPre = planPreToolUseHooks({}, [], ["merge-fence", "background-fence"], inv).nextSettings;
-  const preCmds = (((builtPre.hooks || {}).PreToolUse || [])[0] || {}).hooks || [];
-  const preGroup = ((builtPre.hooks || {}).PreToolUse || [])[0] || {};
-  const structPreOk = preGroup.matcher === "Bash" && preCmds.length === 2
-    && preCmds.every((h) => h.type === "command")
-    && /faff merge-fence --hook/.test(preCmds[0].command)
-    && /faff background-fence --hook/.test(preCmds[1].command);
+  const preGroups = (builtPre.hooks || {}).PreToolUse || [];
+  const bashGroup = preGroups.find((g) => g && g.matcher === "Bash") || {};
+  const monitorGroup = preGroups.find((g) => g && g.matcher === "Monitor") || {};
+  const bashCmds = bashGroup.hooks || [];
+  const monitorCmds = monitorGroup.hooks || [];
+  const structPreOk = preGroups.length === 2
+    && bashCmds.length === 2 && bashCmds.every((h) => h.type === "command")
+    && /faff merge-fence --hook/.test(bashCmds[0].command)
+    && /faff background-fence --hook/.test(bashCmds[1].command)
+    && monitorCmds.length === 1 && monitorCmds[0].type === "command"
+    && /faff background-fence --hook/.test(monitorCmds[0].command)
+    // merge-fence must NEVER land in the Monitor group
+    && !monitorCmds.some((h) => /faff merge-fence --hook/.test(h.command));
   if (!structPreOk) fail++;
-  console.log(`${structPreOk ? "ok  " : "FAIL"} structural: {} → Bash-matcher PreToolUse group carrying both merge-fence and background-fence`);
+  console.log(`${structPreOk ? "ok  " : "FAIL"} structural: {} → Bash group (merge-fence + background-fence) + Monitor group (background-fence only)`);
   // identity: token match ignores path / env prefix, requires --hook
   const idCases = [
     ["/abs/faff prepcheck --hook", "prepcheck", true],
@@ -385,4 +470,4 @@ function hooksEnsureSelftest() {
 }
 
 
-module.exports = { FAFF_ALL_HOOKS, FAFF_PRE_TOOL_USE_HOOKS, FAFF_STOP_HOOKS, HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES, HOOKS_ENSURE_SELFTEST_CASES, cmdHooksEnsure, commandInvokesFaffHook, hooksEnsureSelftest, isPresent, planPreToolUseHooks, planStopHooks, preToolUseCommands, probeServes, readJsonOrEmpty, resolveHookBin, stopCommands, whichFaff };
+module.exports = { FAFF_ALL_HOOKS, FAFF_PRE_TOOL_USE_HOOKS, FAFF_PRE_TOOL_USE_MATCHER_GROUPS, FAFF_STOP_HOOKS, HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES, HOOKS_ENSURE_SELFTEST_CASES, cmdHooksEnsure, commandInvokesFaffHook, hooksEnsureSelftest, isPresent, isPresentInMatcher, planPreToolUseHooks, planStopHooks, preToolUseCommands, preToolUseCommandsForMatcher, probeServes, readJsonOrEmpty, resolveHookBin, stopCommands, whichFaff };

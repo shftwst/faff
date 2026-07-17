@@ -312,12 +312,13 @@ function computeBudgetState(env, spent, tokensSource) {
   };
 }
 
-// Encode a cwd to its ~/.claude/projects/<encoded> directory name: '/' → '-'.
-// (Claude Code's transcript project-dir convention.) Honours $CLAUDE_CONFIG_DIR.
+// Encode a cwd to its ~/.claude/projects/<encoded> directory name: '/' and '.' → '-'.
+// (Claude Code's transcript project-dir convention — pinned against real on-disk dirs,
+// FAFF-502; hyphens and alphanumerics are preserved verbatim.) Honours $CLAUDE_CONFIG_DIR.
 function transcriptBaseDir(cwd, env) {
   const home = env.HOME || env.USERPROFILE || "";
   const configDir = env.CLAUDE_CONFIG_DIR || path.join(home, ".claude");
-  const encoded = String(cwd).replace(/\//g, "-");
+  const encoded = String(cwd).replace(/[/.]/g, "-");
   return path.join(configDir, "projects", encoded);
 }
 
@@ -865,6 +866,29 @@ function budgetSelftest() {
   const envMulti = envelopeFrom({ budget: { max_attempts: 1, tokens: 10, at_ceiling: "stop" } }, {});
   const s6 = computeBudgetState(envMulti, { now_epoch: NOW, attempts: 5, tokens: 99 }, "transcript");
   ok("multiple dims breach together", s6.breached.includes("max_attempts") && s6.breached.includes("tokens"));
+
+  // --- FAFF-502: transcriptBaseDir cwd encoding pins Claude Code's projects-dir convention ---
+  // Encoder maps EXACTLY '/' and '.' → '-'; hyphens and alphanumerics are preserved verbatim.
+  // Slash-only encoding (the bug) computed `-…-.faff-…` for a dotted worktree cwd while the real
+  // on-disk dir is `-…--faff-…`, so existsSync failed → every metering consumer false-degraded to
+  // estimate. These assertions lock the pinned classes so a re-degrade fails a fixture, not silently.
+  const encEnv = { HOME: "/Users/x" };
+  // Dotted worktree cwd → the `.faff` segment collapses to `--faff` (the double-dash the bug missed).
+  ok("transcriptBaseDir encodes dotted worktree cwd with '.' → '-' (--faff)",
+    transcriptBaseDir("/Users/x/.faff/worktrees/repo/branch", encEnv)
+      === path.join("/Users/x/.claude", "projects", "-Users-x--faff-worktrees-repo-branch"));
+  // No-dot main-checkout cwd stays byte-identical to the pre-fix output (slash-only regime).
+  ok("transcriptBaseDir encodes no-dot main-checkout cwd unchanged (main-checkout parity)",
+    transcriptBaseDir("/Users/x/workspace/repo", encEnv)
+      === path.join("/Users/x/.claude", "projects", "-Users-x-workspace-repo"));
+  // Captured-real-dir pin: a genuine ~/.claude/projects dir name from this machine's live corpus.
+  // Source cwd → on-disk dir name, verbatim. Documents the pinned character class ('/' and '.' → '-',
+  // hyphens/alphanumerics preserved) — a future Claude Code convention change is caught HERE.
+  const realCwd = "/Users/shftwst/.faff/worktrees/faff/faff-16-architecture-decision-records-adrs-durable-cross-slice";
+  const realDir = "-Users-shftwst--faff-worktrees-faff-faff-16-architecture-decision-records-adrs-durable-cross-slice";
+  ok("transcriptBaseDir reproduces a captured real ~/.claude/projects dir name (encoder pin)",
+    transcriptBaseDir(realCwd, { HOME: "/Users/shftwst" })
+      === path.join("/Users/shftwst/.claude", "projects", realDir));
 
   // --- attemptsFromLedger: dispatched outcomes count, routed-out/unreached don't ---
   ok("attempts excludes routed-out/unreached", attemptsFromLedger({

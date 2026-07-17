@@ -34,6 +34,14 @@ It does **not** answer the optional `issue-critique` output — per-issue right-
 
 Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top. Unlock value counts live blocker edges only (gateway → **Satisfied blockers — edges to terminal work**) — a satisfied edge adds no downstream count.
 
+**Optional `prd-distance` composition (FAFF-535).** When the caller supplies the `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), compose it as a **within-band** tiebreaker on top of the core ordering rule, never a replacement:
+
+1. Partition the ordered set into contiguous **human-priority bands** (the existing priority tier — floor rule (a): distance never crosses a band).
+2. **Within each band**, stable-sort by the issue's PRD-completion distance: `rank = min class_rank` of `prd-distance` entries whose `container` slug-matches the issue's container. **No match, or `rank == 0` (met) → neutral** — keep the issue's existing relative position (the core-rule order). Lower rank (nearer the parent PRD) orders sooner.
+3. **Never** move an issue across a band boundary.
+
+Distance is the primary key across classes within a band; the core ordering rule (unlock value, then creation order) is the deterministic tiebreak within a class. Because step 2 is a stable sort that leaves unmatched/`met` issues in place, **input absent ⇒ byte-identical output** (floor rule (b)) — with no map the composition never runs.
+
 ### `promotion-readiness`
 
 **Promote** an issue (mark ready) when ALL hold:
@@ -183,7 +191,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 **Admission:** `fire-and-forget` + `likely-fire` verdicts enter; `needs-decision-first` / `gap-blocked` / `circular-blocked` / `repeat-parked` route out.
 
-**Ordering:** `pick-ordering`. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
+**Ordering:** `pick-ordering` — including its optional **`prd-distance`** within-band composition (FAFF-535) when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
 
 **Conflict analysis:** partition the admitted set into independents (parallel-safe) and collision groups (serialised within the group, parallel across groups) per the canonical heuristics — see `faff-beep-boop` → **Conflict analysis**. Single home: do **not** recap the heuristics here.
 

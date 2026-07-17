@@ -1415,6 +1415,91 @@ function computePrdCoverageVerdict(input) {
   return { covered, uncovered_goals, satisfied, reason, completion, measure, conformant: true, violations: [] };
 }
 
+// --- prd-distance (FAFF-535) ---
+// The PRD-satisfaction-greedy drain-ordering signal. Distance = steps remaining in the pipeline to a
+// `met` DoD, as a coarse four-class ladder (lower class_rank = nearer to advancing the parent PRD). NOT
+// a judgement or a takeover of the ordering slot — it is a pure, PRD-scoped INPUT the methodology composes
+// as a within-band tiebreaker (see the gateway Standard-envelope floor). The orchestration layer holds no
+// ordering opinion (beep-boop assembles this, the methodology ranks). Byte-identical when absent: no PRD
+// in scope ⇒ this is never assembled and every ordering output is unchanged.
+const DISTANCE_CLASSES = ["met", "unverified", "unmet", "uncovered"];
+// class_rank ladder — lower = nearer. met 0 (done; excluded from preference, kept for observability),
+// unverified 1 (live PRDR, no verdict — one evaluation from met), unmet 2 (live PRDR, verdict present but
+// ≠ met — a known gap: fix + re-evaluate), uncovered 3 (a PRD goal with NO live PRDR — the whole pipeline).
+const DISTANCE_CLASS_RANK = { met: 0, unverified: 1, unmet: 2, uncovered: 3 };
+
+// The PRODUCER (`faff prdr distance`): the pure per-sibling remainder. No tracker/network call (parity
+// with `faff prdr coverage` / `yagni` / `admit`). Reuses computePrdCoverageVerdict for the uncovered set —
+// one classifier, no fork (the anti-pattern the spec forbids). Emits a verdict conformant by construction
+// (validated belt-and-braces by the caller via schemaCheck).
+//   - prdGoals: the PRD's declared goals (FAFF-252).
+//   - livePrdrs: the LIVE (non-superseded) PRDRs, each { id, prd_goal, container?, dod_verdict? }.
+//   - dod_verdict: the FAFF-34 evaluator's per-PRDR DoD verdict. Anything other than the literal "met"
+//     (including absent/undefined) is unverified/unmet per the ladder — coverage's conservative rule.
+function computePrdDistance(input) {
+  const live = Array.isArray(input.livePrdrs) ? input.livePrdrs.filter((p) => p && typeof p === "object" && !Array.isArray(p)) : [];
+  // Reuse coverage for the uncovered set — its dedup + prospective-live-set semantics come free.
+  const cov = computePrdCoverageVerdict({ prdGoals: input.prdGoals, livePrdrs: input.livePrdrs });
+  const entries = [];
+  for (const p of live) {
+    let distance_class;
+    if (p.dod_verdict === "met") distance_class = "met";          // literal match, coverage parity
+    else if (p.dod_verdict === undefined || p.dod_verdict === null) distance_class = "unverified"; // no verdict
+    else distance_class = "unmet";                                 // present but ≠ "met" (incl. unknown strings)
+    entries.push({
+      kind: "prdr",
+      id: typeof p.id === "string" ? p.id : (p.id != null ? String(p.id) : null),
+      container: typeof p.container === "string" ? p.container : null,
+      prd_goal: typeof p.prd_goal === "string" ? p.prd_goal : "",
+      dod_verdict: (p.dod_verdict === undefined || p.dod_verdict === null) ? null : p.dod_verdict,
+      distance_class,
+      class_rank: DISTANCE_CLASS_RANK[distance_class],
+    });
+  }
+  for (const g of cov.uncovered_goals) {
+    entries.push({ kind: "goal", id: null, container: null, prd_goal: g, dod_verdict: null, distance_class: "uncovered", class_rank: 3 });
+  }
+  // Deterministic baseline sort: (class_rank asc, then id ?? prd_goal asc). Stable — intra-class ordering
+  // above this baseline is the methodology's call (the primary sort key across classes stays distance).
+  entries.sort((a, b) => (a.class_rank - b.class_rank) || String(a.id ?? a.prd_goal).localeCompare(String(b.id ?? b.prd_goal)));
+  return { entries, prd_satisfied: cov.satisfied, conformant: true, violations: [] };
+}
+
+// The consumer-side SHAPE validator (mirrors prd-coverage / prdr-yagni). NO safe coerce target — faff's own
+// producer emits it, so a malformed extraction is fail-loud. Load-bearing invariants enforced as conformance
+// violations (not expressible in the shape schema): the ladder pin `class_rank === rank(distance_class)`, the
+// biconditional `kind === "goal" ⟺ distance_class === "uncovered"`, and `prd_satisfied` boolean presence.
+function contractPrdDistance(extraction) {
+  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
+    return { failLoud: "extraction must be a JSON object" };
+  }
+  const rawEntries = Array.isArray(extraction.entries) ? extraction.entries : [];
+  const entries = [];
+  const violations = [];
+  rawEntries.forEach((e, i) => {
+    if (e === null || typeof e !== "object" || Array.isArray(e)) { violations.push(`entries[${i}] is not an object`); return; }
+    const kind = e.kind;
+    const distance_class = e.distance_class;
+    const class_rank = e.class_rank;
+    if (DISTANCE_CLASSES.includes(distance_class) && DISTANCE_CLASS_RANK[distance_class] !== class_rank) {
+      violations.push(`entries[${i}] class_rank ${JSON.stringify(class_rank)} disagrees with distance_class ${JSON.stringify(distance_class)} (ladder: met 0 / unverified 1 / unmet 2 / uncovered 3)`);
+    }
+    if ((kind === "goal") !== (distance_class === "uncovered")) {
+      violations.push(`entries[${i}] kind/distance_class breach: kind === "goal" ⟺ distance_class === "uncovered"`);
+    }
+    entries.push({
+      kind, id: e.id ?? null, container: e.container ?? null,
+      prd_goal: typeof e.prd_goal === "string" ? e.prd_goal : "",
+      dod_verdict: e.dod_verdict ?? null, distance_class, class_rank,
+    });
+  });
+  const prd_satisfied = !!extraction.prd_satisfied;
+  const contractData = { entries, prd_satisfied, conformant: violations.length === 0, violations };
+  const schemaErr = schemaCheck(contractData, "prd-distance");
+  if (schemaErr) return { failLoud: schemaErr };
+  return { contractData };
+}
+
 // The PRODUCER (`faff prdr yagni`): the deterministic two-phase arbitration. Pure — no tracker/network
 // call (parity with `faff prdr admit` / `faff next`); the agent maps the trace + the two slot results
 // onto these closed-vocabulary inputs. Emits a verdict conformant by construction (validated
@@ -1773,6 +1858,19 @@ const CONTRACTS = {
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
+  "prd-distance": {
+    run: contractPrdDistance,
+    fixtures: [
+      { name: "conformant-ladder", in: { entries: [{ kind: "prdr", id: "0001", container: "portal", prd_goal: "g1", dod_verdict: "met", distance_class: "met", class_rank: 0 }, { kind: "prdr", id: "0002", container: "api", prd_goal: "g2", dod_verdict: null, distance_class: "unverified", class_rank: 1 }, { kind: "goal", id: null, container: null, prd_goal: "g3", dod_verdict: null, distance_class: "uncovered", class_rank: 3 }], prd_satisfied: false }, wantExit: 0 },
+      { name: "conformant-empty", in: { entries: [], prd_satisfied: true }, wantExit: 0 },
+      { name: "conformant-unmet", in: { entries: [{ kind: "prdr", id: "0003", container: "c", prd_goal: "g", dod_verdict: "partial", distance_class: "unmet", class_rank: 2 }], prd_satisfied: false }, wantExit: 0 },
+      { name: "rank-disagrees-with-class", in: { entries: [{ kind: "prdr", id: "0001", container: "c", prd_goal: "g", dod_verdict: null, distance_class: "unverified", class_rank: 2 }], prd_satisfied: false }, wantExit: 1 },
+      { name: "goal-not-uncovered", in: { entries: [{ kind: "goal", id: null, container: null, prd_goal: "g", dod_verdict: null, distance_class: "unmet", class_rank: 2 }], prd_satisfied: false }, wantExit: 1 },
+      { name: "prdr-marked-uncovered", in: { entries: [{ kind: "prdr", id: "0001", container: "c", prd_goal: "g", dod_verdict: null, distance_class: "uncovered", class_rank: 3 }], prd_satisfied: false }, wantExit: 1 },
+      { name: "fail-loud-bad-distance-class", in: { entries: [{ kind: "prdr", id: "0001", container: "c", prd_goal: "g", dod_verdict: null, distance_class: "vibes", class_rank: 1 }], prd_satisfied: false }, wantExit: 2 },
+      { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
+    ],
+  },
   "spec-review-verdict": {
     run: contractSpecReviewVerdict,
     fixtures: [
@@ -1941,4 +2039,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

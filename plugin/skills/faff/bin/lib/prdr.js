@@ -17,7 +17,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { adrField, adrFlag, adrSlug, recordSupersede, recordSupersededBy, recordSupersessionProblems, renumberRefsTo } = require("./adr");
 const { DEFAULTS, loadConfig, resolvePrdrDocsPath } = require("./config");
-const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
+const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, contractPrdDistance, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
 const { dig, findRoot } = require("./shared-infra");
 
@@ -448,7 +448,49 @@ function cmdPrdr(args) {
     return 0;   // report-only (parity with `admit`/`yagni`): the verdict is in the payload, never the exit code
   }
 
-  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit | yagni | coverage (or --selftest)\n");
+  if (action === "distance") {
+    // The PRD-satisfaction-greedy drain-ordering PRODUCER (FAFF-535). Pure — no tracker/network call
+    // (parity with `coverage`): the agent maps the PRD's declared goals + the live-PRDR set (and FAFF-34's
+    // per-PRDR DoD verdicts, when the evaluator exists) onto these closed-vocabulary flags. Flag-for-flag
+    // mirror of `coverage`; emits the per-sibling distance-class ladder for the methodology to compose as a
+    // within-band ordering tiebreaker. Not gate-consumed; pipe the block to `faff contract prd-distance`.
+    let prdGoals = [];
+    const goalsRaw = adrFlag(args, "--prd-goals");
+    if (goalsRaw != null) {
+      try { prdGoals = JSON.parse(goalsRaw); } catch (e) { process.stderr.write(`faff prdr distance: --prd-goals is not valid JSON: ${e.message}\n`); return 2; }
+      if (!Array.isArray(prdGoals)) { process.stderr.write("faff prdr distance: --prd-goals must be a JSON array of strings\n"); return 2; }
+    }
+    let livePrdrs = null;
+    const liveRaw = adrFlag(args, "--live-prdrs");
+    if (liveRaw != null) {
+      try { livePrdrs = JSON.parse(liveRaw); } catch (e) { process.stderr.write(`faff prdr distance: --live-prdrs is not valid JSON: ${e.message}\n`); return 2; }
+      if (!Array.isArray(livePrdrs)) { process.stderr.write("faff prdr distance: --live-prdrs must be a JSON array of objects\n"); return 2; }
+    } else {
+      // Read live PRDRs from docs/prdr (no network — filesystem only, still pure of side effects).
+      // NB: unlike `coverage`, distance CARRIES `container` (the Entry record mandates it for the
+      // methodology's issue↔sibling slug-match) — do not drop it here.
+      let prdrs = listPrdrs(dir).filter((p) => !recordSupersededBy(p.status, "PRDR"));
+      const container = adrFlag(args, "--container");
+      if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
+      livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goal: p.prd_goal, container: p.container }));
+    }
+    // --dod-verdicts: optional FAFF-34 verdict map { "<prdr-id>": "met"|... }, merged onto livePrdrs by id.
+    const dvRaw = adrFlag(args, "--dod-verdicts");
+    if (dvRaw != null) {
+      let dodVerdicts;
+      try { dodVerdicts = JSON.parse(dvRaw); } catch (e) { process.stderr.write(`faff prdr distance: --dod-verdicts is not valid JSON: ${e.message}\n`); return 2; }
+      if (dodVerdicts === null || typeof dodVerdicts !== "object" || Array.isArray(dodVerdicts)) { process.stderr.write("faff prdr distance: --dod-verdicts must be a JSON object { prdr-id: verdict }\n"); return 2; }
+      livePrdrs = livePrdrs.map((p) => (p && typeof p === "object" && !Array.isArray(p) && p.dod_verdict === undefined && p.id != null && Object.prototype.hasOwnProperty.call(dodVerdicts, p.id)) ? { ...p, dod_verdict: dodVerdicts[p.id] } : p);
+    }
+    const verdict = computePrdDistance({ prdGoals, livePrdrs });
+    // Belt-and-braces: the produced verdict must itself conform to the prd-distance contract schema.
+    const schemaErr = schemaCheck(verdict, "prd-distance");
+    if (schemaErr) { process.stderr.write(`faff prdr distance: ${schemaErr}\n`); return 2; }
+    process.stdout.write(JSON.stringify(verdict) + "\n");
+    return 0;   // report-only (parity with `coverage`): the verdict is in the payload, never the exit code
+  }
+
+  process.stderr.write("faff prdr: expected one of: path | new | list | supersede | validate | admit | yagni | coverage | distance (or --selftest)\n");
   return 2;
 }
 
@@ -614,6 +656,58 @@ function prdrSelftest() {
     const v = computePrdCoverageVerdict({ prdGoals: ["g1", "g1", "g2"], livePrdrs: [{ id: "0001", prd_goal: "g2", dod_verdict: "met" }] });
     return v.uncovered_goals.length === 1 && v.uncovered_goals[0] === "g1" && computePrdCoverage(v).contractData.conformant === true;
   })());
+
+  // --- FAFF-535: the PRD-satisfaction-greedy drain-ordering producer (faff prdr distance) ---
+  const dist = (opts) => computePrdDistance({
+    prdGoals: ["g1", "g2", "g3"],
+    livePrdrs: [{ id: "0001", prd_goal: "g1", container: "portal", dod_verdict: "met" }, { id: "0002", prd_goal: "g2", container: "api" }],
+    ...opts,
+  });
+  t("class ladder: met↦0, absent-verdict↦unverified 1, uncovered goal↦goal entry rank 3", (() => {
+    const v = dist({}); // g3 uncovered, A met, B unverified
+    const a = v.entries[0], b = v.entries[1], g = v.entries[2];
+    return a.id === "0001" && a.distance_class === "met" && a.class_rank === 0 &&
+      b.id === "0002" && b.distance_class === "unverified" && b.class_rank === 1 &&
+      g.kind === "goal" && g.prd_goal === "g3" && g.distance_class === "uncovered" && g.class_rank === 3;
+  })());
+  t("entries sorted by (class_rank, id|goal) ascending; first actionable is B", (() => {
+    const v = dist({}); return v.entries.map((e) => e.class_rank).join(",") === "0,1,3" && v.entries.find((e) => e.class_rank > 0).id === "0002";
+  })());
+  t("prd_satisfied echoes the coverage roll-up (false when uncovered)", dist({}).prd_satisfied === false);
+  t("dod-verdict merge would satisfy: every goal covered + met → prd_satisfied true", (() => {
+    const v = computePrdDistance({ prdGoals: ["g1", "g2"], livePrdrs: [{ id: "0001", prd_goal: "g1", container: "portal", dod_verdict: "met" }, { id: "0002", prd_goal: "g2", container: "api", dod_verdict: "met" }] });
+    return v.prd_satisfied === true && v.entries.every((e) => e.distance_class === "met");
+  })());
+  t("present non-'met' verdict (incl. unknown string) ↦ unmet 2", (() => {
+    const v = computePrdDistance({ prdGoals: ["g1"], livePrdrs: [{ id: "0001", prd_goal: "g1", container: "c", dod_verdict: "partial" }] });
+    return v.entries[0].distance_class === "unmet" && v.entries[0].class_rank === 2 && v.entries[0].dod_verdict === "partial";
+  })());
+  t("carries container onto prdr entries (issue↔sibling slug-match input)", dist({}).entries[0].container === "portal");
+  t("goal entries carry null id/container/dod_verdict", (() => { const g = dist({}).entries[2]; return g.id === null && g.container === null && g.dod_verdict === null; })());
+  t("empty PRD → entries:[], prd_satisfied:true", (() => { const v = computePrdDistance({ prdGoals: [], livePrdrs: [] }); return v.entries.length === 0 && v.prd_satisfied === true; })());
+  t("duplicate goals deduped (uncovered set from coverage classifier)", (() => {
+    const v = computePrdDistance({ prdGoals: ["g1", "g1", "g2"], livePrdrs: [{ id: "0001", prd_goal: "g2", container: "c", dod_verdict: "met" }] });
+    return v.entries.filter((e) => e.kind === "goal").length === 1 && v.entries.find((e) => e.kind === "goal").prd_goal === "g1";
+  })());
+  t("met-only siblings but goals uncovered → only ranked gaps point at the remaining goal", (() => {
+    const v = computePrdDistance({ prdGoals: ["g1", "g2"], livePrdrs: [{ id: "0001", prd_goal: "g1", container: "c", dod_verdict: "met" }] });
+    return v.entries.some((e) => e.kind === "goal" && e.prd_goal === "g2") && v.prd_satisfied === false;
+  })());
+  t("distance producer is pure — same inputs, same output", (() => JSON.stringify(dist({})) === JSON.stringify(dist({})))());
+  t("every produced distance verdict is contract-conformant + fail-loud-free", [
+    dist({}),
+    computePrdDistance({ prdGoals: [], livePrdrs: [] }),
+    computePrdDistance({ prdGoals: ["g1"], livePrdrs: [{ id: "0001", prd_goal: "g1", container: "c", dod_verdict: "partial" }] }),
+  ].every((v) => { const r = contractPrdDistance(v); return r.failLoud == null && r.contractData.conformant === true; }));
+  t("contract validator flags a class_rank/distance_class ladder breach", (() => {
+    const r = contractPrdDistance({ entries: [{ kind: "prdr", id: "0001", container: "c", prd_goal: "g", dod_verdict: null, distance_class: "unverified", class_rank: 2 }], prd_satisfied: false });
+    return r.failLoud == null && r.contractData.conformant === false && r.contractData.violations.some((s) => /class_rank/.test(s));
+  })());
+  t("contract validator flags a kind/uncovered biconditional breach", (() => {
+    const r = contractPrdDistance({ entries: [{ kind: "goal", id: null, container: null, prd_goal: "g", dod_verdict: null, distance_class: "unmet", class_rank: 2 }], prd_satisfied: false });
+    return r.failLoud == null && r.contractData.conformant === false && r.contractData.violations.some((s) => /kind/.test(s));
+  })());
+  t("contract validator fail-loud on a non-object extraction", contractPrdDistance("not an object").failLoud != null);
 
   // === FAFF-463: git-landing (accept sole-writer, renumber, git-aware validate tier) ===
   {

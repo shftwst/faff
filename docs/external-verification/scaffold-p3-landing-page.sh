@@ -8,6 +8,12 @@
 #   SUT_ROOT=~/workspace/shftwst/faff-suts/p3-landing-page bash scaffold-p3-landing-page.sh
 set -euo pipefail
 
+# Resolved BEFORE the cd below (not lazily, at the box-env copy step) — BASH_SOURCE is only
+# reliable relative to the invocation cwd; once the script cd's into $SUT_ROOT a relative
+# invocation (e.g. `bash docs/external-verification/scaffold-p3-landing-page.sh`) would resolve
+# against the wrong directory.
+FAFF_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 SLUG="p3-landing-page"
 SUT_ROOT="${SUT_ROOT:-$HOME/workspace/faff-suts/$SLUG}"
 
@@ -25,12 +31,15 @@ cat > .gitignore <<'EOF'
 node_modules/
 dist/
 *.log
+.env.claude-box
 EOF
 
 cat > .faffrc.yaml <<'EOF'
 # faff config — SUT P3 (landing page). git-only, agile lens, lights-out eligible.
-# The three L4 lights-out dials this SUT needs to clear `faff lights-out --check` dial-coherence:
-# slots.review (adversarial), slots.spec_review (adversarial), gates.fallback (fail-closed).
+# The two explicit L4 lights-out dials this SUT needs to clear `faff lights-out --check`
+# dial-coherence: slots.review (adversarial), slots.spec_review (adversarial). The third leg,
+# gates.fallback, is fail-closed BY DEFAULT since FAFF-522 shipped (PR #403) — no explicit line
+# needed (FAFF-524 drops the restated-default line FAFF-513 originally planted here).
 slots:
   methodology: faffter-dark-methodology-agile-delivery
   spec: faffter-dark-nlspec
@@ -46,8 +55,23 @@ budget:
   max_attempts: 6
   tokens: 30000000
   at_ceiling: stop
-gates:
-  fallback: fail-closed                        # L4 dial: unattended runs need fail-closed engineering gates (was unset -> advisory)
+# faffter-dark: LLM provider config for the adversarial `review`/`spec_review` slots above.
+# Legacy faffter_dark.adversarial shape (pre-`backends:` namespace — FAFF-529 migrates it once
+# FAFF-523 lands); api_key_env names resolve from .env.claude-box at call time (name only, never
+# the key itself — the box-env copy step below supplies the actual values, gitignored, never
+# committed). Mirrors faff-root's own currently-served model ids.
+faffter_dark:
+  adversarial:                                # PRIMARY = chain element 0
+    provider: nvidia
+    model: z-ai/glm-5.2
+    host: https://integrate.api.nvidia.com/v1
+    api_key_env: NVIDIA_API_KEY
+    timeout: 480
+    fallbacks:
+      - provider: gemini
+        model: models/gemma-4-31b-it
+        host: https://generativelanguage.googleapis.com/v1beta/openai
+        api_key_env: GEMINI_API_KEY
 EOF
 
 cat > BRIEF.md <<'EOF'
@@ -97,7 +121,8 @@ Open a Claude Code session with cwd = THIS repo:
 
 Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
 pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — compose that value with `faff integrity-boundary` (an automating cage will supply it later; FAFF-514), operator-supplied not scaffolded. All
-three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml`.
+three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the two explicit
+dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by default (FAFF-522).
 
 ## 2. The critical observation — read the holdout-verdict closely
     faff holdout verdicts --association <json>
@@ -118,11 +143,30 @@ three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml`
 - FIRST FAILURE RUNG = the binding constraint = the finding to take back to faff's backlog.
 EOF
 
+# Box env: copy the claude-box secret file (NVIDIA_API_KEY / GEMINI_API_KEY) so this SUT's
+# adversarial-review backend can authenticate. FAFF_ROOT resolved at script-top (never hardcoded,
+# never re-derived here — see the note above the cd into $SUT_ROOT), copied AFTER .gitignore
+# already covers it (written above) so no ordering ever stages the secret (FAFF-524). Missing
+# source warns and continues — the file is gitignored, so a fresh clone/contributor without box
+# access legitimately lacks it.
+if [ -f "$FAFF_ROOT/.env.claude-box" ]; then
+  cp "$FAFF_ROOT/.env.claude-box" .env.claude-box
+  echo "copied .env.claude-box from $FAFF_ROOT"
+else
+  echo "WARNING: .env.claude-box not found at $FAFF_ROOT — the SUT's adversarial-review backend will refuse until you supply it" >&2
+fi
+
 faff="$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")"
 "$faff" gitignore-ensure 2>/dev/null && echo "gitignored .faff/ via gitignore-ensure" \
   || echo "  (faff gitignore-ensure unavailable here — run it from the SUT once faff is on PATH)"
 "$faff" hooks-ensure 2>/dev/null && echo "wired faff Stop hooks via hooks-ensure" \
   || echo "  (faff hooks-ensure unavailable here — run it from the SUT once faff is on PATH)"
+
+# Secret-leak guard (FAFF-524 critical fix): a stale $SUT_ROOT re-used via FORCE=1 may carry a
+# prior .git where .env.claude-box was already tracked — .gitignore never untracks an
+# already-tracked file, so `git add -A` would re-stage the secret and the commit below would
+# push it. Force it out of the index unconditionally (no-op on a fresh repo / untracked file).
+git rm --cached --ignore-unmatch .env.claude-box >/dev/null 2>&1 || true
 
 git add -A
 git commit -q -m "chore: scaffold P3 landing-page SUT (faff external testbed)" || true

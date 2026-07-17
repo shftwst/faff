@@ -499,6 +499,68 @@ function measureTokens(opts) {
   return { total: t.input + t.output + t.cache_write + t.cache_read, source: "transcript" };
 }
 
+// FAFF-527 — budget session-accumulation (shape (a)). A resumed run's ledger carries
+// `budget.sessions[]`: each SessionSpan is baselined (`baseline_by_model_class`) at its
+// open, and closed into a measured `closed_delta_by_model_class` at the next re-entry.
+// Total spend = Σ closed deltas + the current (open) span's live delta. These helpers
+// are PURE (operate on the plain JSON shapes, no fs) so `budget check` and the resume
+// close-out both sum identically. Absent a `sessions` array every caller keeps the
+// single-session math byte-for-byte (the closed sum is 0, the baseline unchanged).
+
+// Close one span: per-model, per-class max(0, measured − baseline). `measuredByModel`
+// may be a Map (measureTokensByModelClass.by_model) or a plain object; baseline is the
+// stored plain object. The union of models across both sides is closed (a model that
+// only appears at close still counts; one that vanished contributes 0).
+function closeSpanDeltaByModel(baselineByModel, measuredByModel) {
+  const base = baselineByModel && typeof baselineByModel === "object" && !Array.isArray(baselineByModel) ? baselineByModel : {};
+  const meas = measuredByModel instanceof Map ? Object.fromEntries(measuredByModel)
+    : (measuredByModel && typeof measuredByModel === "object" ? measuredByModel : {});
+  const out = {};
+  for (const model of new Set([...Object.keys(base), ...Object.keys(meas)])) {
+    const b = base[model] || {}; const m = meas[model] || {}; const d = {};
+    for (const cls of TOKEN_DELTA_CLASSES) d[cls] = Math.max(0, (Number(m[cls]) || 0) - (Number(b[cls]) || 0));
+    out[model] = d;
+  }
+  return out;
+}
+
+// Sum the CLOSED spans' recorded per-model deltas → { total, byModel:Map }. An open
+// span (closed_delta_by_model_class == null) contributes nothing — its spend is the
+// live current-span delta `budget check` computes separately.
+function closedSessionsSpend(sessions) {
+  const byModel = new Map();
+  let total = 0;
+  for (const span of (Array.isArray(sessions) ? sessions : [])) {
+    const cd = span && span.closed_delta_by_model_class;
+    if (!cd || typeof cd !== "object" || Array.isArray(cd)) continue;
+    for (const [model, counts] of Object.entries(cd)) {
+      if (!byModel.has(model)) byModel.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+      const mb = byModel.get(model);
+      for (const cls of TOKEN_DELTA_CLASSES) { const n = Number(counts[cls]) || 0; mb[cls] += n; total += n; }
+    }
+  }
+  return { total, byModel };
+}
+
+// The current (open) span is the LAST span whose closed_delta_by_model_class is null
+// (a re-entry appends a new open span after closing the prior one). null ⇒ none open.
+function currentOpenSpan(sessions) {
+  if (!Array.isArray(sessions)) return null;
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    if (sessions[i] && sessions[i].closed_delta_by_model_class == null) return sessions[i];
+  }
+  return null;
+}
+
+// Scalar total across models+classes of a plain `{model:{classes}}` map (the open
+// span's baseline total — the current-span subtraction baseline).
+function byModelClassTotal(byModel) {
+  if (!byModel || typeof byModel !== "object" || Array.isArray(byModel)) return 0;
+  let t = 0;
+  for (const counts of Object.values(byModel)) for (const cls of TOKEN_DELTA_CLASSES) t += Number(counts[cls]) || 0;
+  return t;
+}
+
 // Count build attempts from the ledger: every issue with a recorded terminal
 // outcome that represents a dispatched build (launch-counted, parity with
 // beep-boop's --max which "counts every build-queue dispatch regardless of
@@ -592,10 +654,27 @@ function cmdBudget(args) {
 
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
-  const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
-  const tokensAtStartByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
+  let tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+  let tokensAtStartByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
     && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
     ? ledger.budget.tokens_at_start_by_model_class : null;
+
+  // FAFF-527: a resumed run's ledger carries budget.sessions[]. Spend = Σ closed-span
+  // deltas + the current (open) span's live delta. The open span's baseline REPLACES the
+  // mint tokens_at_start_by_model_class as the current-span subtraction baseline (it was
+  // measured at the resume instant with the resuming session's sid — the FAFF-427 window
+  // rule), and the closed sum is added below. Absent a sessions array ⇒ closedSpend is 0
+  // and the baseline is unchanged, so single-session runs are byte-for-byte today's math.
+  const budgetSessions = (ledger.budget && Array.isArray(ledger.budget.sessions) && ledger.budget.sessions.length)
+    ? ledger.budget.sessions : null;
+  const closedSpend = budgetSessions ? closedSessionsSpend(budgetSessions) : { total: 0, byModel: new Map() };
+  if (budgetSessions) {
+    const open = currentOpenSpan(budgetSessions);
+    if (open && open.baseline_by_model_class && typeof open.baseline_by_model_class === "object" && !Array.isArray(open.baseline_by_model_class)) {
+      tokensAtStartByModel = open.baseline_by_model_class;
+      tokensAtStart = byModelClassTotal(open.baseline_by_model_class);
+    }
+  }
 
   // Token accounting (the only I/O) — ONE walk via the per-model resolver
   // (FAFF-427): `measureTokensByModelClass` carries the SAME scalar total
@@ -635,12 +714,23 @@ function cmdBudget(args) {
       }
       if (wholeSessionTotal > 0) costWarnings.push("cost pro-rated (no per-model baseline — tokens_at_start_by_model_class absent from this run's ledger)");
     }
+    // FAFF-527: fold prior CLOSED spans' per-model deltas into the map-pricing delta so
+    // cost sums Σ closed + current-span (the token total below adds closedSpend.total too).
+    for (const [model, counts] of closedSpend.byModel) {
+      const existing = tokensByModelDelta.get(model) || { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+      for (const cls of TOKEN_DELTA_CLASSES) existing[cls] = (Number(existing[cls]) || 0) + (Number(counts[cls]) || 0);
+      tokensByModelDelta.set(model, existing);
+    }
   } else {
     const attemptsForEst = attemptsFromLedger(ledger);
     const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
     tokens = attemptsForEst * estPer;
     tokensSource = "estimate";
   }
+  // FAFF-527: add the closed session spans' spend to the current-span delta. Zero when
+  // no sessions array is present (byte-for-byte the single-session total). Never
+  // undercounts: an unknowable prior span is closed as `degraded`, never at zero.
+  tokens += closedSpend.total;
 
   const attempts = attemptsFromLedger(ledger);
 
@@ -1033,4 +1123,4 @@ function budgetSelftest() {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, childOwningSession, cmdBudget, computeBudgetState, conservativePriceRow, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

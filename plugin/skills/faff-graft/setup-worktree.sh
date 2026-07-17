@@ -53,8 +53,28 @@ cd "$WORKTREE_PATH"
 # Keep .faffrc.yaml in the list: an unmigrated repo still keeps it gitignored, so a worktree needs
 # the copy. Canonical names only — the resolver errors loudly on legacy .faffrc / .faffrc.yml, so
 # copying those would break the worktree.
+#
+# FAFF-532: copy ONLY files git does not track. `git worktree add` already materialises every
+# TRACKED path at the worktree's own ref, so a tracked .faffrc.yaml (a migrated repo — faff itself)
+# is correct the moment the worktree exists; copying $CWD's version over it would clobber the good
+# own-ref content with the invoking checkout's possibly-divergent copy (sharpest under the parallel
+# executor, where $CWD and the branch base diverge mid-wave). The per-file `git ls-files
+# --error-unmatch` test — run in the worktree (cwd is $WORKTREE_PATH since line 46), never $CWD —
+# self-corrects across repo states: tracked (migrated) => skip; untracked overlay / gitignored
+# .faffrc.yaml in an unmigrated adopter repo => still copied (FAFF-186/FAFF-387 intent preserved).
+# The tracked-test is the right question, not a gitignore-listing check: the overlay
+# .faffrc.local.yaml is untracked yet need not appear in .gitignore, so a gitignore-based guard
+# would wrongly drop it.
 for f in .env .env.local .env.development .env.production.local .claude/settings.local.json .faffrc.yaml .faffrc.local.yaml; do
   if [ -f "$CWD/$f" ]; then
+    # Skip any path the worktree already tracks — git put the correct own-ref content there.
+    # Both streams suppressed; only the exit code is consulted, so a tracked-but-locally-modified
+    # file still reports tracked (exit 0) and is skipped. The `if` test keeps `set -e` from
+    # tripping on the non-tracked (exit-1) case.
+    if git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then
+      echo "$(date '+%H:%M:%S') [worktree] skip $f — tracked at worktree ref, keeping checked-out copy" >&2
+      continue
+    fi
     mkdir -p "$WORKTREE_PATH/$(dirname "$f")"
     cp "$CWD/$f" "$WORKTREE_PATH/$f"
   fi

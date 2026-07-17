@@ -412,11 +412,11 @@ While building and reviewing, graft often surfaces **concrete, separable work th
 
 ```json
 { "title": "...", "description": "...", "relationship": "blocker|blocked-by|peer|none",
-  "source": "build|review|post-merge|ci-triage", "source_ref": "spec line / review finding / post-merge-verification.json / ci-triage.json", "confidence": "concrete|vague",
-  "containment": "contained|outward-new-root|null" }
+  "source": "build|review|post-merge|ci-triage|orchestrator", "source_ref": "spec line / review finding / post-merge-verification.json / ci-triage.json", "confidence": "concrete|vague",
+  "containment": "contained|outward-new-root|outward-self-intake|null" }
 ```
 
-`relationship` is to the issue being built (`blocker` = the discovered work must land first; `blocked-by` = it follows this PR; `peer` = parallel in the same workstream; `none` = independent). `containment` (FAFF-221) is the scope-containment verdict the **orchestrator** stamps when it files — graft leaves it `null` (the implementor records, never files); `outward-new-root` marks an item whose intended parent falls outside the mandate's subtree, which beep-boop §10 then **never files** (surface-only). Recording is cheap and side-effect-free — it never blocks, loops, or parks the current build.
+`relationship` is to the issue being built (`blocker` = the discovered work must land first; `blocked-by` = it follows this PR; `peer` = parallel in the same workstream; `none` = independent). `source` is the lane/step that recorded it — graft's own `build|review|post-merge|ci-triage`, plus `orchestrator` (FAFF-536) for the orchestrator-lane capture beep-boop writes (never emitted by graft itself). `containment` (FAFF-221) is the scope-containment verdict the **orchestrator** stamps when it files — graft leaves it `null` (the implementor records, never files); `outward-new-root` marks an item whose intended parent falls outside the mandate's subtree, which beep-boop §10 then **never files** (surface-only); `outward-self-intake` (FAFF-536, default-off self-hosting lane) marks the sole carve-out that files to the `faff-jot-intake` bucket instead. Recording is cheap and side-effect-free — it never blocks, loops, or parks the current build.
 
 **Step 10: Merge-confidence gate**
 

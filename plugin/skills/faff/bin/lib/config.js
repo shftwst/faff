@@ -42,6 +42,13 @@ const DEFAULTS = {
   "appetite": "high",
   "adr.mode": "offer",
   "intake_gate": "warn",
+  // FAFF-536: the self-hosting core-defect intake lane. Default false ⇒ the lane is off and the
+  // filing chokepoint is byte-identical to today (an outward item is always outward-new-root). Set
+  // true ONLY in the self-hosting repo (faff building faff) to let a concrete same-tracker-team
+  // outward defect reclassify as `outward-self-intake` and file to the Backlog `faff-jot-intake`
+  // bucket — a NEW classification computed at the chokepoint, never a floor edit (ADR-0079). Both
+  // this opt-in AND the same-team structural check must hold; each is fail-closed to outward-new-root.
+  "containment.self_hosting_intake": "false",
   "gates.fallback": "fail-closed",
   // FAFF-385: post-merge verification (re-run the declared UNIT rung against the merge sha) —
   // consulted in autonomous mode only; default on so a repo opts OUT, never opts in.
@@ -1155,6 +1162,7 @@ function cmdConfig(args) {
           "slots.methodology", "slots.routing_adaptor", "slots.rendering_adaptor", "slots.adr", "slots.architecture",
           "slots.env", "slots.prd",
           "logging", "concurrency_max", "automation_default", "appetite", "adr.mode", "intake_gate",
+          "containment.self_hosting_intake",
           "gates.fallback", "post_merge.check", "budget.at_ceiling",
           "models.build", "models.prep_explore",
           "models.spec", "models.spec_review", "models.methodology", "models.intake",

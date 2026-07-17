@@ -174,8 +174,24 @@ function classifyPostMerge({ merge_ok, post_state, merge_stderr }) {
   return { merged: false, outcome: "refuse", warning: null, blocker: `gh pr merge rejected: ${stderrText}` };
 }
 
-// PURE: the gh-api probe result → BranchProtectionState. Reachable+protected → protected;
-// reachable+404 → unprotected; unreachable/forbidden → indeterminate (fail-closed, warns).
+// PURE (FAFF-503): extract required-status-check contexts from an effective-rules payload
+// (`gh api repos/{repo}/rules/branches/{branch}` — the documented union of classic protection +
+// rulesets). Operates on an already-fetched array; no network. `protected` is defined precisely as
+// "a required_status_checks rule applies" — the rule's presence is the signal, even with an empty
+// contexts list (a well-formed, if unusual, ruleset the probe does not second-guess).
+function extractRequiredChecks(rules) {
+  if (!Array.isArray(rules)) return { protected: false, required_checks: [] }; // defensive; caller guarantees array
+  const rsc = rules.find((r) => r && r.type === "required_status_checks");
+  if (!rsc) return { protected: false, required_checks: [] };
+  const raw = (rsc.parameters && rsc.parameters.required_status_checks) || [];
+  const contexts = raw.filter((c) => c && typeof c.context === "string" && c.context.length > 0).map((c) => c.context);
+  return { protected: true, required_checks: contexts };
+}
+
+// PURE: the probe result → BranchProtectionState. ok:true + protected → protected;
+// ok:true + not-protected → unprotected; ok:false (unreachable/404/unparseable) → indeterminate
+// (fail-closed, warns). Unchanged across FAFF-503 — only how the probe is built moved to the
+// effective-rules endpoint.
 function classifyBranchProtection(probe) {
   if (!probe || !probe.ok) return { status: "indeterminate", required_checks: [], basis: (probe && probe.basis) || "gh api unreachable" };
   if (probe.protected) return { status: "protected", required_checks: probe.required_checks || [], basis: probe.basis || "branch protection present" };
@@ -759,15 +775,28 @@ function cmdBranchProtectionCheck(args) {
     const dv = ghJson(["repo", "view", "--json", "defaultBranchRef"]);
     branch = dv.ok && dv.data && dv.data.defaultBranchRef ? dv.data.defaultBranchRef.name : "main";
   }
-  const r = spawnSync("gh", ["api", `repos/${repo}/branches/${branch}/protection`], { encoding: "utf8", timeout: 60000 });
+  // FAFF-503: probe the effective-rules endpoint — the documented union of classic protection +
+  // rulesets — not the classic protection API (which 404s on ruleset-only protection).
+  const r = spawnSync("gh", ["api", `repos/${repo}/rules/branches/${branch}`], { encoding: "utf8", timeout: 60000 });
   let probe;
   if (r.error) probe = { ok: false, basis: `gh unavailable: ${r.error.message}` };
   else if (r.status === 0) {
-    let contexts = [];
-    try { const p = JSON.parse(r.stdout); contexts = (p.required_status_checks && p.required_status_checks.contexts) || []; } catch {}
-    probe = { ok: true, protected: true, required_checks: contexts, basis: `gh api repos/${repo}/branches/${branch}/protection` };
-  } else if (/404|Not Found|Branch not protected/i.test(r.stderr || "")) {
-    probe = { ok: true, protected: false, basis: `no protection on ${branch}` };
+    let rules;
+    try { rules = JSON.parse(r.stdout); } catch { rules = undefined; }
+    if (!Array.isArray(rules)) {
+      // Unparseable / non-array body: never read a shape change as [] → unprotected. Fail-closed.
+      probe = { ok: false, basis: `unparseable rules JSON from gh api repos/${repo}/rules/branches/${branch}` };
+    } else {
+      const { protected: prot, required_checks } = extractRequiredChecks(rules);
+      probe = prot
+        ? { ok: true, protected: true, required_checks, basis: `gh api repos/${repo}/rules/branches/${branch} — required_status_checks rule present` }
+        : { ok: true, protected: false, basis: `no required-status-check rule on ${branch} (rules endpoint returned ${rules.length} rule(s))` };
+    }
+  } else if (/404|Not Found/i.test(r.stderr || "")) {
+    // Unlike the classic API, a 404 here is NOT "unprotected" — the rules endpoint returns [] (exit 0)
+    // for an unprotected/nonexistent branch. A 404 means the repo is unreachable or the endpoint is
+    // absent (GHES older than ruleset support) → cannot confirm → indeterminate.
+    probe = { ok: false, basis: `rules endpoint 404 (repo unreachable or host without ruleset support) on ${branch}` };
   } else {
     probe = { ok: false, basis: `gh api error (${r.status}): ${(r.stderr || "").split("\n")[0]}` };
   }
@@ -1102,8 +1131,25 @@ function branchProtectionSelftest() {
   check("reachable + not protected → unprotected", classifyBranchProtection({ ok: true, protected: false }).status === "unprotected");
   check("unreachable → indeterminate", classifyBranchProtection({ ok: false, basis: "gh outage" }).status === "indeterminate");
   check("null probe → indeterminate", classifyBranchProtection(null).status === "indeterminate");
+  // FAFF-503: the ruleset-shaped effective-rules payload drives extractRequiredChecks with no network.
+  const rulesetPayload = [
+    { type: "deletion" },
+    { type: "non_fast_forward" },
+    { type: "required_status_checks", parameters: { required_status_checks: [{ context: "validate", integration_id: 15368 }] } },
+    { type: "required_linear_history" },
+    { type: "pull_request", parameters: { required_approving_review_count: 0 } },
+  ];
+  const ext = extractRequiredChecks(rulesetPayload);
+  check("ruleset payload → protected", ext.protected === true);
+  check("ruleset payload → required_checks [\"validate\"]", ext.required_checks.length === 1 && ext.required_checks[0] === "validate");
+  const empty = extractRequiredChecks([]);
+  check("empty rules array → not protected", empty.protected === false);
+  check("empty rules array → no required_checks", empty.required_checks.length === 0);
+  check("rules without required_status_checks → not protected", extractRequiredChecks([{ type: "deletion" }, { type: "pull_request" }]).protected === false);
+  check("required_status_checks rule with empty contexts → protected, []", (() => { const e = extractRequiredChecks([{ type: "required_status_checks", parameters: { required_status_checks: [] } }]); return e.protected === true && e.required_checks.length === 0; })());
+  check("non-array rules → not protected (defensive)", extractRequiredChecks(null).protected === false);
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (branch-protection pure classifier, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

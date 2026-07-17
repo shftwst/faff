@@ -2,10 +2,13 @@
 // === region:factory — gates — FAFF-11: the engineering-quality gate ladder. ===
 // `faff gates discover` deterministically inspects the repo's OWN declared checks and emits an
 // ordered List<Rung> cheapest-first + a discovery classification (confident/none). Sources read
-// (v1): pre-commit hooks, package.json scripts, Makefile targets. (The spec also names CLAUDE.md
-// and cheap CI jobs as future sources — not yet parsed here; a repo declaring checks ONLY in those
-// resolves `discovery: none`, which the fail-closed default routes to needs-human rather than
-// silently passing — never green by silence. `gates.fallback: advisory` is the explicit opt-out.)
+// (v2, FAFF-533): pre-commit hooks, package.json scripts, Makefile targets, and `.github/workflows/*.yml`
+// (a `run:`-line scan against a curated recognised-runner allow-list; the CI source lets a repo whose
+// gates live ONLY in CI — faff's own, via validate.yml — resolve `confident` instead of `none`).
+// (The spec also names CLAUDE.md and other CI hosts as future sources — not yet parsed here; a repo
+// declaring checks ONLY in those resolves `discovery: none`, which the fail-closed default routes to
+// needs-human rather than silently passing — never green by silence. `gates.fallback: advisory` is
+// the explicit opt-out.)
 // `faff gates run` discovers then executes the rungs cheapest-first in the worktree sandbox
 // (execution_target = cwd; the single FAFF-12 seam) and emits a GatesOutcome + a fenced
 // faff-contract:quality-gates block. Pure-deterministic: NO LLM judgement decides what counts as a
@@ -25,6 +28,11 @@ const { commandInvokesFaffHook, preToolUseCommands } = require("./hooks-ensure")
 const { dig, findRoot, mainWorktreeRoot } = require("./shared-infra");
 
 const GATE_COST = { FORMAT: 10, LINT: 20, TYPECHECK: 30, STATIC_ANALYSIS: 40, UNIT: 50, OTHER: 60 };
+
+// FAFF-533: added to GATE_COST[kind] for a CI-sourced rung, so a locally-declared gate of the same
+// kind (pkg/Makefile at base, pre-commit at base-5) always wins the dedup-by-kind (lowest cost_rank).
+// CI is the fallback source, discoverable only when it is the SOLE declarer of that kind.
+const CI_COST_PENALTY = 5;
 
 // Map a script/target NAME to a RungKind by its conventional intent. Returns null for names that
 // are not recognisably an engineering gate (so we never fabricate a gate from an arbitrary script).
@@ -103,6 +111,95 @@ function discoverPreCommit(root) {
   return rungs;
 }
 
+// FAFF-533: the curated recognised-runner allow-list. Ordered — first match wins. This matches a
+// full COMMAND line (not a script/target NAME like gateKindForName), because gateKindForName's loose
+// name tokens (`check`, `test`) over-match arbitrary command text (`git checkout`, `container-check`),
+// fabricating required rungs from noise — the "slow target labelled cheap" failure. This list stays
+// deliberately narrow: over-matching is a bug, under-matching (a missed runner → `none`) is safe.
+// The table is the documented one-line extension point for new runners.
+const CI_RUNNERS = [
+  // --- TYPECHECK ---
+  { pattern: /(^|[^a-z])(tsc|mypy|pyright)([^a-z]|$)/, kind: "TYPECHECK" },
+  // --- LINT (incl. faff's OWN CLI gates) ---
+  { pattern: /(^|[^a-z])(eslint|flake8|ruff|clippy|rubocop|standardrb?)([^a-z]|$)/, kind: "LINT" },
+  { pattern: /(^|[^a-z])go\s+vet([^a-z]|$)/, kind: "LINT" },
+  { pattern: /(^|[^a-z])(validate-adapters|lint-refs|lint-cli-doc)([^a-z]|$)/, kind: "LINT" }, // faff's own gates
+  // --- FORMAT ---
+  { pattern: /(^|[^a-z])(prettier|gofmt|rustfmt|black|isort)([^a-z]|$)/, kind: "FORMAT" },
+  // --- UNIT ---
+  { pattern: /(^|[^a-z])node\b[^\n]*--test([^a-z]|$)/, kind: "UNIT" }, // node --test
+  { pattern: /(^|[^a-z])(jest|vitest|mocha|\bava\b|tap|pytest|phpunit|rspec)([^a-z]|$)/, kind: "UNIT" },
+  { pattern: /(^|[^a-z])go\s+test([^a-z]|$)/, kind: "UNIT" },
+  { pattern: /(^|[^a-z])cargo\s+test([^a-z]|$)/, kind: "UNIT" },
+];
+
+// Return the RungKind for a recognised CI runner command, or null for an unrecognised command.
+// Matches a full COMMAND line against the curated CI_RUNNERS allow-list (see the note there).
+function ciRunnerKind(command) {
+  const n = String(command).toLowerCase();
+  for (const { pattern, kind } of CI_RUNNERS) {
+    if (pattern.test(n)) return kind;
+  }
+  return null;
+}
+
+// FAFF-533: pull the command text out of every `run:` step of a workflow file. A purpose-built
+// line scan (NOT a full YAML parse) — the same posture as discoverMakefile (scan `target:` lines)
+// and discoverPreCommit (scan `- id:` lines). Handles both the inline form (`run: cmd`) and the
+// block-scalar form (`run: |` then an indented body). Returns one candidate command per line.
+function extractRunCommands(text) {
+  const out = [];
+  const lines = String(text).split(/\r?\n/);
+  const indentOf = (s) => (s.match(/^[ \t]*/) || [""])[0].length;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const m = /^(\s*)-?\s*run:\s*(.*)$/.exec(line);
+    if (!m) { i += 1; continue; }
+    const keyIndent = indentOf(line);
+    const inline = m[2].trim();
+    if (/^[|>][+-]?\s*$/.test(inline)) {
+      // block scalar — collect the indented body until indentation returns to <= keyIndent.
+      i += 1;
+      while (i < lines.length && (lines[i].trim() === "" || indentOf(lines[i]) > keyIndent)) {
+        const body = lines[i].trim();
+        if (body !== "") out.push(body);   // one candidate command per non-blank body line
+        i += 1;
+      }
+      continue;                            // i already advanced past the block
+    } else if (inline !== "") {
+      out.push(inline.replace(/^["']|["']$/g, "")); // inline single-line command (strip surrounding quotes)
+    }
+    i += 1;
+  }
+  return out;
+}
+
+// FAFF-533: the 4th detector — recognised gate commands declared in `.github/workflows/*.yml`.
+// Reads root/.github/workflows/*.{yml,yaml}; emits a rung per recognised `run:` command. A missing
+// dir, an unreadable file, or zero recognised commands → [] (never throws). CI-sourced rungs carry
+// cost_rank = GATE_COST[kind] + CI_COST_PENALTY, so a local source of the same kind wins dedup.
+function discoverCiWorkflows(root) {
+  const rungs = [];
+  const dir = path.join(root, ".github", "workflows");
+  let stat;
+  try { stat = fs.statSync(dir); } catch { return rungs; }
+  if (!stat.isDirectory()) return rungs;
+  let entries;
+  try { entries = fs.readdirSync(dir); } catch { return rungs; }
+  const files = entries.filter((f) => /\.ya?ml$/i.test(f)).sort();
+  for (const f of files) {
+    let text;
+    try { text = fs.readFileSync(path.join(dir, f), "utf8"); } catch { continue; } // skip unreadable
+    for (const command of extractRunCommands(text)) {
+      const kind = ciRunnerKind(command);
+      if (!kind) continue;                 // unrecognised → not a gate, drop it
+      rungs.push({ kind, name: `${kind.toLowerCase()} (ci-workflow: ${command})`, command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true });
+    }
+  }
+  return rungs;
+}
+
 // The deterministic discovery. Reuses the resolution ORDER faff-graft Step 8 documents
 // (CLAUDE.md/test+lint via the repo's own declarations) — ONE resolver, no second divergent one.
 function discoverRungs(root) {
@@ -110,6 +207,7 @@ function discoverRungs(root) {
     ...discoverPreCommit(root),
     ...discoverPkgScripts(root),
     ...discoverMakefile(root),
+    ...discoverCiWorkflows(root),   // FAFF-533: CI-workflow source (fallback — local sources win dedup)
   ];
   // Deduplicate by kind, preferring the cheapest source (lowest cost_rank) for each kind.
   const byKind = new Map();
@@ -297,6 +395,49 @@ function gatesSelftest() {
   cases.push(["cmd run all-pass exit 0", exitRunPass === 0]);
   const exitRunFail = cmdGates(["run", "--root", dFail, "--json"]);
   cases.push(["cmd run with fail exit 1", exitRunFail === 1]);
+
+  // 11. ciRunnerKind: recognised runners map to the right kind; unrecognised → null.
+  cases.push(["ci: node --test → UNIT", ciRunnerKind("node --test") === "UNIT"]);
+  cases.push(["ci: faff validate-adapters → LINT", ciRunnerKind("node plugin/skills/faff/bin/faff validate-adapters") === "LINT"]);
+  cases.push(["ci: lint-refs → LINT", ciRunnerKind("node plugin/skills/faff/bin/faff lint-refs") === "LINT"]);
+  cases.push(["ci: pytest → UNIT", ciRunnerKind("python -m pytest -q") === "UNIT"]);
+  cases.push(["ci: tsc → TYPECHECK", ciRunnerKind("npx tsc --noEmit") === "TYPECHECK"]);
+  cases.push(["ci: git checkout → null (no false positive)", ciRunnerKind("git checkout main") === null]);
+  cases.push(["ci: bare shell noise → null", ciRunnerKind("echo done") === null && ciRunnerKind("make build") === null]);
+
+  // 12. extractRunCommands: inline form.
+  const exInline = extractRunCommands("    steps:\n      - name: t\n        run: node --test\n");
+  cases.push(["extract: inline run command", exInline.length === 1 && exInline[0] === "node --test"]);
+
+  // 13. extractRunCommands: block-scalar form, blank line inside the block does not terminate it.
+  const exBlock = extractRunCommands("      - name: tests\n        run: |\n          echo setup\n\n          node --test\n      - name: next\n        run: echo done\n");
+  cases.push(["extract: block-scalar yields body lines", exBlock.includes("node --test") && exBlock.includes("echo setup")]);
+  cases.push(["extract: block does not swallow the next step", exBlock.includes("echo done")]);
+
+  // 14. discoverCiWorkflows: a CI-only repo resolves confident with a UNIT rung (source ci_workflow).
+  const dCi = mk("ci", { ".github/workflows/validate.yml": "jobs:\n  v:\n    steps:\n      - name: adapters\n        run: node bin/faff validate-adapters\n      - name: tests\n        run: node --test\n" });
+  const disCi = discoverRungs(dCi);
+  cases.push(["ci: discovery confident", disCi.discovery === "confident"]);
+  cases.push(["ci: UNIT rung node --test source ci_workflow", disCi.rungs.some((r) => r.kind === "UNIT" && r.source === "ci_workflow" && r.command === "node --test")]);
+  cases.push(["ci: LINT rung from validate-adapters", disCi.rungs.some((r) => r.kind === "LINT" && r.source === "ci_workflow")]);
+  cases.push(["ci: UNIT cost_rank = base + penalty", disCi.rungs.filter((r) => r.kind === "UNIT").every((r) => r.cost_rank === GATE_COST.UNIT + CI_COST_PENALTY)]);
+
+  // 15. dedup: package.json UNIT (test) beats a CI node --test (local wins, lower cost_rank).
+  const dCiDup = mk("cidup", { "package.json": JSON.stringify({ scripts: { test: "true" } }), ".github/workflows/ci.yml": "jobs:\n  v:\n    steps:\n      - run: node --test\n" });
+  const disCiDup = discoverRungs(dCiDup);
+  const unitRungs = disCiDup.rungs.filter((r) => r.kind === "UNIT");
+  cases.push(["ci dedup: one UNIT rung", unitRungs.length === 1]);
+  cases.push(["ci dedup: local pkg rung wins", unitRungs[0].source === "pkg_script"]);
+
+  // 16. false-positive guard: a workflow of only uses:/name:/non-recognised run: → none, no rung.
+  //     A recognised token inside a `name:` label (not a `run:` value) is NOT scanned.
+  const dCiNone = mk("cinone", { ".github/workflows/noop.yml": "jobs:\n  v:\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run pytest suite\n        run: echo done\n" });
+  const disCiNone = discoverRungs(dCiNone);
+  cases.push(["ci false-positive guard: discovery none", disCiNone.discovery === "none"]);
+  cases.push(["ci false-positive guard: no rung emitted", disCiNone.rungs.length === 0]);
+
+  // 17. missing .github/workflows dir → [] (the common local-only repo case).
+  cases.push(["ci: missing workflows dir → []", discoverCiWorkflows(dPkg).length === 0]);
 
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
 
@@ -495,4 +636,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { GATE_COST, cmdDoctor, cmdGates, cmdSync, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, mergeFencePresentAt, resolveSyncScript, runLadder, runRung };
+module.exports = { CI_COST_PENALTY, GATE_COST, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, extractRunCommands, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, mergeFencePresentAt, resolveSyncScript, runLadder, runRung };

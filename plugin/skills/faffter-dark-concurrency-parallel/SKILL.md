@@ -18,7 +18,7 @@ concurrency_max: 4
 
 ## When it runs
 
-Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill. It honours the same slot contract every `concurrency` occupant must (see the gateway → **Mechanism slots** → _The `concurrency` slot contract_): build every issue in the partition, serialise within collision groups, record every terminal outcome to the run ledger, and never weaken the merge gate. This skill adds concurrency and the merge-safety that concurrency requires.
+Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill. It honours the same slot contract every `concurrency` occupant must (see the gateway → **Mechanism slots** → _The `concurrency` slot contract_): build every issue in the partition, serialise within collision groups, record every terminal outcome to the run ledger, never weaken the merge gate, and bracket every graft dispatch with integrity-digest custody (obligation 5). This skill adds concurrency and the merge-safety that concurrency requires.
 
 ## Concurrency cap
 
@@ -76,9 +76,21 @@ Several PRs going green in parallel were each tested against the `main` they bra
 
 This keeps the throughput win of parallel building while making the *merge* boundary as safe as the sequential default — each PR lands against the `main` it was actually re-validated against.
 
+## Integrity-digest custody chain (obligation 5 — placement here)
+
+N dispatches overlap over one *shared* run-grain member set, so N independent per-dispatch brackets cannot work — sibling B's legitimate outcome, recorded while A is still in flight, would read as tampering against A's baseline. Custody must be shared too: maintain **one continuous run-grain custody chain per wave** — a single held baseline, replaced only by the orchestrator's own legitimate writes, with a verify *before* every replacement so no window goes unobserved. Every writer of the bracketed members is the orchestrator (ledger sole writer, `corrective/` orchestrator-side CLI, `events.jsonl` sole appender), so "everything since the last baseline I did not write is tamper" is exact.
+
+- **Wave start** (before the first dispatch): snapshot → hold baseline B0 in context.
+- **On each subagent return** (before consuming its token / recording anything): verify against the current baseline. Exit 0 → reconcile token vs ground truth as today; exit 1 / exit 2 → the shared park (obligation 5), evidence unconsumed.
+- **On each orchestrator own-write to a byte-exact member** (ledger outcome record, park writes, corrective ops), **always in this order — verify → write → post-write check → re-snapshot → intended-content check:** (1) verify the current baseline (non-zero → the matching park path, skip the write's normal flow — a tamper must be caught *before* the re-baseline absorbs it); (2) perform the write, unchanged; (3) **post-write check** — a second CLI verify of the *old* baseline against disk, requiring the tampered set to name **exactly** the members this write touched (a legitimate `events.jsonl` append still verifies clean under the prefix rule; any *other* member named is tamper → exit-1 path; exit 2 → the parity park); (4) snapshot → candidate new baseline; (5) **intended-content check** — hash the bytes the orchestrator intended to write, from context via stdin (`printf '%s' "$intended" | /usr/bin/sha256sum`, never re-reading the file), and require the candidate baseline's recorded `sha256` for **each just-written member** to equal it (per-file for `corrective/` writes; event appends exempt). A mismatch is tamper → exit-1 path; only a matching candidate replaces the baseline.
+- **Poll-loop `sentry-checkpoint` event appends:** no re-baseline — `events.jsonl` is prefix-preserving, so appends verify clean against any older baseline.
+- **Wave end** (all units terminal): final verify, then discard the baseline.
+
+The ordering is load-bearing: re-baselining *without* first verifying would launder any tampering since the last observation into the trusted baseline, and the verify-to-re-snapshot interval is itself unobserved, so the two checks close it. The post-write CLI verify catches drift on any member the orchestrator did *not* touch; the intended-content hash catches the one path it cannot — a rewrite of the *touched* member itself, which is "changed" by design and would otherwise be absorbed. **On tamper (or exit 2)** the wave response is: launch **no new dispatches**, await the already-in-flight subagents to their terminal states through their own per-return verifies (record each — clean or tamper — against ground truth), then end the wave loudly; **never interrupt a genuinely live subagent**, and in-flight merges cannot be prevented (each graft merges against git ground truth through the untouched merge floor). Member set, custody rule, exit outcomes, and park mechanics (including the `integrity_tampered` ledger array and the merged-PR park comment) are the gateway's — see obligation 5.
+
 ## Rules
 
-- Honours all four slot-contract obligations (the gateway → **Mechanism slots** → _The `concurrency` slot contract_) — concurrency changes *ordering and isolation*, never *whether* the merge gate runs.
+- Honours all five slot-contract obligations (the gateway → **Mechanism slots** → _The `concurrency` slot contract_) — concurrency changes *ordering and isolation*, never *whether* the merge gate runs.
 - The merge gate (AC + CI-green + review `pass`, **plus the L4 per-issue holdout `meets-spec` under the lights-out signal** — FAFF-311 obligation-4) is never weakened; rebase-before-merge only *adds* a re-validation, it never removes one.
 - Never run two builds in the same worktree. Never exceed `concurrency_max`. Never merge on pre-rebase green.
 - Sequencing/holding a build for a free slot is **not** a park — it's scheduling. Every partition member still builds.

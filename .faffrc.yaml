@@ -38,40 +38,47 @@ convergence:
     enabled: true # within-run convergence on by default: drain execution-discovered scope in-run
     max_waves: 8 # reported runaway backstop only (dryness is the normal exit, never this)
 
-# FAFF-523: the shared named model/provider/auth backend namespace — migrated off the
-# legacy faffter_dark.adversarial primary+fallbacks scalar block (below) onto named
-# entries referenced by an ordered `refs:` list. auth/egress are left implicit
-# (derived): nvidia-glm/gemini-gemma derive auth: api-key (api_key_env present) +
-# egress: external (public host); studio-ollama derives auth: none + egress: local
-# (tailscale *.ts.net host). `timeout: 480` is restated on every entry — the legacy
-# form applied it to the primary and let both fallbacks INHERIT it; named backends:
-# entries never inherit, so byte-equivalence requires restating it explicitly.
-# Migration deviation (documented, per the spec's own named example of this exact
-# case): the legacy fallback inheritance also spuriously carried NVIDIA_API_KEY onto
-# the keyless ollama fallback (api_key_env inherited from the primary even though
-# ollama needs no key) — NOT restated here; studio-ollama correctly derives auth: none.
+# backends: (FAFF-523/529) — the shared named model/provider/auth namespace. Named entries the
+# adversarial `review` slot (faffter-dark-adversarial-review) references by name below via
+# faffter_dark.adversarial.refs. Replaces the legacy faffter_dark.adversarial primary+fallbacks
+# scalar block (FAFF-529 migration; byte-equivalent to the pre-migration chain — golden fixture
+# in docs/specs/2026-07-17-FAFF-529-…-design.md Appendix A).
 backends:
     nvidia-glm:
         provider: nvidia
         model: z-ai/glm-5.2
         host: https://integrate.api.nvidia.com/v1
+        auth: api-key
         api_key_env: NVIDIA_API_KEY # confirmed set in env (name only; never the key itself)
+        egress: external
         timeout: 480
     gemini-gemma:
         provider: gemini
         model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
         host: https://generativelanguage.googleapis.com/v1beta/openai
+        auth: api-key
         api_key_env: GEMINI_API_KEY
+        egress: external
         timeout: 480
     studio-ollama:
         provider: ollama
         model: qwen3-next:80b-a3b-instruct-q4_K_M
-        host: http://studio.longhair-escalator.ts.net:11434
+        host: http://studio.longhair-escalator.ts.net:11434 # private tailnet host — kept COMMITTED (operator resolution, works committed for months; ADR-0067 names it a candidate for .faffrc.local.yaml, not a mandate)
+        # byte-equivalence quirk (FAFF-529): the legacy resolver's inheritOptionalFromPrimary copied
+        # the PRIMARY's api_key_env/timeout onto this element even though ollama needs no key.
+        # Restated explicitly so `faff adversarial-backends` output stays byte-for-byte identical to
+        # the pre-migration golden fixture — NOT a real auth requirement for ollama.
+        auth: api-key
+        api_key_env: NVIDIA_API_KEY
+        egress: local
         timeout: 480
 
-# faffter-dark: LLM provider config for the adversarial `review` slot (faffter-dark-adversarial-review).
+# faffter-dark: adversarial `review` slot's reference list — points at the named backends: entries
+# above, primary-first (index 0 = first-served, no "primary" key — FAFF-523's ordered-reference
+# form). This is FAFF-523's own landed shape (see its spec's worked example); the legacy scalar
+# primary+fallbacks dialect this replaced is gone.
 faffter_dark:
-    adversarial: # ordered refs: list — index 0 first-served, no "primary" (FAFF-261/523)
+    adversarial:
         refs:
             - nvidia-glm
             - gemini-gemma

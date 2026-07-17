@@ -63,23 +63,44 @@ budget:
   # cost: 25   # optional: budget.cost (dollars, priced from the ADR-0048 map) is the FAFF-427
               # recommended L4 spend governor; max_attempts is a count, excluded from the L4
               # budget-ceiling gate and kept only as an extra backstop.
-# faffter-dark: LLM provider config for the adversarial `review`/`spec_review` slots above.
-# Legacy faffter_dark.adversarial shape (pre-`backends:` namespace — FAFF-529 migrates it once
-# FAFF-523 lands); api_key_env names resolve from .env.claude-box at call time (name only, never
-# the key itself — the box-env copy step below supplies the actual values, gitignored, never
-# committed). Mirrors faff-root's own currently-served model ids.
-faffter_dark:
-  adversarial:                                # PRIMARY = chain element 0
+# backends: namespace (FAFF-523/529) — named entries the adversarial `review`/`spec_review` slots'
+# refs below point at; replaces the legacy faffter_dark.adversarial primary+fallbacks scalar block.
+# api_key_env names resolve from .env.claude-box at call time (name only, never the key itself —
+# the box-env copy step below supplies the actual values, gitignored, never committed). Mirrors
+# faff-root's own currently-served model ids. ollama-local is keyless (no .env.claude-box key
+# needed) — its tailnet host is reachable from an in-cage SUT (operator has run this for months).
+backends:
+  nvidia-glm:
     provider: nvidia
     model: z-ai/glm-5.2
     host: https://integrate.api.nvidia.com/v1
+    auth: api-key
     api_key_env: NVIDIA_API_KEY
+    egress: external
     timeout: 480
-    fallbacks:
-      - provider: gemini
-        model: models/gemma-4-31b-it
-        host: https://generativelanguage.googleapis.com/v1beta/openai
-        api_key_env: GEMINI_API_KEY
+  gemini-gemma:
+    provider: gemini
+    model: models/gemma-4-31b-it
+    host: https://generativelanguage.googleapis.com/v1beta/openai
+    auth: api-key
+    api_key_env: GEMINI_API_KEY
+    egress: external
+    timeout: 480
+  ollama-local:
+    provider: ollama
+    model: qwen3-next:80b-a3b-instruct-q4_K_M
+    host: http://studio.longhair-escalator.ts.net:11434 # operator's tailnet host; cage reaches it
+    auth: none
+    egress: local
+
+# faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
+# backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
+faffter_dark:
+  adversarial:
+    refs:
+      - nvidia-glm
+      - gemini-gemma
+      - ollama-local
 EOF
 
 # PRD lives under docs/prd/ (not the repo root) so `faff prd list` — and the L4 run-start

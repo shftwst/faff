@@ -1438,8 +1438,10 @@ const DISTANCE_CLASS_RANK = { met: 0, unverified: 1, unmet: 2, uncovered: 3 };
 //     (including absent/undefined) is unverified/unmet per the ladder — coverage's conservative rule.
 function computePrdDistance(input) {
   const live = Array.isArray(input.livePrdrs) ? input.livePrdrs.filter((p) => p && typeof p === "object" && !Array.isArray(p)) : [];
-  // Reuse coverage for the uncovered set — its dedup + prospective-live-set semantics come free.
-  const cov = computePrdCoverageVerdict({ prdGoals: input.prdGoals, livePrdrs: input.livePrdrs });
+  // Reuse coverage for the uncovered set — its dedup + prospective-live-set semantics come free. Feed the
+  // SAME filtered `live` set (not the raw input) so both consumers see one input shape (coverage re-filters
+  // internally today, but that internal filter is not this fn's to depend on).
+  const cov = computePrdCoverageVerdict({ prdGoals: input.prdGoals, livePrdrs: live });
   const entries = [];
   for (const p of live) {
     let distance_class;
@@ -1481,7 +1483,12 @@ function contractPrdDistance(extraction) {
     const kind = e.kind;
     const distance_class = e.distance_class;
     const class_rank = e.class_rank;
-    if (DISTANCE_CLASSES.includes(distance_class) && DISTANCE_CLASS_RANK[distance_class] !== class_rank) {
+    // Self-sufficient conformance: flag an out-of-enum class as a violation here rather than leaning on the
+    // downstream schemaCheck enum as the sole backstop (parity with the other validators, e.g. an unknown
+    // review-verdict signal). schemaCheck still fail-louds it (exit 2); this makes the verdict authoritative.
+    if (!DISTANCE_CLASSES.includes(distance_class)) {
+      violations.push(`entries[${i}] distance_class ${JSON.stringify(distance_class)} not in {${DISTANCE_CLASSES.join(", ")}}`);
+    } else if (DISTANCE_CLASS_RANK[distance_class] !== class_rank) {
       violations.push(`entries[${i}] class_rank ${JSON.stringify(class_rank)} disagrees with distance_class ${JSON.stringify(distance_class)} (ladder: met 0 / unverified 1 / unmet 2 / uncovered 3)`);
     }
     if ((kind === "goal") !== (distance_class === "uncovered")) {

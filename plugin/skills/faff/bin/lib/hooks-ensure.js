@@ -314,8 +314,11 @@ function cmdHooksEnsure(args) {
   }
 
   for (const s of skipped_stale) {
+    // FAFF-530: PreToolUse skipped_stale entries are "<matcher>::<sub>" keys — report the
+    // bare subcommand name in the warning (the sub is what faff serves, not the matcher pair).
+    const sub = s.includes("::") ? s.slice(s.indexOf("::") + 2) : s;
     process.stderr.write(
-      `faff hooks-ensure: WARNING — resolved faff (${bin}) does not serve '${s}'; skipped to avoid a ` +
+      `faff hooks-ensure: WARNING — resolved faff (${bin}) does not serve '${sub}'; skipped to avoid a ` +
       `session-blocking hook. Fix the install, then re-run: bash scripts/link-skills.sh --global --replace\n`);
   }
 

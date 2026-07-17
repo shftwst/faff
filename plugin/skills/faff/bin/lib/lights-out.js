@@ -963,7 +963,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // continue under the same ceiling. Re-resolve the envelope from config (done in the
   // assembly) and confront accumulated spend; still at/over → refuse, naming the key.
   if (priorState === "escalated" && typeof ledger.stop_reason === "string" && ledger.stop_reason.startsWith("budget-escalated")) {
-    const stillOver = resumeBudgetStillOverCeiling(binPath, runDir);
+    const stillOver = resumeBudgetStillOverCeiling(binPath, runDir, A.envelope);
     if (stillOver.over) {
       return emitRefuse(1, `lights-out --resume: accumulated spend still at/over the budget ceiling (${stillOver.breached.join(", ") || "budget"}) — raise budget.* in .faffrc and re-run --resume (the human's fix is the config edit; resume never auto-inherits headroom it cannot prove)`, { state: priorState });
     }
@@ -986,7 +986,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // STEP 3: budget close-out + re-baseline (shape (a)) — close the prior open span into a
   // measured delta, open a new span baselined at the resume instant. Never closes at zero.
   const nowIso = new Date().toISOString();
-  const budgetSessions = closeAndOpenBudgetSessions(ledger, root, nowIso);
+  const budgetSessions = closeAndOpenBudgetSessions(ledger, runDir, root, nowIso);
 
   // STEP 5: WRITE the re-entry (first side effect) — owner history + new epoch owner +
   // abort→history + cleared stop_reason + resume[] + budget.sessions. The new owner block
@@ -1014,18 +1014,32 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
 }
 
 // FAFF-527 — dry budget confrontation for the escalated-budget gate. Shells the SAME
-// `faff budget check` the governor uses (never a re-derived counter); a token/cost breach
-// on the re-resolved ceiling means spend is still at/over. Fail-safe: any child failure is
-// treated as NOT-over (proceed) — the ship-time/Sentry backstops remain the real gate, and
-// refusing a resume on a flaky meter would strand the run.
-function resumeBudgetStillOverCeiling(binPath, runDir) {
+// `faff budget check` the governor uses for the ACCUMULATED SPEND (never a re-derived
+// counter), then confronts it against the RE-RESOLVED ceiling (the envelope the resume
+// preflight resolved from CURRENT config — not the ledger's stored ceiling), so a human
+// who raised budget.* in .faffrc gets the headroom their edit granted (the escalation-
+// re-entry contract).
+//
+// FAIL-CLOSED on ambiguity (the house rule, applied to the budget axis this run escalated
+// on): an unreadable/indeterminate meter is NOT proof of headroom. When budget check can't
+// produce a spend figure (non-zero exit, no stdout, an `indeterminate` outcome, or a parse
+// fault) the gate refuses (`over:true, breached:["budget:indeterminate"]`) rather than
+// waving the run through — an unknowable spend on a run that already hit its ceiling must
+// not silently create headroom. The human re-runs after the transient clears (recoverable),
+// which is the safe direction against resuming a still-over run whose meter can't prove it.
+function resumeBudgetStillOverCeiling(binPath, runDir, envelope) {
   try {
     const r = spawnSync(process.execPath, [binPath, "budget", "check", "--run-dir", runDir, "--json"], { encoding: "utf8" });
-    if (r.status !== 0 || !r.stdout) return { over: false, breached: [] };
+    if (r.status !== 0 || !r.stdout) return { over: true, breached: ["budget:indeterminate"] };
     const out = JSON.parse(r.stdout.trim().split("\n").pop());
-    const breached = Array.isArray(out.breached) ? out.breached.filter((b) => b === "tokens" || b === "cost") : [];
+    if (out.indeterminate === true || out.outcome === "indeterminate") return { over: true, breached: ["budget:indeterminate"] };
+    const ceilings = (envelope && envelope.ceilings) || {};
+    const spent = out.spent || {};
+    const breached = [];
+    if (typeof ceilings.tokens === "number" && typeof spent.tokens === "number" && spent.tokens >= ceilings.tokens) breached.push("tokens");
+    if (typeof ceilings.cost === "number" && typeof spent.cost === "number" && spent.cost >= ceilings.cost) breached.push("cost");
     return { over: breached.length > 0, breached };
-  } catch { return { over: false, breached: [] }; }
+  } catch { return { over: true, breached: ["budget:indeterminate"] }; }
 }
 
 // FAFF-527 — the impure evidence gatherer for reconstruction (spec §4 step 4). Per
@@ -1045,7 +1059,13 @@ function gatherResumeEvidence(runDir, root, ledger, binPath) {
       e.recorded = recorded && recorded.head_sha ? { pr: recorded.pr ?? null, head_sha: recorded.head_sha, merged: true } : null;
       e.observed = observeForgeMerge(recorded);
     } else if (outcomes[issue] === undefined) {
-      // in-flight when the run died — is it at a resumable boundary?
+      // in-flight when the run died — is it at a resumable boundary? The review-hold signal
+      // is the ON-DISK twin of the `faff-awaiting-review` label: FAFF-403 writes the
+      // `.faff/resume/<issue>/` store (and `review-progress.json`) at the SAME time it applies
+      // the label, so the store's presence is the label's local proxy — the impure shell reads
+      // it without a tracker round-trip. (reconstructResumePlan also honours an `awaitingReview`
+      // evidence key for a future caller that does read the label directly; the shell supplies
+      // the on-disk `resumeStore` twin instead.)
       e.resumeStore = fs.existsSync(path.join(root, ".faff", "resume", issue))
         || fs.existsSync(path.join(issueDir, "review-progress.json"));
       const bp = readJsonSafe(path.join(issueDir, "build-progress.json"));
@@ -1084,10 +1104,21 @@ function branchExistsOnForge(branch) {
 
 // FAFF-527 — budget close-out + re-baseline (spec §4 step 3, shape (a)). Closes the prior
 // open span into a measured per-model delta and opens a fresh span baselined at the resume
-// instant. Never closes at zero: an unresolvable prior transcript degrades the close_source
-// to "degraded" but still records the last-known figure (unknown spend consumes the benefit
-// of the doubt, never grants headroom).
-function closeAndOpenBudgetSessions(ledger, root, nowIso) {
+// instant. The close-out follows the spec's three-rung fallback, never granting headroom on
+// unknown spend:
+//   1. transcript resolvable  → the real per-model delta (close_source "transcript").
+//   2. else a durable budget observation (a `budget-checkpoint` event carrying a spend
+//      figure) → that figure (close_source "last-observation"). In v1 the checkpoint event
+//      carries only {breached, outcome} and no token total, so this rung finds nothing and
+//      is a no-op today (the spec Assumptions price this in) — it is wired so a future
+//      spend-bearing observation is honoured without a shape change.
+//   3. else → close_source "degraded", recorded honestly (NOT a fabricated figure): the
+//      degraded close is surfaced on the ledger span (close_source "degraded") and the
+//      escalated-budget gate fails closed on an unreadable meter (resumeBudgetStillOverCeiling),
+//      so an unknowable prior spend can never SILENTLY grant headroom — the protection is
+//      the fail-closed gate + visible degrade, per the spec's "preflight lattice" mechanism,
+//      never an invented number.
+function closeAndOpenBudgetSessions(ledger, runDir, root, nowIso) {
   const budget = (ledger.budget && typeof ledger.budget === "object") ? ledger.budget : {};
   // Existing sessions, or synthesize span 0 from the mint baseline + minting session.
   let sessions = Array.isArray(budget.sessions) ? budget.sessions.slice() : null;
@@ -1103,14 +1134,22 @@ function closeAndOpenBudgetSessions(ledger, root, nowIso) {
   if (openIdx >= 0) {
     const open = sessions[openIdx];
     const priorStart = (ledger.owner && ledger.owner.started_at) ? Date.parse(ledger.owner.started_at) : null;
-    let measured = null, closeSource = "degraded";
+    let closed = null, closeSource = "degraded";
+    // Rung 1: transcript.
     try {
       const env = open.session_id ? { ...process.env, CLAUDE_CODE_SESSION_ID: open.session_id } : process.env;
       const m = measureTokensByModelClass({ cwd: root, env, runStartMs: Number.isFinite(priorStart) ? priorStart : null });
-      if (m.source === "transcript") { measured = m.by_model; closeSource = "transcript"; }
-    } catch { /* degrade */ }
-    const closed = measured ? closeSpanDeltaByModel(open.baseline_by_model_class, measured)
-      : (open.baseline_by_model_class && typeof open.baseline_by_model_class === "object" ? {} : {});
+      if (m.source === "transcript") { closed = closeSpanDeltaByModel(open.baseline_by_model_class, m.by_model); closeSource = "transcript"; }
+    } catch { /* fall through to rung 2/3 */ }
+    // Rung 2: a durable budget observation (no-op in v1 — checkpoints carry no token total).
+    if (closed == null) {
+      const obs = lastDurableBudgetObservation(runDir);
+      if (obs) { closed = obs; closeSource = "last-observation"; }
+    }
+    // Rung 3: degraded — recorded honestly as an empty delta with close_source "degraded"
+    // (never a fabricated figure); headroom is denied by the fail-closed escalated-budget
+    // gate + the visible degrade marker, not by inventing a number.
+    if (closed == null) closed = {};
     sessions[openIdx] = { ...open, closed_delta_by_model_class: closed, closed_at: nowIso, close_source: closeSource };
   }
   // Open the new span, baselined at the resume instant with the resuming session's sid.
@@ -1128,6 +1167,27 @@ function closeAndOpenBudgetSessions(ledger, root, nowIso) {
 
 function readJsonSafe(p) {
   try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
+}
+
+// FAFF-527 — the last durable budget observation for the close-out's rung 2: the most
+// recent `budget-checkpoint` event that carries a per-model spend figure. In v1 these
+// events carry only {breached, outcome} (no token total), so this returns null and rung 2
+// is a documented no-op (spec Assumptions) — it is shaped to honour a future spend-bearing
+// observation (`data.spent_by_model_class`) the moment one is emitted, with zero call-site
+// change. Returns a `{model:{classes}}` map or null.
+function lastDurableBudgetObservation(runDir) {
+  try {
+    const p = path.join(runDir, "events.jsonl");
+    if (!fs.existsSync(p)) return null;
+    const lines = fs.readFileSync(p, "utf8").split("\n").filter((l) => l.trim() !== "");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      let e; try { e = JSON.parse(lines[i]); } catch { continue; }
+      if (e && e.type === "budget-checkpoint" && e.data && e.data.spent_by_model_class && typeof e.data.spent_by_model_class === "object") {
+        return e.data.spent_by_model_class;
+      }
+    }
+  } catch { /* degrade to null */ }
+  return null;
 }
 
 // In-memory selftest of the pure preflight core over synthetic probe fixtures —

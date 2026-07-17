@@ -593,15 +593,15 @@ The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verd
 
 Each log entry captures:
 
-- Invocation context (args, mode — interactive or autonomous, working directory)
-- MCP calls made (tool name, relevant inputs, key outputs)
+- Invocation context (args, mode — interactive or autonomous, working directory); MCP calls made (tool name, relevant inputs, key outputs)
 - Decisions with reasoning (what was expected, what was observed, what decision was taken, why)
-- Commit SHAs, PR URLs, branch names
-- Errors, parks, and their causes
+- Commit SHAs, PR URLs, branch names; errors, parks, and their causes
 
 Logs are plain markdown — agent-readable and human-readable. A log must contain enough context that a follow-up agent, given only the log file, can pick up intelligently without needing the original conversation.
 
 **Gitignore:** `.faff/`, the legacy `.faffrc` / `.faffrc.yml`, and the machine-local overlay `.faffrc.local.yaml` are gitignored by `faff gitignore-ensure` (idempotent, append-only). The **base `.faffrc.yaml` is NOT ignored on new bootstraps** (FAFF-387 — it is the committable base); an existing repo that already ignores it keeps that line (the command never removes one), migrate deliberately when ready (`faff config check`'s posture finding names the steps).
+
+**Run-artifact write authority (FAFF-519 — the single canonical rule; graft and the concurrency slots reference it).** Every `.faff/runs/<id>/` artifact carries one of two write-authority classes, and the classes bind actors relative to the orchestrator→lane dispatch cut. *Evidence class* — any artifact a downstream gate (merge floor, corrective, detection, reconcile) consumes as trust-bearing input, i.e. the `correctiveIntegrityDirs()` roster (`run-ledger.json`, `events.jsonl`, `corrective/`, `<issue>/ac-checklist.json` · `review-verdict.json` · `holdout.json`) plus the merge-tail records `merge-record.json` / `post-merge-verification.json`, and the orchestrator-written run bookkeeping (`summary.md`, `conflict-analysis.md`, `automation-verdicts.md`, `slot-validation.md`, `lane-boundary.json`) — is **writable only from the trusted side of the active cut**: a dispatched (untrusted) lane *returns* the data in its terminal payload and the dispatcher digest-verifies then persists it (the judged party never writes its own verdict artifact — the FAFF-384 spawner precedent, generalised). *Sensor/resume class* — narrative logs (`graft.md`/`prep.md`/`park.md`/`resolve-attempt.md`/`ac-verification.md`), `build-progress.json`, `review-progress.json`, `.faff/resume/<issue>/`, `heartbeat*`, `discovered-scope.json`, `merge-gate-override.json` — stays **lane-writable, single-writer per file**, because a dead subagent must leave it behind to resume from and a live one must tick it mid-flight for the sentry poller (mid-lane writes are the feature); it is treated as untrusted sensor input (reconcile-only when unasserted, FAFF-466), never bare gate evidence. **The cut is the orchestrator→lane *dispatch*, so the classes bind only across an active cut: interactive top-level graft (L2) has no cut above it — the human-supervised session *is* the trusted side and legitimately writes every class directly, exactly as today; the evidence rule activates only for dispatched (autonomous-orchestration) lanes.** The full ruling, the mandated write-site relocations (still **follow-up**, not yet built), the `events.jsonl` prefix-preserving carve-out (Decision 5), and the FAFF-520 interim run-grain bracket (Decision 6) are in **ADR-0077**.
 
 ### Issue claim & status monotonicity (multi-orchestrator safety — FAFF-82)
 

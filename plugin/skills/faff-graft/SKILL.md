@@ -319,7 +319,7 @@ The PR description must include an AC checklist:
 
 Tick each box as its verification passes, with a one-line note (test file reference, or command + observed result). ACs that cannot be auto-verified (visual, subjective, auth-required) remain unchecked with an inline note explaining why.
 
-**Persist the AC result as a floor artifact (FAFF-350).** Write `<run-dir>/<ISSUE>/ac-checklist.json` = `{ "all_verified": <bool> }` — `true` only when every auto-verifiable AC is ticked (a `Needs human verification` box left unchecked is **not** verified). This is the artifact `faff merge-gate` re-reads at merge; a missing/unreadable file is fail-closed to not-verified, so writing it is what lets the mechanical floor see AC coverage.
+**Persist the AC result as a floor artifact (FAFF-350).** Write `<run-dir>/<ISSUE>/ac-checklist.json` = `{ "all_verified": <bool> }` — `true` only when every auto-verifiable AC is ticked (a `Needs human verification` box left unchecked is **not** verified). This is the artifact `faff merge-gate` re-reads at merge; a missing/unreadable file is fail-closed to not-verified, so writing it is what lets the mechanical floor see AC coverage. (This artifact — like `review-verdict.json` (Step 9), the per-issue-gate `holdout.json` (Step 10), and the merge-tail records — is **evidence class** per gateway → **Run-artifact write authority** (ADR-0077): under a dispatched autonomous lane it must ultimately be written by the trusted side; today's in-lane write is the sanctioned rung-0 posture until the mandated relocation follow-up lands, and interactive top-level graft writes it directly regardless.)
 
 This step runs in **both** interactive and autonomous modes.
 

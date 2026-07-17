@@ -18,8 +18,19 @@
 // run_id / seq stream), and any coarse rebuild is announced, never silent.
 // ===========================================================================
 
-const { isEscalateStopReason } = require("./disposition");
 const { reconcileShipped } = require("./reconcile");
+
+// The escalate-class stop_reason tokens (mirrors disposition.js's ESCALATE_STOP set —
+// inlined here rather than required, because disposition.js is a `factory`-region module
+// and this `governance`-region module must not depend on factory, ADR-0042). `budget-
+// escalated` carries dimensions (budget-escalated(tokens)) so it is PREFIX-matched; the
+// rest are exact. A plain budget stop / queue-drained / converged raises nothing.
+const ESCALATE_STOP_EXACT = new Set(["non-convergence", "product-incomplete", "sentry-abort"]);
+function isEscalateStopReason(stopReason) {
+  if (typeof stopReason !== "string") return false;
+  if (stopReason.startsWith("budget-escalated")) return true;
+  return ESCALATE_STOP_EXACT.has(stopReason);
+}
 
 // The re-enterable states + the refusal states (spec §3 ENUM). A run is admitted for
 // resume iff it classifies to one of RE_ENTERABLE; the refusals exit 2, ledger untouched.

@@ -40,7 +40,7 @@ test("creates settings.json with all three faff Stop hooks + the PreToolUse merg
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
     assert.equal(r.created, true);
-    assert.deepEqual(r.added, ["runcheck", "prepcheck", "sentrycheck", "merge-fence", "background-fence"]);
+    assert.deepEqual(r.added, ["runcheck", "prepcheck", "sentrycheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
     const s = readSettings(root);
     const cmds = stopCmds(s);
     assert.ok(cmds.some((c) => /faff runcheck --hook/.test(c)));
@@ -49,7 +49,12 @@ test("creates settings.json with all three faff Stop hooks + the PreToolUse merg
     const preCmds = preToolUseCmds(s);
     assert.ok(preCmds.some((c) => /faff merge-fence --hook/.test(c)));
     assert.ok(preCmds.some((c) => /faff background-fence --hook/.test(c)));
-    assert.equal(s.hooks.PreToolUse[0].matcher, "Bash", "both fences register under a Bash-matcher group");
+    // FAFF-530: a Bash-matcher group (both fences) and a distinct Monitor-matcher group (background-fence only)
+    const bashG = s.hooks.PreToolUse.find((g) => g.matcher === "Bash");
+    const monitorG = s.hooks.PreToolUse.find((g) => g.matcher === "Monitor");
+    assert.ok(bashG && bashG.hooks.some((h) => /faff merge-fence --hook/.test(h.command)) && bashG.hooks.some((h) => /faff background-fence --hook/.test(h.command)), "Bash group carries both fences");
+    assert.ok(monitorG && monitorG.hooks.length === 1 && /faff background-fence --hook/.test(monitorG.hooks[0].command), "Monitor group carries only background-fence");
+    assert.ok(!monitorG.hooks.some((h) => /faff merge-fence --hook/.test(h.command)), "merge-fence never joins the Monitor group");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -61,7 +66,7 @@ test("idempotent: a second run adds nothing and does not rewrite the file (byte-
     const mtimeBefore = statSync(settingsPath(root)).mtimeMs;
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
     assert.deepEqual(r.added, []);
-    assert.deepEqual(r.already, ["runcheck", "prepcheck", "sentrycheck", "merge-fence", "background-fence"]);
+    assert.deepEqual(r.already, ["runcheck", "prepcheck", "sentrycheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
     assert.deepEqual(readFileSync(settingsPath(root)), before, "content unchanged");
     assert.equal(statSync(settingsPath(root)).mtimeMs, mtimeBefore, "not rewritten");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -79,15 +84,19 @@ test("adds the missing commands, normalizes a present-but-divergent path, preser
   }, null, 2) + "\n");
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
-    assert.deepEqual(r.added, ["prepcheck", "sentrycheck", "merge-fence", "background-fence"]);
+    assert.deepEqual(r.added, ["prepcheck", "sentrycheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
     assert.deepEqual(r.already, ["runcheck"]);
     assert.deepEqual(r.normalized, ["runcheck"], "the divergent-path runcheck command is normalized to canonical");
     const s = readSettings(root);
     assert.deepEqual(s.permissions, { allow: ["Bash(git status:*)"] }, "unrelated settings preserved");
-    assert.equal(s.hooks.PreToolUse.length, 1, "both fences join the EXISTING Bash-matcher group, not a new one");
-    assert.deepEqual(s.hooks.PreToolUse[0].hooks[0], { type: "command", command: "echo hi" }, "the pre-existing PreToolUse hook is preserved, not clobbered");
-    assert.ok(preToolUseCmds(s).some((c) => /faff merge-fence --hook/.test(c)), "merge-fence appended alongside it");
-    assert.ok(preToolUseCmds(s).some((c) => /faff background-fence --hook/.test(c)), "background-fence appended alongside it");
+    // FAFF-530: both fences join the EXISTING Bash group; a NEW Monitor group is added → two groups total
+    assert.equal(s.hooks.PreToolUse.length, 2, "existing Bash group + one new Monitor group");
+    const bashG = s.hooks.PreToolUse.find((g) => g.matcher === "Bash");
+    const monitorG = s.hooks.PreToolUse.find((g) => g.matcher === "Monitor");
+    assert.deepEqual(bashG.hooks[0], { type: "command", command: "echo hi" }, "the pre-existing PreToolUse hook is preserved, not clobbered");
+    assert.ok(bashG.hooks.some((c) => /faff merge-fence --hook/.test(c.command)), "merge-fence appended alongside it");
+    assert.ok(bashG.hooks.some((c) => /faff background-fence --hook/.test(c.command)), "background-fence appended alongside it");
+    assert.ok(monitorG.hooks.length === 1 && /faff background-fence --hook/.test(monitorG.hooks[0].command), "Monitor group carries only background-fence");
     const cmds = stopCmds(s);
     assert.ok(!cmds.includes("/some/path/faff runcheck --hook"), "divergent runcheck path rewritten, not left in place");
     assert.equal(cmds.filter((c) => /faff runcheck --hook/.test(c)).length, 1, "no duplicate runcheck");
@@ -134,7 +143,7 @@ test("--dry-run reports a normalization (Stop) and an addition (sentrycheck + Pr
   const before = readFileSync(settingsPath(root));
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--dry-run", "--json"]).out);
-    assert.deepEqual(r.added, ["sentrycheck", "merge-fence", "background-fence"], "sentrycheck is wholly absent → a fresh add, not a normalize; no PreToolUse block yet → both fences likewise");
+    assert.deepEqual(r.added, ["sentrycheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"], "sentrycheck is wholly absent → a fresh add, not a normalize; no PreToolUse block yet → both fences in the Bash group + the Monitor group");
     assert.deepEqual(r.normalized, ["runcheck", "prepcheck"]);
     assert.deepEqual(readFileSync(settingsPath(root)), before, "dry-run wrote nothing");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -150,16 +159,21 @@ test("treats a command present only in settings.local.json as present (no settin
         { type: "command", command: "faff prepcheck --hook" },
         { type: "command", command: "faff sentrycheck --hook" },
       ] }],
-      PreToolUse: [{ matcher: "Bash", hooks: [
-        { type: "command", command: "faff merge-fence --hook" },
-        { type: "command", command: "faff background-fence --hook" },
-      ] }],
+      PreToolUse: [
+        { matcher: "Bash", hooks: [
+          { type: "command", command: "faff merge-fence --hook" },
+          { type: "command", command: "faff background-fence --hook" },
+        ] },
+        { matcher: "Monitor", hooks: [
+          { type: "command", command: "faff background-fence --hook" },
+        ] },
+      ],
     },
   }, null, 2) + "\n");
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
-    assert.deepEqual(r.added, [], "all five present via local file → nothing to add (no double-registration)");
-    assert.deepEqual(r.already, ["runcheck", "prepcheck", "sentrycheck", "merge-fence", "background-fence"]);
+    assert.deepEqual(r.added, [], "all registrations present via local file → nothing to add (no double-registration)");
+    assert.deepEqual(r.already, ["runcheck", "prepcheck", "sentrycheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
     assert.equal(existsSync(settingsPath(root)), false, "settings.json not created when nothing to add");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -168,7 +182,7 @@ test("--dry-run reports the plan but writes nothing", () => {
   const root = mkroot();
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--dry-run", "--json"]).out);
-    assert.deepEqual(r.added, ["runcheck", "prepcheck", "sentrycheck", "merge-fence", "background-fence"]);
+    assert.deepEqual(r.added, ["runcheck", "prepcheck", "sentrycheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]);
     assert.equal(r.created, false, "dry-run never reports a creation");
     assert.equal(existsSync(settingsPath(root)), false, "no file written on dry-run");
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -210,18 +224,21 @@ test("normalizes a divergent merge-fence path, adds the missing background-fence
   }, null, 2) + "\n");
   try {
     const r = JSON.parse(run(["hooks-ensure", "--root", root, "--json"]).out);
-    // sentrycheck (Stop) and background-fence (PreToolUse) are both wholly absent from this
-    // fixture → fresh adds (not normalizes); only merge-fence is present-but-divergent.
-    assert.deepEqual(r.added, ["sentrycheck", "background-fence"]);
+    // sentrycheck (Stop) and background-fence (PreToolUse: Bash + Monitor groups) are both wholly
+    // absent from this fixture → fresh adds (not normalizes); only merge-fence is present-but-divergent.
+    assert.deepEqual(r.added, ["sentrycheck", "Bash::background-fence", "Monitor::background-fence"]);
     // the fixture's Stop commands are the bare "faff <sub> --hook" form, which the resolved
     // (absolute-path) bin also normalizes — this test's focus is the PreToolUse behaviour,
-    // asserted below via preCmds, so the full normalized set (not just merge-fence) is expected.
-    assert.deepEqual(r.normalized, ["runcheck", "prepcheck", "merge-fence"]);
+    // asserted below via preCmds, so the full normalized set (merge-fence keyed by its Bash group) is expected.
+    assert.deepEqual(r.normalized, ["runcheck", "prepcheck", "Bash::merge-fence"]);
     const s = readSettings(root);
     assert.deepEqual(s.hooks.PreToolUse[0], { matcher: "Read", hooks: [{ type: "command", command: "echo unrelated" }] }, "unrelated matcher group untouched");
     const preCmds = preToolUseCmds(s);
     assert.ok(!preCmds.includes("/divergent/path/faff merge-fence --hook"));
     assert.ok(preCmds.some((c) => /faff merge-fence --hook/.test(c) && c === `${r.bin} merge-fence --hook`));
     assert.ok(preCmds.some((c) => /faff background-fence --hook/.test(c) && c === `${r.bin} background-fence --hook`));
+    // FAFF-530: the Monitor group was added carrying only background-fence
+    const monitorG = s.hooks.PreToolUse.find((g) => g.matcher === "Monitor");
+    assert.ok(monitorG && monitorG.hooks.length === 1 && /faff background-fence --hook/.test(monitorG.hooks[0].command), "Monitor group added with background-fence only");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

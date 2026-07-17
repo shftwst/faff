@@ -93,6 +93,39 @@ test("tolerates an unrecognised --root DIR flag (probeServes always passes one)"
   assert.equal(r.status, 0);
 });
 
+// FAFF-530 — the Monitor arm: a gate/test command run under the Monitor tool is
+// background-by-construction, so it is denied regardless of run_in_background, with
+// its own remedy naming a FOREGROUND Bash call. The parallel executor's Monitor
+// poll-loops / log-tails (non-gate commands) are never denied.
+test("denies a gate/test command run under Monitor: exit 2, stderr names the foreground-Bash remedy", () => {
+  const r = runHook({ tool_name: "Monitor", tool_input: { command: "node --test --watch tests/" } });
+  assert.equal(r.code, 2);
+  assert.equal(r.out, "", "no stdout — the deny message is on stderr only");
+  assert.match(r.err, /faff background-fence/);
+  assert.match(r.err, /Monitor/, "names Monitor as the wrong tool");
+  assert.match(r.err, /FOREGROUND Bash/, "names the foreground-Bash remedy");
+});
+
+test("denies pytest / the quoted-ladder form under Monitor (no run_in_background conjunct)", () => {
+  for (const command of ["pytest -x", '"$faff" gates run --json', "npm test"]) {
+    const r = runHook({ tool_name: "Monitor", tool_input: { command } });
+    assert.equal(r.code, 2, `expected deny for Monitor: ${command}`);
+  }
+});
+
+test("allows a Monitor await-all poll loop / log tail (non-gate commands) — the orchestrator posture is untouched", () => {
+  const poll = runHook({ tool_name: "Monitor", tool_input: { command: "until test -f .faff/runs/r1/done; do :; done" } });
+  assert.equal(poll.code, 0);
+  assert.equal(poll.err, "");
+  const tail = runHook({ tool_name: "Monitor", tool_input: { command: "tail -f .faff/runs/r1/build.log" } });
+  assert.equal(tail.code, 0);
+});
+
+test("allows a Monitor event with no/ws-mode command (fail-safe)", () => {
+  assert.equal(runHook({ tool_name: "Monitor", tool_input: { ws: "wss://x" } }).code, 0);
+  assert.equal(runHook({ tool_name: "Monitor", tool_input: {} }).code, 0);
+});
+
 test("neither --hook nor --selftest is a usage error (exit 2, names the two legal forms)", () => {
   const r = spawnSync("node", [CLI, "background-fence"], { encoding: "utf8" });
   assert.equal(r.status, 2);

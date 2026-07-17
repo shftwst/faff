@@ -92,8 +92,14 @@ function seedRunDir(kind) {
   return runDir;
 }
 
+// FAFF-537: the execute path now requires a merge method (the empty-method guard fires before the gh
+// spawn). Real callers always pass one (the default ship producer passes `--merge-args "--squash
+// --delete-branch"`); baseArgs carries a bare `--squash` — which also exercises the new bare-method
+// alias fold-in. A test that itself passes `--merge-args` (extra) composes with it (same method
+// dedupes; a distinct modifier like --delete-branch is preserved). check-only/refuse/fence paths
+// return before the guard, so the extra flag is inert there.
 const baseArgs = (runDir, extra = []) =>
-  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", ...extra];
+  ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--squash", ...extra];
 
 const overrideFile = (runDir) => join(runDir, ISSUE, "merge-gate-override.json");
 
@@ -128,6 +134,38 @@ test("execute on a merge-ok floor → exit 0, merged:true, merge sentinel PRESEN
   assert.equal(out.verdict, "merge-ok");
   assert.equal(out.merged, true);
   assert.equal(existsSync(sentinel), true, "execute on a passing floor must spawn gh pr merge");
+});
+
+// --- FAFF-537: bare merge-method flag folds in; a missing method fails loud BEFORE gh ---
+
+test("FAFF-537: a bare --squash (no --merge-args) is forwarded to gh pr merge, not dropped", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv();
+  const { code } = runCli(baseArgs(runDir), { env }); // baseArgs carries the bare --squash
+  assert.equal(code, 0);
+  assert.equal(existsSync(sentinel), true, "the merge must spawn");
+  assert.match(readFileSync(sentinel, "utf8"), /--squash/, "the bare method reaches gh pr merge");
+});
+
+test("FAFF-537: execute with NO merge method → exit 2 with merge-gate's own error, BEFORE any gh merge", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv();
+  // Manual args WITHOUT the bare --squash baseArgs supplies — the reported no-method invocation.
+  const args = ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json"];
+  const { code, stderr } = runCli(args, { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /no merge method/);
+  assert.match(stderr, /--merge-args/, "the actionable error names --merge-args");
+  assert.equal(existsSync(sentinel), false, "no gh pr merge is spawned when the method is missing");
+});
+
+test("FAFF-537: a bare --squash plus --merge-args \"--rebase\" (two methods) → exit 2 conflict, no merge", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv();
+  const { code, stderr } = runCli(baseArgs(runDir, ["--merge-args", "--rebase"]), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /conflicting merge methods/);
+  assert.equal(existsSync(sentinel), false);
 });
 
 test("execute on a refuse floor → exit 1, verdict refuse, merge sentinel ABSENT", () => {
@@ -377,7 +415,7 @@ const ledgerLines = (runDir) => {
 };
 
 const effArgs = (runDir, extra = []) =>
-  ["merge-gate", "--pr", String(EFFECTS_PR), "--issue", EFFECTS_ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", ...extra];
+  ["merge-gate", "--pr", String(EFFECTS_PR), "--issue", EFFECTS_ISSUE, "--run-dir", runDir, "--level", "L3", "--repo", REPO, "--json", "--squash", ...extra];
 
 test("FAFF-383 integration: a covering declare + merge-gate execute → the observe pair lands → effects check reports any_escape:false", () => {
   const { root, runId, runDir } = seedEffectsRunDir("merge-ok");

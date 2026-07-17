@@ -3,6 +3,7 @@
 
 tracking:
     spec_docs_path: docs/specs/ # where graft commits specs (git-only spec store is .faff/specs/)
+    repo: shftwst/faff
 
 slots:
     methodology: faffter-dark-methodology-agile-delivery # agile lens owns outcome-led project shape

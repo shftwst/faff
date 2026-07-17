@@ -38,6 +38,28 @@ function parseMergeArgs(s) {
   return { flags, rejected };
 }
 
+// FAFF-537: the methods-only subset of MERGE_FLAG_ALLOW — the mutually-exclusive `gh pr merge`
+// strategy flags. A bare top-level --squash/--merge/--rebase (the natural gh-shaped form an operator
+// reaches for) is folded into the resolved flag set so it is never silently dropped; the modifiers
+// (--delete-branch/--auto) are deliberately NOT harvested from argv — a bare modifier is not the
+// reported friction and gh requires none, so widening the bare surface only adds blast radius.
+const MERGE_METHOD_FLAGS = new Set(["--squash", "--merge", "--rebase"]);
+
+// PURE (FAFF-537): resolve the effective merge flags from BOTH sources — the --merge-args value (via
+// the unchanged parseMergeArgs) and any bare MERGE_METHOD_FLAGS token on argv — de-duplicated,
+// order-stable (the --merge-args flags first, then bare additions). Reports method presence/conflict
+// so cmdMergeGate can fail loud on zero or >1 distinct methods instead of letting a bare flag
+// evaporate and gh reject with its cryptic generic message. Depends only on (args, mergeArgsRaw); no I/O.
+function resolveMergeFlags(args, mergeArgsRaw) {
+  const parsed = parseMergeArgs(mergeArgsRaw);
+  const flags = [...parsed.flags];
+  for (const t of (args || [])) {
+    if (MERGE_METHOD_FLAGS.has(t) && !flags.includes(t)) flags.push(t);
+  }
+  const methods = [...new Set(flags.filter((f) => MERGE_METHOD_FLAGS.has(f)))];
+  return { parsed, flags, rejected: parsed.rejected, methods, conflict: methods.length > 1, method_present: methods.length >= 1 };
+}
+
 // PURE (FAFF-375): fence the two HUMAN-ONLY flags on a genuine interactivity signal, not sibling
 // argv flags. `--human-override` (replaces the refusal, overriding every blocker at once) and
 // `--allow-no-ci` (opts a change-class past the no-ci-coverage refusal) both weaken the floor, so
@@ -659,8 +681,11 @@ function cmdMergeGate(args) {
     process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} contradicts run-ledger level ${JSON.stringify(ledgerLevel)} (${path.join(runDir, "run-ledger.json")}); the ledger level governs — drop --level or pass --level ${ledgerLevel}\n`);
     return 2;
   }
-  const parsedMerge = parseMergeArgs(mergeArgsRaw);
-  if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
+  // FAFF-537: resolve the merge method from BOTH --merge-args and any bare top-level
+  // --squash/--merge/--rebase, so the bare gh-shaped form is honoured rather than silently dropped.
+  const resolved = resolveMergeFlags(args, mergeArgsRaw);
+  if (resolved.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${resolved.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
+  if (resolved.conflict) { process.stderr.write(`faff merge-gate: conflicting merge methods ${resolved.methods.join(", ")} — pass exactly one of --squash/--merge/--rebase\n`); return 2; }
 
   // FAFF-375: fence the human-only flags on a genuine interactivity signal BEFORE any gh call —
   // a fenced flag from a non-interactive context is a caller bug, surfaced loudly (exit 2) rather
@@ -726,10 +751,18 @@ function cmdMergeGate(args) {
 
   // Head pin (FAFF-376): --match-head-commit makes the forge itself refuse any merge whose live head no
   // longer equals `headSha` — the SAME variable CI was classified against (:observed sha). Gate-composed,
-  // appended after parsedMerge.flags so it rides EVERY executed merge (normal path and the human-override
+  // appended after resolved.flags so it rides EVERY executed merge (normal path and the human-override
   // fall-through alike); callers cannot supply it (parseMergeArgs rejects it → exit 2). --check-only and
   // the already-MERGED no-op never reach this spawn.
-  const m = spawnSync("gh", ["pr", "merge", String(pr), ...parsedMerge.flags, "--match-head-commit", headSha], { encoding: "utf8", timeout: 120000 });
+  // FAFF-537: emit merge-gate's OWN actionable no-method error here — on the about-to-merge path only
+  // (check-only returned at :check-only, the already-MERGED no-op returned earlier) — BEFORE delegating
+  // to gh, whose generic "--merge/--rebase/--squash required" message points at gh's requirement rather
+  // than the real cause (the method never reached the resolved flag set).
+  if (!resolved.method_present) {
+    process.stderr.write(`faff merge-gate: no merge method — pass one via --merge-args "--squash" (or --merge/--rebase), or as a bare --squash/--merge/--rebase flag\n`);
+    return 2;
+  }
+  const m = spawnSync("gh", ["pr", "merge", String(pr), ...resolved.flags, "--match-head-commit", headSha], { encoding: "utf8", timeout: 120000 });
   if (m.status !== 0) {
     const mergeStderr = (m.stderr || "").trim();
     // FAFF-365: a non-zero `gh pr merge` exit does not by itself mean the merge failed — it can mean
@@ -760,8 +793,8 @@ function cmdMergeGate(args) {
   result.verdict = "merge-ok";
   writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
   // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
-  // merge-args carried --delete-branch (parsedMerge.flags, not the raw --merge-args string).
-  observeMergeEffects(runDir, issue, mergeEffectsFor(pr, parsedMerge.flags.includes("--delete-branch"), headRefName));
+  // merge-args carried --delete-branch (resolved.flags, not the raw --merge-args string).
+  observeMergeEffects(runDir, issue, mergeEffectsFor(pr, resolved.flags.includes("--delete-branch"), headRefName));
   return emit(result, 0);
 }
 
@@ -891,6 +924,14 @@ function mergeGateSelftest() {
   // FAFF-375: --admin is no longer in the allowlist — it lands in rejected (exit-2 path)
   check("merge-args: --admin rejected (FAFF-375)", (() => { const p = parseMergeArgs("--admin"); return p.rejected.includes("--admin") && p.flags.length === 0; })());
   check("merge-args: --squash --admin → --squash passes, --admin rejected", (() => { const p = parseMergeArgs("--squash --admin"); return p.flags.includes("--squash") && p.rejected.includes("--admin"); })());
+  // resolveMergeFlags (FAFF-537): bare method flag folds in, dedupes, conflicts loud, empty → no method
+  check("resolve: bare --squash (no --merge-args) folds in", (() => { const r = resolveMergeFlags(["--execute", "--squash"], ""); return r.flags.includes("--squash") && r.method_present && !r.conflict; })());
+  check("resolve: bare --squash + --merge-args same method dedupes", (() => { const r = resolveMergeFlags(["--squash"], "--squash --delete-branch"); return r.flags.filter((f) => f === "--squash").length === 1 && r.methods.length === 1 && !r.conflict && r.method_present; })());
+  check("resolve: bare --squash + --merge-args --rebase → conflict", (() => { const r = resolveMergeFlags(["--squash"], "--rebase"); return r.conflict && r.methods.length === 2 && r.method_present; })());
+  check("resolve: no method anywhere → method_present false", (() => { const r = resolveMergeFlags(["--execute"], ""); return !r.method_present && !r.conflict && r.methods.length === 0; })());
+  check("resolve: --merge-args --delete-branch (modifier only) + bare --squash proceeds", (() => { const r = resolveMergeFlags(["--squash"], "--delete-branch"); return r.method_present && r.flags.includes("--squash") && r.flags.includes("--delete-branch") && !r.conflict; })());
+  check("resolve: bad --merge-args token still rejected", (() => { const r = resolveMergeFlags(["--squash"], "--admin"); return r.rejected.includes("--admin"); })());
+  check("resolve: --merge-args \"--squash --delete-branch\" unchanged, no bare harvest", (() => { const r = resolveMergeFlags(["--merge-args", "--squash --delete-branch"], "--squash --delete-branch"); return r.method_present && r.flags.length === 2 && r.flags.includes("--squash") && r.flags.includes("--delete-branch") && !r.conflict; })());
   // fenceHumanFlags (FAFF-375): human-only flags fenced on a genuine interactivity signal (TTY + --interactive)
   const fence = (o) => fenceHumanFlags({ human_override: false, allow_no_ci: false, interactive: false, stdin_is_tty: false, ...o });
   check("fence: --human-override + non-TTY → violation", !fence({ human_override: true, interactive: true }).ok);
@@ -1152,4 +1193,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

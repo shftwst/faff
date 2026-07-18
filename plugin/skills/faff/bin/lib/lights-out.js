@@ -372,19 +372,24 @@ function lightsOutPreflight(probes) {
   // must not launch under stale config that no longer means what it appears to.
   if (probes.budgetPriceRemoved != null)
     refusals.push({ gate: "budget-price-per-mtok-removed", detail: `budget.price_per_mtok ('${probes.budgetPriceRemoved}') is removed (FAFF-446) — unset it in .faffrc.yaml; budget.cost prices from the ADR-0048 map by default (set budget.price_per_mtok_by_model to override specific models)` });
-  // FAFF-325 — the L4 admission side of the corrective-integrity Punt-1 disposition (human
-  // decision 2026-07-10): an absent pid-1 FAFF_INTEGRITY_BOUNDARY declaration REFUSES admission
-  // here, fail-fast, never a mid-run merge surprise (the merge-floor consumer, cmdMergeGate,
-  // still refuses on absence too — defence-in-depth, in case this preflight is ever bypassed). A
-  // violation basis (env-injection/malformed/dir-mismatch — a declaration exists but failed
-  // verification) refuses too, naming the specific fault; violation is NEVER level-graded.
-  // `probes.correctiveIntegrityBasis` is the FAFF-325 probe's `.basis`, computed ONCE in
-  // cmdLightsOut (no run-dir exists yet at admission time, so dir-mismatch can never fire here —
-  // only no-declaration / env-injection / malformed; per-issue dir coverage is checked later, at
-  // the merge-floor consumer). "asserted" (or an absent/undefined probe result, for callers of
-  // this pure function that predate FAFF-325) never refuses here.
+  // FAFF-325 / FAFF-525 — the L4 admission side of the corrective-integrity Punt-1 disposition.
+  // An absent pid-1 FAFF_INTEGRITY_BOUNDARY declaration (`no-declaration`) DEGRADES to an advisory,
+  // it no longer refuses: the cage cannot enforce the matching read-only mount yet (FAFF-517
+  // deferred), so demanding the declaration to clear the gate would coerce a lying attestation —
+  // the probe asserts `true` from the pid-1 declaration alone (ADR-0061 assert-don't-implement), so
+  // a declaration with no real mount is exactly the false attestation ADR-0061 forbids. A truthful
+  // softer basis (the FAFF-518 digest custody bracket, made unconditional per L4 run by FAFF-520
+  // obligation 5) is the mount-free integrity floor that makes this safe. A VIOLATION basis
+  // (env-injection/malformed/dir-mismatch — a declaration exists but failed verification) still
+  // REFUSES, naming the specific fault; violation is NEVER level-graded and NEVER degraded — absence
+  // is not violation. `probes.correctiveIntegrityBasis` is the FAFF-325 probe's `.basis`, computed
+  // ONCE in cmdLightsOut (no run-dir exists yet at admission time, so dir-mismatch can never fire
+  // here — only no-declaration / env-injection / malformed; per-issue dir coverage is checked later,
+  // at the merge-floor consumer, which is UNCHANGED — it still refuses on absence). "asserted" (or an
+  // absent/undefined probe result, for callers of this pure function that predate FAFF-325) never
+  // fires here; when FAFF-517 lands, the mount-asserted basis remains the strongest and admits as today.
   if (probes.correctiveIntegrityBasis === "no-declaration") {
-    refusals.push({ gate: "corrective-integrity", detail: "no FAFF_INTEGRITY_BOUNDARY declaration in pid-1 environ — compose the value with `faff integrity-boundary` and set it in the cage launch config" });
+    degrades.push({ gate: "corrective-integrity", detail: "no FAFF_INTEGRITY_BOUNDARY declaration in pid-1 environ — proceeding on the FAFF-518 digest custody floor (unconditional per L4 run, FAFF-520 obligation 5). For the stronger mount-asserted basis, compose the value with `faff integrity-boundary` once the cage read-only-mounts the integrity dirs (FAFF-517)" });
   } else if (probes.correctiveIntegrityBasis && probes.correctiveIntegrityBasis !== "asserted") {
     refusals.push({ gate: "corrective-integrity", detail: `corrective-artifact integrity attestation failed verification (basis: ${probes.correctiveIntegrityBasis}) — the FAFF_INTEGRITY_BOUNDARY declaration is present but invalid` });
   }
@@ -1349,15 +1354,22 @@ function lightsOutSelftest() {
   check("null budgetPriceRemoved (the common/unset case) never fires budget-price-per-mtok-removed",
     !happy.refusals.some((r) => r.gate === "budget-price-per-mtok-removed"));
 
-  // FAFF-325 — the L4 admission side of the Punt-1 disposition: no declaration -> refuse
-  // (fail-fast, exact remedy line); a violation basis -> refuse, naming the fault; "asserted"
-  // (or an absent/undefined probe result, the happy-path fixture's default) never refuses here.
+  // FAFF-325 / FAFF-525 — the L4 admission side of the Punt-1 disposition: no declaration now
+  // DEGRADES to an advisory (does not refuse — the mount is unenforceable yet, FAFF-517, so
+  // demanding the declaration would coerce a lying attestation; the FAFF-518 digest custody floor
+  // is the truthful mount-free basis); a violation basis STILL refuses, naming the fault; "asserted"
+  // (or an absent/undefined probe result, the happy-path fixture's default) never fires here.
   check("happy path (no correctiveIntegrityBasis set) never fires corrective-integrity",
-    !happy.refusals.some((r) => r.gate === "corrective-integrity"));
+    !happy.refusals.some((r) => r.gate === "corrective-integrity") && !happy.degrades.some((d) => d.gate === "corrective-integrity"));
   const noDecl = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: "no-declaration" }));
-  check("no-declaration refuses admission", noDecl.proceed === false && noDecl.refusals.some((r) => r.gate === "corrective-integrity"));
-  check("no-declaration refusal names the exact remedy line (composed via the emitter — FAFF-514)",
-    /compose the value with `faff integrity-boundary` and set it in the cage launch config/.test(noDecl.refusals.find((r) => r.gate === "corrective-integrity").detail));
+  check("no-declaration does NOT refuse admission (advisory-only)",
+    !noDecl.refusals.some((r) => r.gate === "corrective-integrity"));
+  check("no-declaration degrades to an advisory corrective-integrity entry",
+    noDecl.degrades.some((d) => d.gate === "corrective-integrity"));
+  check("no-declaration keeps proceed true (absent other refusals)", noDecl.proceed === true);
+  check("no-declaration advisory names the digest floor and points at the future mount basis (FAFF-518/517)",
+    /digest custody floor/.test(noDecl.degrades.find((d) => d.gate === "corrective-integrity").detail)
+    && /faff integrity-boundary/.test(noDecl.degrades.find((d) => d.gate === "corrective-integrity").detail));
   for (const basis of ["env-injection", "malformed", "dir-mismatch"]) {
     const viol = lightsOutPreflight(armedProbes({ correctiveIntegrityBasis: basis }));
     check(`violation basis '${basis}' refuses admission, naming the fault`,

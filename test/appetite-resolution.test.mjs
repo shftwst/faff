@@ -182,12 +182,16 @@ const CONTAINED = (extra = {}) => ({ ...process.env, KUBERNETES_SERVICE_HOST: "1
 // invariant directly against the shipped source: cmdLightsOut's `appetite` is a bare `"full"`
 // literal, never conditioned on a config/resolveAppetite read (mirrors the sentry.test.mjs AC6
 // no-`correct` source-literal guard pattern already used elsewhere in this suite).
-test("cmdLightsOut refuses ONLY on the unrelated FAFF-325 gate (config appetite:low never independently blocks)", () => {
+test("cmdLightsOut proceeds on this host (no-declaration advisory); config appetite:low never independently blocks", () => {
   const root = lightsOutRoot();
   const { stdout, code } = runCli(["lights-out", "--json", "--until", "23:59"], { cwd: root, env: CONTAINED() });
-  assert.equal(code, 1, stdout);
+  // FAFF-525: corrective-integrity no-declaration now degrades (advisory) → admission proceeds;
+  // the point here is that config appetite:low adds no independent refusal (dial-coherence stays clean).
+  assert.equal(code, 0, stdout);
   const out = JSON.parse(stdout.trim().split("\n").pop());
-  assert.deepEqual(out.refusals.map((r) => r.gate), ["corrective-integrity"], stdout);
+  assert.equal(out.proceed, true, stdout);
+  assert.ok(!(out.refusals || []).some((r) => r.gate.startsWith("dial-coherence")), stdout);
+  assert.ok((out.degrades || []).some((d) => d.gate === "corrective-integrity"), stdout);
 });
 
 test("cmdLightsOut's dial_profile.appetite is a bare 'full' literal, never conditioned on config (source-literal guard)", () => {

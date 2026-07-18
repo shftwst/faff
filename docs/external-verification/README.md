@@ -22,12 +22,13 @@ fails is the binding constraint** — the next roadmap priority.
 
 ## How to run
 
-Each script is self-contained and parameterised by `SUT_ROOT` (defaults to
-`~/workspace/faff-suts/<slug>`). Run it in / pointed at a **new** directory:
+Each script is self-contained. `SUT_ROOT` defaults to a **sibling `faff-suts/<slug>` directory
+next to the faff repo** — resolved from the script's own location, never `$HOME` (which is
+container-ephemeral). So the zero-arg invocation lands the SUT at `<faff-repo>/../faff-suts/<slug>`:
 
 ```bash
-SUT_ROOT=~/workspace/shftwst/faff-suts/p1-link-shortener \
-  bash docs/external-verification/scaffold-p1-link-shortener.sh
+bash docs/external-verification/scaffold-p1-link-shortener.sh
+# → ../faff-suts/p1-link-shortener   (override with an absolute SUT_ROOT=/path if you must)
 ```
 
 It will: create the repo, write `.faffrc.yaml` + `BRIEF.md` + `RUNBOOK.md` (+ a PRD for P2/P4 —

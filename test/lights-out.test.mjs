@@ -256,14 +256,14 @@ test("lights-out: budget.cost alone (no price_per_mtok) satisfies budget-ceiling
   const root = tmpRoot({ budget: "budget:\n  cost: 25\n  on_estimate_only: warn\n" }); // no price_per_mtok ⇒ map pricing, always priceable
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  // FAFF-325: this host asserts no genuine FAFF_INTEGRITY_BOUNDARY, so overall admission now
-  // correctly refuses (defence-in-depth) — the thing under test here is that budget-ceiling
-  // specifically does NOT ALSO fire (the dollar ceiling alone satisfies its own gate).
-  assert.equal(code, 1, stdout);
-  assert.equal(out.proceed, false);
-  assert.ok(!out.refusals.some((r) => r.gate === "budget-ceiling"), "no budget-ceiling refusal");
-  assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity"), "the only refusal is the (unrelated) FAFF-325 admission gate");
-  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted — corrective-integrity refuses admission");
+  // FAFF-525: this host asserts no genuine FAFF_INTEGRITY_BOUNDARY, but no-declaration now
+  // DEGRADES to an advisory (not a refusal), so admission proceeds — the thing under test here
+  // is that budget-ceiling specifically does NOT fire (the dollar ceiling alone satisfies its gate).
+  assert.equal(code, 0, stdout);
+  assert.equal(out.proceed, true);
+  assert.ok(!(out.refusals || []).some((r) => r.gate === "budget-ceiling"), "no budget-ceiling refusal");
+  assert.ok(!(out.refusals || []).some((r) => r.gate === "corrective-integrity"), "no-declaration no longer refuses (FAFF-525)");
+  assert.ok(out.degrades.some((d) => d.gate === "corrective-integrity"), "no-declaration surfaces as an advisory degrade");
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -277,17 +277,17 @@ test("lights-out: budget.cost alone (no price_per_mtok) satisfies budget-ceiling
 
 // FAFF-312 — a spend/time (tokens) ceiling proceeds, and the minted ledger envelope
 // carries the level-scoped mint-time default at_ceiling: "escalate" (config unset).
-// FAFF-325: this real CLI invocation now correctly refuses admission (no genuine pid-1
-// declaration on this host), so the mint itself is exercised via mintFixtureLedger — the
-// SAME exported, unmodified-by-FAFF-325 primitives cmdLightsOut calls (envelopeFrom +
-// mintAtCeiling), not a corrective-integrity bypass. The refusal itself is asserted first.
-test("lights-out: tokens ceiling — real CLI now refuses on corrective-integrity, NOT budget-ceiling; minted envelope (via the same primitives) defaults at_ceiling escalate", () => {
+// FAFF-525: no-declaration now degrades (advisory) rather than refusing, so this real CLI
+// invocation proceeds on this undeclared host; the envelope defaults are still exercised via
+// mintFixtureLedger — the SAME exported primitives cmdLightsOut calls (envelopeFrom +
+// mintAtCeiling) — so the deterministic at_ceiling assertion is independent of the proceed path.
+test("lights-out: tokens ceiling — real CLI proceeds (no-declaration advisory), budget-ceiling does NOT fire; minted envelope (via the same primitives) defaults at_ceiling escalate", () => {
   const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 1, stdout);
-  assert.ok(!out.refusals.some((r) => r.gate === "budget-ceiling"), "the tokens ceiling itself is not the reason for refusal");
-  assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity"));
+  assert.equal(code, 0, stdout);
+  assert.ok(!(out.refusals || []).some((r) => r.gate === "budget-ceiling"), "the tokens ceiling is not a refusal");
+  assert.ok(out.degrades.some((d) => d.gate === "corrective-integrity"), "no-declaration is an advisory degrade now");
   const { runDir } = mintFixtureLedger(root);
   const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.envelope.at_ceiling, "escalate", "L4 mint-time default when config unset");
@@ -415,9 +415,10 @@ test("lights-out --check: FAFF_WORKTREE_ROOT outside the repo satisfies worktree
   const env = { ...CONTAINED, FAFF_WORKTREE_ROOT: path.join(wt, "roots") };
   const { stdout, code } = runCli(["lights-out", "--root", root, "--check", "--json"], { env });
   const out = JSON.parse(stdout);
-  assert.equal(code, 1, stdout);
-  assert.ok(!out.refusals.some((r) => r.gate === "floor:worktree_isolation"), "a worktree root outside the repo never fires this gate");
-  assert.ok(out.refusals.some((r) => r.gate === "corrective-integrity"), "the only refusal is the unrelated FAFF-325 admission gate");
+  assert.equal(code, 0, stdout);
+  assert.ok(!(out.refusals || []).some((r) => r.gate === "floor:worktree_isolation"), "a worktree root outside the repo never fires this gate");
+  assert.ok(!(out.refusals || []).some((r) => r.gate === "corrective-integrity"), "no-declaration no longer refuses (FAFF-525) — it degrades to advisory");
+  assert.ok((out.degrades || []).some((d) => d.gate === "corrective-integrity"), "no-declaration surfaces as an advisory degrade");
   assert.match(out.banner, /worktree-isolation ✓ checked/);
   assert.match(out.banner, /no-execute ✓ static/);
   assert.match(out.banner, /autonomous-contract ✓ static/);
@@ -446,23 +447,25 @@ test("lights-out: worktree root under a non-writable ancestor refuses",
     fs.rmSync(base, { recursive: true, force: true });
   });
 
-// Real-CLI admission: on this host (no genuine declaration) the FAFF-325 gate is the ONLY
-// refusal — every OTHER guardrail is live, proving the pre-existing 8-guardrail reachability
-// logic is untouched by this ticket.
-test("lights-out: real CLI — every pre-existing guardrail is live; corrective-integrity is the ONLY refusal on this host", () => {
+// Real-CLI admission: on this host (no genuine declaration) no-declaration DEGRADES to an
+// advisory (FAFF-525) — every guardrail is live and admission proceeds, proving the pre-existing
+// 8-guardrail reachability logic is untouched and the corrective-integrity leg no longer refuses
+// on honest absence.
+test("lights-out: real CLI — every pre-existing guardrail is live; no-declaration degrades to advisory and admission proceeds on this host", () => {
   const root = tmpRoot();
   const { stdout, code } = runCli(
     ["lights-out", "--root", root, "--max", "5", "--json"],
     { env: { ...CONTAINED, FAFF_SESSION_ID: "test-lo" } });
-  assert.equal(code, 1, stdout);
+  assert.equal(code, 0, stdout);
   const out = JSON.parse(stdout);
-  assert.equal(out.proceed, false);
+  assert.equal(out.proceed, true);
   assert.equal(out.level, "L4");
   assert.equal(out.container, "contained");
   assert.equal(Object.keys(out.armed).length, 8);
   assert.ok(Object.values(out.armed).every((s) => s === "live"), "every pre-existing guardrail is live");
-  assert.deepEqual(out.refusals.map((r) => r.gate), ["corrective-integrity"], "the ONLY refusal on this host");
-  assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted");
+  assert.deepEqual((out.refusals || []).map((r) => r.gate), [], "no refusals on this host — no-declaration is advisory now");
+  assert.ok(out.degrades.some((d) => d.gate === "corrective-integrity"), "no-declaration surfaces as an advisory degrade");
+  assert.ok(fs.existsSync(path.join(root, ".faff")), "a run is minted on the proceed path");
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -653,8 +656,8 @@ test("lights-out: valid --until flag over malformed config resolves clean (no bu
   const root = tmpRoot({ budget: "budget:\n  until: \"25:00\"\n" });
   const { stdout, code } = runCli(["lights-out", "--root", root, "--until", "06:00", "--json"], { env: CONTAINED });
   const out = JSON.parse(stdout);
-  assert.equal(code, 1, stdout); // FAFF-325: corrective-integrity refuses on this undeclared host
-  assert.ok(!out.refusals.some((r) => r.gate === "budget-until-invalid"), "the valid --until flag resolves clean (unrelated to the FAFF-325 refusal)");
+  assert.equal(code, 0, stdout); // FAFF-525: no-declaration degrades (advisory) → proceeds on this undeclared host
+  assert.ok(!(out.refusals || []).some((r) => r.gate === "budget-until-invalid"), "the valid --until flag resolves clean");
   const { runDir } = mintFixtureLedger(root, { untilFlag: "06:00" });
   const ledger = JSON.parse(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(ledger.budget.envelope.ceilings.until, "06:00", "the valid flag value wins and is minted");

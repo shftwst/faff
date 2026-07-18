@@ -9,8 +9,12 @@
 #   SUT_ROOT=~/workspace/shftwst/faff-suts/p4-stripe-testmode bash scaffold-p4-stripe-testmode.sh
 set -euo pipefail
 
+# Resolved BEFORE any cd — BASH_SOURCE is only reliable relative to the invocation cwd. The default
+# SUT_ROOT lands in a sibling `faff-suts/` dir next to the faff repo, never a $HOME-relative guess.
+FAFF_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 SLUG="p4-stripe-testmode"
-SUT_ROOT="${SUT_ROOT:-$HOME/workspace/faff-suts/$SLUG}"
+SUT_ROOT="${SUT_ROOT:-$(dirname "$FAFF_ROOT")/faff-suts/$SLUG}"
 
 if [ -e "$SUT_ROOT" ] && [ -n "$(ls -A "$SUT_ROOT" 2>/dev/null)" ] && [ "${FORCE:-0}" != "1" ]; then
   echo "refusing to scaffold into non-empty $SUT_ROOT (set FORCE=1 to override)" >&2

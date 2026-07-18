@@ -14,7 +14,7 @@ set -euo pipefail
 FAFF_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 SLUG="p1-link-shortener"
-SUT_ROOT="${SUT_ROOT:-$HOME/workspace/faff-suts/$SLUG}"
+SUT_ROOT="${SUT_ROOT:-$(dirname "$FAFF_ROOT")/faff-suts/$SLUG}"
 
 if [ -e "$SUT_ROOT" ] && [ -n "$(ls -A "$SUT_ROOT" 2>/dev/null)" ] && [ "${FORCE:-0}" != "1" ]; then
   echo "refusing to scaffold into non-empty $SUT_ROOT (set FORCE=1 to override)" >&2

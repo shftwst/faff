@@ -140,10 +140,15 @@ Open a Claude Code session with cwd = THIS repo:
     /faff-prep  <first-ticket>      # WATCH: does the spec mark the subjective Scenarios distinctly from the verifiable ones?
     /faff-graft <that-ticket>
 
-Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
-pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — compose that value with `faff integrity-boundary` (an automating cage will supply it later; FAFF-514), operator-supplied not scaffolded. All
-three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the two explicit
-dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by default (FAFF-522).
+Lights-out only: with no `FAFF_INTEGRITY_BOUNDARY` set, `faff lights-out --check` reports
+`corrective-integrity` as an **advisory degrade, not a refusal** (FAFF-525) — admission proceeds on
+the FAFF-518 digest custody floor. Setting a boundary is optional; it only buys the stronger
+mount-asserted basis once the cage read-only-mounts the integrity dirs (FAFF-517). Compose it with
+`faff integrity-boundary` if/when that lands (an automating cage supplies it; FAFF-514) — never a
+fabricated value (fabricating it to clear the gate is the lying attestation FAFF-525 exists to
+avoid). All three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the
+two explicit dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by
+default (FAFF-522).
 
 ## 2. The critical observation — read the holdout-verdict closely
     faff holdout verdicts --association <json>

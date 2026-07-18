@@ -191,10 +191,15 @@ the stop conditions weren't machine-checkable — a real finding.
     /faff-graft <that-increment>            # or, for the full unattended loop:
     /faff-beep-boop --converge              # drains discovered scope IN-RUN until both tributaries run dry
 
-Lights-out only: `faff lights-out --check` will still report `corrective-integrity` until the cage's
-pid-1 sets `FAFF_INTEGRITY_BOUNDARY` at launch — compose that value with `faff integrity-boundary` (an automating cage will supply it later; FAFF-514), operator-supplied not scaffolded. All
-three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the two explicit
-dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by default (FAFF-522).
+Lights-out only: with no `FAFF_INTEGRITY_BOUNDARY` set, `faff lights-out --check` reports
+`corrective-integrity` as an **advisory degrade, not a refusal** (FAFF-525) — admission proceeds on
+the FAFF-518 digest custody floor. Setting a boundary is optional; it only buys the stronger
+mount-asserted basis once the cage read-only-mounts the integrity dirs (FAFF-517). Compose it with
+`faff integrity-boundary` if/when that lands (an automating cage supplies it; FAFF-514) — never a
+fabricated value (fabricating it to clear the gate is the lying attestation FAFF-525 exists to
+avoid). All three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the
+two explicit dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by
+default (FAFF-522).
 
 ## 4. Observe the two gates
     faff prdr coverage --prd-goals '<JSON array of the PRD "In scope" goals>' --dod-verdicts ...   # lower gate: refuses "done" before every stop condition verdicts GO

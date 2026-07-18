@@ -86,6 +86,20 @@ test("config resolved surfaces a non-default autonomous.engine_bounded", () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-536: the self-hosting core-defect intake lane — default false (lane off, chokepoint
+// byte-identical to today), read via `faff config get` through the default-aware registry.
+test("unset containment.self_hosting_intake resolves to its baked default \"false\", exit 0", () => {
+  const dir = withConfig(null);
+  try { assert.deepEqual(run(dir, "config", "get", "containment.self_hosting_intake"), { code: 0, out: "false" }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("configured containment.self_hosting_intake: true wins over the registry default", () => {
+  const dir = withConfig("containment:\n  self_hosting_intake: true\n");
+  try { assert.deepEqual(run(dir, "config", "get", "containment.self_hosting_intake"), { code: 0, out: "true" }); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("a configured value wins over the registry default (the bug this fixes)", () => {
   const dir = withConfig("slots:\n  review: faffter-dark-adversarial-review\n");
   try { assert.deepEqual(run(dir, "config", "get", "slots.review"), { code: 0, out: "faffter-dark-adversarial-review" }); }

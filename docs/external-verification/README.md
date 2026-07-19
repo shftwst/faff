@@ -10,7 +10,7 @@ structurally un-dogfoodable (faff has no runtime to stand up or judge), so they 
 zero real-world miles. Each SUT exercises a specific slice, and **the rung at which faff first
 fails is the binding constraint** — the next roadmap priority.
 
-## The five rungs
+## The six rungs
 
 | Script | SUT | Behaviours | Autonomy | Tracker |
 |---|---|---|---|---|
@@ -19,6 +19,14 @@ fails is the binding constraint** — the next roadmap priority.
 | `scaffold-p3-landing-page.sh` | Fuzzy-quality deliverable | B4 (honest boundary) | lights-out eligible | git-only |
 | `scaffold-p4-stripe-testmode.sh` | Real consequences / external state | B7 (safety floor) | **gated — L2/L3 only** | git-only |
 | `scaffold-p5-brownfield.sh` | Messy legacy repo + vague ask | all, under ambiguity | **gated — L1–L3** | git-only |
+| `scaffold-faff-lab.sh` | **Permanent** public gallery deliverable (unlike P1–P5, not throwaway) | "did the real deliverable ship" + L4 boundary | lights-out + `--converge` | git-only-first ([ADR 0070](../../adr/0070-faff-lab-tracker-vs-git-only.md), upgrade path noted) |
+
+Rungs P1–P5 are **throwaway** SUTs — scaffolded, scored, discarded. `scaffold-faff-lab.sh` (rung 6)
+is different: faff-lab is a **long-lived, real deliverable** (the public gallery site, itself
+faff-built), so its setpoint (`faff-lab/PRD.md`) and tracker decision (ADR 0070) are committed to
+this repo, and the scaffold *copies* the committed PRD into the SUT rather than heredoc'ing it. Its
+score is **"did the real deliverable ship"**, not just "did the behaviour occur". See
+[`faff-lab/README.md`](faff-lab/README.md).
 
 ## How to run
 

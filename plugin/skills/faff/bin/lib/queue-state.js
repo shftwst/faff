@@ -268,6 +268,20 @@ function queueStateSelftest() {
     fs.writeFileSync(path.join(root, ".faff", "specs", `${specKey}.md`), "# spec\n", "utf8");
     ok("spec-store key is the filename stem", collectItemKeys(root).includes(specKey));
 
+    // --- regression guard: MULTIPLE gitkey markers in ONE file are ALL ---
+    // --- collected — GITKEY_RE (the format validator) carries no `g` flag, ---
+    // --- so `.test()` has no stateful lastIndex to leak across candidates ---
+    // --- within a loop; only GITKEY_MARKER_RE (the extractor) is global, ---
+    // --- and its lastIndex is correctly owned by the exec() loop itself. ---
+    const multiRoot = path.join(tmp, "repo-multi");
+    fs.mkdirSync(path.join(multiRoot, ".faff", "intake"), { recursive: true });
+    const k1 = "gk-20260719-111111", k2 = "gk-20260719-222222", k3 = "gk-20260719-333333";
+    fs.writeFileSync(path.join(multiRoot, ".faff", "intake", "roadmap.md"),
+      `- [ ] epic one <!-- gitkey:${k1} -->\n- [ ] epic two <!-- gitkey:${k2} -->\n- [ ] epic three <!-- gitkey:${k3} -->\n`, "utf8");
+    const multi = collectIntakeKeys(multiRoot);
+    ok("all 3 gitkey markers in one file are collected (no cross-candidate lastIndex leak)",
+      multi.length === 3 && multi.includes(k1) && multi.includes(k2) && multi.includes(k3));
+
     // --- a non-gitkey-shaped marker value / filename is never trusted as an ---
     // --- item-key (a pasted `<!-- gitkey:shipped -->` must never exact-match ---
     // --- a ledger outcome string; a stray README.md must never inflate the set) ---

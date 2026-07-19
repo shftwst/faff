@@ -69,6 +69,21 @@ test("derive: intake marker + spec filename, all shipped -> queue_empty true (AC
   assert.equal(payload.reason, "drained");
 });
 
+test("derive: a roadmap file with THREE epic lines collects all three gitkeys, not just the first", (t) => {
+  const root = mkRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, ".faff", "intake", "roadmap.md"),
+    "- [ ] epic one <!-- gitkey:gk-20260719-111111 -->\n" +
+    "- [ ] epic two <!-- gitkey:gk-20260719-222222 -->\n" +
+    "- [ ] epic three <!-- gitkey:gk-20260719-333333 -->\n", "utf8");
+
+  const r = faff(["queue-state", "derive", "--root", root]);
+  assert.equal(r.code, 0);
+  const payload = JSON.parse(r.stdout);
+  assert.equal(payload.items_total, 3);
+  assert.deepEqual(payload.items_pending.sort(), ["gk-20260719-111111", "gk-20260719-222222", "gk-20260719-333333"]);
+});
+
 test("derive: a key absent from outcomes -> queue_empty false, fail-safe (AC 2)", (t) => {
   const root = mkRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

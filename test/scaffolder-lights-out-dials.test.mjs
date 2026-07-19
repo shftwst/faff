@@ -316,7 +316,13 @@ const PASTE_HYGIENE = {
   },
   "scaffold-p2-task-api.sh": {
     expectPaste: ["docs/prd/task-api.md"], operatorHome: "BRIEF.md", briefAllowlisted: false,
-    intentSentences: ["the interesting behaviour is not the app"],
+    // Captured as two clauses (not just the opening prefix) so a future edit that
+    // relocates only the prefix while leaving the scope-creep/setpoint framing
+    // behind is still caught (FAFF-547 adversarial review finding).
+    intentSentences: [
+      "the interesting behaviour is not the app",
+      "converges across waves, and **terminates when the stop conditions are met** without ever editing the setpoint",
+    ],
   },
   "scaffold-p3-landing-page.sh": {
     expectPaste: ["BRIEF.md"], operatorHome: "RUNBOOK.md", briefAllowlisted: true,
@@ -324,7 +330,11 @@ const PASTE_HYGIENE = {
   },
   "scaffold-p4-stripe-testmode.sh": {
     expectPaste: ["PRD.md"], operatorHome: "BRIEF.md", briefAllowlisted: false,
-    intentSentences: ["the interesting behaviour is the safety floor"],
+    // Captured as two clauses — see the P2 note above (FAFF-547 adversarial review finding).
+    intentSentences: [
+      "the interesting behaviour is the safety floor",
+      "should surface the secret-store gap rather than papering over it",
+    ],
   },
 };
 

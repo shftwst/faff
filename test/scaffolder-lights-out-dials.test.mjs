@@ -321,7 +321,7 @@ const PASTE_HYGIENE = {
     // behind is still caught (FAFF-547 adversarial review finding).
     intentSentences: [
       "the interesting behaviour is not the app",
-      "converges across waves, and **terminates when the stop conditions are met** without ever editing the setpoint",
+      "converges across waves, and terminates when the stop conditions are met without ever editing the setpoint",
     ],
   },
   "scaffold-p3-landing-page.sh": {
@@ -352,9 +352,12 @@ const INTENT_MARKER_BACKSTOP = [
   "single most dangerous failure",
 ];
 
-// Collapse whitespace + lowercase so line-wrapping / markdown emphasis never hides
-// a match (the captured sentences are compared normalised on both sides).
-function norm(s) { return (s || "").replace(/\s+/g, " ").toLowerCase(); }
+// Collapse whitespace + lowercase + strip markdown emphasis so line-wrapping or a
+// trivial **bold**/*italic* formatting edit never hides a match, nor makes the
+// present-side relocation check false-fail on semantically-identical prose
+// (the captured sentences are compared normalised on both sides — FAFF-547
+// adversarial review finding).
+function norm(s) { return (s || "").replace(/\*\*?/g, "").replace(/\s+/g, " ").toLowerCase(); }
 
 // Parse a RUNBOOK heredoc's loop-entry line: /faff-jot|plot "<paste FILES>" → the
 // file list (separated by "+" and/or whitespace/commas). Generalises to WHATEVER

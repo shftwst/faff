@@ -862,15 +862,16 @@ function cmdBudgetBaseline(args) {
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
 
-  // Step 4: WRITE-ONCE guard — re-read the on-disk ledger (never reuse the
-  // step-1/2 copy) so a concurrent writer between resolve and this check is
-  // still caught. Presence of the per-model map (a plain object) is the sole
-  // authoritative "already snapshotted" signal — never the scalar alone (a
-  // partially-written legacy ledger could carry one without the other).
-  let guardLedger;
-  try { guardLedger = readLedger(runDir); } catch { guardLedger = ledger; }
-  const existingByModel = guardLedger && guardLedger.budget && guardLedger.budget.tokens_at_start_by_model_class;
-  if (existingByModel && typeof existingByModel === "object" && !Array.isArray(existingByModel)) {
+  // Step 4 (cheap early check): the step-1/2 copy already tells us whether the
+  // per-model map is set — skip the expensive transcript walk below when it
+  // plainly already is, without a second read. This is an OPTIMISATION, not the
+  // authoritative guard (the copy can be stale) — the real, load-bearing
+  // write-once decision is made atomically at step 8 against a FRESH read taken
+  // immediately before the write, closing the TOCTOU window a separate
+  // check-then-later-write pair would leave open between two concurrent
+  // `budget baseline` invocations sharing the same owner epoch (the fence below
+  // only protects against a DIFFERENT epoch/session, e.g. a resume takeover).
+  if (isPlainObject(ledger.budget && ledger.budget.tokens_at_start_by_model_class)) {
     console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
     return 0;
   }
@@ -888,17 +889,36 @@ function cmdBudgetBaseline(args) {
   const byModel = Object.fromEntries(measured.by_model);
   const scalar = byModelClassTotal(byModel);
 
-  // Step 8: atomic re-read-then-merge write, fenced on the ledger's OWN owner
-  // block (never a caller-supplied epoch) — a concurrent owner/heartbeat/outcome
-  // write landing between the guard read and here is preserved, and a stale
-  // writer (a newer resume already took the run over) yields instead of clobbering.
-  const fresh = readLedger(runDir) || {};
+  // Step 8: the ONE authoritative write-once check + atomic re-read-then-merge
+  // write, both against the SAME fresh read — re-read here (never reuse the
+  // step-1/2 copy; readLedger throws on a genuine I/O failure rather than
+  // silently degrading to an empty ledger, so a race that deletes the ledger
+  // between reads surfaces loudly instead of writing a near-empty one). If a
+  // concurrent writer already set the per-model map since our step-4 glance,
+  // that is caught HERE, immediately before the write — the smallest window
+  // this idiom (matching every other fenced ledger write in this file) admits.
+  // The subsequent write is fenced on the ledger's OWN owner block (never a
+  // caller-supplied epoch) — a concurrent owner/heartbeat/outcome write landing
+  // in the interim is preserved, and a stale writer (a newer resume already took
+  // the run over) yields instead of clobbering.
+  const fresh = readLedger(runDir);
+  if (isPlainObject(fresh.budget && fresh.budget.tokens_at_start_by_model_class)) {
+    console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
+    return 0;
+  }
   fresh.budget = { ...(fresh.budget || {}), tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
   atomicWriteLedgerFenced(runDir, fresh, { epoch: fresh.owner && fresh.owner.epoch, session_id: fresh.owner && fresh.owner.session_id });
 
   // Step 9.
   console.log(JSON.stringify({ baseline_written: true, reason: "fresh", tokens_at_start: scalar }));
   return 0;
+}
+
+// Plain-object test shared by the write-once guard's two check sites (step 4's
+// cheap early check and step 8's authoritative one) — never true for null,
+// an array, or a non-object.
+function isPlainObject(v) {
+  return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
 // When the ledger carries a pre-resolved envelope, honour it but let live CLI

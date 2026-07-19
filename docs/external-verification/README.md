@@ -28,6 +28,41 @@ this repo, and the scaffold *copies* the committed PRD into the SUT rather than 
 score is **"did the real deliverable ship"**, not just "did the behaviour occur". See
 [`faff-lab/README.md`](faff-lab/README.md).
 
+> **Tracker is a separate axis (B9).** Every rung above defaults to **git-only**, so the
+> tracker adapter — issue read + write, label ops, status transitions, PR↔issue linking — is
+> never exercised in the suite. That path is scored as its own cross-cutting behaviour,
+> **B9** ([brief §3](../../design/faff-external-verification-brief.md)): **any git-only rung
+> can be re-run under a `tracker: github` overlay to instrument B9** — it is *not* a sixth
+> product SUT, just the same rung pointed at a real external forge. See
+> [Instrumenting B9](#instrumenting-b9-real-tracker) below.
+
+## Instrumenting B9 (real tracker)
+
+**The behaviours-rubric row** (canonical home is [brief §3](../../design/faff-external-verification-brief.md),
+mirrored here as the committed record — `design/` is gitignored, so this table is B9's
+committed home):
+
+| # | Behaviour | Capability under test | Why dogfooding can't cover it |
+|---|---|---|---|
+| **B9** | Operate against a **real external issue tracker**: issue read + write, label ops, status transitions, and PR↔issue linking through the tracker adapter | tracker adapter (the git-only-stubbed control-plane path), tracker-owned-label refusal | faff-on-faff uses Linear, but the suite's SUT rungs are all git-only, so the tracker adapter is never exercised *within the scored suite* against a non-Linear forge |
+
+B9 is scored on the same **"did the behaviour occur and did faff respect its boundary"** basis as
+B1–B8. Its boundary is **tracker-ownership**: faff refuses to write the eligibility labels
+(`faff-automate` / `faff-automation-hold`) itself, never fabricates status, and moves status only
+through the sanctioned lifecycle.
+
+B9 scores faff driving a **real external issue tracker** (first light: GitHub Issues) rather
+than git-only markers — issue read + write, label ops, status transitions, and PR↔issue
+linking through the tracker adapter, plus the tracker-ownership boundary (faff refuses to write
+the eligibility labels itself, never fabricates status, moves status only through the
+lifecycle). Because tracker is a separate axis from the product being built, B9 is instrumented
+by **overlaying a `tracking: github` config on an existing git-only rung** (first rung: P1
+link-shortener), not by adding a new scaffold. The exact `.faffrc.yaml` patch, GitHub
+prerequisites (throwaway repo, GitHub-issues MCP + auth, pre-provisioned `faff-automate` /
+`faff-parked` labels, no committed secrets), the L2/L3 drive steps, the observation surface, and
+the B9 scoring checklist live in the overlay runbook:
+[`b9-github-tracker-overlay.md`](b9-github-tracker-overlay.md).
+
 ## How to run
 
 Each script is self-contained. `SUT_ROOT` defaults to a **sibling `faff-suts/<slug>` directory

@@ -58,7 +58,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, resolveLedgerOrFault } = require("./shared-infra");
+const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { atomicWriteLedgerFenced } = require("./heartbeat");
 
 function readGovernanceConfig(root) {
   // Governance config read (budget.* / sentry.* only). Resolution — canonical name,
@@ -607,7 +608,8 @@ function resolveBudgetNow(get) {
 function cmdBudget(args) {
   if (args.includes("--selftest")) return budgetSelftest();
   const sub = args.find((a) => !a.startsWith("-"));
-  if (sub !== "check") { process.stderr.write("usage: faff budget check [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
+  if (sub === "baseline") return cmdBudgetBaseline(args);
+  if (sub !== "check") { process.stderr.write("usage: faff budget check|baseline [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
 
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const flags = { until: get("--until"), max_attempts: get("--max") };
@@ -654,10 +656,19 @@ function cmdBudget(args) {
 
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
-  let tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+  // FAFF-558: resolve the per-model baseline FIRST, then derive the scalar
+  // UNCONDITIONALLY from it when the scalar field is absent — the L4 mint only
+  // ever wrote the per-model map (tokens_at_start_by_model_class), so a scalar
+  // that defaults to a bare 0 loses the baseline entirely and lets the whole
+  // (possibly post-compaction) session sum false-trip a budget.tokens ceiling.
+  // byModelClassTotal(null) === 0, so both-absent stays byte-for-byte today's
+  // default; an explicit scalar (legacy or otherwise) is still honoured verbatim.
   let tokensAtStartByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
     && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
     ? ledger.budget.tokens_at_start_by_model_class : null;
+  let tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number")
+    ? ledger.budget.tokens_at_start
+    : byModelClassTotal(tokensAtStartByModel);
 
   // FAFF-527: a resumed run's ledger carries budget.sessions[]. Spend = Σ closed-span
   // deltas + the current (open) span's live delta. The open span's baseline REPLACES the
@@ -816,6 +827,98 @@ function cmdBudget(args) {
 
   console.log(JSON.stringify(state));
   return 0;
+}
+
+// FAFF-558: `faff budget baseline` — the deterministic, write-once counterpart to
+// the prose baseline hand-write beep-boop used to do at run start. Snapshots the
+// run-start per-model token baseline (tokens_at_start_by_model_class) + its
+// derived scalar (tokens_at_start) into the ledger EXACTLY ONCE per run — a
+// re-invocation after the field is already set is a no-op BY CONSTRUCTION
+// (compaction safety: a post-compaction re-snapshot would measure against the
+// enlarged transcript and silently zero out real accumulated spend).
+//
+// Never a fault exit for a legitimate "nothing to write" outcome (already-set,
+// estimate-degraded) — only a genuinely unresolvable run-dir is a usage error
+// (exit 2), mirroring `check`'s own usage-vs-fault split.
+function cmdBudgetBaseline(args) {
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const sessionIdFlag = get("--session-id");
+  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
+
+  // Step 1-2: resolve the ledger identically to `check`. Any fault (explicit run
+  // named but ledger absent/unreadable) OR a genuinely empty surface (no run-dir
+  // resolvable at all) is a usage error here — `baseline` always needs a run to
+  // snapshot into, unlike `check`'s legitimate all-clear-on-empty default.
+  const resolved = resolveLedgerOrFault(get, root);
+  if (resolved.fault || resolved.empty) {
+    process.stderr.write("usage: faff budget baseline --run-dir DIR [--root DIR] [--session-id ID] [--json]\n");
+    return 2;
+  }
+  const runDir = resolved.runDir;
+  const ledger = resolved.ledger;
+
+  // Step 3: run-start instant, same resolution as `check`.
+  const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
+  const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
+
+  // Step 4 (cheap early check): the step-1/2 copy already tells us whether the
+  // per-model map is set — skip the expensive transcript walk below when it
+  // plainly already is, without a second read. This is an OPTIMISATION, not the
+  // authoritative guard (the copy can be stale) — the real, load-bearing
+  // write-once decision is made atomically at step 8 against a FRESH read taken
+  // immediately before the write, closing the TOCTOU window a separate
+  // check-then-later-write pair would leave open between two concurrent
+  // `budget baseline` invocations sharing the same owner epoch (the fence below
+  // only protects against a DIFFERENT epoch/session, e.g. a resume takeover).
+  if (isPlainObject(ledger.budget && ledger.budget.tokens_at_start_by_model_class)) {
+    console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
+    return 0;
+  }
+
+  // Step 5-6: the one transcript walk (shared with `check`/mint). No resolvable
+  // transcript ⇒ estimate-degraded: write nothing, report it, never crash.
+  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  if (measured.source !== "transcript") {
+    console.log(JSON.stringify({ baseline_written: false, reason: "estimate-degraded" }));
+    return 0;
+  }
+
+  // Step 7: derive the per-model map + its scalar total (byModelClassTotal is
+  // the SAME helper the read-side derivation above uses — one total, never forked).
+  const byModel = Object.fromEntries(measured.by_model);
+  const scalar = byModelClassTotal(byModel);
+
+  // Step 8: the ONE authoritative write-once check + atomic re-read-then-merge
+  // write, both against the SAME fresh read — re-read here (never reuse the
+  // step-1/2 copy; readLedger throws on a genuine I/O failure rather than
+  // silently degrading to an empty ledger, so a race that deletes the ledger
+  // between reads surfaces loudly instead of writing a near-empty one). If a
+  // concurrent writer already set the per-model map since our step-4 glance,
+  // that is caught HERE, immediately before the write — the smallest window
+  // this idiom (matching every other fenced ledger write in this file) admits.
+  // The subsequent write is fenced on the ledger's OWN owner block (never a
+  // caller-supplied epoch) — a concurrent owner/heartbeat/outcome write landing
+  // in the interim is preserved, and a stale writer (a newer resume already took
+  // the run over) yields instead of clobbering.
+  const fresh = readLedger(runDir);
+  if (isPlainObject(fresh.budget && fresh.budget.tokens_at_start_by_model_class)) {
+    console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
+    return 0;
+  }
+  fresh.budget = { ...(fresh.budget || {}), tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
+  atomicWriteLedgerFenced(runDir, fresh, { epoch: fresh.owner && fresh.owner.epoch, session_id: fresh.owner && fresh.owner.session_id });
+
+  // Step 9.
+  console.log(JSON.stringify({ baseline_written: true, reason: "fresh", tokens_at_start: scalar }));
+  return 0;
+}
+
+// Plain-object test shared by the write-once guard's two check sites (step 4's
+// cheap early check and step 8's authoritative one) — never true for null,
+// an array, or a non-object.
+function isPlainObject(v) {
+  return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
 // When the ledger carries a pre-resolved envelope, honour it but let live CLI
@@ -1123,4 +1226,4 @@ function budgetSelftest() {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

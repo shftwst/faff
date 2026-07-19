@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -695,6 +695,181 @@ test("FAFF-427: a fresh per-model baseline (tokens_at_start_by_model_class) subt
     assert.ok(Math.abs(s.spent.cost - 0.025) < 1e-9, `spent.cost=${s.spent.cost}`);
     assert.ok(!s.warnings || !s.warnings.some((w) => /pro-rated/.test(w)), "a real baseline must not trigger the pro-rata warning");
   } finally { f.cleanup(); }
+});
+
+// ===========================================================================
+// FAFF-558 — the `tokens_at_start` scalar baseline MUST survive a mid-run
+// transcript compaction. An L4 mint only ever writes the PER-MODEL baseline
+// (`tokens_at_start_by_model_class`); the scalar `budget.tokens` ceiling read
+// used to default that scalar to 0 whenever it was absent, so a compacted
+// whole-session transcript summed unbaselined and could false-trip a real
+// ceiling. The fix derives the scalar from the per-model map unconditionally.
+// ===========================================================================
+
+test("FAFF-558: per-model baseline present, scalar ABSENT, whole-session sum crosses the ceiling but the derived this-run delta does not → breached:[] (no false trip)", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 60000\n  at_ceiling: escalate\n",
+    ledger: baseLedger({
+      // Only the per-model map is present — no scalar tokens_at_start at all,
+      // exactly the shape an L4 mint writes. Baseline totals 390000.
+      budget: { tokens_at_start_by_model_class: { "claude-opus-4-8": { input: 0, output: 0, cache_write: 0, cache_read: 390000 } } },
+    }),
+  });
+  try {
+    const sid = "sess-compacted";
+    // Simulates a compacted whole-session transcript: 400000 tokens total, FAR
+    // above the 60000 ceiling — but the this-run delta (400000-390000=10000) is
+    // comfortably under it.
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { cache_read_input_tokens: 400000 } }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 10000, `this-run delta should derive from the per-model baseline, got ${s.spent.tokens}`);
+    assert.deepEqual(s.breached, [], "the derived scalar baseline must be subtracted — no false breached:[\"tokens\"]");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-558: an explicit scalar tokens_at_start (no per-model map) is honoured verbatim — byte-for-byte today's behaviour", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 100000\n  at_ceiling: escalate\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 100 } }),
+  });
+  try {
+    const sid = "sess-scalar-only";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 50000, output_tokens: 0 }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.spent.tokens, 49900, "50000 - explicit scalar 100 = 49900");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-558: NEITHER tokens_at_start nor tokens_at_start_by_model_class present → baseline 0, spend equals the whole-session sum (byte-for-byte today)", () => {
+  const f = fixture({
+    rc: "budget:\n  tokens: 100000\n  at_ceiling: escalate\n",
+    ledger: baseLedger(), // no budget block at all
+  });
+  try {
+    const sid = "sess-no-baseline";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 12345, output_tokens: 0 }],
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.equal(s.spent.tokens, 12345);
+  } finally { f.cleanup(); }
+});
+
+// ===========================================================================
+// FAFF-558 — `faff budget baseline`: the deterministic write-once subcommand
+// that replaces the fragile prose baseline hand-write. Fresh write populates
+// both fields; a second invocation after the transcript GREW is a strict
+// no-op (the compaction-safety guard); no transcript degrades honestly;
+// an unresolvable run-dir is a usage error.
+// ===========================================================================
+
+test("FAFF-558: `budget wat` (unknown non-check, non-baseline sub) still exits 2 — the new branch only intercepts `baseline`", () => {
+  const r = run(["budget", "wat"]);
+  assert.equal(r.code, 2);
+});
+
+test("FAFF-558: `budget baseline` fresh write populates BOTH tokens_at_start_by_model_class and tokens_at_start; exit 0, reason:fresh", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const sid = "sess-baseline-fresh";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 5000, cache_read_input_tokens: 2000 } }],
+    });
+    const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.baseline_written, true);
+    assert.equal(out.reason, "fresh");
+    assert.equal(out.tokens_at_start, 7000);
+
+    const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(persisted.budget.tokens_at_start, 7000);
+    assert.deepEqual(persisted.budget.tokens_at_start_by_model_class, { "claude-opus-4-8": { input: 5000, output: 0, cache_write: 0, cache_read: 2000 } });
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-558: `budget baseline` is WRITE-ONCE — a second invocation after the transcript GREW does not re-snapshot (the compaction-safety guard)", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const sid = "sess-baseline-once";
+    let cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 1000 } }],
+    });
+    const r1 = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r1.code, 0, r1.err);
+    const out1 = JSON.parse(r1.out);
+    assert.equal(out1.baseline_written, true);
+    assert.equal(out1.tokens_at_start, 1000);
+
+    // The transcript GREW (simulating continued spend / a compaction event).
+    cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 999999999 } }],
+    });
+    const r2 = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r2.code, 0, r2.err);
+    const out2 = JSON.parse(r2.out);
+    assert.equal(out2.baseline_written, false);
+    assert.equal(out2.reason, "already-set");
+
+    const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(persisted.budget.tokens_at_start, 1000, "the baseline must be UNCHANGED — no re-snapshot against the enlarged transcript");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-558: `budget baseline` with no resolvable transcript writes nothing and degrades honestly (reason:estimate-degraded), exit 0, never a crash", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    // No CLAUDE_CODE_SESSION_ID / transcript directory at all.
+    const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.baseline_written, false);
+    assert.equal(out.reason, "estimate-degraded");
+
+    const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(persisted.budget, undefined, "nothing should be written on an estimate-degraded read");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-558: `budget baseline` with an unresolvable run-dir exits 2 (usage error)", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-budget-nobaseline-"));
+  try {
+    const r = run(["budget", "baseline", "--run-dir", join(root, ".faff", "runs", "does-not-exist"), "--root", root]);
+    assert.equal(r.code, 2);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-558: `budget baseline` is deterministic — same transcript state + same owner.started_at → identical baseline across repeated fresh writes", () => {
+  const measurements = [];
+  for (let i = 0; i < 2; i++) {
+    const f = fixture({ rc: null, ledger: baseLedger() });
+    try {
+      const sid = "sess-baseline-determinism";
+      const cfg = withModelTranscripts(f.root, f.root, sid, {
+        [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 3000, output_tokens: 700 } }],
+      });
+      const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+        { CLAUDE_CONFIG_DIR: cfg });
+      assert.equal(r.code, 0, r.err);
+      measurements.push(JSON.parse(r.out));
+    } finally { f.cleanup(); }
+  }
+  assert.deepEqual(measurements[0], measurements[1]);
 });
 
 // ===========================================================================

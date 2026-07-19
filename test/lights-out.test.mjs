@@ -296,6 +296,35 @@ test("lights-out: tokens ceiling — real CLI proceeds (no-declaration advisory)
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+// FAFF-560 — mint persists the ambient CLAUDE_CODE_SESSION_ID as the run's owning
+// measuring session (budget.measure_session_id), so `budget check` can prefer it over
+// a later-drifted ambient session. Drives the REAL CLI proceed path (unlike
+// mintFixtureLedger, which hand-reproduces the mint shape) and reads the actually
+// minted ledger via the JSON output's own run_dir — the shipped mint code, not a
+// fixture stand-in.
+test("lights-out: mint records ledger.budget.measure_session_id from the ambient CLAUDE_CODE_SESSION_ID", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  const env = { ...CONTAINED, CLAUDE_CODE_SESSION_ID: "sess-mint-owning" };
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env });
+  assert.equal(code, 0, stdout);
+  const out = JSON.parse(stdout);
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.budget.measure_session_id, "sess-mint-owning");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("lights-out: mint records ledger.budget.measure_session_id as null when the ambient session id is unset", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  const env = { ...CONTAINED };
+  delete env.CLAUDE_CODE_SESSION_ID;
+  const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env });
+  assert.equal(code, 0, stdout);
+  const out = JSON.parse(stdout);
+  const ledger = JSON.parse(fs.readFileSync(path.join(out.run_dir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.budget.measure_session_id, null);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 // FAFF-312 — an explicit budget.at_ceiling: stop is minted verbatim (human-explicit
 // config outranks the level default; the operator asked for a quiet stop at ceiling).
 test("lights-out: explicit budget.at_ceiling stop is minted verbatim", () => {

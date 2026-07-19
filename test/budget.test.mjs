@@ -1065,3 +1065,148 @@ test("S4 (FAFF-488): no --session-id (and no --root beyond the pre-existing flag
     assert.equal(s.spent.tokens, 49);
   } finally { f.cleanup(); }
 });
+
+// ===========================================================================
+// FAFF-560 — budget.measure_session_id: the persisted "owning" measuring
+// session (written by lights-out mint) is preferred over a drifted ambient
+// CLAUDE_CODE_SESSION_ID in `budget check`, with precedence
+// --session-id flag > persisted measure_session_id > ambient. Each of the
+// three legs gets its own transcript so a wrong resolution is observable as
+// a wrong token total, not just a wrong tokens_source.
+// ===========================================================================
+
+test("FAFF-560 AC1: owning session (persisted) != ambient session → attributes to the owning (persisted) session, not ambient", () => {
+  const owningSid = "sess-owning";
+  const ambientSid = "sess-ambient";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0, measure_session_id: owningSid } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, owningSid, {
+      [`${owningSid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20 }], // owning: 120 tokens
+      [`${ambientSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // ambient: 9900 tokens (must NOT be selected)
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: ambientSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 120, "must meter the persisted owning session's transcript, not the ambient one");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560 AC2: --session-id flag beats a persisted measure_session_id (FAFF-488 explicit-override contract preserved)", () => {
+  const flagSid = "sess-flag";
+  const persistedSid = "sess-persisted";
+  const ambientSid = "sess-ambient2";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0, measure_session_id: persistedSid } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, flagSid, {
+      [`${flagSid}.jsonl`]: [{ input_tokens: 10, output_tokens: 5 }], // flag: 15 tokens
+      [`${persistedSid}.jsonl`]: [{ input_tokens: 2000, output_tokens: 200 }], // persisted: 2200 (must NOT be selected)
+      [`${ambientSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // ambient: 9900 (must NOT be selected)
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--session-id", flagSid],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: ambientSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 15, "explicit --session-id flag must win over the persisted measure_session_id");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560: a resumed run (FAFF-527 budget.sessions present) prefers the open span's OWN session_id over a stale persisted mint measure_session_id", () => {
+  // The mint-time persisted session ("sess-original-mint") is now STALE — a resume has
+  // happened since, opening a new span whose baseline was measured against ITS OWN
+  // session id ("sess-resumed"). If effectiveEnv picked the stale persisted value
+  // instead, measureTokensByModelClass would read the WRONG transcript — mismatched
+  // against the open span's baseline, corrupting the current-span subtraction.
+  const originalMintSid = "sess-original-mint";
+  const resumedSid = "sess-resumed";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z", session_id: resumedSid },
+      budget: {
+        measure_session_id: originalMintSid, // stale — from the ORIGINAL mint, never updated on resume
+        sessions: [
+          { session_id: originalMintSid, baseline_by_model_class: {}, closed_delta_by_model_class: { "m1": { input: 100, output: 0, cache_write: 0, cache_read: 0 } }, closed_at: "t1", close_source: "transcript" },
+          { session_id: resumedSid, baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null },
+        ],
+      },
+    }),
+  });
+  try {
+    // A THIRD, distinct drifted-ambient session — deliberately NOT the open span's own
+    // sid and NOT the persisted mint sid. Adversarial-review finding: a prior version of
+    // this test set ambient == the open span's sid, so a buggy fall-through to ambient
+    // would have passed anyway. Pinning --root only (never relying on ambient) and
+    // driving CLAUDE_CODE_SESSION_ID to this unrelated third value proves the resolution
+    // genuinely selects the open span's OWN session_id, not merely "whatever ambient is."
+    const driftedAmbientSid = "sess-drifted-ambient-unrelated";
+    const cfg = withTranscripts(f.root, f.root, resumedSid, {
+      [`${resumedSid}.jsonl`]: [{ input_tokens: 20, output_tokens: 5 }], // resumed (open-span) session's own current delta: 25
+      [`${originalMintSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // must NOT be read (stale persisted)
+      [`${driftedAmbientSid}.jsonl`]: [{ input_tokens: 500000, output_tokens: 50000 }], // must NOT be read (drifted ambient)
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: driftedAmbientSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    // closed span (100) + current-span delta measured against the OPEN SPAN's own
+    // transcript (25, baseline 0) = 125 — proven distinct from both the stale persisted
+    // mint session and a drifted third ambient, either of which would yield a wildly
+    // different (and wrong) total if selected instead.
+    assert.equal(s.spent.tokens, 125, "must meter the open span's own session, not the stale persisted mint session or a drifted ambient");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560: --session-id flag beats the FAFF-527 open span's own session_id too (flag is always the top of precedence)", () => {
+  const flagSid = "sess-explicit-flag";
+  const openSpanSid = "sess-open-span";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z", session_id: openSpanSid },
+      budget: {
+        sessions: [
+          { session_id: openSpanSid, baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null },
+        ],
+      },
+    }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, flagSid, {
+      [`${flagSid}.jsonl`]: [{ input_tokens: 8, output_tokens: 2 }], // flag: 10 tokens
+      [`${openSpanSid}.jsonl`]: [{ input_tokens: 4000, output_tokens: 400 }], // must NOT be read
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--session-id", flagSid],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: openSpanSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 10, "explicit --session-id flag must win over the open span's own session_id");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560 AC3: no persisted measure_session_id in the ledger → byte-for-byte the ambient path (no regression to single-session runs)", () => {
+  const sid = "sess-no-persisted";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    // budget.measure_session_id is absent — owning == ambient, the pre-change shape.
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, sid, { [`${sid}.jsonl`]: [{ input_tokens: 42, output_tokens: 7 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root], { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 49, "absent measure_session_id must fall through to ambient, byte-for-byte");
+  } finally { f.cleanup(); }
+});

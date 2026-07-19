@@ -58,7 +58,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, resolveLedgerOrFault } = require("./shared-infra");
+const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { atomicWriteLedgerFenced } = require("./heartbeat");
 
 function readGovernanceConfig(root) {
   // Governance config read (budget.* / sentry.* only). Resolution — canonical name,
@@ -607,7 +608,8 @@ function resolveBudgetNow(get) {
 function cmdBudget(args) {
   if (args.includes("--selftest")) return budgetSelftest();
   const sub = args.find((a) => !a.startsWith("-"));
-  if (sub !== "check") { process.stderr.write("usage: faff budget check [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
+  if (sub === "baseline") return cmdBudgetBaseline(args);
+  if (sub !== "check") { process.stderr.write("usage: faff budget check|baseline [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
 
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const flags = { until: get("--until"), max_attempts: get("--max") };
@@ -654,10 +656,19 @@ function cmdBudget(args) {
 
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
-  let tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+  // FAFF-558: resolve the per-model baseline FIRST, then derive the scalar
+  // UNCONDITIONALLY from it when the scalar field is absent — the L4 mint only
+  // ever wrote the per-model map (tokens_at_start_by_model_class), so a scalar
+  // that defaults to a bare 0 loses the baseline entirely and lets the whole
+  // (possibly post-compaction) session sum false-trip a budget.tokens ceiling.
+  // byModelClassTotal(null) === 0, so both-absent stays byte-for-byte today's
+  // default; an explicit scalar (legacy or otherwise) is still honoured verbatim.
   let tokensAtStartByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
     && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
     ? ledger.budget.tokens_at_start_by_model_class : null;
+  let tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number")
+    ? ledger.budget.tokens_at_start
+    : byModelClassTotal(tokensAtStartByModel);
 
   // FAFF-527: a resumed run's ledger carries budget.sessions[]. Spend = Σ closed-span
   // deltas + the current (open) span's live delta. The open span's baseline REPLACES the
@@ -815,6 +826,78 @@ function cmdBudget(args) {
   if (warnings.length) state.warnings = warnings;
 
   console.log(JSON.stringify(state));
+  return 0;
+}
+
+// FAFF-558: `faff budget baseline` — the deterministic, write-once counterpart to
+// the prose baseline hand-write beep-boop used to do at run start. Snapshots the
+// run-start per-model token baseline (tokens_at_start_by_model_class) + its
+// derived scalar (tokens_at_start) into the ledger EXACTLY ONCE per run — a
+// re-invocation after the field is already set is a no-op BY CONSTRUCTION
+// (compaction safety: a post-compaction re-snapshot would measure against the
+// enlarged transcript and silently zero out real accumulated spend).
+//
+// Never a fault exit for a legitimate "nothing to write" outcome (already-set,
+// estimate-degraded) — only a genuinely unresolvable run-dir is a usage error
+// (exit 2), mirroring `check`'s own usage-vs-fault split.
+function cmdBudgetBaseline(args) {
+  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const root = get("--root") || findRoot();
+  const sessionIdFlag = get("--session-id");
+  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
+
+  // Step 1-2: resolve the ledger identically to `check`. Any fault (explicit run
+  // named but ledger absent/unreadable) OR a genuinely empty surface (no run-dir
+  // resolvable at all) is a usage error here — `baseline` always needs a run to
+  // snapshot into, unlike `check`'s legitimate all-clear-on-empty default.
+  const resolved = resolveLedgerOrFault(get, root);
+  if (resolved.fault || resolved.empty) {
+    process.stderr.write("usage: faff budget baseline --run-dir DIR [--root DIR] [--session-id ID] [--json]\n");
+    return 2;
+  }
+  const runDir = resolved.runDir;
+  const ledger = resolved.ledger;
+
+  // Step 3: run-start instant, same resolution as `check`.
+  const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
+  const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
+
+  // Step 4: WRITE-ONCE guard — re-read the on-disk ledger (never reuse the
+  // step-1/2 copy) so a concurrent writer between resolve and this check is
+  // still caught. Presence of the per-model map (a plain object) is the sole
+  // authoritative "already snapshotted" signal — never the scalar alone (a
+  // partially-written legacy ledger could carry one without the other).
+  let guardLedger;
+  try { guardLedger = readLedger(runDir); } catch { guardLedger = ledger; }
+  const existingByModel = guardLedger && guardLedger.budget && guardLedger.budget.tokens_at_start_by_model_class;
+  if (existingByModel && typeof existingByModel === "object" && !Array.isArray(existingByModel)) {
+    console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
+    return 0;
+  }
+
+  // Step 5-6: the one transcript walk (shared with `check`/mint). No resolvable
+  // transcript ⇒ estimate-degraded: write nothing, report it, never crash.
+  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  if (measured.source !== "transcript") {
+    console.log(JSON.stringify({ baseline_written: false, reason: "estimate-degraded" }));
+    return 0;
+  }
+
+  // Step 7: derive the per-model map + its scalar total (byModelClassTotal is
+  // the SAME helper the read-side derivation above uses — one total, never forked).
+  const byModel = Object.fromEntries(measured.by_model);
+  const scalar = byModelClassTotal(byModel);
+
+  // Step 8: atomic re-read-then-merge write, fenced on the ledger's OWN owner
+  // block (never a caller-supplied epoch) — a concurrent owner/heartbeat/outcome
+  // write landing between the guard read and here is preserved, and a stale
+  // writer (a newer resume already took the run over) yields instead of clobbering.
+  const fresh = readLedger(runDir) || {};
+  fresh.budget = { ...(fresh.budget || {}), tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
+  atomicWriteLedgerFenced(runDir, fresh, { epoch: fresh.owner && fresh.owner.epoch, session_id: fresh.owner && fresh.owner.session_id });
+
+  // Step 9.
+  console.log(JSON.stringify({ baseline_written: true, reason: "fresh", tokens_at_start: scalar }));
   return 0;
 }
 
@@ -1123,4 +1206,4 @@ function budgetSelftest() {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

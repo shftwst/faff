@@ -34,7 +34,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { AT_CEILING_OUTCOMES, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
+const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
@@ -863,6 +863,13 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   const budgetBlock = { envelope };
   if (modelBaseline.source === "transcript") {
     budgetBlock.tokens_at_start_by_model_class = Object.fromEntries(modelBaseline.by_model);
+    // FAFF-558: additionally write the derived scalar alongside the per-model map —
+    // purely additive belt-and-braces alignment for scalar-reading consumers
+    // (audit.js/economics.js, the beep-boop ledger docs). Not load-bearing: `budget
+    // check`'s read-side derivation already falls back to `byModelClassTotal` of the
+    // per-model map above when this scalar is absent, so this write changes no
+    // behaviour — it only keeps the two fields from ever disagreeing.
+    budgetBlock.tokens_at_start = byModelClassTotal(Object.fromEntries(modelBaseline.by_model));
   }
   // FAFF-428 — record the metering state at mint, from the SAME sample taken for the
   // preflight probe above (never a second, possibly-divergent read). `degraded` is

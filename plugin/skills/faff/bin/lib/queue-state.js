@@ -158,13 +158,12 @@ function cmdDerive(args) {
     return 2;
   }
 
-  let terminalStates;
-  try {
-    terminalStates = activeProfile().terminal_states; // may throw GovernanceProfileError -> caught by main()
-  } catch (e) {
-    if (e && e.faffGovernanceProfileError) throw e;
-    terminalStates = [];
-  }
+  // May throw GovernanceProfileError on a bad $FAFF_GOVERNANCE_PROFILE override —
+  // deliberately uncaught here, parity with run-done.js/profiles.js: bin/faff's
+  // main() dispatch catches e.faffGovernanceProfileError uniformly and converts
+  // it to a loud stderr line + exit 2. Never silently coerced to an empty
+  // terminal-states set, which would misclassify every item as pending forever.
+  const terminalStates = activeProfile().terminal_states;
 
   const result = deriveQueueState({ itemKeys, outcomes, terminalStates });
   console.log(JSON.stringify(result));

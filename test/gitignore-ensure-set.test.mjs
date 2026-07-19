@@ -55,6 +55,28 @@ test("append-only: an existing `.faffrc.yaml` ignore line is NEVER removed", () 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("git semantics: real `git check-ignore` honours the glob + negation on a fresh repo (FAFF-548)", () => {
+  // The string/order selftest is deliberately git-free; this test closes the gap by
+  // asserting git ITSELF interprets the written patterns as intended — a broken glob
+  // syntax that still passes the string check would fail here. Mirrors the spec's
+  // Integration smoke test + the "From HOW" DoD (dev/local/machine ignored, base +
+  // example tracked).
+  const dir = seed();
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    run(dir, "gitignore-ensure");
+    const ignored = (f) => {
+      try { execFileSync("git", ["check-ignore", "-q", f], { cwd: dir }); return true; }
+      catch (e) { if (e.status === 1) return false; throw e; }
+    };
+    assert.ok(ignored(".faffrc.dev.yaml"), "overlay variant .faffrc.dev.yaml is ignored");
+    assert.ok(ignored(".faffrc.machine.yaml"), "overlay variant .faffrc.machine.yaml is ignored");
+    assert.ok(ignored(".faffrc.local.yaml"), "the classic local overlay is still ignored (via the glob)");
+    assert.ok(!ignored(".faffrc.yaml"), "the committable base .faffrc.yaml is tracked");
+    assert.ok(!ignored(".faffrc.example.yaml"), "the tracked template is re-included by the negation");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("idempotent: a second run is a byte-identical no-op", () => {
   const dir = seed();
   try {

@@ -22,7 +22,9 @@ const { findRoot } = require("./shared-infra");
 // tracked template `.faffrc.example.yaml` DOES match the glob, so a `!` negation
 // re-includes it — placed AFTER the glob in the array (git honours a negation only
 // when it follows the matching ignore line, and the append writer emits in array
-// order, so array order is file order). The legacy names (`.faffrc`, `.faffrc.yml`)
+// order, so array order is file order). NB: the negation is a single literal name —
+// any FUTURE tracked `.faffrc.*.yaml` template added under a different name needs its
+// own `!` negation line here (also after the glob) to stay committable. The legacy names (`.faffrc`, `.faffrc.yml`)
 // stay ignored (the resolver errors loudly on them anyway). This command is
 // append-only: it NEVER removes an existing line — an existing `.faffrc.yaml` or
 // `.faffrc.local.yaml` line stays put; migration off it is deliberate (see `faff

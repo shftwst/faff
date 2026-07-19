@@ -36,6 +36,15 @@ There is no native per-session token cap on subscription. Use, in combination:
 
 For a true token ceiling, a `PreToolUse` hook can sum cumulative `usage` from the session transcript and block further tool calls past a threshold — real setup effort; only worth it if the cap must be enforced rather than approximated.
 
+## Reasoning effort
+
+Effort is spent on exactly the parts these briefs are decided by — oversell races, outbox atomicity, edge-case reasoning, physics tuning, harness design — so lowering it selectively weakens the control where the comparison lives. A low-effort control is a hobbled control: every headline claim has the shape "even the frontier one-shot missed X", and `effort: low` in the metadata is the receipt a skeptic needs to discount the whole gallery. It also cannot be fixed later — once the frontier window closes, a weak control cannot be re-run at strength.
+
+- **Run controls at high effort** — "the frontier model at its strongest reasonable configuration" is the unimpeachable baseline. Default (medium) is the fallback framing ("as a user gets it out of the box"); low is not defensible.
+- **Fund it from run count, not run quality.** This is the stop-rule expressed per-token: three or four high-effort controls in priority order beat six low-effort ones, because weak controls aren't cheaper experiments — they're runs that can't be cited.
+- **Hold effort constant across every control and record it in run metadata** — it is part of "harness used" on the gallery card; comparability dies if it varies.
+- **The asymmetry is fine, stated openly**: the faff side tunes its config freely because config is faff's product; the control gets the frontier model at full strength because that is the thing being beaten.
+
 ## Run order
 
 Calibrate on the cheapest first, then the briefs that best evidence envs/tests/evaluation; the one-shot's home turf last.

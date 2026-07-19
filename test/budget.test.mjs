@@ -1141,22 +1141,56 @@ test("FAFF-560: a resumed run (FAFF-527 budget.sessions present) prefers the ope
     }),
   });
   try {
+    // A THIRD, distinct drifted-ambient session — deliberately NOT the open span's own
+    // sid and NOT the persisted mint sid. Adversarial-review finding: a prior version of
+    // this test set ambient == the open span's sid, so a buggy fall-through to ambient
+    // would have passed anyway. Pinning --root only (never relying on ambient) and
+    // driving CLAUDE_CODE_SESSION_ID to this unrelated third value proves the resolution
+    // genuinely selects the open span's OWN session_id, not merely "whatever ambient is."
+    const driftedAmbientSid = "sess-drifted-ambient-unrelated";
     const cfg = withTranscripts(f.root, f.root, resumedSid, {
-      [`${resumedSid}.jsonl`]: [{ input_tokens: 20, output_tokens: 5 }], // resumed span's own current delta: 25
-      [`${originalMintSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // must NOT be read
+      [`${resumedSid}.jsonl`]: [{ input_tokens: 20, output_tokens: 5 }], // resumed (open-span) session's own current delta: 25
+      [`${originalMintSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // must NOT be read (stale persisted)
+      [`${driftedAmbientSid}.jsonl`]: [{ input_tokens: 500000, output_tokens: 50000 }], // must NOT be read (drifted ambient)
     });
-    // Ambient matches the resumed session (the realistic shape: the resuming process's
-    // own CLAUDE_CODE_SESSION_ID), NOT the stale persisted mint value.
     const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
-      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: resumedSid });
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: driftedAmbientSid });
     assert.equal(r.code, 0, r.err);
     const s = JSON.parse(r.out);
     assert.equal(s.tokens_source, "transcript");
-    // closed span (100) + current-span delta measured against the RESUMED session's own
-    // transcript (25, baseline 0) = 125. If the stale persisted session had won, the
-    // current-span delta would instead be read from the (unrelated) original mint
-    // transcript — a materially different, wrong number.
-    assert.equal(s.spent.tokens, 125, "must meter the open span's own session, not the stale persisted mint session");
+    // closed span (100) + current-span delta measured against the OPEN SPAN's own
+    // transcript (25, baseline 0) = 125 — proven distinct from both the stale persisted
+    // mint session and a drifted third ambient, either of which would yield a wildly
+    // different (and wrong) total if selected instead.
+    assert.equal(s.spent.tokens, 125, "must meter the open span's own session, not the stale persisted mint session or a drifted ambient");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560: --session-id flag beats the FAFF-527 open span's own session_id too (flag is always the top of precedence)", () => {
+  const flagSid = "sess-explicit-flag";
+  const openSpanSid = "sess-open-span";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z", session_id: openSpanSid },
+      budget: {
+        sessions: [
+          { session_id: openSpanSid, baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null },
+        ],
+      },
+    }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, flagSid, {
+      [`${flagSid}.jsonl`]: [{ input_tokens: 8, output_tokens: 2 }], // flag: 10 tokens
+      [`${openSpanSid}.jsonl`]: [{ input_tokens: 4000, output_tokens: 400 }], // must NOT be read
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--session-id", flagSid],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: openSpanSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 10, "explicit --session-id flag must win over the open span's own session_id");
   } finally { f.cleanup(); }
 });
 

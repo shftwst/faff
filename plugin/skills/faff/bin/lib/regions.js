@@ -124,6 +124,10 @@ const REGION_MAP = {
   "next": "factory",
   "project-next": "factory",
   "state": "factory",
+  // queue-state — FAFF-556: the git-only queue_empty/all_parked differ. Requires
+  // shared-infra (findRoot/readLedger/latestRunDir) and governance-profile
+  // (activeProfile) — a pure computation command, sibling of run-done/next → factory.
+  "queue-state": "factory",
   "park-history": "factory",
   "gitignore-ensure": "factory",
   "adr": "factory",
@@ -235,6 +239,7 @@ const REGION_SELFTEST_ARGV = {
   "next": ["next", "--selftest"],
   "project-next": ["project-next", "--selftest"],
   "state": null,
+  "queue-state": ["queue-state", "--selftest"],
   "park-history": ["park-history", "--selftest"],
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "adr": ["adr", "--selftest"],

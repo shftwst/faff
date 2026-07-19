@@ -19,6 +19,8 @@
 //   eligible --label L [--label L ...] [--default opt-in|opt-out]   FAFF-61: automation-eligible? (true/false); --selftest
 //   next --status S --spec ... [--not-eligible|--parked|--blocked|--if-eligible]   legal next step (JSON); --selftest (--held: alias; --if-eligible: advisory hypothetical)
 //   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state as JSON (no MCP)
+//   queue-state new-key                            print a freshly-minted gitkey (gk-YYYYMMDD-<6xbase36>); pure
+//   queue-state derive [--run-dir DIR] [--root DIR] [--json]   FAFF-556: git-only queue_empty/all_parked derivation — diff item-keys (.faff/intake gitkey markers + .faff/specs/*.md filename stems) against a run-ledger's outcomes by exact match; --selftest
 //   park-history --now <ISO> [--issue ID] [--root DIR]   deterministic repeat-park counts over .faff/runs summaries (>=3 same root-cause class in 21d); --selftest
 //   gitignore-ensure [--root DIR] [--json] [--selftest]   idempotently add faff's local artifacts to .gitignore (overlay matched by the .faffrc.*.yaml glob, FAFF-548); --selftest runs the pattern-set + append-order + idempotency table
 //   worktree-prune [--own P ...] [--branch B] [--issue ID] [--dry-run] [--json]   FAFF-126: scoped fail-safe prune — own dangling worktrees only, never repo-wide; --selftest
@@ -84,6 +86,7 @@ const { cmdPrepcheck } = require("./lib/prepcheck");
 const { cmdProfile } = require("./lib/profile");
 const { cmdProjectNext } = require("./lib/project-next");
 const { cmdQuality } = require("./lib/quality");
+const { cmdQueueState } = require("./lib/queue-state");
 const { cmdReconcile } = require("./lib/reconcile");
 const { cmdRegions } = require("./lib/regions");
 const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
@@ -151,6 +154,8 @@ Subcommands:
   next --status S --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]   legal next step (JSON {next,reason}); --selftest runs the table (--held: deprecated alias of --not-eligible; --if-eligible: advisory hypothetical — what a not-eligible item WOULD route to if cranked up, adds would_be_eligible:true)
   project-next --current planned|started|completed|cancelled [--kind project|issue] --total N --active N --done N [--has-dod] [--dod-met] [--json]   FAFF-248/259: container (project|parent-issue) state-coherence + DoD-gated-Done transition predicate — emit a ContainerTransition JSON {kind,current,desired,action,reason} from a child-issue rollup. PURE (no tracker/network — parity with next/contain): the /faff-tidy orchestrator-lane sweep maps live child statuses to {total,active,done} and applies any advance. Forward-only + monotonic — advance ONLY when rank(desired)>rank(current); never moves a container backward. v1.1: project→started (first child starts) · parent-issue→started (any child in progress) · project→completed (ALL children done AND no DoD) · project→completed (ALL children done AND has DoD AND --dod-met — DoD-gated Done, FAFF-259; unmet/unverified holds the project open, reason "release gate not passed — held open (DoD authoritative)"). --dod-met without --has-dod is a malformed rollup. Parent-issue→Done out of scope. exit 0 (pure compute) / 2 malformed rollup; --selftest runs the transition + reason pins + monotonicity table (dodMet ∈ {false,true})
   state <issue> [--json] [--root DIR]           local read-model: resolve an issue's local state (spec/parked/branch/worktree/ledger) as JSON in next's flag vocabulary; no MCP
+  queue-state new-key                            print one freshly-minted gitkey (gk-<YYYYMMDD>-<6xbase36>) to stdout; pure, no FS/tracker/network
+  queue-state derive [--run-dir DIR] [--root DIR] [--json]   FAFF-556: the git-only queue_empty/all_parked differ — collects the item-key union (every <!-- gitkey:K --> marker under <root>/.faff/intake/*.md, plus every filename stem under <root>/.faff/specs/*.md), reads outcomes{} from the resolved run-ledger.json (--run-dir -> $FAFF_RUN_DIR -> latest under .faff/runs), classifies each key terminal/pending against the active governance profile's terminal_states, and emits {queue_empty, all_parked, items_total, items_terminal, items_pending, reason}. Pure: no tracker/network/writes. A missing ledger is a valid non-drained state (exit 0); a present-but-unparseable ledger is loud (exit 2); an empty item-key set fails safe toward not-empty (reason "no-item-keys"); --selftest runs the classifier + mint-format + missing-vs-malformed table
   park-history --now <ISO> [--issue ID] [--root DIR]   FAFF-152: deterministic repeat-park counts — scan newest ~50 .faff/runs/*/summary.md faff-parks blocks, window 21d ending at --now, emit per-issue same-class counts + repeat_parked (>=3 same class); --selftest runs the table
   gitignore-ensure [--root DIR] [--json] [--selftest]   idempotently, non-destructively add faff's local artifacts (.faffrc forms + .faff/) to .gitignore; the machine-local overlay is matched by the .faffrc.*.yaml glob + a !.faffrc.example.yaml negation (FAFF-548); --selftest runs the pattern-set + append-order + idempotency table
   adr <next-number|new|list|live-decisions|validate|supersede|renumber> [--root DIR]   FAFF-16/197/198/368: deterministic mechanics over the docs/adr/ Nygard log — next-number; new --title T [--issue|--initiative|--status|--date]; list [--json]; live-decisions [--exclude ID] (FAFF-198: non-superseded candidate set + each Decision body, for the contradiction seam); validate (gaps + required header fields + supersession back-refs; a duplicate number names every colliding file); supersede <old> --by <new>; renumber <filename|number> --to <NNNN|next> [--ref-scope f,f...] (FAFF-368: the merge-time collision-repair primitive — move one ADR to a free number, fix heading + in-scope back-refs, re-validate; exit 1 on occupied target / ambiguous bare number / still-red re-validate); --selftest runs the table
@@ -235,6 +240,7 @@ const COMMANDS = {
   "next": cmdNext,
   "project-next": cmdProjectNext,
   "state": cmdState,
+  "queue-state": cmdQueueState,
   "park-history": cmdParkHistory,
   "gitignore-ensure": cmdGitignoreEnsure,
   "adr": cmdAdr,

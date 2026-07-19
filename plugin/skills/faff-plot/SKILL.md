@@ -177,6 +177,8 @@ The shape of the tree is the methodology's call, per level (`ticket-shaping` wit
 
 When no tracker MCP is available (gateway → Configuration), there are no containers to create. plot still recurses and writes the full skeleton to `.faff/intake/<date>-<slug>-roadmap.md` as a nested checklist (initiatives → projects → first-slice epics + deps), notes that creation was skipped, and offers the same prep/map hand-off against the written file. Nothing is lost.
 
+**Stable item-keys.** For each first-slice **epic** line (a buildable leaf — never a container/initiative/project line), mint a gitkey via `faff queue-state new-key` and append it as a trailing marker: `- [ ] <epic title> <!-- gitkey:K -->`. This is the durable id `faff queue-state derive` diffs against the run-ledger to derive `queue_empty`/`all_parked` in git-only mode (gateway → Spec discovery location 4) — reference the CLI, never restate the key format here.
+
 ## Autonomous mode (`--autonomous`) — the gate-answering harness
 
 `/faff-plot` is **primarily interactive**, for the same reason `/faff-jot` is: deciding the shape of a whole application is direction-setting. `/faff-beep-boop` does **not** invoke `/faff-plot` (unchanged) — beep-boop drains the backlog; it does not plan new applications.

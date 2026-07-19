@@ -172,6 +172,9 @@ jobs:
       - name: Validate intake-record via/initiated table
         run: node plugin/skills/faff/bin/faff intake-record --selftest
 
+      - name: Validate gitignore-ensure overlay-glob pattern set + append-order + idempotency table (FAFF-548)
+        run: node plugin/skills/faff/bin/faff gitignore-ensure --selftest
+
       - name: Validate hooks-ensure Stop-hook + PreToolUse registration table
         run: node plugin/skills/faff/bin/faff hooks-ensure --selftest
 

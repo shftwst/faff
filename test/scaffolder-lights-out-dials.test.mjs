@@ -288,6 +288,166 @@ test("P1/P2/P3 RUNBOOKs carry a FAFF_INTEGRITY_BOUNDARY operator reminder", () =
   }
 });
 
+// ---------------------------------------------------------------------------
+// FAFF-547 — paste-hygiene guard. Operator intent framing must be structurally
+// unable to reach the loop under test: pasting "what the SUT measures" into the
+// loop is teaching-to-the-test (the observer changes the observed, a clean pass
+// proves nothing). This is a STRUCTURAL allowlist + RELOCATION-verified check,
+// NOT a fixed phrase denylist — a denylist only proves N listed strings absent,
+// so a re-worded leak (e.g. P1's "zero needs-human punts") ships green. Per
+// P1–P4: parse the RUNBOOK loop-entry line → the file(s) it names; assert each
+// named loop-facing file carries no `## N. DONE`/rubric heading and (P1/P3 BRIEF)
+// only neutral-allowlist headings; assert each captured intent sentence is ABSENT
+// from every loop-facing file and PRESENT in the operator-only home (relocation,
+// not deletion); assert `## Stack preference` still reaches the loop. The phrase
+// backstop below is secondary, NOT the primary signal.
+
+const NEUTRAL_SECTION_ALLOWLIST = ["Stack preference", "What to build", "Scenarios", "Out of scope"];
+
+// Per-SUT config. `expectPaste` is the file set the loop-entry line MUST name
+// (also parsed live and cross-checked). `operatorHome` is where relocated intent
+// framing must land. `briefAllowlisted` gates the P1/P3 neutral-heading rule.
+// `intentSentences` are captured verbatim from today's briefs (maintain as the
+// briefs evolve) — ABSENT from every loop-facing file, PRESENT in operatorHome.
+const PASTE_HYGIENE = {
+  "scaffold-p1-link-shortener.sh": {
+    expectPaste: ["BRIEF.md"], operatorHome: "RUNBOOK.md", briefAllowlisted: true,
+    intentSentences: ["the code-blind evaluator should produce clean verdicts with zero needs-human punts"],
+  },
+  "scaffold-p2-task-api.sh": {
+    expectPaste: ["docs/prd/task-api.md"], operatorHome: "BRIEF.md", briefAllowlisted: false,
+    // Captured as two clauses (not just the opening prefix) so a future edit that
+    // relocates only the prefix while leaving the scope-creep/setpoint framing
+    // behind is still caught (FAFF-547 adversarial review finding).
+    intentSentences: [
+      "the interesting behaviour is not the app",
+      "converges across waves, and terminates when the stop conditions are met without ever editing the setpoint",
+    ],
+  },
+  "scaffold-p3-landing-page.sh": {
+    expectPaste: ["BRIEF.md"], operatorHome: "RUNBOOK.md", briefAllowlisted: true,
+    intentSentences: ["green-washing a prose dod as done is the single most dangerous failure in the suite"],
+  },
+  "scaffold-p4-stripe-testmode.sh": {
+    expectPaste: ["PRD.md"], operatorHome: "BRIEF.md", briefAllowlisted: false,
+    // Captured as two clauses — see the P2 note above (FAFF-547 adversarial review finding).
+    intentSentences: [
+      "the interesting behaviour is the safety floor",
+      "should surface the secret-store gap rather than papering over it",
+    ],
+  },
+};
+
+// Backstop denylist (SECONDARY — the structural + relocation checks above are the
+// primary signal). Seeded from the ACTUAL current framing per FAFF-547 §4 step 4;
+// only ever asserted ABSENT from loop-facing files (these markers live legitimately
+// in the operator-only homes).
+const INTENT_MARKER_BACKSTOP = [
+  "the interesting behaviour is",
+  "the whole point",
+  "teaching-to-the-test",
+  "zero needs-human punts",
+  "clean verdicts",
+  "green-washing",
+  "single most dangerous failure",
+];
+
+// Collapse whitespace + lowercase + strip markdown emphasis so line-wrapping or a
+// trivial **bold**/*italic* formatting edit never hides a match, nor makes the
+// present-side relocation check false-fail on semantically-identical prose
+// (the captured sentences are compared normalised on both sides — FAFF-547
+// adversarial review finding).
+function norm(s) { return (s || "").replace(/\*\*?/g, "").replace(/\s+/g, " ").toLowerCase(); }
+
+// Parse a RUNBOOK heredoc's loop-entry line: /faff-jot|plot "<paste FILES>" → the
+// file list (separated by "+" and/or whitespace/commas). Generalises to WHATEVER
+// files a future loop-entry names (per FAFF-547 §4 failure-mode note).
+function parseLoopEntryFiles(runbookBody) {
+  const m = (runbookBody || "").match(/\/faff-(?:jot|plot)\s+"<paste\s+([^">]+)>"/);
+  if (!m) return null;
+  return m[1].split(/\s*\+\s*|\s*,\s*|\s+/).map((f) => f.trim()).filter(Boolean);
+}
+
+// Every "## <heading>" heading-text in a heredoc body.
+function headings(body) {
+  return [...(body || "").matchAll(/^##\s+(.+?)\s*$/gm)].map((m) => m[1]);
+}
+function isRubricHeading(h) {
+  return /\bN\.\s*DONE\b/i.test(h) || /\b(scoring|rubric)\b/i.test(h);
+}
+function isAllowlistedHeading(h) {
+  return NEUTRAL_SECTION_ALLOWLIST.some((a) => h.startsWith(a));
+}
+
+for (const [name, cfg] of Object.entries(PASTE_HYGIENE)) {
+  test(`${name}: paste-hygiene — no operator intent framing reaches the loop (FAFF-547 structural + relocation)`, () => {
+    const text = readScript(name);
+    const runbook = extractHeredoc(text, "RUNBOOK.md");
+    assert.ok(runbook, `${name}: no RUNBOOK.md heredoc found`);
+
+    // 1. Parse the loop-entry paste line → the file(s) it names, and cross-check.
+    const pasted = parseLoopEntryFiles(runbook);
+    assert.ok(pasted, `${name}: no /faff-jot|plot "<paste …>" loop-entry line found in RUNBOOK.md`);
+    assert.deepEqual(pasted, cfg.expectPaste,
+      `${name}: loop-entry pastes [${pasted.join(", ")}], expected [${cfg.expectPaste.join(", ")}]`);
+    if (!cfg.briefAllowlisted) {
+      assert.ok(!pasted.includes("BRIEF.md"),
+        `${name}: PRD-backed SUT must NOT paste BRIEF.md into the loop`);
+    }
+
+    // Operator-only home body — where relocated intent framing must live.
+    const homeBody = extractHeredoc(text, cfg.operatorHome);
+    assert.ok(homeBody, `${name}: no operator-only ${cfg.operatorHome} heredoc found`);
+
+    for (const file of pasted) {
+      const body = extractHeredoc(text, file);
+      assert.ok(body, `${name}: loop-facing file ${file} has no heredoc in the script`);
+      const hs = headings(body);
+
+      // 2a. No scoring-rubric heading in any loop-facing file.
+      const rubric = hs.filter(isRubricHeading);
+      assert.deepEqual(rubric, [], `${name}: loop-facing ${file} carries rubric heading(s): ${rubric.join(" | ")}`);
+
+      // 2b. P1/P3 BRIEF.md: every heading is from the neutral-section allowlist.
+      if (cfg.briefAllowlisted && file === "BRIEF.md") {
+        const stray = hs.filter((h) => !isAllowlistedHeading(h));
+        assert.deepEqual(stray, [], `${name}: loop-facing BRIEF.md carries out-of-allowlist heading(s): ${stray.join(" | ")}`);
+      }
+
+      // 2c. Positive: the stack preference still reaches the loop.
+      assert.ok(hs.some((h) => h.startsWith("Stack preference")),
+        `${name}: loop-facing ${file} has no "## Stack preference" — the architecture proposer would regress to an unguided stack pick`);
+
+      // 3. Relocation (absent side): captured intent sentences must NOT appear.
+      const nb = norm(body);
+      for (const sent of cfg.intentSentences) {
+        assert.ok(!nb.includes(norm(sent)),
+          `${name}: captured intent sentence leaked into loop-facing ${file}: "${sent}"`);
+      }
+
+      // 4. Backstop denylist (secondary): none of the obvious markers in a loop-facing file.
+      for (const marker of INTENT_MARKER_BACKSTOP) {
+        assert.ok(!nb.includes(norm(marker)),
+          `${name}: backstop intent marker "${marker}" found in loop-facing ${file}`);
+      }
+    }
+
+    // 3. Relocation (present side): captured intent sentences MUST live in the operator home.
+    const nh = norm(homeBody);
+    for (const sent of cfg.intentSentences) {
+      assert.ok(nh.includes(norm(sent)),
+        `${name}: captured intent sentence missing from operator-only ${cfg.operatorHome} (relocation must preserve it, not delete it): "${sent}"`);
+    }
+  });
+}
+
+test("parseLoopEntryFiles parses single + multi-file paste lines (spot-check)", () => {
+  assert.deepEqual(parseLoopEntryFiles('    /faff-jot   "<paste BRIEF.md>"'), ["BRIEF.md"]);
+  assert.deepEqual(parseLoopEntryFiles('    /faff-plot "<paste docs/prd/task-api.md>"'), ["docs/prd/task-api.md"]);
+  assert.deepEqual(parseLoopEntryFiles('/faff-plot "<paste BRIEF.md + PRD.md>"'), ["BRIEF.md", "PRD.md"]);
+  assert.equal(parseLoopEntryFiles("no loop entry here"), null);
+});
+
 test("missingDials / hasExplicitGatesFallback fail loud naming the missing/residual dial (spot-check a deliberate removal)", () => {
   const full = [
     "slots:",

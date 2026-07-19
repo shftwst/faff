@@ -142,6 +142,8 @@ Same add/remove of the `faff-automate` label, both human-gated, no canonical-own
 
 When no tracker MCP is available (gateway → Configuration), there are no tickets to create. `/faff-jot` still runs discovery and shaping, then writes the shaped set to `.faff/intake/<date>-<slug>.md` as a checklist the human can act on, and notes that ticket creation was skipped (no tracker). The discovery brief and shaped structure are never lost.
 
+**Stable item-keys.** For each shaped-ticket line, mint a gitkey via `faff queue-state new-key` and append it as a trailing marker: `- [ ] <ticket title> <!-- gitkey:K -->`. This is the durable id `faff queue-state derive` diffs against the run-ledger to derive `queue_empty`/`all_parked` in git-only mode (gateway → Spec discovery location 4) — reference the CLI, never restate the key format here.
+
 ## Autonomous mode
 
 `/faff-jot` is **primarily interactive** — discovery is a conversation, and inventing new scope is exactly the kind of direction-setting that belongs to the human, not the autonomous pipeline. `/faff-beep-boop` does **not** invoke `/faff-jot`: beep-boop drains the *existing* backlog, it does not conjure new work. (This is why intake sits outside the unattended loop — new work entering the system is a human-gated event.)

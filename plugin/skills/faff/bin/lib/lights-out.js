@@ -871,6 +871,16 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
     // behaviour — it only keeps the two fields from ever disagreeing.
     budgetBlock.tokens_at_start = byModelClassTotal(Object.fromEntries(modelBaseline.by_model));
   }
+  // FAFF-560: persist the ambient CLAUDE_CODE_SESSION_ID at mint time as the run's
+  // "owning" measuring session — the one whose <sid>.jsonl transcript this run's
+  // spend accrues to (the SAME session modelBaseline above was just measured
+  // against). `budget check` prefers this over a possibly-drifted ambient session
+  // id after a mid-run compaction/hand-off. Deliberately the Claude Code session-id
+  // namespace (not FAFF_SESSION_ID, faff's own run-session id used for
+  // owner.session_id below) — that namespace does not name a transcript file.
+  // Written unconditionally; null (ambient unset at mint) is stored verbatim and
+  // read back identically to absent (both falsy → fall through to ambient).
+  budgetBlock.measure_session_id = process.env.CLAUDE_CODE_SESSION_ID || null;
   // FAFF-428 — record the metering state at mint, from the SAME sample taken for the
   // preflight probe above (never a second, possibly-divergent read). `degraded` is
   // true only when the budget-metering gate actually fired in warn-posture (a clean

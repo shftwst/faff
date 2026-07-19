@@ -620,7 +620,6 @@ function cmdBudget(args) {
   // event/ledger field) — a selector, not a payload; non-leak by construction.
   // Absent ⇒ effectiveEnv IS process.env, byte-for-byte today's resolution.
   const sessionIdFlag = get("--session-id");
-  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
 
   // --now-ms/--now is a usage error (exit 2) — resolved BEFORE ledger evaluation,
   // same as before FAFF-425 (distinct from the ledger-fault exit 3 below).
@@ -647,6 +646,18 @@ function cmdBudget(args) {
   }
   const runDir = resolved.empty ? null : resolved.runDir;
   const ledger = resolved.empty ? {} : resolved.ledger;
+
+  // FAFF-560: the metered session is resolved here (after the ledger is known) so the
+  // persisted "owning" session can be folded into the precedence: --session-id flag
+  // (FAFF-488 explicit override — always wins) > persisted ledger.budget.measure_session_id
+  // (the session lights-out mint recorded as owning this run's spend) > ambient
+  // CLAUDE_CODE_SESSION_ID (today's unchanged fallback). Overlaid only onto the throwaway
+  // effectiveEnv handed to the measure functions below — never process.env, never any
+  // event/ledger field — identical non-leak posture to the FAFF-488 flag mechanism. No
+  // flag + no persisted field (or ledger.budget absent) ⇒ measureSessionId is null ⇒
+  // effectiveEnv === process.env, byte-for-byte today's ambient resolution.
+  const measureSessionId = sessionIdFlag || (ledger.budget && ledger.budget.measure_session_id) || null;
+  const effectiveEnv = measureSessionId ? { ...process.env, CLAUDE_CODE_SESSION_ID: measureSessionId } : process.env;
 
   const cfg = readGovernanceConfig(root);
   // A ledger may carry a pre-resolved envelope (recorded at run start by the

@@ -1065,3 +1065,73 @@ test("S4 (FAFF-488): no --session-id (and no --root beyond the pre-existing flag
     assert.equal(s.spent.tokens, 49);
   } finally { f.cleanup(); }
 });
+
+// ===========================================================================
+// FAFF-560 — budget.measure_session_id: the persisted "owning" measuring
+// session (written by lights-out mint) is preferred over a drifted ambient
+// CLAUDE_CODE_SESSION_ID in `budget check`, with precedence
+// --session-id flag > persisted measure_session_id > ambient. Each of the
+// three legs gets its own transcript so a wrong resolution is observable as
+// a wrong token total, not just a wrong tokens_source.
+// ===========================================================================
+
+test("FAFF-560 AC1: owning session (persisted) != ambient session → attributes to the owning (persisted) session, not ambient", () => {
+  const owningSid = "sess-owning";
+  const ambientSid = "sess-ambient";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0, measure_session_id: owningSid } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, owningSid, {
+      [`${owningSid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20 }], // owning: 120 tokens
+      [`${ambientSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // ambient: 9900 tokens (must NOT be selected)
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: ambientSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 120, "must meter the persisted owning session's transcript, not the ambient one");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560 AC2: --session-id flag beats a persisted measure_session_id (FAFF-488 explicit-override contract preserved)", () => {
+  const flagSid = "sess-flag";
+  const persistedSid = "sess-persisted";
+  const ambientSid = "sess-ambient2";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({ budget: { tokens_at_start: 0, measure_session_id: persistedSid } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, flagSid, {
+      [`${flagSid}.jsonl`]: [{ input_tokens: 10, output_tokens: 5 }], // flag: 15 tokens
+      [`${persistedSid}.jsonl`]: [{ input_tokens: 2000, output_tokens: 200 }], // persisted: 2200 (must NOT be selected)
+      [`${ambientSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // ambient: 9900 (must NOT be selected)
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--session-id", flagSid],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: ambientSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 15, "explicit --session-id flag must win over the persisted measure_session_id");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-560 AC3: no persisted measure_session_id in the ledger → byte-for-byte the ambient path (no regression to single-session runs)", () => {
+  const sid = "sess-no-persisted";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    // budget.measure_session_id is absent — owning == ambient, the pre-change shape.
+    ledger: baseLedger({ budget: { tokens_at_start: 0 } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, sid, { [`${sid}.jsonl`]: [{ input_tokens: 42, output_tokens: 7 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root], { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    assert.equal(s.spent.tokens, 49, "absent measure_session_id must fall through to ambient, byte-for-byte");
+  } finally { f.cleanup(); }
+});

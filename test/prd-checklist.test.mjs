@@ -50,6 +50,7 @@ test("directory path -> exit 2, no stdout block", () => {
   const { root } = tmpPrd("- [x] a\n");
   const r = run([root]);
   assert.equal(r.status, 2);
+  assert.match(r.stderr, /cannot read/);
   assert.equal(r.stdout, "");
   rmSync(root, { recursive: true, force: true });
 });
@@ -160,6 +161,19 @@ test("tilde-fenced code block is also respected", () => {
   const v = JSON.parse(r.stdout);
   assert.equal(v.measure.total_goals, 1);
   assert.equal(v.satisfied, true);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("an unclosed fence at EOF is a malformed document -> exit 2, no stdout block (never silently drop goals below it)", () => {
+  const { root, p } = tmpPrd([
+    "- [ ] real goal before the fence",
+    "```",
+    "- [ ] this and anything after is inside the dangling fence",
+  ].join("\n"));
+  const r = run([p]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /unclosed fenced code block/);
+  assert.equal(r.stdout, "");
   rmSync(root, { recursive: true, force: true });
 });
 

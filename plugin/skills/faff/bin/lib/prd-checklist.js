@@ -82,6 +82,15 @@ function parseChecklist(text) {
     const checked = mark === "x" || mark === "X";
     goals.push({ checked, label });
   }
+  // An unclosed fence at EOF is a malformed document, never treated as "everything
+  // after the opening delimiter is legitimately fenced". Silently accepting it would
+  // let real, unfenced goals below the dangling delimiter be dropped from the goal
+  // set — exactly the "a false satisfied on a goal silently ignored" failure the
+  // whole design forbids (a PRD that happens to have all its checked-before-the-fence
+  // goals checked would wrongly report satisfied:true). Degrade loudly instead.
+  if (fenceMarker !== null) {
+    throw new PrdChecklistParseError(`unclosed fenced code block (${fenceMarker}) — malformed checklist PRD`);
+  }
   if (goals.length === 0) {
     throw new PrdChecklistParseError("no GFM task-list stop-conditions found — not a checklist PRD");
   }
@@ -182,6 +191,9 @@ function prdChecklistSelftest() {
   ok("fenced (~~~) task-list examples are ignored", (() => {
     const g = parseChecklist("~~~\n- [ ] example\n~~~\n- [x] real\n");
     return g.length === 1 && g[0].label === "real";
+  })());
+  ok("an unclosed fence at EOF raises a parse error (never silently drops goals below it)", (() => {
+    try { parseChecklist("- [ ] before\n```\n- [ ] swallowed\n"); return false; } catch (e) { return e instanceof PrdChecklistParseError && /unclosed fenced code block/.test(e.message); }
   })());
   ok("malformed checkbox tokens are not goals", (() => {
     const g = parseChecklist("- [y] no\n- [] no\n-[ ] no\n- [x] real\n");

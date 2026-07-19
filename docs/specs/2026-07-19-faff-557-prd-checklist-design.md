@@ -127,6 +127,8 @@ PROCEDURE parse_checklist(text):
   5. RETURN goals
 ```
 
+**Implementation note (adversarial review, build time).** The shipped `TASK_ITEM_RE` is `^\s*[-*+]\s+\[([ xX])\]\s*(.*)$` — the label group is `\s*(.*)$` (zero-or-more), not the pseudocode's `\s+(.+?)\s*$` (mandatory separator + >=1 label char). A bare `- [ ]` (nothing after the checkbox) or a trailing-whitespace-only checkbox must still MATCH as a task-list item — per the edge cases below — so its empty label is caught as a loud `parse_error`, never silently falling through as "not a task-list item at all" (which the mandatory-`.+?` form would do, since it requires >=1 trailing character). The looser regex is strictly more inclusive of what counts as an attempted-but-malformed goal, never less inclusive of what counts as a real one — no test in §5/§8 regresses under it. Also note: an **unclosed fenced code block at EOF** is treated as a malformed document (`parse_error`), not as "everything after the dangling delimiter is legitimately fenced" — the fail-safe reading the whole design requires (a false `satisfied:true` must never arise from goals silently swallowed by a dangling fence).
+
 **Behavior summary — build the verdict.** Every parsed goal is covered; checkbox state drives completion and the roll-up.
 
 ```

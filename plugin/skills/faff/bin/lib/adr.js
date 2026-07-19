@@ -12,6 +12,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { spawnSync } = require("node:child_process");
 // FAFF-199: PRDR_ACTORS/PRDR_SUPERSEDES are reused verbatim (aliased) — the actor/supersedes
 // vocabularies are identical across the ADR and PRDR admission axes (design principle: share
 // enum constants where identical, don't fork a byte-identical enum under a new name).
@@ -322,6 +323,70 @@ function adrTemplate({ num, title, date, issue, initiative, status, provenance }
   return lines.join("\n");
 }
 
+// === FAFF-546: `faff adr accept` + `adrGitTier` — the ADR-axis mirror of FAFF-463's PRDR pair, ===
+// deliberately NARROWER than `prdrAccept`: no --actor/--admit-verdict/branch-landing. The verb is
+// a plain, authority-blind Status-field edit — the call site (faff-graft Step 10's merge-confidence
+// gate) owns the only authority decision that matters (CI-green, review-pass, L4 holdout meets-spec).
+// `git` shell-outs are local to this module (mirrors prdr.js's own local git/gitOk/gitOut — no
+// shared git helper exists yet; duplicating the same three-liner beats a premature shared module).
+const git = (root, a) => spawnSync("git", ["-C", root, ...a], { encoding: "utf8" });
+const gitOk = (root, a) => git(root, a).status === 0;
+const gitOut = (root, a) => { const r = git(root, a); return r.status === 0 ? (r.stdout || "").trim() : null; };
+
+// Git-awareness tier (FAFF-546, mirrors prdrGitTier verbatim in shape): P: FAIL accepted-uncommitted,
+// NOTE proposed-uncommitted. `adr.validate_git`: auto (default; degrades to silent outside a git work
+// tree) | off. Presence-only elsewhere; tracked-ness is a shape fact, not content. Returns
+// { fails: string[], notes: string[] }.
+function adrGitTier(dir, root, cfg) {
+  const mode = (cfg && cfg["adr.validate_git"]) || DEFAULTS["adr.validate_git"];
+  if (mode === "off") return { fails: [], notes: [] };
+  if (!gitOk(root, ["rev-parse", "--is-inside-work-tree"])) return { fails: [], notes: [] };
+  const fails = [], notes = [];
+  for (const a of listAdrs(dir)) {
+    const rel = path.relative(root, path.join(dir, a.file)) || a.file;
+    const tracked = gitOk(root, ["ls-files", "--error-unmatch", "--", rel]);
+    const modified = !!gitOut(root, ["status", "--porcelain", "--", rel]);
+    const st = a.status || "";
+    if (/^Accepted/i.test(st) && (!tracked || modified)) fails.push(`${a.file}: accepted-uncommitted — Status Accepted but the file is untracked-or-modified vs HEAD`);
+    else if (/^Proposed/i.test(st) && !tracked) notes.push(`${a.file}: proposed-uncommitted — a Proposed record not yet tracked (the legitimate authoring state)`);
+  }
+  return { fails, notes };
+}
+
+// `faff adr accept <selector>` — the SOLE writer of `Status: Accepted` on the ADR axis (FAFF-546).
+// A plain, mechanical, authority-blind field edit: no git add/commit, no branch, no actor. Reuses
+// `recordSupersede`'s exact Status-line regex so there is only one Status-mutation code path.
+// Selector resolution mirrors `adrRenumber`'s: exact filename match, else a bare number (a
+// duplicated bare number is refused — ambiguous, pass a filename). Idempotent on already-`Accepted`
+// (exit 0, no write); refuses (exit 2) on any other current Status (Superseded/Deprecated/Rejected/
+// malformed) — accept only ever performs the Proposed → Accepted transition, never overwrites a
+// supersession (or any other terminal) marker.
+function adrAccept(dir, selector) {
+  const adrs = listAdrs(dir);
+  let rec = adrs.find((a) => a.file === selector);
+  if (!rec) {
+    if (/^\d{1,4}$/.test(String(selector || ""))) {
+      const num = String(selector).padStart(4, "0");
+      const matches = adrs.filter((a) => a.num === num);
+      if (matches.length > 1) return { code: 2, out: "", err: `faff adr accept: ambiguous: ${num} is duplicated in the tree — pass a filename\n` };
+      if (matches.length === 0) return { code: 2, out: "", err: `faff adr accept: no ADR ${num}\n` };
+      rec = matches[0];
+    } else {
+      return { code: 2, out: "", err: `faff adr accept: no ADR matching "${selector}"\n` };
+    }
+  }
+  const status = rec.status || "";
+  const filePath = path.join(dir, rec.file);
+  if (/^Accepted/i.test(status)) return { code: 0, out: `${filePath}\n`, err: "" };   // idempotent no-op
+  if (!/^Proposed/i.test(status)) {
+    return { code: 2, out: "", err: `faff adr accept: ADR-${rec.num} Status is "${(status.split(/[ (.]/)[0] || status || "?")}" — accept only flips Proposed to Accepted, never overwrites a supersession or other terminal marker\n` };
+  }
+  const text = fs.readFileSync(filePath, "utf8")
+    .replace(/^([\s>*-]*\*{0,2}Status[\s*]*:[\s*]*).*$/mi, "$1Accepted");
+  fs.writeFileSync(filePath, text);
+  return { code: 0, out: `${filePath}\n`, err: "" };
+}
+
 function adrFlag(args, name) { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : null; }
 
 // FAFF-198 (ADR L3): deterministic mechanics around the `detect_contradictions` LLM seam.
@@ -407,15 +472,30 @@ function cmdAdr(args) {
 
   if (action === "validate") {
     const problems = adrValidate(dir);
+    const { fails: gitFails, notes: gitNotes } = adrGitTier(dir, root, loadConfig(root)[0]); // FAFF-546: git-awareness tier
+    const allProblems = problems.concat(gitFails);
     const advisories = adrAdvisories(dir); // FAFF-342: informational only — never gates the exit code
-    if (!problems.length) {
+    if (!allProblems.length) {
       console.log(`OK — ${listAdrs(dir).length} ADR(s) in ${path.relative(root, dir) || dir} valid.`);
+      for (const n of gitNotes) console.log(`NOTE  ${n}`);
       for (const adv of advisories) console.log(adv);
       return 0;
     }
-    for (const p of problems) console.log(`FAIL  ${p}`);
+    for (const p of allProblems) console.log(`FAIL  ${p}`);
+    for (const n of gitNotes) console.log(`NOTE  ${n}`);
     for (const adv of advisories) console.log(adv);
     return 1;
+  }
+
+  if (action === "accept") {
+    // faff adr accept <selector> [--root <path>] — FAFF-546: the sole writer of `Status: Accepted`
+    // on the ADR axis. Deliberately authority-blind (no --actor/--admit-verdict) — see adrAccept.
+    const selector = args[1];
+    if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr accept: <selector> (a docs/adr filename or a bare number) is required\n"); return 2; }
+    const r = adrAccept(dir, selector);
+    if (r.out) process.stdout.write(r.out);
+    if (r.err) process.stderr.write(r.err);
+    return r.code;
   }
 
   if (action === "new") {
@@ -496,7 +576,7 @@ function cmdAdr(args) {
     return r.code;
   }
 
-  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber (or --selftest)\n");
+  process.stderr.write("faff adr: expected one of: next-number | new | list | live-decisions | validate | supersede | admit | renumber | accept (or --selftest)\n");
   return 2;
 }
 
@@ -720,6 +800,71 @@ function adrSelftest() {
   fs.writeFileSync(path.join(ddir, "0043-bar.md"), `# ADR 0043 — bar\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
   t("validate: duplicate message names every colliding file", adrValidate(ddir).some((p) => /duplicate ADR number 0043 —/.test(p) && /0043-foo\.md/.test(p) && /0043-bar\.md/.test(p)));
 
+  // === FAFF-546 — `faff adr accept` + `adrGitTier`: the ADR-axis mirror of FAFF-463's PRDR pair ===
+  {
+    const acdir = path.join(tmp, "accept", "docs", "adr");
+    fs.mkdirSync(acdir, { recursive: true });
+    const acmk = (n, slug, status) => fs.writeFileSync(path.join(acdir, `${n}-${slug}.md`),
+      `# ADR ${n} — ${slug}\n\n- **Status:** ${status}\n- **Date:** 2026-07-19\n\n## Context\nx\n\n## Decision\ny\n\n## Consequences\nz\n`);
+    const statusOf = (n, slug) => (fs.readFileSync(path.join(acdir, `${n}-${slug}.md`), "utf8").match(/^[\s>*-]*\*{0,2}Status[\s*]*:[\s*]*(\S+)/mi) || [])[1];
+
+    acmk("0001", "smoke", "Proposed");
+    { const r = adrAccept(acdir, "0001-smoke.md");
+      t("accept: Proposed → Accepted exits 0", r.code === 0 && /0001-smoke\.md$/.test(r.out.trim()));
+      t("accept: Status field actually flipped, formatting preserved", statusOf("0001", "smoke") === "Accepted");
+      t("accept: other fields/sections untouched", /## Context\nx\n\n## Decision\ny\n\n## Consequences\nz/.test(fs.readFileSync(path.join(acdir, "0001-smoke.md"), "utf8"))); }
+
+    { const before = fs.readFileSync(path.join(acdir, "0001-smoke.md"), "utf8");
+      const r = adrAccept(acdir, "0001-smoke.md");
+      t("accept: already-Accepted is an idempotent no-op, exit 0", r.code === 0);
+      t("accept: idempotent no-op leaves the file byte-unchanged", fs.readFileSync(path.join(acdir, "0001-smoke.md"), "utf8") === before); }
+
+    acmk("0002", "superseded", "Superseded by ADR-0099");
+    { const r = adrAccept(acdir, "0002-superseded.md");
+      t("accept: refuses a Superseded ADR (exit 2), never overwrites the marker", r.code === 2 && /Superseded/.test(r.err) && statusOf("0002", "superseded").startsWith("Superseded")); }
+
+    acmk("0003", "dup", "Proposed"); acmk("0003", "dup2", "Proposed");
+    { const r = adrAccept(acdir, "0003");
+      t("accept: ambiguous bare number refuses (exit 2), asks for a filename", r.code === 2 && /ambiguous/i.test(r.err)); }
+    fs.rmSync(path.join(acdir, "0003-dup2.md"));
+    { const r = adrAccept(acdir, "0003");
+      t("accept: unambiguous bare number resolves and flips (exit 0)", r.code === 0 && statusOf("0003", "dup") === "Accepted"); }
+
+    { const r = adrAccept(acdir, "no-such-file.md");
+      t("accept: unknown selector refuses (exit 2)", r.code === 2 && /no ADR matching/.test(r.err)); }
+    { const r = adrAccept(acdir, "9999");
+      t("accept: unknown bare number refuses (exit 2)", r.code === 2 && /no ADR 9999/.test(r.err)); }
+
+    // adrGitTier — real git repo fixture (mirrors prdrGitTier's selftest fixture)
+    const mkRepo = () => {
+      const r = fs.mkdtempSync(path.join(os.tmpdir(), "faff-adr-git-"));
+      git(r, ["init", "-q"]); git(r, ["config", "user.email", "t@t"]); git(r, ["config", "user.name", "t"]);
+      git(r, ["commit", "-q", "--allow-empty", "-m", "init"]); git(r, ["checkout", "-q", "-B", "main"]);
+      const d = path.join(r, "docs", "adr"); fs.mkdirSync(d, { recursive: true });
+      return { r, d };
+    };
+    const gseed = (d, num, status) => fs.writeFileSync(path.join(d, `${num}-smoke.md`),
+      `# ADR ${num} — smoke\n\n- **Status:** ${status}\n- **Date:** 2026-07-19\n\n## Context\nx\n`);
+
+    { const { r, d } = mkRepo(); gseed(d, "0001", "Accepted"); const gt = adrGitTier(d, r, {});
+      t("git-tier: Accepted + untracked → FAIL accepted-uncommitted", gt.fails.some((f) => /accepted-uncommitted/.test(f)) && gt.notes.length === 0);
+      fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); gseed(d, "0001", "Proposed"); const gt = adrGitTier(d, r, {});
+      t("git-tier: Proposed + untracked → NOTE proposed-uncommitted (no FAIL)", gt.notes.some((n) => /proposed-uncommitted/.test(n)) && gt.fails.length === 0);
+      fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); gseed(d, "0001", "Accepted");
+      git(r, ["add", "-A"]); git(r, ["commit", "-q", "-m", "commit the accepted ADR"]);
+      const gt = adrGitTier(d, r, {});
+      t("git-tier: Accepted + committed/clean → no FAIL, no NOTE", gt.fails.length === 0 && gt.notes.length === 0);
+      fs.rmSync(r, { recursive: true, force: true }); }
+    { const { r, d } = mkRepo(); gseed(d, "0001", "Accepted"); const gt = adrGitTier(d, r, { "adr.validate_git": "off" });
+      t("git-tier: validate_git=off → silent (no FAIL)", gt.fails.length === 0 && gt.notes.length === 0);
+      fs.rmSync(r, { recursive: true, force: true }); }
+    { const noGit = fs.mkdtempSync(path.join(os.tmpdir(), "faff-adr-nogit-")); const d = path.join(noGit, "docs", "adr"); fs.mkdirSync(d, { recursive: true }); gseed(d, "0001", "Accepted");
+      t("git-tier: non-git tree → degrades silent (no FAIL)", adrGitTier(d, noGit, {}).fails.length === 0);
+      fs.rmSync(noGit, { recursive: true, force: true }); }
+  }
+
   fs.rmSync(tmp, { recursive: true, force: true });
   let failed = 0;
   for (const [n, ok] of cases) { console.log(`${ok ? "ok  " : "FAIL"} ${n}`); if (!ok) failed++; }
@@ -728,4 +873,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, adrAdvisories, adrDecisionBody, adrDir, adrField, adrFlag, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrFlag, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };

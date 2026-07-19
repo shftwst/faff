@@ -1119,6 +1119,47 @@ test("FAFF-560 AC2: --session-id flag beats a persisted measure_session_id (FAFF
   } finally { f.cleanup(); }
 });
 
+test("FAFF-560: a resumed run (FAFF-527 budget.sessions present) prefers the open span's OWN session_id over a stale persisted mint measure_session_id", () => {
+  // The mint-time persisted session ("sess-original-mint") is now STALE — a resume has
+  // happened since, opening a new span whose baseline was measured against ITS OWN
+  // session id ("sess-resumed"). If effectiveEnv picked the stale persisted value
+  // instead, measureTokensByModelClass would read the WRONG transcript — mismatched
+  // against the open span's baseline, corrupting the current-span subtraction.
+  const originalMintSid = "sess-original-mint";
+  const resumedSid = "sess-resumed";
+  const f = fixture({
+    rc: "budget:\n  tokens: 999999999\n",
+    ledger: baseLedger({
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z", session_id: resumedSid },
+      budget: {
+        measure_session_id: originalMintSid, // stale — from the ORIGINAL mint, never updated on resume
+        sessions: [
+          { session_id: originalMintSid, baseline_by_model_class: {}, closed_delta_by_model_class: { "m1": { input: 100, output: 0, cache_write: 0, cache_read: 0 } }, closed_at: "t1", close_source: "transcript" },
+          { session_id: resumedSid, baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null },
+        ],
+      },
+    }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, resumedSid, {
+      [`${resumedSid}.jsonl`]: [{ input_tokens: 20, output_tokens: 5 }], // resumed span's own current delta: 25
+      [`${originalMintSid}.jsonl`]: [{ input_tokens: 9000, output_tokens: 900 }], // must NOT be read
+    });
+    // Ambient matches the resumed session (the realistic shape: the resuming process's
+    // own CLAUDE_CODE_SESSION_ID), NOT the stale persisted mint value.
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: resumedSid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    // closed span (100) + current-span delta measured against the RESUMED session's own
+    // transcript (25, baseline 0) = 125. If the stale persisted session had won, the
+    // current-span delta would instead be read from the (unrelated) original mint
+    // transcript — a materially different, wrong number.
+    assert.equal(s.spent.tokens, 125, "must meter the open span's own session, not the stale persisted mint session");
+  } finally { f.cleanup(); }
+});
+
 test("FAFF-560 AC3: no persisted measure_session_id in the ledger → byte-for-byte the ambient path (no regression to single-session runs)", () => {
   const sid = "sess-no-persisted";
   const f = fixture({

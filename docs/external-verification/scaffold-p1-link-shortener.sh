@@ -104,10 +104,7 @@ EOF
 cat > BRIEF.md <<'EOF'
 # SUT P1 — Link-shortener (greenfield micro-service)
 
-A small, production-shaped URL shortener with a datastore. The DoD is **100% born-verifiable**
-(every criterion is a real HTTP exchange), so the code-blind evaluator should produce clean
-verdicts with **zero** `needs-human` punts. This is the first real exercise of
-architecture → env → evaluate on a non-faff product.
+A small, production-shaped URL shortener with a datastore.
 
 ## Stack preference (the architecture proposer reads this — there's no mined infra profile on a fresh repo)
 - Language/runtime: **TypeScript on Node 20** (or Go 1.22 — pick the build-biased best fit).
@@ -129,19 +126,29 @@ A REST service:
 - Given the same URL shortened twice, When both POSTs return, Then the two codes are different (no dedup required).
 - Given the api restarts, When `GET /{code}` for a pre-restart code, Then status 302 (persistence holds — proves the datastore is real, not in-memory).
 
-## N. DONE
-1. `POST /shorten`, `GET /{code}`, and `GET /healthz` implemented and serving under docker-compose.
-2. A schema migration creates the codes table; codes persist across an api container restart.
-3. Expiry honoured: an expired code returns 404.
-4. `docker compose up` brings api+db healthy; `GET /healthz` returns 200 within 60s.
-5. An automated test suite covers every Scenario above and passes.
-
 ## Out of scope
 Auth, custom aliases, analytics, a UI. Keep it to the spine above.
 EOF
 
 cat > RUNBOOK.md <<'EOF'
 # P1 Runbook — run + observe + score
+
+## Operator framing (operator-only — NEVER pasted into the loop)
+This restates what P1 measures and how it scores. It lives here, not in BRIEF.md, so it can never
+reach the loop: feeding intent framing to the loop is teaching-to-the-test (it pre-warns the loop of
+the exact failure modes the suite exists to catch — see FAFF-547). BRIEF.md is fed to the loop and
+must stay a neutral build brief.
+
+Intent: the DoD is 100% born-verifiable (every criterion is a real HTTP exchange), so the code-blind
+evaluator should produce clean verdicts with zero needs-human punts. This is the first real exercise
+of architecture → env → evaluate on a non-faff product.
+
+Completion rubric (the scoring restatement — what "done" means for the operator, never for the loop):
+1. `POST /shorten`, `GET /{code}`, and `GET /healthz` implemented and serving under docker-compose.
+2. A schema migration creates the codes table; codes persist across an api container restart.
+3. Expiry honoured: an expired code returns 404.
+4. `docker compose up` brings api+db healthy; `GET /healthz` returns 200 within 60s.
+5. An automated test suite covers every Scenario above and passes.
 
 ## 0. Pre-flight (Colima / Docker reachable from faff's shell)
     colima status            # running? if not: colima start

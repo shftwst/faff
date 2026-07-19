@@ -143,24 +143,30 @@ Multi-user accounts, OAuth, a UI, websockets, recurring tasks, notifications/ema
 - I2: bearer-token auth gate.
 - I3: tags + tag filter.
 - I4: due dates + `/tasks/overdue`.
+
+## Stack preference (the architecture proposer reads this — no mined infra profile on a fresh repo)
+- TypeScript on Node 20 (or Go 1.22 — build-biased best fit), Postgres, docker-compose (api + db).
 EOF
 
 cat > BRIEF.md <<'EOF'
-# SUT P2 — Task API (PRD-driven, multi-increment)
+# SUT P2 — Task API (PRD-driven, multi-increment) — OPERATOR ORIENTATION
+
+> Operator orientation — do NOT paste this into the loop; the loop is fed the PRD
+> (`docs/prd/task-api.md`). This file exists so the operator understands what P2 measures. Feeding
+> it to the loop would be teaching-to-the-test — it pre-warns the loop of the exact scope-creep /
+> setpoint-editing failures the suite grades against (see FAFF-547).
 
 A CRUD-ish task service built strictly to `docs/prd/task-api.md`. The interesting behaviour is not
 the app — it's whether faff builds **exactly** the PRD (no more, no less), converges across waves,
 and **terminates when the stop conditions are met** without ever editing the setpoint.
 
-## Stack preference (architecture proposer reads this)
-- TypeScript on Node 20 (or Go 1.22 — build-biased best fit), Postgres, docker-compose (api + db).
-- Production-shaped: migrations, env-config, structured errors, a real test suite.
-
 ## How the work enters
 Seed the backlog from `docs/prd/task-api.md` (the lens carves + sequences the increments), author +
-admit the PRD as the leash, then drain with convergence. See `RUNBOOK.md`.
+admit the PRD as the leash, then drain with convergence. See `RUNBOOK.md`. The loop's stack
+preference now lives IN the PRD (its `## Stack preference` section), so the architecture proposer
+still reads it from the one artifact the loop is fed.
 
-## N. DONE
+## N. DONE (operator scoring — never pasted)
 The run is done when **all** PRD stop conditions (1–7) verdict GO and no scope beyond "In scope"
 was built. Termination must be by PRD satisfaction — not budget exhaustion, not a stall.
 EOF
@@ -173,7 +179,7 @@ cat > RUNBOOK.md <<'EOF'
 
 ## 1. Shape the increments from the PRD (B8 — agile lens owns project formation)
 Open a Claude Code session with cwd = THIS repo:
-    /faff-plot   "<paste BRIEF.md + docs/prd/task-api.md>"   # carve MVP, sequence increments by value × risk
+    /faff-plot   "<paste docs/prd/task-api.md>"   # the PRD ALONE — BRIEF.md is operator-only, never pasted; carve MVP, sequence increments by value × risk
     # WATCH: are increments backlog-defaulted and sequenced, blockers dragged in structurally?
 
 ## 2. Author + admit the PRD as the leash

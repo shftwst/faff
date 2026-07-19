@@ -9,7 +9,7 @@
 
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -204,6 +204,32 @@ test("baseCheckedOutWorktree: base checked out in >1 worktree → { anomaly: tru
   assert.deepEqual(baseCheckedOutWorktree(entries, "main"), { anomaly: true });
 });
 
+test("CLI: --local invoked FROM the base worktree itself (via --branch override) → the invoking cwd is never treated as its own peer", () => {
+  // Defensive-filter regression (FAFF-545 review finding): baseCheckedOutWorktree() only matches
+  // on branch name, so without excluding cwd's own worktree entry first, sitting IN the base
+  // worktree and naming a different branch via --branch would make cwd match itself as a "peer"
+  // and land through `git -C <cwd> merge --ff-only`, mutating the invoking process's own working
+  // tree mid-command. The land step must exclude cwd's own entry BEFORE matching, so this
+  // contrived-but-reachable case still lands via the plain update-ref (Case A), not a self-merge.
+  const repo = scaffoldRepo();
+  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  git(repo, "checkout", "-q", "main"); // now sitting ON the base branch itself
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+
+  const { code, stdout } = runCli(baseArgs(runDir, ["--branch", "feature"]), { cwd: repo });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha, "base ref must land via update-ref, not a self-merge");
+  // cwd's own working tree/HEAD were not touched by a `git merge` invocation — main's checkout
+  // still reports whatever a plain update-ref would leave it as (git does NOT auto-refresh the
+  // currently-checked-out worktree's index when its own branch ref moves out from under it via
+  // update-ref — that is the pre-existing, unrelated-to-this-fix single-worktree caveat; the
+  // point under test is that no `git merge` process ran in cwd at all).
+});
+
 // --- FAFF-545: worktree-aware land when `base` is checked out in a peer worktree ---
 
 test("CLI: --local when base is checked out in a CLEAN peer worktree → lands via merge --ff-only, peer index stays clean", () => {
@@ -267,14 +293,14 @@ test("CLI: --local when base is checked out in MORE THAN ONE peer worktree → r
   git(repo, "worktree", "add", peer1, "throwaway1");
   git(repo, "worktree", "add", peer2, "throwaway2");
   const idFor = (peerDir) => {
-    const list = git(repo, "worktree", "list", "--porcelain").stdout;
-    const lines = list.split("\n");
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i] === `worktree ${peerDir}`) {
-        // find the admin dir by matching gitdir file contents under .git/worktrees/*
-        const admin = spawnSync("bash", ["-c", `grep -rl "${peerDir}" ${join(repo, ".git", "worktrees")}/*/gitdir 2>/dev/null | head -1`], { encoding: "utf8" }).stdout.trim();
-        return admin ? admin.replace(/\/gitdir$/, "") : null;
-      }
+    // Find the admin dir by reading each `.git/worktrees/*/gitdir` file directly (no shelling
+    // out to grep — test-hygiene finding from the FAFF-545 adversarial review: avoid string
+    // interpolation into a shell command even for controlled mkdtempSync paths).
+    const adminRoot = join(repo, ".git", "worktrees");
+    for (const id of readdirSync(adminRoot)) {
+      const gitdirFile = join(adminRoot, id, "gitdir");
+      if (!existsSync(gitdirFile)) continue;
+      if (readFileSync(gitdirFile, "utf8").includes(peerDir)) return join(adminRoot, id);
     }
     return null;
   };

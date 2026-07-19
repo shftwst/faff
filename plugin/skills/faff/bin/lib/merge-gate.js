@@ -654,7 +654,20 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
     result.blockers = [...blockers, "cannot enumerate git worktrees to land safely — re-run faff merge-gate --local"];
     return emit(result, 1);
   }
-  const peer = baseCheckedOutWorktree(entries, base);
+  // Defensively exclude the invoking cwd's OWN worktree entry before matching (FAFF-545 review
+  // finding): the `base == branch` refusal upstream is what normally guarantees cwd never holds
+  // `base`, but that guarantee lives in a different code path — a future caller change (e.g. an
+  // untrusted --branch override that doesn't match cwd's real checkout) shouldn't be able to
+  // reintroduce a self-merge. Filter here so the invariant is enforced at the point of use, not
+  // only assumed from upstream.
+  const selfRoot = gitRun(cwd, ["rev-parse", "--show-toplevel"]);
+  if (!selfRoot.ok) {
+    result.verdict = "refuse";
+    result.blockers = [...blockers, "cannot resolve the invoking worktree's own root to land safely — re-run faff merge-gate --local"];
+    return emit(result, 1);
+  }
+  const peerCandidates = entries.filter((e) => e && path.resolve(e.path || "") !== path.resolve(selfRoot.stdout));
+  const peer = baseCheckedOutWorktree(peerCandidates, base);
 
   if (peer && peer.anomaly) {
     result.verdict = "refuse";

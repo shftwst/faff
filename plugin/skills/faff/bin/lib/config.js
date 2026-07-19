@@ -67,6 +67,9 @@ const DEFAULTS = {
   // ADR axis (`adr admit`'s ratchet gate). See prdr.thrash_max/window above for the shape.
   "adr.thrash_max": "3",
   "adr.thrash_window": "21",
+  // FAFF-546: ADR git-awareness validate tier, mirroring prdr.validate_git — auto (default; the
+  // adrGitTier pass runs, degrading to silent outside a git work tree) | off (skip the tier entirely).
+  "adr.validate_git": "auto",
   // FAFF-463: PRDR git-landing. accept_branch_prefix = the landing-branch prefix `faff prdr accept`
   // commits onto. validate_git = auto (default; the git-awareness validate tier runs, degrading to
   // silent outside a git work tree) | off (skip the git tier entirely).

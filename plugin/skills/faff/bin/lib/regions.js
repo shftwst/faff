@@ -181,10 +181,12 @@ const REGION_MAP = {
 // `no-selftest`: non-fatal for factory, FATAL for a governance member). A
 // REGION_MAP command MISSING here is exit 2 at `regions selftest` (no
 // fall-through: a future flag-tolerant command must never be blind-spawned
-// with --selftest and execute its real op — `sync` re-links ~/.claude,
-// `gitignore-ensure` writes .gitignore; a selftest runner must never mutate
-// the host). A stale null (the handler gained a "--selftest" branch nobody
-// wired) is also exit 2 — see regionsStaleNulls.
+// with --selftest and execute its real op — e.g. `sync` re-links ~/.claude; a
+// selftest runner must never mutate the host, so such a command stays null.
+// (`gitignore-ensure` gained a host-safe --selftest in FAFF-548 — it runs only
+// against throwaway temp roots, never the host .gitignore — so it is now wired.)
+// A stale null (the handler gained a "--selftest" branch nobody wired) is also
+// exit 2 — see regionsStaleNulls.
 const REGION_SELFTEST_ARGV = {
   // governance — every member MUST carry a runnable selftest
   "runcheck": ["runcheck", "--selftest"],
@@ -234,7 +236,7 @@ const REGION_SELFTEST_ARGV = {
   "project-next": ["project-next", "--selftest"],
   "state": null,
   "park-history": ["park-history", "--selftest"],
-  "gitignore-ensure": null,
+  "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "adr": ["adr", "--selftest"],
   "prd": ["prd", "--selftest"],
   "prdr": ["prdr", "--selftest"],

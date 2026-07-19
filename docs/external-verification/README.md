@@ -43,6 +43,30 @@ dir unless you pass `FORCE=1`.
 See [`authoring-and-admitting-a-prd.md`](authoring-and-admitting-a-prd.md) for the current verb
 surface P2/P4's RUNBOOKs use to author + admit their PRD leash.
 
+### What the loop is fed (the measurement boundary — FAFF-547)
+
+The suite measures a boundary: *does faff build exactly what was asked, respect its scope ceiling,
+and punt what it cannot judge?* That measurement is only valid if the loop under test never sees the
+operator's description of the failure modes the suite exists to catch — pasting that in is
+teaching-to-the-test (the observer changes the observed). So operator framing (the "the interesting
+behaviour is…" intent, the scoring/`DONE` rubric, the `[verifiable]`/`[SUBJECTIVE — must punt]`
+tags) is kept structurally out of everything the loop is fed:
+
+- **PRD-less SUTs (P1, P3)** — the loop is fed `BRIEF.md`, which is a **neutral build brief**: stack
+  preference, what to build, scenarios (subjective ones intact but with their answer-announcing tags
+  stripped), out-of-scope — and nothing else. The intent framing and the completion/scoring rubric
+  live in the **operator-only `RUNBOOK.md`** (never pasted).
+- **PRD-backed SUTs (P2, P4)** — the loop is fed the **PRD alone** (`docs/prd/task-api.md` for P2,
+  `PRD.md` for P4), never `BRIEF.md`. The one load-bearing datum a brief carried for the loop — its
+  `## Stack preference` (the architecture proposer reads it) — is relocated **into the PRD**, kept to
+  a stack-only line so it doesn't widen the PRD's measured creative-licence. `BRIEF.md` is recast as
+  **operator-only orientation** carrying a "do NOT paste — the loop is fed the PRD" banner.
+
+**Note the `BRIEF.md` role overload:** it is a loop-facing neutral brief for P1/P3 but an operator-
+only, never-pasted doc for P2/P4. Each RUNBOOK's loop-entry line names exactly what to paste; follow
+it rather than the filename. (A `test/scaffolder-lights-out-dials.test.mjs` paste-hygiene guard
+enforces this structurally.)
+
 Then open a **new Claude Code session with cwd = the SUT repo** (the faff skills are global and
 the `faff` CLI is on PATH, so they operate on the SUT and read its local `.faffrc.yaml`) and
 follow that SUT's `RUNBOOK.md`.

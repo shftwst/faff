@@ -1,6 +1,6 @@
 # ADR 0080 — faff adr accept: a verb and merge-confidence-gate trigger for ADR Proposed to Accepted
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
 - **Date:** 2026-07-19
 - **Issue:** FAFF-546

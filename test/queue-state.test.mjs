@@ -156,16 +156,35 @@ test("derive + new-key: a minted key round-trips through a spec-store filename (
   assert.equal(beforePayload.items_total, 1);
   assert.deepEqual(beforePayload.items_pending, [key]);
 
-  // renaming the FILE changes the key (store B: the key IS the filename stem —
-  // no frontmatter, no content parse) — the original key's item disappears and
-  // a different one (the new stem) appears, proving the store reads the
-  // filename verbatim rather than any persisted identity inside the file.
-  fs.renameSync(path.join(root, ".faff", "specs", `${key}.md`), path.join(root, ".faff", "specs", "renamed-stem.md"));
+  // renaming the FILE to a DIFFERENT gitkey-shaped stem changes the key (store
+  // B: the key IS the filename stem — no frontmatter, no content parse) — the
+  // original key's item disappears and the new stem appears, proving the
+  // store reads the filename verbatim rather than any persisted identity
+  // inside the file.
+  const key2 = "gk-20260719-zzz999";
+  fs.renameSync(path.join(root, ".faff", "specs", `${key}.md`), path.join(root, ".faff", "specs", `${key2}.md`));
   const after = faff(["queue-state", "derive", "--root", root]);
   const afterPayload = JSON.parse(after.stdout);
   assert.equal(afterPayload.items_total, 1);
-  assert.deepEqual(afterPayload.items_pending, ["renamed-stem"]);
+  assert.deepEqual(afterPayload.items_pending, [key2]);
   assert.equal(afterPayload.items_pending.includes(key), false);
+});
+
+test("derive: a non-gitkey-shaped file/marker is never trusted as an item-key", (t) => {
+  const root = mkRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  // a stray file in the spec store that predates gitkeys, or just isn't one
+  fs.writeFileSync(path.join(root, ".faff", "specs", "README.md"), "# not a gitkey\n", "utf8");
+  // a pasted/malformed marker value in the intake store — must never collide
+  // with a ledger outcome string via exact-match (e.g. "shipped")
+  fs.writeFileSync(path.join(root, ".faff", "intake", "roadmap.md"),
+    "- [ ] some line <!-- gitkey:shipped -->\n", "utf8");
+
+  const r = faff(["queue-state", "derive", "--root", root]);
+  assert.equal(r.code, 0);
+  const payload = JSON.parse(r.stdout);
+  assert.equal(payload.items_total, 0);
+  assert.equal(payload.reason, "no-item-keys");
 });
 
 test("unknown subverb -> exit 2 usage error", () => {

@@ -52,7 +52,14 @@ function cmdNewKey() {
 // `<!-- faff-review-findings:<id> -->` marker idiom). Only buildable leaf
 // lines carry a marker — containers (initiatives/projects) get none, so this
 // collector need not distinguish line types; it only ever sees what was
-// stamped.
+// stamped. The capture group is intentionally permissive (so a slightly
+// malformed marker is still visible for debugging) but every candidate is
+// validated against GITKEY_RE before it is trusted as an item-key (below) —
+// an arbitrary `<!-- gitkey:shipped -->` (or any other short/free-text
+// string a human could paste in) must never silently masquerade as a real
+// gitkey, since `deriveQueueState` does an EXACT string match against the
+// ledger's `outcomes` keys and a colliding string could flip queue_empty
+// while real work is still pending.
 const GITKEY_MARKER_RE = /<!--\s*gitkey:([a-z0-9-]+)\s*-->/g;
 
 function collectIntakeKeys(root) {
@@ -66,7 +73,9 @@ function collectIntakeKeys(root) {
     try { text = fs.readFileSync(path.join(dir, name), "utf8"); } catch { continue; }
     GITKEY_MARKER_RE.lastIndex = 0;
     let m;
-    while ((m = GITKEY_MARKER_RE.exec(text)) !== null) keys.push(m[1]);
+    while ((m = GITKEY_MARKER_RE.exec(text)) !== null) {
+      if (GITKEY_RE.test(m[1])) keys.push(m[1]); // reject a malformed/foreign marker value
+    }
   }
   return keys;
 }
@@ -74,6 +83,10 @@ function collectIntakeKeys(root) {
 // Store B: the spec store. The key IS the filename stem — no file is opened,
 // no YAML parsed (the git-only `.faff/specs/<issue-id>.md` slot is simply
 // filled by the gitkey; see the gateway's Spec discovery location 4 note).
+// Only a gitkey-SHAPED stem is trusted as an item-key — a stray README, a
+// pre-gitkey-era spec, or any other non-gitkey file that lands in the store
+// must never silently count as a work item (it would inflate items_total
+// and mask genuinely pending keys in items_pending, for no signal gained).
 function collectSpecKeys(root) {
   const keys = [];
   const dir = path.join(root, ".faff", "specs");
@@ -81,7 +94,8 @@ function collectSpecKeys(root) {
   try { names = fs.readdirSync(dir); } catch { return keys; }
   for (const name of names) {
     if (!name.endsWith(".md")) continue;
-    keys.push(name.slice(0, -3));
+    const stem = name.slice(0, -3);
+    if (GITKEY_RE.test(stem)) keys.push(stem);
   }
   return keys;
 }
@@ -253,6 +267,16 @@ function queueStateSelftest() {
     const specKey = "gk-20260719-def456";
     fs.writeFileSync(path.join(root, ".faff", "specs", `${specKey}.md`), "# spec\n", "utf8");
     ok("spec-store key is the filename stem", collectItemKeys(root).includes(specKey));
+
+    // --- a non-gitkey-shaped marker value / filename is never trusted as an ---
+    // --- item-key (a pasted `<!-- gitkey:shipped -->` must never exact-match ---
+    // --- a ledger outcome string; a stray README.md must never inflate the set) ---
+    fs.writeFileSync(path.join(root, ".faff", "intake", "injected.md"), "- [ ] x <!-- gitkey:shipped -->\n", "utf8");
+    fs.writeFileSync(path.join(root, ".faff", "specs", "README.md"), "# not a gitkey\n", "utf8");
+    const withNoise = collectItemKeys(root);
+    ok("a malformed intake marker value is rejected", !withNoise.includes("shipped"));
+    ok("a non-gitkey-shaped spec filename is rejected", !withNoise.includes("README"));
+    ok("only the two genuine gitkeys survive the noise", withNoise.length === 2 && withNoise.includes(key) && withNoise.includes(specKey));
 
     // --- purity: no tracker/network access anywhere in this module ---
     const src = fs.readFileSync(path.join(__dirname, "queue-state.js"), "utf8");

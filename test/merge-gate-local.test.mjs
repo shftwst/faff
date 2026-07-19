@@ -182,6 +182,74 @@ test("CLI: --local ignores/does not require --pr (no PR flag passed, still dispa
   assert.doesNotMatch(stderr, /--pr, --issue and --run-dir are required/);
 });
 
+// --- FAFF-545: worktree-aware land when `base` is checked out in a peer worktree ---
+
+test("CLI: --local when base is checked out in a CLEAN peer worktree → lands via merge --ff-only, peer index stays clean", () => {
+  const repo = scaffoldRepo();
+  const peerDir = mkTmp("mg-local-peer-");
+  rmSync(peerDir, { recursive: true, force: true }); // `git worktree add` requires the target not exist
+  git(repo, "worktree", "add", peerDir, "main");
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(out.head_sha, featureSha);
+
+  // The base ref advanced...
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha);
+  // ...AND the peer worktree's HEAD + index are consistent — no phantom staged-deletes.
+  assert.equal(git(peerDir, "rev-parse", "HEAD").stdout.trim(), featureSha);
+  assert.equal(git(peerDir, "status", "--porcelain").stdout.trim(), "", "peer worktree must report a clean status post-merge");
+
+  const record = JSON.parse(readFileSync(join(runDir, ISSUE, "merge-record.json"), "utf8"));
+  assert.equal(record.head_sha, featureSha);
+  assert.equal(record.merged, true);
+});
+
+test("CLI: --local single-worktree regression — base checked out nowhere else still lands via update-ref (byte-for-byte unchanged)", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  assert.notEqual(baseBefore, featureSha);
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha, "base ref must land via update-ref exactly as before");
+});
+
+test("CLI: --local when base is checked out in a DIRTY peer worktree → refuses (exit 1), neither base ref nor peer worktree modified", () => {
+  const repo = scaffoldRepo();
+  const peerDir = mkTmp("mg-local-peer-");
+  rmSync(peerDir, { recursive: true, force: true });
+  git(repo, "worktree", "add", peerDir, "main");
+  writeFileSync(join(peerDir, "uncommitted.txt"), "dirty");
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  const peerHeadBefore = git(peerDir, "rev-parse", "HEAD").stdout.trim();
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, false);
+  assert.match(out.blockers.join(" "), new RegExp(peerDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore, "base ref must be unmodified on refuse");
+  assert.equal(git(peerDir, "rev-parse", "HEAD").stdout.trim(), peerHeadBefore, "peer worktree HEAD must be unmodified on refuse");
+  assert.equal(existsSync(join(peerDir, "uncommitted.txt")), true, "peer worktree's uncommitted file must survive the refuse");
+});
+
 // --- merge-fence: the no-remote-gated raw base-branch mutation wall, driven via its --hook CLI surface ---
 
 function fenceEvent(command, cwd) {

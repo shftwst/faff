@@ -21,6 +21,7 @@ const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = req
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
 const { runLadder } = require("./gates");
 const { tryReadLedger } = require("./prepcheck");
+const { parseWorktreeEntries } = require("./worktree-prune");
 
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
 // untrusted free-text reaches the merge shell (the caller is always graft / the default ship
@@ -482,6 +483,19 @@ function gitRun(cwd, args, timeout = 15000) {
   return { ok: r.status === 0, stdout: (r.stdout || "").trim(), stderr: (r.stderr || "").trim(), status: r.status };
 }
 
+// FAFF-545 — pure detection helper: does a PEER worktree (not the invoking cwd) have `base`
+// checked out? `entries` is the parseWorktreeEntries() shape ({ path, branch }, branch already
+// stripped of refs/heads/, detached-HEAD entries have branch === null and never match). Case A
+// (base checked out nowhere else) is the overwhelmingly common single-worktree layout; Case B
+// (exactly one peer) is the worktree-aware land path; >1 match is anomalous (git normally
+// prevents the same branch being checked out twice) and is treated as unsafe.
+function baseCheckedOutWorktree(entries, base) {
+  const matches = (entries || []).filter((e) => e && e.branch === base);
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return matches[0];
+  return { anomaly: true };
+}
+
 // Does this repo have a configured, pushable remote? `git remote` empty stdout => no remote
 // (`--local` may activate / the fence matcher may activate). A git-command failure (not a repo,
 // git unreachable) is INDETERMINATE (null) — every call site treats indeterminate as "NOT
@@ -620,16 +634,78 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
     return emit(result, 1);
   }
 
-  // Land it: move the base ref to the (fast-forwardable) branch tip. `--old-value` makes this a
-  // compare-and-swap — it fails rather than clobbering a base that moved since baseShaBefore was
-  // read. This is the ONE sanctioned path onto the base branch on a no-remote repo (merge-fence's
-  // matchesRawLocalBaseMerge denies every raw equivalent); as a spawnSync child process it is
-  // structurally invisible to that PreToolUse hook, exactly like the PR path's `gh pr merge`.
-  const upd = gitRun(cwd, ["update-ref", `refs/heads/${base}`, headShaNow, baseShaBefore]);
-  if (!upd.ok) {
+  // Land it: move the base ref to the (fast-forwardable) branch tip. This is the ONE sanctioned
+  // path onto the base branch on a no-remote repo (merge-fence's matchesRawLocalBaseMerge denies
+  // every raw equivalent); as a spawnSync child process it is structurally invisible to that
+  // PreToolUse hook, exactly like the PR path's `gh pr merge`.
+  //
+  // FAFF-545: a raw `git update-ref` moves the ref directly and never touches a working tree —
+  // critically, it BYPASSES git's own "branch is checked out in another worktree" guard. When
+  // `base` is checked out in a peer worktree, that leaves the peer's HEAD pointing at the new
+  // commit while its index still reflects the old tree (phantom staged-deletes). So branch on
+  // worktree topology: Case A (base checked out nowhere else) keeps the exact `update-ref`
+  // compare-and-swap byte-for-byte; Case B (base checked out in exactly one CLEAN peer worktree)
+  // lands via `git -C <peer> merge --ff-only <branch>` instead, so git's own merge machinery
+  // refreshes that worktree's index/working tree; anything unsafe (dirty peer, >1 checkout,
+  // enumeration failure) refuses fail-closed rather than desyncing or clobbering.
+  const entries = parseWorktreeEntries(cwd);
+  if (entries === null) {
     result.verdict = "refuse";
-    result.blockers = [...blockers, `local base-branch update failed: ${upd.stderr || "git update-ref rejected the fast-forward"}`];
+    result.blockers = [...blockers, "cannot enumerate git worktrees to land safely — re-run faff merge-gate --local"];
     return emit(result, 1);
+  }
+  // Defensively exclude the invoking cwd's OWN worktree entry before matching (FAFF-545 review
+  // finding): the `base == branch` refusal upstream is what normally guarantees cwd never holds
+  // `base`, but that guarantee lives in a different code path — a future caller change (e.g. an
+  // untrusted --branch override that doesn't match cwd's real checkout) shouldn't be able to
+  // reintroduce a self-merge. Filter here so the invariant is enforced at the point of use, not
+  // only assumed from upstream.
+  const selfRoot = gitRun(cwd, ["rev-parse", "--show-toplevel"]);
+  if (!selfRoot.ok) {
+    result.verdict = "refuse";
+    result.blockers = [...blockers, "cannot resolve the invoking worktree's own root to land safely — re-run faff merge-gate --local"];
+    return emit(result, 1);
+  }
+  const peerCandidates = entries.filter((e) => e && path.resolve(e.path || "") !== path.resolve(selfRoot.stdout));
+  const peer = baseCheckedOutWorktree(peerCandidates, base);
+
+  if (peer && peer.anomaly) {
+    result.verdict = "refuse";
+    result.blockers = [...blockers, `base '${base}' is checked out in multiple worktrees — cannot land safely; reconcile the worktrees first`];
+    return emit(result, 1);
+  }
+
+  if (peer) {
+    // Case B — base checked out in exactly one peer worktree. Refuse rather than clobber if it's
+    // dirty; `merge --ff-only` is itself compare-and-swap-safe (reads the base ref live at merge
+    // time, refuses any non-fast-forward), so no separate --old-value guard is needed here.
+    const dirty = gitRun(cwd, ["-C", peer.path, "status", "--porcelain"]);
+    if (!dirty.ok) {
+      result.verdict = "refuse";
+      result.blockers = [...blockers, `cannot check the peer worktree '${peer.path}' for local changes — re-run faff merge-gate --local`];
+      return emit(result, 1);
+    }
+    if (dirty.stdout !== "") {
+      result.verdict = "refuse";
+      result.blockers = [...blockers, `base '${base}' is checked out with uncommitted changes in ${peer.path} — commit or stash them, then re-run faff merge-gate --local (refusing rather than overwrite)`];
+      return emit(result, 1);
+    }
+    const mrg = gitRun(cwd, ["-C", peer.path, "merge", "--ff-only", branch]);
+    if (!mrg.ok) {
+      result.verdict = "refuse";
+      result.blockers = [...blockers, `fast-forward of '${base}' in peer worktree ${peer.path} failed: ${mrg.stderr || "git merge --ff-only rejected the fast-forward"}`];
+      return emit(result, 1);
+    }
+  } else {
+    // Case A — base checked out nowhere else (the overwhelmingly common single-worktree layout).
+    // Unchanged: `--old-value` makes this a compare-and-swap — it fails rather than clobbering a
+    // base that moved since baseShaBefore was read.
+    const upd = gitRun(cwd, ["update-ref", `refs/heads/${base}`, headShaNow, baseShaBefore]);
+    if (!upd.ok) {
+      result.verdict = "refuse";
+      result.blockers = [...blockers, `local base-branch update failed: ${upd.stderr || "git update-ref rejected the fast-forward"}`];
+      return emit(result, 1);
+    }
   }
   result.merged = true;
   result.verdict = "merge-ok";
@@ -1193,4 +1269,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

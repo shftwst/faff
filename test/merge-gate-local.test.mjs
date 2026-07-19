@@ -9,11 +9,15 @@
 
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
+
+const require = createRequire(import.meta.url);
+const { baseCheckedOutWorktree } = require("../plugin/skills/faff/bin/lib/merge-gate.js");
 
 const tmpDirs = [];
 const mkTmp = (prefix) => { const d = mkdtempSync(join(tmpdir(), prefix)); tmpDirs.push(d); return d; };
@@ -180,6 +184,162 @@ test("CLI: --local ignores/does not require --pr (no PR flag passed, still dispa
   const { code, stderr } = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(code, 0);
   assert.doesNotMatch(stderr, /--pr, --issue and --run-dir are required/);
+});
+
+// --- FAFF-545: baseCheckedOutWorktree — pure helper unit coverage ---
+
+test("baseCheckedOutWorktree: base checked out nowhere → null (Case A)", () => {
+  const entries = [{ path: "/a", branch: "feature" }, { path: "/b", branch: null }];
+  assert.equal(baseCheckedOutWorktree(entries, "main"), null);
+});
+
+test("baseCheckedOutWorktree: base checked out in exactly one peer → returns that entry (Case B)", () => {
+  const peer = { path: "/peer", branch: "main" };
+  const entries = [{ path: "/a", branch: "feature" }, peer];
+  assert.deepEqual(baseCheckedOutWorktree(entries, "main"), peer);
+});
+
+test("baseCheckedOutWorktree: base checked out in >1 worktree → { anomaly: true }", () => {
+  const entries = [{ path: "/a", branch: "main" }, { path: "/b", branch: "main" }];
+  assert.deepEqual(baseCheckedOutWorktree(entries, "main"), { anomaly: true });
+});
+
+test("CLI: --local invoked FROM the base worktree itself (via --branch override) → the invoking cwd is never treated as its own peer", () => {
+  // Defensive-filter regression (FAFF-545 review finding): baseCheckedOutWorktree() only matches
+  // on branch name, so without excluding cwd's own worktree entry first, sitting IN the base
+  // worktree and naming a different branch via --branch would make cwd match itself as a "peer"
+  // and land through `git -C <cwd> merge --ff-only`, mutating the invoking process's own working
+  // tree mid-command. The land step must exclude cwd's own entry BEFORE matching, so this
+  // contrived-but-reachable case still lands via the plain update-ref (Case A), not a self-merge.
+  const repo = scaffoldRepo();
+  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  git(repo, "checkout", "-q", "main"); // now sitting ON the base branch itself
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+
+  const { code, stdout } = runCli(baseArgs(runDir, ["--branch", "feature"]), { cwd: repo });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha, "base ref must land via update-ref, not a self-merge");
+  // cwd's own working tree/HEAD were not touched by a `git merge` invocation — main's checkout
+  // still reports whatever a plain update-ref would leave it as (git does NOT auto-refresh the
+  // currently-checked-out worktree's index when its own branch ref moves out from under it via
+  // update-ref — that is the pre-existing, unrelated-to-this-fix single-worktree caveat; the
+  // point under test is that no `git merge` process ran in cwd at all).
+});
+
+// --- FAFF-545: worktree-aware land when `base` is checked out in a peer worktree ---
+
+test("CLI: --local when base is checked out in a CLEAN peer worktree → lands via merge --ff-only, peer index stays clean", () => {
+  const repo = scaffoldRepo();
+  const peerDir = mkTmp("mg-local-peer-");
+  rmSync(peerDir, { recursive: true, force: true }); // `git worktree add` requires the target not exist
+  git(repo, "worktree", "add", peerDir, "main");
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(out.head_sha, featureSha);
+
+  // The base ref advanced...
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha);
+  // ...AND the peer worktree's HEAD + index are consistent — no phantom staged-deletes.
+  assert.equal(git(peerDir, "rev-parse", "HEAD").stdout.trim(), featureSha);
+  assert.equal(git(peerDir, "status", "--porcelain").stdout.trim(), "", "peer worktree must report a clean status post-merge");
+
+  const record = JSON.parse(readFileSync(join(runDir, ISSUE, "merge-record.json"), "utf8"));
+  assert.equal(record.head_sha, featureSha);
+  assert.equal(record.merged, true);
+});
+
+test("CLI: --local single-worktree regression — base checked out nowhere else still lands via update-ref (byte-for-byte unchanged)", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  assert.notEqual(baseBefore, featureSha);
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 0);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.merged, true);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha, "base ref must land via update-ref exactly as before");
+});
+
+test("CLI: --local when base is checked out in MORE THAN ONE peer worktree → refuses (exit 1) with a naming blocker", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+
+  // Git normally refuses to check the same branch out twice — fake the anomaly the same way the
+  // underlying bug class arises (a direct filesystem write bypassing git's checkout guard) so the
+  // anomaly branch is exercised at the CLI boundary, not just via the pure-helper unit test above.
+  git(repo, "checkout", "-qb", "throwaway1");
+  git(repo, "checkout", "-q", "feature");
+  git(repo, "checkout", "-qb", "throwaway2");
+  git(repo, "checkout", "-q", "feature");
+  const peer1 = mkTmp("mg-local-anomaly1-"); rmSync(peer1, { recursive: true, force: true });
+  const peer2 = mkTmp("mg-local-anomaly2-"); rmSync(peer2, { recursive: true, force: true });
+  git(repo, "worktree", "add", peer1, "throwaway1");
+  git(repo, "worktree", "add", peer2, "throwaway2");
+  const idFor = (peerDir) => {
+    // Find the admin dir by reading each `.git/worktrees/*/gitdir` file directly (no shelling
+    // out to grep — test-hygiene finding from the FAFF-545 adversarial review: avoid string
+    // interpolation into a shell command even for controlled mkdtempSync paths).
+    const adminRoot = join(repo, ".git", "worktrees");
+    for (const id of readdirSync(adminRoot)) {
+      const gitdirFile = join(adminRoot, id, "gitdir");
+      if (!existsSync(gitdirFile)) continue;
+      if (readFileSync(gitdirFile, "utf8").includes(peerDir)) return join(adminRoot, id);
+    }
+    return null;
+  };
+  const admin1 = idFor(peer1);
+  const admin2 = idFor(peer2);
+  assert.ok(admin1 && admin2, "expected to resolve both peers' git admin dirs");
+  writeFileSync(join(admin1, "HEAD"), "ref: refs/heads/main\n");
+  writeFileSync(join(admin2, "HEAD"), "ref: refs/heads/main\n");
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, false);
+  assert.match(out.blockers.join(" "), /checked out in multiple worktrees/);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore, "base ref must be unmodified on refuse");
+});
+
+test("CLI: --local when base is checked out in a DIRTY peer worktree → refuses (exit 1), neither base ref nor peer worktree modified", () => {
+  const repo = scaffoldRepo();
+  const peerDir = mkTmp("mg-local-peer-");
+  rmSync(peerDir, { recursive: true, force: true });
+  git(repo, "worktree", "add", peerDir, "main");
+  writeFileSync(join(peerDir, "uncommitted.txt"), "dirty");
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  const peerHeadBefore = git(peerDir, "rev-parse", "HEAD").stdout.trim();
+
+  const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, false);
+  assert.match(out.blockers.join(" "), new RegExp(peerDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore, "base ref must be unmodified on refuse");
+  assert.equal(git(peerDir, "rev-parse", "HEAD").stdout.trim(), peerHeadBefore, "peer worktree HEAD must be unmodified on refuse");
+  assert.equal(existsSync(join(peerDir, "uncommitted.txt")), true, "peer worktree's uncommitted file must survive the refuse");
 });
 
 // --- merge-fence: the no-remote-gated raw base-branch mutation wall, driven via its --hook CLI surface ---

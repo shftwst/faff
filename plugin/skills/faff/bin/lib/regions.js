@@ -132,6 +132,10 @@ const REGION_MAP = {
   "gitignore-ensure": "factory",
   "adr": "factory",
   "prd": "factory",
+  // prd-checklist — FAFF-557: pure checklist-PRD parser emitting the existing prd-coverage
+  // shape. Requires only contract-engine's schemaCheck (no shared-infra/governance-profile
+  // dependency) — a pure producer command, sibling of prd/prdr → factory.
+  "prd-checklist": "factory",
   "prdr": "factory",
   "profile": "factory",
   "fixtures": "factory",
@@ -244,6 +248,7 @@ const REGION_SELFTEST_ARGV = {
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "adr": ["adr", "--selftest"],
   "prd": ["prd", "--selftest"],
+  "prd-checklist": ["prd-checklist", "--selftest"],
   "prdr": ["prdr", "--selftest"],
   "profile": ["profile", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],

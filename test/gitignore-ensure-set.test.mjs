@@ -1,7 +1,11 @@
 // FAFF-387 — `gitignore-ensure`'s canonical set change: `.faffrc.yaml` is NO LONGER
-// ignored on new bootstraps (it is the committable base), `.faffrc.local.yaml` (the
-// gitignored overlay) joins the set, and the command stays APPEND-ONLY — it never
-// removes an existing line, so a repo that already ignores `.faffrc.yaml` keeps it.
+// ignored on new bootstraps (it is the committable base), the gitignored overlay joins
+// the set, and the command stays APPEND-ONLY — it never removes an existing line, so a
+// repo that already ignores `.faffrc.yaml` keeps it.
+// FAFF-548 — the overlay is now matched by the GLOB `.faffrc.*.yaml` (covering every
+// machine-local variant) plus a `!.faffrc.example.yaml` negation placed after the glob,
+// replacing the exact `.faffrc.local.yaml` literal. The glob still never matches the
+// committable base `.faffrc.yaml` (no middle segment).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -18,17 +22,23 @@ function run(cwd, ...args) {
 }
 function seed() { return mkdtempSync(join(tmpdir(), "faff387gi-")); }
 
-test("the canonical set is [.faffrc, .faffrc.yml, .faffrc.local.yaml, .faff/] — .faffrc.yaml is NOT in it", () => {
+test("the canonical set is [.faffrc, .faffrc.yml, .faffrc.*.yaml, !.faffrc.example.yaml, .faff/] — .faffrc.yaml is NOT in it (FAFF-548)", () => {
   const dir = seed();
   try {
     const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
     const set = [...res.added, ...res.already];
-    assert.deepEqual(set.sort(), [".faff/", ".faffrc", ".faffrc.local.yaml", ".faffrc.yml"].sort());
+    assert.deepEqual(set.sort(), [".faff/", ".faffrc", ".faffrc.*.yaml", "!.faffrc.example.yaml", ".faffrc.yml"].sort());
     assert.ok(!set.includes(".faffrc.yaml"), "the committable base `.faffrc.yaml` must NOT be in the ignore set");
-    // and the written file agrees.
+    assert.ok(!set.includes(".faffrc.local.yaml"), "the exact-local literal is replaced by the glob");
+    // and the written file agrees: overlay glob ignored, base not ignored, and the
+    // negation strictly follows the glob so git honours it.
     const gi = readFileSync(join(dir, ".gitignore"), "utf8");
-    assert.match(gi, /^\.faffrc\.local\.yaml$/m, "overlay is ignored");
+    assert.match(gi, /^\.faffrc\.\*\.yaml$/m, "overlay glob is ignored");
     assert.doesNotMatch(gi, /^\.faffrc\.yaml$/m, "base is not ignored on a fresh bootstrap");
+    const lines = gi.split("\n");
+    const gIdx = lines.indexOf(".faffrc.*.yaml");
+    const nIdx = lines.indexOf("!.faffrc.example.yaml");
+    assert.ok(gIdx !== -1 && nIdx !== -1 && gIdx < nIdx, "the negation line must follow the glob line");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -41,7 +51,7 @@ test("append-only: an existing `.faffrc.yaml` ignore line is NEVER removed", () 
     const gi = readFileSync(join(dir, ".gitignore"), "utf8");
     assert.match(gi, /^\.faffrc\.yaml$/m, "pre-existing `.faffrc.yaml` line is preserved (never removed)");
     assert.match(gi, /^node_modules\/$/m, "unrelated lines preserved");
-    assert.match(gi, /^\.faffrc\.local\.yaml$/m, "the overlay is appended");
+    assert.match(gi, /^\.faffrc\.\*\.yaml$/m, "the overlay glob is appended (FAFF-548)");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

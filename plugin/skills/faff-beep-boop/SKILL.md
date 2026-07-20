@@ -316,7 +316,7 @@ Runs immediately **after** step 11's `runcheck` (completeness) and **before** wr
 
 1. **Assemble `ReconcileInput`.** For every ledger outcome `== "shipped"`, read `<run-dir>/<issue>/merge-record.json` (written by `merge-gate` on the merge-ok path) as `recorded`, and observe the **live** forge (`gh pr view <pr> --json state,headRefOid`) for `observed: {pr_merged: state == "MERGED", merged_head_sha: headRefOid}`. **Observe `headRefOid`, NOT `mergeCommit`** — `recorded.head_sha` is the PR **head** sha `merge-gate` pinned with `--match-head-commit` (the same `headRefOid`); comparing it against the squash/merge **commit** sha would false-positive a `phantom-merge` on every clean squash merge (the forge always mints a new commit sha for a squash), so the comparison must be head-against-head. An unreadable/missing record is passed through as `recorded: null` — never silently dropped or assumed-fine (the reconcile core fails it closed to a divergence). For siblings, re-read step 4's `<run-dir>/sibling-baseline.json` entries **live** (their current state-category) into `end_state_terminal`, carrying `admitted` as membership in the run's final `admitted[]` (so a later-wave chain-unlock is excluded).
 
-   **Git-only mode (FAFF-526 — no pushable remote; `merge-record.json.pr` is `0`, the null-coerced sentinel).** There is no forge to call `gh pr view` against, so gather `observed` from **git ground truth** instead: `observed.pr_merged := git merge-base --is-ancestor <recorded.head_sha> <base>` exits 0 (the base-resolution is the same one `merge-gate --local` and the `merge-fence` matcher use), and `observed.merged_head_sha := recorded.head_sha` when that check succeeds (else omit it — an unprovable local merge stays fail-closed to `claimed-shipped-unmerged`, identical to an unreadable forge read). `reconcileShipped` then classifies **consistent** exactly as for a PR merge — no `reconcile.js` change; only this evidence-gathering half branches.
+   **Git-only mode (FAFF-526 — no pushable remote; `merge-record.json.pr` is `0`, the null-coerced sentinel).** There is no forge to call `gh pr view` against, so gather `observed` from **git ground truth** instead: `observed.pr_merged := git merge-base --is-ancestor <recorded.head_sha> <base>` exits 0 (the base-resolution is the same one `merge-gate --local` and the `merge-fence` matcher use), and `observed.merged_head_sha := recorded.head_sha` when that check succeeds (else omit it — an unprovable local merge stays fail-closed to `claimed-shipped-unmerged`, identical to an unreadable forge read). `reconcileShipped` then classifies **consistent** exactly as for a PR merge — no `reconcile.js` change; only this evidence-gathering half branches. **Superseded evidence (FAFF-571):** for every ledger outcome `== "superseded"`, read `<run-dir>/<issue>/supersession.json` into `recorded` (unreadable/missing → `recorded: null`, same fail-closed treatment as a missing `merge-record.json`), and observe each `recorded.superseded_by` ticket's live terminal state into `observed.all_delivered` (tracker: Done/Cancelled; git-only: best-effort `git log --grep` / `git merge-base --is-ancestor` presence on `main`, fail-closed on unprovable) — append `{issue, recorded, observed}` to `ReconcileInput.superseded[]`. Nothing writes `supersession.json` today (producer is sibling FAFF-573); until it ships every `superseded` outcome is hand-authored, so this keeps the fail-closed path exercised.
 2. **Pipe to the pure gate:** `faff reconcile --run-dir "$run_dir" --level <L1..L4> --json` (stdin = the assembled `ReconcileInput`; the CLI stamps its own `level` from the flag). Heartbeat `faff heartbeat "$run_dir"` before/after — this step touches the forge and can be the longest quiet sub-step at run-end.
 3. **Route on `disposition`:**
    - **`pass`** (exit 0, `consistent:true`) — proceed to the run summary unchanged.
@@ -327,7 +327,7 @@ Runs immediately **after** step 11's `runcheck` (completeness) and **before** wr
 
 ### 11.6. Post-merge verification annotations (FAFF-385 — informational, never blocking)
 
-Runs alongside step 11.5. For every ledger outcome `== "shipped"`, read `<run-dir>/<issue>/post-merge-verification.json` (written by `faff post-merge-check` at `faff-graft` Step 10 — never re-invoked here, read-only); absent (check skipped/off, or a pre-FAFF-385 ledger) → no entry. `verified-fail` → append `{issue, pr, merge_sha, command}` to `post_merge_verification_failures` (the tracker comment + discovered-scope entry were already filed at Step 10 — this is only the run-level roll-up); `unverified` → append the issue id to `post_merge_verification_unverified`; `verified-ok` → no entry. Both are **additive annotations, never a bucket** — `outcomes` stays `shipped` either way and `runcheck`'s invariant is untouched; this step only reads and annotates, mirroring `runcheck`'s own no-mutation posture over the ledger it audits.
+Runs alongside step 11.5. For every ledger outcome `== "shipped"`, read `<run-dir>/<issue>/post-merge-verification.json` (written by `faff post-merge-check` at `faff-graft` Step 10 — never re-invoked here, read-only); absent (check skipped/off, or a pre-FAFF-385 ledger) → no entry. `verified-fail` → append `{issue, pr, merge_sha, command}` to `post_merge_verification_failures` (the tracker comment + discovered-scope entry were already filed at Step 10 — this is only the run-level roll-up); `unverified` → append the issue id to `post_merge_verification_unverified`; `verified-ok` → no entry. Both are **additive annotations, never a bucket** — `outcomes` stays `shipped` either way and `runcheck`'s invariant is untouched; this step only reads and annotates, mirroring `runcheck`'s own no-mutation posture over the ledger it audits. `superseded` is deliberately outside this roll-up (FAFF-571) and the L4 holdout roll-up too — both iterate `shipped` only, and a `superseded` issue merged no code this run.
 
 ## Run ledger (mechanical completeness)
 
@@ -348,7 +348,7 @@ beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger
 ```
 
 - **`admitted`** — every issue the verdict gate admits to the build queue (`fire-and-forget` + `likely-fire`). Append at step 4 (build queue assembly) and at every wave re-entry re-assembly (step 8.4). Explicit-list mode appends each admitted issue the same way.
-- **`outcomes`** — written the moment an issue reaches a terminal bucket: `shipped`, `pr-open`, `parked`, `errored`, `routed-out` (routed out by the verdict gate at step 4), or `unreached-budget` (admitted but a budget flag fired before dispatch). These are exactly the run-summary buckets — the ledger is the structured twin of the summary. **`outcomes[issue]` MUST be a bare terminal-state string** (FAFF-554) — never an object. `outcomes` is a *completeness* ledger, not a detail store: `runcheck` reads each value as a string and checks it against the terminal-state vocabulary, so a `{ state: "shipped", ... }` detail object is a genuine authoring error, not an alternate shape — it fails `runcheck` (still exit 2) with a diagnostic naming `outcome_details` (below) as the correct home for that detail, never the useless `<issue>=[object Object]`.
+- **`outcomes`** — written the moment an issue reaches a terminal bucket: `shipped`, `pr-open`, `parked`, `errored`, `routed-out` (routed out by the verdict gate at step 4), `unreached-budget` (admitted but a budget flag fired before dispatch), or `superseded` (FAFF-571 — the issue reached Done because its deliverables were already merged to `main` by *other* tickets; this run built nothing and opened no PR for it). These are exactly the run-summary buckets — the ledger is the structured twin of the summary. **`outcomes[issue]` MUST be a bare terminal-state string** (FAFF-554) — never an object. `outcomes` is a *completeness* ledger, not a detail store: `runcheck` reads each value as a string and checks it against the terminal-state vocabulary, so a `{ state: "shipped", ... }` detail object is a genuine authoring error, not an alternate shape — it fails `runcheck` (still exit 2) with a diagnostic naming `outcome_details` (below) as the correct home for that detail, never the useless `<issue>=[object Object]`.
 
 The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admitted issue with no recorded outcome is an undispatched queue, not a finished run. Rich per-issue detail (why/how an issue reached its outcome — merged head, reviews, tests, absorbed epics, ...) belongs instead in the optional top-level **`outcome_details`** map (FAFF-554, `{issue-id: object}`, free-form, no fixed schema) — mirrors `review_adversarial_skipped` below: an orthogonal annotation, not a bucket, **outside** the completeness invariant (`auditLedger` never reads it), no ledger migration needed, absent by default.
 
@@ -558,9 +558,7 @@ repeat-parked ⚠ (N)
 - ISSUE-DD  [synthesis gloss] — parked N runs same root cause: [class]
 
 ## Resolve-attempts (appetite high/full)
-- Attempted: N
-- Succeeded (proceeded with audit trail): N
-- Failed (parked): N
+- Attempted: N — Succeeded (proceeded with audit trail): N — Failed (parked): N
 
 ### Proceeded on medium confidence: N
 > These shipped autonomously on an inferred answer. The audit-trail comment is on each PR — review before merge if you disagree; faff re-parks on a dissenting comment. Full record in `.faff/calibration/appetite-decisions/`.
@@ -575,6 +573,9 @@ repeat-parked ⚠ (N)
 ## Shipped (post-merge verification flagged): N (FAFF-385 — rendered only when either ledger array is non-empty)
 - ISSUE-XX: title (PR #nnn) — merged main HEAD failed its own declared test command on re-run: `<command>` (sha `<short-sha>`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)
 - ISSUE-YY: title (PR #nnn) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)
+
+## Superseded (delivered by prior tickets): N (FAFF-571 — rendered only when ≥1 `superseded` outcome)
+- ISSUE-XX: title — deliverables already on `main` via ISSUE-AA, ISSUE-BB (supersession: `.faff/runs/<run-id>/ISSUE-XX/supersession.json`)
 
 ## PR open for human review: N
 - ISSUE-YY: title (PR #nnn) — reason: CI failing on e2e; AC3 requires visual review
@@ -597,7 +598,7 @@ repeat-parked ⚠ (N)
 ## Ground-truth divergences: N (rendered only when step 11.5 found ≥1): warn (≤L3) / ESCALATED (L4)
 - [phantom-merge] ISSUE-XX: shipped on abc123 but forge merged def456 (rollback: `git revert def456`)
 - [claimed-shipped-unmerged] ISSUE-YY: shipped claim with no merge on record/forge
-- [unowned-sibling-mutation] ISSUE-ZZ: non-admitted spec-referenced sibling moved to a terminal state during the run
+- [unowned-sibling-mutation] ISSUE-ZZ: non-admitted spec-referenced sibling moved to a terminal state during the run (classes also include `superseded-unproven`, FAFF-571)
 
 ## Inferred build-order deps: N (run-local — no tracker write)
 - ISSUE-E ← ISSUE-D (consumer ← producer; firm, paraphrase): serialised D-before-E — E **Assumes:** a rate limiter; D produces module `rate_limiter`
@@ -608,14 +609,12 @@ repeat-parked ⚠ (N)
 
 ## Discovered scope (execution-reported): N filed
 - ISSUE-XX → filed SHF-NN (downstream): "title" — discovered during build, Backlog/`faff-chain-gap-fill` (next run preps it)
-- Deduped (already tracked): N
-- Surfaced only (vague, or low appetite): N
+- Deduped (already tracked): N — Surfaced only (vague, or low appetite): N
   - ISSUE-YY: "logging inconsistent across handlers" — vague, not filed
 
 ## Human follow-ups: N
 - ISSUE-XX: delete local branch `feat/issue-xx` (cleanup skipped — shell was inside worktree)
-- ISSUE-YY: remove worktree `~/.faff/worktrees/faff/issue-yy` (cleanup skipped — permission denied)
-- ISSUE-ZZ: bump tracker status to Done (MCP returned 5xx during post-merge update)
+- ISSUE-YY: remove worktree `~/.faff/worktrees/faff/issue-yy` (cleanup skipped — permission denied); ISSUE-ZZ: bump tracker status to Done (MCP returned 5xx during post-merge update)
 
 ## Prep queue summary (full mode only)
 - Refreshed: N
@@ -632,6 +631,7 @@ The **Human follow-ups** section captures post-merge housekeeping that was skipp
 **The outcome buckets are exhaustive.** Every issue touched by the run lands in exactly one of:
 
 - **Shipped** — auto-merged. Rendered under **one** of these subsections: `## Shipped (auto-merged)` (the norm); `## Shipped (adversarial review skipped — chain outage)` when the issue's id is in `review_adversarial_skipped` (it shipped, but with the second-opinion chain in a full-chain outage); or `## Shipped (post-merge verification flagged)` (FAFF-385) when the id is in `post_merge_verification_failures` (merged main HEAD failed its own declared test command on re-run; a tracker comment + discovered-scope entry were filed, **never** reverted or reopened) or `post_merge_verification_unverified` (no verdict obtainable — not a defect). All are the same `shipped` outcome bucket — each split is a rendering that flags a gap or a caveat, **not** a new bucket — so an affected issue appears in exactly one of these subsections and is **never** duplicated across them.
+- **Superseded** (FAFF-571) — a **distinct** terminal bucket, never folded into Shipped: deliverables already on `main` via *other* tickets, so this run built nothing and opened no PR. Rendered under `## Superseded (delivered by prior tickets)`, citing the delivering ids; excluded by construction from the post-merge/holdout roll-ups (both iterate `shipped` only).
 - **PR open for human review**
 - **Parked** — rendered under `## Parked` (the norm) **or** `## Awaiting review (adversarial outage)` (FAFF-403) when the id is in `review_outage_pending` — same `parked` bucket, the split only flags a resumable hold vs. an ordinary human park.
 - **Errored**

@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 
-const DIVERGENCE_CLASSES = ["phantom-merge", "claimed-shipped-unmerged", "unowned-sibling-mutation"];
+const DIVERGENCE_CLASSES = ["phantom-merge", "claimed-shipped-unmerged", "unowned-sibling-mutation", "superseded-unproven"];
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 // PURE: classify one `shipped` ledger outcome against its recorded merge-record (written by
@@ -45,6 +45,35 @@ function reconcileShipped(s) {
       issue,
       detail: `shipped on ${recorded.head_sha} but forge merged ${observed.merged_head_sha}`,
       rollback_proposal: observed.merged_head_sha ? `git revert ${observed.merged_head_sha}` : null,
+    };
+  }
+  return null;
+}
+
+// PURE: classify one `superseded` ledger outcome (FAFF-571) against its recorded supersession
+// evidence (supersession.json, written by a future producer — FAFF-573) + the orchestrator's
+// live-observed delivery state of the named delivering tickets. Fail-closed, mirroring
+// reconcileShipped: absence of proof is a divergence, never a silent pass. Consistent iff the
+// evidence names >=1 delivering ticket AND the orchestrator observed all of them delivered.
+function reconcileSuperseded(s) {
+  const issue = s && s.issue;
+  const recorded = s && s.recorded ? s.recorded : null;
+  const observed = (s && s.observed) || {};
+  if (!recorded || !Array.isArray(recorded.superseded_by) || recorded.superseded_by.length === 0
+    || !recorded.superseded_by.every((t) => typeof t === "string" && t !== "")) {
+    return {
+      class: "superseded-unproven",
+      issue,
+      detail: "superseded claim with no/invalid supersession.json evidence",
+      rollback_proposal: null,
+    };
+  }
+  if (observed.all_delivered !== true) {
+    return {
+      class: "superseded-unproven",
+      issue,
+      detail: "named delivering tickets not verifiably delivered on main",
+      rollback_proposal: null,
     };
   }
   return null;
@@ -79,6 +108,10 @@ function reconcileCore(input) {
     const d = reconcileSibling(sib);
     if (d) divergences.push(d);
   }
+  for (const s of (Array.isArray(input.superseded) ? input.superseded : [])) {
+    const d = reconcileSuperseded(s);
+    if (d) divergences.push(d);
+  }
   const consistent = divergences.length === 0;
   // Level gating: L4 is the only level that runs truly unattended, so it is the only level a
   // false green is unrecoverable by a watching human — hard-block (needs-human). ≤L3 surfaces a
@@ -105,12 +138,20 @@ function validateReconcileInput(input) {
   if (!LEVELS.includes(input.level)) return `level ${JSON.stringify(input.level)} not in {${LEVELS.join(",")}}`;
   if (input.shipped !== undefined && !Array.isArray(input.shipped)) return "shipped must be an array";
   if (input.siblings !== undefined && !Array.isArray(input.siblings)) return "siblings must be an array";
+  if (input.superseded !== undefined && !Array.isArray(input.superseded)) return "superseded must be an array";
   const isNamedEntry = (e) => e !== null && typeof e === "object" && !Array.isArray(e) && typeof e.issue === "string" && e.issue !== "";
   for (const [i, s] of (Array.isArray(input.shipped) ? input.shipped : []).entries()) {
     if (!isNamedEntry(s)) return `shipped[${i}] must be an object with a non-empty string "issue"`;
   }
   for (const [i, sib] of (Array.isArray(input.siblings) ? input.siblings : []).entries()) {
     if (!isNamedEntry(sib)) return `siblings[${i}] must be an object with a non-empty string "issue"`;
+  }
+  // FAFF-571: element-shape validation mirrors `shipped[...]` exactly — only `issue` is
+  // required (non-empty string); `recorded`/`observed` are deliberately NOT required, since
+  // a missing `recorded` is the fail-closed path (-> superseded-unproven) and must reach
+  // the core, exactly as a missing `shipped[].recorded` does.
+  for (const [i, s] of (Array.isArray(input.superseded) ? input.superseded : []).entries()) {
+    if (!isNamedEntry(s)) return `superseded[${i}] must be an object with a non-empty string "issue"`;
   }
   return null;
 }
@@ -206,6 +247,22 @@ const RECONCILE_SELFTEST_CASES = [
       siblings: [{ issue: "FAFF-B", start_state_terminal: false, end_state_terminal: true, admitted: false }],
     },
     { consistent: false, disposition: "needs-human", divergenceClasses: ["claimed-shipped-unmerged", "unowned-sibling-mutation"] }],
+  // FAFF-571 — superseded (premise-supersession terminal outcome).
+  ["superseded, evidence + all delivered → consistent",
+    { level: "L4", superseded: [{ issue: "FAFF-551", recorded: { issue: "FAFF-551", superseded_by: ["FAFF-556", "FAFF-557", "FAFF-559"] }, observed: { all_delivered: true } }] },
+    { consistent: true, disposition: "pass", divergenceClasses: [] }],
+  ["superseded, no supersession.json (recorded null) → superseded-unproven (L4 needs-human)",
+    { level: "L4", superseded: [{ issue: "FAFF-551", recorded: null, observed: { all_delivered: false } }] },
+    { consistent: false, disposition: "needs-human", divergenceClasses: ["superseded-unproven"] }],
+  ["superseded, empty superseded_by → superseded-unproven",
+    { level: "L4", superseded: [{ issue: "FAFF-551", recorded: { issue: "FAFF-551", superseded_by: [] }, observed: { all_delivered: true } }] },
+    { consistent: false, disposition: "needs-human", divergenceClasses: ["superseded-unproven"] }],
+  ["superseded, observed.all_delivered false → superseded-unproven",
+    { level: "L4", superseded: [{ issue: "FAFF-551", recorded: { issue: "FAFF-551", superseded_by: ["FAFF-556"] }, observed: { all_delivered: false } }] },
+    { consistent: false, disposition: "needs-human", divergenceClasses: ["superseded-unproven"] }],
+  ["L3 superseded-unproven → disposition warn, not needs-human",
+    { level: "L3", superseded: [{ issue: "FAFF-551", recorded: null, observed: { all_delivered: false } }] },
+    { consistent: false, disposition: "warn", divergenceClasses: ["superseded-unproven"] }],
 ];
 
 function reconcileSelftest() {
@@ -235,6 +292,7 @@ function reconcileSelftest() {
   check("validate: bad level → error", !!validateReconcileInput({ level: "L9" }));
   check("validate: shipped not an array → error", !!validateReconcileInput({ level: "L3", shipped: "nope" }));
   check("validate: siblings not an array → error", !!validateReconcileInput({ level: "L3", siblings: "nope" }));
+  check("validate: superseded not an array → error (FAFF-571)", !!validateReconcileInput({ level: "L3", superseded: "nope" }));
   check("validate: well-formed → no error", validateReconcileInput({ level: "L3", shipped: [], siblings: [] }) === null);
   check("validate: level-only well-formed (shipped/siblings optional) → no error", validateReconcileInput({ level: "L3" }) === null);
   // Element-shape validation (FAFF-397 review — no degenerate issue:undefined divergence).
@@ -246,8 +304,16 @@ function reconcileSelftest() {
   // A well-formed shipped entry missing `recorded` is NOT rejected — it is the spec's fail-closed
   // path (→ claimed-shipped-unmerged divergence), so validation must let it reach the core.
   check("validate: shipped entry missing recorded (fail-closed path) → no error", validateReconcileInput({ level: "L3", shipped: [{ issue: "FAFF-A", observed: { pr_merged: false } }] }) === null);
+  // FAFF-571: superseded[] element-shape validation mirrors shipped[] exactly.
+  check("validate: superseded[null] → error", !!validateReconcileInput({ level: "L3", superseded: [null] }));
+  check("validate: superseded entry with no issue → error", !!validateReconcileInput({ level: "L3", superseded: [{ recorded: null, observed: {} }] }));
+  check("validate: superseded entry with empty issue → error", !!validateReconcileInput({ level: "L3", superseded: [{ issue: "" }] }));
+  check("validate: superseded entry that is a string → error", !!validateReconcileInput({ level: "L3", superseded: ["FAFF-551"] }));
+  // A well-formed superseded entry missing `recorded` is NOT rejected — it is the fail-closed
+  // path (→ superseded-unproven divergence), so validation must let it reach the core.
+  check("validate: superseded entry missing recorded (fail-closed path) → no error", validateReconcileInput({ level: "L3", superseded: [{ issue: "FAFF-551", observed: { all_delivered: false } }] }) === null);
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${RECONCILE_SELFTEST_CASES.length + 16} cases, ${fail} failed)`);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${RECONCILE_SELFTEST_CASES.length + 22} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
@@ -261,5 +327,6 @@ module.exports = {
   reconcileSelftest,
   reconcileSibling,
   reconcileShipped,
+  reconcileSuperseded,
   validateReconcileInput,
 };

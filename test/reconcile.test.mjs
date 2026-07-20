@@ -180,3 +180,33 @@ test("integration smoke test: matching merge-record.json + observed head sha →
   assert.equal(badResult.divergences[0].class, "phantom-merge");
   assert.equal(badResult.disposition, "needs-human");
 });
+
+// --- FAFF-571: superseded (premise-supersession terminal outcome) — the spec §8 smoke test ---
+test("FAFF-571 smoke test: superseded with valid evidence + observed delivery → consistent, pass", () => {
+  const input = JSON.stringify({
+    superseded: [{
+      issue: "FAFF-551",
+      recorded: {
+        issue: "FAFF-551", superseded_by: ["FAFF-556", "FAFF-557", "FAFF-559"],
+        delivered_surface: "x", closed_at: "2026-07-20T07:04:39Z", run_id: "r",
+      },
+      observed: { all_delivered: true },
+    }],
+  });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
+  assert.equal(code, 0);
+  const result = JSON.parse(stdout);
+  assert.equal(result.consistent, true);
+  assert.equal(result.disposition, "pass");
+});
+
+test("FAFF-571 smoke test: superseded with recorded:null → superseded-unproven divergence, needs-human at L4", () => {
+  const input = JSON.stringify({ superseded: [{ issue: "FAFF-551", recorded: null }] });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
+  assert.equal(code, 1);
+  const result = JSON.parse(stdout);
+  assert.equal(result.consistent, false);
+  assert.equal(result.disposition, "needs-human");
+  assert.equal(result.divergences[0].class, "superseded-unproven");
+  assert.equal(result.divergences[0].issue, "FAFF-551");
+});

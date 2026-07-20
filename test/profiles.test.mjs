@@ -44,8 +44,8 @@ test("profiles list: no override -> prints DELIVERY_PROFILE (today's exact vocab
     const r = run(dir, ["profiles", "list", "--json"]);
     assert.equal(r.code, 0);
     const p = JSON.parse(r.out);
-    assert.deepEqual(p.terminal_states, ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"]);
-    assert.deepEqual(p.ledger_outcomes, ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer"]);
+    assert.deepEqual(p.terminal_states, ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "superseded"]);
+    assert.deepEqual(p.ledger_outcomes, ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded"]);
     assert.deepEqual(p.outcome_required_types, ["issue-outcome"]);
     assert.equal(p.sentry.thresholds.thrash_n, 3);
     assert.equal(p.sentry.thresholds.stall_window_secs, 900);

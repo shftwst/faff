@@ -170,3 +170,49 @@ test("the non-hook human report is unchanged by the gate (still exits 3, names t
     assert.match(r.out, /UNDISPATCHED \(1\): X/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// FAFF-554 — outcomes[issue] MUST be a bare terminal-state string; a rich detail
+// object is still invalid (option (a): no schema widening), but the diagnostic
+// now names the outcome_details sidecar instead of stringifying to the useless
+// "[object Object]". outcome_details itself is inert to the completeness gate.
+
+test("FAFF-554: an object-valued outcome is INVALID, names outcome_details (not [object Object]), and exits 2", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"],
+    outcomes: { X: { state: "shipped", merged_head: "deadbeef" } },
+    owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["runcheck", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 2, "an object-valued outcome stays invalid — no schema widening");
+    assert.match(r.out, /INVALID outcomes:/);
+    assert.match(r.out, /outcome_details/, "the diagnostic points the author at the sidecar");
+    assert.doesNotMatch(r.out, /\[object Object\]/, "the stringified-object diagnostic is gone");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-554: an unknown-vocabulary STRING outcome stays byte-unchanged — invalid `<issue>=<value>`, exit 2", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: { X: "bogus" },
+    owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["runcheck", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 2);
+    assert.match(r.out, /INVALID outcomes: X=bogus/, "unknown-string diagnostic is unchanged by the FAFF-554 non-string handling");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-554: valid string outcomes + a populated outcome_details sidecar is clean (exit 0) — sidecar is inert", () => {
+  const { root, runDir } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"],
+    outcomes: { X: "shipped" },
+    outcome_details: { X: { state: "shipped", merged_head: "deadbeef", satisfies: ["AC1"] } },
+    owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["runcheck", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "outcome_details never affects clean / exit code");
+    assert.match(r.out, /clean: every admitted issue reached a terminal outcome\./);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

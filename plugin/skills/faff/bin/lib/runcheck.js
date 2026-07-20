@@ -35,8 +35,21 @@ function auditLedger(data, label, profile = activeProfile()) {
   if (typeof outcomes !== "object" || Array.isArray(outcomes)) throw new Error("outcomes must be an object");
   const undispatched = admitted.filter((i) => !(i in outcomes));
   const validStates = new Set(profile.terminal_states);
+  // FAFF-554: outcomes[issue] MUST be a terminal-state string — rich per-issue detail
+  // belongs in the additive outcome_details sidecar (never read here; it is not
+  // `outcomes`, so it never enters this invariant). A non-string value (e.g. a run
+  // author's `{ state, merged_head, ... }` detail object) is still invalid — that
+  // authoring shape is rejected on purpose (FAFF-554 keeps option (a): no schema
+  // widening) — but the diagnostic now names the sidecar instead of stringifying the
+  // object to the useless "[object Object]".
   const invalid = [...new Set(Object.entries(outcomes)
-    .filter(([, s]) => !validStates.has(s)).map(([i, s]) => `${i}=${s}`))].sort();
+    .map(([i, s]) => {
+      if (typeof s !== "string") {
+        return `${i}=<non-string outcome; record rich detail in outcome_details, keep outcomes[${i}] a terminal-state string>`;
+      }
+      return validStates.has(s) ? null : `${i}=${s}`;
+    })
+    .filter((s) => s !== null))].sort();
   return {
     run_id: data.run_id ?? label,
     admitted, undispatched, invalid_outcomes: invalid,

@@ -795,9 +795,13 @@ test("FAFF-558: `budget baseline` fresh write populates BOTH tokens_at_start_by_
     assert.equal(out.reason, "fresh");
     assert.equal(out.tokens_at_start, 7000);
 
+    // FAFF-552: the baseline TRIPLE — measure_session_id is persisted alongside.
+    assert.equal(out.measure_session_id, sid);
+
     const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
     assert.equal(persisted.budget.tokens_at_start, 7000);
     assert.deepEqual(persisted.budget.tokens_at_start_by_model_class, { "claude-opus-4-8": { input: 5000, output: 0, cache_write: 0, cache_read: 2000 } });
+    assert.equal(persisted.budget.measure_session_id, sid, "FAFF-552: the effective measuring session must be persisted");
   } finally { f.cleanup(); }
 });
 
@@ -831,18 +835,46 @@ test("FAFF-558: `budget baseline` is WRITE-ONCE — a second invocation after th
   } finally { f.cleanup(); }
 });
 
-test("FAFF-558: `budget baseline` with no resolvable transcript writes nothing and degrades honestly (reason:estimate-degraded), exit 0, never a crash", () => {
+test("FAFF-552: `budget baseline` with no resolvable transcript records the (null) session + a zero baseline (reason:estimate-degraded), exit 0, never a crash", () => {
   const f = fixture({ rc: null, ledger: baseLedger() });
   try {
     // No CLAUDE_CODE_SESSION_ID / transcript directory at all.
     const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root]);
     assert.equal(r.code, 0, r.err);
     const out = JSON.parse(r.out);
-    assert.equal(out.baseline_written, false);
+    // FAFF-552: the field must be PRESENT even when the baseline can't be measured
+    // yet, so a later `check` prefers the persisted session over a drifted ambient.
+    assert.equal(out.baseline_written, true);
     assert.equal(out.reason, "estimate-degraded");
+    assert.equal(out.measure_session_id, null);
 
     const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
-    assert.equal(persisted.budget, undefined, "nothing should be written on an estimate-degraded read");
+    assert.equal(persisted.budget.measure_session_id, null, "the owning session is recorded (null ⇒ no flag/ambient)");
+    assert.deepEqual(persisted.budget.tokens_at_start_by_model_class, {}, "a zero per-model baseline is written");
+    assert.equal(persisted.budget.tokens_at_start, 0, "a zero scalar baseline is written");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-552: `budget baseline` estimate-degraded with a --session-id records that owning session (write-once on it thereafter)", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    // A real owning session is known at run start but its transcript isn't yet
+    // resolvable — the beep-boop path always passes --session-id, so the session
+    // must be pinned even here.
+    const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", "sess-known-owner"]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.baseline_written, true);
+    assert.equal(out.reason, "estimate-degraded");
+    assert.equal(out.measure_session_id, "sess-known-owner");
+
+    const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(persisted.budget.measure_session_id, "sess-known-owner");
+
+    // Write-once: a second call is a strict no-op keyed on the persisted session.
+    const r2 = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", "sess-known-owner"]);
+    assert.equal(r2.code, 0, r2.err);
+    assert.equal(JSON.parse(r2.out).reason, "already-set");
   } finally { f.cleanup(); }
 });
 
@@ -870,6 +902,57 @@ test("FAFF-558: `budget baseline` is deterministic — same transcript state + s
     } finally { f.cleanup(); }
   }
   assert.deepEqual(measurements[0], measurements[1]);
+});
+
+// ===========================================================================
+// FAFF-552 — `budget baseline` persists the run's OWNING measuring session
+// (measure_session_id), the field an L3/prose-minted run previously never
+// recorded, so `check`'s owning-session precedence has something to prefer over
+// a drifted ambient session after a mid-run compaction. Write-once now keys on
+// measure_session_id (the field a stray re-invocation must never reset).
+// ===========================================================================
+
+test("FAFF-552: `budget baseline` with NO --session-id captures measure_session_id from the ambient CLAUDE_CODE_SESSION_ID", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const sid = "sess-ambient-owner";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 4000 } }],
+    });
+    // No --session-id flag — the ambient session is the effective owning session.
+    const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.baseline_written, true);
+    assert.equal(out.measure_session_id, sid);
+    assert.equal(out.tokens_at_start, 4000);
+
+    const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(persisted.budget.measure_session_id, sid, "the ambient session must be persisted as the owning session");
+    assert.equal(persisted.budget.tokens_at_start, 4000);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-552: `budget baseline` is write-once on measure_session_id — a ledger already carrying it (even with NO per-model map) is a strict no-op", () => {
+  // A ledger that recorded its owning session but no per-model baseline (e.g. a
+  // prior estimate-degraded snapshot) must never be re-snapshotted against a
+  // now-resolvable, larger transcript — that would re-introduce the over-count.
+  const f = fixture({ rc: null, ledger: baseLedger({ budget: { measure_session_id: "sess-owner" } }) });
+  try {
+    const sid = "sess-owner";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 999999999 } }],
+    });
+    const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    assert.equal(JSON.parse(r.out).reason, "already-set");
+
+    const persisted = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(persisted.budget.measure_session_id, "sess-owner");
+    assert.equal(persisted.budget.tokens_at_start, undefined, "no baseline may be written over an already-pinned session");
+  } finally { f.cleanup(); }
 });
 
 // ===========================================================================

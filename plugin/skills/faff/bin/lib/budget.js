@@ -850,13 +850,22 @@ function cmdBudget(args) {
   return 0;
 }
 
-// FAFF-558: `faff budget baseline` — the deterministic, write-once counterpart to
-// the prose baseline hand-write beep-boop used to do at run start. Snapshots the
-// run-start per-model token baseline (tokens_at_start_by_model_class) + its
-// derived scalar (tokens_at_start) into the ledger EXACTLY ONCE per run — a
-// re-invocation after the field is already set is a no-op BY CONSTRUCTION
+// FAFF-558/FAFF-552: `faff budget baseline` — the deterministic, write-once
+// counterpart to the prose baseline hand-write beep-boop used to do at run start.
+// Snapshots the run-start per-model token baseline (tokens_at_start_by_model_class)
+// + its derived scalar (tokens_at_start) AND persists the run's owning measuring
+// session (measure_session_id, FAFF-552) into the ledger EXACTLY ONCE per run — a
+// re-invocation after the baseline is already set is a no-op BY CONSTRUCTION
 // (compaction safety: a post-compaction re-snapshot would measure against the
 // enlarged transcript and silently zero out real accumulated spend).
+//
+// FAFF-552: measure_session_id is the field an L3/prose-minted run (the exact
+// git-only beep-boop scenario that reported the over-count) previously never
+// recorded — the L4 mint wrote it (lights-out.js) but this prose-mint path did
+// not, so `check`'s owning-session precedence had nothing to prefer over a drifted
+// ambient session after a mid-run compaction. Persisting it here closes that gap;
+// the write-once guard now keys on it (retaining the per-model-map guard so a
+// legacy/mint baseline is never clobbered).
 //
 // Never a fault exit for a legitimate "nothing to write" outcome (already-set,
 // estimate-degraded) — only a genuinely unresolvable run-dir is a usage error
@@ -865,7 +874,16 @@ function cmdBudgetBaseline(args) {
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   const root = get("--root") || findRoot();
   const sessionIdFlag = get("--session-id");
-  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
+  // FAFF-552: the EFFECTIVE measuring session persisted as this run's owning
+  // session — the --session-id flag, else the ambient CLAUDE_CODE_SESSION_ID
+  // (the write-side twin of `check`'s read-side precedence, minus the ledger
+  // field this very write populates). Overlaid only onto the throwaway
+  // effectiveEnv handed to the measure walk below — never process.env — the
+  // identical non-leak posture to `check`. null (neither flag nor ambient) is
+  // stored verbatim and read back identically to absent (both falsy → `check`
+  // falls through to ambient), matching the L4 mint's own `|| null`.
+  const session = sessionIdFlag || process.env.CLAUDE_CODE_SESSION_ID || null;
+  const effectiveEnv = session ? { ...process.env, CLAUDE_CODE_SESSION_ID: session } : process.env;
 
   // Step 1-2: resolve the ledger identically to `check`. Any fault (explicit run
   // named but ledger absent/unreadable) OR a genuinely empty surface (no run-dir
@@ -884,55 +902,70 @@ function cmdBudgetBaseline(args) {
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
 
   // Step 4 (cheap early check): the step-1/2 copy already tells us whether the
-  // per-model map is set — skip the expensive transcript walk below when it
-  // plainly already is, without a second read. This is an OPTIMISATION, not the
+  // baseline is set — skip the expensive transcript walk below when it plainly
+  // already is, without a second read. This is an OPTIMISATION, not the
   // authoritative guard (the copy can be stale) — the real, load-bearing
   // write-once decision is made atomically at step 8 against a FRESH read taken
   // immediately before the write, closing the TOCTOU window a separate
   // check-then-later-write pair would leave open between two concurrent
   // `budget baseline` invocations sharing the same owner epoch (the fence below
   // only protects against a DIFFERENT epoch/session, e.g. a resume takeover).
-  if (isPlainObject(ledger.budget && ledger.budget.tokens_at_start_by_model_class)) {
+  if (baselineAlreadyWritten(ledger.budget)) {
     console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
     return 0;
   }
 
   // Step 5-6: the one transcript walk (shared with `check`/mint). No resolvable
-  // transcript ⇒ estimate-degraded: write nothing, report it, never crash.
+  // transcript ⇒ estimate-degraded: FAFF-552 STILL records the owning session
+  // with a zero baseline (below) so a later `check` prefers the persisted session
+  // over a drifted ambient — the field must be present even when the baseline
+  // can't yet be measured. The run meters; never a crash, never a non-zero exit
+  // a caller could misread as a breach.
   const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
-  if (measured.source !== "transcript") {
-    console.log(JSON.stringify({ baseline_written: false, reason: "estimate-degraded" }));
-    return 0;
-  }
+  const degraded = measured.source !== "transcript";
 
-  // Step 7: derive the per-model map + its scalar total (byModelClassTotal is
-  // the SAME helper the read-side derivation above uses — one total, never forked).
-  const byModel = Object.fromEntries(measured.by_model);
-  const scalar = byModelClassTotal(byModel);
+  // Step 7: on a transcript walk, derive the per-model map + its scalar total
+  // (byModelClassTotal is the SAME helper the read-side derivation uses — one
+  // total, never forked); estimate-degraded records a zero baseline ({}/0).
+  const byModel = degraded ? {} : Object.fromEntries(measured.by_model);
+  const scalar = degraded ? 0 : byModelClassTotal(byModel);
 
   // Step 8: the ONE authoritative write-once check + atomic re-read-then-merge
   // write, both against the SAME fresh read — re-read here (never reuse the
   // step-1/2 copy; readLedger throws on a genuine I/O failure rather than
   // silently degrading to an empty ledger, so a race that deletes the ledger
   // between reads surfaces loudly instead of writing a near-empty one). If a
-  // concurrent writer already set the per-model map since our step-4 glance,
-  // that is caught HERE, immediately before the write — the smallest window
-  // this idiom (matching every other fenced ledger write in this file) admits.
-  // The subsequent write is fenced on the ledger's OWN owner block (never a
+  // concurrent writer already set the baseline since our step-4 glance, that is
+  // caught HERE, immediately before the write — the smallest window this idiom
+  // (matching every other fenced ledger write in this file) admits. The
+  // subsequent write is fenced on the ledger's OWN owner block (never a
   // caller-supplied epoch) — a concurrent owner/heartbeat/outcome write landing
   // in the interim is preserved, and a stale writer (a newer resume already took
   // the run over) yields instead of clobbering.
   const fresh = readLedger(runDir);
-  if (isPlainObject(fresh.budget && fresh.budget.tokens_at_start_by_model_class)) {
+  if (baselineAlreadyWritten(fresh.budget)) {
     console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
     return 0;
   }
-  fresh.budget = { ...(fresh.budget || {}), tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
+  fresh.budget = { ...(fresh.budget || {}), measure_session_id: session, tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
   atomicWriteLedgerFenced(runDir, fresh, { epoch: fresh.owner && fresh.owner.epoch, session_id: fresh.owner && fresh.owner.session_id });
 
   // Step 9.
-  console.log(JSON.stringify({ baseline_written: true, reason: "fresh", tokens_at_start: scalar }));
+  console.log(JSON.stringify({ baseline_written: true, reason: degraded ? "estimate-degraded" : "fresh", measure_session_id: session, tokens_at_start: scalar }));
   return 0;
+}
+
+// FAFF-552 write-once guard for `budget baseline`: the baseline is "already
+// written" once EITHER measure_session_id is pinned (a non-empty string — the
+// field a stray re-invocation must never reset) OR a per-model baseline map is
+// present (a legacy/mint ledger written before measure_session_id existed, or an
+// estimate-degraded zero snapshot — never clobbered). A `null` measure_session_id
+// (estimate-degraded with no resolvable session) reads as absent, so the paired
+// {} per-model map is what makes even that snapshot write-once.
+function baselineAlreadyWritten(budget) {
+  if (!budget) return false;
+  if (typeof budget.measure_session_id === "string" && budget.measure_session_id) return true;
+  return isPlainObject(budget.tokens_at_start_by_model_class);
 }
 
 // Plain-object test shared by the write-once guard's two check sites (step 4's

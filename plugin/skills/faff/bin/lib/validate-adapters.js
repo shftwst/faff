@@ -36,7 +36,7 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1110, "faff-beep-boop": 699 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
+const SKILL_LINE_CAP_OVERRIDE = { faff: 1120, "faff-beep-boop": 700 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
                                                   // structurally with each new slot/contract — FAFF-335's spec_review/grounding slot rows + the
                                                   // "Spec-review verdict (fixed)" contract section pushed it past 1100. faff-beep-boop is the L4
                                                   // orchestration hub and grows the same way with each new run-start/guardrail step (the

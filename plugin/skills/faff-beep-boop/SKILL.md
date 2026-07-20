@@ -673,6 +673,7 @@ Sub-skills honour this per their own `Autonomous Mode` sections.
 
 ## Guarantees
 
+- **Never prompts the human mid-run for a build/scope/merge/admission decision — this is a hard, harshly-worded invariant, not a soft default.** A mid-run interactive gate is a contract violation. See the gateway's Autonomous Mode Contract → *The no-prompt invariant* + *Banned rationalisations* for the full rule and the enumerated non-reasons — not restated here.
 - **Never aborts the run on a single failure.** Park that issue, log, continue with the next unit of work.
 - **Never auto-splits tickets** or restructures the backlog beyond what tidy's autonomous defaults allow.
 - **Never auto-merges without the three-condition gate** (AC verified + CI green + review returned `pass` — see faff-graft Step 10).

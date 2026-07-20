@@ -59,7 +59,7 @@ const { RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./shared-infra");
 // so they deliberately stay put, mirroring the ticket's budget/economics
 // out-of-scope carve.
 const DELIVERY_PROFILE = {
-  terminal_states: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget"],
+  terminal_states: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "superseded"],
   event_phases: ["run", "tidy", "prep", "build", "plot"],
   event_types: [
     "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
@@ -76,7 +76,7 @@ const DELIVERY_PROFILE = {
     "corrective-authored", "corrective-consumed", "containment-check",
   ],
   outcome_required_types: ["issue-outcome"],
-  ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer"],
+  ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded"],
   sentry: {
     // stall_window_secs REFERENCES runcheck's RUN_HEARTBEAT_STALE_SECS_DEFAULT
     // (now sourced from shared-infra to break the require cycle) rather than
@@ -306,6 +306,14 @@ function profilesSelftest() {
     auditLedger({ admitted: ["X"], outcomes: { X: "shipped" } }, "r", SECOND_PROFILE).invalid_outcomes.length === 1);
   ok("runcheck: SECOND_PROFILE's own terminal state ('done') accepted under SECOND_PROFILE",
     auditLedger({ admitted: ["X"], outcomes: { X: "done" } }, "r", SECOND_PROFILE).invalid_outcomes.length === 0);
+  // FAFF-571: 'superseded' — the new premise-supersession terminal outcome — is
+  // accepted under DELIVERY_PROFILE (not flagged an invalid_outcome) and REJECTED
+  // under SECOND_PROFILE (disjoint vocab), the same dialect-independence proof the
+  // other terminal states above already carry.
+  ok("runcheck: 'superseded' valid under DELIVERY_PROFILE (FAFF-571)",
+    auditLedger({ admitted: ["X"], outcomes: { X: "superseded" } }, "r", DELIVERY_PROFILE).invalid_outcomes.length === 0);
+  ok("runcheck: 'superseded' REJECTED under SECOND_PROFILE (dialect-independence proof)",
+    auditLedger({ admitted: ["X"], outcomes: { X: "superseded" } }, "r", SECOND_PROFILE).invalid_outcomes.length === 1);
 
   // events — a delivery type is accepted under delivery, rejected under
   // SECOND_PROFILE, and SECOND_PROFILE's own type is accepted under SECOND_PROFILE.

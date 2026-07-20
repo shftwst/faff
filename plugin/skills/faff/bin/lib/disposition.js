@@ -284,6 +284,9 @@ const DISPOSITION_SELFTEST_CASES = [
   ["counts histogram is emitted over outcomes",
     { run_id: "R", admitted: ["A", "B", "C"], outcomes: { A: "shipped", B: "shipped", C: "parked" } },
     {}, {}, "needs-attention", null],
+  ["FAFF-571: superseded is clean (accepted by auditLedger AND excluded from attention)",
+    { run_id: "R", admitted: ["A"], outcomes: { A: "superseded" } },
+    {}, {}, "clean", (a) => a.length === 0],
 ];
 
 function dispositionSelftest() {

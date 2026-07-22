@@ -213,12 +213,14 @@ test("budget check: a sessions-bearing ledger reports Σ closed deltas + current
 // ---------------------------------------------------------------------------
 test("run-resume event: registered in DELIVERY_PROFILE.event_types and validates via eventViolations", () => {
   assert.ok(DELIVERY_PROFILE.event_types.includes("run-resume"));
-  const evt = runResumeEvent("R", 7, "2026-07-17T00:00:00Z", "dead-running", { epoch: 1, skip: ["A"], redispatch: ["B"] });
+  const evt = runResumeEvent("R", 7, "2026-07-17T00:00:00Z", "dead-running", { epoch: 1, skip: ["A"], redispatch: ["B"] }, "a".repeat(64));
   assert.equal(evt.seq, 7); // continues the seq stream
   assert.equal(evt.type, "run-resume");
   assert.deepEqual(evt.skipped_shipped, ["A"]);
   assert.deepEqual(evt.rebuilt_coarse, ["B"]);
-  assert.deepEqual(eventViolations(evt, true), [], "valid schema-1 run-resume event");
+  assert.equal(evt.schema, 2); // FAFF-564: the chained envelope
+  assert.equal(evt.prev, "a".repeat(64));
+  assert.deepEqual(eventViolations(evt, true), [], "valid schema-2 run-resume event");
   // not registered ⇒ would be rejected (proves the registration is load-bearing)
   assert.ok(eventViolations({ ...evt, type: "run-resume-nope" }, true).length > 0);
 });

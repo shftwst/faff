@@ -184,9 +184,11 @@ function applyResumeToLedger(ledger, ctx) {
 // shell writes it to events.jsonl. Top-level epoch/prior_state/skipped_shipped/
 // rebuilt_coarse are tolerated by eventViolations (unknown top-level keys pass; only the
 // envelope + type/phase are validated), and `run-resume` is a registered event type.
-function runResumeEvent(runId, seq, nowIso, priorState, plan) {
+// FAFF-564: stamps the schema-2 chained envelope — `prevHash` is supplied by the locked
+// append core (appendRecordUnderLock), never computed by a caller.
+function runResumeEvent(runId, seq, nowIso, priorState, plan, prevHash) {
   return {
-    schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-resume",
+    schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-resume",
     epoch: plan.epoch,
     prior_state: priorState,
     skipped_shipped: (plan.skip || []).slice(),
@@ -300,9 +302,11 @@ function resumeSelftest() {
   check("pre-527 ledger (no epoch) → epoch 1", e0 === 1);
 
   // --- runResumeEvent + banner shape ---
-  const evt = runResumeEvent("R", 3, "t1", "aborted-resumable", { epoch: 1, skip: ["A"], redispatch: ["G"] });
+  const evt = runResumeEvent("R", 3, "t1", "aborted-resumable", { epoch: 1, skip: ["A"], redispatch: ["G"] }, "c".repeat(64));
   check("run-resume event carries epoch/prior_state/skipped_shipped/rebuilt_coarse + continues seq",
     evt.type === "run-resume" && evt.seq === 3 && evt.epoch === 1 && evt.prior_state === "aborted-resumable" && evt.skipped_shipped[0] === "A" && evt.rebuilt_coarse[0] === "G");
+  check("run-resume event stamps the FAFF-564 chained envelope (schema 2 + core-supplied prev)",
+    evt.schema === 2 && evt.prev === "c".repeat(64));
   const banner = renderResumeBanner("R", "aborted-resumable", 1, plan, "deadbee");
   check("banner names run, epoch, coarse-rebuild warning, and wip_commit surface-only",
     banner.includes("RE-ENTRY — R") && banner.includes("epoch 1") && banner.includes("coarse rebuild") && banner.includes("deadbee") && banner.includes("never auto-applied"));

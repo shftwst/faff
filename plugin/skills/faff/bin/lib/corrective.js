@@ -285,8 +285,10 @@ function appendCorrectiveEvent(runDir, type, issue, data) {
   let violations = null;
   let out;
   try {
-    out = appendRecordUnderLock(runDir, (seq) => {
-      const record = { schema: 1, run_id: runId, seq, ts: new Date().toISOString(), phase: "run", type, issue, data };
+    out = appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => {
+      // FAFF-564: stamp the schema-2 chained envelope — prev comes from the core's
+      // under-lock computation, never minted here.
+      const record = { schema: 2, run_id: runId, seq, ts: new Date().toISOString(), prev: prevHash, phase: "run", type, issue, data };
       const v = eventViolations(record, true);
       if (v.length) { violations = v; return null; } // never write a malformed record
       return record;

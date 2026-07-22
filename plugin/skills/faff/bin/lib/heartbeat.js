@@ -186,8 +186,37 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 // trailing newline matches the other JSON writers in this CLI. Production callers:
 // NONE directly — every production mutation goes through mutateLedgerUnderLock below
 // (see the writer inventory above); this stays the write PRIMITIVE the core calls.
+//
+// FAFF-564 — the ledger fold: after the rename lands, append a chained `ledger-write`
+// event (data.ledger_sha256 = SHA-256 of the exact bytes just written) through the
+// shared locked events core, so every CLI-side ledger mutation joins the tamper-
+// evidence chain at this one chokepoint — no per-caller emissions. run_id comes from
+// ledger.run_id (fallback: the run-dir basename, corrective.js's convention). A failed
+// append (for example the events lock budget is exhausted) WARNS loudly on stderr and
+// returns normally — never throws, never rolls back the ledger write: the write is
+// load-bearing for callers (sentry abort, lights-out mint) whose semantics must not
+// break on an events-side fault, and the missing link is precisely what FAFF-568's
+// verifier reports as an unrecorded ledger write. Fail toward detection, not blocking.
+// LOCK ORDERING (load-bearing): this fold acquires the events lock while the caller
+// (mutateLedgerUnderLock) may hold the ledger lock — ledger → events is the ONLY safe
+// order. No code path may acquire the ledger lock while holding the events lock (the
+// events append core's mintRecord closures never touch the ledger; `events append
+// --tokens` runs its ledger mutation BEFORE its event append) — adding one would
+// create the classic A→B / B→A deadlock. The fold's worst-case events-lock wait
+// (ACQUIRE_BUDGET_MS) also stays well under the ledger lock's stale-takeover bound.
+// The require is call-time (lazy): events.js requires this module at load (for
+// mutateLedgerUnderLock), so a top-level import here would cycle.
 function atomicWriteLedger(runDir, ledger) {
-  atomicWriteSingleValueFile(path.join(runDir, "run-ledger.json"), JSON.stringify(ledger, null, 2) + "\n");
+  const body = JSON.stringify(ledger, null, 2) + "\n";
+  atomicWriteSingleValueFile(path.join(runDir, "run-ledger.json"), body);
+  try {
+    const { appendEventRecord } = require("./events");
+    const runId = ledger && typeof ledger.run_id === "string" && ledger.run_id !== "" ? ledger.run_id : path.basename(runDir);
+    const sha = crypto.createHash("sha256").update(body).digest("hex");
+    appendEventRecord(runDir, runId, { phase: "run", type: "ledger-write", data: { ledger_sha256: sha } });
+  } catch (e) {
+    process.stderr.write(`ledger-write event append failed in ${runDir}: ${e && e.message ? e.message : e} — the ledger IS written; the chain gap will surface at FAFF-568 verification\n`);
+  }
 }
 
 // FAFF-527 — owner-epoch write fence (takeover safety). A resume of a *dead-running*

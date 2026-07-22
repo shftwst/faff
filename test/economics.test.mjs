@@ -712,7 +712,9 @@ test("Integration smoke (FAFF-488): budget check (baseline) -> events append --t
       input: JSON.stringify({ phase: "build", type: "issue-outcome", issue: "FAFF-90", data: { outcome: "shipped" } }),
     });
     assert.equal(append.status, 0, append.stderr);
-    const eventLine = JSON.parse(readFileSync(join(f.runDir, "events.jsonl"), "utf8").trim());
+    // FAFF-564: the tagged append emits [ledger-write, payload] — read the LAST line.
+    const eventLines = readFileSync(join(f.runDir, "events.jsonl"), "utf8").trim().split("\n");
+    const eventLine = JSON.parse(eventLines[eventLines.length - 1]);
     assert.equal(eventLine.data.tokens_source, "transcript", "the issue-outcome event must be token-tagged from the transcript, not degrade to estimate");
 
     // 3. `faff economics` — the final consumer.

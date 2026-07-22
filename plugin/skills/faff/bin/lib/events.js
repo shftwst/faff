@@ -1,19 +1,33 @@
 // ===========================================================================
 // === region:governance — events — FAFF-35 (slice 1): structured run-event log — the timeline substrate ===
 // for run observability. An append-only JSONL log at .faff/runs/<run-id>/events.jsonl,
-// one RunEvent per line. The CLI owns the envelope (schema/run_id/seq/ts); the caller
-// supplies only the payload {phase,type,issue?,data?}. `seq` is the authoritative
+// one RunEvent per line. The CLI owns the envelope (schema/run_id/seq/ts/prev); the
+// caller supplies only the payload {phase,type,issue?,data?}. `seq` is the authoritative
 // monotonic order — `ts` is best-effort annotation (sandbox clocks are unreliable).
 // Multi-writer (FAFF-574): the parallel executor, per-member heartbeats, `contain
 // --record`, lights-out mint/resume, and the detached sentry poller all append to the
 // same file concurrently. So every append is serialised by an advisory lock file
 // (<runDir>/events.jsonl.lock, atomic `wx` create) and mints the next seq from the
 // log's own tail inside that critical section — unique + monotonic by construction, and
-// O(1) per append instead of O(file size). Pure (no tracker/network), --selftest-able —
-// mirrors `faff profile`/`fixtures`/`contract`. The in-flight view + morning report are
-// later producers that READ this log; slice 1 only produces it.
+// O(1) per append instead of O(file size).
+// Tamper-evident chain (FAFF-564, schema 2): every record additionally carries `prev` —
+// the SHA-256 (64 lowercase hex) of the previous PHYSICAL line's raw bytes, exclusive of
+// its terminating newline; the genesis record's `prev` hashes the UTF-8 bytes of the
+// record's own run_id. The chain is over physical lines, not parseable records, so no
+// line (torn, malformed, or legacy schema-1) escapes it; editing or reordering any
+// mid-log line breaks the hash of every following line. The hash is computed inside the
+// SAME locked critical section as the seq mint (one tail read serves both), never at a
+// call site, and never accepted from a caller. Ledger mutations join the chain as
+// `ledger-write` events (data.ledger_sha256 = SHA-256 of the post-write run-ledger.json
+// bytes, always CLI-computed) — emitted by atomicWriteLedger's fold (heartbeat.js) for
+// every CLI-side writer, and by the prose-layer note rule for direct orchestrator edits.
+// Anchoring the chain head + verifying it is FAFF-568, not this module: `events
+// validate` stays shape-only and never re-hashes the chain. Pure (no tracker/network),
+// --selftest-able — mirrors `faff profile`/`fixtures`/`contract`. The in-flight view +
+// morning report are later producers that READ this log; slice 1 only produces it.
 // ===========================================================================
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
@@ -54,6 +68,15 @@ const EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 // QUALITY_GATE_ORDER (factory) which the report renders in.
 const QUALITY_GATE_CATCHES = new Set(["structural", "adversarial", "holdout", "ci"]);
 
+// FAFF-564: the chain-hash shape — 64 lowercase hex chars (SHA-256). Shared by the
+// `prev` envelope check and the `ledger-write` data.ledger_sha256 check.
+const HEX64_RE = /^[0-9a-f]{64}$/;
+
+// FAFF-564: one SHA-256 helper for the chain — raw bytes in, lowercase hex out.
+function sha256Hex(buf) {
+  return crypto.createHash("sha256").update(buf).digest("hex");
+}
+
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
 // full record read back off disk (validate: the envelope must be present + well-formed).
@@ -70,10 +93,28 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
   }
   const v = [];
   if (requireEnvelope) {
-    if (obj.schema !== 1) v.push("schema must be 1");
+    if (obj.schema !== 1 && obj.schema !== 2) v.push("schema must be 1 or 2");
     if (obj.run_id === undefined || obj.run_id === null || obj.run_id === "") v.push("missing run_id");
     if (!Number.isInteger(obj.seq)) v.push("seq must be an integer");
     if (obj.ts === undefined || obj.ts === null || obj.ts === "") v.push("missing ts");
+    // FAFF-564: `prev` is a schema FACT, not an optional tag — a schema-2 record must
+    // carry a well-formed chain hash; a schema-1 (legacy) record must not carry one.
+    if (obj.schema === 2 && !HEX64_RE.test(typeof obj.prev === "string" ? obj.prev : "")) {
+      v.push("schema 2 requires prev: 64 lowercase hex (SHA-256 of the previous line's raw bytes)");
+    }
+    if (obj.schema === 1 && obj.prev !== undefined) {
+      v.push("schema 1 must not carry prev (legacy records are unchained)");
+    }
+    // FAFF-564: `ledger-write` carries the post-write ledger hash — ENVELOPE MODE ONLY.
+    // The field is CLI-owned and injected before append (like the rest of the envelope),
+    // so a payload-mode note command ({"phase":"run","type":"ledger-write"}, no data)
+    // must validate clean pre-injection.
+    if (obj.type === "ledger-write") {
+      const h = obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) ? obj.data.ledger_sha256 : undefined;
+      if (!HEX64_RE.test(typeof h === "string" ? h : "")) {
+        v.push("ledger-write requires data.ledger_sha256: 64 lowercase hex (SHA-256 of the post-write run-ledger.json bytes)");
+      }
+    }
   }
   const phases = new Set(profile.event_phases);
   const types = new Set(profile.event_types);
@@ -163,45 +204,112 @@ function eventLineCount(filePath) {
 // mechanics; never re-copy them here). TAIL_WINDOW_BYTES stays events-specific.
 const TAIL_WINDOW_BYTES = 65536; // bytes read from the file's end to find the last record
 
-// Tail-read the log to find the last parseable record, returning { seq, prevRecord } where
-// `seq` is the NEXT seq to mint. Reads at most TAIL_WINDOW_BYTES from the file's end (O(1)),
-// scanning backwards past any torn/malformed trailing line. Empty/absent ⇒ seq 0. A window
-// with no parseable record at all (pathological — a single record larger than the window)
-// falls back to the full-file line count — degraded, but never wrong-by-race, since the
-// caller holds the lock. Exported for unit assertion of the bounded read.
-function tailReadNextSeq(eventsPath) {
+// FAFF-564: the backward extension of the tail read. When the previous line's start
+// lies OUTSIDE the tail window, extend the read backwards in chunks until the preceding
+// newline (or file start) is found — the chain hash needs the exact full bytes, and
+// unlike seq there is NO counting fallback that can substitute. `end` is the exclusive
+// end of the previous line's bytes (its terminating newline already stripped);
+// `searchFrom` is where the backward newline scan starts (the window start — the bytes
+// in [searchFrom, end) are already known to contain no newline), so exactly as many
+// extra chunks are read as the oversized line needs.
+function readPrevLineExtendingBack(fd, end, searchFrom) {
+  let lo = searchFrom;
+  let start = 0;
+  while (lo > 0) {
+    const chunkLen = Math.min(TAIL_WINDOW_BYTES, lo);
+    const chunk = Buffer.alloc(chunkLen);
+    fs.readSync(fd, chunk, 0, chunkLen, lo - chunkLen);
+    const idx = chunk.lastIndexOf(0x0a);
+    if (idx !== -1) { start = lo - chunkLen + idx + 1; break; }
+    lo -= chunkLen;
+  }
+  const line = Buffer.alloc(end - start);
+  if (end - start > 0) fs.readSync(fd, line, 0, end - start, start);
+  return line;
+}
+
+// The single under-lock tail read serving BOTH derivations (FAFF-574 + FAFF-564):
+//   - seq: the NEXT seq to mint, from the last PARSEABLE record in the tail window
+//     (scanning backwards past torn/malformed trailing lines; empty/absent ⇒ seq 0;
+//     a window with no parseable record falls back to the full-file line count —
+//     degraded, but never wrong-by-race, since the caller holds the lock).
+//   - prevLineBuf: the raw bytes of the last PHYSICAL line (exclusive of its
+//     terminating newline) — a well-formed record, a torn partial segment, or a legacy
+//     line alike; null on an absent/empty file (⇒ genesis). The two deliberately read
+//     different things from the same window: seq skips unparseable lines, the chain
+//     hashes whatever bytes are physically last.
+// Reads at most TAIL_WINDOW_BYTES (O(1)) except when the previous line itself exceeds
+// the window (then readPrevLineExtendingBack reads exactly the extra chunks it needs).
+function tailReadState(eventsPath) {
   let st;
   try { st = fs.statSync(eventsPath); }
-  catch (e) { if (e && e.code === "ENOENT") return { seq: 0, prevRecord: null }; throw e; }
-  if (st.size === 0) return { seq: 0, prevRecord: null };
+  catch (e) { if (e && e.code === "ENOENT") return { seq: 0, prevRecord: null, prevLineBuf: null }; throw e; }
+  if (st.size === 0) return { seq: 0, prevRecord: null, prevLineBuf: null };
   const readLen = Math.min(st.size, TAIL_WINDOW_BYTES);
   const buf = Buffer.alloc(readLen);
   const fd = fs.openSync(eventsPath, "r");
-  try { fs.readSync(fd, buf, 0, readLen, st.size - readLen); }
-  finally { fs.closeSync(fd); }
-  const lines = buf.toString("utf8").split("\n");
-  for (let i = lines.length - 1; i >= 0; i--) {
-    if (lines[i].trim() === "") continue;
-    let obj;
-    try { obj = JSON.parse(lines[i]); } catch { continue; } // torn/partial trailing line — skip
-    if (obj && Number.isInteger(obj.seq)) return { seq: obj.seq + 1, prevRecord: obj };
-  }
-  return { seq: eventLineCount(eventsPath), prevRecord: null }; // window held no parseable record
+  let seq = null, prevRecord = null, prevLineBuf;
+  try {
+    fs.readSync(fd, buf, 0, readLen, st.size - readLen);
+    // --- FAFF-574: seq from the last parseable record in the window ---
+    const lines = buf.toString("utf8").split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (lines[i].trim() === "") continue;
+      let obj;
+      try { obj = JSON.parse(lines[i]); } catch { continue; } // torn/partial trailing line — skip
+      if (obj && Number.isInteger(obj.seq)) { seq = obj.seq + 1; prevRecord = obj; break; }
+    }
+    // --- FAFF-564: the last physical line's raw bytes ---
+    const windowStart = st.size - readLen;
+    const end = buf[readLen - 1] === 0x0a ? st.size - 1 : st.size; // torn file: hash the trailing partial segment as-is
+    const endInBuf = end - windowStart;
+    const nlIdx = endInBuf > 0 ? buf.lastIndexOf(0x0a, endInBuf - 1) : -1;
+    if (nlIdx !== -1) {
+      prevLineBuf = Buffer.from(buf.subarray(nlIdx + 1, endInBuf));
+    } else if (windowStart === 0) {
+      prevLineBuf = Buffer.from(buf.subarray(0, endInBuf)); // the line starts at file start, fully in window
+    } else {
+      prevLineBuf = readPrevLineExtendingBack(fd, end, windowStart); // line start outside the window
+    }
+  } finally { fs.closeSync(fd); }
+  if (seq === null) seq = eventLineCount(eventsPath); // window held no parseable record
+  return { seq, prevRecord, prevLineBuf };
+}
+
+// Tail-read the log to find the last parseable record, returning { seq, prevRecord } where
+// `seq` is the NEXT seq to mint. A thin projection of tailReadState above (one shared
+// read path). Exported for unit assertion of the bounded read.
+function tailReadNextSeq(eventsPath) {
+  const { seq, prevRecord } = tailReadState(eventsPath);
+  return { seq, prevRecord };
 }
 
 // The single lock-guarded critical section every seq mint goes through (FAFF-574).
-// `mintRecord(seq, prevRecord)` returns the record to append, or null to abort WITHOUT
-// writing (corrective.js uses null to preserve its never-write-malformed guarantee).
-// Newline-repairs a torn final line by prefixing "\n" (never rewriting existing bytes),
-// then appends the record as one write. Releases the lock in a finally. Throws
-// EVENTS_LOCKED (from acquire) on budget exhaustion.
+// `mintRecord(seq, prevRecord, prevHash)` returns the record to append, or null to abort
+// WITHOUT writing (corrective.js uses null to preserve its never-write-malformed
+// guarantee). FAFF-564: `prevHash` is the chain hash — SHA-256 of the previous physical
+// line's raw bytes (genesis: of the UTF-8 run_id, which is the run-dir basename by the
+// .faff/runs/<run-id> layout every writer uses) — computed HERE, under the same lock as
+// the seq mint, from the same tail read. A hash computed outside this critical section
+// can commit to a line that is no longer last; an agent-supplied hash is an untrusted
+// claim in a trust artifact — neither is ever accepted. Every minter stamps
+// `schema: 2, prev: prevHash` into the record it returns, and the core asserts the
+// returned record carries the seq/prev it supplied (belt against a minter drifting).
+// Newline-repairs a torn final line by prefixing "\n" (never rewriting existing bytes —
+// the chain commits to raw bytes, so the repaired torn segment re-hashes to exactly
+// what this writer hashed), then appends the record as one write. Releases the lock in
+// a finally. Throws EVENTS_LOCKED (from acquire) on budget exhaustion.
 function appendRecordUnderLock(dir, mintRecord) {
   const eventsPath = path.join(dir, "events.jsonl");
   const lockPath = eventsPath + ".lock";
   return withFileLock(lockPath, () => {
-    const { seq, prevRecord } = tailReadNextSeq(eventsPath);
-    const record = mintRecord(seq, prevRecord);
+    const { seq, prevRecord, prevLineBuf } = tailReadState(eventsPath);
+    const prevHash = sha256Hex(prevLineBuf === null ? Buffer.from(path.basename(dir), "utf8") : prevLineBuf);
+    const record = mintRecord(seq, prevRecord, prevHash);
     if (record === null || record === undefined) return null; // aborted — nothing written
+    if (record.seq !== seq || record.prev !== prevHash) {
+      throw new Error(`events append core: minted record must carry the supplied seq/prev (want seq ${seq} prev ${prevHash}, got seq ${record.seq} prev ${record.prev})`);
+    }
     let prefix = "";
     try {
       const st = fs.statSync(eventsPath);
@@ -240,10 +348,11 @@ function seqFinding(prevSeq, seq) {
 // FAFF-574: a thin wrapper over the lock-guarded core. Signature and returned-record
 // shape are unchanged for its callers (`events append`, `contain --record`, sentry-poller);
 // they gain only the possibility of a thrown EVENTS_LOCKED under lock-budget exhaustion,
-// which each surfaces per its own loudness contract.
+// which each surfaces per its own loudness contract. FAFF-564: stamps the schema-2
+// chained envelope — `prev` comes from the core, never computed here.
 function appendEventRecord(dir, run, payload, ts) {
-  return appendRecordUnderLock(dir, (seq) => {
-    const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
+  return appendRecordUnderLock(dir, (seq, _prevRecord, prevHash) => {
+    const record = { schema: 2, run_id: run, seq, ts: ts || new Date().toISOString(), prev: prevHash, phase: payload.phase, type: payload.type };
     if (payload.issue !== undefined) record.issue = payload.issue;
     if (payload.data !== undefined) record.data = payload.data;
     return record;
@@ -368,6 +477,24 @@ function cmdEvents(args) {
       }
       data = base;
     }
+    // FAFF-564: a `ledger-write` note event's hash is CLI-COMPUTED from the on-disk
+    // run-ledger.json bytes — any caller-supplied data.ledger_sha256 is overwritten
+    // (an agent-computed hash is an untrusted claim in a trust artifact). Runs after
+    // the --tokens block above so a tagged note hashes the post-checkpoint ledger.
+    // No readable ledger ⇒ fail loud (exit 3): a ledger-write note records an on-disk
+    // ledger; fabricating a hash for an absent file would be exactly the untrusted
+    // claim this path exists to exclude.
+    if (payload.type === "ledger-write") {
+      let ledgerRaw;
+      try { ledgerRaw = fs.readFileSync(path.join(dir, "run-ledger.json")); }
+      catch {
+        process.stderr.write(`faff events append: run-ledger.json missing/unreadable in ${path.join(".faff", "runs", run)} — a ledger-write note records an on-disk ledger\n`);
+        return 3;
+      }
+      const base = { ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}) };
+      base.ledger_sha256 = sha256Hex(ledgerRaw);
+      data = base;
+    }
     let record;
     try {
       record = appendEventRecord(dir, run, { phase: payload.phase, type: payload.type, issue: payload.issue, data }, ts);
@@ -407,7 +534,7 @@ function cmdEvents(args) {
       for (const x of violations) process.stderr.write(`${x}\n`);
       return 1;
     }
-    console.log("OK — run-event log valid (schema 1).");
+    console.log("OK — run-event log valid.");
     return 0;
   }
 
@@ -443,7 +570,18 @@ function eventsSelftest() {
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "run-start" }, 0, "valid run-start (envelope)"],
     [{ schema: 1, run_id: "r", seq: 1, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-35", data: { outcome: "shipped" } }, 0, "valid issue-outcome"],
     [{ schema: 1, run_id: "r", seq: 1, ts: "t", phase: "build", type: "issue-outcome", issue: "FAFF-551", data: { outcome: "superseded" } }, 0, "FAFF-571: valid issue-outcome with 'superseded' outcome"],
-    [{ schema: 2, run_id: "r", seq: 0, ts: "t", phase: "run", type: "run-start" }, 1, "wrong schema version"],
+    // FAFF-564 — the schema-2 chained envelope: schema 1 or 2 accepted; schema 2
+    // requires 64-hex prev; schema 1 forbids prev; ledger-write requires
+    // data.ledger_sha256 (envelope mode).
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", prev: "a".repeat(64), phase: "run", type: "run-start" }, 0, "valid schema-2 record with prev"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", phase: "run", type: "run-start" }, 1, "schema 2 missing prev rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", prev: "a".repeat(64), phase: "run", type: "run-start" }, 1, "schema 1 carrying prev rejected"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", prev: "A".repeat(64), phase: "run", type: "run-start" }, 1, "malformed prev (uppercase hex) rejected"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", prev: "abc123", phase: "run", type: "run-start" }, 1, "malformed prev (short hex) rejected"],
+    [{ schema: 3, run_id: "r", seq: 0, ts: "t", prev: "a".repeat(64), phase: "run", type: "run-start" }, 1, "schema 3 rejected"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", prev: "a".repeat(64), phase: "run", type: "ledger-write", data: { ledger_sha256: "b".repeat(64) } }, 0, "valid ledger-write record"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", prev: "a".repeat(64), phase: "run", type: "ledger-write" }, 1, "ledger-write missing ledger_sha256 rejected"],
+    [{ schema: 2, run_id: "r", seq: 0, ts: "t", prev: "a".repeat(64), phase: "run", type: "ledger-write", data: { ledger_sha256: "nope" } }, 1, "ledger-write malformed ledger_sha256 rejected"],
     [{ schema: 1, seq: 0, ts: "t", phase: "run", type: "run-start" }, 1, "missing run_id"],
     [{ schema: 1, run_id: "r", ts: "t", phase: "run", type: "run-start" }, 1, "missing seq"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "no-such-type" }, 1, "unknown type"],
@@ -496,6 +634,10 @@ function eventsSelftest() {
   if (payloadOk !== 0) { process.stderr.write("events --selftest FAIL: valid payload (no envelope) (want 0, got 1)\n"); failed++; }
   const payloadBad = eventViolations({ phase: "build", type: "build-start" }, false).length > 0 ? 1 : 0;
   if (payloadBad !== 1) { process.stderr.write("events --selftest FAIL: payload missing issue (want 1, got 0)\n"); failed++; }
+  // FAFF-564: a payload-mode ledger-write note ({"phase":"run","type":"ledger-write"},
+  // no data) must validate clean pre-injection — the hash is CLI-owned envelope work.
+  const payloadNote = eventViolations({ phase: "run", type: "ledger-write" }, false).length === 0 ? 0 : 1;
+  if (payloadNote !== 0) { process.stderr.write("events --selftest FAIL: payload-mode ledger-write with no data must validate clean (want 0, got 1)\n"); failed++; }
   // FAFF-574 — seq classification: duplicate/regression is HARD (no [advisory]), a forward
   // gap is [advisory], contiguous/first is clean. [prevSeq, seq, wantClass] where wantClass
   // is "hard" | "advisory" | "none".
@@ -518,4 +660,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, eventLineCount, eventViolations, eventsSelftest, seqFinding, tailReadNextSeq };
+module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, tailReadNextSeq, tailReadState };

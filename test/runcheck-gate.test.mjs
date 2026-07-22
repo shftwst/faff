@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -214,5 +214,86 @@ test("FAFF-554: valid string outcomes + a populated outcome_details sidecar is c
     const r = run(["runcheck", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
     assert.equal(r.code, 0, "outcome_details never affects clean / exit code");
     assert.match(r.out, /clean: every admitted issue reached a terminal outcome\./);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// FAFF-578 — run-dir resolution tolerates filesystem churn. Concurrent sessions
+// creating/deleting run dirs is faff's own operating premise, so a candidate listed
+// by readdirSync can be gone by the time statSync reaches it; the Stop hook that
+// fires at every turn-end must never crash on that. The deterministic reproduction
+// of "candidate vanished mid-scan" is a dangling symlink: readdirSync lists it,
+// statSync (which follows links) throws ENOENT. These drive resolution through the
+// REAL entrypoint with cwd at the fixture root (no positional arg → latestRunDir).
+
+// Like run(), but with cwd pinned to the fixture root (resolution-path tests need
+// findRoot → latestRunDir, i.e. no positional run-dir) and optional node preload flags.
+function runIn(cwd, args, env, nodeFlags = []) {
+  const r = spawnSync("node", [...nodeFlags, CLI, ...args], { encoding: "utf8", cwd, env: { ...process.env, ...env } });
+  return { code: r.status ?? 1, out: (r.stdout ?? "").toString(), err: (r.stderr ?? "").toString() };
+}
+
+test("FAFF-578: a dangling symlink among the run dirs is skipped — the valid dir still resolves, nothing throws", () => {
+  // Ownerless (legacy) ledger: --recover hard-blocks it whoever asks, so the block
+  // payload is a pure signal that resolution reached the valid dir (a held run
+  // would go silent before --recover is consulted).
+  const { root } = rootWith({ run_id: "RUN-LIVE", admitted: ["X"], outcomes: {} });
+  symlinkSync(join(root, "no-such-target"), join(root, ".faff", "runs", "vanished-mid-scan"));
+  try {
+    // --recover hard-asserts whatever resolves; a block payload naming X proves the
+    // scan survived the dangling entry AND still resolved the valid run dir.
+    const r = runIn(root, ["runcheck", "--hook", "--recover"], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0);
+    const payload = JSON.parse(r.out.trim());
+    assert.equal(payload.decision, "block", "the valid run dir must still resolve past the dangling entry");
+    assert.match(payload.reason, /\bX\b/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-578: a runs dir whose ONLY entry is a dangling symlink → hook exits 0, fully silent", () => {
+  const root = mkdtempSync(join(tmpdir(), "runcheck-"));
+  mkdirSync(join(root, ".faff", "runs"), { recursive: true });
+  symlinkSync(join(root, "no-such-target"), join(root, ".faff", "runs", "vanished-mid-scan"));
+  try {
+    const r = runIn(root, ["runcheck", "--hook"], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "an unstat-able sole candidate is excluded → as if no run exists");
+    assert.equal(r.out.trim(), "");
+    assert.equal(r.err.trim(), "");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-578: .faff/runs is a FILE (readdirSync ENOTDIR) → hook exits 0, fully silent", () => {
+  const root = mkdtempSync(join(tmpdir(), "runcheck-"));
+  mkdirSync(join(root, ".faff"), { recursive: true });
+  writeFileSync(join(root, ".faff", "runs"), "not a directory");
+  try {
+    const r = runIn(root, ["runcheck", "--hook"], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "a readdir failure on .faff/runs resolves to null, never a throw");
+    assert.equal(r.out.trim(), "");
+    assert.equal(r.err.trim(), "");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// The cmdRuncheck call-site catch is defence in depth — post-fix, resolution cannot
+// throw through the normal fs surface (latestRunDir absorbs churn; findRoot uses only
+// existsSync). Force a throw with a preloaded fs patch so the catch's two arms are
+// still pinned by a real-entrypoint test.
+test("FAFF-578: a forced resolution throw → hook exits 0 silent; non-hook exits 2 naming the failure", () => {
+  const root = mkdtempSync(join(tmpdir(), "runcheck-"));
+  const patch = join(root, "patch-fs.cjs");
+  writeFileSync(patch, [
+    'const fs = require("fs");',
+    "const orig = fs.existsSync;",
+    'fs.existsSync = (p) => { if (String(p).includes("FAFF578-BOOM")) throw new Error("simulated churn"); return orig(p); };',
+    "",
+  ].join("\n"));
+  const boom = join(root, "FAFF578-BOOM");
+  try {
+    const hook = runIn(root, ["runcheck", "--hook", boom], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" }, ["-r", patch]);
+    assert.equal(hook.code, 0, "a Stop hook never crashes on a resolution throw");
+    assert.equal(hook.out.trim(), "");
+    assert.equal(hook.err.trim(), "");
+    const cli = runIn(root, ["runcheck", boom], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" }, ["-r", patch]);
+    assert.equal(cli.code, 2, "the CLI report path stays loud on a resolution fault");
+    assert.match(cli.err, /run-dir resolution failed: simulated churn/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

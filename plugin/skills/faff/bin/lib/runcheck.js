@@ -176,7 +176,19 @@ function cmdRuncheck(args) {
   const hook = args.includes("--hook");
   const asJson = args.includes("--json");
   const positional = args.filter((a) => !a.startsWith("-"));
-  const runDir = resolveRunDir(positional[0]);
+  // FAFF-578: defence in depth — resolution no longer throws on fs churn
+  // (latestRunDir absorbs it), but a Stop hook that fires at every turn-end must
+  // never crash on filesystem churn. Hook mode: silent, as if no run exists
+  // (parity with the parse-error → silent rule below). CLI mode: loud fault
+  // (parity with the missing/malformed-ledger handling below).
+  let runDir;
+  try {
+    runDir = resolveRunDir(positional[0]);
+  } catch (e) {
+    if (hook) return 0;
+    process.stderr.write(`runcheck: run-dir resolution failed: ${e.message}\n`);
+    return 2;
+  }
 
   if (hook) {
     if (!runDir) return 0;

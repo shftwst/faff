@@ -22,7 +22,7 @@
 // IDENTITY KEY — it may live in a different repo and `.faff/logs/` is
 // gitignored, so it is matched as a string, never read as a file. The
 // finding-id is optional (a ticket may cite a log with no F-id).
-const LOG_PATH_RE = /[^\s`"'()\[\]<>]+-findings\.md/g;
+const LOG_PATH_RE = /[^\s`"'()\[\]<>]+-findings\.md/; // stateless — no /g: only the first match is ever consumed (adversarial-review fix)
 const FINDING_ID_RE = /\bfinding\s+F(\d+)\b/i;
 
 // extractAnchor(text) -> { log_path, finding_id } | null. First findings-log
@@ -30,7 +30,6 @@ const FINDING_ID_RE = /\bfinding\s+F(\d+)\b/i;
 // durable convention). finding_id normalises to "F<n>".
 function extractAnchor(text) {
   if (typeof text !== "string" || text === "") return null;
-  LOG_PATH_RE.lastIndex = 0;
   const pathMatch = LOG_PATH_RE.exec(text);
   if (!pathMatch) return null;
   const idMatch = FINDING_ID_RE.exec(text);
@@ -66,6 +65,9 @@ function validateInput(input) {
     if (!ft || typeof ft !== "object" || typeof ft.id !== "string" || ft.id === "") {
       errs.push(`finding_tickets[${i}]: missing/invalid string id`);
       return;
+    }
+    if (typeof ft.status !== "string") {
+      errs.push(`finding_tickets[${i}].status: must be a string (the live tracker status)`);
     }
     // A SUPPLIED anchor must be well-shaped: object-or-null, log_path a
     // non-empty string, finding_id null or F<n>. The finding_id shape check is
@@ -152,6 +154,12 @@ function readStdin() {
 
 function cmdFindingsReconcile(args) {
   if (args.includes("--selftest")) return findingsReconcileSelftest();
+  // TTY guard (adversarial-review fix): fs.readFileSync(0) BLOCKS forever on an
+  // interactive terminal with nothing piped — refuse loudly instead of hanging.
+  if (process.stdin.isTTY) {
+    process.stderr.write("faff findings-reconcile: expects { finding_tickets, fix_corpus } JSON on stdin (pipe it in; nothing was piped)\n");
+    return 2;
+  }
   const raw = readStdin();
   let input;
   try { input = JSON.parse(raw); } catch (e) {
@@ -256,6 +264,10 @@ function findingsReconcileSelftest() {
     validateInput({ finding_tickets: [{ id: "A-1", status: "Todo", anchor: { finding_id: "F3" } }], fix_corpus: [] }).length === 1);
   ok("validate: a well-shaped supplied anchor + explicit null both pass",
     validateInput({ finding_tickets: [{ id: "A-1", status: "Todo", anchor: { log_path: LOG, finding_id: "F3" } }, { id: "A-2", status: "Todo", anchor: null }], fix_corpus: [] }).length === 0);
+  ok("validate: a non-string status is refused (spec types it status: string)",
+    validateInput({ finding_tickets: [{ id: "A-1", status: 123 }], fix_corpus: [] }).length === 1);
+  ok("extractAnchor: two successive calls on the same text both match (stateless regex)",
+    (() => { const t = `see ${LOG} here`; const a = extractAnchor(t); const b = extractAnchor(t); return a && b && a.log_path === LOG && b.log_path === LOG; })());
 
   // --- purity: no tracker/network access anywhere in this module ---
   const fs = require("node:fs");

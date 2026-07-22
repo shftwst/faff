@@ -917,6 +917,10 @@ function writeMemberBeat(runDir, issue, iso) {
 // these fixtures, so this literal matches what `faff sentry check` actually resolves.
 const STALL_WINDOW_SECS_DEFAULT = 900;
 
+// FAFF-553: the documented v1 default run-elapsed ceiling
+// (SENTRY_THRESHOLD_DEFAULTS.run_elapsed_ceiling_secs) — same no-override reasoning.
+const RUN_ELAPSED_CEILING_SECS_DEFAULT = 14400;
+
 test("FAFF-327 fleet fixture: N in-flight members (one stale) -> member-scoped pause end-to-end, run stays healthy", () => {
   const dir = tmp();
   try {
@@ -958,12 +962,18 @@ test("FAFF-327 fleet fixture: N in-flight members (one stale) -> member-scoped p
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("FAFF-327: ALL members silent past the window (run heartbeat file itself stale) -> run-scoped abort, today's kill-switch preserved", () => {
+// FAFF-553 — deliberate contract change: all-members-stalled + a stale run heartbeat
+// used to trip run-scoped "abort" unconditionally. Under the in-flight grace the
+// run-scoped staleness trip contributes at most "pause" while ≥1 member is in flight
+// and run-elapsed is under the ceiling — the verdict still trips (visible), evidence
+// names the in-flight members and the grace, and the elapsed ceiling stays the
+// unchanged hard backstop (asserted in the companion test below).
+test("FAFF-553: ALL members silent past the window, run-elapsed under the ceiling -> run-scoped trip capped at pause (in-flight grace)", () => {
   const dir = tmp();
   try {
     const fixtureStart = "2026-07-01T00:00:00Z";
     const startMs = Date.parse(fixtureStart);
-    const nowMs = startMs + (STALL_WINDOW_SECS_DEFAULT + 120) * 1000;
+    const nowMs = startMs + (STALL_WINDOW_SECS_DEFAULT + 120) * 1000; // elapsed 1020s << 14400s ceiling
     const ledger = {
       run_id: "r", admitted: ["X", "Y"], outcomes: {},
       owner: { status: "running", started_at: fixtureStart, last_heartbeat: fixtureStart }, // stale run file too
@@ -978,9 +988,37 @@ test("FAFF-327: ALL members silent past the window (run heartbeat file itself st
     const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(nowMs)]);
     assert.equal(r.code, 0, r.err);
     const out = JSON.parse(r.out);
-    assert.equal(out.intervention, "abort", "all-stalled -> the RUN-scoped predicate trips, unchanged kill-switch behaviour");
-    assert.ok(out.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined),
-      "a run-scoped (no scope field) wall-clock-runaway verdict is present");
+    assert.equal(out.intervention, "pause", "in-flight members soften the run-scoped staleness trip to pause");
+    assert.equal(out.tripped, true, "the verdict still TRIPS — only the contributed intervention is capped");
+    const rs = out.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+    assert.ok(rs, "a run-scoped (no scope field) wall-clock-runaway verdict is present");
+    assert.equal(rs.evidence.tripped_on, "heartbeat-staleness");
+    assert.deepEqual(rs.evidence.in_flight.sort(), ["X", "Y"], "evidence names the in-flight members");
+    assert.equal(rs.evidence.grace, "in-flight-unit");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-553: run-elapsed over the ceiling -> abort regardless of in-flight members (the grace never survives the elapsed backstop)", () => {
+  const dir = tmp();
+  try {
+    const startMs = Date.parse("2026-07-01T00:00:00Z");
+    const fixtureStart = new Date(startMs).toISOString();
+    const nowMs = startMs + (RUN_ELAPSED_CEILING_SECS_DEFAULT + 60) * 1000; // elapsed over the 14400s ceiling
+    const ledger = {
+      run_id: "r", admitted: ["X"], outcomes: {},
+      owner: { status: "running", started_at: fixtureStart, last_heartbeat: fixtureStart }, // stale AND over-ceiling
+    };
+    const rd = mkRun(dir, "r", ledger, [
+      { schema: 1, run_id: "r", seq: 0, ts: fixtureStart, phase: "build", type: "build-start", issue: "X" },
+    ]);
+    writeMemberBeat(rd, "X", fixtureStart);
+
+    const r = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(nowMs)]);
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.intervention, "abort", "the elapsed-ceiling backstop is unchanged — no grace past it");
+    const rs = out.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+    assert.ok(rs && rs.evidence.grace === undefined, "no grace annotation on an over-ceiling run");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -1042,7 +1080,7 @@ test("FAFF-327: `faff heartbeat` WITHOUT --unit is unchanged from post-FAFF-355 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("FAFF-327 integration smoke test (spec section 8): mint, tick one member, park the other, then all-stale -> abort; run-ledger.json bytes unchanged throughout", () => {
+test("FAFF-327/FAFF-553 integration smoke test: mint, tick one member, park the other, then all-stale -> pause (in-flight grace), then no-in-flight -> abort; run-ledger.json bytes unchanged throughout", () => {
   const dir = tmp();
   try {
     // `faff heartbeat --unit` has no clock seam (it always ticks real wall-clock time,
@@ -1081,15 +1119,27 @@ test("FAFF-327 integration smoke test (spec section 8): mint, tick one member, p
 
     // 4: overwrite X's member file AND the run-level heartbeat file both stale
     // (simulate nobody ticking anything further) -> the RUN-scoped predicate trips.
+    // FAFF-553: X and Y are still IN FLIGHT (build-start, no terminal outcome) and
+    // run-elapsed is under the ceiling, so the run-scoped staleness trip is capped
+    // at "pause" (in-flight grace) — the verdict still trips, evidence names both.
     writeMemberBeat(rd, "X", staleIso);
     writeFileSync(join(rd, "heartbeat"), staleIso + "\n");
     const r4 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(checkNowMs)]).out);
-    assert.equal(r4.intervention, "abort");
-    assert.ok(r4.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined), "run-scoped trip fired");
+    assert.equal(r4.intervention, "pause", "in-flight members grace the run-scoped staleness trip to pause");
+    const r4rs = r4.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+    assert.ok(r4rs, "run-scoped trip fired");
+    assert.deepEqual(r4rs.evidence.in_flight.sort(), ["X", "Y"]);
+    assert.equal(r4rs.evidence.grace, "in-flight-unit");
 
-    // 5: run-ledger.json bytes unchanged throughout; no file beyond the two member
+    // 5 (spec smoke test step 5): remove the build-start events -> no in-flight
+    // member -> the same staleness now maps to "abort", unchanged from pre-553.
+    writeFileSync(join(rd, "events.jsonl"), "");
+    const r5 = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", String(checkNowMs)]).out);
+    assert.equal(r5.intervention, "abort", "no in-flight member -> staleness aborts exactly as before");
+
+    // 6: run-ledger.json bytes unchanged throughout; no file beyond the two member
     // files + the run heartbeat file was ever created.
-    assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), ledgerSnapshot, "ledger unchanged after the second check");
+    assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), ledgerSnapshot, "ledger unchanged after the checks");
     assert.deepEqual(readdirSync(rd).sort(), ["events.jsonl", "heartbeat", "heartbeat.X", "heartbeat.Y", "run-ledger.json"]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -148,14 +148,105 @@ test("a running owner with no ledger last_heartbeat still ticks — the file sel
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("no ledger at the resolved run dir → soft no-op, never an error", () => {
+// FAFF-553 — deliberate contract change (spec §4): the old "no ledger at the resolved
+// run dir → soft no-op" test passed an EXPLICIT dir and asserted exit 0. That contract
+// is re-scoped to AMBIENT resolution only — an explicit ledger-less target now fails
+// loud (exit 3), while ambient no-run stays the sanctioned soft no-op.
+test("FAFF-553: an EXPLICIT ledger-less target (positional or --run-dir) → exit 3, path named on stderr, nothing written", () => {
   const root = mkdtempSync(join(tmpdir(), "heartbeat-empty-"));
   const runDir = join(root, ".faff", "runs", "NOPE");
   mkdirSync(runDir, { recursive: true });
+  const missing = join(root, "does-not-exist");
   try {
-    const r = run(["heartbeat", runDir, "--json"]);
+    for (const args of [["heartbeat", runDir, "--json"], ["heartbeat", "--run-dir", runDir, "--json"],
+      ["heartbeat", missing], ["heartbeat", "--run-dir", missing]]) {
+      const r = run(args);
+      assert.equal(r.code, 3, `${args.join(" ")} should exit 3`);
+      assert.match(r.err, /is not a run dir \(no run-ledger\.json\)/);
+      assert.match(r.err, /NOPE|does-not-exist/, "stderr names the bad target path");
+      assert.equal(r.out.trim(), "", "no JSON soft no-op payload on a loud failure");
+    }
+    assert.equal(existsSync(join(runDir, "heartbeat")), false, "nothing was written");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-553: AMBIENT resolution with no run found → soft no-op, exit 0, written:false (unchanged)", () => {
+  const root = mkdtempSync(join(tmpdir(), "heartbeat-ambient-"));
+  try {
+    // No positional, no --run-dir, FAFF_RUN_DIR cleared, cwd has no .faff/runs →
+    // ambient resolution finds nothing → the sanctioned soft no-op.
+    const r = spawnSync("node", [CLI, "heartbeat", "--json"],
+      { encoding: "utf8", cwd: root, env: { ...process.env, FAFF_RUN_DIR: "" } });
+    assert.equal(r.status, 0);
+    assert.equal(JSON.parse(r.stdout).written, false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-553: an empty-string positional counts as AMBIENT, not explicit (an unset shell var stays safe to pass)", () => {
+  const root = mkdtempSync(join(tmpdir(), "heartbeat-ambient-"));
+  try {
+    for (const args of [["heartbeat", "", "--json"], ["heartbeat", "--run-dir", "", "--json"]]) {
+      const r = spawnSync("node", [CLI, ...args],
+        { encoding: "utf8", cwd: root, env: { ...process.env, FAFF_RUN_DIR: "" } });
+      assert.equal(r.status, 0, `${JSON.stringify(args)} must stay the ambient soft no-op, not exit 3`);
+      assert.equal(JSON.parse(r.stdout).written, false);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- FAFF-553: strict, closed flag set — the `--run <id>` silent no-op footgun ------
+
+test("FAFF-553: `heartbeat --run X` exits 2, usage names the legal flags and suggests --run-dir; nothing written", () => {
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    const r = run(["heartbeat", "--run", "run-20260722-153543"], { FAFF_RUN_DIR: runDir });
+    assert.equal(r.code, 2, "the invented flag fails LOUD — never the old silent exit-0 no-op");
+    assert.match(r.err, /unknown flag --run/);
+    assert.match(r.err, /--run-dir DIR, --unit ISSUE, --json, --selftest/, "usage names the legal flags");
+    assert.match(r.err, /did you mean --run-dir <dir>, or positional RUN_DIR\?/, "the message special-cases --run");
+    assert.equal(heartbeatFile(), null, "nothing was written — even with an ambient run in reach");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-553: any other unknown --flag exits 2 and its value never leaks into the positional slot", () => {
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(10) },
+  });
+  try {
+    for (const bad of [["heartbeat", "--frobnicate", runDir], ["heartbeat", "-x", runDir], ["heartbeat", runDir, "--bogus", "value"]]) {
+      const r = run(bad);
+      assert.equal(r.code, 2, `${bad.join(" ")} should exit 2`);
+      assert.match(r.err, /unknown flag/);
+    }
+    assert.equal(heartbeatFile(), null, "no unknown-flag invocation ever reached a write");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-553: `--run-dir <dir>` behaves exactly as positional <dir>; giving both exits 2; a second bare token exits 2", () => {
+  const { root, runDir, heartbeatFile } = rootWith({
+    run_id: "RUN-LIVE", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: isoAgo(1000) },
+  });
+  try {
+    const r = run(["heartbeat", "--run-dir", runDir, "--json"]);
     assert.equal(r.code, 0);
-    assert.equal(JSON.parse(r.out).written, false);
+    const j = JSON.parse(r.out);
+    assert.equal(j.written, true);
+    assert.equal(j.run_dir, runDir, "--run-dir resolves the same run dir as positional");
+    assert.ok(heartbeatFile(), "the tick wrote the heartbeat file");
+
+    const both = run(["heartbeat", runDir, "--run-dir", runDir]);
+    assert.equal(both.code, 2, "positional and --run-dir together exit 2");
+    assert.match(both.err, /mutually exclusive/);
+
+    const twoBare = run(["heartbeat", runDir, "another-token"]);
+    assert.equal(twoBare.code, 2, "a second bare token exits 2");
+    assert.match(twoBare.err, /unexpected extra positional/);
+
+    const missingVal = run(["heartbeat", "--run-dir"]);
+    assert.equal(missingVal.code, 2, "--run-dir with no value exits 2");
+    assert.match(missingVal.err, /requires a value/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

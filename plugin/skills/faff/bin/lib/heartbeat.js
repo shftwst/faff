@@ -217,10 +217,62 @@ function atomicWriteLedgerFenced(runDir, ledger, expected) {
 // Resolution order (spec §3): explicit arg → $FAFF_RUN_DIR → latest run under .faff/runs.
 // A subagent should always pass RUN_DIR explicitly — "latest" can resolve the wrong
 // ledger under concurrent/overlapping runs (the anti-pattern the spec calls out).
+// FAFF-553: cmdHeartbeat now guards EXPLICIT targets itself (a named dir that is not
+// a run dir fails loud, exit 3) — this resolver stays the shared explicit→ambient
+// order, and the extension point if a future caller genuinely only has a run id.
 function resolveHeartbeatRunDir(arg, env) {
   const e = env || process.env;
   const cand = arg || e.FAFF_RUN_DIR || latestRunDir(findRoot());
   return cand || null;
+}
+
+// FAFF-553: the closed flag set + usage line. `faff heartbeat --run <id>` used to be
+// a SILENT no-op — the hand-rolled parser dropped the unknown flag and let its value
+// leak into the positional slot, which then resolved to a non-run-dir and took the
+// soft no-op branch (exit 0, nothing written) while the caller believed it ticked.
+// Loud beats lenient at the resolution seam: any unknown `--*` token is a usage
+// error, and flag values never leak into the positional slot.
+const HEARTBEAT_USAGE = "usage: faff heartbeat [RUN_DIR] [--run-dir DIR] [--unit ISSUE] [--json] [--selftest]";
+const HEARTBEAT_LEGAL_FLAGS = "legal flags: --run-dir DIR, --unit ISSUE, --json, --selftest";
+function heartbeatUsageError(msg) {
+  process.stderr.write(`heartbeat: ${msg}\n${HEARTBEAT_USAGE}\n`);
+  return 2;
+}
+
+// FAFF-553: strict left-to-right scan over a CLOSED flag set. Returns either
+// { error: <exit code already emitted> } or the parsed fields. Known value-flags
+// (--run-dir, --unit) consume their value (missing value → exit 2); --json is the
+// one boolean; any other "-"-prefixed token exits 2 (the message special-cases
+// --run — the exact flag the F4 testbed agent invented); a second bare token
+// exits 2. Pure aside from the usage-error stderr writes.
+function parseHeartbeatArgs(args) {
+  let asJson = false, unitRaw = null, runDirFlag = null, positional = null, positionalGiven = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--json") { asJson = true; continue; }
+    if (a === "--run-dir" || a === "--unit") {
+      if (i + 1 >= args.length) return { error: heartbeatUsageError(`${a} requires a value — ${HEARTBEAT_LEGAL_FLAGS}`) };
+      const val = args[++i];
+      if (a === "--run-dir") runDirFlag = val; else unitRaw = val;
+      continue;
+    }
+    if (a.startsWith("-")) {
+      const hint = a === "--run"
+        ? " — did you mean --run-dir <dir>, or positional RUN_DIR?"
+        : "";
+      return { error: heartbeatUsageError(`unknown flag ${a} — ${HEARTBEAT_LEGAL_FLAGS}${hint}`) };
+    }
+    if (positionalGiven) return { error: heartbeatUsageError(`unexpected extra positional ${JSON.stringify(a)} — ${HEARTBEAT_LEGAL_FLAGS}`) };
+    positional = a;
+    positionalGiven = true;
+  }
+  if (positionalGiven && runDirFlag != null) {
+    return { error: heartbeatUsageError(`RUN_DIR positional and --run-dir are mutually exclusive — give one target`) };
+  }
+  // "" coerces to nil (an unset shell var stays AMBIENT, preserving "safe to call
+  // unconditionally"); --run-dir "" likewise.
+  const explicitTarget = (positionalGiven ? positional : runDirFlag) || null;
+  return { asJson, unitRaw, explicitTarget };
 }
 
 // FAFF-327: the same shape as merge-gate's / admissibility's issue-id guard — one
@@ -233,28 +285,42 @@ function isValidIssueId(issue) {
 
 function cmdHeartbeat(args) {
   if (args.includes("--selftest")) return heartbeatSelftest();
-  const asJson = args.includes("--json");
-  const unitIdx = args.indexOf("--unit");
-  const unitRaw = unitIdx !== -1 ? (args[unitIdx + 1] || null) : null;
+  // FAFF-553: strict, closed flag parsing — an unknown flag (e.g. --run) exits 2
+  // instead of silently leaking its value into the positional slot.
+  const parsed = parseHeartbeatArgs(args);
+  if (parsed.error != null) return parsed.error;
+  const { asJson, unitRaw, explicitTarget } = parsed;
   if (unitRaw != null && !isValidIssueId(unitRaw)) {
     process.stderr.write(`heartbeat: --unit ${JSON.stringify(unitRaw)} is not a valid issue id\n`);
     return 2;
   }
   const unit = unitRaw;
-  // Exclude --unit's own value from positional-arg extraction (it doesn't start with
-  // "-", so a naive filter would otherwise treat it as RUN_DIR). Guard unitIdx===-1
-  // (--unit absent) so the exclusion index never collapses onto position 0.
-  const unitValueIdx = unitIdx !== -1 ? unitIdx + 1 : -1;
-  const positional = args.filter((a, i) => !a.startsWith("-") && i !== unitValueIdx);
-  const runDir = resolveHeartbeatRunDir(positional[0], process.env);
   const emit = (rd, lastHb, written) => {
     if (asJson) console.log(JSON.stringify({ run_dir: rd || null, last_heartbeat: lastHb ?? null, written, unit: unit || null }));
     return 0;
   };
 
-  // No run dir / no ledger → soft no-op (an interactive non-run context calling it
-  // by mistake must never error). exit 0, written:false.
-  if (!runDir || !fs.existsSync(path.join(runDir, "run-ledger.json"))) return emit(runDir, null, false);
+  // FAFF-553: an EXPLICIT target (positional or --run-dir) that is missing or has no
+  // run-ledger.json fails LOUD — exit 3, path named on stderr (mirrors sentry's
+  // no-run-dir convention). The soft no-op contract below is scoped to AMBIENT
+  // resolution only: a caller that NAMES a target wrongly is the F4 footgun and must
+  // hear about it, while "an interactive non-run context must never error" holds for
+  // callers that named nothing.
+  let runDir;
+  if (explicitTarget) {
+    let isDir = false;
+    try { isDir = fs.statSync(explicitTarget).isDirectory(); } catch { isDir = false; }
+    if (!isDir || !fs.existsSync(path.join(explicitTarget, "run-ledger.json"))) {
+      process.stderr.write(`heartbeat: ${explicitTarget} is not a run dir (no run-ledger.json)\n`);
+      return 3;
+    }
+    runDir = explicitTarget;
+  } else {
+    runDir = resolveHeartbeatRunDir(null, process.env);
+    // Ambient resolution found no run / no ledger → soft no-op (unchanged). exit 0,
+    // written:false.
+    if (!runDir || !fs.existsSync(path.join(runDir, "run-ledger.json"))) return emit(runDir, null, false);
+  }
 
   let ledger;
   try {

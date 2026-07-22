@@ -429,6 +429,38 @@ function heartbeatSelftest() {
   overlayHeartbeat(l8, "not-a-date"); // unparseable file, fresh field — field fallback wins
   check("an unparseable file falls back to a fresh field, still held", runIsHeld(l8, now, {}) === true);
 
+  // --- FAFF-553: parseHeartbeatArgs — the strict, closed flag set (adversarial-review
+  // follow-up: the parser is a pure core and must be selftest-covered like every other,
+  // so a future refactor that regresses it — e.g. re-introduces the value-leak — is
+  // caught by the CLI's own selftest, not only the external test suite). The parser
+  // writes usage lines to stderr on the error path; capture them so the selftest's
+  // own output stays clean.
+  {
+    const errLines = [];
+    const origWrite = process.stderr.write;
+    process.stderr.write = (s) => { errLines.push(String(s)); return true; };
+    let pUnknown, pLeak, pBoth, pEmpty, pRunDir, pTwoBare, pMissingVal, pClean;
+    try {
+      pUnknown = parseHeartbeatArgs(["--run", "run-xyz"]);
+      pLeak = parseHeartbeatArgs(["--frobnicate", "/some/dir"]);
+      pBoth = parseHeartbeatArgs(["/a/dir", "--run-dir", "/b/dir"]);
+      pEmpty = parseHeartbeatArgs(["", "--json"]);
+      pRunDir = parseHeartbeatArgs(["--run-dir", "/a/dir", "--unit", "FAFF-1", "--json"]);
+      pTwoBare = parseHeartbeatArgs(["/a/dir", "stray"]);
+      pMissingVal = parseHeartbeatArgs(["--run-dir"]);
+      pClean = parseHeartbeatArgs(["/a/dir", "--json"]);
+    } finally { process.stderr.write = origWrite; }
+    check("parse: unknown flag --run errors (exit 2), usage names --run-dir", pUnknown.error === 2 &&
+      errLines.some((l) => l.includes("--run-dir <dir>, or positional RUN_DIR")));
+    check("parse: any unknown flag errors — its value never leaks into the positional slot", pLeak.error === 2);
+    check("parse: positional + --run-dir together error", pBoth.error === 2);
+    check("parse: empty-string positional coerces to nil (ambient)", pEmpty.error == null && pEmpty.explicitTarget === null && pEmpty.asJson === true);
+    check("parse: --run-dir + --unit consume their values", pRunDir.error == null && pRunDir.explicitTarget === "/a/dir" && pRunDir.unitRaw === "FAFF-1");
+    check("parse: a second bare token errors", pTwoBare.error === 2);
+    check("parse: a value-flag missing its value errors", pMissingVal.error === 2);
+    check("parse: positional target parses clean", pClean.error == null && pClean.explicitTarget === "/a/dir");
+  }
+
   // --- FAFF-327: memberHeartbeatFileName + isValidIssueId (pure, no fs) ---
   check("memberHeartbeatFileName suffixes the canonical shape", memberHeartbeatFileName("FAFF-1") === "heartbeat.FAFF-1");
   check("isValidIssueId accepts a normal issue id", isValidIssueId("FAFF-327") === true);

@@ -65,6 +65,20 @@ function validateInput(input) {
   input.finding_tickets.forEach((ft, i) => {
     if (!ft || typeof ft !== "object" || typeof ft.id !== "string" || ft.id === "") {
       errs.push(`finding_tickets[${i}]: missing/invalid string id`);
+      return;
+    }
+    // A SUPPLIED anchor must be well-shaped: object-or-null, log_path a
+    // non-empty string, finding_id null or F<n>. The finding_id shape check is
+    // load-bearing — correlate() interpolates it into a RegExp, so a free-form
+    // value (e.g. "F(3") must be refused loudly here (exit 2), never allowed
+    // to crash the tighten branch with an uncaught SyntaxError.
+    if (ft.anchor !== undefined && ft.anchor !== null) {
+      const a = ft.anchor;
+      if (typeof a !== "object" || Array.isArray(a) || typeof a.log_path !== "string" || a.log_path === "") {
+        errs.push(`finding_tickets[${i}].anchor: not null or { log_path: string, finding_id: F<n>|null }`);
+      } else if (a.finding_id != null && !/^F\d+$/.test(a.finding_id)) {
+        errs.push(`finding_tickets[${i}].anchor.finding_id: must be null or "F<n>" (got ${JSON.stringify(a.finding_id)})`);
+      }
     }
   });
   input.fix_corpus.forEach((fx, i) => {
@@ -236,6 +250,12 @@ function findingsReconcileSelftest() {
     validateInput({ finding_tickets: [{}], fix_corpus: [{ ref: "", merged: "yes" }] }).length >= 3);
   ok("validate: minimal well-formed input passes",
     validateInput({ finding_tickets: [{ id: "A-1", status: "Todo" }], fix_corpus: [{ ref: "A-2", merged: true }] }).length === 0);
+  ok("validate: a supplied anchor with a regex-metachar finding_id is refused (never a RegExp crash)",
+    validateInput({ finding_tickets: [{ id: "A-1", status: "Todo", anchor: { log_path: LOG, finding_id: "F(3" } }], fix_corpus: [] }).length === 1);
+  ok("validate: a malformed anchor object (no log_path) is refused",
+    validateInput({ finding_tickets: [{ id: "A-1", status: "Todo", anchor: { finding_id: "F3" } }], fix_corpus: [] }).length === 1);
+  ok("validate: a well-shaped supplied anchor + explicit null both pass",
+    validateInput({ finding_tickets: [{ id: "A-1", status: "Todo", anchor: { log_path: LOG, finding_id: "F3" } }, { id: "A-2", status: "Todo", anchor: null }], fix_corpus: [] }).length === 0);
 
   // --- purity: no tracker/network access anywhere in this module ---
   const fs = require("node:fs");

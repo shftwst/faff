@@ -38,7 +38,7 @@ const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeF
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
-const { eventLineCount } = require("./events");
+const { appendRecordUnderLock } = require("./events");
 const { atomicWriteLedger, atomicWriteLedgerFenced, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
 const { dig, findRoot, mainWorktreeRoot, readLedger } = require("./shared-infra");
@@ -916,11 +916,9 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   };
   atomicWriteLedger(runDir, ledger);
 
-  // Emit the run-start event onto the observability timeline substrate.
-  const eventsPath = path.join(runDir, "events.jsonl");
-  const seq = eventLineCount(eventsPath);
-  const evt = { schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-start" };
-  fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
+  // Emit the run-start event onto the observability timeline substrate (FAFF-574: through
+  // the shared lock-guarded core — the seq is minted from the log's tail under the lock).
+  appendRecordUnderLock(runDir, (seq) => ({ schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-start" }));
 
   if (json) {
     process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner, degrades: pf.degrades }) + "\n");
@@ -1019,10 +1017,9 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   if (writeRes.yielded) return emitRefuse(1, `lights-out --resume: a concurrent resume already took over ${resumeId} — yielding (no write)`, { state: priorState });
 
   // Append the run-resume event, continuing the existing seq stream (no second run-start).
-  const eventsPath = path.join(runDir, "events.jsonl");
-  const seq = eventLineCount(eventsPath);
-  const evt = runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch });
-  fs.appendFileSync(eventsPath, JSON.stringify(evt) + "\n");
+  // FAFF-574: through the shared lock-guarded core — seq minted from the log's tail under
+  // the lock; run-resume carries its extra fields via runResumeEvent(id, seq, …).
+  appendRecordUnderLock(runDir, (seq) => runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch }));
 
   // STEP 6: HAND OFF exactly as mint does.
   if (json) {

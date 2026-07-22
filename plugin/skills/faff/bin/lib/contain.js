@@ -182,7 +182,18 @@ function cmdContain(args) {
     if (violations.length) {
       throw new Error(`faff contain --record: internal error — constructed an invalid containment-check payload: ${violations.join("; ")}`);
     }
-    appendEventRecord(recordDir, recordRunId, payload);
+    // FAFF-574: recording is load-bearing ("never a silently-unrecorded verdict",
+    // FAFF-354), so a lock-budget exhaustion exits 2 with a named message rather than
+    // dropping the evidence silently.
+    try {
+      appendEventRecord(recordDir, recordRunId, payload);
+    } catch (e) {
+      if (e && e.code === "EVENTS_LOCKED") {
+        process.stderr.write(`faff contain --record: could not record containment-check — ${e.message}\n`);
+        return 2;
+      }
+      throw e;
+    }
   }
 
   if (asJson) {

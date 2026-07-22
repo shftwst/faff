@@ -2,12 +2,16 @@
 // === region:governance — events — FAFF-35 (slice 1): structured run-event log — the timeline substrate ===
 // for run observability. An append-only JSONL log at .faff/runs/<run-id>/events.jsonl,
 // one RunEvent per line. The CLI owns the envelope (schema/run_id/seq/ts); the caller
-// supplies only the payload {phase,type,issue?,data?}. `seq` (current line count) is the
-// authoritative monotonic order — `ts` is best-effort annotation (sandbox clocks are
-// unreliable). Single-writer in slice 1: only the orchestrator appends, so seq is
-// race-free by construction. Pure (no tracker/network), --selftest-able — mirrors
-// `faff profile`/`fixtures`/`contract`. The in-flight view + morning report are later
-// producers that READ this log; slice 1 only produces it.
+// supplies only the payload {phase,type,issue?,data?}. `seq` is the authoritative
+// monotonic order — `ts` is best-effort annotation (sandbox clocks are unreliable).
+// Multi-writer (FAFF-574): the parallel executor, per-member heartbeats, `contain
+// --record`, lights-out mint/resume, and the detached sentry poller all append to the
+// same file concurrently. So every append is serialised by an advisory lock file
+// (<runDir>/events.jsonl.lock, atomic `wx` create) and mints the next seq from the
+// log's own tail inside that critical section — unique + monotonic by construction, and
+// O(1) per append instead of O(file size). Pure (no tracker/network), --selftest-able —
+// mirrors `faff profile`/`fixtures`/`contract`. The in-flight view + morning report are
+// later producers that READ this log; slice 1 only produces it.
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -142,12 +146,133 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
   return v;
 }
 
-// Count non-empty lines in a JSONL file (absent ⇒ 0). The next seq = current count.
+// Count non-empty lines in a JSONL file (absent ⇒ 0). Retained as the module's public
+// surface and as the in-window fallback below; NO production mint site calls it directly
+// for seq any more (FAFF-574 — the tail-read core owns minting).
 function eventLineCount(filePath) {
   if (!fs.existsSync(filePath)) return 0;
   const raw = fs.readFileSync(filePath, "utf8");
   if (raw === "") return 0;
   return raw.split("\n").filter((l) => l.trim() !== "").length;
+}
+
+// FAFF-574 — the lock-serialised append core. Tuning constants are module-level, not
+// config keys: a user has no basis to tune them, and the critical section is a handful
+// of sub-millisecond syscalls, so STALE_LOCK_MS sits ~1000× above it and ACQUIRE_BUDGET_MS
+// covers over a hundred contending writers.
+const RETRY_INTERVAL_MS = 15;    // sleep between acquisition attempts
+const ACQUIRE_BUDGET_MS = 2000;  // total time to keep trying before failing loudly
+const STALE_LOCK_MS = 5000;      // a lock older than this is a dead holder — take it over
+const TAIL_WINDOW_BYTES = 65536; // bytes read from the file's end to find the last record
+
+// Dependency-free synchronous sleep (Atomics.wait on a throwaway SharedArrayBuffer) — the
+// sync style the rest of this CLI uses; no async/await, no busy-spin.
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+// Acquire the advisory lock by atomic exclusive create. The file's EXISTENCE is the lock;
+// its {pid, ts} content is forensic only, never consulted for the decision. On EEXIST:
+// take over a stale lock (mtime older than STALE_LOCK_MS ⇒ dead holder), else wait and
+// retry until ACQUIRE_BUDGET_MS is spent, then THROW a tagged EVENTS_LOCKED error — never
+// fall through to an unlocked append (that would reintroduce the race under exactly the
+// contention that fires it).
+function acquireEventsLock(lockPath) {
+  const start = Date.now();
+  for (;;) {
+    let fd;
+    try {
+      fd = fs.openSync(lockPath, "wx");
+    } catch (e) {
+      if (!e || e.code !== "EEXIST") throw e;
+      let st = null;
+      try { st = fs.statSync(lockPath); }
+      catch (e2) { if (e2 && e2.code === "ENOENT") continue; throw e2; } // vanished — retry immediately
+      if (st && (Date.now() - st.mtimeMs) > STALE_LOCK_MS) {
+        try { fs.unlinkSync(lockPath); } catch (e3) { if (!e3 || e3.code !== "ENOENT") throw e3; }
+        continue; // stale holder taken over — retry immediately
+      }
+      if (Date.now() - start >= ACQUIRE_BUDGET_MS) {
+        const err = new Error(`events lock: could not acquire ${path.basename(lockPath)} within ${ACQUIRE_BUDGET_MS}ms`);
+        err.code = "EVENTS_LOCKED";
+        throw err;
+      }
+      sleepMs(RETRY_INTERVAL_MS);
+      continue;
+    }
+    try { fs.writeSync(fd, JSON.stringify({ pid: process.pid, ts: new Date().toISOString() })); }
+    finally { fs.closeSync(fd); }
+    return;
+  }
+}
+
+// Tail-read the log to find the last parseable record, returning { seq, prevRecord } where
+// `seq` is the NEXT seq to mint. Reads at most TAIL_WINDOW_BYTES from the file's end (O(1)),
+// scanning backwards past any torn/malformed trailing line. Empty/absent ⇒ seq 0. A window
+// with no parseable record at all (pathological — a single record larger than the window)
+// falls back to the full-file line count — degraded, but never wrong-by-race, since the
+// caller holds the lock. Exported for unit assertion of the bounded read.
+function tailReadNextSeq(eventsPath) {
+  let st;
+  try { st = fs.statSync(eventsPath); }
+  catch (e) { if (e && e.code === "ENOENT") return { seq: 0, prevRecord: null }; throw e; }
+  if (st.size === 0) return { seq: 0, prevRecord: null };
+  const readLen = Math.min(st.size, TAIL_WINDOW_BYTES);
+  const buf = Buffer.alloc(readLen);
+  const fd = fs.openSync(eventsPath, "r");
+  try { fs.readSync(fd, buf, 0, readLen, st.size - readLen); }
+  finally { fs.closeSync(fd); }
+  const lines = buf.toString("utf8").split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() === "") continue;
+    let obj;
+    try { obj = JSON.parse(lines[i]); } catch { continue; } // torn/partial trailing line — skip
+    if (obj && Number.isInteger(obj.seq)) return { seq: obj.seq + 1, prevRecord: obj };
+  }
+  return { seq: eventLineCount(eventsPath), prevRecord: null }; // window held no parseable record
+}
+
+// The single lock-guarded critical section every seq mint goes through (FAFF-574).
+// `mintRecord(seq, prevRecord)` returns the record to append, or null to abort WITHOUT
+// writing (corrective.js uses null to preserve its never-write-malformed guarantee).
+// Newline-repairs a torn final line by prefixing "\n" (never rewriting existing bytes),
+// then appends the record as one write. Releases the lock in a finally. Throws
+// EVENTS_LOCKED (from acquire) on budget exhaustion.
+function appendRecordUnderLock(dir, mintRecord) {
+  const eventsPath = path.join(dir, "events.jsonl");
+  const lockPath = eventsPath + ".lock";
+  acquireEventsLock(lockPath);
+  try {
+    const { seq, prevRecord } = tailReadNextSeq(eventsPath);
+    const record = mintRecord(seq, prevRecord);
+    if (record === null || record === undefined) return null; // aborted — nothing written
+    let prefix = "";
+    try {
+      const st = fs.statSync(eventsPath);
+      if (st.size > 0) {
+        const fd = fs.openSync(eventsPath, "r");
+        const last = Buffer.alloc(1);
+        try { fs.readSync(fd, last, 0, 1, st.size - 1); }
+        finally { fs.closeSync(fd); }
+        if (last[0] !== 0x0a) prefix = "\n"; // torn write from a crashed holder — don't concatenate
+      }
+    } catch (e) { if (!e || e.code !== "ENOENT") throw e; }
+    fs.appendFileSync(eventsPath, prefix + JSON.stringify(record) + "\n");
+    return record;
+  } finally {
+    try { fs.unlinkSync(lockPath); } catch { /* release is best-effort — never mask the result */ }
+  }
+}
+
+// Classify a seq against the previous seq for `events validate` (FAFF-574). Returns a
+// finding string (without the "line N: " prefix) or null. A duplicate/regression
+// (seq <= prev) breaks ordering ⇒ HARD (no [advisory] tag); a forward gap (seq > prev+1)
+// leaves order intact ⇒ [advisory], unchanged. Pure — unit-assertable on message class.
+function seqFinding(prevSeq, seq) {
+  if (!Number.isInteger(seq)) return null;
+  if (seq <= prevSeq) return `duplicate/regressed seq (expected > ${prevSeq}, got ${seq})`;
+  if (seq > prevSeq + 1) return `non-contiguous seq (expected ${prevSeq + 1}, got ${seq}) [advisory]`;
+  return null;
 }
 
 // The shared envelope-append core (FAFF-354): builds the CLI-owned envelope
@@ -158,14 +283,17 @@ function eventLineCount(filePath) {
 // NOT check for one, because its two callers need different exit codes on a
 // missing run dir (events append: 3; contain --record: 2, since contain's own
 // exit 3 already means "outward") and so validate it themselves before calling in.
+// FAFF-574: a thin wrapper over the lock-guarded core. Signature and returned-record
+// shape are unchanged for its callers (`events append`, `contain --record`, sentry-poller);
+// they gain only the possibility of a thrown EVENTS_LOCKED under lock-budget exhaustion,
+// which each surfaces per its own loudness contract.
 function appendEventRecord(dir, run, payload, ts) {
-  const eventsPath = path.join(dir, "events.jsonl");
-  const seq = eventLineCount(eventsPath);
-  const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
-  if (payload.issue !== undefined) record.issue = payload.issue;
-  if (payload.data !== undefined) record.data = payload.data;
-  fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
-  return record;
+  return appendRecordUnderLock(dir, (seq) => {
+    const record = { schema: 1, run_id: run, seq, ts: ts || new Date().toISOString(), phase: payload.phase, type: payload.type };
+    if (payload.issue !== undefined) record.issue = payload.issue;
+    if (payload.data !== undefined) record.data = payload.data;
+    return record;
+  });
 }
 
 function cmdEvents(args) {
@@ -277,7 +405,15 @@ function cmdEvents(args) {
       }
       data = base;
     }
-    const record = appendEventRecord(dir, run, { phase: payload.phase, type: payload.type, issue: payload.issue, data }, ts);
+    let record;
+    try {
+      record = appendEventRecord(dir, run, { phase: payload.phase, type: payload.type, issue: payload.issue, data }, ts);
+    } catch (e) {
+      // FAFF-574: a lock-budget exhaustion is loud — exit 1, mirroring the validation-failure
+      // exit above; never a silent unlocked append.
+      if (e && e.code === "EVENTS_LOCKED") { process.stderr.write(`faff events append: ${e.message}\n`); return 1; }
+      throw e;
+    }
     console.log(JSON.stringify(record));
     return 0;
   }
@@ -296,9 +432,11 @@ function cmdEvents(args) {
       try { obj = JSON.parse(line); }
       catch { violations.push(`line ${n}: malformed (invalid JSON)`); return; }
       for (const x of eventViolations(obj, true)) violations.push(`line ${n}: ${x}`);
-      // Advisory: seq should be contiguous and gap-free.
+      // FAFF-574: duplicate/regressed seq (ordering broken) is a HARD finding; a forward
+      // gap (order intact) stays [advisory]. Any finding still exits 1 (unchanged).
       if (Number.isInteger(obj.seq)) {
-        if (obj.seq !== prevSeq + 1) violations.push(`line ${n}: non-contiguous seq (expected ${prevSeq + 1}, got ${obj.seq}) [advisory]`);
+        const f = seqFinding(prevSeq, obj.seq);
+        if (f) violations.push(`line ${n}: ${f}`);
         prevSeq = obj.seq;
       }
     });
@@ -391,10 +529,26 @@ function eventsSelftest() {
   if (payloadOk !== 0) { process.stderr.write("events --selftest FAIL: valid payload (no envelope) (want 0, got 1)\n"); failed++; }
   const payloadBad = eventViolations({ phase: "build", type: "build-start" }, false).length > 0 ? 1 : 0;
   if (payloadBad !== 1) { process.stderr.write("events --selftest FAIL: payload missing issue (want 1, got 0)\n"); failed++; }
+  // FAFF-574 — seq classification: duplicate/regression is HARD (no [advisory]), a forward
+  // gap is [advisory], contiguous/first is clean. [prevSeq, seq, wantClass] where wantClass
+  // is "hard" | "advisory" | "none".
+  const seqCases = [
+    [-1, 0, "none", "first record seq 0"],
+    [3, 4, "none", "contiguous"],
+    [4, 4, "hard", "duplicate seq"],
+    [5, 3, "hard", "regressed seq"],
+    [4, 7, "advisory", "forward gap"],
+    [-1, 5, "advisory", "forward gap from empty log"],
+  ];
+  for (const [prev, s, want, label] of seqCases) {
+    const f = seqFinding(prev, s);
+    const got = f === null ? "none" : (/\[advisory\]/.test(f) ? "advisory" : "hard");
+    if (got !== want) { process.stderr.write(`events --selftest FAIL: seq ${label} (want ${want}, got ${got})\n`); failed++; }
+  }
   if (failed) return 1;
   console.log("events --selftest: ok");
   return 0;
 }
 
 
-module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, appendEventRecord, cmdEvents, eventLineCount, eventViolations, eventsSelftest };
+module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, eventLineCount, eventViolations, eventsSelftest, seqFinding, tailReadNextSeq };

@@ -42,7 +42,7 @@
 // ===========================================================================
 
 // Governance-region config read: resolves ONLY the governance keys (`budget.*`,
-// `sentry.*`) via shared-infra parseYamlSubset + dig — never the factory's
+// `sentry.*`) via shared-infra readBaseConfigStrict (FAFF-577) + dig — never the factory's
 // loadConfig/DEFAULTS/resolveAppetite (appetite/L4 ledger semantics are factory-
 // flavoured; routing governance reads through them was the one governance→factory
 // edge, severed here). Filename resolution mirrors loadConfig for the paths these
@@ -58,7 +58,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { CANONICAL_CONFIG, dig, findConfig, findRoot, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 const { atomicWriteLedgerFenced } = require("./heartbeat");
 
 function readGovernanceConfig(root) {
@@ -79,8 +79,23 @@ function readGovernanceConfig(root) {
     throw e;
   }
   if (rc === null) return {};
-  const data = parseYamlSubset(fs.readFileSync(rc, "utf8"));
-  return (data && typeof data === "object" && !Array.isArray(data)) ? data : {};
+  // FAFF-577: malformed CONTENT is the same stakes as the mis-named file above — a
+  // governance ceiling must not silently resolve from defaults. The shared chokepoint
+  // (readBaseConfigStrict) writes the one-line warning to stderr BEFORE any throw and
+  // honours the FAFF_CONFIG_BASE_LENIENT hatch; on strict failure this THROWS
+  // "base-parse-error" (never process.exit) so `faff sentry check` can catch it and
+  // degrade loud instead of fault-capping the poller. The governance-flavoured line
+  // below fires on the way out; the CLI entries exit 2 via the dispatch boundary.
+  try {
+    return readBaseConfigStrict(rc);
+  } catch (e) {
+    if (e && e.message === "base-parse-error") {
+      process.stderr.write(
+        "faff: governance config unusable — a governance ceiling must not disappear on a malformed file. " +
+        "(Loud error, never a silent default.)\n");
+    }
+    throw e;
+  }
 }
 const BUDGET_DIMENSIONS = ["until", "max_attempts", "tokens", "cost"];
 const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate"]);

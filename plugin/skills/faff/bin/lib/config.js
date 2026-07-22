@@ -15,7 +15,7 @@ const { runIsHeld } = require("./runcheck");
 const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
 const {
   CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG,
-  deepMergeConfig, dig, findConfig, findOverlay, findRoot, isPlainConfigMap,
+  deepMergeConfig, dig, findConfig, findOverlay, findRoot, isPlainConfigMap, parseConfigMapStrict, readBaseConfigStrict,
   parseOverlayStrict, parseYamlSubset, readLedger, scalar, stripInlineComment,
 } = require("./shared-infra");
 
@@ -314,21 +314,21 @@ function fmt(value) {
   return String(value);
 }
 
-// FAFF-387: two-file merged resolution — .faffrc.local.yaml (overlay) deep-merged
-// over .faffrc.yaml (base) per shared-infra's deepMergeConfig (maps merge per-leaf,
-// sequences/scalars are replaced wholesale by the overlay). BACK-COMPAT: the base
-// half is byte-for-byte the pre-FAFF-387 behaviour (a non-map base silently reads
-// as {}); with no overlay present (findOverlay returns null, the common case today)
-// this returns the exact same 2-meaningful-values shape as before, so every
-// existing `const [data] = loadConfig(root)` / `const [data, p] = loadConfig(root)`
-// call site is unaffected. The overlay half is STRICT (parseOverlayStrict throws
-// "overlay-parse-error" on unreadable/non-map content) — an overlay parse failure
-// is loud, never a silent partial-apply (the FAFF-50 failure mode reborn). Returns
+// FAFF-387/FAFF-577: two-file merged resolution — .faffrc.local.yaml (overlay)
+// deep-merged over .faffrc.yaml (base) per shared-infra's deepMergeConfig (maps
+// merge per-leaf, sequences/scalars are replaced wholesale by the overlay). BOTH
+// halves are STRICT: the overlay throws "overlay-parse-error" (FAFF-387) and the
+// base throws "base-parse-error" (FAFF-577) on unreadable/non-map content — a
+// malformed config is loud, never a silent default (the FAFF-50 failure mode; the
+// base's stakes are budget/sentry ceilings). The base chokepoint
+// (readBaseConfigStrict) writes its stderr warning BEFORE the throw, so the ~23
+// catching/degrading call sites can never re-silence the failure, and honours the
+// FAFF_CONFIG_BASE_LENIENT escape hatch (warn-and-proceed-on-{}). An absent base
+// (p === null) still resolves {} silently — all-defaults is valid. Returns
 // [mergedData, basePath|null, overlayPath|null].
 function loadConfig(root) {
   const p = findConfig(root);
-  const baseRaw = p === null ? {} : parseYamlSubset(fs.readFileSync(p, "utf8"));
-  const baseData = isPlainConfigMap(baseRaw) ? baseRaw : {};
+  const baseData = p === null ? {} : readBaseConfigStrict(p);
   const overlayPath = findOverlay(root);          // may throw legacy-overlay-config-name
   if (overlayPath === null) return [baseData, p, null];
   const overlayData = parseOverlayStrict(overlayPath); // may throw overlay-parse-error
@@ -848,7 +848,7 @@ const MIGRATION_STEPS = [
 // { findings, skipped, exit }. Split from cmdConfigCheck's I/O so --selftest can
 // drive the secret scan + posture logic in-memory without a real git repo.
 // `probes` supplies { inRepo, isIgnored(rel), isTracked(rel) } (nullable inRepo).
-function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, probes }) {
+function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes }) {
   const findings = [];
   const skipped = [];
   const rel = (p) => (p ? path.basename(p) : null);
@@ -856,6 +856,13 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // Check 5: legacy filenames present (mirror the loud resolver error as a finding).
   for (const n of [...(legacyBase || []), ...(legacyOverlay || [])]) {
     findings.push({ severity: "error", surface: n, message: `legacy config filename \`${n}\` present — faff uses only \`.faffrc.yaml\` / \`.faffrc.local.yaml\`; rename it.` });
+  }
+
+  // Check 1b (FAFF-577): a malformed base is an error-severity FINDING naming file +
+  // parse detail — the diagnosis surface describes the fault it exists to catch,
+  // exit 1, never an exit-2 abort.
+  if (baseParseError) {
+    findings.push({ severity: "error", surface: rel(baseParseError.file) || rel(basePath) || ".faffrc.yaml", message: `malformed base config — ${baseParseError.detail}. Configured values (including budget/sentry ceilings) are NOT applied; fix the file (git diff / git checkout ${rel(baseParseError.file) || ".faffrc.yaml"}).` });
   }
 
   // Check 2 + 3: posture (git). Skipped entirely outside a git repo.
@@ -911,13 +918,19 @@ function cmdConfigCheck(args, root) {
     if (e.message === "legacy-overlay-config-name") legacyOverlay.push(...e.legacy);
     else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
   }
+  // FAFF-577: the diagnosis surface must be able to DESCRIBE a malformed base —
+  // detection-as-finding (error severity, exit 1), never an exit-2 abort on this
+  // fault (or the one command that names the problem would refuse to run), and
+  // never the old silent coerce to {}. parseConfigMapStrict is called directly
+  // (not readBaseConfigStrict): check reports findings, it doesn't fire the
+  // chokepoint warning or honour the hatch.
+  let baseParseError = null;
   if (basePath) {
     try {
-      const raw = parseYamlSubset(fs.readFileSync(basePath, "utf8"));
-      baseDoc = isPlainConfigMap(raw) ? raw : {};
+      baseDoc = parseConfigMapStrict(basePath, "base-parse-error", "the base config");
     } catch (e) {
-      process.stderr.write(`faff config check: ${basePath} unreadable (${e.code || e.message})\n`);
-      return 2;
+      if (e && e.message === "base-parse-error") baseParseError = { file: e.file, detail: e.detail };
+      else { process.stderr.write(`faff config check: ${basePath} unreadable (${e.code || e.message})\n`); return 2; }
     }
   }
   if (overlayPath) {
@@ -936,7 +949,7 @@ function cmdConfigCheck(args, root) {
     isTracked: (relPath) => gitIsTracked(root, relPath),
   };
   const { findings, skipped, exit } = computeConfigCheck({
-    basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, probes,
+    basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes,
   });
 
   if (json) {
@@ -1080,6 +1093,18 @@ function configCheckSelftest() {
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
     check("legacy: present filename → error finding, exit 1", r.exit === 1 && r.findings.some((f) => f.severity === "error"));
+  }
+  {
+    // FAFF-577: malformed base → error-severity finding naming file + detail, exit 1
+    // (detection-as-finding — never an exit-2 abort in the pure core's vocabulary).
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: null, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      baseParseError: { file: "/r/.faffrc.yaml", detail: "does not parse to a mapping (malformed YAML — the base config must be a key:value mapping)" },
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("malformed base: error finding naming file + detail, exit 1",
+      r.exit === 1 && r.findings.some((f) => f.severity === "error" && f.surface === ".faffrc.yaml" && /malformed base config/.test(f.message) && /does not parse to a mapping/.test(f.message)));
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config check, ${fail} failed)`);
@@ -1318,6 +1343,13 @@ function cmdConfig(args) {
     }
     if (e.message === "overlay-parse-error") {
       process.stderr.write(`faff config: ${e.file} failed to parse (${e.detail}) — an overlay parse failure is never silently skipped (FAFF-387).\n`);
+      return 2;
+    }
+    // FAFF-577: the base's parse-fault tag — the chokepoint warning (with the
+    // remedy + hatch) already fired on stderr; this branch is the command-level
+    // exit, mirroring the overlay branch above.
+    if (e.message === "base-parse-error") {
+      process.stderr.write(`faff config: ${e.file} failed to parse (${e.detail}) — a malformed base is never a silent default (FAFF-577).\n`);
       return 2;
     }
     throw e;

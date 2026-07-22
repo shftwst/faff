@@ -356,6 +356,13 @@ function lightsOutPreflight(probes) {
     refusals.push({ gate: "spec_review-slot", detail: "spec_review slot not configured + reachable — spec admission gating would be skipped" });
   if (!probes.budgetCeilingSet)
     refusals.push({ gate: "budget-ceiling", detail: "count-cap only (or no ceiling) — a count is not an L4 governor; set a spend ceiling: budget.cost (dollars — priced per-model x per-class from the ADR-0048 map by default, the recommended L4 governor), or budget.tokens / budget.until. max_attempts may stay as an extra backstop." });
+  // FAFF-577 — a lights-out run must never start with governance-read leniency
+  // armed: FAFF_CONFIG_BASE_LENIENT downgrades a malformed base (budget/sentry
+  // ceilings included) to warn-and-proceed-on-defaults, which is exactly the silent
+  // degradation an unattended run cannot absorb. Refuse the mint outright; the
+  // hatch is for limping interactively, not living lights-out.
+  if (probes.configBaseLenientSet)
+    refusals.push({ gate: "config-base-lenient", detail: "FAFF_CONFIG_BASE_LENIENT is set — governance-read leniency must not be armed for a lights-out run (a malformed .faffrc.yaml would silently degrade budget/sentry ceilings to defaults mid-run). Unset the env var and fix .faffrc.yaml (git diff / git checkout .faffrc.yaml). (FAFF-577)" });
   // FAFF-364 — a malformed budget.until / --until must never mint a ledger carrying
   // it: fires REGARDLESS of other ceilings (a clean budget.tokens ceiling does NOT
   // excuse garbage until). When malformed until is the run's ONLY ceiling, the
@@ -807,6 +814,9 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
   const probes = {
     container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet,
     budgetUntilInvalid: envelope.until_invalid, budgetPriceRemoved: envelope.price_per_mtok_removed,
+    // FAFF-577 — the escape hatch armed (set, non-empty) refuses the mint: a
+    // lights-out run must never start with governance-read leniency armed.
+    configBaseLenientSet: !!process.env.FAFF_CONFIG_BASE_LENIENT,
     floor, floor_detail: floorDetail, dial: coherenceDial,
     meteringMeasurable, estimateOnlyPosture: onEstimateOnlyPosture, tokenDependentCeiling,
     // FAFF-325 — reuse the ONE probe call above; never a second, possibly-divergent read.
@@ -1357,6 +1367,16 @@ function lightsOutSelftest() {
   // A null budgetUntilInvalid (the common/valid case) never fires the gate.
   check("null budgetUntilInvalid never fires budget-until-invalid",
     !happy.refusals.some((r) => r.gate === "budget-until-invalid"));
+
+  // FAFF-577 — the FAFF_CONFIG_BASE_LENIENT hatch armed refuses the mint outright.
+  const hatchArmed = lightsOutPreflight(armedProbes({ configBaseLenientSet: true }));
+  check("config-base-lenient hatch armed refuses",
+    hatchArmed.proceed === false && hatchArmed.refusals.some((r) => r.gate === "config-base-lenient"));
+  check("config-base-lenient refusal names the hatch + remedy",
+    /FAFF_CONFIG_BASE_LENIENT/.test(hatchArmed.refusals.find((r) => r.gate === "config-base-lenient").detail) &&
+    /\.faffrc\.yaml/.test(hatchArmed.refusals.find((r) => r.gate === "config-base-lenient").detail));
+  check("hatch unset (the common case) never fires config-base-lenient",
+    !happy.refusals.some((r) => r.gate === "config-base-lenient"));
 
   // FAFF-446 — a still-configured budget.price_per_mtok hard-refuses the L4 mint
   // (no fail-open risk at this call site, unlike `budget check`'s warn-and-ignore).

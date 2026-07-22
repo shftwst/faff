@@ -293,6 +293,14 @@ function main(argv) {
     try { return handler(rest); }
     catch (e) {
       if (e && e.faffGovernanceProfileError) { process.stderr.write(`faff: ${e.message}\n`); return 2; }
+      // FAFF-577: a strict base-config failure surfacing from any subcommand that
+      // did not handle it itself (governance entries, factory readers alike) is a
+      // clean loud exit 2 — the chokepoint warning (file, detail, remedy, hatch)
+      // already fired on stderr, so this line is just the command-level exit.
+      if (e && e.message === "base-parse-error") {
+        process.stderr.write(`faff ${sub}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
+        return 2;
+      }
       throw e;
     }
   }

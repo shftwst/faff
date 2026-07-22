@@ -34,7 +34,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
-const { eventLineCount, eventViolations } = require("./events");
+const { appendRecordUnderLock, eventViolations } = require("./events");
 const { readGovernanceConfig } = require("./budget");
 const { DERAILMENT_SIGNALS, sentryThresholds } = require("./sentry");
 const { dig, findRoot } = require("./shared-infra");
@@ -274,17 +274,31 @@ function foldFingerprint(mandate, constraints, applied, rejected) {
 
 function appendCorrectiveEvent(runDir, type, issue, data) {
   const runId = path.basename(runDir);
-  const eventsPath = path.join(runDir, "events.jsonl");
-  const seq = eventLineCount(eventsPath);
-  // adversarial-review follow-up: phase "run" (not "build") — authoring and
+  // FAFF-574: route through the shared lock-guarded core rather than hand-rolling the
+  // seq mint + append. The mintRecord closure validates the full record and returns null
+  // on violations, so the core writes nothing — preserving this function's
+  // never-write-malformed guarantee and its {appended, violations}/{appended, record}
+  // return shape. adversarial-review follow-up: phase "run" (not "build") — authoring and
   // consumption both happen at the ORCHESTRATOR lane (between-units / the dispatch
   // boundary), the same phase the FAFF-352 sentry-checkpoint event uses, never inside
   // a build subagent's own lane.
-  const record = { schema: 1, run_id: runId, seq, ts: new Date().toISOString(), phase: "run", type, issue, data };
-  const violations = eventViolations(record, true);
-  if (violations.length) return { appended: false, violations }; // never write a malformed record
-  fs.appendFileSync(eventsPath, JSON.stringify(record) + "\n");
-  return { appended: true, record };
+  let violations = null;
+  let out;
+  try {
+    out = appendRecordUnderLock(runDir, (seq) => {
+      const record = { schema: 1, run_id: runId, seq, ts: new Date().toISOString(), phase: "run", type, issue, data };
+      const v = eventViolations(record, true);
+      if (v.length) { violations = v; return null; } // never write a malformed record
+      return record;
+    });
+  } catch (e) {
+    // The lock could not be acquired — recording is load-bearing, so surface it loudly in
+    // the same {appended:false, violations} shape rather than throwing past the caller.
+    if (e && e.code === "EVENTS_LOCKED") return { appended: false, violations: [`events lock: ${e.message}`] };
+    throw e;
+  }
+  if (violations) return { appended: false, violations };
+  return { appended: true, record: out };
 }
 
 // --- CLI: author -------------------------------------------------------------------

@@ -42,7 +42,7 @@
 // ===========================================================================
 
 // Governance-region config read: resolves ONLY the governance keys (`budget.*`,
-// `sentry.*`) via shared-infra parseYamlSubset + dig — never the factory's
+// `sentry.*`) via shared-infra readBaseConfigStrict (FAFF-577) + dig — never the factory's
 // loadConfig/DEFAULTS/resolveAppetite (appetite/L4 ledger semantics are factory-
 // flavoured; routing governance reads through them was the one governance→factory
 // edge, severed here). Filename resolution mirrors loadConfig for the paths these
@@ -58,7 +58,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { CANONICAL_CONFIG, dig, findConfig, findRoot, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { CANONICAL_CONFIG, dig, findConfig, findRoot, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 const { atomicWriteLedgerFenced } = require("./heartbeat");
 
 function readGovernanceConfig(root) {

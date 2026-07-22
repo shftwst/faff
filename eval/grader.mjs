@@ -234,7 +234,7 @@ import { fileURLToPath } from "node:url";
 //                     should survive). predictedSet = ["overturned"] iff env.challenge_outcome ===
 //                     "overturned", else []. Surface = faffter-dark-adversarial-review (the same
 //                     adversarial engine refutation-code uses — a distinct question, same mechanism).
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift"];
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift"]);
 
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
@@ -850,6 +850,16 @@ export function grade(c, env) {
   }
   if (c.kind === "chain-gap") {
     const { graded, score, signature } = gradeChainGap(env.chain_gap, c.oracle.closed_set);
+    return { graded, score, tokens, signature };
+  }
+  // FAFF-569 — resolved-elsewhere symptom-similarity: the model returns
+  // `resolved_elsewhere` — the fix refs it judged semantically matching the
+  // finding's symptom text ([] = no match after the conservative skips). The
+  // oracle's `closed_set` is a synonym-set array; grading delegates byte-for-
+  // byte to gradeSplittable (the same label-set shape — refs as labels).
+  // Deliberately NOT in CLOSED_SET_KINDS (own dispatch, like splittable).
+  if (c.kind === "resolved-elsewhere") {
+    const { graded, score, signature } = gradeSplittable(env.resolved_elsewhere, c.oracle.closed_set);
     return { graded, score, tokens, signature };
   }
   throw new CaseError(`grade: unknown kind ${c.kind}`);

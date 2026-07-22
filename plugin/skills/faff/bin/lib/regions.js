@@ -133,6 +133,10 @@ const REGION_MAP = {
   // shared-infra (findRoot/readLedger/latestRunDir) and governance-profile
   // (activeProfile) — a pure computation command, sibling of run-done/next → factory.
   "queue-state": "factory",
+  // findings-reconcile — FAFF-569: the resolved-elsewhere correlation for tidy's
+  // structural diagnostics. Pure stdin→stdout computation, no local requires —
+  // a pure computation command, sibling of next/contain → factory.
+  "findings-reconcile": "factory",
   "park-history": "factory",
   "gitignore-ensure": "factory",
   "adr": "factory",
@@ -250,6 +254,7 @@ const REGION_SELFTEST_ARGV = {
   "project-next": ["project-next", "--selftest"],
   "state": null,
   "queue-state": ["queue-state", "--selftest"],
+  "findings-reconcile": ["findings-reconcile", "--selftest"],
   "park-history": ["park-history", "--selftest"],
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
   "adr": ["adr", "--selftest"],

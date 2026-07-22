@@ -1,0 +1,11 @@
+{ "id": "resolved-elsewhere-001", "kind": "resolved-elsewhere",
+  "fixture": { "version": 1, "issues": [
+    { "id": "ISS-RE", "title": "worktree registry clobbered by concurrent prune", "state": "Todo",
+      "spec": "Finding from an overnight run: a global `git worktree prune` fired while a peer build was mid-flight and wiped the peer's admin directory, corrupting its checkout. The prune must be scoped to the run's own worktree instead of repo-wide." } ],
+    "fix_corpus": [
+      { "ref": "FIX-101", "merged": true, "text": "Scope worktree pruning to the invoking run's own dangling entries — replace the repo-wide `git worktree prune` with a per-issue scoped prune so a live peer's admin dir is never removed. Unproven-ownership entries are fail-safe skipped." },
+      { "ref": "FIX-102", "merged": true, "text": "Speed up the CI cache restore step by keying the node_modules cache on the lockfile hash instead of the branch name." },
+      { "ref": "FIX-103", "merged": true, "text": "Fix the worktree setup script copying `.env` files: it silently skipped dotfiles on Linux because the glob did not match hidden files." } ] },
+  "question": "ISS-RE is an open finding-ticket with no anchor or ticket citation linking it to any fix. Which merged fixes in the corpus, if any, semantically match its symptom (same defect mechanism, same surface — not merely the same topic area)? Return `resolved_elsewhere`: an array of matching fix refs, or [] if none clearly match after the conservative skips.",
+  "oracle": { "closed_set": [
+    ["FIX-101", "fix-101"] ] } }

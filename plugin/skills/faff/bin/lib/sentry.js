@@ -710,7 +710,20 @@ function cmdSentry(args) {
     // seam that already existed (normalizeSentrySignals / evalForbiddenSideEffect,
     // untouched). Boolean, no value; absent ⇒ unchanged degraded (no-signal) behaviour.
     const forbiddenSideEffect = args.includes("--forbidden-side-effect");
-    const cfg = readGovernanceConfig(root);
+    // FAFF-577: the watchdog must never die of a config fault. The poller counts any
+    // non-zero exit as a fault and fault-caps out, so a strict exit here would kill
+    // the very kill-switch machinery whose ceilings strictness protects. Degrade
+    // LOUD instead: catch the strict base failure (the chokepoint + governance
+    // warnings already fired on stderr), proceed on built-in default thresholds
+    // (the conservative floor — the kill-switch still functions), and flag
+    // `config_malformed: true` in the payload so the degradation is visible in the
+    // poller log, never silent.
+    let cfg, configMalformed = false;
+    try { cfg = readGovernanceConfig(root); }
+    catch (e) {
+      if (e && e.message === "base-parse-error") { cfg = {}; configMalformed = true; }
+      else throw e;
+    }
     // FAFF-362: resolve the active profile ONCE for this invocation (may throw
     // GovernanceProfileError on a bad $FAFF_GOVERNANCE_PROFILE override — caught
     // at bin/faff's dispatch boundary, loud exit 2, never a silent delivery
@@ -804,8 +817,11 @@ function cmdSentry(args) {
       }
     }
     const result = evaluateDerailment({ events, ledger, budget, now_ms: nowRes.now_ms, heartbeat_source: heartbeatSource, forbidden_side_effect: forbiddenSideEffect, member_beats: memberBeats }, th, authority, profile);
-    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust };
+    // FAFF-577: config_malformed rides every payload (false in the healthy case) so
+    // a degraded-thresholds check is machine-visible, not inferred from stderr.
+    const payload = { run_dir: checkedRunDir, verdicts: result.verdicts, intervention: result.intervention, tripped: result.tripped, thresholds: th, authority, detection_trust: detectionTrust, config_malformed: configMalformed };
     if (asJson) { console.log(JSON.stringify(payload)); return 0; }
+    if (configMalformed) console.log("sentry: WARNING — base config malformed; thresholds are built-in defaults (config_malformed)");
     if (!result.verdicts.length) console.log("sentry: no derailment — intervention: continue");
     else {
       console.log(`sentry: ${result.verdicts.length} verdict(s) — intervention: ${result.intervention}${result.tripped ? " (TRIP)" : ""}`);

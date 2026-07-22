@@ -477,25 +477,27 @@ function hasMeaningfulYamlContent(text) {
   });
 }
 
-// FAFF-387: the OVERLAY's strict read+parse — a parse failure here is LOUD (thrown
-// as "overlay-parse-error", never silently coerced to {}), unlike the base file's
-// existing lenient behaviour (a non-map base silently reads as {} today, and that
-// byte-for-byte back-compat is load-bearing — see config.js's loadConfig). A
-// half-applied overlay silently reverting to base values is the FAFF-50 silent-
-// default failure mode reborn, so this is fail-loud by design. "Parse failure"
-// covers: (a) an unreadable file (permission/race after the existence check); and
-// (b) a file that HAS content but parses to an empty mapping — because
+// FAFF-387/FAFF-577: the ONE strict config read+parse both halves call — a parse
+// failure here is LOUD (thrown under the caller's errorName, never silently coerced
+// to {}). A config file silently reverting to defaults is the FAFF-50 silent-default
+// failure mode: FAFF-387 closed it for the overlay, FAFF-577 closed it for the base
+// (whose stakes are budget/sentry ceilings), and this shared helper is the single
+// detection both use — one implementation, one shared detection limit. "Parse
+// failure" covers: (a) an unreadable file (permission/race after the existence
+// check); and (b) a file that HAS content but parses to an empty mapping — because
 // parseYamlSubset is a forgiving line-based parser that never throws and yields {}
 // for a top-level sequence or scalar document, the empty-map-from-non-empty-file
-// signal is how a malformed (non-mapping) overlay is caught. An intentionally-empty
-// or comment-only overlay parses to {} from an EMPTY file and is allowed (valid,
-// no-op overlay).
-function parseOverlayStrict(filePath) {
+// signal is how a malformed (non-mapping) document is caught. An intentionally-empty
+// or comment-only file parses to {} from an EMPTY file and is allowed (valid).
+// Known limit (shared with the overlay's original): a bare scalar line without a
+// colon parses as a one-key map and is not flagged — per-key validation territory,
+// out of scope (FAFF-577 §3).
+function parseConfigMapStrict(filePath, errorName, noun = "the file") {
   let text;
   try {
     text = fs.readFileSync(filePath, "utf8");
   } catch (e) {
-    const err = new Error("overlay-parse-error");
+    const err = new Error(errorName);
     err.file = filePath;
     err.detail = `unreadable (${e.code || e.message})`;
     throw err;
@@ -503,13 +505,44 @@ function parseOverlayStrict(filePath) {
   const parsed = parseYamlSubset(text);
   const emptyMap = isPlainConfigMap(parsed) && Object.keys(parsed).length === 0;
   if (!isPlainConfigMap(parsed) || (emptyMap && hasMeaningfulYamlContent(text))) {
-    const err = new Error("overlay-parse-error");
+    const err = new Error(errorName);
     err.file = filePath;
-    err.detail = "does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping)";
+    err.detail = `does not parse to a mapping (malformed YAML — ${noun} must be a key:value mapping)`;
     throw err;
   }
   return parsed;
 }
 
+// FAFF-387: the overlay's strict read — a thin wrapper over the shared helper so
+// overlay behaviour (error name, detail wording) stays byte-identical.
+function parseOverlayStrict(filePath) {
+  return parseConfigMapStrict(filePath, "overlay-parse-error", "an overlay");
+}
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, containerParent, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, isPlainConfigMap, latestRunDir, mainWorktreeRoot, parseAncestry, parseOverlayStrict, parseYamlSubset, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+// FAFF-577: the BASE's strict read — the chokepoint procedure both loadConfig
+// (factory) and readGovernanceConfig (governance) call. On a malformed base it
+// writes the one-line warning to stderr FIRST (before any throw), so a catching
+// caller can degrade behaviour but never re-silence the failure — loud by
+// construction, no call-site audit needed. Then: hatch armed (FAFF_CONFIG_BASE_LENIENT
+// set, non-empty) → proceed on {} (loud-lenient); else throw "base-parse-error"
+// {file, detail}. Absent-file handling stays with the callers (rc === null → {}
+// silently — all-defaults is valid); this helper only ever sees a resolved path.
+// The hatch is an env var by design: the config file is the broken artifact, so a
+// knob inside it can't be read (FAFF_APPETITE / FAFF_WORKTREE_ROOT precedent).
+function readBaseConfigStrict(filePath, env = process.env) {
+  try {
+    return parseConfigMapStrict(filePath, "base-parse-error", "the base config");
+  } catch (e) {
+    if (!(e && e.message === "base-parse-error")) throw e;
+    const name = path.basename(filePath);
+    process.stderr.write(
+      `faff: ${filePath} is malformed (${e.detail}) — configured values (including budget/sentry ceilings) ` +
+      `would silently fall back to built-in defaults. Fix the file (git diff / git checkout ${name}), ` +
+      `or set FAFF_CONFIG_BASE_LENIENT=1 to proceed on defaults loudly.\n`);
+    if (env.FAFF_CONFIG_BASE_LENIENT) return {};
+    throw e;
+  }
+}
+
+
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, containerParent, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, isPlainConfigMap, latestRunDir, mainWorktreeRoot, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

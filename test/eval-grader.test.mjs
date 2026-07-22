@@ -704,7 +704,9 @@ test("all eval/cases load and validate", () => {
   // ticket; must_avoid catches thematic-bucket phrasing).
   // FAFF-199: +2 adr-drift (the per-move ADR drift challenge — one argument that should survive, one
   // that should be overturned).
-  assert.equal(cases.length, 78);
+  // FAFF-569: +1 resolved-elsewhere (tidy's symptom-similarity layer — match a finding-ticket's
+  // symptom to the one merged fix with the same defect mechanism, skipping same-topic distractors).
+  assert.equal(cases.length, 79);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger", "grouping"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

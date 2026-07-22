@@ -15,7 +15,7 @@ import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/li
 import { LIGHTS_OUT_GUARDRAIL_IDS, engineBoundedFromConfig, estimateOnlyPosture, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
 import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
-import { eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
+import { appendRecordUnderLock, eventLineCount } from "../plugin/skills/faff/bin/lib/events.js";
 
 // FAFF-325: this test host carries no genuine FAFF_INTEGRITY_BOUNDARY pid-1 declaration (nothing
 // short of actual container tooling can fake /proc/1/environ for a really-spawned child), so
@@ -72,9 +72,9 @@ function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}
     owner: { status: "running", session_id: sessionId || null, pid: process.pid, started_at: nowIso, last_heartbeat: nowIso },
   };
   atomicWriteLedger(runDir, ledger);
-  const eventsPath = path.join(runDir, "events.jsonl");
-  const seq = eventLineCount(eventsPath);
-  fs.appendFileSync(eventsPath, JSON.stringify({ schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-start" }) + "\n");
+  // FAFF-564: mirror the real mint — the run-start event goes through the shared
+  // locked core, which supplies the chain hash the schema-2 minter stamps.
+  appendRecordUnderLock(runDir, (seq, _prev, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start" }));
   return { runDir, runId, ledger, pf };
 }
 
@@ -526,12 +526,16 @@ test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", ()
   assert.equal(ledger.banner, minted.banner);
   for (const id of Object.keys(minted.armed)) assert.ok(ledger.banner.includes(id), `banner names ${id}`);
 
-  // run-start event emitted onto the observability timeline.
+  // run-start event emitted onto the observability timeline. FAFF-564: the ledger
+  // mint itself now also folds a ledger-write link in first (atomicWriteLedger's
+  // chokepoint), so the timeline reads [ledger-write, run-start].
   const events = fs.readFileSync(path.join(runDir, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-  assert.equal(events.length, 1);
-  assert.equal(events[0].type, "run-start");
-  assert.equal(events[0].phase, "run");
-  assert.equal(events[0].run_id, runId);
+  assert.equal(events.length, 2);
+  assert.equal(events[0].type, "ledger-write");
+  assert.equal(events[1].type, "run-start");
+  assert.equal(events[1].phase, "run");
+  assert.equal(events[1].run_id, runId);
+  for (const ev of events) { assert.equal(ev.schema, 2); assert.match(ev.prev, /^[0-9a-f]{64}$/); }
   fs.rmSync(root, { recursive: true, force: true });
 });
 

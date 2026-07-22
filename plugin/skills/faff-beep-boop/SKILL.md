@@ -330,7 +330,7 @@ Runs alongside step 11.5. For every ledger outcome `== "shipped"`, read `<run-di
 
 ## Run ledger (mechanical completeness)
 
-beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 11) and the Stop hook (below) rather than resting on prose alone:
+beep-boop maintains a machine-readable ledger at `.faff/runs/<run-id>/run-ledger.json` so the completeness guarantee is checkable by `runcheck` (step 11) and the Stop hook (below) rather than resting on prose alone. **Ledger note (FAFF-564):** after any direct edit to this file (an `admitted` append, an `outcomes` write, `stop_reason`, the owner close), append a `ledger-write` event so the mutation joins the events tamper-evidence chain — `echo '{"phase":"run","type":"ledger-write"}' | faff events append --run <run-id>` (the CLI computes `data.ledger_sha256` from the on-disk ledger bytes itself; never supply a hash):
 
 **Mint the run directory as `run-YYYYMMDD-HHMMSS-beepboop-<mode>`** (UTC; `beepboop` one word; `<mode>` the run mode, e.g. `full`/`list`). This is the canonical run-id — the gateway `.faff/` layout, wtf's enrichment, and the CLI's `latestRunDir`/`STRAY_TRANSCRIPT` all key off it. Legacy dirs coexist and are tolerated by mtime-ordered resolution; never rename them.
 

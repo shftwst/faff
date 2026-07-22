@@ -12,11 +12,36 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, utimesSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appendRecordUnderLock, tailReadNextSeq, seqFinding, TAIL_WINDOW_BYTES } from "../plugin/skills/faff/bin/lib/events.js";
+
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+// FAFF-564: re-hash the log line-by-line from genesis, asserting every record's prev
+// matches the SHA-256 of the exact raw bytes of the line above it (genesis: of the
+// run_id). The foreign-implementer verification: split on newlines, hash each.
+function assertChainVerifies(log, runId) {
+  const raw = readFileSync(log); // Buffer — the chain commits to raw bytes
+  const lineBufs = [];
+  let start = 0;
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === 0x0a) { lineBufs.push(raw.subarray(start, i)); start = i + 1; }
+  }
+  if (start < raw.length) lineBufs.push(raw.subarray(start)); // torn trailing segment
+  let expected = sha256(Buffer.from(runId, "utf8"));
+  lineBufs.forEach((lineBuf, i) => {
+    let rec = null;
+    try { rec = JSON.parse(lineBuf.toString("utf8")); } catch { /* torn/legacy line — still a link */ }
+    if (rec && rec.schema === 2) {
+      assert.equal(rec.prev, expected, `line ${i + 1}: prev matches the hash of the line above`);
+    }
+    expected = sha256(lineBuf);
+  });
+}
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -69,6 +94,12 @@ test("16 concurrent append processes × 5 events → 80 records, seq exactly 0..
       c.on("close", (code) => resolve(code));
     });
     assert.equal(v, 0, "validate exits 0 on the concurrently-written log");
+
+    // FAFF-564: concurrent multi-writer appends yield a byte-verifiable chain from
+    // genesis — every record schema 2, line 1's prev = SHA-256 of the run_id, every
+    // later line's prev = SHA-256 of the exact bytes of the line above it.
+    for (const r of recs) assert.equal(r.schema, 2, "every concurrently-appended record is schema 2");
+    assertChainVerifies(log, "RUN-C");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -156,13 +187,19 @@ test("torn final line (no newline) → next append newline-repairs, mints from t
   const { root, log } = mkRoot("events-torn-");
   try {
     // A well-formed record, then a torn (unterminated, invalid-JSON) trailing fragment.
+    const tornBytes = '{"schema":1,"run_id":"RUN-C","seq":1,"ts":"t","phase":"run","type":"budget-che';
     writeFileSync(log,
       JSON.stringify({ schema: 1, run_id: "RUN-C", seq: 0, ts: "t", phase: "run", type: "run-start" }) + "\n" +
-      '{"schema":1,"run_id":"RUN-C","seq":1,"ts":"t","phase":"run","type":"budget-che');
+      tornBytes);
     // Append through the core: mints from the last PARSEABLE record (seq 0) → seq 1,
     // and prefixes a newline so it never concatenates onto the torn fragment.
-    const rec = appendRecordUnderLock(root && join(root, ".faff", "runs", "RUN-C"), (seq) => ({ schema: 1, run_id: "RUN-C", seq, ts: "t", phase: "run", type: "budget-checkpoint" }));
+    const rec = appendRecordUnderLock(root && join(root, ".faff", "runs", "RUN-C"), (seq, _prev, prevHash) => ({ schema: 2, run_id: "RUN-C", seq, ts: "t", prev: prevHash, phase: "run", type: "budget-checkpoint" }));
     assert.equal(rec.seq, 1, "mint skips the torn line and derives from the last parseable record");
+    // FAFF-564: the new record's prev hashes the TORN segment's raw bytes as-is (the
+    // chain is over physical lines — no line escapes it), and the repaired file
+    // re-hashes cleanly line-by-line from genesis to the new record.
+    assert.equal(rec.prev, sha256(Buffer.from(tornBytes, "utf8")), "prev hashes the torn segment's bytes");
+    assertChainVerifies(log, "RUN-C");
     const rawLines = readFileSync(log, "utf8").split("\n").filter((l) => l !== "");
     assert.equal(rawLines.length, 3, "torn fragment preserved as its own line; new record on a fresh line (repair never rewrites bytes)");
     assert.throws(() => JSON.parse(rawLines[1]), "the torn fragment is still there, still unparseable");
@@ -187,7 +224,7 @@ test("a stale lock (mtime older than the bound) is taken over; the append succee
     writeFileSync(lock, JSON.stringify({ pid: 999999, ts: "old" }));
     const old = Date.now() / 1000 - 60; // 60s ago, far beyond STALE_LOCK_MS (5s)
     utimesSync(lock, old, old);
-    const rec = appendRecordUnderLock(runDir, (seq) => ({ schema: 1, run_id: "RUN-C", seq, ts: "t", phase: "run", type: "run-start" }));
+    const rec = appendRecordUnderLock(runDir, (seq, _prev, prevHash) => ({ schema: 2, run_id: "RUN-C", seq, ts: "t", prev: prevHash, phase: "run", type: "run-start" }));
     assert.equal(rec.seq, 0, "the append proceeds after taking over the stale lock");
     assert.ok(!existsSync(lock), "no lock file left behind");
     assert.equal(readRecords(log).length, 1, "exactly one record written");
@@ -201,7 +238,7 @@ test("a fresh live lock is waited on until the acquisition budget is spent, then
     writeFileSync(lock, JSON.stringify({ pid: process.pid, ts: new Date().toISOString() })); // fresh → live holder
     const t0 = Date.now();
     assert.throws(
-      () => appendRecordUnderLock(runDir, (seq) => ({ schema: 1, run_id: "RUN-C", seq, ts: "t", phase: "run", type: "run-start" })),
+      () => appendRecordUnderLock(runDir, (seq, _prev, prevHash) => ({ schema: 2, run_id: "RUN-C", seq, ts: "t", prev: prevHash, phase: "run", type: "run-start" })),
       (e) => e && e.code === "EVENTS_LOCKED",
       "budget exhaustion throws a tagged EVENTS_LOCKED error",
     );

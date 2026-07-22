@@ -5,6 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -62,7 +63,7 @@ test("events --selftest passes", () => {
 
 // --- append: envelope + seq -----------------------------------------------
 
-test("append: first event → seq 0, schema 1, run_id, ts, payload; exit 0", () => {
+test("append: first event → seq 0, schema 2, run_id, ts, genesis prev; exit 0 (FAFF-564)", () => {
   const dir = tmp(); mkRun(dir, "run-X");
   try {
     const r = run(dir, ["events", "append", "--run", "run-X", "--ts", "2026-01-01T00:00:00Z"],
@@ -70,7 +71,8 @@ test("append: first event → seq 0, schema 1, run_id, ts, payload; exit 0", () 
     assert.equal(r.code, 0);
     const ev = lines(dir, "run-X");
     assert.equal(ev.length, 1);
-    assert.deepEqual(ev[0], { schema: 1, run_id: "run-X", seq: 0, ts: "2026-01-01T00:00:00Z", phase: "run", type: "run-start" });
+    const genesis = createHash("sha256").update("run-X", "utf8").digest("hex");
+    assert.deepEqual(ev[0], { schema: 2, run_id: "run-X", seq: 0, ts: "2026-01-01T00:00:00Z", prev: genesis, phase: "run", type: "run-start" });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -334,11 +336,16 @@ test("append --tokens: four-class delta from transcript; checkpoint advances", (
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
     assert.equal(r.code, 0, r.err);
     const ev = lines(dir, "R");
-    assert.equal(ev.length, 1);
-    assert.deepEqual(ev[0].data.tokens, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
-    assert.equal(ev[0].data.tokens_source, "transcript");
+    // FAFF-564: a tagged append emits TWO chain links — the checkpoint advance's
+    // ledger-write (via the atomicWriteLedger fold), then the tagged payload event.
+    assert.equal(ev.length, 2);
+    assert.equal(ev[0].type, "ledger-write", "the checkpoint's ledger-write precedes the tagged payload event");
+    assert.deepEqual(ev[1].data.tokens, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
+    assert.equal(ev[1].data.tokens_source, "transcript");
     // checkpoint advanced to the fresh cumulative
     assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
+    // the ledger-write's hash is the post-write on-disk ledger bytes
+    assert.equal(ev[0].data.ledger_sha256, createHash("sha256").update(readFileSync(ledgerPath(dir, "R"))).digest("hex"));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -364,9 +371,11 @@ test("append --tokens twice: second delta is baselined against the first (checkp
     run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
       JSON.stringify({ phase: "build", type: "issue-outcome", issue: "X-1", data: { outcome: "shipped" } }),
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    // FAFF-564: each tagged append emits [ledger-write, payload] — 4 links total.
     const ev = lines(dir, "R");
-    assert.deepEqual(ev[1].data.tokens, { input: 50, output: 10, cache_write: 0, cache_read: 0 });
-    assert.equal(ev[1].data.outcome, "shipped"); // pre-existing data preserved
+    assert.deepEqual(ev.map((e) => e.type), ["ledger-write", "prep-done", "ledger-write", "issue-outcome"]);
+    assert.deepEqual(ev[3].data.tokens, { input: 50, output: 10, cache_write: 0, cache_read: 0 });
+    assert.equal(ev[3].data.outcome, "shipped"); // pre-existing data preserved
     assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 150, output: 30, cache_write: 5, cache_read: 0 });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -444,8 +453,10 @@ test("non-leak: a tagged event line carries no prompt/response payload, only the
     run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
       JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
-    const rawLine = readFileSync(logPath(dir, "R"), "utf8");
-    const tok = JSON.parse(rawLine.trim()).data.tokens;
+    // FAFF-564: the tagged payload event is the LAST line (the checkpoint's
+    // ledger-write precedes it).
+    const rawLines = readFileSync(logPath(dir, "R"), "utf8").split("\n").filter((l) => l.trim() !== "");
+    const tok = JSON.parse(rawLines[rawLines.length - 1]).data.tokens;
     assert.deepEqual(Object.keys(tok).sort(), ["cache_read", "cache_write", "input", "output"]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -460,7 +471,8 @@ test("parity: the --tokens delta sum equals budget check's total on the same tra
     run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
       JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
-    const delta = lines(dir, "R")[0].data.tokens;
+    // FAFF-564: the tagged payload is preceded by its checkpoint's ledger-write link.
+    const delta = lines(dir, "R")[1].data.tokens;
     const deltaSum = delta.input + delta.output + delta.cache_write + delta.cache_read;
     const b = run(dir, ["budget", "check", "--run-dir", join(dir, ".faff", "runs", "R"), "--root", dir], undefined,
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
@@ -487,9 +499,10 @@ test("S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects th
       JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
       { CLAUDE_CONFIG_DIR: cfg });
     assert.equal(r.code, 0, r.err);
+    // FAFF-564: [ledger-write, payload] — the tagged payload is the second link.
     const ev = lines(dir, "R");
-    assert.equal(ev[0].data.tokens_source, "transcript");
-    assert.deepEqual(ev[0].data.tokens, { input: 10, output: 2, cache_write: 0, cache_read: 0 });
+    assert.equal(ev[1].data.tokens_source, "transcript");
+    assert.deepEqual(ev[1].data.tokens, { input: 10, output: 2, cache_write: 0, cache_read: 0 });
 
     // faff events validate confirms the well-formed shape.
     const v = run(dir, ["events", "validate", "--file", logPath(dir, "R")]);
@@ -500,7 +513,7 @@ test("S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects th
     // exactly the four classes — nothing else.
     const raw = readFileSync(logPath(dir, "R"), "utf8");
     assert.ok(!raw.includes(sid), "the --session-id value must never appear in the emitted event line");
-    assert.deepEqual(Object.keys(ev[0].data.tokens).sort(), ["cache_read", "cache_write", "input", "output"]);
-    assert.deepEqual(Object.keys(ev[0].data).sort(), ["tokens", "tokens_source"], "data carries only tokens + tokens_source — no session id, no extra field");
+    assert.deepEqual(Object.keys(ev[1].data.tokens).sort(), ["cache_read", "cache_write", "input", "output"]);
+    assert.deepEqual(Object.keys(ev[1].data).sort(), ["tokens", "tokens_source"], "data carries only tokens + tokens_source — no session id, no extra field");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

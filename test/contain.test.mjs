@@ -268,7 +268,8 @@ test("FAFF-354: --record happy path — verdict/exit unchanged, one containment-
   assert.match(r.out, /contained/);
   const raw = readFileSync(join(root, ".faff", "runs", "r1", "events.jsonl"), "utf8").trim();
   const ev = JSON.parse(raw);
-  assert.equal(ev.schema, 1);
+  assert.equal(ev.schema, 2); // FAFF-564: the chained envelope
+  assert.match(ev.prev, /^[0-9a-f]{64}$/);
   assert.equal(ev.run_id, "r1");
   assert.equal(ev.seq, 0);
   assert.equal(ev.phase, "run");

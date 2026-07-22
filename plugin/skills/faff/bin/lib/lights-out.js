@@ -933,7 +933,7 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
 
   // Emit the run-start event onto the observability timeline substrate (FAFF-574: through
   // the shared lock-guarded core — the seq is minted from the log's tail under the lock).
-  appendRecordUnderLock(runDir, (seq) => ({ schema: 1, run_id: runId, seq, ts: nowIso, phase: "run", type: "run-start" }));
+  appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start" }));
 
   if (json) {
     process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner, degrades: pf.degrades }) + "\n");
@@ -1057,7 +1057,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // Append the run-resume event, continuing the existing seq stream (no second run-start).
   // FAFF-574: through the shared lock-guarded core — seq minted from the log's tail under
   // the lock; run-resume carries its extra fields via runResumeEvent(id, seq, …).
-  appendRecordUnderLock(runDir, (seq) => runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch }));
+  appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch }, prevHash));
 
   // STEP 6: HAND OFF exactly as mint does.
   if (json) {

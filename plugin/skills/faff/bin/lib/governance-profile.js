@@ -73,6 +73,11 @@ const DELIVERY_PROFILE = {
     // FAFF-527: one run-scoped event per L4 re-entry (epoch, prior_state, skipped_shipped,
     // rebuilt_coarse) — continues the SAME run_id's seq stream, never a second run-start.
     "run-resume",
+    // FAFF-564: one run-scoped event per run-ledger.json write (data.ledger_sha256 =
+    // SHA-256 of the post-write ledger bytes, always CLI-computed) — how the mutable
+    // ledger's history joins the events tamper-evidence chain. Emitted by
+    // atomicWriteLedger's fold (every CLI-side writer) and the prose-layer note rule.
+    "ledger-write",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",

@@ -19,7 +19,7 @@ const { auditLedger } = require("./runcheck");
 // computed the original verdict with — sourced from shared-infra (not contain.js
 // directly), since governance (this file) may reference shared-infra only, never a
 // factory module like contain.js (ADR 0042; `faff regions check` enforces this).
-const { CONTAIN_ROOT, findRoot, parseAncestry, readLedger, subtreeContains } = require("./shared-infra");
+const { CONTAIN_ROOT, decideSelfIntake, findRoot, parseAncestry, readLedger, subtreeContains } = require("./shared-infra");
 
 function readEvents(runDir) {
   const p = path.join(runDir, "events.jsonl");
@@ -177,6 +177,28 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
     }
   }
 
+  // FAFF-539: recompute every recorded `faff self-intake --record` invocation with
+  // the SAME pure comparator (decideSelfIntake, shared-infra) that produced it, from
+  // the recorded target_raw + recorded self SNAPSHOT (hermetic — config may
+  // legitimately change after the run; the detective question is "was the verdict
+  // computed honestly from what it claims it saw", not "would it compute the same
+  // today"). A {verdict, reason} disagreement is a coherence finding, the
+  // containment-mismatch sibling. Same trust boundary as containment: the target is
+  // agent-fetched, so an internally-consistent fabrication recomputes clean — this
+  // catches tampered/foreign records, never an untrue-but-well-formed target.
+  const self_intake_mismatches = [];
+  for (const e of events) {
+    if (e.type !== "self-intake-check") continue;
+    const d = e.data && typeof e.data === "object" ? e.data : {};
+    let targetParsed;
+    try { targetParsed = JSON.parse(d.target_raw); }
+    catch { self_intake_mismatches.push({ seq: e.seq, issue: e.issue, recorded: d.verdict, recomputed: "unreproducible" }); continue; }
+    const re = decideSelfIntake(targetParsed, d.self);
+    if (re.verdict !== d.verdict || re.reason !== d.reason) {
+      self_intake_mismatches.push({ seq: e.seq, issue: e.issue, recorded: d.verdict, recorded_reason: d.reason, recomputed: re.verdict, recomputed_reason: re.reason });
+    }
+  }
+
   // FAFF-354: a run whose ledger shows filed discovered-scope tickets but whose
   // timeline holds NO containment-check events at all — the create chokepoint was
   // never recorded (skipped `--record`, or `contain` skipped entirely). This only
@@ -190,9 +212,10 @@ function buildReconstruction(runId, runDir, eventsResult, ledger, provenanceMap)
   const coherence = {
     clean: undispatched.length === 0 && invalid_outcomes.length === 0 && mismatches.length === 0
       && missing_substrates.length === 0 && malformed_event_lines.length === 0
-      && containment_mismatches.length === 0 && !unrecorded_creates,
+      && containment_mismatches.length === 0 && self_intake_mismatches.length === 0
+      && !unrecorded_creates,
     undispatched, invalid_outcomes, mismatches, missing_substrates,
-    containment_mismatches, unrecorded_creates,
+    containment_mismatches, self_intake_mismatches, unrecorded_creates,
   };
   if (malformed_event_lines.length) coherence.malformed_event_lines = malformed_event_lines;
 
@@ -255,6 +278,9 @@ function renderAuditText(recon) {
     if (c.malformed_event_lines && c.malformed_event_lines.length) console.log(`  malformed event lines: ${c.malformed_event_lines.join(", ")}`);
     if (c.containment_mismatches && c.containment_mismatches.length) {
       console.log(`  containment mismatches: ${c.containment_mismatches.map((m) => `seq ${m.seq} (recorded ${m.recorded} vs recomputed ${m.recomputed})`).join(", ")}`);
+    }
+    if (c.self_intake_mismatches && c.self_intake_mismatches.length) {
+      console.log(`  self-intake mismatches: ${c.self_intake_mismatches.map((m) => `seq ${m.seq} (recorded ${m.recorded} vs recomputed ${m.recomputed})`).join(", ")}`);
     }
     if (c.unrecorded_creates) {
       console.log(`  unrecorded creates: ledger filed ${recon.discovered_scope_filed ?? "?"} discovered-scope ticket(s), no containment-check events`);
@@ -495,6 +521,52 @@ function auditSelftest() {
     const ledger = { run_id: "r", admitted: [], outcomes: {}, discovered_scope_filed: 1 };
     const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
     check("unrecorded creates: false when checks are present", rec.coherence.unrecorded_creates === false);
+  }
+
+  // 16. FAFF-539: a recorded self-intake-check event whose {verdict, reason} agree with
+  // the recompute (from the recorded target_raw + recorded self snapshot) → no finding.
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "self-intake-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", target_raw: '{"team":null,"repo":"shftwst/faff"}', self: { team: null, repo: "shftwst/faff", lane_on: true }, verdict: "self", reason: "repo-match", exit: 0 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {}, discovered_scope_filed: 0 };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("self-intake clean: no mismatch", rec.coherence.self_intake_mismatches.length === 0);
+    check("self-intake clean: coherence stays clean", rec.coherence.clean === true);
+  }
+
+  // 17. FAFF-539: a hand-edited verdict (tampered record) → self_intake_mismatches names
+  // it, clean false. The recompute is HERMETIC — driven by the recorded snapshot, not
+  // live config.
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 4, ts: "t", phase: "run", type: "self-intake-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", target_raw: '{"team":"OTHER","repo":"acme/app"}', self: { team: "FAFF", repo: "shftwst/faff", lane_on: true }, verdict: "self", reason: "team-match", exit: 0 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {} };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("self-intake tampered: one finding", rec.coherence.self_intake_mismatches.length === 1);
+    check("self-intake tampered: shape", rec.coherence.self_intake_mismatches[0].seq === 4
+      && rec.coherence.self_intake_mismatches[0].issue === "FAFF-1"
+      && rec.coherence.self_intake_mismatches[0].recorded === "self"
+      && rec.coherence.self_intake_mismatches[0].recomputed === "not-self"
+      && rec.coherence.self_intake_mismatches[0].recomputed_reason === "mismatch");
+    check("self-intake tampered: not clean", rec.coherence.clean === false);
+  }
+
+  // 18. FAFF-539: an unparseable recorded target_raw → recomputed "unreproducible",
+  // reported (never crashed), clean false.
+  {
+    const records = [
+      { schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "self-intake-check", issue: "FAFF-1",
+        data: { mandate: "FAFF-1", target_raw: "not json", self: { team: "FAFF", repo: null, lane_on: true }, verdict: "not-self", reason: "mismatch", exit: 3 } },
+    ];
+    const ledger = { run_id: "r", admitted: [], outcomes: {} };
+    const rec = buildReconstruction("r", "/d", evs(records), ledger, {});
+    check("self-intake unreproducible: marker", rec.coherence.self_intake_mismatches.length === 1
+      && rec.coherence.self_intake_mismatches[0].recomputed === "unreproducible");
+    check("self-intake unreproducible: not clean", rec.coherence.clean === false);
   }
 
   if (failed) { console.log(`RESULT: audit --selftest FAILED (${failed} failure(s))`); return 1; }

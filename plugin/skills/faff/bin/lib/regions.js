@@ -76,6 +76,11 @@ const REGION_MAP = {
   "intakecheck": "factory",
   "intake-record": "factory",
   "contain": "factory",
+  // self-intake — FAFF-539: the mechanical same-repo/team gate on the outward-self-intake
+  // reclassification. Reads config via loadConfig (factory identifier) + imports contain's
+  // isSafeRunId — factory, like contain; the pure comparator lives in shared-infra so
+  // audit (governance) recomputes it without a factory reference (ADR 0042).
+  "self-intake": "factory",
   // economics — a reporting CONSUMER of the governance budget helpers (reads the
   // ledger + reuses measureTokens/attemptsFromLedger), not part of the
   // extractable flight-recorder layer → factory (FAFF-357).
@@ -217,6 +222,7 @@ const REGION_SELFTEST_ARGV = {
   "intakecheck": ["intakecheck", "--selftest"],
   "intake-record": ["intake-record", "--selftest"],
   "contain": ["contain", "--selftest"],
+  "self-intake": ["self-intake", "--selftest"],
   "economics": ["economics", "--selftest"],
   "disposition": ["disposition", "--selftest"],
   "quality": ["quality", "--selftest"],

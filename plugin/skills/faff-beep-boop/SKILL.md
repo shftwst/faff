@@ -264,11 +264,10 @@ PROCEDURE autonomous_file_check(mandate, candidate, run_id, phase):
   3. verdict  := faff contain <mandate> (--parent <parent> | --root) --ancestry <json> --record <run_id> --phase <phase>   # exit 0/3/2 (FAFF-354)
   4. contained (0): proceed to the existing appetite gate; on create stamp initiated: autonomous
        (faff intake-record <new> --via jot --initiated autonomous)
-  5. outward (3):   create NOTHING → step 6, UNLESS the FAFF-536 self-intake lane reclassifies (checked BEFORE the floor, default-off):
-       IF `faff config get containment.self_hosting_intake`=="true" AND candidate's intended home is the mandate's OWN
-       tracking team/repo (SelfRef shape; either side unresolvable → NOT self) AND confidence=="concrete" → record
-       containment "outward-self-intake" and rejoin the appetite gate (steps 3–5), filing to Backlog + faff-jot-intake
-       (NO faff-automate), deduped vs open faff-jot-intake/faff-chain-gap-fill, stamp --via jot --initiated autonomous. Else → step 6.
+  5. outward (3):   create NOTHING → step 6, UNLESS the FAFF-536 self-intake lane reclassifies (mechanical, FAFF-539 — checked BEFORE the floor; the primitive derives the self side from committed config itself):
+       gate := faff self-intake <mandate> --target '{"team": <t>, "repo": <r>}' --record <run_id> --phase <phase>   # repo := the working repo's slug from `git remote get-url origin` (a deterministic local read), normalized to org/repo form (strip protocol/host/`.git` — SSH and https URLs must both yield it); team := the tracker team key of the candidate's intended filing destination, fetched FRESH at filing time (FAFF-354 boundary: agent-fetched, bound by --record); either underivable → pass null (fails closed); callers may skip the team fetch when `faff config get containment.self_hosting_intake` != "true" — the primitive re-checks the dial regardless.
+       IF gate exits 0 AND confidence=="concrete" → record containment "outward-self-intake" and rejoin the appetite gate (steps 3–5), filing to Backlog + faff-jot-intake (NO faff-automate), deduped vs open faff-jot-intake/faff-chain-gap-fill, stamp --via jot --initiated autonomous.
+       ELSE (exit 3 or 2, or vague) → step 6.
   6. outward-new-root: create NOTHING; record containment: "outward-new-root"; surface (run digest →
        /faff-wtf) AND comment on the mandate issue (orchestrator-lane: summary only); do NOT park
   7. usage (2):     malformed ancestry, OR --record's run dir missing → log + surface, no create, no crash (fail-closed to NO-CREATE)

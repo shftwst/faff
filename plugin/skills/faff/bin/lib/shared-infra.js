@@ -137,12 +137,26 @@ function sortRunDirsByMtimeDesc(dirs) {
     .map((x) => x.p);
 }
 
+// FAFF-578: candidate discovery tolerates filesystem churn — concurrent sessions
+// creating/deleting run dirs is faff's own operating premise, and the turn-end Stop
+// hooks (runcheck/sentrycheck) resolve through here at every session's turn-end, so
+// a throw here crashes a hook. `runs` deleted (or replaced by a file → ENOTDIR)
+// between existsSync and readdirSync → null; a candidate deleted between readdirSync
+// and statSync → excluded, scan continues (mirrors state.js runDirsNewestFirst's
+// filter and sortRunDirsByMtimeDesc's catch above). Discovery churn only: ledger
+// READ faults stay loud (FAFF-425, resolveLedgerOrFault below — unchanged).
 function latestRunDir(root) {
   const runs = path.join(root, ".faff", "runs");
   if (!fs.existsSync(runs)) return null;
-  const cands = fs.readdirSync(runs)
+  let names;
+  try { names = fs.readdirSync(runs); } catch { return null; }
+  const cands = names
     .map((name) => path.join(runs, name))
-    .filter((p) => fs.statSync(p).isDirectory() && fs.existsSync(path.join(p, "run-ledger.json")));
+    .filter((p) => {
+      let st;
+      try { st = fs.statSync(p); } catch { return false; }
+      return st.isDirectory() && fs.existsSync(path.join(p, "run-ledger.json"));
+    });
   if (!cands.length) return null;
   return sortRunDirsByMtimeDesc(cands)[0];
 }

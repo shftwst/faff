@@ -125,6 +125,23 @@ test("tailReadNextSeq reads at most TAIL_WINDOW_BYTES on a large file and mints 
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test("tailReadNextSeq pathological fallback: window holds no parseable record → full line-count mint (under-lock degraded path)", () => {
+  const { root, log } = mkRoot("events-tail-fallback-");
+  try {
+    // Three small records (seq 0..2), then one giant final record (seq 3) whose body alone
+    // exceeds the tail window — the 64 KiB tail read lands mid-line, so no complete JSON
+    // record parses out of the window and the helper falls back to the full line count.
+    const recs = [];
+    for (let i = 0; i <= 2; i++) recs.push(JSON.stringify({ schema: 1, run_id: "RUN-C", seq: i, ts: "t", phase: "run", type: "budget-checkpoint", data: {} }));
+    recs.push(JSON.stringify({ schema: 1, run_id: "RUN-C", seq: 3, ts: "t", phase: "run", type: "budget-checkpoint", data: { pad: "x".repeat(TAIL_WINDOW_BYTES + 1024) } }));
+    writeFileSync(log, recs.join("\n") + "\n");
+    assert.ok(statSync(log).size > TAIL_WINDOW_BYTES, "fixture file exceeds the tail window");
+    const { seq, prevRecord } = tailReadNextSeq(log);
+    assert.equal(seq, 4, "fallback mints next seq from the full line count (4 records → seq 4)");
+    assert.equal(prevRecord, null, "no parseable tail record — prevRecord is null on the fallback path");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("tailReadNextSeq on an absent or empty log mints seq 0", () => {
   const { root, log } = mkRoot("events-empty-");
   try {

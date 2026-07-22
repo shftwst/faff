@@ -496,6 +496,29 @@ function evaluateDerailment(rawSignals, thresholds, authority, profile = activeP
     // predicates above); a member trip never escalates to run "abort" by itself, but
     // the run-scoped wall-clock-runaway (no scope field) is completely unaffected.
     if (v.signal === "wall-clock-runaway" && v.scope === "member") mapped = "pause";
+    // FAFF-553: the run-scoped in-flight staleness grace. A stale RUN heartbeat during
+    // one legitimately long build turn is indistinguishable from a hung run — the
+    // cooperative checkpoint can't fire mid-turn — so while ≥1 member is provably in
+    // flight (a build-start with no terminal outcome, the SAME FAFF-327 derivation
+    // above) the run-scoped staleness trip contributes at most "pause", mirroring the
+    // member cap's shape. The verdict itself still TRIPS (visible, logged); only the
+    // contributed intervention softens, and evidence is annotated so a consumer can
+    // see exactly why. Guards, in order: run-scoped only (scope absent — the member
+    // cap above owns scope:"member"); tripped on heartbeat-staleness only (a
+    // run-elapsed trip is never graced); run_elapsed_secs provably UNDER the ceiling
+    // (staleness + elapsed-over-ceiling keeps "abort" — the grace never masks the
+    // elapsed backstop, and a null/absent elapsed also fails toward "abort", the same
+    // "ambiguous input fails toward supervision" posture evalMemberStall takes).
+    // A genuinely dead mid-build run therefore pauses until the unchanged
+    // run_elapsed_ceiling_secs backstop trips abort — the accepted trade (spec §4).
+    if (v.signal === "wall-clock-runaway" && v.scope === undefined
+        && v.evidence && v.evidence.tripped_on === "heartbeat-staleness"
+        && v.evidence.run_elapsed_secs != null && v.evidence.run_elapsed_secs < th.run_elapsed_ceiling_secs
+        && inflight.length > 0) {
+      v.evidence.in_flight = inflight.map((m) => m.issue);
+      v.evidence.grace = "in-flight-unit";
+      mapped = "pause";
+    }
     if (SENTRY_INTERVENTIONS.indexOf(mapped) > SENTRY_INTERVENTIONS.indexOf(intervention)) intervention = mapped;
   }
   return { verdicts, intervention, tripped };
@@ -1045,17 +1068,55 @@ function sentrySelftest() {
     aggMemberPause2.intervention === "pause" && aggMemberPause2.tripped === true &&
     aggMemberPause2.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === "member" && v.member === "MSTALL"));
 
-  // All members stalled AND the run heartbeat itself is stale -> the RUN-scoped
-  // wall-clock-runaway (no scope field) still trips "abort" — the kill-switch story
-  // is preserved by construction (nothing ticks the run file when every member is dead).
+  // FAFF-553: the run-scoped in-flight staleness grace — a stale run heartbeat with
+  // ≥1 in-flight member (build-start, no terminal outcome) and run-elapsed under the
+  // ceiling contributes at most "pause"; the verdict still TRIPS (visible), evidence
+  // carries the in-flight members + the grace tag. (Supersedes the pre-553 contract
+  // that all-members-stalled always tripped run-scoped "abort".)
   const allStalledLedger = { owner: { status: "running", last_heartbeat: ago(memberTH.stall_window_secs + 60), started_at: ago(100) } };
   const aggAllStalled = evaluateDerailment({
     ledger: allStalledLedger, budget: { breached: [], outcome: "none" }, events: memberEvents, now_ms: NOW,
     member_beats: { MSTALL: ago(memberTH.stall_window_secs + 60) },
   }, memberTH);
-  ok("all-members-stalled + stale run file -> run-scoped abort still trips (kill-switch preserved)",
-    aggAllStalled.intervention === "abort" &&
-    aggAllStalled.verdicts.some((v) => v.signal === "wall-clock-runaway" && v.scope === undefined));
+  const rsGraced = aggAllStalled.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+  ok("FAFF-553: stale run file + in-flight member + elapsed under ceiling -> run-scoped trip capped at pause (in-flight grace)",
+    aggAllStalled.intervention === "pause" && aggAllStalled.tripped === true &&
+    rsGraced && rsGraced.evidence.tripped_on === "heartbeat-staleness" &&
+    JSON.stringify(rsGraced.evidence.in_flight) === JSON.stringify(["MSTALL"]) &&
+    rsGraced.evidence.grace === "in-flight-unit");
+
+  // FAFF-553: the SAME staleness with ZERO in-flight members -> abort (unchanged).
+  const aggStaleNoInflight = evaluateDerailment({
+    ledger: { owner: { status: "running", last_heartbeat: ago(memberTH.stall_window_secs + 60), started_at: ago(100) } },
+    budget: { breached: [], outcome: "none" }, events: [], now_ms: NOW,
+  }, memberTH);
+  const rsNoInflight = aggStaleNoInflight.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+  ok("FAFF-553: stale run file with NO in-flight member -> abort, no grace annotation (unchanged)",
+    aggStaleNoInflight.intervention === "abort" &&
+    rsNoInflight && rsNoInflight.evidence.grace === undefined && rsNoInflight.evidence.in_flight === undefined);
+
+  // FAFF-553: a member whose ledger outcome is terminal is NOT in flight -> abort too.
+  const aggStaleAllDone = evaluateDerailment({
+    ledger: { outcomes: { MSTALL: "shipped" }, owner: { status: "running", last_heartbeat: ago(memberTH.stall_window_secs + 60), started_at: ago(100) } },
+    budget: { breached: [], outcome: "none" }, events: memberEvents, now_ms: NOW,
+  }, memberTH);
+  ok("FAFF-553: stale run file whose only member reached a terminal outcome -> abort (not in flight, no grace)",
+    aggStaleAllDone.intervention === "abort");
+
+  // FAFF-553: the elapsed-ceiling backstop — staleness trip + in-flight member but
+  // run-elapsed OVER the ceiling -> abort regardless (the grace never survives the
+  // elapsed backstop; tripped_on stays heartbeat-staleness because staleTrip wins
+  // the ternary, which is exactly why the cap re-checks the elapsed evidence).
+  const aggOverCeiling = evaluateDerailment({
+    ledger: { owner: { status: "running", last_heartbeat: ago(memberTH.stall_window_secs + 60), started_at: ago(memberTH.run_elapsed_ceiling_secs + 60) } },
+    budget: { breached: [], outcome: "none" }, events: memberEvents, now_ms: NOW,
+    member_beats: { MSTALL: ago(memberTH.stall_window_secs + 60) },
+  }, memberTH);
+  const rsOverCeiling = aggOverCeiling.verdicts.find((v) => v.signal === "wall-clock-runaway" && v.scope === undefined);
+  ok("FAFF-553: run-elapsed over the ceiling -> abort regardless of in-flight members (grace never survives the backstop)",
+    aggOverCeiling.intervention === "abort" &&
+    rsOverCeiling && rsOverCeiling.evidence.tripped_on === "heartbeat-staleness" &&
+    rsOverCeiling.evidence.grace === undefined);
 
   // --- FAFF-327: a run with NO member evidence is byte-equivalent to pre-327 -------
   const aggNoMemberEvidence = evaluateDerailment({ ledger: {}, budget: { breached: [], outcome: "none" }, events: [], now_ms: NOW }, memberTH);

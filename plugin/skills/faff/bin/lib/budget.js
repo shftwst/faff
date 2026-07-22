@@ -59,7 +59,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { CANONICAL_CONFIG, dig, findConfig, findRoot, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
-const { atomicWriteLedgerFenced } = require("./heartbeat");
+const { mutateLedgerUnderLock } = require("./heartbeat");
 
 function readGovernanceConfig(root) {
   // Governance config read (budget.* / sentry.* only). Resolution — canonical name,
@@ -920,11 +920,10 @@ function cmdBudgetBaseline(args) {
   // baseline is set — skip the expensive transcript walk below when it plainly
   // already is, without a second read. This is an OPTIMISATION, not the
   // authoritative guard (the copy can be stale) — the real, load-bearing
-  // write-once decision is made atomically at step 8 against a FRESH read taken
-  // immediately before the write, closing the TOCTOU window a separate
-  // check-then-later-write pair would leave open between two concurrent
-  // `budget baseline` invocations sharing the same owner epoch (the fence below
-  // only protects against a DIFFERENT epoch/session, e.g. a resume takeover).
+  // write-once decision is made at step 8 INSIDE the locked critical section
+  // (FAFF-575: mutateLedgerUnderLock), where the check and the write are one
+  // serialised span, so two concurrent `budget baseline` invocations sharing the
+  // same owner epoch cannot both pass the check.
   if (baselineAlreadyWritten(ledger.budget)) {
     console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
     return 0;
@@ -945,25 +944,40 @@ function cmdBudgetBaseline(args) {
   const byModel = degraded ? {} : Object.fromEntries(measured.by_model);
   const scalar = degraded ? 0 : byModelClassTotal(byModel);
 
-  // Step 8: the ONE authoritative write-once check + atomic re-read-then-merge
-  // write, both against the SAME fresh read — re-read here (never reuse the
-  // step-1/2 copy; readLedger throws on a genuine I/O failure rather than
-  // silently degrading to an empty ledger, so a race that deletes the ledger
-  // between reads surfaces loudly instead of writing a near-empty one). If a
-  // concurrent writer already set the baseline since our step-4 glance, that is
-  // caught HERE, immediately before the write — the smallest window this idiom
-  // (matching every other fenced ledger write in this file) admits. The
-  // subsequent write is fenced on the ledger's OWN owner block (never a
-  // caller-supplied epoch) — a concurrent owner/heartbeat/outcome write landing
-  // in the interim is preserved, and a stale writer (a newer resume already took
-  // the run over) yields instead of clobbering.
-  const fresh = readLedger(runDir);
-  if (baselineAlreadyWritten(fresh.budget)) {
+  // Step 8 (FAFF-575): the ONE authoritative write-once check + merge, both against
+  // the SAME fresh read taken INSIDE the locked critical section (mutateLedgerUnderLock)
+  // — the whole read-check-merge-write is serialised against every other ledger writer,
+  // so a concurrent `budget baseline` sharing the same owner epoch is caught by the
+  // write-once check under the lock (the old fenced idiom's residual TOCTOU window is
+  // structurally gone), and a concurrent owner/heartbeat/outcome write is preserved
+  // because the merge derives from the under-lock read. A missing ledger at lock time
+  // throws loudly (readLedger's genuine-I/O-failure posture, preserved below) rather
+  // than silently writing a near-empty one. No owner fence is armed here — the lock
+  // serialises the write, and the mutation derives from the fresh read, so a resumed
+  // run's ledger can no longer be clobbered by a stale pre-built object.
+  let already = false;
+  try {
+    mutateLedgerUnderLock(runDir, (fresh) => {
+      if (!fresh) { const e = new Error(`run-ledger.json missing in ${runDir}`); e.code = "ENOENT"; throw e; }
+      if (baselineAlreadyWritten(fresh.budget)) { already = true; return null; }
+      fresh.budget = { ...(fresh.budget || {}), measure_session_id: session, tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
+      return fresh;
+    });
+  } catch (e) {
+    // Metering must never crash a run: a busy lock is a legitimate "nothing written
+    // this attempt" outcome (exit 0) — the next `budget check` reads the un-baselined
+    // state per FAFF-552's degrade rules. Never falls back to an unlocked write.
+    if (e && e.code === "LEDGER_LOCKED") {
+      process.stderr.write(`faff budget baseline: ${e.message} — baseline not written this attempt\n`);
+      console.log(JSON.stringify({ baseline_written: false, reason: "ledger-locked" }));
+      return 0;
+    }
+    throw e;
+  }
+  if (already) {
     console.log(JSON.stringify({ baseline_written: false, reason: "already-set" }));
     return 0;
   }
-  fresh.budget = { ...(fresh.budget || {}), measure_session_id: session, tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
-  atomicWriteLedgerFenced(runDir, fresh, { epoch: fresh.owner && fresh.owner.epoch, session_id: fresh.owner && fresh.owner.session_id });
 
   // Step 9.
   console.log(JSON.stringify({ baseline_written: true, reason: degraded ? "estimate-degraded" : "fresh", measure_session_id: session, tokens_at_start: scalar }));

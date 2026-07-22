@@ -18,7 +18,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
-const { atomicWriteLedger } = require("./heartbeat");
+const { mutateLedgerUnderLock } = require("./heartbeat");
+const { withFileLock } = require("./fs-lock");
 const { findRoot } = require("./shared-infra");
 
 // FAFF-362: EVENT_PHASES / EVENT_TYPES / EVENT_ISSUE_SCOPED / EVENT_LEDGER_OUTCOMES
@@ -156,55 +157,11 @@ function eventLineCount(filePath) {
   return raw.split("\n").filter((l) => l.trim() !== "").length;
 }
 
-// FAFF-574 — the lock-serialised append core. Tuning constants are module-level, not
-// config keys: a user has no basis to tune them, and the critical section is a handful
-// of sub-millisecond syscalls, so STALE_LOCK_MS sits ~1000× above it and ACQUIRE_BUDGET_MS
-// covers over a hundred contending writers.
-const RETRY_INTERVAL_MS = 15;    // sleep between acquisition attempts
-const ACQUIRE_BUDGET_MS = 2000;  // total time to keep trying before failing loudly
-const STALE_LOCK_MS = 5000;      // a lock older than this is a dead holder — take it over
+// FAFF-574 — the lock-serialised append core. The acquisition loop and tuning constants
+// live in the shared run-dir lock helper (fs-lock.js, one home for the idiom — FAFF-575
+// extracted them so the run-ledger mutation core in heartbeat.js shares the exact same
+// mechanics; never re-copy them here). TAIL_WINDOW_BYTES stays events-specific.
 const TAIL_WINDOW_BYTES = 65536; // bytes read from the file's end to find the last record
-
-// Dependency-free synchronous sleep (Atomics.wait on a throwaway SharedArrayBuffer) — the
-// sync style the rest of this CLI uses; no async/await, no busy-spin.
-function sleepMs(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-// Acquire the advisory lock by atomic exclusive create. The file's EXISTENCE is the lock;
-// its {pid, ts} content is forensic only, never consulted for the decision. On EEXIST:
-// take over a stale lock (mtime older than STALE_LOCK_MS ⇒ dead holder), else wait and
-// retry until ACQUIRE_BUDGET_MS is spent, then THROW a tagged EVENTS_LOCKED error — never
-// fall through to an unlocked append (that would reintroduce the race under exactly the
-// contention that fires it).
-function acquireEventsLock(lockPath) {
-  const start = Date.now();
-  for (;;) {
-    let fd;
-    try {
-      fd = fs.openSync(lockPath, "wx");
-    } catch (e) {
-      if (!e || e.code !== "EEXIST") throw e;
-      let st = null;
-      try { st = fs.statSync(lockPath); }
-      catch (e2) { if (e2 && e2.code === "ENOENT") continue; throw e2; } // vanished — retry immediately
-      if (st && (Date.now() - st.mtimeMs) > STALE_LOCK_MS) {
-        try { fs.unlinkSync(lockPath); } catch (e3) { if (!e3 || e3.code !== "ENOENT") throw e3; }
-        continue; // stale holder taken over — retry immediately
-      }
-      if (Date.now() - start >= ACQUIRE_BUDGET_MS) {
-        const err = new Error(`events lock: could not acquire ${path.basename(lockPath)} within ${ACQUIRE_BUDGET_MS}ms`);
-        err.code = "EVENTS_LOCKED";
-        throw err;
-      }
-      sleepMs(RETRY_INTERVAL_MS);
-      continue;
-    }
-    try { fs.writeSync(fd, JSON.stringify({ pid: process.pid, ts: new Date().toISOString() })); }
-    finally { fs.closeSync(fd); }
-    return;
-  }
-}
 
 // Tail-read the log to find the last parseable record, returning { seq, prevRecord } where
 // `seq` is the NEXT seq to mint. Reads at most TAIL_WINDOW_BYTES from the file's end (O(1)),
@@ -241,8 +198,7 @@ function tailReadNextSeq(eventsPath) {
 function appendRecordUnderLock(dir, mintRecord) {
   const eventsPath = path.join(dir, "events.jsonl");
   const lockPath = eventsPath + ".lock";
-  acquireEventsLock(lockPath);
-  try {
+  return withFileLock(lockPath, () => {
     const { seq, prevRecord } = tailReadNextSeq(eventsPath);
     const record = mintRecord(seq, prevRecord);
     if (record === null || record === undefined) return null; // aborted — nothing written
@@ -259,9 +215,7 @@ function appendRecordUnderLock(dir, mintRecord) {
     } catch (e) { if (!e || e.code !== "ENOENT") throw e; }
     fs.appendFileSync(eventsPath, prefix + JSON.stringify(record) + "\n");
     return record;
-  } finally {
-    try { fs.unlinkSync(lockPath); } catch { /* release is best-effort — never mask the result */ }
-  }
+  }, { code: "EVENTS_LOCKED", label: "events lock" });
 }
 
 // Classify a seq against the previous seq for `events validate` (FAFF-574). Returns a
@@ -367,34 +321,43 @@ function cmdEvents(args) {
       let emitted = false;
       if (measured.source === "transcript") {
         try {
-          // Re-read the ledger FRESH immediately before writing and merge ONLY the
-          // checkpoint field, so a concurrent `faff heartbeat` write (owner.last_heartbeat,
-          // fired from a build subagent) is preserved rather than clobbered by a stale
-          // whole-object rewrite (the FAFF-205 false-stale hazard). The checkpoint the
-          // delta baselines against is read from this SAME fresh object, so the two are
-          // consistent. The orchestrator is the single writer of the budget block, so no
-          // concurrent writer touches tokens_at_last_event between this read and write.
-          const fresh = JSON.parse(fs.readFileSync(ledgerPath, "utf8"));
-          const b = fresh.budget && typeof fresh.budget === "object" ? fresh.budget : {};
-          const checkpoint = (b.tokens_at_last_event && typeof b.tokens_at_last_event === "object")
-            ? b.tokens_at_last_event
-            : (b.tokens_at_start_by_class && typeof b.tokens_at_start_by_class === "object")
-              ? b.tokens_at_start_by_class
-              : { input: 0, output: 0, cache_write: 0, cache_read: 0 };
-          const delta = {};
-          for (const cls of TOKEN_DELTA_CLASSES) {
-            delta[cls] = Math.max(0, (measured.tokens[cls] || 0) - (checkpoint[cls] || 0));
+          // FAFF-575: the checkpoint read + delta + advance all run INSIDE the locked
+          // ledger core (mutateLedgerUnderLock), so the whole read-merge-write is one
+          // critical section — the checkpoint the delta baselines against and the object
+          // written are the SAME under-lock fresh read, and a concurrent writer (sentry
+          // abort mark, budget baseline, lights-out resume) landing in the old
+          // read-to-write window can no longer be clobbered. The ledger writer set is
+          // lock-serialised multi-writer now — the pre-575 "the orchestrator is the
+          // single writer of the budget block" claim is retired (writer inventory:
+          // heartbeat.js, above mutateLedgerUnderLock). The token MEASUREMENT stays
+          // outside the lock (critical-section hygiene — the transcript walk is the
+          // expensive part; only the checkpoint math moves inside).
+          let delta = null;
+          const res = mutateLedgerUnderLock(dir, (fresh) => {
+            if (!fresh) return null; // ledger vanished since the pre-read → estimate degrade
+            const b = fresh.budget && typeof fresh.budget === "object" ? fresh.budget : {};
+            const checkpoint = (b.tokens_at_last_event && typeof b.tokens_at_last_event === "object")
+              ? b.tokens_at_last_event
+              : (b.tokens_at_start_by_class && typeof b.tokens_at_start_by_class === "object")
+                ? b.tokens_at_start_by_class
+                : { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+            delta = {};
+            for (const cls of TOKEN_DELTA_CLASSES) {
+              delta[cls] = Math.max(0, (measured.tokens[cls] || 0) - (checkpoint[cls] || 0));
+            }
+            fresh.budget = b;
+            fresh.budget.tokens_at_last_event = {
+              input: measured.tokens.input, output: measured.tokens.output,
+              cache_write: measured.tokens.cache_write, cache_read: measured.tokens.cache_read,
+            };
+            return fresh; // if the write throws, the catch degrades to estimate
+          });
+          if (res.written && delta) {
+            base.tokens = delta;
+            base.tokens_source = "transcript";
+            emitted = true;
           }
-          fresh.budget = b;
-          fresh.budget.tokens_at_last_event = {
-            input: measured.tokens.input, output: measured.tokens.output,
-            cache_write: measured.tokens.cache_write, cache_read: measured.tokens.cache_read,
-          };
-          atomicWriteLedger(dir, fresh); // if this throws, the catch degrades to estimate
-          base.tokens = delta;
-          base.tokens_source = "transcript";
-          emitted = true;
-        } catch { /* unreadable/unwritable ledger → estimate below (no fabricated delta) */ }
+        } catch { /* unreadable/unwritable/LEDGER_LOCKED ledger → estimate below (no fabricated delta; checkpoint NOT advanced) */ }
       }
       if (!emitted) {
         // No transcript readable, OR no durable checkpoint could be maintained ⇒ honest

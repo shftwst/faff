@@ -88,7 +88,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { readGovernanceConfig } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
-const { atomicWriteLedger, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
+const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
 const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 
 const DERAILMENT_SIGNALS = new Set([
@@ -874,8 +874,24 @@ function cmdSentry(args) {
         }
       } catch { /* WIP commit is best-effort; the ledger mark still records the abort */ }
     }
-    applySentryAbort(ledger, { issue, signal, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped, at: new Date().toISOString() });
-    atomicWriteLedger(runDir, ledger);
+    // FAFF-575: the abort mark is a locked ledger mutation — applied to the FRESH
+    // under-lock read, so a concurrent writer's landed mutation (a --tokens checkpoint
+    // advance, a budget baseline) is preserved, never clobbered by this whole-object
+    // write. The WIP commit above deliberately ran BEFORE acquiring the lock
+    // (critical-section hygiene — no subprocess/git work inside the lock-held span).
+    const abortRec = { issue, signal, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped, at: new Date().toISOString() };
+    try {
+      mutateLedgerUnderLock(runDir, (fresh) => {
+        const target = fresh || ledger; // fresh is authoritative; the pre-lock read only gated malformed-ledger exit 2
+        applySentryAbort(target, abortRec);
+        return target;
+      });
+    } catch (e) {
+      // The abort mark IS the abort — a silent skip would leave a killed run looking
+      // alive. Loud exit 1 naming the lock; the poller/operator retries.
+      if (e && e.code === "LEDGER_LOCKED") { process.stderr.write(`faff sentry abort: ${e.message} — abort mark NOT written, retry\n`); return 1; }
+      throw e;
+    }
     const payload = { run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped };
     if (asJson) console.log(JSON.stringify(payload));
     else console.log(`sentry: run aborted (resumable)${wipCommit ? ` — WIP committed ${wipCommit.slice(0, 8)}` : ""}${wipSkipped.length ? ` — omitted ${wipSkipped.length} secret-class path(s) from WIP` : ""}; ledger marked aborted-resumable`);

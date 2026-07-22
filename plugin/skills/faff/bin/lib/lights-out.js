@@ -39,7 +39,7 @@ const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendRecordUnderLock } = require("./events");
-const { atomicWriteLedger, atomicWriteLedgerFenced, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
+const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
 const { dig, findRoot, mainWorktreeRoot, readLedger } = require("./shared-infra");
 
@@ -924,7 +924,12 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
       last_heartbeat: nowIso,
     },
   };
-  atomicWriteLedger(runDir, ledger);
+  // FAFF-575: the mint routes through the same locked core as every other ledger
+  // mutation (uniformity — a just-minted run dir cannot contend, so the cost is one
+  // uncontended lock cycle, and no second unlocked write path survives to decay). The
+  // trivial mutate ignores the fresh read (initial creation); a LEDGER_LOCKED throw
+  // here is impossible in practice and would surface as the mint failure it is.
+  mutateLedgerUnderLock(runDir, () => ledger);
 
   // Emit the run-start event onto the observability timeline substrate (FAFF-574: through
   // the shared lock-guarded core — the seq is minted from the log's tail under the lock).
@@ -1019,11 +1024,27 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   const budgetSessions = closeAndOpenBudgetSessions(ledger, runDir, root, nowIso);
 
   // STEP 5: WRITE the re-entry (first side effect) — owner history + new epoch owner +
-  // abort→history + cleared stop_reason + resume[] + budget.sessions. The new owner block
-  // is the epoch-fence anchor; the write is fenced against a concurrent takeover.
+  // abort→history + cleared stop_reason + resume[] + budget.sessions. FAFF-575: the
+  // takeover transform is applied to the FRESH ledger read inside the locked critical
+  // section (never the step-1 copy — a concurrent writer's landed mutation between the
+  // early read and this write is preserved), and the epoch fence is checked in that
+  // same section against the pre-read owner block, so a concurrent resume that took
+  // over first makes this one yield instead of clobbering.
   const sessionId = process.env.FAFF_SESSION_ID || null;
-  const { ledger: next, epoch } = applyResumeToLedger(ledger, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
-  const writeRes = atomicWriteLedgerFenced(runDir, next, { epoch: priorEpoch, session_id: (ledger.owner && ledger.owner.session_id) || null });
+  let epoch = null;
+  let writeRes;
+  try {
+    writeRes = mutateLedgerUnderLock(runDir, (fresh) => {
+      const applied = applyResumeToLedger(fresh || ledger, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
+      epoch = applied.epoch;
+      return applied.ledger;
+    }, { epoch: priorEpoch, session_id: (ledger.owner && ledger.owner.session_id) || null });
+  } catch (e) {
+    // A busy ledger lock is retryable by construction — same refuse shape as the
+    // concurrent-takeover yield below; the operator re-runs --resume.
+    if (e && e.code === "LEDGER_LOCKED") return emitRefuse(1, `lights-out --resume: ${e.message} — retry the resume`, { state: priorState });
+    throw e;
+  }
   if (writeRes.yielded) return emitRefuse(1, `lights-out --resume: a concurrent resume already took over ${resumeId} — yielding (no write)`, { state: priorState });
 
   // Append the run-resume event, continuing the existing seq stream (no second run-start).

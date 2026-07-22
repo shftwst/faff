@@ -197,6 +197,13 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 // load-bearing for callers (sentry abort, lights-out mint) whose semantics must not
 // break on an events-side fault, and the missing link is precisely what FAFF-568's
 // verifier reports as an unrecorded ledger write. Fail toward detection, not blocking.
+// LOCK ORDERING (load-bearing): this fold acquires the events lock while the caller
+// (mutateLedgerUnderLock) may hold the ledger lock — ledger → events is the ONLY safe
+// order. No code path may acquire the ledger lock while holding the events lock (the
+// events append core's mintRecord closures never touch the ledger; `events append
+// --tokens` runs its ledger mutation BEFORE its event append) — adding one would
+// create the classic A→B / B→A deadlock. The fold's worst-case events-lock wait
+// (ACQUIRE_BUDGET_MS) also stays well under the ledger lock's stale-takeover bound.
 // The require is call-time (lazy): events.js requires this module at load (for
 // mutateLedgerUnderLock), so a top-level import here would cycle.
 function atomicWriteLedger(runDir, ledger) {

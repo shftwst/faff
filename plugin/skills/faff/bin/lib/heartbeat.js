@@ -40,6 +40,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
+const { withFileLock } = require("./fs-lock");
 
 // effectiveHeartbeatIso: the liveness instant a reader uses — the max, by parsed
 // epoch, of the heartbeat file's timestamp and the ledger field's, either of which
@@ -115,12 +116,13 @@ function readMemberHeartbeatFile(runDir, issue) {
 // observes a torn/partial heartbeat. Content is exactly one ISO timestamp + newline.
 //
 // The tmp name is PER-CALL-UNIQUE (pid + a random suffix), not a fixed sibling path —
-// this is the one place FAFF-355 has N *concurrent* writers by design (every build
-// subagent ticks the same file at once), unlike atomicWriteLedger's single-active-
-// writer callers below. A shared fixed tmp name lets two concurrent ticks interleave
-// on the SAME tmp file: A writes, B overwrites the same tmp path, A renames it away,
-// then B's rename of the now-vanished tmp throws ENOENT — an uncaught crash that
-// would violate "every heartbeat tick exits 0" (Scenario 1) under real concurrency.
+// FAFF-355 has N *concurrent* writers by design here (every build subagent ticks the
+// same file at once), and since FAFF-575 the ledger writers below are lock-serialised
+// N-writer too, so BOTH write paths share this idiom (atomicWriteLedger now routes
+// through this same function). A shared fixed tmp name lets two concurrent writers
+// interleave on the SAME tmp file: A writes, B overwrites the same tmp path, A renames
+// it away, then B's rename of the now-vanished tmp throws ENOENT — an uncaught crash
+// that would violate "every heartbeat tick exits 0" (Scenario 1) under real concurrency.
 // A unique tmp name per call means each process only ever renames a file it alone
 // created, so no rename can race another rename.
 //
@@ -155,26 +157,51 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
   atomicWriteSingleValueFile(path.join(runDir, memberHeartbeatFileName(issue)), nowIso + "\n");
 }
 
-// Atomic ledger write: serialize to a sibling .tmp then rename over the target, so a
-// concurrent reader (runcheck) never observes a torn/partial file. 2-space + trailing
-// newline matches the other JSON writers in this CLI. Callers: sentry abort's
-// resumable mark, the lights-out mint — both orchestrator/supervisory-lane, never a
-// heartbeat tick (FAFF-355 — the tick's only write is the file above).
+// ── The run-ledger write region (FAFF-575) ─────────────────────────────────────────
+//
+// WRITER INVENTORY — every production run-ledger.json mutation routes through
+// mutateLedgerUnderLock below; the set is lock-serialised MULTI-writer (the pre-575
+// "single-active-writer" assumption is formally retired):
+//   - `sentry abort` (sentry.js) — the detached poller's resumable abort mark
+//   - `events append --tokens` (events.js) — the token-checkpoint advance
+//   - `budget baseline` (budget.js) — the FAFF-552 write-once baseline merge
+//   - `lights-out` mint + `--resume` (lights-out.js) — run creation and epoch takeover
+// The next writer added MUST route through mutateLedgerUnderLock too — a direct
+// atomicWriteLedger call from production code reintroduces the lost-update race.
+// Out-of-scope residual (ADR-0077 territory): the ORCHESTRATOR SESSION's own ledger
+// edits (`admitted` appends, outcome writes, the beep-boop run mint) are file edits made
+// by the driving session, not CLI subprocess calls, so this CLI-side lock cannot
+// serialise them; a follow-up routing them through a locked `faff` op would close it.
+//
+// DURABILITY (stated posture, not an accident): ledger writes are rename-only — no
+// fsync. The ledger is a re-derivable bookkeeping snapshot; a power loss can lose at
+// most the latest rename, degrading to a slightly stale ledger every read seam
+// tolerates. Adding per-write fsync would tax every mutation for that narrow window.
+
+// Atomic ledger write: serialize to a PER-CALL-UNIQUE tmp then rename over the target,
+// so a concurrent reader (runcheck) never observes a torn/partial file and two
+// concurrent writers can never race each other's rename (the fixed `.tmp` sibling this
+// replaced is exactly the ENOENT crash the atomicWriteSingleValueFile comment above
+// documents — FAFF-575 closes it by reusing that same unique-tmp idiom). 2-space +
+// trailing newline matches the other JSON writers in this CLI. Production callers:
+// NONE directly — every production mutation goes through mutateLedgerUnderLock below
+// (see the writer inventory above); this stays the write PRIMITIVE the core calls.
 function atomicWriteLedger(runDir, ledger) {
-  const target = path.join(runDir, "run-ledger.json");
-  const tmp = target + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(ledger, null, 2) + "\n");
-  fs.renameSync(tmp, target);
+  atomicWriteSingleValueFile(path.join(runDir, "run-ledger.json"), JSON.stringify(ledger, null, 2) + "\n");
 }
 
 // FAFF-527 — owner-epoch write fence (takeover safety). A resume of a *dead-running*
 // run mints a new owner epoch (owner.epoch++ + a new session_id); the original driver
 // may be live-but-quiet (its effective heartbeat aged past the staleness window while an
-// isolated build subagent was legitimately mid-step). Every ledger write path re-reads
-// `owner.{epoch, session_id}` immediately before writing and YIELDS — a no-op, never a
-// crash — when its own epoch/session no longer matches, so the stale driver structurally
-// cannot clobber the resumed ledger. This mirrors the status-monotonicity local-compare
-// pattern (no CAS): a purely local pre-write check against the on-disk owner block.
+// isolated build subagent was legitimately mid-step). A fenced ledger mutation checks
+// `owner.{epoch, session_id}` against the under-lock fresh read immediately before
+// writing and YIELDS — a no-op, never a crash — when its own epoch/session no longer
+// matches, so the stale driver structurally cannot clobber the resumed ledger. Since
+// FAFF-575 the check runs INSIDE the locked critical section (mutateLedgerUnderLock),
+// so the old check-then-write gap — two writers both passing the fence, then both
+// writing — is structurally gone. The lock and the fence guard different failures:
+// the lock serialises concurrent writers; the fence makes a superseded owner yield
+// even when it is the only writer running. Neither subsumes the other.
 //
 // PURE: given the disk owner block and the writer's expected {epoch, session_id}, is the
 // writer stale? A missing `expected` (a caller not participating in the fence) is NEVER
@@ -194,24 +221,49 @@ function ownerEpochFenceStale(diskOwner, expected) {
   return false;
 }
 
-// Fenced atomic ledger write. Re-reads the on-disk owner block and, if the writer's
-// epoch/session no longer owns the run (a newer resume took it over), YIELDS: writes
-// nothing, logs loudly to stderr, and returns { written:false, yielded:true }. On a
-// clean match (or no `expected` — the unfenced default) it writes and returns
-// { written:true }. Never throws on a stale fence — a yielded write is a designed no-op,
-// not a fault (the takeover is the intended outcome).
-function atomicWriteLedgerFenced(runDir, ledger, expected) {
-  if (expected) {
-    let disk = null;
-    try { disk = readLedger(runDir); } catch { disk = null; }
-    if (disk && ownerEpochFenceStale(disk.owner, expected)) {
+// FAFF-575 — the locked ledger mutation core: the ONE critical section every production
+// run-ledger.json mutation goes through (writer inventory above). Serialises the whole
+// read-merge-write under the shared advisory file lock (<runDir>/run-ledger.json.lock,
+// fs-lock.js mechanics — same constants as the events.jsonl lock), so a mutation derives
+// ONLY from the fresh read taken inside the lock. The `mutate`-callback shape exists
+// precisely so callers cannot hand this core a stale pre-built ledger object ("the
+// ledger I read two lines ago" is the bug this closes).
+//
+//   mutate(freshLedger) -> the ledger to write, or null/undefined to abort WITHOUT
+//   writing. `freshLedger` is null when run-ledger.json does not exist yet (the mint
+//   path writes from scratch); a malformed ledger THROWS out of the core (caller's
+//   loudness contract), never silently degrades to an empty object.
+//
+// `expectedOwner` ({epoch, session_id}, optional) arms the FAFF-527 fence: checked
+// against the under-lock fresh read immediately before the write — a superseded owner
+// yields ({written:false, yielded:true}, loud stderr), never throws, never writes.
+//
+// CRITICAL-SECTION HYGIENE: the lock-held span is one readLedger + the fence compare +
+// the pure `mutate` transform + one serialise/write/rename — sub-millisecond. No
+// subprocess, git, tracker, network, or token-measurement work belongs inside `mutate`;
+// callers do that work BEFORE acquiring (sentry abort commits WIP first; events
+// --tokens measures first). That is what keeps STALE_LOCK_MS ~1000× the section length.
+//
+// On acquisition-budget exhaustion this THROWS an error tagged code "LEDGER_LOCKED" —
+// each caller surfaces it per its own loudness contract, and NEVER falls back to an
+// unlocked write (that would reintroduce the race under exactly the contention that
+// fires it).
+function mutateLedgerUnderLock(runDir, mutate, expectedOwner) {
+  const lockPath = path.join(runDir, "run-ledger.json.lock");
+  return withFileLock(lockPath, () => {
+    let fresh = null;
+    try { fresh = readLedger(runDir); }
+    catch (e) { if (!e || e.code !== "ENOENT") throw e; } // absent ⇒ mint-from-scratch (fresh stays null); malformed throws
+    if (expectedOwner && fresh && ownerEpochFenceStale(fresh.owner, expectedOwner)) {
       process.stderr.write(`ledger write yielded: owner epoch/session moved on in ${runDir} ` +
-        `(writer epoch ${expected.epoch ?? 0}/${expected.session_id ?? "?"}, on-disk epoch ${(disk.owner && disk.owner.epoch) ?? 0}/${(disk.owner && disk.owner.session_id) ?? "?"}) — a newer resume owns this run\n`);
+        `(writer epoch ${expectedOwner.epoch ?? 0}/${expectedOwner.session_id ?? "?"}, on-disk epoch ${(fresh.owner && fresh.owner.epoch) ?? 0}/${(fresh.owner && fresh.owner.session_id) ?? "?"}) — a newer resume owns this run\n`);
       return { written: false, yielded: true };
     }
-  }
-  atomicWriteLedger(runDir, ledger);
-  return { written: true, yielded: false };
+    const next = mutate(fresh);
+    if (next === null || next === undefined) return { written: false, yielded: false };
+    atomicWriteLedger(runDir, next);
+    return { written: true, yielded: false };
+  }, { code: "LEDGER_LOCKED", label: "ledger lock" });
 }
 
 // Resolution order (spec §3): explicit arg → $FAFF_RUN_DIR → latest run under .faff/runs.
@@ -474,7 +526,7 @@ function heartbeatSelftest() {
 
 
 module.exports = {
-  atomicWriteLedger, atomicWriteLedgerFenced, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
-  isValidIssueId, memberHeartbeatFileName, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
+  atomicWriteLedger, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
+  isValidIssueId, memberHeartbeatFileName, mutateLedgerUnderLock, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
   readMemberHeartbeatFile, resolveHeartbeatRunDir, writeHeartbeatFile, writeMemberHeartbeatFile,
 };

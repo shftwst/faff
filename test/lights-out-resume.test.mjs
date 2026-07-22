@@ -18,7 +18,7 @@ import {
 } from "../plugin/skills/faff/bin/lib/resume.js";
 import { eventViolations } from "../plugin/skills/faff/bin/lib/events.js";
 import { DELIVERY_PROFILE } from "../plugin/skills/faff/bin/lib/governance-profile.js";
-import { ownerEpochFenceStale, atomicWriteLedgerFenced } from "../plugin/skills/faff/bin/lib/heartbeat.js";
+import { ownerEpochFenceStale, mutateLedgerUnderLock } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { closeSpanDeltaByModel, closedSessionsSpend, currentOpenSpan, byModelClassTotal } from "../plugin/skills/faff/bin/lib/budget.js";
 
 // ---------------------------------------------------------------------------
@@ -145,20 +145,25 @@ test("ownerEpochFenceStale: mismatched epoch/session yields; matching / unfenced
   assert.equal(ownerEpochFenceStale({ epoch: 0 }, { epoch: 0 }), false); // pre-527 (no epoch) default-0
 });
 
-test("atomicWriteLedgerFenced: a stale writer YIELDS (no write, no crash); a clean writer writes", () => {
+test("mutateLedgerUnderLock (FAFF-575): a stale fenced writer YIELDS through the locked core (no write, no crash); the owning writer writes", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-527-fence-"));
   // seed the on-disk ledger owned by epoch 1 (a newer resume took over)
   fs.writeFileSync(path.join(dir, "run-ledger.json"), JSON.stringify({ run_id: "R", owner: { epoch: 1, session_id: "new" } }, null, 2) + "\n");
-  const stale = atomicWriteLedgerFenced(dir, { run_id: "R", owner: { epoch: 0, session_id: "old" }, clobbered: true }, { epoch: 0, session_id: "old" });
+  let staleMutateRan = false;
+  const stale = mutateLedgerUnderLock(dir, (fresh) => { staleMutateRan = true; return { ...fresh, clobbered: true }; }, { epoch: 0, session_id: "old" });
   assert.equal(stale.yielded, true);
   assert.equal(stale.written, false);
+  assert.equal(staleMutateRan, false, "the fence yields BEFORE the mutate transform runs — nothing derived, nothing written");
   const onDisk = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
   assert.equal(onDisk.clobbered, undefined, "stale writer did not clobber the resumed ledger");
   assert.equal(onDisk.owner.epoch, 1);
-  // the owning writer (epoch 1) writes cleanly
-  const ok = atomicWriteLedgerFenced(dir, { run_id: "R", owner: { epoch: 1, session_id: "new" }, updated: true }, { epoch: 1, session_id: "new" });
+  // the owning writer (epoch 1) mutates cleanly, deriving from the under-lock fresh read
+  const ok = mutateLedgerUnderLock(dir, (fresh) => ({ ...fresh, updated: true }), { epoch: 1, session_id: "new" });
   assert.equal(ok.written, true);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8")).updated, true);
+  const after = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
+  assert.equal(after.updated, true);
+  assert.equal(after.owner.epoch, 1, "the mutation derived from the fresh read keeps the on-disk owner");
+  assert.ok(!fs.existsSync(path.join(dir, "run-ledger.json.lock")), "the ledger lock is released after the mutation");
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

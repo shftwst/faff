@@ -276,13 +276,16 @@ test("critical-section hygiene: sentry abort commits WIP, and events --tokens me
 // DoD: "grep shows no production atomicWriteLedger/atomicWriteLedgerFenced call outside
 // it". atomicWriteLedgerFenced is gone entirely; atomicWriteLedger's only production
 // call site is inside mutateLedgerUnderLock (heartbeat.js — the core's own write step).
-test("writer sweep: no production module calls atomicWriteLedger outside the locked core; atomicWriteLedgerFenced no longer exists", () => {
+test("writer sweep: no production module references atomicWriteLedger outside the locked core; atomicWriteLedgerFenced no longer exists", () => {
   const files = readdirSync(LIB).filter((f) => f.endsWith(".js"));
   for (const f of files) {
     const src = readFileSync(join(LIB, f), "utf8");
     assert.ok(!src.includes("atomicWriteLedgerFenced"), `${f}: atomicWriteLedgerFenced is superseded by mutateLedgerUnderLock`);
     if (f === "heartbeat.js") continue; // the primitive's home — the core calls it there
-    const callSites = src.split("\n").filter((l) => /\batomicWriteLedger\s*\(/.test(l) && !l.trim().startsWith("//") && !l.trim().startsWith("*"));
-    assert.deepEqual(callSites, [], `${f}: no direct atomicWriteLedger call outside the locked core`);
+    // ANY non-comment reference (not just a direct call) is flagged: a require-time
+    // destructure or alias (`const w = require("./heartbeat").atomicWriteLedger`)
+    // would reintroduce an unlocked write path while dodging a call-site-only grep.
+    const refs = src.split("\n").filter((l) => /\batomicWriteLedger\b/.test(l) && !l.trim().startsWith("//") && !l.trim().startsWith("*"));
+    assert.deepEqual(refs, [], `${f}: no reference to atomicWriteLedger outside the locked core (aliasing counts)`);
   }
 });

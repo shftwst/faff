@@ -882,14 +882,19 @@ function cmdSentry(args) {
     const abortRec = { issue, signal, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped, at: new Date().toISOString() };
     try {
       mutateLedgerUnderLock(runDir, (fresh) => {
-        const target = fresh || ledger; // fresh is authoritative; the pre-lock read only gated malformed-ledger exit 2
-        applySentryAbort(target, abortRec);
-        return target;
+        // The mark derives ONLY from the under-lock read — never the pre-lock copy
+        // (which only gated the malformed-ledger exit 2 above). A ledger that vanished
+        // between that read and lock acquisition is a fault, not "the same ledger":
+        // writing the stale copy back would be the exact lost-update the lock removes.
+        if (!fresh) { const e = new Error(`run-ledger.json missing in ${runDir} at lock time`); e.code = "ENOENT"; throw e; }
+        applySentryAbort(fresh, abortRec);
+        return fresh;
       });
     } catch (e) {
       // The abort mark IS the abort — a silent skip would leave a killed run looking
       // alive. Loud exit 1 naming the lock; the poller/operator retries.
       if (e && e.code === "LEDGER_LOCKED") { process.stderr.write(`faff sentry abort: ${e.message} — abort mark NOT written, retry\n`); return 1; }
+      if (e && e.code === "ENOENT") { process.stderr.write(`faff sentry abort: ${e.message} — abort mark NOT written\n`); return 2; }
       throw e;
     }
     const payload = { run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped };

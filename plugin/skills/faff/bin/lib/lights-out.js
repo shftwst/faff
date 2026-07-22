@@ -1035,7 +1035,13 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   let writeRes;
   try {
     writeRes = mutateLedgerUnderLock(runDir, (fresh) => {
-      const applied = applyResumeToLedger(fresh || ledger, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
+      // The takeover derives ONLY from the under-lock read. A resume is never a mint:
+      // a ledger that vanished between the step-1 read and lock acquisition is a fault
+      // to refuse loudly (below, via the null-mutate abort), never a stale snapshot to
+      // resurrect — and a null fresh also skips the fence, so falling back to the
+      // pre-lock copy here would bypass the takeover guard entirely.
+      if (!fresh) return null;
+      const applied = applyResumeToLedger(fresh, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
       epoch = applied.epoch;
       return applied.ledger;
     }, { epoch: priorEpoch, session_id: (ledger.owner && ledger.owner.session_id) || null });
@@ -1046,6 +1052,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
     throw e;
   }
   if (writeRes.yielded) return emitRefuse(1, `lights-out --resume: a concurrent resume already took over ${resumeId} — yielding (no write)`, { state: priorState });
+  if (!writeRes.written) return emitRefuse(1, `lights-out --resume: run-ledger.json vanished at lock time in ${runDir} — nothing written; re-run --resume`, { state: priorState });
 
   // Append the run-resume event, continuing the existing seq stream (no second run-start).
   // FAFF-574: through the shared lock-guarded core — seq minted from the log's tail under

@@ -1,3 +1,5 @@
+// === region:shared-infra — fs-lock — the run-dir advisory file-lock idiom (FAFF-574/FAFF-575) ===
+//
 // fs-lock.js — the ONE home for the run-dir advisory file-lock idiom (FAFF-574 / FAFF-575).
 //
 // FAFF-574 settled advisory lock files as how run-dir state files serialise concurrent

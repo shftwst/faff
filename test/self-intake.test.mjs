@@ -99,6 +99,15 @@ test("empty-string config leaves coerce to null (never an empty-string match)", 
   assert.match(r.out, /unresolved-target/);
 });
 
+test("a quoted whitespace-padded config value is trimmed before comparison (no silent mismatch)", () => {
+  const root = fixtureRoot('containment:\n  self_hosting_intake: true\ntracking:\n  repo: " acme/app "\n');
+  const r = runIn(root, "self-intake", "M-1", "--target", '{"team":null,"repo":"acme/app"}', "--json");
+  assert.equal(r.code, 0);
+  const j = JSON.parse(r.out);
+  assert.equal(j.self.repo, "acme/app"); // trimmed, so the strict === match fires
+  assert.equal(j.reason, "repo-match");
+});
+
 test("all-null target → unresolved-target, exit 3", () => {
   const root = fixtureRoot(RC_LANE_ON_BOTH);
   const r = runIn(root, "self-intake", "M-1", "--target", '{"team":null,"repo":null}');

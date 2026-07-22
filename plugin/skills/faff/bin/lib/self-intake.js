@@ -57,9 +57,19 @@ function deriveSelfFromConfig(root) {
   const lane = dig(data, "containment.self_hosting_intake");
   const team = dig(data, "tracking.team_key");
   const repo = dig(data, "tracking.repo");
+  // Return the TRIMMED value, not just trim-for-the-emptiness-check: a quoted,
+  // whitespace-padded config scalar (`repo: " acme/app"`) survives the YAML parser
+  // with its inner padding, and an untrimmed return would strict-=== mismatch a
+  // clean target — a silent lane-off-in-effect a human would read as "repo looks
+  // right" (the adversarial-review trim-asymmetry finding).
+  const clean = (v) => {
+    if (typeof v !== "string") return null;
+    const t = v.trim();
+    return t === "" ? null : t;
+  };
   return {
-    team: typeof team === "string" && team.trim() !== "" ? team : null,
-    repo: typeof repo === "string" && repo.trim() !== "" ? repo : null,
+    team: clean(team),
+    repo: clean(repo),
     lane_on: lane === true || lane === "true",
   };
 }

@@ -67,13 +67,16 @@ const DELIVERY_PROFILE = {
     "sentry-checkpoint",
     "corrective-authored", "corrective-consumed",
     "containment-check",
+    // FAFF-539: the `faff self-intake --record` verdict binding — the same detective
+    // recording parity as containment-check, for the outward-self-intake gate.
+    "self-intake-check",
     // FAFF-527: one run-scoped event per L4 re-entry (epoch, prior_state, skipped_shipped,
     // rebuilt_coarse) — continues the SAME run_id's seq stream, never a second run-start.
     "run-resume",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
-    "corrective-authored", "corrective-consumed", "containment-check",
+    "corrective-authored", "corrective-consumed", "containment-check", "self-intake-check",
   ],
   outcome_required_types: ["issue-outcome"],
   ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded"],

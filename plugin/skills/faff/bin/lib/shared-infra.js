@@ -121,6 +121,70 @@ function parseAncestry(json) {
   return m;
 }
 
+// ---------------------------------------------------------------------------
+// shared: the self-intake same-repo/team comparator (FAFF-539) — pure, no I/O.
+// The decision core of `faff self-intake`, the mechanical gate on the FAFF-536
+// `outward → outward-self-intake` reclassification (ADR-0079). Lives here (not in
+// the factory module self-intake.js) because BOTH `self-intake` (factory, the CLI
+// surface) and `audit` (governance, the recompute-and-compare) need it, and
+// governance may reference shared-infra only, never factory (ADR 0042) — the same
+// split as containerParent/subtreeContains above. The SELF side is derived from
+// config by the factory wrapper and passed in as a plain argument; this core only
+// compares. Ladder is the run-outward idiom INVERTED to fail toward the floor:
+// first-matching rung wins, biased toward not-self.
+// ---------------------------------------------------------------------------
+
+const SELF_INTAKE_REASONS = ["lane-off", "unresolved-target", "unresolved-self", "team-match", "repo-match", "mismatch"];
+
+// Coerce a raw SelfIntakeTarget onto the closed shape. Anything not a plain object
+// degrades to all-null (→ unresolved-target, fail-closed); wrong-typed or empty
+// fields coerce to null (an empty scalar must never strict-equal anything).
+function normalizeSelfIntakeTarget(raw) {
+  const r = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  return {
+    team: typeof r.team === "string" && r.team !== "" ? r.team : null,
+    repo: typeof r.repo === "string" && r.repo !== "" ? r.repo : null,
+  };
+}
+
+// Coerce a raw SelfIntakeSelf onto the closed shape. lane_on is STRICT-boolean
+// (=== true) — a missing/truthy-non-bool lane dial never reads as opted-in.
+function normalizeSelfIntakeSelf(raw) {
+  const r = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw : {};
+  return {
+    team: typeof r.team === "string" && r.team !== "" ? r.team : null,
+    repo: typeof r.repo === "string" && r.repo !== "" ? r.repo : null,
+    lane_on: r.lane_on === true,
+  };
+}
+
+// PURE decision ladder (spec §4) — one pass, first-matching rung wins, biased
+// toward not-self. Comparisons are strict === on the raw strings (case-mismatch
+// fails toward not-self — the safe direction; parity with run-outward). Null never
+// matches null: the explicit unresolved rungs fire before any equality is tried,
+// and each equality requires BOTH sides non-null. Never throws; malformed JSON is
+// rejected at the CLI boundary (exit 2), not here.
+function decideSelfIntake(targetRaw, selfRaw) {
+  const target = normalizeSelfIntakeTarget(targetRaw);
+  const self = normalizeSelfIntakeSelf(selfRaw);
+  if (self.lane_on !== true) {
+    return { target, self, verdict: "not-self", reason: "lane-off" };
+  }
+  if (target.team === null && target.repo === null) {
+    return { target, self, verdict: "not-self", reason: "unresolved-target" };
+  }
+  if (self.team === null && self.repo === null) {
+    return { target, self, verdict: "not-self", reason: "unresolved-self" };
+  }
+  if (target.team !== null && self.team !== null && target.team === self.team) {
+    return { target, self, verdict: "self", reason: "team-match" };
+  }
+  if (target.repo !== null && self.repo !== null && target.repo === self.repo) {
+    return { target, self, verdict: "self", reason: "repo-match" };
+  }
+  return { target, self, verdict: "not-self", reason: "mismatch" };
+}
+
 // Shared mtime-DESC ordering for `.faff/runs/<run-id>` directories (FAFF-337). Three
 // run-id mint formats coexist (dash-prefixed date, compact `run-`, and legacy bare
 // stamps) with no shared lexical shape, so sorting by NAME is format-dependent and can
@@ -559,4 +623,4 @@ function readBaseConfigStrict(filePath, env = process.env) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, containerParent, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, isPlainConfigMap, latestRunDir, mainWorktreeRoot, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, isPlainConfigMap, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

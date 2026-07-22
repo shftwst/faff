@@ -481,6 +481,10 @@ function eventsSelftest() {
     // contain invocation (mandate/parent/root/ancestry_raw/verdict/exit).
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", issue: "FAFF-1", data: { mandate: "FAFF-1", parent: "FAFF-2", root: false, ancestry_raw: '[{"id":"FAFF-2","parentId":"FAFF-1"}]', verdict: "contained", exit: 0 } }, 0, "valid containment-check record"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "containment-check", data: { mandate: "FAFF-1", parent: null, root: true, ancestry_raw: null, verdict: "outward", exit: 3 } }, 1, "containment-check missing required issue field"],
+    // FAFF-539 — self-intake-check: issue-scoped (issue = mandate), data = the recorded
+    // self-intake invocation (mandate/target_raw/self snapshot/verdict/reason/exit).
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "self-intake-check", issue: "FAFF-1", data: { mandate: "FAFF-1", target_raw: '{"team":null,"repo":"shftwst/faff"}', self: { team: null, repo: "shftwst/faff", lane_on: true }, verdict: "self", reason: "repo-match", exit: 0 } }, 0, "valid self-intake-check record"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "self-intake-check", data: { mandate: "FAFF-1", target_raw: "{}", self: { team: null, repo: null, lane_on: false }, verdict: "not-self", reason: "lane-off", exit: 3 } }, 1, "self-intake-check missing required issue field"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {

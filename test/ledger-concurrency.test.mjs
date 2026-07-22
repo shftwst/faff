@@ -47,9 +47,10 @@ function mkRun(prefix) {
   return { root, runDir, ledgerPath: join(runDir, "run-ledger.json") };
 }
 
-function runChild(cmd, args, opts = {}) {
+function runChild(cmd, args, opts = {}, stdinData = null) {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { ...opts });
+    if (stdinData !== null) child.stdin.end(stdinData);
     let out = "", err = "";
     child.stdout.on("data", (d) => { out += d; });
     child.stderr.on("data", (d) => { err += d; });
@@ -197,6 +198,57 @@ test("a null-returning mutate aborts without writing (and without a yield)", () 
     const res = mutateLedgerUnderLock(runDir, () => null);
     assert.deepEqual(res, { written: false, yielded: false });
     assert.equal(readFileSync(ledgerPath, "utf8"), before, "nothing written on a null mutate");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- Integration smoke (DoD): --tokens append ∥ sentry abort ------------------------
+test("smoke: parallel `events append --tokens` and `sentry abort` → ledger parses, abort mark present, honest tokens_source, no tmp orphan", async () => {
+  const { root, runDir, ledgerPath } = mkRun("ledger-smoke-");
+  try {
+    const [append, abort] = await Promise.all([
+      runChild(process.execPath, [CLI, "events", "append", "--run", "RUN-L", "--tokens"], { cwd: root },
+        JSON.stringify({ phase: "run", type: "budget-checkpoint" })),
+      runChild(process.execPath, [CLI, "sentry", "abort", "--run-dir", runDir, "--signal", "smoke-sig"], { cwd: root }),
+    ]);
+    assert.equal(append.code, 0, `append exits 0 (stderr: ${append.err})`);
+    assert.equal(abort.code, 0, `abort exits 0 (stderr: ${abort.err})`);
+    const ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
+    assert.equal(ledger.abort && ledger.abort.status, "aborted-resumable", "abort mark present");
+    // The emitted record carries EITHER an advanced transcript checkpoint OR the honest
+    // estimate degrade — never a fabricated delta (in this env, no transcript ⇒ estimate).
+    const rec = JSON.parse(append.out);
+    assert.ok(["transcript", "estimate"].includes(rec.data.tokens_source), "honest tokens_source on the emitted record");
+    if (rec.data.tokens_source === "transcript") {
+      assert.ok(ledger.budget && ledger.budget.tokens_at_last_event, "a transcript delta implies the checkpoint advanced");
+    }
+    const leftovers = readdirSync(runDir).filter((f) => f.includes(".tmp") || f.includes(".lock"));
+    assert.deepEqual(leftovers, [], "no tmp orphan or lock file remains");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- Caller loudness contracts on LEDGER_LOCKED (DoD, caller table) -----------------
+test("sentry abort under a held ledger lock exits 1 naming the lock (the abort mark is the abort — never a silent skip)", async () => {
+  const { root, runDir, ledgerPath } = mkRun("ledger-abort-locked-");
+  try {
+    writeFileSync(ledgerPath + ".lock", JSON.stringify({ pid: process.pid, ts: new Date().toISOString() })); // live holder
+    const r = await runChild(process.execPath, [CLI, "sentry", "abort", "--run-dir", runDir, "--signal", "sig"], { cwd: root });
+    assert.equal(r.code, 1, "abort exits 1 when the lock cannot be acquired");
+    assert.match(r.err, /LEDGER|ledger lock/i, "stderr names the lock");
+    assert.equal(JSON.parse(readFileSync(ledgerPath, "utf8")).abort, undefined, "no unlocked-write fallback — the mark was NOT written");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("budget baseline under a held ledger lock prints baseline_written:false reason ledger-locked and exits 0 (metering never crashes a run)", async () => {
+  const { root, runDir, ledgerPath } = mkRun("ledger-baseline-locked-");
+  try {
+    writeFileSync(ledgerPath + ".lock", JSON.stringify({ pid: process.pid, ts: new Date().toISOString() })); // live holder
+    const r = await runChild(process.execPath, [CLI, "budget", "baseline", "--run-dir", runDir, "--session-id", "s1"], { cwd: root });
+    assert.equal(r.code, 0, "baseline exits 0 on a busy lock");
+    const out = JSON.parse(r.out);
+    assert.equal(out.baseline_written, false);
+    assert.equal(out.reason, "ledger-locked");
+    const budget = JSON.parse(readFileSync(ledgerPath, "utf8")).budget;
+    assert.ok(!budget || !budget.measure_session_id, "checkpoint state untouched — no unlocked write");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

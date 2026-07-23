@@ -1,0 +1,27 @@
+{ "id": "holdout-seed-neg-subtly-wrong-001", "kind": "holdout-exercise",
+  "label": "defective", "defect_class": "subtly-wrong", "expected_aggregate": "gaps",
+  "fixture": { "version": 1,
+    "spec_dod": [
+      { "key": "crit-po1", "class": "scenario",
+        "text": "POST /orders with a valid payload returns HTTP 201 and an order id in the response body." },
+      { "key": "crit-dl1", "class": "scenario",
+        "text": "DELETE /orders/<id> for an order id that does not exist returns HTTP 404." },
+      { "key": "crit-vm1", "class": "assertion",
+        "text": "A request missing the required `email` field is rejected with HTTP 422 and an error body naming the missing field." },
+      { "key": "crit-ps1", "class": "assertion",
+        "text": "The item selected at order creation is faithfully persisted — querying the order afterward returns the same item that was originally submitted." },
+      { "key": "crit-em1", "class": "prose",
+        "text": "The order confirmation email copy feels reassuring and on-brand." }
+    ],
+    "recordings": [
+      { "request": "POST http://env:8080/orders {\"email\":\"a@x.io\",\"item\":\"widget-1\"}",
+        "response": "200 OK; body {\"id\":\"ord-782\",\"status\":\"pending\"}" },
+      { "request": "POST http://env:8080/orders {\"item\":\"widget-1\"}",
+        "response": "422 Unprocessable Entity; body {\"error\":\"missing_field\",\"field\":\"email\"}" },
+      { "request": "GET http://env:8080/orders/ord-782",
+        "response": "200 OK; body {\"id\":\"ord-782\",\"status\":\"pending\",\"item\":\"widget-1\"}" },
+      { "request": "DELETE http://env:8080/orders/ord-999",
+        "response": "404 Not Found; body {\"error\":\"not_found\"}" }
+    ] },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": { "closed_set": ["crit-po1:unmet", "crit-dl1:met", "crit-vm1:met", "crit-ps1:met", "crit-em1:needs-human"] } }

@@ -152,8 +152,13 @@ function readStdin() {
   try { return fs.readFileSync(0, "utf8"); } catch { return ""; }
 }
 
+const { parseArgs, usageError } = require("./argv");
+const FINDINGS_RECONCILE_SPEC = { flags: { "--selftest": { arity: 0 }, "--stdin": { arity: 0 } } };
+
 function cmdFindingsReconcile(args) {
   if (args.includes("--selftest")) return findingsReconcileSelftest();
+  const { errors } = parseArgs(args, FINDINGS_RECONCILE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff findings-reconcile  (reads { finding_tickets, fix_corpus } JSON on stdin)");
   // TTY guard (adversarial-review fix): fs.readFileSync(0) BLOCKS forever on an
   // interactive terminal with nothing piped — refuse loudly instead of hanging.
   if (process.stdin.isTTY) {

@@ -171,11 +171,21 @@ function runcheckHookDecision(ledger, runDir, nowMs, env, opts) {
   return { block: false, warn: true, reason: runcheckReason(result), owned, held: false };
 }
 
+const { parseArgs, usageError } = require("./argv");
+// --root is declared (accepted-and-ignored — runcheck resolves its run-dir from the
+// positional) so probeServes's `runcheck --hook --root <probeRoot>` never trips unknown-flag.
+const RUNCHECK_SPEC = {
+  flags: { "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--json": { arity: 0 }, "--recover": { arity: 0 }, "--root": { arity: 1 } },
+  positionals: { min: 0, max: 1, name: "run-dir" },
+};
+
 function cmdRuncheck(args) {
   if (args.includes("--selftest")) return runcheckSelftest();
-  const hook = args.includes("--hook");
-  const asJson = args.includes("--json");
-  const positional = args.filter((a) => !a.startsWith("-"));
+  const parsed = parseArgs(args, RUNCHECK_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff runcheck [RUN_DIR] [--hook] [--recover] [--json]");
+  const hook = !!parsed.values["--hook"];
+  const asJson = !!parsed.values["--json"];
+  const positional = parsed.positionals;
   // FAFF-578: defence in depth — resolution no longer throws on fs churn
   // (latestRunDir absorbs it), but a Stop hook that fires at every turn-end must
   // never crash on filesystem churn. Hook mode: silent, as if no run exists
@@ -198,7 +208,7 @@ function cmdRuncheck(args) {
     // the pure decision runs — the decision fn (runcheckHookDecision → runIsHeld)
     // stays filesystem-free; this is the one read of the file for this seam.
     overlayHeartbeat(ledger, readHeartbeatFile(runDir));
-    const recover = args.includes("--recover");
+    const recover = !!parsed.values["--recover"];
     const decision = runcheckHookDecision(ledger, runDir, Date.now(), process.env, { recover });
     if (decision.block) console.log(JSON.stringify({ decision: "block", reason: decision.reason }));
     // FAFF-235: foreign + not-held → a one-line, NON-BLOCKING notice on stderr (never the

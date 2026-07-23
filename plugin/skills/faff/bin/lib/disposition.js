@@ -171,10 +171,15 @@ function renderDisposition(report) {
   console.log(`disposition:  ${report.disposition}`);
 }
 
+const { parseArgs, usageError } = require("./argv");
+const DISPOSITION_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } } };
+
 function cmdDisposition(args) {
   if (args.includes("--selftest")) return dispositionSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const asJson = args.includes("--json");
+  const { values, errors } = parseArgs(args, DISPOSITION_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff disposition [--run-dir DIR] [--root DIR] [--json]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
+  const asJson = !!values["--json"];
   const root = get("--root") || findRoot();
 
   // Run-dir resolution: explicit --run-dir → $FAFF_RUN_DIR → latest under .faff/runs.

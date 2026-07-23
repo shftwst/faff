@@ -25,9 +25,11 @@ test("reconcile: missing --level → exit 2", () => {
 });
 
 test("reconcile: bad --level → exit 2", () => {
+  // FAFF-576: bad --level is now caught by the shared argv parser as a bad-enum naming the
+  // accepted set (sharper than the old "--level is required" catch-all); exit 2 is unchanged.
   const { code, stderr } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L9"], { input: "{}" });
   assert.equal(code, 2);
-  assert.match(stderr, /--level is required/);
+  assert.match(stderr, /bad-enum|not in L1\|L2\|L3\|L4/);
 });
 
 test("reconcile: malformed JSON on stdin → exit 2 (fail-loud, never a silent pass)", () => {

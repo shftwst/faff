@@ -18,9 +18,20 @@
 // ===========================================================================
 
 const fs = require("node:fs");
+const { parseArgs, usageError } = require("./argv");
 
 const DIVERGENCE_CLASSES = ["phantom-merge", "claimed-shipped-unmerged", "unowned-sibling-mutation", "superseded-unproven"];
 const LEVELS = ["L1", "L2", "L3", "L4"];
+
+const RECONCILE_SPEC = {
+  flags: {
+    "--selftest": { arity: 0 },
+    "--json": { arity: 0 },
+    "--run-dir": { arity: 1 },
+    "--level": { arity: 1, enum: LEVELS },
+  },
+};
+const RECONCILE_USAGE = "usage: faff reconcile --run-dir DIR --level L1|L2|L3|L4 [--json]  (reads a ReconcileInput JSON on stdin)";
 
 // PURE: classify one `shipped` ledger outcome against its recorded merge-record (written by
 // `merge-gate` on the merge-ok path) + the orchestrator's live-observed forge state. A missing
@@ -158,11 +169,11 @@ function validateReconcileInput(input) {
 
 function cmdReconcile(args) {
   if (args.includes("--selftest")) return reconcileSelftest();
-  const json = args.includes("--json");
-  const runDirIdx = args.indexOf("--run-dir");
-  const runDir = runDirIdx !== -1 ? args[runDirIdx + 1] : null;
-  const levelIdx = args.indexOf("--level");
-  const flagLevel = levelIdx !== -1 ? args[levelIdx + 1] : null;
+  const { values, errors } = parseArgs(args, RECONCILE_SPEC);
+  if (errors.length) return usageError(errors, RECONCILE_USAGE);
+  const json = !!values["--json"];
+  const runDir = values["--run-dir"] || null;
+  const flagLevel = values["--level"] || null;
 
   if (!runDir) { process.stderr.write("faff reconcile: --run-dir is required\n"); return 2; }
   if (!flagLevel || !LEVELS.includes(flagLevel)) {

@@ -90,6 +90,17 @@ const { readGovernanceConfig } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile, readMemberHeartbeatFile } = require("./heartbeat");
 const { ENTRYPOINT, dig, findRoot, latestRunDir, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { parseArgs, usageError } = require("./argv");
+// Union spec over both sub-verbs (check | abort). --budget-json / --detection-json /
+// --member-beats-json / --authority / --now-ms / --now are hermetic test-only seams.
+const SENTRY_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--forbidden-side-effect": { arity: 0 },
+  "--root": { arity: 1 }, "--run-dir": { arity: 1 },
+  "--budget-json": { arity: 1 }, "--detection-json": { arity: 1 }, "--member-beats-json": { arity: 1 },
+  "--authority": { arity: 1 }, "--now": { arity: 1 }, "--now-ms": { arity: 1 },
+  "--issue": { arity: 1 }, "--signal": { arity: 1 }, "--worktree": { arity: 1 },
+}, positionals: { min: 0, max: 1, name: "verb" } };
+const SENTRY_USAGE = "usage: faff sentry check|abort [--run-dir DIR] [--root DIR] [--json] [--forbidden-side-effect] [--issue ID] [--signal S] [--worktree DIR]";
 
 const DERAILMENT_SIGNALS = new Set([
   "fix-review-thrash", "budget-breach", "repeated-identical-failure",
@@ -694,9 +705,11 @@ function sentryIndeterminate(reason, asJson, runDir = null) {
 
 function cmdSentry(args) {
   if (args.includes("--selftest")) return sentrySelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const asJson = args.includes("--json");
+  const parsed = parseArgs(args, SENTRY_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, SENTRY_USAGE);
+  const sub = parsed.positionals[0];
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const asJson = !!parsed.values["--json"];
   const root = get("--root") || findRoot();
 
   let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;

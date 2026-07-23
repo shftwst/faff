@@ -392,11 +392,19 @@ function cmdRun(get) {
   return runLoop(runDir, intervalRes.value).then(() => 0);
 }
 
+const { parseArgs, usageError } = require("./argv");
+const SENTRY_POLLER_SPEC = {
+  flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--interval-secs": { arity: 1 } },
+  positionals: { min: 0, max: 1, name: "verb" },
+};
+
 function cmdSentryPoller(args) {
   if (args.includes("--selftest")) return sentryPollerSelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const asJson = args.includes("--json");
+  const parsed = parseArgs(args, SENTRY_POLLER_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff sentry-poller <start|stop|status|run> [--run-dir DIR] [--interval-secs N] [--root DIR] [--json]");
+  const sub = parsed.positionals[0];
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const asJson = !!parsed.values["--json"];
   const root = get("--root") || findRoot();
 
   if (sub === "run") return cmdRun(get);

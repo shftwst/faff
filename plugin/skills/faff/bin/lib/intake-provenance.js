@@ -155,24 +155,23 @@ function interactiveBypassNotice(issue, basis) {
 // FIRST bare token is the issue id — no `indexOf` ambiguity, and a `--labels` whose
 // value is itself another flag (a shell-quoting slip like `--labels --json`) is
 // detected rather than silently swallowing the next flag as a label value.
+const { parseArgs, usageError } = require("./argv");
 const INTAKE_VALUE_FLAGS = new Set(["--labels", "--root", "--via", "--reason", "--initiated"]);
-function parseIntakeArgs(args) {
-  let issue = null;
+const INTAKECHECK_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--interactive": { arity: 0 }, "--labels": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "issue" } };
+const INTAKE_RECORD_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--via": { arity: 1 }, "--reason": { arity: 1 }, "--initiated": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "issue" } };
+// Back-compat union spec for the exported helper (a no-spec call still parses both commands' flags).
+function intakeUnionSpec() {
+  const flags = { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--interactive": { arity: 0 } };
+  for (const f of INTAKE_VALUE_FLAGS) flags[f] = { arity: 1 };
+  return { flags, positionals: { min: 0, max: 1, name: "issue" } };
+}
+// FIRST bare token is the issue id; a value-flag whose value is another flag (a shell-quoting
+// slip like `--labels --json`) surfaces as a missing-value error rather than swallowing the flag.
+function parseIntakeArgs(args, spec) {
+  const { values, positionals, errors } = parseArgs(args, spec || intakeUnionSpec());
   const flags = {};
-  let danglingValueFlag = null; // a value-flag whose "value" is another flag or absent
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (INTAKE_VALUE_FLAGS.has(a)) {
-      const nxt = args[i + 1];
-      if (nxt === undefined || nxt.startsWith("--")) { danglingValueFlag = a; continue; }
-      flags[a] = nxt; i++;
-    } else if (a.startsWith("--")) {
-      flags[a] = true; // boolean flag (--json / --selftest)
-    } else if (issue === null) {
-      issue = a;
-    }
-  }
-  return { issue, flags, danglingValueFlag };
+  for (const k of Object.keys(values)) flags[k] = values[k];
+  return { issue: positionals[0] || null, flags, errors };
 }
 
 // `faff intakecheck <ISSUE> [--labels csv] [--interactive] [--json]` — PURE: marker (fs) +
@@ -184,15 +183,16 @@ function parseIntakeArgs(args) {
 // bypass is the deterministic seam (selftest-covered), not graft prose.
 function cmdIntakecheck(args) {
   if (args.includes("--selftest")) return intakecheckSelftest();
-  const { issue, flags, danglingValueFlag } = parseIntakeArgs(args);
+  const { issue, flags, errors } = parseIntakeArgs(args, INTAKECHECK_SPEC);
   const asJson = flags["--json"] === true;
   const interactive = flags["--interactive"] === true;
-  // A value-flag that swallowed nothing (or the next flag) is a likely quoting slip —
-  // fail loud rather than silently treating the ticket as unlabelled and blocking it.
-  if (danglingValueFlag === "--labels") {
+  // A --labels that swallowed nothing (or the next flag) is a likely quoting slip —
+  // fail loud with the specific guidance rather than a generic missing-value line.
+  if (errors.some((e) => e.code === "missing-value" && e.flag === "--labels")) {
     process.stderr.write("faff intakecheck: --labels needs a value (use --labels \"\" for tracker-less / no labels); refusing to guess.\n");
     return 2;
   }
+  if (errors.length) return usageError(errors, "faff intakecheck: usage: faff intakecheck <issue> [--labels csv] [--interactive] [--json]");
   const root = flags["--root"] || findRoot();
   if (!issue) { process.stderr.write("faff intakecheck: usage: faff intakecheck <issue> [--labels csv] [--interactive] [--json]\n"); return 2; }
   const labelsArg = flags["--labels"];
@@ -237,12 +237,9 @@ function cmdIntakeRecord(args) {
     const b = initiatedOfSelftest();
     return a || b;
   }
-  const { issue, flags, danglingValueFlag } = parseIntakeArgs(args);
+  const { issue, flags, errors } = parseIntakeArgs(args, INTAKE_RECORD_SPEC);
   const asJson = flags["--json"] === true;
-  if (danglingValueFlag) {
-    process.stderr.write(`faff intake-record: ${danglingValueFlag} needs a value.\n`);
-    return 2;
-  }
+  if (errors.length) return usageError(errors, "faff intake-record: usage: faff intake-record <issue> --via jot|backfill|fast-track [--reason \"<text>\"] [--initiated interactive|autonomous] [--json]");
   const root = flags["--root"] || findRoot();
   if (!issue) { process.stderr.write("faff intake-record: usage: faff intake-record <issue> --via jot|backfill|fast-track [--reason \"<text>\"] [--initiated interactive|autonomous]\n"); return 2; }
   // accept fast-track (CLI flag spelling) and normalise to the schema's fast_track enum.

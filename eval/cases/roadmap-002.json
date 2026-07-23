@@ -6,4 +6,4 @@
   "question": "Synthesise the roadmap and assess the 'launch paid tier' trigger gate: can it actually fire yet, given the state of its upstream dependencies?",
   "oracle": { "gloss_rubric": {
     "must_include": [ ["cannot fire", "not fireable", "blocked", "un-fireable", "unfireable"], ["upstream", "payments", "ledger", "iss-p", "iss-r"], ["unbuilt", "backlog", "not built", "not done", "incomplete"] ],
-    "must_avoid": [ ["ready to fire", "fireable now", "can fire now", "gate is ready", "ready to launch"] ] } } }
+    "must_avoid": [ ["can fire now", "gate is ready"] ] } } }

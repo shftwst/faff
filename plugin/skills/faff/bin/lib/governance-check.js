@@ -449,23 +449,29 @@ function renderGovernanceCheckSummaryMd(verdict) {
   return lines.join("\n") + "\n";
 }
 
+const { parseArgs, usageError } = require("./argv");
+const GOVERNANCE_CHECK_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--run-dir": { arity: 1, repeatable: true }, "--issue": { arity: 1 }, "--level": { arity: 1 }, "--summary-md": { arity: 1 },
+  // FAFF-568: anchors are integrity-only targets; --anchors-root re-asserts containment;
+  // --derive-anchor-dirs is the Action's discovery mode (changed paths on stdin).
+  "--anchor-dir": { arity: 1, repeatable: true }, "--legacy-policy": { arity: 1 },
+  "--anchors-root": { arity: 1 }, "--derive-anchor-dirs": { arity: 1 },
+} };
+
 function cmdGovernanceCheck(args) {
   if (args.includes("--selftest")) return governanceCheckSelftest();
 
-  const json = args.includes("--json");
-  const getAll = (flag) => {
-    const out = [];
-    for (let i = 0; i < args.length; i++) if (args[i] === flag) out.push(args[i + 1]);
-    return out;
-  };
-  const get = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, GOVERNANCE_CHECK_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff governance-check --run-dir DIR... [--anchor-dir DIR...] [--anchors-root DIR] [--legacy-policy pass|warn|fail] [--issue ID] [--level L1|L2|L3|L4] [--summary-md FILE] [--json] | --derive-anchor-dirs ANCHORS_PATH");
+  const json = !!values["--json"];
 
   // FAFF-568 fix pass: `--derive-anchor-dirs <ANCHORS_PATH>` — the Action's anchor
   // discovery core. Reads the PR diff's changed paths from stdin (one per line),
   // prints the derived, containment-checked anchor dirs to stdout (one per line),
   // warns on stderr for every dropped path. One home for the derivation rule — the
   // workflow shell never re-implements it with awk.
-  const derivePath = get("--derive-anchor-dirs");
+  const derivePath = values["--derive-anchor-dirs"] === undefined ? null : values["--derive-anchor-dirs"];
   if (derivePath !== null) {
     if (!derivePath) {
       process.stderr.write("faff governance-check: --derive-anchor-dirs requires the anchors-path value\n");
@@ -479,13 +485,13 @@ function cmdGovernanceCheck(args) {
     return 0;
   }
 
-  const runDirs = getAll("--run-dir");
-  const anchorDirs = getAll("--anchor-dir");
-  const issueFlag = get("--issue") || null;
-  const levelFlag = get("--level") || "L3";
-  const legacyPolicy = get("--legacy-policy") || "pass";
-  const anchorsRoot = get("--anchors-root");
-  const summaryMdPath = get("--summary-md");
+  const runDirs = values["--run-dir"] || [];
+  const anchorDirs = values["--anchor-dir"] || [];
+  const issueFlag = values["--issue"] || null;
+  const levelFlag = values["--level"] || "L3";
+  const legacyPolicy = values["--legacy-policy"] || "pass";
+  const anchorsRoot = values["--anchors-root"] === undefined ? null : values["--anchors-root"];
+  const summaryMdPath = values["--summary-md"] === undefined ? null : values["--summary-md"];
 
   if (!runDirs.length && !anchorDirs.length) {
     process.stderr.write("faff governance-check: at least one --run-dir or --anchor-dir is required\n");

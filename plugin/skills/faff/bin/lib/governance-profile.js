@@ -236,10 +236,15 @@ function activeProfile(env = process.env) {
   return obj;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const PROFILES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--file": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
+
 function cmdProfiles(args) {
   if (args.includes("--selftest")) return profilesSelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
-  const asJson = args.includes("--json");
+  const { values, positionals, errors } = parseArgs(args, PROFILES_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff profiles <list|validate> [--file FILE] [--json]");
+  const sub = positionals[0];
+  const asJson = !!values["--json"];
 
   if (sub === "list") {
     const profile = activeProfile(); // may throw GovernanceProfileError -> caught by main()
@@ -248,11 +253,11 @@ function cmdProfiles(args) {
   }
 
   if (sub === "validate") {
-    const fi = args.indexOf("--file");
+    const fileArg = values["--file"];
     let obj;
-    if (fi !== -1) {
+    if (fileArg !== undefined) {
       let raw;
-      try { raw = fs.readFileSync(args[fi + 1], "utf8"); }
+      try { raw = fs.readFileSync(fileArg, "utf8"); }
       catch (e) { process.stderr.write(`faff profiles validate: cannot read --file: ${e.message}\n`); return 2; }
       try { obj = JSON.parse(raw); }
       catch { process.stderr.write("faff profiles validate: malformed profile input (invalid JSON)\n"); return 2; }

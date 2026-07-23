@@ -34,6 +34,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { parseArgs, usageError } = require("./argv");
 const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
@@ -134,10 +135,14 @@ function isStrictlyUnderRoot(root, candidate) {
 // `faff worktree-root [--assert PATH] [--root DIR] [--json] [--selftest]` — resolve the
 // worktree root, or assert a path is under it. The single resolver the hook + preflight +
 // graft all call.
+const WORKTREE_ROOT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--assert": { arity: 1 } } };
+
 function cmdWorktreeRoot(args) {
   if (args.includes("--selftest")) return worktreeRootSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const json = args.includes("--json");
+  const { values, errors } = parseArgs(args, WORKTREE_ROOT_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff worktree-root [--assert PATH] [--root DIR] [--json]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
+  const json = !!values["--json"];
   // Resolve --root to the MAIN checkout: called from a linked worktree (the graft
   // Step-3 assert runs with cwd = the worktree), findRoot() returns the worktree, whose
   // basename is the branch dir — not the repo. mainWorktreeRoot maps it back to the main
@@ -631,16 +636,30 @@ function prdRootContainerFromFlags(container, licence) {
   return { value: v, ok: true };
 }
 
+const LIGHTS_OUT_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--check": { arity: 0 },
+  "--root": { arity: 1 }, "--id": { arity: 1 }, "--resume": { arity: 1 },
+  "--max": { arity: 1 }, "--until": { arity: 1 },
+  "--prd-creative-licence": { arity: 1 }, "--prd-root-container": { arity: 1 },
+  "--slot-unreachable": { arity: 1, repeatable: true },
+} };
+
 function cmdLightsOut(args) {
   if (args.includes("--selftest")) return lightsOutSelftest();
-  const json = args.includes("--json");
-  const checkOnly = args.includes("--check");
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const parsed = parseArgs(args, LIGHTS_OUT_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff lights-out [--id RUN-ID | --resume RUN-ID] [--check] [--max N] [--until ISO] [--prd-creative-licence broad|tight] [--prd-root-container C] [--slot-unreachable NAME]... [--json] [--root DIR]");
+  const values = parsed.values;
+  const json = !!values["--json"];
+  const checkOnly = !!values["--check"];
+  const get = (f) => {
+    const v = values[f];
+    if (v === undefined) return null;
+    return Array.isArray(v) ? (v.length ? v[0] : null) : v;
+  };
   const root = get("--root") || findRoot();
   // --slot-unreachable <name> (repeatable): the prose layer passes the result of its
   // real skill-liveness probe; tests use it to drive the configured-but-down refusal.
-  const unreachable = new Set();
-  for (let i = 0; i < args.length; i++) if (args[i] === "--slot-unreachable" && args[i + 1]) unreachable.add(args[i + 1]);
+  const unreachable = new Set(Array.isArray(values["--slot-unreachable"]) ? values["--slot-unreachable"] : (values["--slot-unreachable"] !== undefined ? [values["--slot-unreachable"]] : []));
 
   // PRD creative-licence forward-carry: the run-start PRD gate passes the validator's verdict token
   // here; it lands in the ledger. Validate before any preflight/mint so a bad value fails loud (exit 2)

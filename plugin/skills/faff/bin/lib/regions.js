@@ -24,6 +24,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { parseArgs, usageError } = require("./argv");
 const { spawnSync } = require("node:child_process");
 const { ENTRYPOINT } = require("./shared-infra");
 
@@ -783,12 +784,16 @@ function regionsSelftestRun(regionArg, COMMANDS) {
   return failed ? 1 : 0;
 }
 
+const REGIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--region": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
+
 function cmdRegions(args, COMMANDS) {
   if (args.includes("--selftest")) return regionsSelftest(COMMANDS);
-  const sub = args.find((a) => !a.startsWith("-"));
+  const { values, positionals, errors } = parseArgs(args, REGIONS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff regions <list|check|selftest> [--json] [--region governance|factory|all]");
+  const sub = positionals[0];
 
   if (sub === "list") {
-    if (args.includes("--json")) { console.log(JSON.stringify(REGION_MAP)); return 0; }
+    if (values["--json"]) { console.log(JSON.stringify(REGION_MAP)); return 0; }
     const byRegion = {};
     for (const [c, r] of Object.entries(REGION_MAP)) (byRegion[r] = byRegion[r] || []).push(c);
     for (const r of Object.keys(byRegion)) {
@@ -824,8 +829,7 @@ function cmdRegions(args, COMMANDS) {
   }
 
   if (sub === "selftest") {
-    const i = args.indexOf("--region");
-    return regionsSelftestRun(i !== -1 ? args[i + 1] : null, COMMANDS);
+    return regionsSelftestRun(values["--region"] === undefined ? null : values["--region"], COMMANDS);
   }
 
   process.stderr.write("usage: faff regions <list|check|selftest> [--json] [--region governance|factory|all]\n");

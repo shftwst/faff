@@ -132,10 +132,18 @@ function wipStage(worktree) {
 //           untracked + filter) so a governance caller (sentry.js) can invoke it
 //           via a CHILD spawn of this bin rather than requiring the factory lib
 //           directly (the ADR-0042 governance→factory direction rule). exit 0.
+const { parseArgs, usageError } = require("./argv");
+const STAGE_GUARD_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--worktree": { arity: 1 }, "--mode": { arity: 1 },
+} };
+
 function cmdStageGuard(args) {
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
   if (args.includes("--selftest")) return stageSelftest();
-  const asJson = args.includes("--json");
+  const { values, errors } = parseArgs(args, STAGE_GUARD_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff stage-guard --mode assert|filter|wip [--worktree DIR] [--json]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
+  const asJson = !!values["--json"];
   const worktree = get("--worktree") || ".";
   const mode = get("--mode");
   if (mode !== "assert" && mode !== "filter" && mode !== "wip") {

@@ -11,6 +11,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { loadConfig } = require("./config");
+const { parseArgs, usageError } = require("./argv");
+const FIXTURES_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--file": { arity: 1 }, "--out": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const { dig, findRoot } = require("./shared-infra");
 
 const FIELD_TYPES = new Set(["string", "int", "bool", "timestamp", "uuid"]);
@@ -127,6 +129,10 @@ function deterministicValue(type, rng) {
 }
 
 function cmdFixtures(args) {
+  // FAFF-576: fail-closed flag gate — an unknown flag or a value-flag missing its value
+  // exits 2 here (the sub-verb body's --file/--out reads below then run on validated args).
+  const gate = parseArgs(args, FIXTURES_SPEC);
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff fixtures <validate|show|realise> [--file F] [--out O] [--root DIR]");
   let root = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {

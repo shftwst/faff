@@ -269,7 +269,7 @@ The ticket already has a spec from a previous prep session. Apply the shared **S
 
 **Step 1: Restore working state** — pull the spec from whichever source had it. If multiple sources exist, use the most recently modified one and note the others in the log. **Note the spec comment's timestamp** — you'll use it in the next step.
 
-**Step 2a: Scan comments since the spec for substantive thread changes.** Fetch all comments on the issue (whichever tracker MCP is configured) and look at every comment posted **after** the spec comment. Categorise each:
+**Step 2a: Scan comments since the spec for substantive thread changes.** Fetch the issue's comments (whichever tracker MCP is configured) **newest-first with an explicit `limit`** sized to the post-spec window rather than the default 50 (gateway → **Lean tracker reads**), and look at every comment posted **after** the spec comment. Categorise each:
 - **Challenge** — questions, pushback, or new constraints that contradict or undermine a decision in the spec ("this won't work because…", "we now need to support X", "Y was deprecated since you wrote this").
 - **Resolution** — decisions or answers that close out a Punt/Assumes/TBD marker in the spec, or otherwise commit to a direction the spec left open.
 - **Context** — substantive information that doesn't challenge or resolve but is worth knowing while building: a relevant link, a related discovery, a constraint to watch out for, a stakeholder note. Doesn't force re-prep but **must be surfaced** to the user (interactive) or carried into the spec annotations (autonomous refresh) so it doesn't get lost.

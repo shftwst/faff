@@ -36,6 +36,7 @@ const { readAcComplete, readHoldout, readReviewVerdict } = require("./merge-gate
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
 const { findRoot, readLedger } = require("./shared-infra");
+const { sha256Hex, verifyChain } = require("./events");
 
 // ---------------------------------------------------------------------------
 // Leg: budget — the ledger envelope + the LAST recorded budget-checkpoint event.
@@ -141,6 +142,64 @@ function evaluateMergeFloorLeg(runDir, issue, level) {
 }
 
 // ---------------------------------------------------------------------------
+// Leg: integrity (FAFF-568) — re-hash the committed chain and confirm the ledger
+// fold. GATING (a broken chain must fail the merge, per the RFC), unlike coherence.
+// COMPOSES `faff events verify`'s core (`verifyChain`) — never a forked hash-walk (the
+// file's own invariant: a leg re-reads a verb's substrate). Classifies rather than
+// blanket-failing: `verified`/`torn`/`legacy` (under pass|warn) pass; only `broken`
+// (a prev/ledger mismatch — tampering) fails, plus `malformed` (a corrupt committed
+// anchor — fail-closed). `legacy-unverifiable` under `legacy-policy: fail` also fails
+// (the locked-down opt-in). An absent events.jsonl → verified (nothing to break), so
+// a run/PR carrying no chain is a clean no-op.
+// ---------------------------------------------------------------------------
+
+function evaluateIntegrityLeg(dir, legacyPolicy = "pass") {
+  const r = verifyChain(dir, { legacyPolicy });
+  let pass;
+  if (r.status === "verified") pass = true;
+  else if (r.status === "legacy-unverifiable") pass = legacyPolicy !== "fail";
+  else pass = false; // broken | malformed → fail-closed
+  let detail = r.detail;
+  if (r.status === "broken" && r.first_break) {
+    detail = `broken at line ${r.first_break.line}${r.first_break.seq != null ? ` (seq ${r.first_break.seq})` : ""}`;
+  } else if (r.status === "broken" && r.ledger_fold === "mismatch") {
+    detail = "ledger fold mismatch (unrecorded ledger rewrite)";
+  }
+  return { pass, status: r.status, detail, first_break: r.first_break };
+}
+
+// An ANCHOR is a per-PR snapshot, not a live run dir — it is verified INTEGRITY-ONLY.
+// The completeness/budget/merge_floor/liveness legs never run against it (its
+// run-ledger.json is a frozen copy whose `admitted` array is run-scoped, not
+// PR-scoped — sweeping it would false-fail on undispatched work). Returns the same
+// run-result shape as `evaluateRunDir` so the renderers/reasons are unchanged, with
+// the non-integrity legs marked n/a (pass, never gating). `pass = integrity.pass`.
+function evaluateAnchorDir(dir, legacyPolicy = "pass") {
+  const integrity = evaluateIntegrityLeg(dir, legacyPolicy);
+  let label = path.basename(dir);
+  try {
+    const ch = JSON.parse(fs.readFileSync(path.join(dir, "chain-head.json"), "utf8"));
+    if (ch && typeof ch.run_id === "string" && ch.run_id) label = ch.run_id + (ch.issue ? `/${ch.issue}` : "");
+  } catch { /* no chain-head witness — label stays the dir basename */ }
+  const naDetail = (name) => `n/a — anchor snapshot (${name} runs on live run dirs only)`;
+  return {
+    run_id: label,
+    run_dir: dir,
+    issues_checked: [],
+    is_anchor: true,
+    legs: {
+      completeness: { pass: true, undispatched: [], invalid_outcomes: [], detail: naDetail("completeness") },
+      budget: { pass: true, detail: naDetail("budget") },
+      merge_floor: { pass: true, issues: [], detail: naDetail("merge_floor") },
+      coherence: { clean: true },
+      liveness: { pass: true, detail: naDetail("liveness"), status: null, heartbeat_age_secs: null },
+      integrity,
+    },
+    pass: integrity.pass,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Issue derivation for the merge-floor leg: explicit `--issue` > branch-name
 // match > every admitted issue with a terminal outcome in this run dir. PURE
 // over its inputs (the branch-name regex match, and the ledger read) — the git
@@ -220,13 +279,17 @@ function evaluateRunDir(runDir, opts) {
   const recon = buildReconstruction(label, runDir, eventsResult, ledger, {});
   const coherence = recon.coherence;
 
-  const pass = completeness.pass && budget.pass && merge_floor.pass && liveness.pass;
+  // FAFF-568: integrity — re-hash this run dir's own committed chain (GATING). A live
+  // run dir carries a valid chain by construction; an absent events.jsonl → verified.
+  const integrity = evaluateIntegrityLeg(runDir, opts.legacyPolicy || "pass");
+
+  const pass = completeness.pass && budget.pass && merge_floor.pass && liveness.pass && integrity.pass;
 
   return {
     run_id: label,
     run_dir: runDir,
     issues_checked: issues,
-    legs: { completeness, budget, merge_floor, coherence, liveness },
+    legs: { completeness, budget, merge_floor, coherence, liveness, integrity },
     pass,
   };
 }
@@ -244,6 +307,7 @@ function buildReasons(runResult) {
     }
   }
   if (!legs.liveness.pass) reasons.push(`${run_id}: liveness — ${legs.liveness.detail}`);
+  if (legs.integrity && !legs.integrity.pass) reasons.push(`${run_id}: integrity — ${legs.integrity.detail}`);
   return reasons;
 }
 
@@ -258,6 +322,7 @@ function renderGovernanceCheckText(verdict) {
     console.log(`  merge_floor:  ${r.legs.merge_floor.pass ? "pass" : "FAIL"} — ${floorDetail}`);
     console.log(`  coherence:    ${r.legs.coherence.clean ? "clean" : "findings"} (report-only)`);
     console.log(`  liveness:     ${r.legs.liveness.pass ? "pass" : "FAIL"} — ${r.legs.liveness.detail}`);
+    if (r.legs.integrity) console.log(`  integrity:    ${r.legs.integrity.pass ? "pass" : "FAIL"} — ${r.legs.integrity.detail}`);
   }
   console.log(`\nverdict: ${verdict.pass ? "PASS" : "FAIL"}`);
   for (const reason of verdict.reasons) console.log(`  ✗ ${reason}`);
@@ -277,7 +342,9 @@ function renderGovernanceCheckSummaryMd(verdict) {
       : "(no target issues)";
     lines.push(`| merge_floor | ${r.legs.merge_floor.pass ? "pass" : "**FAIL**"} | ${floorDetail} |`);
     lines.push(`| coherence _(report-only)_ | ${r.legs.coherence.clean ? "clean" : "findings"} | ${r.legs.coherence.clean ? "—" : "see \`faff audit ${r.run_id}\`"} |`);
-    lines.push(`| liveness | ${r.legs.liveness.pass ? "pass" : "**FAIL**"} | ${r.legs.liveness.detail} |`, "");
+    lines.push(`| liveness | ${r.legs.liveness.pass ? "pass" : "**FAIL**"} | ${r.legs.liveness.detail} |`);
+    if (r.legs.integrity) lines.push(`| integrity | ${r.legs.integrity.pass ? "pass" : "**FAIL**"} | ${r.legs.integrity.detail} |`);
+    lines.push("");
   }
   if (verdict.reasons.length) {
     lines.push("### failing reasons", "");
@@ -299,21 +366,27 @@ function cmdGovernanceCheck(args) {
   const get = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
 
   const runDirs = getAll("--run-dir");
+  const anchorDirs = getAll("--anchor-dir");
   const issueFlag = get("--issue") || null;
   const levelFlag = get("--level") || "L3";
+  const legacyPolicy = get("--legacy-policy") || "pass";
   const summaryMdPath = get("--summary-md");
 
-  if (!runDirs.length) {
-    process.stderr.write("faff governance-check: at least one --run-dir is required\n");
+  if (!runDirs.length && !anchorDirs.length) {
+    process.stderr.write("faff governance-check: at least one --run-dir or --anchor-dir is required\n");
     return 2;
   }
   if (!FLOOR_LEVELS.includes(levelFlag)) {
     process.stderr.write(`faff governance-check: --level ${JSON.stringify(levelFlag)} not in {${FLOOR_LEVELS.join(",")}}\n`);
     return 2;
   }
-  for (const d of runDirs) {
+  if (!["pass", "warn", "fail"].includes(legacyPolicy)) {
+    process.stderr.write(`faff governance-check: --legacy-policy must be pass|warn|fail (got ${JSON.stringify(legacyPolicy)})\n`);
+    return 2;
+  }
+  for (const d of [...runDirs, ...anchorDirs]) {
     if (!fs.existsSync(d) || !fs.statSync(d).isDirectory()) {
-      process.stderr.write(`faff governance-check: --run-dir is not a directory: ${d}\n`);
+      process.stderr.write(`faff governance-check: run/anchor dir is not a directory: ${d}\n`);
       return 2;
     }
   }
@@ -322,12 +395,16 @@ function cmdGovernanceCheck(args) {
   const nowMs = Date.now();
   const results = [];
   for (const d of runDirs) {
-    const r = evaluateRunDir(d, { issue: issueFlag, level: levelFlag, nowMs, root });
+    const r = evaluateRunDir(d, { issue: issueFlag, level: levelFlag, nowMs, root, legacyPolicy });
     if (r.malformed) {
       process.stderr.write(`faff governance-check: ${r.run_dir}: ${r.error}\n`);
       return 2;
     }
     results.push(r);
+  }
+  // FAFF-568: anchors are integrity-verified ONLY — never swept as run dirs.
+  for (const d of anchorDirs) {
+    results.push(evaluateAnchorDir(d, legacyPolicy));
   }
 
   const pass = results.every((r) => r.pass);
@@ -549,10 +626,95 @@ function governanceCheckSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
+  // --- integrity leg + anchor routing (FAFF-568) ---
+  const buildChainFixture = (dir, runId, payloads) => {
+    let prevBytes = null;
+    const lines = [];
+    payloads.forEach((p, i) => {
+      const prev = prevBytes === null ? sha256Hex(Buffer.from(runId, "utf8")) : sha256Hex(prevBytes);
+      const line = JSON.stringify({ schema: 2, run_id: runId, seq: i, ts: "t", prev, ...p });
+      lines.push(line);
+      prevBytes = Buffer.from(line, "utf8");
+    });
+    fs.writeFileSync(path.join(dir, "events.jsonl"), lines.join("\n") + "\n");
+    return lines;
+  };
+  {
+    const tmp = mkTmpRunDir("faff-govcheck-integrity-");
+    try {
+      buildChainFixture(tmp, "run-i", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-1" },
+      ]);
+      check("integrity: clean chain → leg pass", evaluateIntegrityLeg(tmp, "pass").pass === true);
+      const p = path.join(tmp, "events.jsonl");
+      const ls = fs.readFileSync(p, "utf8").split("\n");
+      ls[0] = ls[0].replace('"run-start"', '"run-abort"'); // equal-length byte edit of line 1
+      fs.writeFileSync(p, ls.join("\n"));
+      const broken = evaluateIntegrityLeg(tmp, "pass");
+      check("integrity: broken chain → leg fail", broken.pass === false && broken.status === "broken");
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  check("integrity: absent events.jsonl → leg pass (no chain to break)",
+    evaluateIntegrityLeg(path.join(os.tmpdir(), "faff-govcheck-noexist-" + Date.now()), "pass").pass === true);
+  {
+    const tmp = mkTmpRunDir("faff-govcheck-legacy-anchor-");
+    try {
+      fs.writeFileSync(path.join(tmp, "events.jsonl"),
+        JSON.stringify({ schema: 1, run_id: "run-l", seq: 0, ts: "t", phase: "run", type: "run-start" }) + "\n");
+      check("integrity: legacy schema-1 anchor under pass → leg pass", evaluateIntegrityLeg(tmp, "pass").pass === true);
+      check("integrity: legacy schema-1 anchor under fail → leg fail", evaluateIntegrityLeg(tmp, "fail").pass === false);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
+    // Anchor routing: a clean anchor passes; a broken anchor gates the aggregate + names integrity.
+    const clean = mkTmpRunDir("faff-govcheck-anchor-clean-");
+    const broken = mkTmpRunDir("faff-govcheck-anchor-broken-");
+    try {
+      buildChainFixture(clean, "run-c", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-1" },
+      ]);
+      const { result: cleanRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", clean]));
+      check("anchor: clean chain → exit 0 (integrity-only, no run-dir sweep)", cleanRc === 0);
+
+      buildChainFixture(broken, "run-b", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-1" },
+        { phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped" } },
+      ]);
+      const bp = path.join(broken, "events.jsonl");
+      const bls = fs.readFileSync(bp, "utf8").split("\n");
+      bls[1] = bls[1].replace('"build-start"', '"build-abort"'); // equal-length byte edit of line 2
+      fs.writeFileSync(bp, bls.join("\n"));
+      const { result: brokenRc, stdout } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", broken, "--json"]));
+      check("anchor: broken chain → exit 1 (integrity gates)", brokenRc === 1);
+      check("anchor: broken chain → reason names integrity",
+        (() => { try { return JSON.parse(stdout).reasons.some((x) => /integrity/.test(x)); } catch { return false; } })());
+    } finally {
+      fs.rmSync(clean, { recursive: true, force: true });
+      fs.rmSync(broken, { recursive: true, force: true });
+    }
+  }
+  {
+    // A run dir carrying a clean chain still passes end-to-end (integrity wired into the full sweep).
+    const tmp = mkTmpRunDir("faff-govcheck-rundir-chain-");
+    try {
+      writeLedger(tmp, { run_id: "run-rc", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } });
+      writeFloorArtifacts(tmp, "FAFF-1", { acComplete: true, reviewVerdict: "pass" });
+      buildChainFixture(tmp, "run-rc", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped" } },
+      ]);
+      const { result } = captureOutput(() => cmdGovernanceCheck(["--run-dir", tmp, "--issue", "FAFF-1"]));
+      check("run-dir: clean chain + valid floor → exit 0 (integrity leg passes in full sweep)", result === 0);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+
   // --- usage errors ---
   {
     const { result } = captureOutput(() => cmdGovernanceCheck([]));
-    check("cmd: no --run-dir → exit 2 (usage)", result === 2);
+    check("cmd: no --run-dir/--anchor-dir → exit 2 (usage)", result === 2);
   }
   {
     const tmp = mkTmpRunDir("faff-govcheck-badlevel-");
@@ -573,7 +735,9 @@ function governanceCheckSelftest() {
 
 module.exports = {
   cmdGovernanceCheck,
+  evaluateAnchorDir,
   evaluateBudgetLeg,
+  evaluateIntegrityLeg,
   evaluateLivenessLeg,
   evaluateMergeFloorLeg,
   evaluateRunDir,

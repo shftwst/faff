@@ -26,6 +26,21 @@ inputs:
     description: "Where carried run dirs live in the checkout."
     required: false
     default: ".faff/runs"
+  anchors-path:
+    description: >-
+      Where committed per-PR chain anchors live in the checkout (FAFF-568). Anchors are
+      immutable snapshots verified for chain INTEGRITY ONLY — they never trigger the
+      completeness/budget/liveness/merge_floor sweep that live run dirs do.
+    required: false
+    default: ".faff/anchors"
+  legacy-policy:
+    description: >-
+      How a schema-1 (pre-chain) anchor is reported (FAFF-568): "pass" (adoption mode —
+      the default; a legacy log is honestly unverifiable, never a broken-chain fail),
+      "warn" (pass + a stderr note), or "fail" (locked-down agent-only branches). The
+      anchor-side sibling of on-missing.
+    required: false
+    default: "pass"
   on-missing:
     description: >-
       Policy when the PR's diff carries no governance artifacts at all: "pass" (adoption
@@ -111,6 +126,33 @@ runs:
         # rather than relying on).
         if [ -n "$DIRS" ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
 
+    # FAFF-568: discover carried ANCHOR dirs from the PR diff, same base...head diff as
+    # run dirs but two levels deep (.faff/anchors/<run-id>/<issue-id>/). Anchors route to
+    # the integrity leg ONLY (never the run-dir sweep), so they are a SEPARATE input from
+    # artifacts-path — keeping the snapshot's run-scoped ledger out of the completeness leg.
+    - name: Discover carried anchor dirs
+      id: discover-anchors
+      shell: bash
+      run: |
+        set -euo pipefail
+        ANCHORS_PATH="${{ inputs.anchors-path }}"
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        DIRS=""
+        if [ -n "$BASE_SHA" ] && [ -n "$HEAD_SHA" ]; then
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- "$ANCHORS_PATH" || true)"
+          # <path>/<run-id>/<issue-id>/<file> → <path>/<run-id>/<issue-id>. The anchor dir
+          # is two segments below anchors-path; require the full depth (a shallower path is
+          # not an anchor dir and is skipped).
+          DIRS="$(printf '%s\n' "$CHANGED" | awk -F/ -v p="$ANCHORS_PATH" 'NF>=5 {print p"/"$3"/"$4}' | sort -u | while read -r d; do [ -n "$d" ] && [ -d "$d" ] && echo "$d"; done)"
+        fi
+        {
+          echo "dirs<<GOVANCHORSEOF"
+          echo "$DIRS"
+          echo "GOVANCHORSEOF"
+        } >> "$GITHUB_OUTPUT"
+        if [ -n "$DIRS" ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; fi
+
     # Derive a default --issue from the PR head branch name when the caller didn't pass
     # one explicitly. A miss here is fine — the verb's own branch-name/admitted fallback
     # still applies (belt and braces; this saves the verb a git spawn when it's cheap
@@ -131,7 +173,7 @@ runs:
     # "emitting the format ≠ being governed" must always be visible, greppable).
     - name: Apply on-missing policy (no carried artifacts)
       id: on-missing
-      if: steps.discover.outputs.found == 'false'
+      if: steps.discover.outputs.found == 'false' && steps.discover-anchors.outputs.found == 'false'
       shell: bash
       run: |
         set -euo pipefail
@@ -152,7 +194,7 @@ runs:
     # here — the exit code is deliberately observed and re-emitted, not merely propagated.
     - name: Run governance-check
       id: governance-check
-      if: steps.discover.outputs.found == 'true'
+      if: steps.discover.outputs.found == 'true' || steps.discover-anchors.outputs.found == 'true'
       shell: bash
       run: |
         set -uo pipefail
@@ -161,10 +203,15 @@ runs:
         while IFS= read -r d; do
           [ -n "$d" ] && ARGS+=(--run-dir "$d")
         done <<< "${{ steps.discover.outputs.dirs }}"
+        # FAFF-568: anchors are integrity-only targets (--anchor-dir), never a run-dir sweep.
+        while IFS= read -r d; do
+          [ -n "$d" ] && ARGS+=(--anchor-dir "$d")
+        done <<< "${{ steps.discover-anchors.outputs.dirs }}"
         if [ -n "${{ steps.derive-issue.outputs.issue }}" ]; then
           ARGS+=(--issue "${{ steps.derive-issue.outputs.issue }}")
         fi
         ARGS+=(--level "${{ inputs.level }}")
+        ARGS+=(--legacy-policy "${{ inputs.legacy-policy }}")
         node "$BIN" governance-check "${ARGS[@]}" --summary-md "$GITHUB_STEP_SUMMARY"
         CODE=$?
         if [ "$CODE" -eq 0 ]; then

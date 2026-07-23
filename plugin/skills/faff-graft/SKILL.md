@@ -402,6 +402,8 @@ This step runs in **both** interactive and autonomous modes.
 
 Reached **only** when Step 9 returned `pass`. The single PR-creation point, the same in both modes. When `graft.push_at_build_complete` is on the branch was already pushed at **Step 8b**, so this step is **`gh pr create` only** (no push); when off, it pushes **and** opens the PR (today's compound). Either way it opens a **regular (non-draft) PR**, and **CI fires here for the first time** — a no-PR branch push never triggered it, so review-fix iterations (and the Step-8b push) burned no CI. The PR body carries the Step 8 AC checklist. Proceed to Step 10. **Git-only mode (FAFF-526): no-op** — no remote to open a PR against; proceed straight to Step 10, which detects the git-only path and routes accordingly.
 
+**Anchor the chain head first (FAFF-568 — autonomous run dirs only):** so a broken chain fails the merge, a PR carrying a run dir commits an **immutable per-PR anchor** via `faff events anchor --run-dir "$run_dir" --issue <ISSUE-XX> --dest .faff/anchors/$(basename "$run_dir")/<ISSUE-XX>/` (CLI-computed head, never hand-written), then `git add` (the `!.faff/anchors/` carve-out makes it committable) + commit + push with the PR head. It byte-copies the run's `events.jsonl` + `run-ledger.json` (never the live dir); the governance-check Action re-hashes it via the gating `integrity` leg — a legacy schema-1 run anchors as `legacy-unverifiable` (no false FAIL under the default `legacy-policy: pass`). No run dir ⇒ skip (the leg is a no-op on an anchor-less PR).
+
 ### Discovered scope (record, never file)
 
 While building and reviewing, graft often surfaces **concrete, separable work this PR should not absorb** — a seam the spec didn't foresee, an untracked dependency an AC exposed, a real out-of-scope concern the review flagged. The implementor lane **cannot create backlog tickets** (gateway → **Agent Lanes**); it **records** these so the orchestrator files them (autonomous: `/faff-beep-boop` after the build pass; interactive: via the gate in Step 12). This is bottom-up source (b) — see `design/planning-loop.md`.
@@ -593,7 +595,5 @@ Alongside the terminal token, graft reports **discovered scope** — it never fi
 Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-boop provides the run-id directory; when invoked outside beep-boop, use `.faff/logs/YYYY-MM-DD/HHMMSS-graft-ISSUE-XX.md`). The standalone narrative `HHMMSS-graft-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/graft.md` resume artifact is hard floor and written regardless.
 ## Notes
 - Don't ask for confirmation before creating the worktree — the user said the issue ID, that's the intent.
-- The prep gate is non-negotiable. Even quick fixes benefit from a lightweight prep pass.
-- The spec is committed to the feature branch, not main. It only reaches main when the PR merges.
-- Any detailed implementation plans produced during the work are the implementer's concern — may commit alongside code (e.g. `docs/superpowers/plans/`), or not. Faff-graft doesn't prescribe this.
-- AC verification is not optional. A PR without a ticked-or-explained AC checklist is not complete.
+- The prep gate is non-negotiable (even quick fixes benefit from a lightweight prep pass); the spec is committed to the feature branch, not main, and only reaches main when the PR merges.
+- Detailed implementation plans are the implementer's concern — commit alongside code (e.g. `docs/superpowers/plans/`) or not; faff-graft doesn't prescribe it. AC verification is not optional: a PR without a ticked-or-explained AC checklist is not complete.

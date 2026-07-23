@@ -280,13 +280,13 @@ Faff-* skills (wtf, map, tidy, beep-boop) operate primarily in this lane. They r
 **Visibility:** Codebase (full read/write), spec, architectural context, test suite.
 **Not concerned with:** Tracker state, project-level sequencing, stakeholder communication.
 
-The most active lane. Where development happens:
-- Architectural planning and technical decision-making
-- Spec interpretation and implementation
-- Code, tests, and documentation changes
-- Fix→review iteration loops
+The most active lane, where development happens:
+- Architectural planning, technical decision-making, and spec interpretation/implementation
+- Code, tests, and documentation changes, with fix→review iteration loops
 
-Faff-graft's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next. Under autonomous orchestration the `concurrency` slot dispatches it as an **isolated subagent** whose context is the throwaway: it returns **only** a terminal token `{ issue, outcome, pr }` to the orchestrator, never its working set — so the orchestrator re-absorbs the token + on-disk artifacts, and the build context is discarded on return. This is what makes the lane's structural isolation mechanically true, not just intent.
+Faff-graft's build phase operates in this lane. The implementor sees the spec and builds to it — it doesn't manage the backlog or decide what to work on next. **Context-hygiene delegation is a level-independent primitive:** moving a self-contained heavy step out of the orchestrator's own context into a disposable **bare-executor** subagent — keeping the orchestrator lean so it doesn't re-read accumulated work every turn — is worthwhile at **every level** (L1-assist / L2 / L3 / L4), a *cost/context* motivation decoupled from the `concurrency` slot's *parallelism + worktree-isolation* one and from parallelism itself. A **bare-executor** takes **only the task** — the spec, the worktree path, the definition-of-done, and which gate to run — and returns a **compact result** (a diff / terminal token `{ issue, outcome, pr }` + gate verdict), loading **no faff-skill context** (no gateway, no contracts, no `faff-graft` SKILL.md). Candidate delegatable work is any self-contained heavy step: the build itself, deep repo exploration/grounding, large test runs.
+
+The orchestrator retains the process, the gates, and all human interaction, and reconciles each return against on-disk artifacts + git ground truth, never the subagent transcript — this is what makes the lane's structural isolation mechanically true, not just intent. The bare-executor **contract** (the task/result schema), the compaction cadence, and the isolation mechanics are owned by FAFF-486 — documented here, not built here (the gateway's "documented, not built here" seam); the subagent transport itself is the one at **Sibling-skill invocation → Producer dispatch**, referenced not restated. The L3/L4 `concurrency` executors and beep-boop's isolation floor are level-coupled *instances* of this tenet, not a contradiction of it.
 
 ### Evaluator (external lane)
 

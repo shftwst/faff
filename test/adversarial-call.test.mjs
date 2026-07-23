@@ -13,7 +13,7 @@ import {
   providerFamily, joinUrl, preflightOpenAi,
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
-  ledgerMandatory,
+  ledgerMandatory, budgetWarnings,
   splitFindings, validateFindingsShape, attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
@@ -2056,4 +2056,158 @@ test("FAFF-445 main(): an oversized payload logs a loud stderr line naming the m
   assert.equal(code, EXIT.USAGE);
   assert.match(errOut, /oversized-diff preflight/);
   assert.match(errOut, /exceeds the 1 byte threshold/);
+});
+
+// ── FAFF-617: per-backend wall-clock budget slicing — a hung backend is abandoned at its slice, not the
+// whole deadline, so the healthy fallbacks still run. Each backend gets floor(remaining / (n - i)) ms as
+// its hardDeadlineMs, recomputed each iteration (work-conserving). Back-compatible for single-backend and
+// no-deadline paths. Plus the advisory budgetWarnings helper. ──
+
+test("FAFF-617 runReviewChain: a HUNG primary is abandoned at its slice; a healthy fallback wins within the deadline (exit 0, winner=1)", async () => {
+  const trace = [];
+  const chain = [
+    { provider: "nvidia", model: "glm", host: "https://nv/v1", hostSource: "config" },
+    { provider: "gemini", model: "g", host: "https://gm/v1", hostSource: "config" },
+    { provider: "ollama", model: "q", host: "http://ol:11434", hostSource: "config" },
+  ];
+  const runReviewFn = async (opts) => {
+    if (opts.host === "https://nv/v1") return new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500));   // primary hangs past its slice
+    return { status: "ok", content: "## Adversarial findings — x\n\n### observation: no findings" };
+  };
+  const t0 = Date.now();
+  const res = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 300, log: (m) => trace.push(m) });
+  assert.equal(res.exit, EXIT.OK, "the fallback served findings — never exit 8 / skipped-deadline");
+  assert.equal(res.winnerIndex, 1, "the primary was abandoned at its slice; backend 2 (index 1) won");
+  assert.ok(res.failureClasses.includes(EXIT.DEADLINE), "the hung primary recorded a DEADLINE-class skip");
+  assert.ok(Date.now() - t0 < 260, "abandoned at the ~100ms slice, not the full 300ms deadline");
+  assert.ok(trace.some((l) => /slice .* exhausted → advancing/.test(l)), "the slice-expiry advance is logged");
+});
+
+test("FAFF-617 runReviewChain: single-backend (n=1) hung — slice is the whole budget, terminates at EXIT.DEADLINE (byte-for-byte FAFF-329)", async () => {
+  const chain = [{ model: "m", host: "h", hostSource: "config" }];
+  const runReviewFn = () => new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500));   // hangs past its slice
+  const t0 = Date.now();
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 120, log: () => {} });
+  assert.equal(r.exit, EXIT.DEADLINE);
+  assert.equal(r.deadlineExceeded, true);
+  assert.ok(Date.now() - t0 < 400, "returned at ~the deadline, not hung");
+});
+
+test("FAFF-617 runReviewChain: n=1 grants the whole budget as the slice (hardDeadlineMs = start + total, byte-for-byte)", async () => {
+  let seen; let t = 0; const nowFn = () => t;
+  const runReviewFn = async (opts) => { seen = opts.hardDeadlineMs; return { status: "ok", content: "### observation: no findings" }; };
+  await runReviewChain([{ model: "m", host: "h", hostSource: "config" }], { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 3000, log: () => {} });
+  assert.equal(seen, 3000, "single-backend slice == remaining == totalDeadlineMs");
+});
+
+test("FAFF-617 runReviewChain: no --deadline ⇒ no slice, hardDeadlineMs stays undefined (byte-for-byte today)", async () => {
+  let seen = "unset";
+  const runReviewFn = async (opts) => { seen = opts.hardDeadlineMs; return { status: "ok", content: "### observation: no findings" }; };
+  await runReviewChain([{ model: "m", host: "h", hostSource: "config" }], { system: "s", user: "u", runReviewFn, log: () => {} });
+  assert.equal(seen, undefined, "unbounded ⇒ no per-backend deadline computed");
+});
+
+test("FAFF-617 runReviewChain: work-conserving — a fast-failing primary's slack is re-divided among survivors (dynamic slice, not static deadline/n)", async () => {
+  const seen = []; let t = 0; const nowFn = () => t; let call = 0;
+  const runReviewFn = async (opts) => {
+    seen.push(opts.hardDeadlineMs);
+    call++;
+    if (call === 1) { t += 2000; return { status: "unreachable" }; }   // primary fails fast (~2s)
+    return { status: "ok", content: "### observation: no findings" };  // fallback wins
+  };
+  const chain = [
+    { model: "a", host: "h", hostSource: "config" },
+    { model: "b", host: "h", hostSource: "config" },
+    { model: "c", host: "h", hostSource: "config" },
+  ];
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, nowFn, totalDeadlineMs: 480000, log: () => {} });
+  assert.equal(r.exit, EXIT.OK);
+  assert.equal(r.winnerIndex, 1);
+  assert.equal(seen[0], 160000, "backend 0 slice = 480000/3 = 160000 (deadline at t=0 + 160000)");
+  assert.equal(seen[1], 241000, "backend 1 slice = (480000-2000)/2 = 239000 → deadline at t=2000 + 239000 = 241000 (NOT a static 160000)");
+});
+
+test("FAFF-617 runReviewChain: an all-hung 3-backend chain exhausts each slice, advances, terminates at EXIT.DEADLINE within the total budget (sum-of-slices ≤ deadline)", async () => {
+  const chain = Array.from({ length: 3 }, (_, i) => ({ model: "m" + i, host: "h", hostSource: "config" }));
+  const runReviewFn = () => new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500));   // every backend hangs past its slice
+  const t0 = Date.now();
+  const trace = [];
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 180, log: (m) => trace.push(m) });
+  assert.equal(r.exit, EXIT.DEADLINE, "all hung ⇒ terminal DEADLINE via last-backend exhaustion, not a mid-chain terminate");
+  assert.equal(r.failureClasses.filter((c) => c === EXIT.DEADLINE).length, 3, "each backend recorded a slice-expiry");
+  const elapsed = Date.now() - t0;
+  assert.ok(elapsed >= 150 && elapsed < 600, `the sum of slices ≈ the total budget (≤ deadline), not 3× it — elapsed ${elapsed}ms`);
+  assert.equal(trace.filter((l) => /→ advancing/.test(l)).length, 2, "the first two slice-expiries ADVANCE; only the last terminates");
+});
+
+test("FAFF-617 runReviewChain: a needs-human fault (auth) before hung fallbacks dominates the terminal exit, not DEADLINE (no-silent-weakening)", async () => {
+  let call = 0;
+  const runReviewFn = () => {
+    call++;
+    if (call === 1) return Promise.resolve({ status: "auth-failed" });   // fast config fault on backend 1
+    return new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500)); // fallbacks hang past their slice
+  };
+  const chain = [
+    { model: "a", host: "h", hostSource: "config" },
+    { model: "b", host: "h", hostSource: "config" },
+  ];
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 120, log: () => {} });
+  assert.equal(r.exit, EXIT.AUTH, "the earlier auth fault surfaces (needs-human), not the last backend's slice expiry");
+});
+
+test("FAFF-617 runReviewChain: a slice that floors to 0 (n-i>1, tiny remaining) routes as the total-budget gate — no zero-window dispatch", async () => {
+  let calls = 0;
+  const runReviewFn = async () => { calls++; return { status: "ok", content: "### observation: no findings" }; };
+  const chain = [
+    { model: "a", host: "h", hostSource: "config" },
+    { model: "b", host: "h", hostSource: "config" },
+  ];
+  // totalDeadlineMs=1, n=2 ⇒ backend 0 slice = floor(1/2) = 0 ⇒ the underflow guard returns before any dispatch
+  const r = await runReviewChain(chain, { system: "s", user: "u", runReviewFn, totalDeadlineMs: 1, log: () => {} });
+  assert.equal(r.exit, EXIT.DEADLINE, "no meaningful window ⇒ DEADLINE, exactly as the top-of-loop gate");
+  assert.equal(r.deadlineExceeded, true);
+  assert.equal(calls, 0, "no backend was dispatched with a zero window");
+});
+
+test("FAFF-617 budgetWarnings: the shipped bad combo (timeout 480 / deadline 480 / 3 backends) warns per-backend; a good combo is silent", () => {
+  const bad = [
+    { provider: "nvidia", model: "glm", timeoutMs: 480000 },
+    { provider: "gemini", model: "g", timeoutMs: 480000 },
+    { provider: "ollama", model: "q", timeoutMs: 480000 },
+  ];
+  const warnBad = budgetWarnings(bad, 480000);
+  assert.equal(warnBad.length, 3, "every backend's 480s×6 ≥ 160s per-backend budget");
+  assert.match(warnBad[0], /nvidia\/glm/);
+  assert.match(warnBad[0], /per-backend budget 160s/);
+  const good = [
+    { provider: "nvidia", model: "glm", timeoutMs: 20000 },
+    { provider: "gemini", model: "g", timeoutMs: 20000 },
+    { provider: "ollama", model: "q", timeoutMs: 20000 },
+  ];
+  assert.deepEqual(budgetWarnings(good, 480000), [], "20s×6=120s < 160s per-backend budget ⇒ no warning");
+});
+
+test("FAFF-617 budgetWarnings: no numeric deadline ⇒ [] (unbounded); a backend with no timeout is skipped; empty chain ⇒ []", () => {
+  assert.deepEqual(budgetWarnings([{ provider: "p", model: "m", timeoutMs: 480000 }], undefined), []);
+  assert.deepEqual(budgetWarnings([{ provider: "p", model: "m" }], 480000), [], "no timeoutMs ⇒ un-judgeable, skipped");
+  assert.deepEqual(budgetWarnings([], 480000), []);
+});
+
+test("FAFF-617 main: writes the advisory budget warning to stderr before dispatch, never changing the exit", async () => {
+  const { sys, dif } = specFiles398();   // reuse the 398 fixture (system + diff files)
+  let errOut = "";
+  const origErr = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (s) => { errOut += s; return true; };
+  let code;
+  try {
+    // single backend, timeout 480 == deadline 480 ⇒ 480×6 ≥ 480/1 ⇒ a warning; a served backend ⇒ exit 0
+    code = await main(
+      ["--host", "http://x:1", "--model", "m", "--system", sys, "--diff", dif, "--timeout", "480", "--deadline", "480"],
+      { runReviewFn: scriptedRunReview({ "http://x:1": { status: "ok", content: "## Adversarial findings — x\n\n### observation: no findings" } }) },
+    );
+  } finally {
+    process.stderr.write = origErr;
+  }
+  assert.equal(code, EXIT.OK, "the warning is advisory — the exit is unchanged");
+  assert.match(errOut, /budget: backend .* timeout 480s/, "the budget warning was written to stderr");
 });

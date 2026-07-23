@@ -59,11 +59,10 @@ backends:
         host: https://generativelanguage.googleapis.com/v1beta/openai
         api_key_env: GEMINI_API_KEY
         timeout: 480
-    studio-ollama:
-        provider: ollama
-        model: qwen3-next:80b-a3b-instruct-q4_K_M
-        host: http://studio.longhair-escalator.ts.net:11434
-        timeout: 480
+    # studio-ollama (operator-private tailnet ollama backend) relocated to the
+    # gitignored .faffrc.local.yaml overlay (FAFF-587) so the public repo carries no
+    # operator host. The overlay's adversarial refs list restates all three entries
+    # (sequences replace wholesale); this base advertises only the two cloud backends.
 
 # faffter-dark: LLM provider config for the adversarial `review` slot (faffter-dark-adversarial-review).
 faffter_dark:
@@ -71,7 +70,6 @@ faffter_dark:
         refs:
             - nvidia-glm
             - gemini-gemma
-            - studio-ollama
 
 models:
     #build: opus # Agent-token — the concurrency executors' build subagents (default: inherit)

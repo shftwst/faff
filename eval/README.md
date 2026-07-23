@@ -52,7 +52,10 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
   import { liveDriver, makeLiveModel } from "./live-driver.mjs";
   import { localOpts } from "./cli-driver.mjs"; // or frontierOpts
   // real-model smoke (FAFF-131-class — needs a live claude -p; local ≈ minutes/rep):
-  const model = makeLiveModel(localOpts({ baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx" }));
+  // baseUrl/model come from your environment (FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL),
+  // set in your shell or .faffrc.local.yaml — never a repo-embedded host.
+  // Both are REQUIRED: unset → localOpts throws (there is no localhost default — see "Drivers" below).
+  const model = makeLiveModel(localOpts({ baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL }));
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   // rec.buckets.dupe / .vague / … are the model's judgement, captured at the harness seams.
   ```
@@ -60,7 +63,9 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
   ```js
   import { makeOllamaModel } from "./ollama-model.mjs";
   const model = makeOllamaModel({
-    baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx",
+    // baseUrl/model from FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL (env / .faffrc.local.yaml).
+    // Both REQUIRED: unset → an undefined baseUrl errors in the driver; there is no localhost default.
+    baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL,
     think: false,                  // FAFF-137: qwen3.6 is a reasoning model — disable the think-block
     options: { num_predict: 2000 } // SAFETY ceiling only (see below) — NOT a conciseness lever
   });
@@ -101,16 +106,15 @@ Smoke (frontier, `dupe-001`, 1 rep): `accuracy 1.00 · stability 1.00 · format 
 node eval/run-evals.mjs --only dupe-001 --reps 2          # smoke: validate CLAUDE_CONFIG_DIR isolation first
 node eval/run-evals.mjs                                   # full run → eval/report/latest.json
 
-# local (ollama over Tailscale) — operator params: studio.longhair-escalator.ts.net + qwen3.6:27b-mlx
+# local (ollama over Tailscale) — export the two env vars first, e.g.
+#   export FAFF_EVAL_LOCAL_BASE_URL=http://<your-ollama-host>:11434
+#   export FAFF_EVAL_LOCAL_MODEL=<your-local-model>
 node eval/run-evals.mjs --driver local \
-  --base-url http://studio.longhair-escalator.ts.net:11434 --model qwen3.6:27b-mlx \
   --only dupe-001 --reps 2                                # smoke: validate reachability + envelope parse first
-node eval/run-evals.mjs --driver local \
-  --base-url http://studio.longhair-escalator.ts.net:11434 --model qwen3.6:27b-mlx
+node eval/run-evals.mjs --driver local
 
 # frontier vs local, same cases, one table → eval/report/compare.json
-node eval/run-evals.mjs --compare \
-  --base-url http://studio.longhair-escalator.ts.net:11434 --model qwen3.6:27b-mlx
+node eval/run-evals.mjs --compare
 ```
 (`--base-url`/`--model` may instead come from `FAFF_EVAL_LOCAL_BASE_URL` / `FAFF_EVAL_LOCAL_MODEL`.)
 

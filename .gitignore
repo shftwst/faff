@@ -9,6 +9,12 @@ docs/superpowers
 .claude/settings.local.json
 .claude/worktrees/
 
+# Machine-local faff config overlay (FAFF-387/FAFF-587 — gitignored; holds operator-private
+# values such as the private tailnet ollama host. The committed base is .faffrc.yaml.)
+# Glob covers every overlay variant (.yaml/.yml/.json, plus renamed/templated forms like
+# .yaml.bak or .yaml.j2) so no operator-private overlay can slip past an exact-name entry.
+.faffrc.local.*
+
 # Faff run logs and local state
 .faff/
 

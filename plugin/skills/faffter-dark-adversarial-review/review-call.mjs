@@ -845,6 +845,36 @@ export function mandatoryRemap(exit, mandatory) {
   return exit;
 }
 
+// PURE (FAFF-617): advisory, non-gating config check surfaced once before the chain runs. The per-backend
+// slice (runReviewChain) makes a bad timeout/deadline combination NON-FATAL — fail-over still happens — but
+// a per-backend `timeout` set so high that no single backend can finish its full retry composition inside
+// its slice still silently TRUNCATES that backend's retries, a real misconfiguration the operator should
+// SEE. Returns a (possibly empty) list of human-readable warning strings; never throws, never gates, never
+// changes an exit code (main() writes them to stderr, that is all). `multiplier` is the ~6× worst-case
+// wall-clock factor (TRANSPORT_RETRY.attempts=3 × 2 streamOnce) between one `--timeout` and one backend's
+// worst-case wall-clock — if that composition changes, this default should track it.
+export function budgetWarnings(chain = [], totalDeadlineMs, multiplier = 6) {
+  if (typeof totalDeadlineMs !== "number") return [];   // unbounded ⇒ no per-backend budget to compare against
+  const n = Array.isArray(chain) ? chain.length : 0;
+  if (n === 0) return [];
+  const perBackendBudget = totalDeadlineMs / n;
+  const out = [];
+  for (const b of chain) {
+    const t = b && b.timeoutMs;
+    if (typeof t !== "number") continue;                // a backend with no explicit timeout can't be judged
+    if (t * multiplier >= perBackendBudget) {
+      const tag = `${(b && b.provider) || "ollama"}/${(b && b.model) || "?"}`;
+      out.push(
+        `budget: backend ${tag}: timeout ${Math.round(t / 1000)}s × ~${multiplier} worst-case ` +
+        `(~${Math.round((t * multiplier) / 1000)}s) >= per-backend budget ${Math.round(perBackendBudget / 1000)}s ` +
+        `(deadline ${Math.round(totalDeadlineMs / 1000)}s / ${n} backends) — retries/truncation may be cut short; ` +
+        `lower this backend's timeout or raise --deadline`,
+      );
+    }
+  }
+  return out;
+}
+
 // FAFF-361: maps a per-backend runReview() result `status` to the short cause token the reshaped
 // `[chain] <tag> <reason> → advancing` note names. Falls back to the raw status string for anything
 // unlisted (e.g. "unsupported-provider") so an unrecognised status still logs something greppable
@@ -900,7 +930,6 @@ export async function runReviewChain(chain = [], shared = {}) {
   const now = shared.nowFn || (() => Date.now());   // FAFF-329: injectable clock for deterministic deadline tests
   const totalDeadlineMs = shared.totalDeadlineMs;   // FAFF-329: total wall-clock budget across ALL backends (undefined ⇒ no bound, byte-for-byte today)
   const start = now();
-  const hardDeadlineMs = typeof totalDeadlineMs === "number" ? start + totalDeadlineMs : undefined;
   const n = chain.length;
   const failureClasses = [];
   for (let i = 0; i < n; i++) {
@@ -934,37 +963,65 @@ export async function runReviewChain(chain = [], shared = {}) {
         : `${verb}: ${tag} api key env '${b.apiKeyEnv}' unset (exit ${EXIT.AUTH})`);
       continue;
     }
-    // FAFF-329: bound the WHOLE backend call (incl. a slow-trickle stream whose per-chunk activity
-    // resets the socket's idle timeout, and incl. the internal transport-retry backoff) to the budget
-    // still remaining — a real timer the perAttempt idle-clamp alone cannot enforce. On a deadline win
-    // the in-flight backend is ABANDONED (its socket carries the perAttempt idle timeout, so it self-
-    // closes shortly; the timer is unref'd so it never keeps the process alive), and we route to
-    // EXIT.DEADLINE — never a misrouted transport-failed/5 — with a needs-human-class fault seen on an
-    // earlier backend still dominating (no-silent-weakening).
+    // FAFF-617: PER-BACKEND SLICE. The whole chain shares one total budget (totalDeadlineMs), but each
+    // backend is granted only an EQUAL SHARE of what REMAINS — divided by how many backends are still to
+    // try (this one plus the untried ones, n - i) — so a hung/slow backend is abandoned at its slice and
+    // the healthy fallbacks still fit inside the deadline (the fail-over the chain exists for). The
+    // division is recomputed each iteration, so it is WORK-CONSERVING: a fast-failing backend hands its
+    // unspent budget back to be re-divided among the survivors. Edge cases fall out of the formula with no
+    // special case: n=1, and the last backend (i = n-1), both have backendsLeft=1 ⇒ slice == remaining
+    // (byte-for-byte the pre-slice single-backend / final-attempt path); no totalDeadlineMs ⇒ no slice is
+    // computed and backendDeadline stays undefined (unbounded, byte-for-byte today).
+    let backendDeadline;   // absolute per-backend deadline (undefined ⇒ unbounded)
+    let sliceMs;
+    if (typeof totalDeadlineMs === "number") {
+      const remaining = totalDeadlineMs - (now() - start);
+      sliceMs = Math.floor(remaining / (n - i));
+      // Slice underflow — no meaningful window left. Route EXACTLY as the top-of-loop total-budget gate
+      // (return; a needs-human-class fault seen earlier dominates, else DEADLINE) — never dispatch a
+      // zero-window backend that would instantly time out.
+      if (remaining <= 0 || sliceMs <= 0) {
+        const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
+      }
+      backendDeadline = now() + sliceMs;
+    }
+    // The backend is handed backendDeadline as its hardDeadlineMs; the per-family perAttempt clamp then
+    // bounds every attempt to min(timeoutMs, backendDeadline - now) FOR FREE — so an over-large configured
+    // timeout is clamped to the slice with no rewrite of the configured value (see the anti-pattern note).
     const callReview = () => runReviewFn({
       host: b.host, model: b.model, provider: b.provider,
       system: shared.system, user: shared.user, numPredict: shared.numPredict,
       reasoningOff: b.reasoningOff, apiKey: b.apiKey, timeoutMs: b.timeoutMs,
-      hardDeadlineMs,   // absolute total-budget deadline; the backend also clamps each attempt's idle timeout to what remains
+      hardDeadlineMs: backendDeadline,   // FAFF-617: the per-backend SLICE, not the shared start+total deadline
       getFn: shared.getFn, streamFn: shared.streamFn,
     });
     let result;
     if (typeof totalDeadlineMs === "number") {
-      const remaining = totalDeadlineMs - (now() - start);
-      if (remaining <= 0) {   // belt — the top-of-loop gate should already have returned
-        const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
-        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
-      }
+      // Race the backend against ITS SLICE (not the full remaining budget). On a slice win the in-flight
+      // backend is ABANDONED (its socket carries the perAttempt idle timeout, so it self-closes shortly;
+      // the timer is unref'd so it never keeps the process alive).
       const SENTINEL = { __deadline: true };
       let timer;
-      const deadlineP = new Promise((res) => { timer = setTimeout(() => res(SENTINEL), remaining); if (timer && timer.unref) timer.unref(); });
+      const deadlineP = new Promise((res) => { timer = setTimeout(() => res(SENTINEL), sliceMs); if (timer && timer.unref) timer.unref(); });
       result = await Promise.race([safeCall(callReview), deadlineP]);
       clearTimeout(timer);
       if (result === SENTINEL) {
+        // FAFF-617: this backend used its whole SLICE — NOT the whole deadline. Record a DEADLINE-class
+        // failure and ADVANCE while untried backends remain (the behavioural inversion from FAFF-329, where
+        // the mid-call race WAS the whole-deadline race and firing it terminated the chain). Terminate at
+        // EXIT.DEADLINE only on the LAST backend (chain exhausted); every earlier slice expiry advances, so
+        // a hung primary loses its slice, not the fallbacks' windows. A needs-human-class fault seen on an
+        // earlier backend still dominates the terminal exit (no-silent-weakening). Chain termination at
+        // EXIT.DEADLINE thus still occurs ONLY via the top-of-loop total-budget gate or this last-backend
+        // exhaustion — never mid-chain.
+        failureClasses.push(EXIT.DEADLINE);
+        log(verb === "advancing"
+          ? `[chain] ${tag} slice ${Math.round(sliceMs / 1000)}s exhausted → advancing (exit ${EXIT.DEADLINE})`
+          : `deadline: Phase-2 backend ${tag} exhausted its ${Math.round(sliceMs / 1000)}s slice, chain exhausted (exit ${EXIT.DEADLINE})`);
+        if (i < n - 1) continue;
         const nh = failureClasses.find((c) => CHAIN_NEEDS_HUMAN.has(c));
-        const exit = nh != null ? nh : EXIT.DEADLINE;
-        log(`deadline: Phase-2 backend ${tag} exceeded the ${Math.round(totalDeadlineMs / 1000)}s budget mid-call (exit ${exit})`);
-        return { exit, deadlineExceeded: true, failureClasses };
+        return { exit: nh != null ? nh : EXIT.DEADLINE, deadlineExceeded: true, failureClasses };
       }
     } else {
       result = await safeCall(callReview);
@@ -1071,6 +1128,14 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   // FORCES mandatory (OR, never AND — a caller that resolved L4-ness itself is trusted); the explicit
   // --run-dir wins over the ambient FAFF_RUN_DIR env on conflict (mirrors the appetite resolver).
   a.mandatory = a.mandatory || ledgerMandatory(a.runDir ?? process.env.FAFF_RUN_DIR);
+
+  // FAFF-617: advisory budget warning — surfaced once to stderr before dispatch, never gating. The
+  // per-backend slice (runReviewChain) makes a bad timeout/deadline combination non-fatal (fail-over still
+  // happens), but a timeout so high no backend can finish its retry composition inside its slice still
+  // silently truncates that backend's retries. This is where the assembled chain (with each element's
+  // timeoutMs) and a.totalDeadlineMs both exist, so it is where the check belongs. It never changes an
+  // exit code and never blocks dispatch.
+  for (const w of budgetWarnings(chain, a.totalDeadlineMs)) process.stderr.write(w + "\n");
 
   const res = await runReviewChain(chain, { system, user, numPredict: a.numPredict, runReviewFn, totalDeadlineMs: a.totalDeadlineMs });
 

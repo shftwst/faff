@@ -8,7 +8,7 @@
 // eval/ is NOT matched by `node --test` globs, so CI never imports/runs this orchestrator.
 // Zero-dependency: node builtins only.
 
-import { readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync, renameSync, existsSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
@@ -149,36 +149,69 @@ async function runCase(c, driver, { baseReps, maxReps, judgementsPath = null }) 
   return aggregateCase(c, reps, { escalated });
 }
 
+// FAFF-318 — the ONE shared per-kind aggregation. PURE. Both `summarize` and the resume checkpoint
+// writer call this so the number they emit for a kind is byte-identical (advisory-to-the-numbers).
+// accuracy/stability = mean over the kind's CaseResults; format_adherence = mean over the non-null
+// values, else null (FAFF-137). Input order is the caller's; sum order matches, so the means match.
+export function aggregateKind(caseResultsForOneKind) {
+  const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
+  const fa = caseResultsForOneKind.map((cr) => cr.format_adherence).filter((x) => x != null);
+  return {
+    accuracy: mean(caseResultsForOneKind.map((cr) => cr.accuracy)),
+    stability: mean(caseResultsForOneKind.map((cr) => cr.stability)),
+    format_adherence: fa.length ? mean(fa) : null,
+  };
+}
+
+// FAFF-318 — the resume progress file: read + atomic per-kind checkpoint write. The file ALWAYS
+// pre-exists (updateBaseline initialises it fresh, or leaves a prior resumed file in place), so the
+// stamp is never minted here. Write is temp-then-rename so a crash mid-write can never corrupt the
+// resume anchor (the exact scenario this feature exists for).
+export function readProgress(path) {
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+export function writeCheckpointKind(path, kind, entry, caseIds) {
+  const progress = readProgress(path);
+  progress.kinds[kind] = { ...entry, case_ids: [...caseIds].sort(), captured_at: new Date().toISOString() };
+  writeFileSync(path + ".tmp", JSON.stringify(progress, null, 2) + "\n");
+  renameSync(path + ".tmp", path);
+}
+
 // Run all cases. `deadlineMs` (optional) is the wall-clock ceiling checked BETWEEN cases —
 // when unset (the test path) no clock is read, so the orchestrator is deterministic.
-export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = MAX_REPS, deadlineMs = null, judgementsPath = null } = {}) {
+// FAFF-318 — `progressPath` (default null, exactly like judgementsPath): when set, the instant a
+// kind's every expected case-id has completed this session, its aggregate is checkpointed to disk so
+// a killed sweep can resume. Kind-completion is by case-id SET MEMBERSHIP, not cr.kind adjacency
+// (loadCases sorts by filename — same-kind adjacency is incidental).
+export async function runEvals({ cases, driver, baseReps = BASE_REPS, maxReps = MAX_REPS, deadlineMs = null, judgementsPath = null, progressPath = null } = {}) {
   const results = [];
   let incomplete = false;
+  const expected = {};                                    // kind -> Set of every expected case-id
+  for (const c of cases) (expected[c.kind] ??= new Set()).add(c.id);
+  const pending = {};                                     // kind -> remaining case-ids (deep copy)
+  for (const k of Object.keys(expected)) pending[k] = new Set(expected[k]);
+  const seenResultsByKind = {};                           // kind -> CaseResults accumulated this session
   for (const c of cases) {
     if (deadlineMs != null && Date.now() >= deadlineMs) { incomplete = true; break; }
-    results.push(await runCase(c, driver, { baseReps, maxReps, judgementsPath })); // FAFF-320 — opt-in capture
+    const cr = await runCase(c, driver, { baseReps, maxReps, judgementsPath }); // FAFF-320 — opt-in capture
+    results.push(cr);
+    (seenResultsByKind[cr.kind] ??= []).push(cr);
+    pending[cr.kind].delete(cr.case_id);
+    if (progressPath != null && pending[cr.kind].size === 0) {                   // kind just completed
+      writeCheckpointKind(progressPath, cr.kind, aggregateKind(seenResultsByKind[cr.kind]), expected[cr.kind]);
+    }
   }
   return summarize(results, incomplete);
 }
 
 export function summarize(caseResults, incomplete = false) {
   const byKind = {};
-  for (const cr of caseResults) {
-    (byKind[cr.kind] ??= { accuracy: [], stability: [], format_adherence: [] });
-    byKind[cr.kind].accuracy.push(cr.accuracy);
-    byKind[cr.kind].stability.push(cr.stability);
-    if (cr.format_adherence != null) byKind[cr.kind].format_adherence.push(cr.format_adherence); // FAFF-137
-  }
-  const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
+  for (const cr of caseResults) (byKind[cr.kind] ??= []).push(cr);
   return {
     status: incomplete ? "incomplete (ceiling)" : "complete",
     cases: caseResults,
     per_kind: Object.fromEntries(
-      Object.entries(byKind).map(([k, v]) => [k, {
-        accuracy: mean(v.accuracy),
-        stability: mean(v.stability),
-        format_adherence: v.format_adherence.length ? mean(v.format_adherence) : null, // FAFF-137
-      }]),
+      Object.entries(byKind).map(([k, crs]) => [k, aggregateKind(crs)]), // FAFF-318 — one shared helper
     ),
     total_cost_tokens: caseResults.reduce((s, cr) => s + cr.cost_tokens, 0),
     escalated_cases: caseResults.filter((cr) => cr.escalated).map((cr) => cr.case_id),
@@ -295,27 +328,105 @@ async function gateAgainst(argv, presets, baselinePath) {
 
 // --update-baseline: run frontier, write the current per_kind + meta to the baseline path (the
 // deliberate re-baseline — never auto on a passing --against run). Preserves the existing policy block.
-async function updateBaseline(argv, presets, baselinePath) {
+// FAFF-318 — now checkpoints each kind's aggregate to eval/report/frontier-sweep-progress.json the
+// moment it completes, so a killed sweep is resumable via --resume (runs only the missing kinds and
+// folds them in). A plain --update-baseline (no --resume) truncates any prior progress → clean sweep.
+export async function updateBaseline(argv, presets, baselinePath) {
   const only = argFlag(argv, "--only");
   const repsArg = argFlag(argv, "--reps");
+  const resume = argv.includes("--resume");
   const driver = resolveDriver(argv, presets);
+  const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
+  const driverName = argFlag(argv, "--driver") ?? "frontier";
+  const model = driverName === "frontier" ? resolveEvalModel(argv) : (argFlag(argv, "--model") ?? null);
+
   let cases = loadCases();
   if (only) cases = cases.filter((c) => c.id === only);
+  const expectedKinds = new Set(cases.map((c) => c.kind)); // BEFORE the resume filter narrows cases
+  const stamp = { driver: driverName, model, base_reps: baseReps, started_at: new Date().toISOString() };
+
+  const reportDir = join(HERE, "report");
+  let progressPath = join(reportDir, "frontier-sweep-progress.json");
+  if (only) progressPath = null; // --only never checkpoints/resumes (a single case can't complete its kind)
+
+  if (progressPath != null) {
+    mkdirSync(reportDir, { recursive: true });
+    if (resume && existsSync(progressPath)) {
+      let prior;
+      try { prior = readProgress(progressPath); }
+      catch (e) { throw new Error(`--resume: progress file ${progressPath} is corrupt/unparseable (${e.message}); delete it and start fresh`); }
+      const ps = prior.stamp ?? {};
+      if (ps.driver !== stamp.driver || ps.model !== stamp.model || ps.base_reps !== stamp.base_reps) {
+        throw new Error(`--resume: progress stamp ${JSON.stringify({ driver: ps.driver, model: ps.model, base_reps: ps.base_reps })} does not match this run ${JSON.stringify({ driver: stamp.driver, model: stamp.model, base_reps: stamp.base_reps })}; refusing to blend`);
+      }
+      const expectedIds = {};
+      for (const c of cases) (expectedIds[c.kind] ??= []).push(c.id);
+      const keep = new Set(); // kinds whose stored case-id set still matches the current expected set
+      for (const [k, entry] of Object.entries(prior.kinds ?? {})) {
+        const want = [...(expectedIds[k] ?? [])].sort();
+        const have = [...(entry.case_ids ?? [])].sort();
+        if (want.length && JSON.stringify(want) === JSON.stringify(have)) keep.add(k);
+      }
+      cases = cases.filter((c) => !keep.has(c.kind)); // run only the missing/stale kinds
+      console.log(`[run-evals] --resume: ${keep.size} kind(s) already complete; running ${new Set(cases.map((c) => c.kind)).size} remaining. Prior progress left in place.`);
+    } else {
+      if (resume) console.warn(`[run-evals] --resume: no progress file at ${progressPath}; running the full sweep.`);
+      writeFileSync(progressPath, JSON.stringify({ schema: 1, stamp, kinds: {} }, null, 2) + "\n"); // truncate any stale sweep
+    }
+  }
+
   const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for this multi-hour sweep
   console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
-  const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS, judgementsPath });
-  let prevPolicy = DEFAULT_POLICY;
-  try { prevPolicy = JSON.parse(readFileSync(baselinePath, "utf8")).policy ?? DEFAULT_POLICY; } catch { /* new baseline */ }
+  const summary = await runEvals({ cases, driver, baseReps, judgementsPath, progressPath });
+  foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only });
+  printHeadline(summary);
+  return summary.status === "complete" ? 0 : 1;
+}
+
+// FAFF-318 — the merge that NEVER drops a kind. A complete sweep replaces per_kind cleanly (today's
+// semantics, incl. ghost-kind pruning); a partial/resumed/`--only` run overlays swept kinds onto the
+// existing baseline so no prior kind is lost (a dropped baseline kind is an unconditional --against
+// FAIL). Numbers come from the progress file's per-kind aggregate (or, on the --only path, summary).
+export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only } = {}) {
+  const progress = progressPath ? readProgress(progressPath) : null;
+  const sweptKinds = progress ? Object.keys(progress.kinds) : Object.keys(summary.per_kind); // --only uses summary
+  const three = (m) => ({ accuracy: m.accuracy, stability: m.stability, format_adherence: m.format_adherence });
+  const sweptPerKind = {};
+  for (const k of sweptKinds) sweptPerKind[k] = three(progress ? progress.kinds[k] : summary.per_kind[k]);
+
+  let prevBaseline = null;
+  try { prevBaseline = JSON.parse(readFileSync(baselinePath, "utf8")); } catch { /* new baseline */ }
+  const prevPolicy = prevBaseline?.policy ?? DEFAULT_POLICY;
+
+  const expected = [...expectedKinds];
+  const complete = !only && expected.every((k) => sweptKinds.includes(k));
+
+  let per_kind, source;
+  if (complete) {
+    per_kind = {}; // ordered by first-appearance so a full non-resumed sweep is byte-identical to today
+    for (const k of expected) per_kind[k] = sweptPerKind[k];
+    source = "real run via --update-baseline";
+  } else {
+    per_kind = { ...(prevBaseline?.per_kind ?? {}), ...sweptPerKind }; // overlay — retains un-swept kinds
+    source = `partial/resumed --update-baseline — ${sweptKinds.length}/${expected.length} kinds swept this cycle; rest retained`;
+  }
+
   const out = {
-    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: argFlag(argv, "--driver") ?? "frontier", model: (argFlag(argv, "--driver") ?? "frontier") === "frontier" ? resolveEvalModel(argv) : (argFlag(argv, "--model") ?? null), base_reps: repsArg ? Number(repsArg) : BASE_REPS, source: "real run via --update-baseline" },
-    per_kind: summary.per_kind,
+    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: stamp.driver, model: stamp.model, base_reps: stamp.base_reps, source },
+    per_kind,
     policy: prevPolicy,
   };
   mkdirSync(dirname(baselinePath), { recursive: true });
   writeFileSync(baselinePath, JSON.stringify(out, null, 2) + "\n");
-  printHeadline(summary);
-  console.log(`\n=== baseline written to ${baselinePath} (${Object.keys(summary.per_kind).length} kinds) ===`);
-  return summary.status === "complete" ? 0 : 1;
+  console.log(`\n=== baseline written to ${baselinePath} (${Object.keys(per_kind).length} kinds) ===`);
+
+  if (!complete && !only) {
+    const remaining = expected.filter((k) => !sweptKinds.includes(k));
+    console.warn(`[run-evals] ⚠ PARTIAL baseline — kinds still missing this cycle: ${remaining.join(", ") || "(none — some prior kinds retained)"}. Re-run with --resume to complete.`);
+    if (!prevBaseline) {
+      console.warn(`[run-evals] ⚠ FIRST baseline written from a PARTIAL/incomplete sweep — a first baseline SHOULD be a complete sweep; it holds ONLY the completed kinds (${sweptKinds.join(", ")}).`);
+    }
+  }
 }
 
 function printHeadline(s) {
@@ -542,7 +653,7 @@ export async function gate(argv, presets, baselinePath, opts = {}) {
 // `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
 // `node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]`   (FAFF-180: proportionate gate — smart default; local/smart soft+exit-0, frontier hard)
 // `node eval/run-evals.mjs --driver frontier --against eval/baselines/frontier.json`   (FAFF-169: regression gate — exit non-zero on a per-kind drop)
-// `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json`   (FAFF-169: deliberate re-baseline)
+// `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json [--resume]`   (FAFF-169: deliberate re-baseline; FAFF-318: --resume continues a crashed sweep from its per-kind checkpoint)
 // frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
 // Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less baseline.
 // FAFF-320 — a full sweep (`main`, `--update-baseline`) streams every rep's raw judgement to

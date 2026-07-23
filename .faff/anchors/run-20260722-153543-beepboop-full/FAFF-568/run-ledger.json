@@ -1,0 +1,158 @@
+{
+  "run_id": "run-20260722-153543-beepboop-full",
+  "admitted": [
+    "FAFF-574",
+    "FAFF-553",
+    "FAFF-577",
+    "FAFF-575",
+    "FAFF-578",
+    "FAFF-539",
+    "FAFF-564",
+    "FAFF-566",
+    "FAFF-568",
+    "FAFF-540",
+    "FAFF-573",
+    "FAFF-576",
+    "FAFF-569",
+    "FAFF-583",
+    "FAFF-570",
+    "FAFF-587"
+  ],
+  "outcomes": {
+    "FAFF-538": "routed-out",
+    "FAFF-485": "routed-out",
+    "FAFF-550": "parked",
+    "FAFF-562": "parked",
+    "FAFF-579": "parked",
+    "FAFF-555": "parked",
+    "FAFF-574": "shipped",
+    "FAFF-553": "shipped",
+    "FAFF-577": "shipped",
+    "FAFF-575": "shipped",
+    "FAFF-578": "shipped",
+    "FAFF-539": "shipped",
+    "FAFF-564": "shipped",
+    "FAFF-566": "shipped"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "measure_session_id": "9afb58e7-6653-4ae3-8685-6c64806c4294",
+    "tokens_at_start_by_model_class": {
+      "<synthetic>": {
+        "input": 0,
+        "output": 0,
+        "cache_write": 0,
+        "cache_read": 0
+      },
+      "claude-opus-4-8": {
+        "input": 204,
+        "output": 57133,
+        "cache_write": 1083696,
+        "cache_read": 7616500
+      }
+    },
+    "tokens_at_start": 8757533,
+    "tokens_at_last_event": {
+      "input": 69542,
+      "output": 445212,
+      "cache_write": 7648344,
+      "cache_read": 76669743
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 5859,
+    "session_id": "run-20260722-153543-beepboop-full",
+    "started_at": "2026-07-22T15:36:14Z",
+    "last_heartbeat": "2026-07-22T15:36:14Z"
+  },
+  "outcome_details": {
+    "FAFF-538": {
+      "verdict": "needs-decision-first",
+      "why": "spec confidence medium, 2 open Punts (flag-level validation v2, cli-surface --json vs usage-probe)"
+    },
+    "FAFF-485": {
+      "verdict": "needs-decision-first",
+      "why": "spec confidence medium, 1 Punt (exact reduction target, decides:product); top lever already shipped via FAFF-484"
+    },
+    "FAFF-550": {
+      "park": "premise-superseded — fix already shipped via FAFF-545 (Done, PR #430)"
+    },
+    "FAFF-562": {
+      "park": "repo-admin ruleset flip outside PR flow (hard floor c) + un-shipped upstream sequence steps; spec refreshed with 2026-07-21 human challenge"
+    },
+    "FAFF-579": {
+      "park": "too-broad/splittable — 5 independent concerns; surfaced for /faff-plot (autonomous cannot auto-split)"
+    },
+    "FAFF-555": {
+      "park": "unshaped architecture-scale bet; needs de-risking spike / /faff-plot"
+    },
+    "FAFF-574": {
+      "pr": 445,
+      "merge_sha": "689d33641f106b6d64015999335459c6add1dda8",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 1,
+      "note": "resumed at review after backend keys landed; 1 test-only fix commit from adversarial findings"
+    },
+    "FAFF-553": {
+      "pr": 446,
+      "merge_sha": "c0abc3a08141c391f2c990d19e44de63d1814c48",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 2
+    },
+    "FAFF-577": {
+      "pr": 447,
+      "merge_sha": "b9f5c2aa345734ba14546d485af84e1444e09a8f",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 0
+    },
+    "FAFF-575": {
+      "pr": 449,
+      "merge_sha": "fcec02217a7b2700b6fe1a1c9148081558f35882",
+      "review_backend": "nvidia/z-ai/glm-5.2 (from checkpoint)",
+      "rework_turns": 1,
+      "note": "auth-death mid-CI-fix; orchestrator completed the merge tail (rebase-before-merge + merge-gate) from intact checkpoints"
+    },
+    "FAFF-578": {
+      "pr": 450,
+      "merge_sha": "e5ee7bae2a219b081193207cdddb66d0776ab09a",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 0,
+      "discovered_scope": 1
+    },
+    "FAFF-539": {
+      "pr": 451,
+      "merge_sha": "294ddab0098506b5ac2aff7b80fa0cbdbc9df8dc",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 3,
+      "note": "adversarial review caught a real deriveSelfFromConfig trim asymmetry (fixed + pinned test)"
+    },
+    "FAFF-564": {
+      "pr": 452,
+      "merge_sha": "50c711101f3f8eb4196533d00687487700629258",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 0,
+      "discovered_scope": 1
+    },
+    "FAFF-566": {
+      "pr": 454,
+      "merge_sha": "756881aa827919ecc2e3e97c3f978b5d4d925f32",
+      "review_backend": "nvidia/z-ai/glm-5.2",
+      "rework_turns": 0,
+      "note": "15 hermetic injection probes; named-not-filed L3 forged-floor residual (P-S2-f) for morning review"
+    }
+  }
+}

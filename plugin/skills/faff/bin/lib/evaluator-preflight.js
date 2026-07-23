@@ -59,19 +59,21 @@ function evaluatorPreflight(env, fsq, repoPath) {
   return { holds: refusals.length === 0, refusals };
 }
 
+const { parseArgs, usageError } = require("./argv");
+const EVALUATOR_PREFLIGHT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--repo-path": { arity: 1 } } };
+const EVALUATOR_PREFLIGHT_USAGE = "usage: faff evaluator-preflight [--repo-path <path>] [--json] [--selftest]";
+
 function cmdEvaluatorPreflight(args) {
   if (args.includes("--selftest")) return evaluatorPreflightSelftest();
-  const json = args.includes("--json");
-  const rpIdx = args.indexOf("--repo-path");
-  if (rpIdx !== -1 && (args[rpIdx + 1] === undefined || args[rpIdx + 1] === "" || args[rpIdx + 1].startsWith("--"))) {
-    // Fail-CLOSED on a missing/empty --repo-path value: an empty path must not
-    // silently resolve to the blind (holds) state — that would report the
-    // boundary present on garbage input. Usage error, like the missing-value case.
-    process.stderr.write("usage: faff evaluator-preflight [--repo-path <path>] [--json] [--selftest]\n");
-    return 2;
-  }
+  const { values, errors } = parseArgs(args, EVALUATOR_PREFLIGHT_SPEC);
+  if (errors.length) return usageError(errors, EVALUATOR_PREFLIGHT_USAGE);
+  const json = !!values["--json"];
+  // Fail-CLOSED on an EMPTY --repo-path value (a missing / --prefixed value is already a
+  // missing-value exit 2 above): an empty path must not silently resolve to the blind
+  // (holds) state — that would report the boundary present on garbage input.
+  if (values["--repo-path"] === "") { process.stderr.write(EVALUATOR_PREFLIGHT_USAGE + "\n"); return 2; }
   // Default: the resolved repo working tree (the codebase the evaluator must NOT see).
-  const repoPath = rpIdx !== -1 ? args[rpIdx + 1] : (findRoot() || process.cwd());
+  const repoPath = values["--repo-path"] !== undefined ? values["--repo-path"] : (findRoot() || process.cwd());
   const fsq = realFsq();
   const { holds, refusals } = evaluatorPreflight(process.env, fsq, repoPath);
   if (json) {

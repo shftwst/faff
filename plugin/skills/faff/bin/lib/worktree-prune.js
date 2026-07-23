@@ -117,14 +117,21 @@ function parseWorktreeEntries(root) {
   return entries;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const WORKTREE_PRUNE_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--dry-run": { arity: 0 },
+  "--root": { arity: 1 }, "--own": { arity: 1, repeatable: true }, "--branch": { arity: 1 }, "--issue": { arity: 1 },
+} };
+
 function cmdWorktreePrune(args) {
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const getAll = (f) => args.reduce((a, v, i) => (args[i - 1] === f ? [...a, v] : a), []);
   if (args.includes("--selftest")) return worktreePruneSelftest();
-  const asJson = args.includes("--json");
-  const dryRun = args.includes("--dry-run");
+  const { values, errors } = parseArgs(args, WORKTREE_PRUNE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff worktree-prune [--issue ID] [--branch B] [--own PATH]... [--root DIR] [--dry-run] [--json]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
+  const asJson = !!values["--json"];
+  const dryRun = !!values["--dry-run"];
   const root = get("--root") || findRoot();
-  const sel = { paths: getAll("--own"), branch: get("--branch"), issue: get("--issue") };
+  const sel = { paths: values["--own"] || [], branch: get("--branch"), issue: get("--issue") };
 
   const entries = parseWorktreeEntries(root);
   if (entries === null) { process.stderr.write("faff worktree-prune: not a git work tree (or git unavailable)\n"); return 2; }

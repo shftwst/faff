@@ -160,9 +160,16 @@ function mergeFenceDecision(event) {
   return mergeFenceDecisionDetail(event).deny;
 }
 
+const { parseArgs, usageError } = require("./argv");
+// --root is accepted-and-ignored: hooks-ensure's probeServes always invokes
+// `<sub> --hook --root <probeRoot>`, so --root must be a declared no-op, never a usage error.
+const MERGE_FENCE_SPEC = { flags: { "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--root": { arity: 1 } } };
+
 function cmdMergeFence(args) {
   if (args.includes("--selftest")) return mergeFenceSelftest();
-  if (!args.includes("--hook")) {
+  const { values, errors } = parseArgs(args, MERGE_FENCE_SPEC);
+  if (errors.length) return usageError(errors, "faff merge-fence: use --hook (reads a PreToolUse JSON event on stdin) or --selftest");
+  if (!values["--hook"]) {
     process.stderr.write("faff merge-fence: use --hook (reads a PreToolUse JSON event on stdin) or --selftest\n");
     return 2;
   }

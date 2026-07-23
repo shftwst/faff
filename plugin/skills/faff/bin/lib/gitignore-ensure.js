@@ -148,13 +148,15 @@ function gitignoreEnsureSelftest() {
   return fail ? 1 : 0;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const GITIGNORE_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 } } };
+
 function cmdGitignoreEnsure(args) {
   if (args.includes("--selftest")) return gitignoreEnsureSelftest();
-  let root = null;
-  const ri = args.indexOf("--root");
-  if (ri !== -1) root = args[ri + 1];
-  root = root || findRoot();
-  const asJson = args.includes("--json");
+  const { values, errors } = parseArgs(args, GITIGNORE_ENSURE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff gitignore-ensure [--root DIR] [--json]");
+  const root = values["--root"] || findRoot();
+  const asJson = !!values["--json"];
 
   let result;
   try {

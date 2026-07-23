@@ -172,11 +172,19 @@ const ENGINE_USAGE = "usage: faff engine call --lane methodology|intake --system
 // off-vocabulary value, anthropic provider, effort-lane conflict) · 4 model-not-served ·
 // 5 engine-unreachable · 6 auth-failed · 7 malformed-response. Every non-zero exit is
 // terminal: the caller surfaces/parks per its existing failure handling.
+const { parseArgs, usageError } = require("./argv");
+const ENGINE_SPEC = {
+  flags: { "--selftest": { arity: 0 }, "--lane": { arity: 1 }, "--system": { arity: 1 }, "--user": { arity: 1 }, "--root": { arity: 1 } },
+  positionals: { min: 0, max: 1, name: "call" },
+};
+
 function cmdEngine(args) {
   if (args.includes("--selftest")) return engineSelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
+  const { values, positionals, errors } = parseArgs(args, ENGINE_SPEC);
+  if (errors.length) { usageError(errors, ENGINE_USAGE); return ENGINE_EXIT.CONFIG; }
+  const sub = positionals[0];
   if (sub !== "call") { process.stderr.write(ENGINE_USAGE); return ENGINE_EXIT.CONFIG; }
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const lane = get("--lane");
   const systemFile = get("--system");
   const userFile = get("--user");

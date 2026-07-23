@@ -160,8 +160,11 @@ function deriveQueueState({ itemKeys, outcomes, terminalStates }) {
   return { queue_empty: true, all_parked: false, items_total: keys.length, items_terminal, items_pending: [], reason: "drained" };
 }
 
-function cmdDerive(args) {
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+const { parseArgs, usageError } = require("./argv");
+const QUEUE_STATE_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
+
+function cmdDerive(values) {
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const root = get("--root") || findRoot();
   const runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || latestRunDir(root) || null;
 
@@ -186,10 +189,11 @@ function cmdDerive(args) {
 
 function cmdQueueState(args) {
   if (args.includes("--selftest")) return queueStateSelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
-  const rest = args.filter((a) => a !== sub);
-  if (sub === "new-key") return cmdNewKey(rest);
-  if (sub === "derive") return cmdDerive(rest);
+  const { values, positionals, errors } = parseArgs(args, QUEUE_STATE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff queue-state <new-key|derive> [--root DIR] [--run-dir DIR]");
+  const sub = positionals[0];
+  if (sub === "new-key") return cmdNewKey();
+  if (sub === "derive") return cmdDerive(values);
   process.stderr.write(`faff queue-state: unknown subcommand ${JSON.stringify(sub || "")} (expected new-key|derive)\n`);
   return 2;
 }

@@ -131,9 +131,16 @@ function backgroundFenceDecision(event) {
   return matchesBackgroundedGate(event.tool_name, command, runInBackground);
 }
 
+const { parseArgs, usageError } = require("./argv");
+// --root is accepted-and-ignored: hooks-ensure's probeServes always invokes
+// `<sub> --hook --root <probeRoot>`, so --root must be a declared no-op, never a usage error.
+const BACKGROUND_FENCE_SPEC = { flags: { "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--root": { arity: 1 } } };
+
 function cmdBackgroundFence(args) {
   if (args.includes("--selftest")) return backgroundFenceSelftest();
-  if (!args.includes("--hook")) {
+  const { values, errors } = parseArgs(args, BACKGROUND_FENCE_SPEC);
+  if (errors.length) return usageError(errors, "faff background-fence: use --hook (reads a PreToolUse JSON event on stdin) or --selftest");
+  if (!values["--hook"]) {
     process.stderr.write("faff background-fence: use --hook (reads a PreToolUse JSON event on stdin) or --selftest\n");
     return 2;
   }

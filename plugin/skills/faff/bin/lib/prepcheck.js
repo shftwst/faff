@@ -286,11 +286,19 @@ function prepcheckIssueSelftest() {
   return fail;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const PREPCHECK_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--json": { arity: 0 }, "--recover": { arity: 0 },
+  "--root": { arity: 1 }, "--issue": { arity: 1 }, "--run-dir": { arity: 1 },
+} };
+
 function cmdPrepcheck(args) {
   if (args.includes("--selftest")) return prepcheckSelftest();
-  const hook = args.includes("--hook");
-  const asJson = args.includes("--json");
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, PREPCHECK_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff prepcheck [--issue ID [--run-dir DIR]] [--hook] [--recover] [--root DIR] [--json]");
+  const hook = !!values["--hook"];
+  const asJson = !!values["--json"];
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const root = get("--root") || findRoot();
 
   // FAFF-258: single-issue mode — an exit-coded report (mirrors `runcheck RUN_DIR`),
@@ -312,7 +320,7 @@ function cmdPrepcheck(args) {
     // FAFF-250: per-marker ownership + liveness gate (the runcheck precedent).
     // Block only on a marker THIS session owns, or a foreign abandoned one under
     // --recover; a foreign live marker is silent; a foreign abandoned one warns.
-    const recover = args.includes("--recover");
+    const recover = !!values["--recover"];
     const open = markers.filter(isPrepMarkerOpen);
     const d = prepcheckHookDecision(open, Date.now(), process.env, { recover });
     // block via the decision payload, not the exit code — same as runcheck --hook.

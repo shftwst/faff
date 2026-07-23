@@ -162,9 +162,14 @@ function renderQualityReport(q) {
   return lines.join("\n");
 }
 
+const { parseArgs, usageError } = require("./argv");
+const QUALITY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } } };
+
 function cmdQuality(args) {
   if (args.includes("--selftest")) return qualitySelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, QUALITY_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff quality [--run-dir DIR] [--root DIR] [--json]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const root = get("--root") || findRoot();
 
   // Resolve the run dir exactly as economics/budget check do.
@@ -180,7 +185,7 @@ function cmdQuality(args) {
   const { events } = readRunEvents(runDir);
   const q = computeQualityReport(ledger, events, { run_id: path.basename(runDir) });
 
-  if (args.includes("--json")) { console.log(JSON.stringify(q)); return 0; }
+  if (values["--json"]) { console.log(JSON.stringify(q)); return 0; }
   console.log(renderQualityReport(q));
   return 0;
 }

@@ -28,8 +28,13 @@ const CONTROL_LABELS = [
     description: "Cosmetic breadcrumb: an active issue demoted Todo->Backlog because faff park-history flagged it repeat-parked (3+ parks, same root-cause class, within the rolling window). Detection is seam-computed (faff park-history), NOT read from this label — the label only marks the demotion for /faff-wtf. Distinct from the repeat-parked routing verdict (contract-defs.js). CLI-writable (no tracker_owned flag)." },
 ];
 
+const { parseArgs, usageError } = require("./argv");
+const LABELS_SPEC = { flags: { "--names": { arity: 0 } } };
+
 function cmdLabels(args) {
-  if (args.includes("--names")) {
+  const { values, errors } = parseArgs(args, LABELS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff labels [--names]");
+  if (values["--names"]) {
     for (const l of CONTROL_LABELS) console.log(l.name);
     return 0;
   }

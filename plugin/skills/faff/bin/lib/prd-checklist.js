@@ -120,10 +120,15 @@ function buildCoverage(goals) {
 }
 
 // --- Command entry -----------------------------------------------------------
+const { parseArgs, usageError } = require("./argv");
+const PRD_CHECKLIST_SPEC = { flags: { "--selftest": { arity: 0 } }, positionals: { min: 0, max: 1, name: "path" } };
+
 function cmdPrdChecklist(args) {
   if (args.includes("--selftest")) return prdChecklistSelftest();
 
-  const path = args.find((a) => !a.startsWith("-"));
+  const { positionals, errors } = parseArgs(args, PRD_CHECKLIST_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff prd-checklist <path>");
+  const path = positionals[0];
   if (!path) {
     process.stderr.write("usage: faff prd-checklist <path>\n");
     return 2;

@@ -74,11 +74,16 @@ function decideOutward(targetRaw, selfRaw) {
   return { target, outward: true, reason: "outward-adopter" };
 }
 
+const { parseArgs, usageError } = require("./argv");
+const RUN_OUTWARD_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--target": { arity: 1 }, "--self": { arity: 1 } } };
+
 function cmdRunOutward(args) {
   if (args.includes("--selftest")) return runOutwardSelftest();
-  const getFlag = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const asJson = args.includes("--json");
   const usage = "faff run-outward: usage: faff run-outward --target <json> [--self <json>] [--json]";
+  const { values, errors } = parseArgs(args, RUN_OUTWARD_SPEC);
+  if (errors.length) return usageError(errors, usage);
+  const getFlag = (f) => (values[f] === undefined ? null : values[f]);
+  const asJson = !!values["--json"];
 
   const targetRaw = getFlag("--target");
   if (targetRaw == null) { process.stderr.write(`${usage}\n`); return 2; }

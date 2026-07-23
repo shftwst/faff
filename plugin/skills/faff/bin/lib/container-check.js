@@ -85,9 +85,14 @@ function hostSocketProbe(fsq) {
   return { present: false, path: null };
 }
 
+const { parseArgs, usageError } = require("./argv");
+const CONTAINER_CHECK_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
+
 function cmdContainerCheck(args) {
   if (args.includes("--selftest")) return containerCheckSelftest();
-  const json = args.includes("--json");
+  const { values, errors } = parseArgs(args, CONTAINER_CHECK_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff container-check [--json]");
+  const json = !!values["--json"];
   const fsq = realFsq();
   const { result, basis } = containerCheck(process.env, fsq);
   const hostSocket = hostSocketProbe(fsq);

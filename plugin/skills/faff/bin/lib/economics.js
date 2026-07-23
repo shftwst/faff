@@ -671,9 +671,18 @@ function renderEconomicsBreakdown(bd) {
   return lines.join("\n");
 }
 
+const { parseArgs, usageError } = require("./argv");
+const ECONOMICS_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--session-id": { arity: 1 },
+  "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
+} };
+
 function cmdEconomics(args) {
   if (args.includes("--selftest")) return economicsSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, ECONOMICS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff economics [--by model|class|issue|mcp] [--run-dir DIR] [--session-id ID] [--json] [--root DIR]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const root = get("--root") || findRoot();
   // FAFF-488: an optional `--session-id` selects which session's transcript is
   // metered, overriding $CLAUDE_CODE_SESSION_ID in the EFFECTIVE env handed to the

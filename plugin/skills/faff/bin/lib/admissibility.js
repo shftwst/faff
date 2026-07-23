@@ -4,7 +4,13 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { adrFlag } = require("./adr");
+const { parseArgs, usageError } = require("./argv");
+const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
+const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
 
 function prdHasComparator(s) {
@@ -587,10 +593,11 @@ function admissibleSelftest() {
 
 function cmdAdmissible(args) {
   if (args.includes("--selftest")) return admissibleSelftest();
-  const lightsOut = args.includes("--lights-out");
-  const json = args.includes("--json");
-  const specIdx = args.indexOf("--spec");
-  const specArg = specIdx !== -1 ? args[specIdx + 1] : null;
+  const parsed = parseArgs(args, ADMISSIBLE_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff admissible --spec <path|-> [--lights-out] [--json]");
+  const lightsOut = !!parsed.values["--lights-out"];
+  const json = !!parsed.values["--json"];
+  const specArg = parsed.values["--spec"] === undefined ? null : parsed.values["--spec"];
   let specText;
   try {
     if (specArg && specArg !== "-") specText = fs.readFileSync(specArg, "utf8");
@@ -616,13 +623,14 @@ function cmdDod(args) {
   if (args.includes("--selftest")) return dodSelftest();
   const action = args.find((a) => !a.startsWith("--"));
   if (action === "split") return cmdDodSplit(args);
+  const parsed = parseArgs(args, DOD_CLASSIFY_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "faff dod: usage:\n  faff dod classify --spec <path|-> [--json]\n  faff dod split --spec <path|-> --view builder|full");
   if (action !== "classify") {
     process.stderr.write("faff dod: usage:\n  faff dod classify --spec <path|-> [--json]\n  faff dod split --spec <path|-> --view builder|full\n");
     return 2;
   }
-  const json = args.includes("--json");
-  const specIdx = args.indexOf("--spec");
-  const specArg = specIdx !== -1 ? args[specIdx + 1] : null;
+  const json = !!parsed.values["--json"];
+  const specArg = parsed.values["--spec"] === undefined ? null : parsed.values["--spec"];
   let specText;
   try {
     if (specArg && specArg !== "-") specText = fs.readFileSync(specArg, "utf8");
@@ -642,13 +650,14 @@ function cmdDod(args) {
 // file/stdin read (no tracker/network/LLM) — the over-withholding advisory (if any) is printed to
 // stderr, never gating (exit stays 0). Exit 2: missing/unknown --view, or unreadable spec.
 function cmdDodSplit(args) {
-  const view = adrFlag(args, "--view");
+  const parsed = parseArgs(args, DOD_SPLIT_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "faff dod split: usage: faff dod split --spec <path|-> --view builder|full");
+  const view = parsed.values["--view"] === undefined ? null : parsed.values["--view"];
   if (view !== "builder" && view !== "full") {
     process.stderr.write("faff dod split: usage: faff dod split --spec <path|-> --view builder|full\n");
     return 2;
   }
-  const specIdx = args.indexOf("--spec");
-  const specArg = specIdx !== -1 ? args[specIdx + 1] : null;
+  const specArg = parsed.values["--spec"] === undefined ? null : parsed.values["--spec"];
   let specText;
   try {
     if (specArg && specArg !== "-") specText = fs.readFileSync(specArg, "utf8");
@@ -804,13 +813,16 @@ function cmdHoldout(args) {
   if (args.includes("--selftest")) return holdoutVerdictsSelftest();
   const action = args.find((a) => !a.startsWith("--"));
   if (action === "verdict") return cmdHoldoutVerdict(args);   // FAFF-311: the singular per-issue graft gate
+  const parsed = parseArgs(args, HOLDOUT_VERDICTS_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   if (action !== "verdicts") {
     process.stderr.write("faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n");
     return 2;
   }
   // --association (required): inline JSON, @path, or - for stdin. A broken association is operator error
   // (fail-loud exit 2), NOT a silent empty map.
-  const assocRaw = adrFlag(args, "--association");
+  const assocRaw = get("--association");
   if (assocRaw == null) { process.stderr.write("faff holdout verdicts: --association is required (JSON object { holdout-key: prdr-id }, @path, or - for stdin)\n"); return 2; }
   let assocText;
   try {
@@ -823,7 +835,7 @@ function cmdHoldout(args) {
   if (association === null || typeof association !== "object" || Array.isArray(association)) {
     process.stderr.write("faff holdout verdicts: --association must be a JSON object { holdout-key: prdr-id }\n"); return 2;
   }
-  const dir = adrFlag(args, "--dir") || ".faff/holdout";
+  const dir = get("--dir") || ".faff/holdout";
   // Read the store. An ABSENT dir (ENOENT) is the valid "nothing trusted yet" case → empty map, exit 0
   // (coverage already handles it). An UNREADABLE dir (a file, a permission error) is operator error → exit 2.
   let names;
@@ -860,7 +872,10 @@ function cmdHoldout(args) {
 // 2 = usage. PURE beyond the single-file read (no tracker/network/LLM). The same file still feeds the
 // unchanged `faff holdout verdicts --association` run roll-up (one artifact, two consumers).
 function cmdHoldoutVerdict(args) {
-  const issue = adrFlag(args, "--issue");
+  const parsed = parseArgs(args, HOLDOUT_VERDICT_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "faff holdout verdict: usage: faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const issue = get("--issue");
   if (!issue) { process.stderr.write("faff holdout verdict: --issue <id> is required\n"); return 2; }
   // The issue id is a filename component — a safe ticket token only (letters/digits/._-, no leading dash).
   // Reject anything else (path separators, `..`, a stray flag captured as the value) so `--issue` can never
@@ -868,7 +883,7 @@ function cmdHoldoutVerdict(args) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) {
     process.stderr.write(`faff holdout verdict: --issue ${JSON.stringify(issue)} is not a valid issue id (letters/digits/._- only, no path separators)\n`); return 2;
   }
-  const dir = adrFlag(args, "--dir") || ".faff/holdout";
+  const dir = get("--dir") || ".faff/holdout";
   const file = path.join(dir, `${issue}.json`);
   const json = args.includes("--json");
   const emit = (res, status) => {
@@ -1095,7 +1110,9 @@ function specReviewLensesSelftest() {
 
 function cmdSpecReviewLenses(args) {
   if (args.includes("--selftest")) return specReviewLensesSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const parsed = parseArgs(args, SPEC_REVIEW_LENSES_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff spec-review-lenses [--tags a,b] [--level L1|L2|L3|L4] [--appetite ...]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const tagsArg = get("--tags");
   const tags = tagsArg ? tagsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const level = get("--level") || "L3";

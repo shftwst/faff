@@ -11,6 +11,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { parseArgs, usageError } = require("./argv");
+const LINT_REFS_SPEC = { flags: { "--root": { arity: 1 }, "--selftest": { arity: 0 } } };
 const { findRoot } = require("./shared-infra");
 
 const REF_PATTERNS = [
@@ -49,14 +51,10 @@ function markdownFilesUnder(dir) {
 const LINT_REFS_SURFACES = ["docs/guide"]; // slice 1; slice 2 (FAFF-239) adds plugin/skills/*/SKILL.md
 
 function cmdLintRefs(args) {
-  let root = null;
-  const rest = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--root") root = args[++i];
-    else rest.push(args[i]);
-  }
-  if (rest.includes("--selftest")) return lintRefsSelftest();
-  root = root || findRoot();
+  if (args.includes("--selftest")) return lintRefsSelftest();
+  const { values, errors } = parseArgs(args, LINT_REFS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff lint-refs [--root DIR]");
+  const root = values["--root"] || findRoot();
 
   const violations = [];
   for (const surface of LINT_REFS_SURFACES) {

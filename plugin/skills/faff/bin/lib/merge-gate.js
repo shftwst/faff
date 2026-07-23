@@ -14,7 +14,20 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { adrFlag } = require("./adr");
+const { parseArgs, usageError } = require("./argv");
+// Bare gh-shaped merge-method/option flags (MERGE_FLAG_ALLOW) are accepted at the top level —
+// resolveMergeFlags honours the method ones (--squash/--merge/--rebase); the rest ride --merge-args.
+// They MUST be declared here or a live `faff merge-gate … --squash` would be rejected as unknown.
+const MERGE_GATE_SPEC = { flags: {
+  "--allow-no-ci": { arity: 0 }, "--check-only": { arity: 0 }, "--human-override": { arity: 0 },
+  "--interactive": { arity: 0 }, "--json": { arity: 0 }, "--local": { arity: 0 }, "--selftest": { arity: 0 },
+  "--squash": { arity: 0 }, "--merge": { arity: 0 }, "--rebase": { arity: 0 }, "--delete-branch": { arity: 0 }, "--auto": { arity: 0 },
+  "--base": { arity: 1 }, "--branch": { arity: 1 }, "--issue": { arity: 1 }, "--level": { arity: 1 },
+  "--merge-args": { arity: 1 }, "--pr": { arity: 1 }, "--repo": { arity: 1 }, "--run-dir": { arity: 1 },
+} };
+const BRANCH_PROTECTION_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 },
+} };
 const { FLOOR_LEVELS, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
@@ -715,17 +728,20 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
 
 function cmdMergeGate(args) {
   if (args.includes("--selftest")) return mergeGateSelftest();
-  const json = args.includes("--json");
-  const local = args.includes("--local");
-  const issue = adrFlag(args, "--issue");
-  const runDir = adrFlag(args, "--run-dir");
-  const flagLevel = adrFlag(args, "--level");
+  const parsed = parseArgs(args, MERGE_GATE_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff merge-gate --pr N --issue ID --run-dir DIR [--level L] [--execute|--check-only] [--merge-args \"...\"] [--squash|--merge|--rebase] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const json = !!parsed.values["--json"];
+  const local = !!parsed.values["--local"];
+  const issue = get("--issue");
+  const runDir = get("--run-dir");
+  const flagLevel = get("--level");
   const mode = args.includes("--check-only") ? "check-only" : "execute";
   const interactive = args.includes("--interactive");
   const humanOverride = args.includes("--human-override");
   const allowNoCi = args.includes("--allow-no-ci");
   const noCiPolicy = allowNoCi ? "allow" : "needs-human";
-  const mergeArgsRaw = adrFlag(args, "--merge-args") || "";
+  const mergeArgsRaw = get("--merge-args") || "";
 
   // FAFF-526: --local is a git-only BRANCH of this same command, not a sibling verb — everything
   // below this block (the `gh`-sourced PR path) is untouched, and `--pr` is neither required nor
@@ -735,14 +751,14 @@ function cmdMergeGate(args) {
     if (flagLevel != null && !FLOOR_LEVELS.includes(flagLevel)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
     return cmdMergeGateLocal({
-      issue, runDir, branchFlag: adrFlag(args, "--branch"), baseFlag: adrFlag(args, "--base"),
+      issue, runDir, branchFlag: get("--branch"), baseFlag: get("--base"),
       flagLevel, mode, interactive, humanOverride, allowNoCi, noCiPolicy, mergeArgsRaw, json,
       cwd: process.cwd(),
     });
   }
 
-  const pr = adrFlag(args, "--pr");
-  const repoFlag = adrFlag(args, "--repo");
+  const pr = get("--pr");
+  const repoFlag = get("--repo");
 
   if (!pr || !issue || !runDir) { process.stderr.write("faff merge-gate: --pr, --issue and --run-dir are required\n"); return 2; }
   if (flagLevel != null && !FLOOR_LEVELS.includes(flagLevel)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
@@ -876,10 +892,13 @@ function cmdMergeGate(args) {
 
 function cmdBranchProtectionCheck(args) {
   if (args.includes("--selftest")) return branchProtectionSelftest();
-  const json = args.includes("--json");
-  const repo = ghRepoSlug(adrFlag(args, "--repo"));
+  const parsed = parseArgs(args, BRANCH_PROTECTION_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff branch-protection-check [--repo R] [--branch B] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const json = !!parsed.values["--json"];
+  const repo = ghRepoSlug(get("--repo"));
   if (!repo) { process.stderr.write("faff branch-protection-check: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
-  let branch = adrFlag(args, "--branch");
+  let branch = get("--branch");
   if (!branch) {
     const dv = ghJson(["repo", "view", "--json", "defaultBranchRef"]);
     branch = dv.ok && dv.data && dv.data.defaultBranchRef ? dv.data.defaultBranchRef.name : "main";

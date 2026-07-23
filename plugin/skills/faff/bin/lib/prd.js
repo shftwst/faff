@@ -5,14 +5,19 @@
 // global number — supersession is the PRDR's job, FAFF-245). Lean / format-
 // flexible: validate checks PRESENCE, never section shape. The CLI writes the
 // file + emits the container-link line; the CALLER commits + applies the link
-// (orchestrator-agnostic, exactly like `adr new`). Reuses adrField/adrFlag.
+// (orchestrator-agnostic, exactly like `adr new`). Reuses adrField.
 // ===========================================================================
 
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { acceptanceSection, classifyAcceptanceCriteria } = require("./admissibility");
-const { adrField, adrFlag } = require("./adr");
+const { adrField } = require("./adr");
+const { parseArgs, usageError } = require("./argv");
+const PRD_SPEC = { flags: {
+  "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--strict": { arity: 0 },
+  "--date": { arity: 1 }, "--root": { arity: 1 }, "--status": { arity: 1 }, "--url": { arity: 1 },
+}, positionals: { min: 0, max: null, name: "verb container" } };
 const { loadConfig, resolvePrdDocsPath } = require("./config");
 const { findRoot } = require("./shared-infra");
 
@@ -136,8 +141,11 @@ function prdValidate(dir, opts) {
 
 function cmdPrd(args) {
   if (args.includes("--selftest")) return prdSelftest();
+  const parsed = parseArgs(args, PRD_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff prd <path|new|...> [container] [--status S] [--url U] [--date D] [--strict] [--json] [--root DIR]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
-  const root = adrFlag(args, "--root") || findRoot();
+  const root = get("--root") || findRoot();
   const dir = prdDir(root);
   const container = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
 
@@ -170,12 +178,12 @@ function cmdPrd(args) {
 
   if (action === "new") {
     if (!container) { process.stderr.write("faff prd new: <container> is required\n"); return 2; }
-    const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
+    const date = get("--date") || new Date().toISOString().slice(0, 10);
     const file = `${prdSlug(container)}.md`;
     const full = path.join(dir, file);
     if (fs.existsSync(full)) { process.stderr.write(`faff prd new: ${file} already exists — never overwrite (edit in place)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(full, prdTemplate({ container, date, status: adrFlag(args, "--status") }));
+    fs.writeFileSync(full, prdTemplate({ container, date, status: get("--status") }));
     process.stdout.write(full + "\n");   // stdout = the path only (parity with `adr new` — safe to `p=$(faff prd new …)`)
     // Hint the container-link line on STDERR so a caller parsing stdout gets a clean path (degrade-not-fail).
     process.stderr.write(`**PRD:** ${path.relative(root, full)}\n`);
@@ -184,7 +192,7 @@ function cmdPrd(args) {
 
   if (action === "link") {
     if (!container) { process.stderr.write("faff prd link: <container> is required\n"); return 2; }
-    const url = adrFlag(args, "--url");
+    const url = get("--url");
     if (!url) { process.stderr.write("faff prd link: --url is required\n"); return 2; }
     // The CLI makes NO tracker call — it emits the line; the orchestrator applies it (degrade-not-fail).
     process.stdout.write(`**PRD:** ${url}\n`);

@@ -287,13 +287,21 @@ function backendsConfigCheckFindings(cfg) {
   return findings;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const BACKENDS_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--refs": { arity: 1 }, "--requires": { arity: 1 }, "--harness": { arity: 1 }, "--root": { arity: 1 },
+}, positionals: { min: 0, max: 1, name: "verb" } };
+
 function cmdBackends(args) {
   if (args.includes("--selftest")) return backendsSelftest();
   const { findRoot } = require("./shared-infra");
   const { loadConfig } = require("./config");
-  const sub = args.find((a) => !a.startsWith("-"));
-  const json = args.includes("--json");
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, positionals, errors } = parseArgs(args, BACKENDS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff backends <resolve|realizable> --refs a,b,c [--requires local] [--harness NAME] [--json] [--root DIR]");
+  const sub = positionals[0];
+  const json = !!values["--json"];
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const root = get("--root") || findRoot();
   const [cfg] = loadConfig(root);
 

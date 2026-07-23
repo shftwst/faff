@@ -102,3 +102,35 @@ test("valid input unchanged: `faff eligible --label faff-automate --default opt-
   assert.equal(code, 0);
   assert.equal(stdout.trim(), "true");
 });
+
+// --- the completion gate: the registry-driven fuzz test (DoD §8 durability) ---
+// Iterates every subcommand the CLI dispatches (COMMANDS, mirrored 1:1 by regions.js's
+// REGION_MAP — that bijection is asserted by `regions selftest`) and asserts each REJECTS an
+// unknown flag with a usage exit (2), never a silent fail-open (exit 0). This is the mechanical
+// guard against a future subcommand regressing to the fail-open class FAFF-576 retired: a `--`-
+// token that isn't a declared flag is unambiguously a flag, so a handler that ignores it (and
+// proceeds/exits 0) is fail-open; a handler that routes through the shared parser exits 2.
+// A bogus flag is rejected at parse time, before any I/O, so no fixture/positional is needed.
+// Any subcommand that legitimately cannot participate would be listed in EXEMPT with a reason;
+// today none are — every dispatched subcommand is fail-closed on unknown flags.
+const regionsMod = require(path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..", "plugin", "skills", "faff", "bin", "lib", "regions.js",
+));
+const ALL_SUBCOMMANDS = Object.keys(regionsMod.REGION_MAP).sort();
+const FUZZ_EXEMPT = new Map(); // subcommand -> reason (none today)
+
+test("completion gate: every dispatched subcommand rejects an unknown flag (exit 2, never fail-open) — FAFF-576 DoD §8", () => {
+  assert.ok(ALL_SUBCOMMANDS.length >= 70, `expected the full COMMANDS registry, got ${ALL_SUBCOMMANDS.length}`);
+  const BOGUS = "--definitely-not-a-flag-xyz";
+  const failOpen = [];
+  const wrongExit = [];
+  for (const cmd of ALL_SUBCOMMANDS) {
+    if (FUZZ_EXEMPT.has(cmd)) continue;
+    const { code } = runCli([cmd, BOGUS], { input: "" });
+    if (code === 0) failOpen.push(cmd);                 // the retired bug: silently ignored the flag
+    else if (code !== 2) wrongExit.push(`${cmd}(exit ${code})`); // errored, but not the usage-reject path
+  }
+  assert.deepEqual(failOpen, [], `fail-open (exit 0 on an unknown flag): ${failOpen.join(", ")}`);
+  assert.deepEqual(wrongExit, [], `rejected but not via the usage exit (want 2): ${wrongExit.join(", ")}`);
+});

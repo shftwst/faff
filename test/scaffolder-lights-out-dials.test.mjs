@@ -32,6 +32,7 @@ import {
   ADVERSARIAL_REVIEW_OCCUPANTS,
   ADVERSARIAL_SPEC_REVIEW_OCCUPANTS,
 } from "../plugin/skills/faff/bin/lib/lights-out.js";
+import { extractHeredoc } from "./helpers/scaffolder-heredocs.mjs"; // FAFF-538: promoted shared extractor
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.join(HERE, "..");
@@ -52,13 +53,9 @@ function readScript(name) {
   return fs.readFileSync(path.join(EV_DIR, name), "utf8");
 }
 
-// Extract the body of the first `cat > <file> <<'EOF' ... EOF` heredoc in a scaffolder script
-// writing the given target path. Returns null if no such heredoc is present.
-function extractHeredoc(scriptText, target) {
-  const re = new RegExp(`cat > ${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} <<'EOF'\\n([\\s\\S]*?)\\nEOF`);
-  const m = scriptText.match(re);
-  return m ? m[1] : null;
-}
+// extractHeredoc is now imported from ./helpers/scaffolder-heredocs.mjs (FAFF-538) — the regex
+// and behaviour are unchanged; the local copy was promoted to a shared helper both scaffolder-lint
+// files import.
 
 function extractFaffrcHeredoc(scriptText) {
   return extractHeredoc(scriptText, ".faffrc.yaml");

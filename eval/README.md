@@ -54,6 +54,7 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
   // real-model smoke (FAFF-131-class — needs a live claude -p; local ≈ minutes/rep):
   // baseUrl/model come from your environment (FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL),
   // set in your shell or .faffrc.local.yaml — never a repo-embedded host.
+  // Both are REQUIRED: unset → localOpts throws (there is no localhost default — see "Drivers" below).
   const model = makeLiveModel(localOpts({ baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL }));
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   // rec.buckets.dupe / .vague / … are the model's judgement, captured at the harness seams.
@@ -63,6 +64,7 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
   import { makeOllamaModel } from "./ollama-model.mjs";
   const model = makeOllamaModel({
     // baseUrl/model from FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL (env / .faffrc.local.yaml).
+    // Both REQUIRED: unset → an undefined baseUrl errors in the driver; there is no localhost default.
     baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL,
     think: false,                  // FAFF-137: qwen3.6 is a reasoning model — disable the think-block
     options: { num_predict: 2000 } // SAFETY ceiling only (see below) — NOT a conciseness lever

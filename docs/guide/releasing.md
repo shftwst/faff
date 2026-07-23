@@ -12,13 +12,16 @@ before letting a release PR merge. It does not replace release-please and adds n
   placeholder — so a release carries a genuine judgement-evidence claim. Check mechanically:
 
   ```sh
-  node -e "process.exit(/PROVISIONAL/.test(require('./eval/baselines/frontier.json').meta.source) ? 1 : 0)" \
+  node -e "process.exit(/PROVISIONAL/.test(require('./eval/baselines/frontier.json').meta?.source ?? '') ? 1 : 0)" \
     && echo "baseline OK (non-PROVISIONAL)" \
     || echo "baseline still PROVISIONAL — run a real frontier sweep first"
   ```
 
   The predicate reads `meta.source` and **fails (exits non-zero) while it still contains
-  `PROVISIONAL`**. When it fails, the remedy is a recorded sweep:
+  `PROVISIONAL`**. The `meta?.source ?? ''` guard means a malformed baseline missing `meta`/`meta.source`
+  no longer throws (which would have printed the "still PROVISIONAL" remedy and misdiagnosed a corrupt
+  file as the seeded placeholder); a missing key reads as absent-not-provisional, so a corrupt baseline
+  is caught by the surrounding review, not mislabelled by this string check. When it fails, the remedy is a recorded sweep:
 
   ```sh
   node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json

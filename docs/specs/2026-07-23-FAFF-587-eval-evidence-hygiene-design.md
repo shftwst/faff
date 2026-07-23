@@ -8,7 +8,7 @@ This is the build spec for FAFF-587. Its audience is the build agent that will i
 
 **The load-bearing idea:** the eval harness already has the right seams — a required `FAFF_EVAL_LOCAL_BASE_URL` / `FAFF_EVAL_LOCAL_MODEL` env path (shipped in FAFF-132), a committed regression baseline, and a proportionate gate (FAFF-169/180). The gap is entirely in *evidence hygiene*: the runbook and the committed config hardcode a private Tailscale host, and the committed frontier baseline is self-declared PROVISIONAL with nothing tying a release to a real one. This change fixes the leak and adds the release-time evidence claim; it does **not** touch the harness mechanism.
 
-**Problem statement.** `eval/README.md` and the committed `.faffrc.yaml` both hardcode the operator's private tailnet host `studio.longhair-escalator.ts.net:11434` — infrastructure leakage in a public repo, and examples a stranger can't run. Separately, `eval/baselines/frontier.json` is PROVISIONAL (seeded near-uniform 1.00, captured 2026-06-16, not swept), and no release step asserts a real baseline exists. This change routes the docs and config through the existing env-var / gitignored-overlay seams and adds a release-checklist step that requires the committed baseline to be non-PROVISIONAL and current before a release goes out.
+**Problem statement.** `eval/README.md` and the committed `.faffrc.yaml` both hardcode the operator's private tailnet host `<operator-tailnet-host>:11434` — infrastructure leakage in a public repo, and examples a stranger can't run. Separately, `eval/baselines/frontier.json` is PROVISIONAL (seeded near-uniform 1.00, captured 2026-06-16, not swept), and no release step asserts a real baseline exists. This change routes the docs and config through the existing env-var / gitignored-overlay seams and adds a release-checklist step that requires the committed baseline to be non-PROVISIONAL and current before a release goes out.
 
 **Design principles.**
 
@@ -116,7 +116,7 @@ PROCEDURE ensure_overlay_ignored:
   - **Eval baseline is non-PROVISIONAL and current** — the committed `eval/baselines/frontier.json` reflects a real recorded frontier sweep, not the seeded placeholder. Check mechanically:
 
     ```
-    node -e "process.exit(/PROVISIONAL/.test(require('./eval/baselines/frontier.json').meta.source) ? 1 : 0)" \
+    node -e "process.exit(/PROVISIONAL/.test(require('./eval/baselines/frontier.json').meta?.source ?? '') ? 1 : 0)" \
       && echo "baseline OK (non-PROVISIONAL)" || echo "baseline still PROVISIONAL — run a real frontier sweep first"
     ```
   - When it fails, the remedy is named: an operator runs `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json` (a multi-hour, budgeted, human-supervised sweep; see `eval/README.md` and FAFF-318 / FAFF-319), reviews the numbers, and commits the refreshed baseline.
@@ -124,7 +124,7 @@ PROCEDURE ensure_overlay_ignored:
 
 **Failure modes.**
 
-- **The failure:** the relocation leaves the host reachable in git history or in another tracked file, so the "leak fixed" claim is false. **How you'd know:** `git grep -n 'longhair-escalator'` over tracked files (excluding the OUT-OF-SCOPE test fixtures and frozen design specs) returns a hit in `eval/README.md` or `.faffrc.yaml`. **What it means:** not done — the census must be clean for the two in-scope files.
+- **The failure:** the relocation leaves the host reachable in git history or in another tracked file, so the "leak fixed" claim is false. **How you'd know:** the leak census (below — greps the in-scope files for the operator's own tailnet-host fragment, so the check itself embeds no secret) returns a hit in `eval/README.md`, `.faffrc.yaml`, or this spec file. **What it means:** not done — the census must be clean for all three in-scope files (this spec included: a new tracked file must not reintroduce the host it strips). The OUT-OF-SCOPE test fixtures and frozen historical design specs are the only surfaces where the host legitimately still appears.
 - **The failure:** `.gitignore` edit lands but `.faffrc.local.yaml` was already `git add`-ed earlier, so it stays tracked despite the ignore. **How you'd know:** `git ls-files .faffrc.local.yaml` returns the path. **What it means:** the file must be `git rm --cached`-ed (it is not currently tracked — verified — so this is a guard, not an expected step).
 - **The failure:** removing `studio-ollama` from the committed `refs` silently changes the adversarial-review fallback for a *fresh clone with no overlay*. **How you'd know:** a review run on a clean checkout finds only two backends. **What it means:** acceptable and intended — `studio-ollama` was never reachable off the operator's tailnet; the operator's overlay restores all three. Documented in the overlay guidance.
 
@@ -132,8 +132,8 @@ PROCEDURE ensure_overlay_ignored:
 
 ```
 Given a fresh clone of the repo with no .faffrc.local.yaml
-When a stranger greps the tracked eval runbook and committed config for the operator host
-Then `git grep longhair-escalator eval/README.md .faffrc.yaml` returns no matches
+When a stranger greps the tracked eval runbook, committed config, and this build spec for the operator host
+Then the leak census (a `git grep` for the operator's tailnet-host fragment over `eval/README.md`, `.faffrc.yaml`, and `docs/specs/2026-07-23-FAFF-587-eval-evidence-hygiene-design.md`) returns no matches
 ```
 
 ```
@@ -177,8 +177,14 @@ At the time of writing, `eval/baselines/frontier.json` is PROVISIONAL (captured 
 ## 8. DONE — Definition of Done
 
 ### From WHY / info-leak
-- [ ] `git grep -n 'longhair-escalator' eval/README.md` returns zero matches
-- [ ] `git grep -n 'longhair-escalator' .faffrc.yaml` returns zero matches
+- [ ] The leak census over **all three** in-scope tracked files — the runbook, the committed config, **and this build spec** (a new tracked file must not reintroduce the host it strips) — returns zero matches. The census names no secret; it greps for the operator's own tailnet-host fragment supplied out-of-band:
+
+  ```sh
+  frag="${OPERATOR_TAILNET_FRAG:?export your tailnet-host fragment, e.g. the machine/tailnet name}"
+  git grep -nF "$frag" -- \
+    eval/README.md .faffrc.yaml docs/specs/2026-07-23-FAFF-587-eval-evidence-hygiene-design.md
+  # → zero matches (the host lives only in the gitignored .faffrc.local.yaml overlay)
+  ```
 - [ ] `.faffrc.yaml` no longer defines the `studio-ollama` backend and `faffter_dark.adversarial.refs` lists only `nvidia-glm`, `gemini-gemma`
 
 ### From WHAT / overlay + gitignore
@@ -196,7 +202,9 @@ At the time of writing, `eval/baselines/frontier.json` is PROVISIONAL (captured 
 
 ### Integration smoke test
 ```
-1. On a clean worktree: `git grep -n longhair-escalator eval/README.md .faffrc.yaml`  → no output
+1. On a clean worktree, leak census over the three in-scope files (runbook, config, this spec):
+     frag="${OPERATOR_TAILNET_FRAG:?}"; git grep -nF "$frag" -- \
+       eval/README.md .faffrc.yaml docs/specs/2026-07-23-FAFF-587-eval-evidence-hygiene-design.md   → no output
 2. `git check-ignore .faffrc.local.yaml`                                              → prints the path
 3. run the frontier.json PROVISIONAL predicate                                        → exits non-zero today (baseline still seeded), printing the remedy
 ```

@@ -534,6 +534,73 @@ export const HOLDOUT_EXERCISE_MODE_INSTRUCTION =
   "entry per criterion, using the fixture's criterion keys. Output NOTHING except that single block: no " +
   "reasoning, no preamble, no prose, nothing before or after it.";
 
+// FAFF-319 — the seven previously-missing judgement-eval envelope instructions. Before this, none of
+// these kinds had an arm in modeInstructionFor/renderFixturePrompt/criteriaFor, so they fell through to
+// EVAL_MODE_INSTRUCTION's tidy `{classifications, ordering, gloss, splittable}` shape while the grader
+// read env.architecture/specqual/roadmap/adr/verdict/objections/findings — empty by construction, hence
+// a stable 0.00 regardless of oracle quality (the exact FAFF-317 `holdout` gap, never fixed for the
+// rest). Each names the grader's exact read-field and carries the same OUTPUT-ONLY hardening as every
+// sibling. gradeCoverage reads a `{id: text}` map OR a flat array, so the collection kinds emit an array.
+export const ARCHITECTURE_MODE_INSTRUCTION =
+  "Propose ONE best-fit, build-biased, production-grade architecture for the brief + infra profile above. " +
+  "Then OUTPUT ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) " +
+  'containing JSON of the shape { "case_id": "<ID>", "architecture": ["<claim>", ...] } — an array of the ' +
+  "key claims of your proposal (the datastore, the runtime/deploy shape, each ADR-worthy decision, and any " +
+  "assumptions), each as one short string. Output NOTHING except that single block: no reasoning, no " +
+  "preamble, no prose, nothing before or after it.";
+
+export const SPECQUAL_MODE_INSTRUCTION =
+  "Write a buildable lite-nlspec (WHY / WHAT / HOW / DONE arc, testable acceptance criteria, a concrete " +
+  "scoped HOW) for the issue + explore findings above, following the producer's own arc rubric. Then OUTPUT " +
+  "ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON " +
+  'of the shape { "case_id": "<ID>", "specqual": ["<section text>", ...] } — an array holding each section ' +
+  "of the spec you write (WHY, WHAT, HOW, DONE, and the Scenarios), each as one string. Output NOTHING " +
+  "except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
+export const ROADMAP_MODE_INSTRUCTION =
+  "Synthesise the roadmap over the seeded tracker above: name the dependency chains (each head and its " +
+  "blocked-by members), note which items sit off any chain, and — where the question asks it — read whether " +
+  "each trigger gate can actually fire given its upstream state. Then OUTPUT ONLY one fenced code block " +
+  'tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape { "case_id": ' +
+  '"<ID>", "roadmap": ["<claim>", ...] } — an array of your synthesis as short claims (each chain and its ' +
+  "members, off-chain items, and each gate's fireability reading). Output NOTHING except that single block: " +
+  "no reasoning, no preamble, no prose, nothing before or after it.";
+
+export const ADR_GLOSS_MODE_INSTRUCTION =
+  "Author the Nygard ADR body (Context / Decision / Consequences) for the settled decision above: state the " +
+  "decision, the trade-off actually made, and the real consequences — invent no rationale the decision does " +
+  "not carry. Then OUTPUT ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT " +
+  '```json) containing JSON of the shape { "case_id": "<ID>", "adr": ["<section text>", ...] } — an array ' +
+  "holding each section of the ADR body (Context, Decision, Consequences), each as one string. Output " +
+  "NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
+export const SPEC_VERDICT_MODE_INSTRUCTION =
+  "Review the spec above across the architectural / infosec / methodology / QA lenses and assign ONE fixed " +
+  "verdict via the severity roll-up: `approve` (no lens objects), `revise` (a fixable in-scope gap), " +
+  "`reject-approach` (a design/architectural blocker with the scope otherwise right), or `needs-human` (a " +
+  "threat call an L1-L3 reviewer must not settle alone). Then OUTPUT ONLY one fenced code block tagged " +
+  'exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape { "case_id": "<ID>", ' +
+  '"verdict": "approve|revise|reject-approach|needs-human" } — exactly one value from that closed set. ' +
+  "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
+
+export const REFUTATION_SPEC_MODE_INSTRUCTION =
+  "Refute the spec above across the enabled lenses (architectural, infosec, methodology, QA): each lens is " +
+  "an independent refuter that either objects with a severity or stays silent. Then OUTPUT ONLY one fenced " +
+  "code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape " +
+  '{ "case_id": "<ID>", "objections": [{ "lens": "architectural|infosec|methodology|QA", "severity": ' +
+  '"minor|major|blocker" }, ...] } — one entry per objecting lens, or an EMPTY array if the spec is sound ' +
+  "and you would approve. Only major/blocker objections count; do not manufacture an objection to seem " +
+  "thorough. Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing else.";
+
+export const REFUTATION_CODE_MODE_INSTRUCTION =
+  "Adversarially review the diff above against its spec summary: raise a finding for any real defect " +
+  "(correctness, security, scope creep, …), or report clean. Then OUTPUT ONLY one fenced code block tagged " +
+  'exactly `faff-eval:judgement` (that tag, NOT ```json) containing JSON of the shape { "case_id": "<ID>", ' +
+  '"findings": [{ "severity": "minor|major|blocker", "title": "<short>" }, ...] } — one entry per finding, ' +
+  "or an EMPTY array if the diff is clean and in-scope. Only major/blocker findings mark the change flagged; " +
+  "do not manufacture a finding on correct code. Output NOTHING except that single block: no reasoning, no " +
+  "preamble, no prose, nothing before or after it.";
+
 // FAFF-146 — per-kind eval-mode instruction. Tidy's six kinds keep EVAL_MODE_INSTRUCTION verbatim;
 // prep's two black-box surfaces get their own envelope-shape instruction. (verdict-revert is routed
 // to VERDICT_REVERT_INSTRUCTION directly in buildEvalPrompt, so it isn't listed here.)
@@ -548,6 +615,14 @@ function modeInstructionFor(kind) {
   if (kind === "decomposition") return DECOMPOSITION_MODE_INSTRUCTION;
   if (kind === "chain-gap") return CHAIN_GAP_INSTRUCTION;
   if (kind === "explanatory-order") return EXPLANATORY_ORDER_INSTRUCTION;
+  // FAFF-319 — the seven judgement-eval kinds, each naming the grader's exact read-field.
+  if (kind === "architecture") return ARCHITECTURE_MODE_INSTRUCTION;
+  if (kind === "specqual") return SPECQUAL_MODE_INSTRUCTION;
+  if (kind === "roadmap") return ROADMAP_MODE_INSTRUCTION;
+  if (kind === "adr-gloss") return ADR_GLOSS_MODE_INSTRUCTION;
+  if (kind === "spec-verdict") return SPEC_VERDICT_MODE_INSTRUCTION;
+  if (kind === "refutation-spec") return REFUTATION_SPEC_MODE_INSTRUCTION;
+  if (kind === "refutation-code") return REFUTATION_CODE_MODE_INSTRUCTION;
   return EVAL_MODE_INSTRUCTION;
 }
 
@@ -645,10 +720,107 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Raw recordings (unaligned — derive which bear on which criterion yourself):\n${recordings}`
     );
   }
+  // FAFF-319 — the seven judgement-eval kinds. Each frames its REAL task (never "run faff-tidy's
+  // judgement pass") and renders the fixture's own fields, so the model answers the question the grader
+  // scores rather than a tidy pass. FIXES the fall-through that zeroed these kinds (they previously hit
+  // the generic tidy branch below with no bespoke rendering).
+  if (c.kind === "architecture") {
+    return (
+      `${rubric}Propose a best-fit architecture for the following brief and answer: ${c.question}\n\n` +
+      `Brief:\n${c.fixture.brief}\n\n${c.fixture.infra_profile}`
+    );
+  }
+  if (c.kind === "specqual") {
+    return (
+      `${rubric}Write a buildable lite-nlspec for the following issue and explore findings, then answer: ${c.question}\n\n` +
+      `Issue + explore findings:\n${c.fixture.issue}`
+    );
+  }
+  if (c.kind === "roadmap") {
+    return (
+      `${rubric}Synthesise the roadmap over the following seeded tracker and answer: ${c.question}\n\n` +
+      `Issues:\n${JSON.stringify(c.fixture.issues, null, 2)}`
+    );
+  }
+  if (c.kind === "adr-gloss") {
+    return (
+      `${rubric}Author the Nygard ADR body for the following settled decision and answer: ${c.question}\n\n` +
+      `Decision:\n${c.fixture.decision}\n\nSpec rationale:\n${c.fixture.spec_rationale}\n\nExisting ADRs:\n${c.fixture.existing_adrs}`
+    );
+  }
+  if (c.kind === "spec-verdict") {
+    return (
+      `${rubric}Review the following spec's approach across the architectural / infosec / methodology / QA lenses and answer: ${c.question}\n\n` +
+      `Spec:\n${c.fixture.spec_body}`
+    );
+  }
+  // refutation-spec renders the spec verbatim — the fixture's `spec` string may EMBED a `## Methodology
+  // critique` block (refutation-spec-003), which the methodology lens consumes; passing it through
+  // verbatim is what keeps that lens from degrading to no-signal.
+  if (c.kind === "refutation-spec") {
+    return (
+      `${rubric}Refute the following spec across the enabled lenses and answer: ${c.question}\n\n` +
+      `Spec:\n${c.fixture.spec}`
+    );
+  }
+  if (c.kind === "refutation-code") {
+    return (
+      `${rubric}Adversarially review the following diff against its spec summary and answer: ${c.question}\n\n` +
+      `Spec summary:\n${c.fixture.spec_summary}\n\nDiff:\n${c.fixture.diff}`
+    );
+  }
   return (
     `${rubric}Run faff-tidy's judgement pass on the following backlog fixture and answer: ${c.question}\n\n` +
     `Fixture (FAFF-89 tracker shape):\n${JSON.stringify(c.fixture, null, 2)}`
   );
+}
+
+// FAFF-319 — the seven judgement-eval kinds each load their OWN surface's shipped prose (never tidy's
+// combined criteria), sliced by existing headings via extractSection — the loadHoldoutJudgementProse
+// pattern. Anchors are current section headings in the named skills; a drifted heading throws loudly
+// (caught statically by the eval-cli-driver tests, never a silent fall-through). Each anchor pair is
+// the judgement rubric the fixture cases exercise.
+const ARCHITECTURE_PROSE_START = "## How it proposes";
+const ARCHITECTURE_PROSE_END = "## Output (the contract artifact)";
+export function loadArchitectureProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-noon-architecture", "SKILL.md");
+  return extractSection(p, ARCHITECTURE_PROSE_START, ARCHITECTURE_PROSE_END, "loadArchitectureProse");
+}
+const SPECQUAL_PROSE_START = "## The lite nlspec arc";
+const SPECQUAL_PROSE_END = "## Self-review before returning";
+export function loadSpecqualProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-noon-spec", "SKILL.md");
+  return extractSection(p, SPECQUAL_PROSE_START, SPECQUAL_PROSE_END, "loadSpecqualProse");
+}
+const ROADMAP_PROSE_START = "### 4. Dependency chain — does everything join up?";
+const ROADMAP_PROSE_END = "## Output Format";
+export function loadRoadmapProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faff-map", "SKILL.md");
+  return extractSection(p, ROADMAP_PROSE_START, ROADMAP_PROSE_END, "loadRoadmapProse");
+}
+const ADR_GLOSS_PROSE_START = "## Output — the ADR body";
+const ADR_GLOSS_PROSE_END = "## Rules";
+export function loadAdrGlossProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-noon-adr", "SKILL.md");
+  return extractSection(p, ADR_GLOSS_PROSE_START, ADR_GLOSS_PROSE_END, "loadAdrGlossProse");
+}
+const SPEC_VERDICT_PROSE_START = "## The four lenses (single-pass checklist)";
+const SPEC_VERDICT_PROSE_END = "## Output (the contract artifact)";
+export function loadSpecVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-noon-spec-review", "SKILL.md");
+  return extractSection(p, SPEC_VERDICT_PROSE_START, SPEC_VERDICT_PROSE_END, "loadSpecVerdictProse");
+}
+const REFUTATION_SPEC_PROSE_START = "## The lenses as independent refuters";
+const REFUTATION_SPEC_PROSE_END = "## Backend call";
+export function loadRefutationSpecProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-dark-spec-review", "SKILL.md");
+  return extractSection(p, REFUTATION_SPEC_PROSE_START, REFUTATION_SPEC_PROSE_END, "loadRefutationSpecProse");
+}
+const REFUTATION_CODE_PROSE_START = "## Review lens";
+const REFUTATION_CODE_PROSE_END = "## LLM provider integration";
+export function loadRefutationCodeProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const p = join(pluginDir, "skills", "faffter-dark-adversarial-review", "SKILL.md");
+  return extractSection(p, REFUTATION_CODE_PROSE_START, REFUTATION_CODE_PROSE_END, "loadRefutationCodeProse");
 }
 
 // FAFF-146 — resolve the verbatim criteria for a case's kind from the plugin under test. Tidy's six
@@ -671,6 +843,14 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   // `holdout` previously had NO arm here at all (it fell through to the tidy combined criteria).
   if (kind === "holdout" || kind === "holdout-exercise") return loadHoldoutJudgementProse(pluginDir);
   if (kind === "explanatory-order") return loadLeadWithModelProse(pluginDir);
+  // FAFF-319 — each judgement-eval kind loads its own surface's rubric (never tidy's default).
+  if (kind === "architecture") return loadArchitectureProse(pluginDir);
+  if (kind === "specqual") return loadSpecqualProse(pluginDir);
+  if (kind === "roadmap") return loadRoadmapProse(pluginDir);
+  if (kind === "adr-gloss") return loadAdrGlossProse(pluginDir);
+  if (kind === "spec-verdict") return loadSpecVerdictProse(pluginDir);
+  if (kind === "refutation-spec") return loadRefutationSpecProse(pluginDir);
+  if (kind === "refutation-code") return loadRefutationCodeProse(pluginDir);
   return loadJudgementCriteria(pluginDir);
 }
 

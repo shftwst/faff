@@ -147,3 +147,48 @@ jq -c 'select(.case_id=="confidence-001") | {rep, predicted: .envelope, graded, 
 (the source material FAFF-318's resume/checkpoint would consume). Retention: bounded per-rep by the
 16 KB `raw_text` cap; no auto-pruning in v1 (a multi-hour sweep is still many MB — prune old
 `.faff/eval-runs/` dirs by hand).
+
+## Re-baseline runbook (FAFF-319) — the operator sweep
+
+After a calibration pass edits oracles (see `eval/calibration/oracle-triage.json`), the 8 judgement-eval
+kinds still contribute **nothing** to the regression gate until a real sweep writes their rows into
+`eval/baselines/frontier.json`. That sweep is **operator-owned, run by hand in a plain terminal** — it is
+not automation-eligible and no agent session may run it. Follow these six points exactly.
+
+1. **Never run it nested under `claude -p`.** ADR-0004: a sweep launched inside an agent session shares
+   the parent's Anthropic quota (a token race that starves both) and its `~/.claude.json` (a config
+   race that corrupts auth). Small `--only … --reps 3` probes use the *same* nested mechanism, so they
+   are excluded too. Run the whole thing from a shell you opened yourself.
+
+2. **The command, and which model it uses.**
+   ```sh
+   node eval/run-evals.mjs --update-baseline      # full suite, frontier driver, writes eval/baselines/frontier.json
+   ```
+   The frontier model is **pinned** (FAFF-315), resolved `--model` flag **>** `faff config get models.eval`
+   **>** the baked-in `claude-sonnet-4-6` — *never* your account default. The run prints the resolved
+   model at start (`[run-evals] frontier model: …`); confirm it before letting it spend.
+
+3. **Never pass `--only` with `--update-baseline`.** `--update-baseline` writes `per_kind` **wholesale** —
+   it replaces the block with exactly the kinds in the run. `--only` filters the run to a subset, so
+   `--update-baseline --only spec-verdict` would write a baseline containing *only* `spec-verdict` and
+   **silently drop every other kind's row**, which then fails future gates as "missing". Re-baseline is
+   always the full suite. (Use `--only`/`--reps` for read-only smoke probes, never with `--update-baseline`.)
+
+4. **What it costs (derived, not guessed).** At the current **79** live case files × **20** base reps
+   ≈ **1,580** frontier reps; wobbly cases escalate toward **50** reps each, so the worst case is
+   ≈ **3,950** reps — a **multi-hour**, real-dollars sweep. Budget for it; don't start it on a laptop
+   about to sleep.
+
+5. **There is no resume — this is an accepted operating condition.** FAFF-318 (sweep resume/checkpoint)
+   is deliberately **not** a blocker for this work. If the sweep is interrupted, `--update-baseline` does
+   not resume; you re-run the full suite. The spend is not fully lost, though: every completed rep was
+   already streamed to `judgements.jsonl` (see *Raw judgement capture*), so the partial run's data
+   survives for inspection even when the baseline was never written. If interruptions prove chronic,
+   ship FAFF-318 first.
+
+6. **What it leaves behind.** On success it rewrites `eval/baselines/frontier.json` (`per_kind` for every
+   kind in the run + a fresh `meta`, preserving the policy block) and leaves the full
+   `.faff/eval-runs/<run-id>/judgements.jsonl` capture. **Keep that capture** — the follow-up ticket that
+   resolves the triage's `needs-evidence` and `suspected-genuine-miss` entries reads it to decide whether
+   a low score is an oracle defect or a genuine skill miss; do not prune the run dir until that ticket
+   closes.

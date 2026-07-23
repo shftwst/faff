@@ -372,3 +372,97 @@ test("FAFF-317 buildEvalPrompt(holdout-exercise) carries spec_dod + a labelled r
   assert.ok(!p.includes("Run faff-tidy's judgement pass"), "does NOT use the tidy framing");
   assert.ok(!p.includes("THE RECORDED TRANSCRIPT"), "no pre-digested narrative — raw recordings only");
 });
+
+// === FAFF-319 — the seven judgement-eval kinds' driver arms (envelope + render + criteria) ===
+// Before FAFF-319 these fell through to the tidy default: the model was told to emit tidy fields while
+// the grader read env.architecture/specqual/roadmap/adr/verdict/objections/findings — empty by
+// construction (a stable 0.00). Each test asserts the arm now (a) loads the surface's OWN rubric, (b)
+// names the grader's exact envelope field, (c) frames the real task, and (d) no longer falls through.
+
+test("FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)", () => {
+  assert.ok(criteriaFor("architecture", DEFAULT_PLUGIN_DIR).startsWith("## How it proposes"));
+  assert.ok(criteriaFor("specqual", DEFAULT_PLUGIN_DIR).startsWith("## The lite nlspec arc"));
+  assert.ok(criteriaFor("roadmap", DEFAULT_PLUGIN_DIR).startsWith("### 4. Dependency chain"));
+  assert.ok(criteriaFor("adr-gloss", DEFAULT_PLUGIN_DIR).startsWith("## Output — the ADR body"));
+  assert.ok(criteriaFor("spec-verdict", DEFAULT_PLUGIN_DIR).startsWith("## The four lenses"));
+  assert.ok(criteriaFor("refutation-spec", DEFAULT_PLUGIN_DIR).startsWith("## The lenses as independent refuters"));
+  assert.ok(criteriaFor("refutation-code", DEFAULT_PLUGIN_DIR).startsWith("## Review lens"));
+  // --no-plugin baseline → improvise (the control) for every one
+  for (const k of ["architecture", "specqual", "roadmap", "adr-gloss", "spec-verdict", "refutation-spec", "refutation-code"]) {
+    assert.equal(criteriaFor(k, null), null);
+  }
+});
+
+test("FAFF-319 buildEvalPrompt(architecture) frames the proposal task + emits env.architecture", () => {
+  const c = { id: "arch-x", kind: "architecture", question: "Propose one best-fit architecture.",
+    fixture: { brief: "THE BRIEF", infra_profile: "THE INFRA PROFILE" } };
+  const p = buildEvalPrompt(c, criteriaFor("architecture", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## How it proposes"), "folds in the architecture surface's own rubric");
+  assert.ok(p.includes("THE BRIEF") && p.includes("THE INFRA PROFILE"), "renders brief + infra profile");
+  assert.ok(p.includes('"architecture"'), "asks for the architecture envelope field the grader reads");
+  assert.ok(p.includes("arch-x"), "interpolates the case id");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass"), "no tidy fall-through");
+  assert.ok(!p.includes('"classifications"'), "no tidy classifications envelope");
+});
+
+test("FAFF-319 buildEvalPrompt(specqual) frames the write-a-spec task + emits env.specqual", () => {
+  const c = { id: "sq-x", kind: "specqual", question: "Write a buildable lite-nlspec.",
+    fixture: { issue: "THE ISSUE AND EXPLORE FINDINGS" } };
+  const p = buildEvalPrompt(c, criteriaFor("specqual", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## The lite nlspec arc"), "folds in the spec producer's arc rubric");
+  assert.ok(p.includes("THE ISSUE AND EXPLORE FINDINGS"), "renders the issue + explore findings");
+  assert.ok(p.includes('"specqual"'), "asks for the specqual envelope field");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+test("FAFF-319 buildEvalPrompt(roadmap) frames the synthesis task + emits env.roadmap", () => {
+  const c = { id: "rm-x", kind: "roadmap", question: "Synthesise the roadmap.",
+    fixture: { issues: [{ id: "ISS-Z", title: "ZEE ISSUE", state: "Backlog", relations: { blocks: [], blockedBy: [], relatedTo: [] } }] } };
+  const p = buildEvalPrompt(c, criteriaFor("roadmap", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("### 4. Dependency chain"), "folds in faff-map's synthesis rubric");
+  assert.ok(p.includes("ISS-Z") && p.includes("ZEE ISSUE"), "renders the seeded issues");
+  assert.ok(p.includes('"roadmap"'), "asks for the roadmap envelope field");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+test("FAFF-319 buildEvalPrompt(adr-gloss) frames the ADR-authoring task + emits env.adr", () => {
+  const c = { id: "adg-x", kind: "adr-gloss", question: "Author the Nygard ADR body.",
+    fixture: { decision: "THE DECISION", spec_rationale: "THE RATIONALE", existing_adrs: "NO PRIOR ADR" } };
+  const p = buildEvalPrompt(c, criteriaFor("adr-gloss", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## Output — the ADR body"), "folds in the ADR surface's contract rubric");
+  assert.ok(p.includes("THE DECISION") && p.includes("THE RATIONALE") && p.includes("NO PRIOR ADR"), "renders decision + rationale + existing ADRs");
+  assert.ok(p.includes('"adr"'), "asks for the adr envelope field (NOT adr-gloss) the grader reads");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+test("FAFF-319 buildEvalPrompt(spec-verdict) frames the review task + emits env.verdict", () => {
+  const c = { id: "sv-x", kind: "spec-verdict", question: "Assign the fixed verdict.",
+    fixture: { spec_body: "THE SPEC UNDER REVIEW" } };
+  const p = buildEvalPrompt(c, criteriaFor("spec-verdict", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## The four lenses"), "folds in the spec-review lens + roll-up rubric");
+  assert.ok(p.includes("THE SPEC UNDER REVIEW"), "renders the spec body");
+  assert.ok(p.includes('"verdict"'), "asks for the verdict envelope field");
+  assert.ok(p.includes("approve|revise|reject-approach|needs-human"), "states the closed verdict vocabulary");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+test("FAFF-319 buildEvalPrompt(refutation-spec) frames the refute task + emits env.objections", () => {
+  const c = { id: "rs-x", kind: "refutation-spec", question: "Refute this spec across the enabled lenses.",
+    fixture: { spec: "THE SPEC TO REFUTE (may embed a ## Methodology critique block)" } };
+  const p = buildEvalPrompt(c, criteriaFor("refutation-spec", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## The lenses as independent refuters"), "folds in the dark spec-review lens rubric");
+  assert.ok(p.includes("THE SPEC TO REFUTE"), "renders the spec verbatim (methodology block survives)");
+  assert.ok(p.includes('"objections"'), "asks for the objections envelope field");
+  assert.ok(p.includes("architectural|infosec|methodology|QA"), "states the lens vocabulary");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+test("FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings", () => {
+  const c = { id: "rc-x", kind: "refutation-code", question: "Adversarially review this diff.",
+    fixture: { diff: "THE DIFF", spec_summary: "THE SPEC SUMMARY" } };
+  const p = buildEvalPrompt(c, criteriaFor("refutation-code", DEFAULT_PLUGIN_DIR));
+  assert.ok(p.includes("## Review lens"), "folds in the adversarial-review lens");
+  assert.ok(p.includes("THE DIFF") && p.includes("THE SPEC SUMMARY"), "renders diff + spec summary");
+  assert.ok(p.includes('"findings"'), "asks for the findings envelope field");
+  assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});

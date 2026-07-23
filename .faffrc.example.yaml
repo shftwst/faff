@@ -189,15 +189,18 @@ intake_gate: warn   # warn (default) | block | off
 gates:
   fallback: fail-closed   # fail-closed (default) | advisory
 
-# Within-run convergence (FAFF-87), /faff-beep-boop. Off by default (L4 discipline). When enabled
-# (or run with --converge, which overrides this), beep-boop folds execution-discovered scope into
-# the SAME run — file → narrow-prep → re-assemble → loop — and delegates each wave-boundary stop to
-# `faff run-done` (genuine dryness + budget + non-convergence backstop) instead of plain queue-empty.
+# Within-run convergence (FAFF-87), /faff-beep-boop. On by default: beep-boop folds execution-discovered
+# scope into the SAME run — file → narrow-prep → re-assemble → loop — and delegates each wave-boundary
+# stop to `faff run-done` (genuine dryness + budget + non-convergence backstop) instead of plain
+# queue-empty. At L4 (lights-out) convergence is NON-OPTIONAL — the knob/flag cannot disable it
+# (enabled: false and --no-converge are inert). The knob survives only to opt a single L3 run OUT of the
+# per-layer human checkpoint, back to file-and-defer (--no-converge for one run, or enabled: false for a
+# persistent L3 posture; --converge/--no-converge are mutually exclusive and a flag overrides this config).
 # max_waves is a RUNAWAY BACKSTOP ONLY: K consecutive no-progress waves → a reported non-convergence
 # escalate, never a silent truncation. Eligibility is not bypassed — discovered tickets re-enter only
 # if automation-eligible (so meaningful in-run draining needs automation_default: opt-out, or crank-up).
 convergence:
-  enabled: false   # false (default) | true   (== --converge; the flag overrides this)
+  enabled: true    # true (default) | false (L3 opt-out only; inert at L4)
   max_waves: 6     # runaway backstop K — consecutive no-progress waves before non-convergence escalate
 
 # Run budget envelope (FAFF-36), /faff-beep-boop + `faff lights-out`. A set of ceilings across four

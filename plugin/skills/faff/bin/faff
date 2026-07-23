@@ -342,4 +342,9 @@ module.exports = {
   // "trusted" fold/validate path is unfakeable via a CLI child process, same reason
   // correctiveIntegrityProbe is exported above).
   CORRECTIVE_OPS, foldCorrectiveConstraints, validateCorrectiveInput,
+  // FAFF-538: the COMMANDS registry keys are the single source of truth for the live
+  // top-level verb set — exported so the scaffolder-cli-surface drift-guard imports the
+  // verb list instead of re-listing it (require.main guard above keeps this import from
+  // dispatching a subcommand).
+  COMMANDS,
 };

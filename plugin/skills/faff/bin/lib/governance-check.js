@@ -24,7 +24,10 @@
 // LLM. Fail-closed on malformed input (a malformed run-ledger.json is a fail-loud
 // exit 2, never a leg failure); explicit on absent (`--issue`/branch-derivation
 // failing degrades to "every admitted issue with a terminal outcome", never a
-// silent empty check).
+// silent empty check). Anchor paths are PR-controlled input: `--derive-anchor-dirs`
+// (the Action's discovery core) rejects traversal segments and realpath-contains
+// every derived dir under the anchors root, and `--anchors-root` re-asserts that
+// containment on the supplied `--anchor-dir`s (fail-loud exit 2, never a redirect).
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -36,7 +39,7 @@ const { readAcComplete, readHoldout, readReviewVerdict } = require("./merge-gate
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
 const { findRoot, readLedger } = require("./shared-infra");
-const { sha256Hex, verifyChain } = require("./events");
+const { computeChainHead, sha256Hex, verifyChain } = require("./events");
 
 // ---------------------------------------------------------------------------
 // Leg: budget — the ledger envelope + the LAST recorded budget-checkpoint event.
@@ -146,26 +149,36 @@ function evaluateMergeFloorLeg(runDir, issue, level) {
 // fold. GATING (a broken chain must fail the merge, per the RFC), unlike coherence.
 // COMPOSES `faff events verify`'s core (`verifyChain`) — never a forked hash-walk (the
 // file's own invariant: a leg re-reads a verb's substrate). Classifies rather than
-// blanket-failing: `verified`/`torn`/`legacy` (under pass|warn) pass; only `broken`
-// (a prev/ledger mismatch — tampering) fails, plus `malformed` (a corrupt committed
-// anchor — fail-closed). `legacy-unverifiable` under `legacy-policy: fail` also fails
-// (the locked-down opt-in). An absent events.jsonl → verified (nothing to break), so
-// a run/PR carrying no chain is a clean no-op.
+// blanket-failing: `verified` passes; `legacy-unverifiable` and `mixed` gate per
+// legacy-policy (fail under `fail`; pass — with a loud note under `warn` — otherwise);
+// `broken` (a prev/ledger mismatch — tampering), `witness-mismatch` (the chain-head.json
+// witness disagrees with the re-derived log — a post-anchor rewrite, failed regardless
+// of legacy-policy), and `malformed` (a corrupt committed anchor) all fail-closed. An
+// absent events.jsonl → verified (nothing to break), so a run/PR carrying no chain is
+// a clean no-op. `note` (when set) is a warning line the shell emits to stderr and the
+// renderers carry in the detail column — `warn` is never silently identical to `pass`.
 // ---------------------------------------------------------------------------
 
 function evaluateIntegrityLeg(dir, legacyPolicy = "pass") {
   const r = verifyChain(dir, { legacyPolicy });
-  let pass;
+  let pass, note = null;
   if (r.status === "verified") pass = true;
-  else if (r.status === "legacy-unverifiable") pass = legacyPolicy !== "fail";
-  else pass = false; // broken | malformed → fail-closed
+  else if (r.status === "legacy-unverifiable" || r.status === "mixed") {
+    pass = legacyPolicy !== "fail";
+    if (pass && legacyPolicy === "warn") {
+      note = r.status === "mixed"
+        ? "mixed chain (prev-less lines content-unverifiable) — pass under legacy-policy warn"
+        : "legacy schema-1 log (no chain) — pass under legacy-policy warn";
+    }
+  } else pass = false; // broken | witness-mismatch | malformed → fail-closed
   let detail = r.detail;
   if (r.status === "broken" && r.first_break) {
     detail = `broken at line ${r.first_break.line}${r.first_break.seq != null ? ` (seq ${r.first_break.seq})` : ""}`;
   } else if (r.status === "broken" && r.ledger_fold === "mismatch") {
     detail = "ledger fold mismatch (unrecorded ledger rewrite)";
   }
-  return { pass, status: r.status, detail, first_break: r.first_break };
+  if (note) detail = `${detail} [warn]`;
+  return { pass, status: r.status, detail, first_break: r.first_break, note, torn_tail: r.torn_tail, witness: r.witness };
 }
 
 // An ANCHOR is a per-PR snapshot, not a live run dir — it is verified INTEGRITY-ONLY.
@@ -197,6 +210,69 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass") {
     },
     pass: integrity.pass,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Anchor discovery core (FAFF-568 fix pass) — the Action's `--derive-anchor-dirs`
+// mode composes this. Input: the PR diff's changed paths + the configured
+// anchors-path. Output: the anchor dirs (<anchors-path>/<run>/<issue>) to verify,
+// derived by PREFIX-STRIPPING (works for any anchors-path depth — 1, 2, 3+
+// segments — never an awk segment-count heuristic), plus the dropped paths with
+// reasons (the caller warns loudly; a drop is never silent). Containment is
+// two-fold: any ".."/"."/empty segment below the prefix is rejected (traversal),
+// and each surviving dir must REALPATH-resolve under the anchors root (symlink
+// escape — a PR can commit a symlink). A dir the PR itself deleted is skipped
+// ("not carried anymore", mirroring the run-dir discovery's posture).
+// ---------------------------------------------------------------------------
+
+function deriveAnchorDirs(changedPaths, anchorsPath) {
+  const prefix = String(anchorsPath).replace(/\/+$/, "");
+  const dirs = [];
+  const dropped = [];
+  const seen = new Set();
+  for (const p of changedPaths) {
+    const f = String(p).trim();
+    if (!f) continue;
+    if (!f.startsWith(prefix + "/")) continue; // not under anchors-path — not ours
+    const segs = f.slice(prefix.length + 1).split("/");
+    if (segs.some((s) => s === ".." || s === "." || s === "")) {
+      dropped.push({ path: f, reason: "path-traversal segment below anchors-path" });
+      continue;
+    }
+    if (segs.length < 3) {
+      dropped.push({ path: f, reason: "too shallow — an anchor file lives at <anchors-path>/<run>/<issue>/<file>" });
+      continue;
+    }
+    const dir = `${prefix}/${segs[0]}/${segs[1]}`;
+    if (seen.has(dir)) continue;
+    seen.add(dir);
+    let st;
+    try { st = fs.statSync(dir); } catch { continue; } // the PR deleted it — not carried anymore
+    if (!st.isDirectory()) continue;
+    let rootReal, dirReal;
+    try { rootReal = fs.realpathSync(prefix); dirReal = fs.realpathSync(dir); }
+    catch { dropped.push({ path: f, reason: "anchors-path/anchor dir unresolvable" }); continue; }
+    if (dirReal !== rootReal && !dirReal.startsWith(rootReal + path.sep)) {
+      dropped.push({ path: f, reason: "resolves outside anchors-path (symlink escape)" });
+      continue;
+    }
+    dirs.push(dir);
+  }
+  return { dirs: dirs.sort(), dropped };
+}
+
+// Re-assert containment on an explicit `--anchor-dir` when `--anchors-root` is
+// supplied (defence-in-depth behind the discovery above — the CLI never trusts
+// that its caller already contained the path). Returns null when contained, a
+// human-readable violation string otherwise. Fail-closed on unresolvable paths.
+function anchorDirContainmentViolation(anchorDir, anchorsRoot) {
+  let rootReal, dirReal;
+  try { rootReal = fs.realpathSync(anchorsRoot); dirReal = fs.realpathSync(anchorDir); }
+  catch (e) { return `cannot resolve for containment: ${e.message}`; }
+  if (dirReal !== rootReal && !dirReal.startsWith(rootReal + path.sep)) {
+    return `resolves to ${dirReal}, outside the anchors root ${rootReal}`;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -365,11 +441,31 @@ function cmdGovernanceCheck(args) {
   };
   const get = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
 
+  // FAFF-568 fix pass: `--derive-anchor-dirs <ANCHORS_PATH>` — the Action's anchor
+  // discovery core. Reads the PR diff's changed paths from stdin (one per line),
+  // prints the derived, containment-checked anchor dirs to stdout (one per line),
+  // warns on stderr for every dropped path. One home for the derivation rule — the
+  // workflow shell never re-implements it with awk.
+  const derivePath = get("--derive-anchor-dirs");
+  if (derivePath !== null) {
+    if (!derivePath) {
+      process.stderr.write("faff governance-check: --derive-anchor-dirs requires the anchors-path value\n");
+      return 2;
+    }
+    let raw = "";
+    try { raw = fs.readFileSync(0, "utf8"); } catch { raw = ""; }
+    const { dirs, dropped } = deriveAnchorDirs(raw.split("\n"), derivePath);
+    for (const d of dropped) process.stderr.write(`faff governance-check: anchor path dropped — ${d.reason}: ${d.path}\n`);
+    for (const d of dirs) console.log(d);
+    return 0;
+  }
+
   const runDirs = getAll("--run-dir");
   const anchorDirs = getAll("--anchor-dir");
   const issueFlag = get("--issue") || null;
   const levelFlag = get("--level") || "L3";
   const legacyPolicy = get("--legacy-policy") || "pass";
+  const anchorsRoot = get("--anchors-root");
   const summaryMdPath = get("--summary-md");
 
   if (!runDirs.length && !anchorDirs.length) {
@@ -388,6 +484,18 @@ function cmdGovernanceCheck(args) {
     if (!fs.existsSync(d) || !fs.statSync(d).isDirectory()) {
       process.stderr.write(`faff governance-check: run/anchor dir is not a directory: ${d}\n`);
       return 2;
+    }
+  }
+  // FAFF-568 fix pass: with `--anchors-root` supplied, every `--anchor-dir` must
+  // realpath-contain under it — a PR-controlled path that escapes the anchors
+  // subtree is a fail-loud exit 2 (a redirected verification target, never verified).
+  if (anchorsRoot) {
+    for (const d of anchorDirs) {
+      const violation = anchorDirContainmentViolation(d, anchorsRoot);
+      if (violation) {
+        process.stderr.write(`faff governance-check: --anchor-dir ${d} ${violation}\n`);
+        return 2;
+      }
     }
   }
 
@@ -410,6 +518,15 @@ function cmdGovernanceCheck(args) {
   const pass = results.every((r) => r.pass);
   const reasons = results.flatMap(buildReasons);
   const verdict = { runs: results, pass, reasons };
+
+  // FAFF-568 fix pass: legacy-policy `warn` actually warns — one stderr line per
+  // integrity note (legacy/mixed under warn), distinct from a silent `pass`. The
+  // note also rides the detail column in both renderers.
+  for (const r of results) {
+    if (r.legs.integrity && r.legs.integrity.note) {
+      process.stderr.write(`faff governance-check: ${r.run_id}: integrity — ${r.legs.integrity.note}\n`);
+    }
+  }
 
   if (json) console.log(JSON.stringify(verdict));
   else renderGovernanceCheckText(verdict);
@@ -697,6 +814,82 @@ function governanceCheckSelftest() {
     }
   }
   {
+    // FAFF-568 fix pass: witness cross-check — a spoofed legacy downgrade is a FAIL
+    // under ANY legacy-policy, and a mixed log gates per legacy-policy with a warn note.
+    const tmp = mkTmpRunDir("faff-govcheck-witness-");
+    try {
+      const lines = buildChainFixture(tmp, "run-w", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-1" },
+      ]);
+      fs.writeFileSync(path.join(tmp, "chain-head.json"),
+        JSON.stringify(computeChainHead(fs.readFileSync(path.join(tmp, "events.jsonl")), "run-w", "FAFF-1"), null, 2) + "\n");
+      check("witness: honest anchored chain → leg pass, witness match",
+        (() => { const r = evaluateIntegrityLeg(tmp, "pass"); return r.pass === true && r.witness === "match"; })());
+      // Strip prev + downgrade schema — reads as legacy without the witness.
+      fs.writeFileSync(path.join(tmp, "events.jsonl"),
+        lines.map((l) => { const { prev, ...rest } = JSON.parse(l); return JSON.stringify({ ...rest, schema: 1 }); }).join("\n") + "\n");
+      const spoofed = evaluateIntegrityLeg(tmp, "pass");
+      check("witness: legacy-downgrade spoof → witness-mismatch FAIL even under legacy-policy pass",
+        spoofed.pass === false && spoofed.status === "witness-mismatch");
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
+    const tmp = mkTmpRunDir("faff-govcheck-mixed-");
+    try {
+      const legacy = JSON.stringify({ schema: 1, run_id: "run-m", seq: 0, ts: "t", phase: "run", type: "run-start" });
+      const chained = JSON.stringify({ schema: 2, run_id: "run-m", seq: 1, ts: "t", prev: sha256Hex(Buffer.from(legacy, "utf8")), phase: "build", type: "build-start", issue: "FAFF-1" });
+      fs.writeFileSync(path.join(tmp, "events.jsonl"), legacy + "\n" + chained + "\n");
+      check("mixed: status mixed, passes under legacy-policy pass",
+        (() => { const r = evaluateIntegrityLeg(tmp, "pass"); return r.pass === true && r.status === "mixed" && r.note === null; })());
+      check("mixed: fails under legacy-policy fail", evaluateIntegrityLeg(tmp, "fail").pass === false);
+      check("mixed: warn → pass WITH a note (never silently identical to pass)",
+        (() => { const r = evaluateIntegrityLeg(tmp, "warn"); return r.pass === true && typeof r.note === "string" && /warn/.test(r.note); })());
+      const { stderr } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", tmp, "--legacy-policy", "warn"]));
+      check("mixed: cmd under warn emits the stderr note", /integrity —/.test(stderr));
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
+    // FAFF-568 fix pass: anchor discovery derivation — prefix-strip at any depth,
+    // traversal rejection, deletion skip.
+    const tmp = mkTmpRunDir("faff-govcheck-derive-");
+    try {
+      for (const p of ["anchors", ".faff/anchors", ".faff/sub/anchors"]) {
+        fs.mkdirSync(path.join(tmp, p, "run-1", "FAFF-1"), { recursive: true });
+      }
+      const cwd = process.cwd();
+      process.chdir(tmp);
+      try {
+        check("derive: 1-segment anchors-path",
+          deriveAnchorDirs(["anchors/run-1/FAFF-1/events.jsonl"], "anchors").dirs.join(",") === "anchors/run-1/FAFF-1");
+        check("derive: 2-segment anchors-path",
+          deriveAnchorDirs([".faff/anchors/run-1/FAFF-1/chain-head.json"], ".faff/anchors").dirs.join(",") === ".faff/anchors/run-1/FAFF-1");
+        check("derive: 3-segment anchors-path",
+          deriveAnchorDirs([".faff/sub/anchors/run-1/FAFF-1/events.jsonl"], ".faff/sub/anchors").dirs.join(",") === ".faff/sub/anchors/run-1/FAFF-1");
+        const trav = deriveAnchorDirs([".faff/anchors/../../evil/x/events.jsonl"], ".faff/anchors");
+        check("derive: '..' segment rejected + reported", trav.dirs.length === 0 && trav.dropped.length === 1);
+        check("derive: too-shallow path dropped, not misparsed",
+          deriveAnchorDirs([".faff/anchors/loose-file.json"], ".faff/anchors").dirs.length === 0);
+        check("derive: deleted anchor dir skipped (not carried anymore)",
+          deriveAnchorDirs([".faff/anchors/run-gone/FAFF-9/events.jsonl"], ".faff/anchors").dirs.length === 0);
+      } finally { process.chdir(cwd); }
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
+    // FAFF-568 fix pass: --anchors-root containment on explicit --anchor-dir.
+    const tmp = mkTmpRunDir("faff-govcheck-root-");
+    try {
+      fs.mkdirSync(path.join(tmp, "anchors", "run-1", "FAFF-1"), { recursive: true });
+      fs.mkdirSync(path.join(tmp, "outside"), { recursive: true });
+      const { result: contained } = captureOutput(() =>
+        cmdGovernanceCheck(["--anchor-dir", path.join(tmp, "anchors", "run-1", "FAFF-1"), "--anchors-root", path.join(tmp, "anchors")]));
+      check("anchors-root: contained --anchor-dir accepted", contained === 0);
+      const { result: escaped } = captureOutput(() =>
+        cmdGovernanceCheck(["--anchor-dir", path.join(tmp, "outside"), "--anchors-root", path.join(tmp, "anchors")]));
+      check("anchors-root: escaping --anchor-dir → exit 2 (fail-loud, never verified)", escaped === 2);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
     // A run dir carrying a clean chain still passes end-to-end (integrity wired into the full sweep).
     const tmp = mkTmpRunDir("faff-govcheck-rundir-chain-");
     try {
@@ -734,7 +927,9 @@ function governanceCheckSelftest() {
 }
 
 module.exports = {
+  anchorDirContainmentViolation,
   cmdGovernanceCheck,
+  deriveAnchorDirs,
   evaluateAnchorDir,
   evaluateBudgetLeg,
   evaluateIntegrityLeg,

@@ -373,8 +373,12 @@ function appendEventRecord(dir, run, payload, ts) {
 // ONE core (never a second home for the hashing rule). Classifies rather than
 // blanket-fails: broken (a prev/ledger mismatch among schema-2 records — the tamper
 // signature), legacy-unverifiable (schema-1, no chain — honest), torn_tail (a crashed
-// final partial write — honest), mixed (schema-1 prefix then schema-2 — verify from
-// the first chained record forward). ONLY `broken` is a gating FAIL.
+// final partial write — honest), mixed (prev-carrying and prev-less records coexist —
+// the chained records verify, the prev-less ones are unverifiable), witness-mismatch
+// (the dir carries a chain-head.json witness whose recorded head_sha256 / line_count /
+// schema_floor disagree with the re-derived values — a post-anchor rewrite, including
+// the schema-downgrade spoof and the forged-torn-tail edit; always a gating FAIL,
+// regardless of legacy-policy). `broken` and `witness-mismatch` are the gating FAILs.
 // ===========================================================================
 
 // Split a raw events.jsonl buffer into physical-line byte-buffers (each EXCLUSIVE of
@@ -398,22 +402,74 @@ function splitPhysicalLines(buf) {
 // `legacy_policy` only affects the exit-code mapping (see `verifyExitCode`).
 function verifyChain(dir, opts = {}) {
   const eventsPath = path.join(dir, "events.jsonl");
-  const base = { schema_floor: null, line_count: 0, head_sha256: null, first_break: null, ledger_fold: "absent", torn_tail: false };
+  const base = { schema_floor: null, line_count: 0, head_sha256: null, first_break: null, ledger_fold: "absent", torn_tail: false, witness: "absent" };
+
+  // FAFF-568 fix pass: the chain-head.json witness is CROSS-CHECKED, never decorative.
+  // Anchored at anchor time by the CLI (head hash never caller-supplied) and pinned by
+  // the PR head sha merge-gate observes, it is the independent record a post-anchor
+  // rewrite cannot retrofit: stripping `prev` fields to spoof legacy-unverifiable
+  // changes schema_floor; tampering the last record + truncating its newline (the
+  // forged-torn-tail edit) changes head_sha256/line_count. Any disagreement between
+  // the witness and the re-derived values is `witness-mismatch` — a gating FAIL that
+  // no legacy-policy softens. A run dir has no chain-head.json → witness "absent",
+  // behaviour unchanged. An unparseable witness in an anchor is a corrupt committed
+  // artifact → malformed (fail-closed).
+  let witnessHead = null;
+  const witnessPath = path.join(dir, "chain-head.json");
+  if (fs.existsSync(witnessPath)) {
+    try { witnessHead = JSON.parse(fs.readFileSync(witnessPath, "utf8")); }
+    catch (e) { return { ...base, status: "malformed", detail: `chain-head.json unreadable/invalid JSON: ${e.message}` }; }
+    if (witnessHead === null || typeof witnessHead !== "object" || Array.isArray(witnessHead)) {
+      return { ...base, status: "malformed", detail: "chain-head.json is not a JSON object" };
+    }
+  }
+  // Compare only the fields the witness actually records (older witnesses may lack one).
+  const witnessMismatches = () => {
+    if (!witnessHead) return [];
+    const out = [];
+    if (typeof witnessHead.head_sha256 === "string" && witnessHead.head_sha256 !== base.head_sha256) {
+      out.push(`head_sha256 (witness ${witnessHead.head_sha256.slice(0, 12)}… ≠ derived ${String(base.head_sha256).slice(0, 12)}…)`);
+    }
+    if (Number.isInteger(witnessHead.line_count) && witnessHead.line_count !== base.line_count) {
+      out.push(`line_count (witness ${witnessHead.line_count} ≠ derived ${base.line_count})`);
+    }
+    if (Number.isInteger(witnessHead.schema_floor) && witnessHead.schema_floor !== base.schema_floor) {
+      out.push(`schema_floor (witness ${witnessHead.schema_floor} ≠ derived ${base.schema_floor})`);
+    }
+    return out;
+  };
+  const witnessMismatchResult = (mm) => ({
+    ...base, witness: "mismatch", status: "witness-mismatch",
+    detail: `chain-head.json witness disagrees with the on-disk log: ${mm.join("; ")}`,
+  });
+
   let buf;
   try { buf = fs.readFileSync(eventsPath); }
   catch (e) {
-    if (e && e.code === "ENOENT") return { ...base, status: "verified", detail: "events.jsonl absent — nothing to verify" };
+    if (e && e.code === "ENOENT") {
+      if (witnessHead) {
+        const mm = witnessMismatches();
+        if (mm.length) return witnessMismatchResult(mm);
+      }
+      return { ...base, status: "verified", detail: "events.jsonl absent — nothing to verify" };
+    }
     return { ...base, status: "malformed", detail: `events.jsonl unreadable: ${e.message}` };
   }
   const { lines, lastHasNewline } = splitPhysicalLines(buf);
   base.line_count = lines.length;
-  if (lines.length === 0) return { ...base, status: "verified", detail: "empty events.jsonl — nothing to verify" };
+  if (lines.length === 0) {
+    if (witnessHead) {
+      const mm = witnessMismatches();
+      if (mm.length) return witnessMismatchResult(mm);
+    }
+    return { ...base, status: "verified", detail: "empty events.jsonl — nothing to verify" };
+  }
   base.head_sha256 = sha256Hex(lines[lines.length - 1]);
 
   // Parse pass: record per line (or null), separating an honest torn tail (the final
   // no-newline segment) from a mid-file non-record (which is malformed, exit 2).
   const parsed = new Array(lines.length).fill(null);
-  let tornTail = false, schemaFloor = null, anyPrev = false;
+  let tornTail = false, schemaFloor = null, anyPrev = false, anyPrevless = false;
   for (let i = 0; i < lines.length; i++) {
     let obj;
     try { obj = JSON.parse(lines[i].toString("utf8")); }
@@ -428,13 +484,20 @@ function verifyChain(dir, opts = {}) {
     parsed[i] = obj;
     if (Number.isInteger(obj.schema)) schemaFloor = schemaFloor === null ? obj.schema : Math.min(schemaFloor, obj.schema);
     if (obj.prev !== undefined) anyPrev = true;
+    else anyPrevless = true;
   }
   base.schema_floor = schemaFloor;
   base.torn_tail = tornTail;
+  const mm = witnessMismatches();
+  if (witnessHead && !mm.length) base.witness = "match";
 
   // No record carries a `prev` at all → legacy schema-1 log (honest, never a broken
-  // FAIL). A torn-only file (no parseable records) is nothing-to-verify, not legacy.
+  // FAIL) — UNLESS a witness recorded a chained log (schema_floor ≥ 2 / a different
+  // head): then "reads as legacy" is the downgrade spoof, a witness-mismatch FAIL,
+  // never legacy-under-policy. A torn-only file (no parseable records) is
+  // nothing-to-verify, not legacy.
   if (!anyPrev) {
+    if (mm.length) return witnessMismatchResult(mm);
     if (schemaFloor === null) return { ...base, status: "verified", detail: "no parseable records (torn-only) — nothing to verify" };
     return { ...base, status: "legacy-unverifiable", detail: "legacy schema-1 log, no prev chain" };
   }
@@ -476,15 +539,35 @@ function verifyChain(dir, opts = {}) {
     else return { ...base, status: "broken", ledger_fold: "mismatch",
       detail: `ledger fold mismatch: run-ledger.json hashes ${onDisk.slice(0, 12)}… but the last ledger-write recorded ${String(recorded).slice(0, 12)}…` };
   }
-  return { ...base, status: "verified", detail: tornTail ? "chain verified up to a torn final line (honest crash)" : "chain verified from genesis" };
+
+  // Walk clean — but a witness disagreement still fails: with a witness present a torn
+  // tail is only tolerated when the verified log STILL matches the recorded
+  // head_sha256/line_count (a genuinely-torn-at-anchor-time file re-hashes identically;
+  // a post-anchor tamper-plus-newline-truncation does not).
+  if (mm.length) return witnessMismatchResult(mm);
+
+  // Both prev-carrying and prev-less records coexist → `mixed`, never a blanket
+  // "verified": the chained records verified above, but the prev-less lines' CONTENTS
+  // are unverifiable (only their raw bytes fed the next link). Gating is the caller's
+  // legacy-policy call, like legacy-unverifiable.
+  const tornDetail = tornTail
+    ? (base.witness === "match"
+      ? "chain verified up to a torn final line (witness-corroborated)"
+      : "chain verified up to a torn final line — NO witness corroboration (heuristic torn-tail tolerance)")
+    : null;
+  if (anyPrevless) {
+    return { ...base, status: "mixed",
+      detail: `mixed chain: prev-carrying records verified, but prev-less (schema-1) lines are content-unverifiable${tornDetail ? `; ${tornDetail}` : ""}` };
+  }
+  return { ...base, status: "verified", detail: tornDetail || "chain verified from genesis" };
 }
 
-// Map a VerifyResult to the verb exit contract: 0 verified / legacy-under-pass|warn,
-// 1 broken (or legacy under `fail`), 2 malformed.
+// Map a VerifyResult to the verb exit contract: 0 verified / legacy|mixed-under-pass|warn,
+// 1 broken or witness-mismatch (or legacy|mixed under `fail`), 2 malformed.
 function verifyExitCode(result, legacyPolicy) {
   if (result.status === "verified") return 0;
-  if (result.status === "legacy-unverifiable") return legacyPolicy === "fail" ? 1 : 0;
-  if (result.status === "broken") return 1;
+  if (result.status === "legacy-unverifiable" || result.status === "mixed") return legacyPolicy === "fail" ? 1 : 0;
+  if (result.status === "broken" || result.status === "witness-mismatch") return 1;
   return 2; // malformed
 }
 
@@ -735,6 +818,9 @@ function cmdEvents(args) {
     if (result.status === "legacy-unverifiable" && legacyPolicy === "warn") {
       process.stderr.write("faff events verify: legacy schema-1 log (no chain) — reported under --legacy-policy warn\n");
     }
+    if (result.status === "mixed" && legacyPolicy === "warn") {
+      process.stderr.write("faff events verify: mixed chain (prev-less lines content-unverifiable) — reported under --legacy-policy warn\n");
+    }
     return verifyExitCode(result, legacyPolicy);
   }
 
@@ -980,6 +1066,56 @@ function eventsSelftest() {
         const r = verifyChain(d, {});
         vcheck("verify: malformed mid-file line → malformed", r.status === "malformed");
         vcheck("verify: malformed mid-file line → exit 2", verifyExitCode(r, "pass") === 2);
+      } finally { fs.rmSync(d, { recursive: true, force: true }); }
+    }
+    { // FAFF-568 fix pass: witness cross-check — the schema-downgrade spoof is caught
+      const d = mkDir();
+      try {
+        buildChain(d, "run-spoof", [
+          { phase: "run", type: "run-start" },
+          { phase: "build", type: "build-start", issue: "FAFF-1" },
+        ]);
+        const ep = path.join(d, "events.jsonl");
+        fs.writeFileSync(path.join(d, "chain-head.json"),
+          JSON.stringify(computeChainHead(fs.readFileSync(ep), "run-spoof", "FAFF-1"), null, 2) + "\n");
+        vcheck("verify: honest log against its witness → witness match, verified", (() => { const r = verifyChain(d, {}); return r.status === "verified" && r.witness === "match"; })());
+        // Strip every prev + downgrade schema — the "tampered chain reads as legacy" spoof.
+        const recs = fs.readFileSync(ep, "utf8").split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l));
+        fs.writeFileSync(ep, recs.map((r) => { const { prev, ...rest } = r; return JSON.stringify({ ...rest, schema: 1 }); }).join("\n") + "\n");
+        const r = verifyChain(d, {});
+        vcheck("verify: legacy-downgrade spoof → witness-mismatch, never legacy", r.status === "witness-mismatch");
+        vcheck("verify: witness-mismatch → exit 1 even under legacy-policy pass", verifyExitCode(r, "pass") === 1);
+      } finally { fs.rmSync(d, { recursive: true, force: true }); }
+    }
+    { // FAFF-568 fix pass: forged torn tail (tamper + newline truncation) caught by the witness
+      const d = mkDir();
+      try {
+        buildChain(d, "run-forge", [
+          { phase: "run", type: "run-start" },
+          { phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped" } },
+        ]);
+        const ep = path.join(d, "events.jsonl");
+        fs.writeFileSync(path.join(d, "chain-head.json"),
+          JSON.stringify(computeChainHead(fs.readFileSync(ep), "run-forge", "FAFF-1"), null, 2) + "\n");
+        // Tamper the last record and truncate its trailing newline — reads as an
+        // "honest crash" to the heuristic, but the witness head no longer matches.
+        const raw = fs.readFileSync(ep, "utf8").replace(/\n$/, "");
+        fs.writeFileSync(ep, raw.slice(0, -5)); // chop the tail — unparseable, no newline
+        const r = verifyChain(d, {});
+        vcheck("verify: forged torn tail with witness → witness-mismatch", r.status === "witness-mismatch");
+        vcheck("verify: forged torn tail → exit 1", verifyExitCode(r, "pass") === 1);
+      } finally { fs.rmSync(d, { recursive: true, force: true }); }
+    }
+    { // FAFF-568 fix pass: prev-carrying + prev-less coexisting → mixed, policy-gated
+      const d = mkDir();
+      try {
+        const legacy = JSON.stringify({ schema: 1, run_id: "run-mixed", seq: 0, ts: "t", phase: "run", type: "run-start" });
+        const chained = JSON.stringify({ schema: 2, run_id: "run-mixed", seq: 1, ts: "t", prev: sha256Hex(Buffer.from(legacy, "utf8")), phase: "build", type: "build-start", issue: "FAFF-1" });
+        fs.writeFileSync(path.join(d, "events.jsonl"), legacy + "\n" + chained + "\n");
+        const r = verifyChain(d, {});
+        vcheck("verify: mixed log → status mixed, never a blanket verified", r.status === "mixed");
+        vcheck("verify: mixed under pass → exit 0", verifyExitCode(r, "pass") === 0);
+        vcheck("verify: mixed under fail → exit 1", verifyExitCode(r, "fail") === 1);
       } finally { fs.rmSync(d, { recursive: true, force: true }); }
     }
     { // anchor round-trip

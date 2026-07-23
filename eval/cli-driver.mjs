@@ -556,7 +556,10 @@ function modeInstructionFor(kind) {
 // control). FAFF-146 — the framing + fixture rendering is per-kind: tidy kinds run over a backlog;
 // confidence reads a spec body; marker reads identified decision sections. FAFF-148 — verdict-revert
 // renders described findings via renderVerdictRevertPrompt with the review-verdict rubric.
-function renderFixturePrompt(c, judgementProse = null) {
+// Exported (FAFF-563) so the seeded-defect leakage test can render the judge prompt for a
+// SeededDefectCase and assert the measurement-boundary discipline over the RENDERED string — that none
+// of the case's label / defect_class / expected_aggregate values reach the judge. Pure, no I/O.
+export function renderFixturePrompt(c, judgementProse = null) {
   const rubric = judgementProse
     ? `Apply faff's judgement criteria below — these are the skills' own rules, verbatim:\n\n${judgementProse}\n\n---\n\n`
     : "";

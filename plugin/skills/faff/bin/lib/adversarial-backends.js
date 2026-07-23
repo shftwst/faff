@@ -112,14 +112,16 @@ function assembleAdversarialBackends(cfg) {
   return { chain };
 }
 
+const { parseArgs, usageError } = require("./argv");
+// --json is accepted-and-ignored: the default output is already the JSON array
+// `review-call.mjs`'s --backends-json wants, so the flag exists for CLI-convention parity.
+const ADVERSARIAL_BACKENDS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 } } };
+
 function cmdAdversarialBackends(args) {
   if (args.includes("--selftest")) return adversarialBackendsSelftest();
-  let root = null;
-  for (let i = 0; i < args.length; i++) if (args[i] === "--root") root = args[++i];
-  // --json is accepted-and-ignored: the default output is already the JSON
-  // array `review-call.mjs`'s --backends-json wants (the single sanctioned
-  // shape), so the flag exists for CLI-convention parity, not a mode switch.
-  root = root || findRoot();
+  const { values, errors } = parseArgs(args, ADVERSARIAL_BACKENDS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff adversarial-backends [--root DIR] [--json]");
+  const root = values["--root"] || findRoot();
   const [cfg] = loadConfig(root);
   const res = assembleAdversarialBackends(cfg);
   if (res.error === "unset") {

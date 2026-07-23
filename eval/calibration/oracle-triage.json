@@ -1,0 +1,225 @@
+{
+  "meta": {
+    "ticket": "FAFF-319",
+    "produced": "2026-07-23",
+    "method": "static prose triage — each oracle judged against its own fixture and the grader arm that reads it (eval/grader.mjs); zero paid model reps (ADR-0004)",
+    "supersedes": "triage-results.json (repo root, FAFF-321) — that artifact triaged the alphabetically-first 24 case files instead of the 8 target kinds, left 5 kinds untriaged, proposed one never-applied fix, and is deleted in this PR",
+    "scope_kinds": ["architecture", "specqual", "holdout", "roadmap", "adr-gloss", "spec-verdict", "refutation-spec", "refutation-code"],
+    "case_count": 29,
+    "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
+    "class_counts": { "oracle-defect": 2, "needs-evidence": 1, "suspected-genuine-miss": 3, "sound": 23 },
+    "follow_ups": {
+      "operator_sweep": "FAFF-614 (operator-owned, not automation-eligible — the eval/README.md runbook is its instructions)",
+      "resolve_undecided": "FAFF-615 (blockedBy FAFF-614 — resolves the 1 needs-evidence + 3 suspected-genuine-miss entries from the sweep captures)",
+      "calibrated_registry_tier": "FAFF-616 (covered != calibrated — its own design conversation)"
+    }
+  },
+  "entries": [
+    {
+      "case_id": "architecture-001",
+      "kind": "architecture",
+      "grader_shape": "gloss-coverage (env.architecture)",
+      "class": "sound",
+      "rationale": "The brief's 'transactional integrity when concurrent edits land' plus 'production-grade' and a docker-compose infra profile make Postgres-in-a-container the load-bearing best fit, so must_include [postgres|relational|rdbms], [docker|container|compose], [durable|persist|survive restart] are each satisfiable by the intended answer. The SQLite tension (a handful of users, local-first, build-not-buy) is real but resolves toward Postgres precisely because the concurrency requirement is the classic reason SQLite's single-writer lock is the wrong fit — so the [docker] check is defensible, not a trap. must_avoid correctly bans hand-wave and microservice/NoSQL sprawl; a faithful answer trips neither. No edit — relaxing to admit NoSQL would violate the fixture's explicit relational requirement."
+    },
+    {
+      "case_id": "architecture-002",
+      "kind": "architecture",
+      "grader_shape": "gloss-coverage (env.architecture)",
+      "class": "oracle-defect",
+      "rationale": "The question explicitly primes rejection phrasing — 'do not introduce infrastructure the brief does not warrant' — so a correct answer naturally writes 'no message broker / no Kafka needed; a plain scheduled query fits'. The grader's must_avoid check trips on ANY substring occurrence, including mention-to-reject, so a correct answer that names the infra it is declining fails both must_avoid sets ([kafka|event-sourcing|event store], [message broker|stream processor|pub/sub]). Substring coverage cannot distinguish 'I propose Kafka' from 'no Kafka needed', so this must_avoid is a mention-trap by construction. The two must_include sets already reward the correct scheduled-query-on-existing-Postgres answer.",
+      "proposed_fix": "Remove both must_avoid synonym-sets from architecture-002.json (leave gloss_rubric.must_include unchanged). This trades away an over-engineering guard that substring coverage cannot express correctly anyway (a Kafka answer saying 'nightly Kafka pipeline' would still satisfy must_include) for not penalising the rejection-phrased correct answer the question elicits."
+    },
+    {
+      "case_id": "specqual-001",
+      "kind": "specqual",
+      "grader_shape": "gloss-coverage (env.specqual)",
+      "class": "sound",
+      "rationale": "A buildable lite-nlspec for the `faff config get` subcommand naturally carries the WHY/WHAT/HOW/DONE arc anchors and the exit-code/stdout behaviour the fixture spells out, so must_include [why|problem|motivation], [what|interface|data], [how|approach|behaviour], [done|acceptance|...], [exit 1|exits 0|returns|prints|stdout] all hit. must_avoid targets genuine hand-wave phrases; the 'etc.' entry carries a trailing period, so it does not false-trip on innocent tokens like 'fetch' (which lacks the 'etc.' substring). No mechanical defect."
+    },
+    {
+      "case_id": "specqual-002",
+      "kind": "specqual",
+      "grader_shape": "gloss-coverage (env.specqual)",
+      "class": "sound",
+      "rationale": "The fixture names the concrete mechanism (a `sent_digests` table with no uniqueness constraint), so a competent idempotency spec says 'add a unique constraint on (recipient, digest_date)' / 'upsert' — hitting must_include [idempoten|unique constraint|upsert|dedupe] alongside the arc anchors. The thin must_include ['what'] is satisfied by the mandatory WHAT section. must_avoid is anti-hand-wave and period-guarded on 'etc.'; a concrete spec trips none of it."
+    },
+    {
+      "case_id": "specqual-003",
+      "kind": "specqual",
+      "grader_shape": "gloss-coverage (env.specqual)",
+      "class": "needs-evidence",
+      "rationale": "The question asks the model to WRITE a `## Scenarios` section that APPLIES the holdout-selection rules (mark a minority holdout; each holdout verifies already-stated behaviour). But must_include [minority|one-in-three|a subset|never more than half] and [generalisation|generalise|already requires|not the sole statement] demand rule-NARRATION vocabulary that a correct Scenarios section — structured Given/When/Then blocks with `holdout` fence markers — embodies structurally without necessarily naming. Whether a competent model's emitted section also carries an explanatory framing sentence (which would satisfy the vocabulary) cannot be decided by static inspection; it depends on real model output. must_include [holdout] and both must_avoid sets are sound.",
+      "discriminating_question": "In the first correctly-driven sweep's judgements.jsonl for specqual-003: does the emitted env.specqual section carry explicit minority/subset AND generalisation framing text? If yes across reps -> oracle sound (no change). If the section correctly marks a minority holdout and ties each holdout to a body requirement but omits the meta-vocabulary -> oracle-defect: must_include[1] and [2] demand narration the artifact-type does not require; relax them to accept the structural application (or move them to a must_avoid on the over-holdout anti-patterns already present)."
+    },
+    {
+      "case_id": "holdout-001",
+      "kind": "holdout",
+      "grader_shape": "closed-set: key:class pairs (env.holdout, pairsOf)",
+      "class": "sound",
+      "rationale": "The recorded exercise cleanly supports each pinned class: health-endpoint:met (200 with {status:ok} in 180ms, inside the 500ms bound), error-schema:met (404 body carries both required string keys), readable-output:needs-human (a prose criterion with an explicitly no-bearing observation, forced per the question). The oracle is the exact correct classification set; a competent code-blind judge reproduces it."
+    },
+    {
+      "case_id": "holdout-002",
+      "kind": "holdout",
+      "grader_shape": "closed-set: key:class pairs (env.holdout, pairsOf)",
+      "class": "sound",
+      "rationale": "Each class is directly evidenced: health-200:unmet (health returns 500, connection refused), idempotent-send:met (repeat POST returns deduped:true, mail sink stays at one message), tone-friendly:needs-human (a prose criterion with no born-verifiable exercise). The unmet/met/needs-human spread makes this a stronger reference case than an all-met fixture; oracle is the correct set."
+    },
+    {
+      "case_id": "roadmap-001",
+      "kind": "roadmap",
+      "grader_shape": "gloss-coverage (env.roadmap)",
+      "class": "sound",
+      "rationale": "A correct synthesis over the seeded tracker names the ISS-A -> ISS-B -> ISS-C dependency chain and flags ISS-D as off-chain, hitting must_include [iss-a|auth], [iss-b|account api], [iss-c|billing], [chain|spine|dependency|blocks|blocked by]. must_avoid [no dependencies|everything is independent|flat backlog|no chains] catches only the specific failure of missing the chain entirely — a correct answer asserts the opposite. No negation-trap: none of the must_avoid phrases is a substring of a natural correct-answer phrasing."
+    },
+    {
+      "case_id": "roadmap-002",
+      "kind": "roadmap",
+      "grader_shape": "gloss-coverage (env.roadmap)",
+      "class": "oracle-defect",
+      "rationale": "The correct answer is that the 'launch paid tier' gate CANNOT fire (its upstream ISS-P payments, blockedBy ISS-R ledger, are all Backlog). A competent answer states this with natural negated phrasing: 'the gate is NOT ready to fire' / 'NOT ready to launch yet'. The grader's must_avoid check is pure substring, so 'not ready to fire' contains 'ready to fire' and 'not ready to launch' contains 'ready to launch' — the correct negated answer trips must_avoid on exactly the entries meant to catch a wrong 'can fire now' answer. Worse, that guard is redundant: must_include[0] [cannot fire|not fireable|blocked|un-fireable|unfireable] already positively requires the correct verdict, so a genuinely-wrong 'ready to fire' answer fails must_include[0] regardless.",
+      "proposed_fix": "In roadmap-002.json, remove the negation-trappable entries from gloss_rubric.must_avoid[0]: 'ready to fire', 'ready to launch', AND 'fireable now' — the last is trapped because must_include[0] steers the correct answer toward the 'not fireable' stem, so 'the gate is not fireable now' contains 'fireable now' as a substring. Keep only the negation-safe entries 'can fire now' and 'gate is ready' ('cannot fire now' does not contain 'can fire now'; 'gate is not ready' does not contain 'gate is ready'), which still catch an affirmatively-wrong answer. The positive must_include[0] carries the primary guard."
+    },
+    {
+      "case_id": "adr-gloss-001",
+      "kind": "adr-gloss",
+      "grader_shape": "gloss-coverage (env.adr)",
+      "class": "sound",
+      "rationale": "The fixture states a settled Postgres-over-SQLite decision with a concrete reason (concurrent multi-writer, row-level concurrency) and a real consequence (Postgres container + connection-pool dependency). A faithful Nygard body reproduces all of it, hitting must_include [postgres|postgresql], [concurren|row-level|multiple writer], [sqlite], [rejected|ruled out|over sqlite], [container|connection pool|new dependency]. must_avoid [it depends|best practice|tbd|...] bans filler and [nosql|sharding|read replica] bans inventing rationale the decision does not carry — a faithful ADR trips neither. Clean mapping."
+    },
+    {
+      "case_id": "adr-gloss-002",
+      "kind": "adr-gloss",
+      "grader_shape": "gloss-coverage (env.adr)",
+      "class": "sound",
+      "rationale": "The decision (structured JSON logging to stdout via the platform log agent, ELK rejected as operationally heavy, grep dashboards must be rebuilt) maps directly onto must_include [json|structured], [stdout|log agent], [elk|self-hosted], [rebuild|grep|dashboard]. must_avoid bans generic-filler and defer-the-decision phrasing; a faithful record of a settled decision trips neither. No defect."
+    },
+    {
+      "case_id": "spec-verdict-001",
+      "kind": "spec-verdict",
+      "grader_shape": "closed-set: single verdict (env.verdict)",
+      "class": "sound",
+      "rationale": "The spec (additive `--json` flag, byte-identical bare mode, three scenarios, a unit-test DoD, no security surface) is genuinely clean, so 'approve' is the correct verdict for an L1-L3 reviewer whose lenses raise nothing. The oracle is defensible as written. If the sweep shows the skill consistently returning 'revise' on this clean spec, that is a skill over-firing (a nitpick genuine-miss for a follow-up), not an oracle to relax — relaxing 'approve' to accept 'revise' would reward nitpicking."
+    },
+    {
+      "case_id": "spec-verdict-002",
+      "kind": "spec-verdict",
+      "grader_shape": "closed-set: single verdict (env.verdict)",
+      "class": "sound",
+      "rationale": "A module-level mutable singleton holding per-request auth state races across concurrent requests and leaks one caller's roles into another's fan-out — an unambiguous architectural blocker with the scope (memoise role resolution) itself sound. The deterministic lens->verdict map turns an architectural blocker with correct scope into 'reject-approach' (prep re-specs the approach), which is exactly the oracle. Oracle correct; no change."
+    },
+    {
+      "case_id": "spec-verdict-003",
+      "kind": "spec-verdict",
+      "grader_shape": "closed-set: single verdict (env.verdict)",
+      "class": "sound",
+      "rationale": "Server-side fetching an arbitrary user-supplied URL with no allow-list is a textbook SSRF surface (internal metadata endpoints, localhost services, cloud IMDS become reachable). A threat call of this weight must not be settled autonomously at L1-L3, so the infosec-blocker maps to 'needs-human' — the oracle verdict. Correct as written."
+    },
+    {
+      "case_id": "refutation-spec-001",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "A standalone token-bucket microservice with its own Redis cluster and a synchronous gRPC hop on the auth hot path, for per-route rate limiting on a monolith, is grossly over-engineered and adds a new failure mode to login — a clear architectural blocker. The oracle [architectural] is the single correct objecting lens; infosec/QA/methodology should stay quiet. Generic catch, low miss risk."
+    },
+    {
+      "case_id": "refutation-spec-002",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "Storing a Slack webhook URL and bot token in the tracker issue description (readable by anyone with issue access, not a secret store) and echoing the token into logs is a clear-cut secrets-handling blocker. Oracle [infosec] is the correct single lens; the design is otherwise fine so architectural should not fire. Generic catch."
+    },
+    {
+      "case_id": "refutation-spec-003",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "The slice (extract a generic tracker interface, port Linear+Jira+GitHub, add caching, backfill all history — in one ticket) is a too-large non-incremental unit; with the fixture's attached ## Methodology critique block feeding it, the methodology lens must translate that into a reject-approach-grade objection. Oracle [methodology] is correct. Build note: the refutation-spec driver arm must render fixture.spec verbatim so the embedded methodology block reaches the refuter (without it the methodology lens degrades to no-signal and the case would spuriously score clean)."
+    },
+    {
+      "case_id": "refutation-spec-004",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "The DONE criteria ('feels clearer', 'performance is good', 'users are happy with the layout') are unverifiable — no scenarios, nothing testable. The QA lens must raise a major/blocker; oracle [QA] is the correct single lens and the design intent is otherwise unobjectionable. Generic catch."
+    },
+    {
+      "case_id": "refutation-spec-005",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "A clean spec: mirrors the existing `faff next --json` pattern, right-sized, no threat surface, testable DONE with scenarios. The refuter should raise nothing, so oracle [] is correct — this case tests that no lens cries wolf on a sound additive change. A non-empty objection here would be the false-positive the case guards against."
+    },
+    {
+      "case_id": "refutation-spec-006",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "A password-reset spec sitting squarely in infosec territory (CSPRNG token, store only the SHA-256 hash, 15-min TTL, single-use, constant-time compare) but following best practice on every point. Oracle [] is correct: it tests that a trigger-happy infosec lens does NOT object on a sound security-adjacent spec. Clean near-miss in the false-positive direction."
+    },
+    {
+      "case_id": "refutation-spec-007",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "suspected-genuine-miss",
+      "rationale": "The corrective-note is a new on-disk orchestrator INPUT written by the build lane; inside the container the build subagent shares uid+filesystem with the orchestrator's artifacts, so it can forge the very correction meant to constrain it (the ADR-0039 forge surface). This is a real infosec defect and oracle [infosec] is defensible — but the catch requires faff-specific threat priming (shared-uid/fs forge), which a generic infosec checklist reads as a low-blast-radius internal file write and approves. I actively suspect the shipped faffter-dark-spec-review infosec lens may miss it; a consistent approve on a correctly-driven sweep means the skill misses, not that the oracle is wrong. Flagged so the operator watches this case; if missed, the remedy is priming the lens (a skill-surface follow-up), never relaxing the oracle."
+    },
+    {
+      "case_id": "refutation-spec-008",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "suspected-genuine-miss",
+      "rationale": "The spec grants elevated autonomy (appetite: full) from a persisted ledger `owner.level` field without gating on run LIVENESS, and $FAFF_RUN_DIR persists across sessions — so a completed/dead L4 run's ledger escalates a later unrelated session (the FAFF-378 stale-ledger authority-escalation pattern). Real infosec defect, oracle [infosec] defensible. A generic checklist sees 'reads a config file, fail-closed default present' and approves; catching it needs the stale-artifact priming. Suspected miss for the same reason as refutation-spec-007 — watch it; remedy is lens priming, not an oracle change."
+    },
+    {
+      "case_id": "refutation-spec-009",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "suspected-genuine-miss",
+      "rationale": "The judged party sets its OWN `code_blind` attestation, so the trust claim rests on the very actor it bounds — the contract can reject a declared false but cannot detect a producer that read the codebase and set true anyway (the FAFF-276 self-attestation / oblivious-actor lesson). Since this gates a merge to main, the whole L4 trust claim collapses to caller honesty — a genuine critical infosec defect, oracle [infosec] defensible. A generic checklist sees 'a boolean-gated attestation, fail-closed on false' and approves; the circular-self-attestation catch needs faff-specific priming. Suspected miss; watch, remedy by priming not oracle relaxation."
+    },
+    {
+      "case_id": "refutation-spec-010",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "rationale": "This sits on the same ADR-0039 corrective-note forge surface as refutation-spec-007 but is handled correctly on every point: the build lane never writes the file (it returns the correction on the context-isolated terminal token), the orchestrator is the sole writer, the path is build-lane-read-only, and consumption is gated on the integrity probe with a fail-safe reconcile-only degrade. Oracle [] is correct — it tests that a forge-primed infosec lens does NOT over-fire on a spec that touches the trust surface but respects the boundary. Clean near-miss guarding against exactly the over-firing that priming for 007/008/009 could induce."
+    },
+    {
+      "case_id": "refutation-code-001",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "The refactored eligibility ordering makes the faff-automation-hold branch return TRUE — a hold now makes a ticket eligible, inverting the hold-beats-automate guarantee, under a spec_summary claiming 'no behaviour change'. A correctness pass must raise an above-minor finding, so oracle [flagged] is correct. Generic correctness catch."
+    },
+    {
+      "case_id": "refutation-code-002",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "The diff drops branch-name sanitization and switches execFileSync(argv) to execSync(string) with a branch name interpolated from a tracker field — a shell-injection surface (a crafted branch name runs arbitrary commands) hidden under 'simplify worktree creation'. A security pass must flag; oracle [flagged] is correct. Generic security catch."
+    },
+    {
+      "case_id": "refutation-code-003",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "A one-flag ticket ('add --json to faff labels') whose diff also renames 12 internal helpers, reorders the COMMANDS registry, and bumps a runtime dependency major version — a large unreviewed refactor plus a major dep bump smuggled in. Each is independently risky against its own (absent) spec, so a scope-check pass must flag; oracle [flagged] is correct. The fixture states the diff in prose rather than a unified diff, which the reviewer reasons over fine."
+    },
+    {
+      "case_id": "refutation-code-004",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "The diff adds exactly the specified --json flag to `faff labels`, mirroring the existing print pattern, in scope, with no security or correctness issue. The reviewer should report clean, so oracle [] is correct — an above-minor finding here would be the false-positive the case guards against."
+    },
+    {
+      "case_id": "refutation-code-005",
+      "kind": "refutation-code",
+      "grader_shape": "closed-set: binary flagged (env.findings above-minor)",
+      "class": "sound",
+      "rationale": "The diff touches SQL, a datastore, and a subprocess (surface that looks injection-risky) but uses execFileSync(argv) with values bound as parameters via stdin and no string interpolation or secret logging. The reviewer should report clean; oracle [] is correct — it tests that the security pass does not false-flag correct parameterized DB code. Clean near-miss in the false-positive direction."
+    }
+  ]
+}

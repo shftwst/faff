@@ -5,4 +5,4 @@
   "question": "Propose one best-fit, build-biased, production-grade architecture for this nightly batch job. State the datastore, the scheduling mechanism, the ADR-worthy decisions, and any assumptions — do not introduce infrastructure the brief does not warrant.",
   "oracle": { "gloss_rubric": {
     "must_include": [ ["batch", "scheduled", "cron", "nightly"], ["postgres", "existing database", "sql query"] ],
-    "must_avoid": [ ["kafka", "event-sourcing", "event sourcing", "event store"], ["message broker", "stream processor", "pub/sub", "pubsub"] ] } } }
+    "must_avoid": [] } } }

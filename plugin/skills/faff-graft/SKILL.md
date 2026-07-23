@@ -261,7 +261,7 @@ Validate the spec's freshness against the current codebase. Then present a summa
 
 **Step 7: Build**
 
-Implementer chooses execution strategy. Build directly from the spec.
+Implementer chooses execution strategy. Build directly from the spec. Delegating this build to a disposable **bare-executor** — task in (spec + worktree + DoD + gate), compact result out (diff + gate verdict), no faff-skill context — is the level-independent context-hygiene policy (gateway → **Agent Lanes → Implementor**), whose executor contract is owned by FAFF-486; Step 7 still builds inline today, so this is a pointer, not a behaviour change.
 
 During the build, if a decision arises that the spec doesn't resolve:
 - **Interactive mode:** ask the user.

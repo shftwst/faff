@@ -21,7 +21,11 @@
 // ---------------------------------------------------------------------------
 // Types (documented; JS carries no static shape)
 //
-// FlagSpec:    { arity: 0|1, enum?: string[], repeatable?: boolean, aliases?: string[] }
+// FlagSpec:    { arity: 0|1, enum?: string[], repeatable?: boolean, aliases?: string[], greedy?: boolean }
+//   greedy:    arity-1 only — consume the next token as the value UNCONDITIONALLY, even when it
+//              begins with "--" (for a flag whose value is itself a flag-string, e.g. merge-gate's
+//              `--merge-args "--squash --delete-branch"`). The missing-value guard still fires when
+//              there is no next token at all. Absent/false ⇒ the default "--"-successor = missing-value rule.
 // CommandSpec: { flags: { [canonicalFlag: string]: FlagSpec },
 //                positionals?: { min: number, max: number|null, name?: string } }
 // ParseResult: { values: { [flag]: string | string[] | true }, positionals: string[], errors: ParseError[] }
@@ -118,7 +122,10 @@ function parseArgs(argv, spec) {
       let value = inlineValue;
       if (value === null) {
         const next = argv[i + 1];
-        if (looksLikeNextFlag(next, spec)) {
+        // A `greedy` flag takes the next token even when it begins with "--" (its value is itself a
+        // flag-string); the only missing-value case for it is no next token at all.
+        const noValue = decl.greedy ? (next === undefined) : looksLikeNextFlag(next, spec);
+        if (noValue) {
           errors.push({ code: "missing-value", flag: canonical, detail: `flag ${canonical} requires a value` });
           i++;
           continue;
@@ -262,6 +269,14 @@ function argvSelftestCases() {
       ["--now", "-5"],
       S({ "--now": { arity: 1 } }),
       { ok: true, values: { "--now": "-5" } }],
+    ["greedy flag takes a --leading value (merge-args style)",
+      ["--merge-args", "--squash --delete-branch", "--json"],
+      S({ "--merge-args": { arity: 1, greedy: true }, "--json": { arity: 0 } }),
+      { ok: true, values: { "--merge-args": "--squash --delete-branch", "--json": true } }],
+    ["greedy flag with NO next token is still missing-value",
+      ["--merge-args"],
+      S({ "--merge-args": { arity: 1, greedy: true } }),
+      { codes: ["missing-value"] }],
   ];
 }
 

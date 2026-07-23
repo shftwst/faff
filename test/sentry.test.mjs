@@ -377,18 +377,23 @@ test("AC5: no CLI input the build subagent controls can flip a trip — the kill
       const base = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", now]).out);
       assert.equal(base.intervention, "abort", `pinned clock +${offset / HOUR}h trips abort`);
       // The build subagent returns only a terminal token; it has NO flag on `sentry check`.
-      // Feeding token-shaped junk as extra args must not suppress the abort.
-      const hostile = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", now,
-        "--intervention", "continue", "--suppress", "--outcome", "shipped", "--override", "continue"]).out);
-      assert.equal(hostile.intervention, "abort", "no subagent-shaped arg flips the verdict");
-      assertSameVerdicts(hostile.verdicts, base.verdicts, "verdict sets identical (order-insensitive)");
+      // FAFF-576: fail-closed flag parsing now REJECTS token-shaped junk args with a usage exit (2)
+      // rather than silently ignoring them — a strictly stronger form of "no subagent-controlled CLI
+      // input can flip the trip": the hostile invocation refuses outright, producing no verdict to flip.
+      const hostile = run(dir, ["sentry", "check", "--run-dir", rd, "--json", "--now-ms", now,
+        "--intervention", "continue", "--suppress", "--outcome", "shipped", "--override", "continue"]);
+      assert.equal(hostile.code, 2, "hostile subagent-shaped args are rejected fail-closed (exit 2), never silently ignored");
+      assert.match(hostile.err, /unknown-flag/, "the rejection names the unknown flag(s)");
     }
 
-    // The clock seam itself cannot suppress the abort: budget-breach is clock-independent,
-    // so even passing a clock flag (here trying to look "fresh") still trips abort.
-    const evenNow = JSON.parse(run(dir, ["sentry", "check", "--run-dir", rd, "--json",
-      "--now-ms", String(startMs + HOUR), "--now-ms", String(startMs)]).out);
-    assert.equal(evenNow.intervention, "abort", "clock seam can't dodge the budget-breach abort");
+    // The clock seam itself cannot suppress the abort. FAFF-576: a duplicated non-repeatable
+    // --now-ms is now a duplicate-flag usage error (exit 2) rather than silent first-/last-wins,
+    // so a second clock value can't even be smuggled in — a strictly stronger guarantee. (That
+    // budget-breach is clock-independent is covered by the pinned-clock abort asserted above.)
+    const evenNow = run(dir, ["sentry", "check", "--run-dir", rd, "--json",
+      "--now-ms", String(startMs + HOUR), "--now-ms", String(startMs)]);
+    assert.equal(evenNow.code, 2, "a duplicated clock flag is rejected fail-closed, never silently first/last-wins");
+    assert.match(evenNow.err, /duplicate-flag/, "the rejection names the duplicated flag");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

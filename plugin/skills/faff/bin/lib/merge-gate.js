@@ -23,7 +23,7 @@ const MERGE_GATE_SPEC = { flags: {
   "--interactive": { arity: 0 }, "--json": { arity: 0 }, "--local": { arity: 0 }, "--selftest": { arity: 0 },
   "--squash": { arity: 0 }, "--merge": { arity: 0 }, "--rebase": { arity: 0 }, "--delete-branch": { arity: 0 }, "--auto": { arity: 0 },
   "--base": { arity: 1 }, "--branch": { arity: 1 }, "--issue": { arity: 1 }, "--level": { arity: 1 },
-  "--merge-args": { arity: 1 }, "--pr": { arity: 1 }, "--repo": { arity: 1 }, "--run-dir": { arity: 1 },
+  "--merge-args": { arity: 1, greedy: true }, "--pr": { arity: 1 }, "--repo": { arity: 1 }, "--run-dir": { arity: 1 },
 } };
 const BRANCH_PROTECTION_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 },

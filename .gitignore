@@ -15,8 +15,10 @@ docs/superpowers
 # .yaml.bak or .yaml.j2) so no operator-private overlay can slip past an exact-name entry.
 .faffrc.local.*
 
-# Faff run logs and local state
-.faff/
+# Faff run logs and local state (FAFF-568: `.faff/*` not `.faff/` so git descends and
+# the anchors carve-out below can re-include the committed per-PR chain anchors)
+.faff/*
+!.faff/anchors/
 
 # Generated eval reports (real-model run output — FAFF-130 onward)
 eval/report/

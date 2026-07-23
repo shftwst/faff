@@ -64,12 +64,15 @@ test("decline sequence registers both runcheck and prepcheck Stop hooks (accept/
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("decline sequence gitignores `.faff/` — the other half of the parity invariant", () => {
+test("decline sequence gitignores `.faff/*` + carves out `!.faff/anchors/` — the other half of the parity invariant", () => {
   const root = seedGitRepo();
   try {
     declineSequence(root);
     const gi = readFileSync(join(root, ".gitignore"), "utf8");
-    assert.match(gi, /^\.faff\/$/m, "`.faff/` is listed in .gitignore");
+    // FAFF-568: `.faff/*` (contents glob, not `.faff/`) so git descends and the anchors
+    // carve-out below can re-include the committed per-PR chain anchors.
+    assert.match(gi, /^\.faff\/\*$/m, "`.faff/*` is listed in .gitignore");
+    assert.match(gi, /^!\.faff\/anchors\/$/m, "`!.faff/anchors/` carve-out is listed");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

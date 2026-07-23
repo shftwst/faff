@@ -17,6 +17,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appendRecordUnderLock, tailReadState, TAIL_WINDOW_BYTES } from "../plugin/skills/faff/bin/lib/events.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
+import { runCli } from "./helpers/run-cli.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -254,6 +255,95 @@ test("integration smoke: 5 CLI appends + a --tokens ledger write + a hand-edit n
     assert.equal(last.data.ledger_sha256, sha256(readFileSync(ledger)));
     // The fold's earlier ledger-write hashed the PRE-edit bytes — history captured.
     assert.notEqual(recs[5].data.ledger_sha256, last.data.ledger_sha256);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- FAFF-568 fix pass: the chain-head.json witness is cross-checked -----------
+// An anchor carries a CLI-computed witness (head_sha256 / line_count / schema_floor);
+// verify compares the re-derived values against it. Any disagreement is
+// `witness-mismatch` — a FAIL under every legacy-policy — closing the two forgeries
+// the adversarial review named: the schema-downgrade spoof (strip every prev, read
+// as legacy, pass under the default policy) and the forged torn tail (tamper the
+// last record + truncate its newline so the heuristic skips it).
+
+function buildAnchoredChain(prefix, runId, count = 3) {
+  const { root, runDir, log } = mkRoot(prefix, runId);
+  for (let i = 0; i < count; i++) appendRecordUnderLock(runDir, mkMinter(runId));
+  const dest = join(root, "anchor");
+  const r = run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "A-1", "--dest", dest]);
+  assert.equal(r.code, 0, r.err);
+  return { root, runDir, log, dest };
+}
+
+test("witness spoof: stripping every prev + downgrading schema on an anchored chain → witness-mismatch, exit 1 even under the default legacy-policy", () => {
+  const { root, dest } = buildAnchoredChain("chain-spoof-", "RUN-SPOOF");
+  try {
+    // Sanity: the honest anchor verifies with a matching witness.
+    const before = run(root, ["events", "verify", "--run-dir", dest, "--json"]);
+    assert.equal(before.code, 0, before.err);
+    assert.equal(JSON.parse(before.out).witness, "match");
+    // The spoof: convert the committed anchor into a "legacy" schema-1 log.
+    const anchoredLog = join(dest, "events.jsonl");
+    const spoofed = records(anchoredLog).map((r) => { const { prev, ...rest } = r; return JSON.stringify({ ...rest, schema: 1 }); });
+    writeFileSync(anchoredLog, spoofed.join("\n") + "\n");
+    const after = run(root, ["events", "verify", "--run-dir", dest, "--json"]);
+    assert.equal(after.code, 1, "spoofed downgrade is a FAIL, never legacy-under-pass");
+    const v = JSON.parse(after.out);
+    assert.equal(v.status, "witness-mismatch");
+    assert.equal(v.witness, "mismatch");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("forged torn tail: tampering the anchored last record + truncating its newline → witness-mismatch, not an honest crash", () => {
+  const { root, dest } = buildAnchoredChain("chain-forge-", "RUN-FORGE");
+  try {
+    const anchoredLog = join(dest, "events.jsonl");
+    const raw = readFileSync(anchoredLog, "utf8").replace(/\n$/, "");
+    writeFileSync(anchoredLog, raw.slice(0, -5)); // unparseable tail, no trailing newline
+    const r = run(root, ["events", "verify", "--run-dir", dest, "--json"]);
+    assert.equal(r.code, 1, "the forged tail fails against the witness");
+    assert.equal(JSON.parse(r.out).status, "witness-mismatch");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("genuine torn tail anchored as-is: the witness corroborates it — verified, torn_tail true, exit 0", () => {
+  const { root, runDir } = mkRoot("chain-torn-honest-", "RUN-TORN");
+  try {
+    for (let i = 0; i < 2; i++) appendRecordUnderLock(runDir, mkMinter("RUN-TORN"));
+    appendFileSyncTorn(join(runDir, "events.jsonl"));
+    const dest = join(root, "anchor");
+    const a = run(root, ["events", "anchor", "--run-dir", runDir, "--issue", "A-1", "--dest", dest]);
+    assert.equal(a.code, 0, a.err);
+    const r = run(root, ["events", "verify", "--run-dir", dest, "--json"]);
+    assert.equal(r.code, 0, r.err);
+    const v = JSON.parse(r.out);
+    assert.equal(v.status, "verified");
+    assert.equal(v.torn_tail, true);
+    assert.equal(v.witness, "match", "the anchor-time witness hashed the torn segment as-is");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+function appendFileSyncTorn(log) {
+  // A crashed partial write: unparseable, no trailing newline.
+  writeFileSync(log, readFileSync(log, "utf8") + '{"schema":2,"run_id":"RUN-TORN","seq":9,"ts":"t","pre');
+}
+
+test("mixed chain: prev-less + prev-carrying records coexist → status mixed (never a blanket verified), policy-gated, warn emits a note", () => {
+  const { root, runDir } = mkRoot("chain-mixed-status-", "RUN-MS");
+  try {
+    const legacy = JSON.stringify({ schema: 1, run_id: "RUN-MS", seq: 0, ts: "t", phase: "run", type: "run-start" });
+    writeFileSync(join(runDir, "events.jsonl"), legacy + "\n");
+    appendRecordUnderLock(runDir, mkMinter("RUN-MS"));
+    const r = run(root, ["events", "verify", "--run-dir", runDir, "--json"]);
+    assert.equal(r.code, 0, "mixed passes under the default legacy-policy");
+    assert.equal(JSON.parse(r.out).status, "mixed");
+    const rf = run(root, ["events", "verify", "--run-dir", runDir, "--legacy-policy", "fail"]);
+    assert.equal(rf.code, 1, "mixed fails under legacy-policy fail");
+    // runCli (spawnSync) captures stderr on a ZERO exit too — the local `run`
+    // helper only surfaces stderr on failure.
+    const rw = runCli(["events", "verify", "--run-dir", runDir, "--legacy-policy", "warn"], { cwd: root });
+    assert.equal(rw.code, 0);
+    assert.match(rw.stderr, /mixed chain/, "warn emits the stderr note");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

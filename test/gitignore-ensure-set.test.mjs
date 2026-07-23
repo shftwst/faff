@@ -22,12 +22,15 @@ function run(cwd, ...args) {
 }
 function seed() { return mkdtempSync(join(tmpdir(), "faff387gi-")); }
 
-test("the canonical set is [.faffrc, .faffrc.yml, .faffrc.*.yaml, !.faffrc.example.yaml, .faff/] — .faffrc.yaml is NOT in it (FAFF-548)", () => {
+test("the canonical set is [.faffrc, .faffrc.yml, .faffrc.*.yaml, !.faffrc.example.yaml, .faff/*, !.faff/anchors/] — .faffrc.yaml is NOT in it (FAFF-548/FAFF-568)", () => {
   const dir = seed();
   try {
     const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
     const set = [...res.added, ...res.already];
-    assert.deepEqual(set.sort(), [".faff/", ".faffrc", ".faffrc.*.yaml", "!.faffrc.example.yaml", ".faffrc.yml"].sort());
+    // FAFF-568: the local-artifacts dir is ignored as `.faff/*` (contents glob), NOT
+    // `.faff/`, so the `!.faff/anchors/` carve-out can re-include the committed anchors.
+    assert.deepEqual(set.sort(), [".faff/*", "!.faff/anchors/", ".faffrc", ".faffrc.*.yaml", "!.faffrc.example.yaml", ".faffrc.yml"].sort());
+    assert.ok(!set.includes(".faff/"), "a bare `.faff/` (which would block the anchors carve-out) must NOT be in the set");
     assert.ok(!set.includes(".faffrc.yaml"), "the committable base `.faffrc.yaml` must NOT be in the ignore set");
     assert.ok(!set.includes(".faffrc.local.yaml"), "the exact-local literal is replaced by the glob");
     // and the written file agrees: overlay glob ignored, base not ignored, and the
@@ -74,6 +77,12 @@ test("git semantics: real `git check-ignore` honours the glob + negation on a fr
     assert.ok(ignored(".faffrc.local.yaml"), "the classic local overlay is still ignored (via the glob)");
     assert.ok(!ignored(".faffrc.yaml"), "the committable base .faffrc.yaml is tracked");
     assert.ok(!ignored(".faffrc.example.yaml"), "the tracked template is re-included by the negation");
+    // FAFF-568: the anchors carve-out — everything under `.faff/` stays ignored EXCEPT
+    // the committed per-PR chain anchors (git's parent-exclusion rule means this only
+    // works because the dir is ignored as `.faff/*`, never a bare `.faff/`).
+    assert.ok(ignored(".faff/runs/run1/events.jsonl"), "run artifacts under .faff stay ignored");
+    assert.ok(ignored(".faff/logs/2026-07-23/x.md"), "logs under .faff stay ignored");
+    assert.ok(!ignored(".faff/anchors/run1/FAFF-1/events.jsonl"), "the anchors carve-out is committable (FAFF-568)");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

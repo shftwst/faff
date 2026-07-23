@@ -30,12 +30,25 @@ const { findRoot } = require("./shared-infra");
 // `.faffrc.local.yaml` line stays put; migration off it is deliberate (see `faff
 // config check`'s posture finding), never an automated line-drop that could sweep a
 // private value into a commit.
+// FAFF-568: the `.faff/` local artifacts dir is ignored as `.faff/*` (its CONTENTS),
+// NOT `.faff/` (the dir itself). This is load-bearing for the anchors carve-out below:
+// git's "cannot re-include a file if a parent directory is excluded" rule means a
+// trailing-slash `.faff/` ignore makes git skip the whole subtree, so a later
+// `!.faff/anchors/` negation can NEVER re-include it. `.faff/*` ignores only the direct
+// children (so `.faff/runs`, `.faff/logs`, … stay ignored) while letting git descend
+// into `.faff`, which is what lets `!.faff/anchors/` re-include the committed anchor
+// subtree. NB (migration): a repo whose .gitignore already carries a literal `.faff/`
+// line is NOT auto-fixed — this append-only writer never rewrites the old line, and the
+// old `.faff/` keeps blocking the carve-out. Such a repo migrates by hand-editing
+// `.faff/` → `.faff/*` (see `faff config check`'s posture finding), the same deliberate
+// migration stance the `.faffrc.yaml` line-drop note above takes.
 const FAFF_GITIGNORE_PATTERNS = [
   ".faffrc",               // bare legacy form
   ".faffrc.yml",           // legacy YAML form
   ".faffrc.*.yaml",        // FAFF-548: glob — every machine-local overlay variant
   "!.faffrc.example.yaml", // FAFF-548: negation — keep the tracked template out of the glob (must follow the glob)
-  ".faff/",                // the local artifacts dir (trailing slash = dir-only)
+  ".faff/*",               // FAFF-568: the local artifacts dir CONTENTS (glob, not `.faff/` — see note above)
+  "!.faff/anchors/",       // FAFF-568: carve-out — per-PR chain anchors are the one committed part of .faff/ (must follow the `.faff/*` glob)
 ];
 const GITIGNORE_HEADER = "# faff local artifacts (added by `faff gitignore-ensure`)";
 
@@ -106,6 +119,15 @@ function gitignoreEnsureSelftest() {
   check("glob is at a lower index than the negation", gi !== -1 && ni !== -1 && gi < ni);
   check("literal `.faffrc.local.yaml` removed from the set", !FAFF_GITIGNORE_PATTERNS.includes(".faffrc.local.yaml"));
   check("committed base `.faffrc.yaml` not in the set", !FAFF_GITIGNORE_PATTERNS.includes(".faffrc.yaml"));
+  // FAFF-568: the anchors carve-out — `.faff/*` (glob, never `.faff/`) so git descends,
+  // and the `!.faff/anchors/` negation strictly AFTER it (git honours a negation only
+  // when it follows the matching ignore line).
+  const fi = FAFF_GITIGNORE_PATTERNS.indexOf(".faff/*");
+  const ai = FAFF_GITIGNORE_PATTERNS.indexOf("!.faff/anchors/");
+  check("pattern set ignores `.faff/*` (contents glob, enables the carve-out)", fi !== -1);
+  check("pattern set does NOT carry a bare `.faff/` (would block the carve-out)", !FAFF_GITIGNORE_PATTERNS.includes(".faff/"));
+  check("pattern set contains the anchors negation `!.faff/anchors/`", ai !== -1);
+  check("`.faff/*` glob is at a lower index than the anchors negation", fi !== -1 && ai !== -1 && fi < ai);
 
   // Fresh repo: append content + glob-before-negation order ──────────────────────
   withTmp((dir) => {
@@ -117,6 +139,12 @@ function gitignoreEnsureSelftest() {
     const g = lineIndex(raw, ".faffrc.*.yaml");
     const n = lineIndex(raw, "!.faffrc.example.yaml");
     check("fresh repo: glob line strictly before negation line", g !== -1 && n !== -1 && g < n);
+    // FAFF-568: the anchors carve-out lands committable on a fresh repo.
+    check("fresh repo: `.faff/*` appended (not `.faff/`)", res.added.includes(".faff/*") && lineIndex(raw, ".faff/") === -1);
+    check("fresh repo: `!.faff/anchors/` appended", res.added.includes("!.faff/anchors/"));
+    const fg = lineIndex(raw, ".faff/*");
+    const an = lineIndex(raw, "!.faff/anchors/");
+    check("fresh repo: `.faff/*` strictly before `!.faff/anchors/`", fg !== -1 && an !== -1 && fg < an);
   });
 
   // Idempotent no-op on re-run ───────────────────────────────────────────────────

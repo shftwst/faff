@@ -13,29 +13,11 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 **Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. graft branches on the **fixed review-verdict, spec-readiness, and delivery-outcome contracts**; it consumes the `review` / `ship` slots' `faff-contract:review-verdict` / `faff-contract:delivery-outcome` blocks and pipes them to `faff contract <name>`.
 
-### Worktree Hook
+### Worktree provisioning
 
-Graft owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section just registers the hook that enacts it.
+Graft owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section names how graft enacts it.
 
-Graft needs a `WorktreeCreate` hook to set up worktrees. On first use, check `.claude/settings.json` for a WorktreeCreate hook. If none exists:
-
-1. Check if a project-specific wrapper exists at `scripts/setup-worktree.sh` — if so, register that
-2. Otherwise, register the generic hook bundled with the faff skill:
-
-```json
-{
-  "hooks": {
-    "WorktreeCreate": [
-      {
-        "type": "command",
-        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/faff-graft/setup-worktree.sh\""
-      }
-    ]
-  }
-}
-```
-
-Tell the user what you're adding and why. If they have a project-specific setup script, suggest they create a wrapper at `scripts/setup-worktree.sh` that calls the generic one then adds their extras.
+The Step 3 fresh-create path invokes the bundled `setup-worktree.sh` **directly** via the shell (no harness hook needed) — see Step 3 for the resolution + invocation. A project-specific wrapper at `scripts/setup-worktree.sh` is preferred when present; the skill step picks it up instead of the bundled script. Nothing load-bearing requires a `WorktreeCreate` hook registration: an existing one is harmless (graft no longer triggers it) and the operator may keep or remove it.
 
 ## Rendering
 
@@ -183,17 +165,23 @@ If no worktree exists:
 
 **Resume-store fallback (FAFF-403 — autonomous L3/L4 only, only on exit 3 above AND the issue carries `faff-awaiting-review`).** `$run_dir` is fresh every run, so an earlier-run hold leaves no checkpoint here — the run-agnostic **resume store** at `.faff/resume/<ISSUE>/` (mirroring the run-dir layout) is the cross-run handoff. Read `faff build-progress read "$repo/.faff/resume" <ISSUE>`: **exit 3** → stale label (store lost), proceed as a fresh build. **exit 0** → validate per the FAFF-402 rule above (branch exists, diff-hash matches); mismatch/gone → discard the store, fresh rebuild; **valid** → `cp .faff/resume/<ISSUE>/*.json "$run_dir/<ISSUE>/"` (the carry-forward) then resume exactly as the RESUME arm above (worktree from the existing branch, skip Steps 4–7, re-run 7.5+8, Step 9 reads the carried `review-progress.json`). The carry-forward is what keeps the outage-retry counter monotonic across drains (a dropped carry is an infinite hold loop). No label → never consulted; an ordinary fresh issue pays no extra read.
 
-- Use the `EnterWorktree` tool with the branch name as the worktree name
-- The `WorktreeCreate` hook (`setup-worktree.sh`) will automatically:
-  - Create the git worktree
-  - Copy gitignored config files (.env, etc.)
-  - Run the project's setup command if one exists
-
-**Worktree-root assert (FAFF-382 — both modes; runs after the worktree is entered, before Step 4).** The FAFF-379 preflight verifies the *configured* isolation root is sane; this assert makes that verified property **bind** — a build whose worktree landed *outside* the resolved root is caught rather than built. After `EnterWorktree` returns (fresh-create or the resume path above), the session cwd is the new worktree; assert it is under the resolved root via the single canonical resolver (the same one the hook and the preflight call, so a normal placement always passes):
+Invoke the bundled provisioning script directly (no harness hook). Resolve it adjacent to the `"$faff"` binary (gateway → **Resolving the `faff` executable**), prefer a project wrapper when present, and capture its last stdout line — the worktree path:
 
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
-actual=$(git rev-parse --show-toplevel)
+script="$(dirname "$faff")/../../faff-graft/setup-worktree.sh"
+[ -f "$script" ] || script=$(find ~/.claude -path '*/faff-graft/setup-worktree.sh' -type f 2>/dev/null | head -1)
+[ -f scripts/setup-worktree.sh ] && script=scripts/setup-worktree.sh   # project wrapper preferred
+wt=$(bash "$script" "<branch-name>" "$repo_root")   # last stdout line = the worktree path
+```
+
+The script still auto-copies gitignored config + runs setup, exactly as the hook did. If `$script` stays unresolvable (partial install), that is a **park** (unexpected state), never a silent skip. All subsequent steps operate on the captured `$wt` — explicit `cd "$wt"` / absolute paths.
+
+**Worktree-root assert (FAFF-382 — both modes; runs after the worktree is entered, before Step 4).** The FAFF-379 preflight verifies the *configured* isolation root is sane; this assert makes that verified property **bind** — a build whose worktree landed *outside* the resolved root is caught rather than built. Take the captured worktree path `wt` (fresh-create) or the recreated worktree (resume path above) and assert it is under the resolved root via the single canonical resolver (the same one the script and the preflight call, so a normal placement always passes):
+
+```bash
+faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
+actual=$(git -C "$wt" rev-parse --show-toplevel)
 "$faff" worktree-root --assert "$actual"   # exit 0 = under the resolved root; exit 1 = outside
 ```
 

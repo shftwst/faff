@@ -7,6 +7,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { parseArgs, usageError } = require("./argv");
+const LINT_CLI_DOC_SPEC = { flags: { "--root": { arity: 1 }, "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
 const { findRoot } = require("./shared-infra");
 
 const CLI_DOC_PATH = "docs/guide/cli.md";
@@ -32,15 +34,11 @@ function diffCliDoc(canonical, documented) {
 }
 
 function cmdLintCliDoc(args, COMMANDS) {
-  let root = null;
-  const rest = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--root") root = args[++i];
-    else rest.push(args[i]);
-  }
-  if (rest.includes("--selftest")) return lintCliDocSelftest();
-  const json = rest.includes("--json");
-  root = root || findRoot();
+  if (args.includes("--selftest")) return lintCliDocSelftest();
+  const { values, errors } = parseArgs(args, LINT_CLI_DOC_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff lint-cli-doc [--root DIR] [--json]");
+  const json = !!values["--json"];
+  const root = values["--root"] || findRoot();
 
   const canonical = new Set(Object.keys(COMMANDS));
   const docPath = path.join(root, CLI_DOC_PATH);

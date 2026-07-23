@@ -5,6 +5,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { HERE } = require("./shared-infra");
+const { parseArgs, usageError } = require("./argv");
+const VALIDATE_ADAPTERS_SPEC = { flags: { "--configured": { arity: 0 }, "--root": { arity: 1 }, "--skills-dir": { arity: 1 } } };
 const { loadConfig, DEFAULTS } = require("./config");
 const { CANONICAL_CONFIG, findRoot } = require("./shared-infra");
 
@@ -292,8 +294,8 @@ function checksFor(meta, t) {
 }
 
 function resolveSkillsDir(args) {
-  const di = args.indexOf("--skills-dir");
-  if (di !== -1) return args[di + 1];
+  const { values } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
+  if (values["--skills-dir"] !== undefined) return values["--skills-dir"];
   // script-relative: faff lives at skills/faff/bin/, so the skills root is two up
   // (sentinel: faffidavit-routing — a surviving sibling adaptor; FAFF-109 retired faffidavit-spec)
   const cand = path.resolve(HERE, "..", "..");
@@ -318,9 +320,8 @@ function locateSkill(skillsDir, occupant) {
 // now, not as an overnight park. Only the structural half; the semantic checks
 // (maps-onto-not-redefines, stays-in-lane) still need the authoring-adaptors Validate face.
 function validateConfigured(args, skillsDir) {
-  let root = null;
-  const ri = args.indexOf("--root");
-  if (ri !== -1) root = args[ri + 1];
+  const { values } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
+  let root = values["--root"] !== undefined ? values["--root"] : null;
   root = root || findRoot();
 
   let data, cfgPath;
@@ -379,6 +380,8 @@ function validateConfigured(args, skillsDir) {
 }
 
 function cmdValidateAdapters(args) {
+  const { errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff validate-adapters [--configured] [--skills-dir DIR] [--root DIR]");
   const skillsDir = resolveSkillsDir(args);
   if (!fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) {
     process.stderr.write(`validate-adapters: skills dir not found: ${skillsDir}\n`);

@@ -111,14 +111,18 @@ function trippedNotice(runId, runDir, payload) {
     `Inspect: faff sentry check --run-dir ${runDir}; abort resumably: faff sentry abort --run-dir ${runDir} --worktree <path>\n`;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const SENTRYCHECK_SPEC = { flags: { "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--root": { arity: 1 } } };
+
 function cmdSentrycheck(args) {
   if (args.includes("--selftest")) return sentrycheckSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  if (!args.includes("--hook")) {
+  const { values, errors } = parseArgs(args, SENTRYCHECK_SPEC);
+  if (errors.length) return usageError(errors, "faff sentrycheck: expected --hook [--root DIR] (or --selftest)");
+  if (!values["--hook"]) {
     process.stderr.write("faff sentrycheck: expected --hook [--root DIR] (or --selftest)\n");
     return 2;
   }
-  const root = get("--root") || findRoot();
+  const root = values["--root"] || findRoot();
   const runDir = latestRunDir(root);
   if (!runDir) return 0; // skip-no-run
 

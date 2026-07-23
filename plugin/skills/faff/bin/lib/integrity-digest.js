@@ -147,14 +147,22 @@ function readManifestArg(val) {
   return val; // inline JSON string
 }
 
+const { parseArgs, usageError } = require("./argv");
+const INTEGRITY_DIGEST_SPEC = {
+  flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--events": { arity: 0 }, "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--manifest": { arity: 1 } },
+  positionals: { min: 0, max: 1, name: "action" },
+};
+
 function cmdIntegrityDigest(args) {
   if (args.includes("--selftest")) return integrityDigestSelftest();
-  const action = args[0];
-  const json = args.includes("--json");
-  const flag = (name) => { const i = args.indexOf(name); if (i === -1) return null; const v = args[i + 1]; return (v && !v.startsWith("--")) ? v : ""; };
+  const { values, positionals, errors } = parseArgs(args, INTEGRITY_DIGEST_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff integrity-digest <snapshot|verify> --run-dir DIR [--issue ID] [--events] [--manifest json|file|-] [--json]");
+  const action = positionals[0];
+  const json = !!values["--json"];
+  const flag = (name) => (values[name] === undefined ? null : values[name]);
   const runDir = flag("--run-dir");
   const issue = flag("--issue");
-  const events = args.includes("--events");
+  const events = !!values["--events"];
 
   if (action !== "snapshot" && action !== "verify") { process.stderr.write("faff integrity-digest: <snapshot|verify> is required\n"); return 2; }
   if (!runDir) { process.stderr.write("faff integrity-digest: --run-dir requires a directory argument\n"); return 2; }

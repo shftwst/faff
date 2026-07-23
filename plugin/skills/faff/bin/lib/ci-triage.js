@@ -13,7 +13,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { adrFlag } = require("./adr");
+const { parseArgs, usageError } = require("./argv");
+const CI_TRIAGE_SPEC = { flags: {
+  "--json": { arity: 0 }, "--selftest": { arity: 0 },
+  "--fault-domain": { arity: 1 }, "--fault-domain-source": { arity: 1 }, "--issue": { arity: 1 },
+  "--pr": { arity: 1 }, "--repo": { arity: 1 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 },
+  "--transience": { arity: 1 },
+} };
 const { CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_TRANSIENCE, deriveTriageAction } = require("./contract-defs");
 const { ghJson, ghRepoSlug } = require("./merge-gate");
 const { findRoot } = require("./shared-infra");
@@ -222,15 +228,18 @@ function writeCiTriageVerdict(runDir, issue, verdict) {
 
 function cmdCiTriage(args) {
   if (args.includes("--selftest")) return ciTriageSelftest();
-  const json = args.includes("--json");
-  const pr = adrFlag(args, "--pr");
-  const issue = adrFlag(args, "--issue");
-  const runDir = adrFlag(args, "--run-dir");
-  const repoFlag = adrFlag(args, "--repo");
-  const transienceFlag = adrFlag(args, "--transience");
-  const faultDomainFlag = adrFlag(args, "--fault-domain");
-  const faultDomainSource = adrFlag(args, "--fault-domain-source");
-  const root = adrFlag(args, "--root");
+  const parsed = parseArgs(args, CI_TRIAGE_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff ci-triage --pr N --issue ID --run-dir DIR [--repo R] [--transience T] [--fault-domain D] [--fault-domain-source S] [--json] [--root DIR]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const json = !!parsed.values["--json"];
+  const pr = get("--pr");
+  const issue = get("--issue");
+  const runDir = get("--run-dir");
+  const repoFlag = get("--repo");
+  const transienceFlag = get("--transience");
+  const faultDomainFlag = get("--fault-domain");
+  const faultDomainSource = get("--fault-domain-source");
+  const root = get("--root");
 
   if (!pr || !issue || !runDir) {
     process.stderr.write("faff ci-triage: --pr, --issue and --run-dir are required\n");

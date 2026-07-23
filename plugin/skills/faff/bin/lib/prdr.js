@@ -15,7 +15,19 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { adrField, adrFlag, adrSlug, recordSupersede, recordSupersededBy, recordSupersessionProblems, renumberRefsTo } = require("./adr");
+const { adrField, adrSlug, recordSupersede, recordSupersededBy, recordSupersessionProblems, renumberRefsTo } = require("./adr");
+const { parseArgs, usageError } = require("./argv");
+const PRDR_SPEC = { flags: {
+  "--drops-last-goal": { arity: 0 }, "--grounding-present": { arity: 0 }, "--json": { arity: 0 },
+  "--live": { arity: 0 }, "--new-capability": { arity: 0 }, "--no-branch": { arity: 0 }, "--self": { arity: 0 },
+  "--selftest": { arity: 0 }, "--serves-goal": { arity: 0 }, "--within-scope": { arity: 0 },
+  "--actor": { arity: 1 }, "--admit-verdict": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 },
+  "--challenge-reason": { arity: 1 }, "--container": { arity: 1 }, "--date": { arity: 1 }, "--dod-verdicts": { arity: 1 },
+  "--lineage-supersessions": { arity: 1 }, "--live-prdrs": { arity: 1 }, "--lower": { arity: 1 },
+  "--prd-goal": { arity: 1 }, "--prd-goals": { arity: 1 }, "--proposal": { arity: 1 }, "--proposal-reason": { arity: 1 },
+  "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 }, "--root": { arity: 1 }, "--status": { arity: 1 },
+  "--supersedes-provenance": { arity: 1 }, "--thrash-max": { arity: 1 }, "--to": { arity: 1 }, "--upper": { arity: 1 },
+}, positionals: { min: 0, max: null, name: "verb selector" } };
 const { DEFAULTS, loadConfig, resolvePrdrDocsPath } = require("./config");
 const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, contractPrdDistance, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
@@ -241,8 +253,11 @@ function prdrRenumber(dir, root, selector, target, refScopeArg) {
 
 function cmdPrdr(args) {
   if (args.includes("--selftest")) return prdrSelftest();
+  const parsed = parseArgs(args, PRDR_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff prdr <path|new|supersede|renumber|validate|list|admit|yagni|...> [selector] [flags]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
-  const root = adrFlag(args, "--root") || findRoot();
+  const root = get("--root") || findRoot();
   const dir = prdrDir(root);
 
   if (action === "path") {
@@ -258,7 +273,7 @@ function cmdPrdr(args) {
 
   if (action === "list") {
     let prdrs = listPrdrs(dir);
-    const container = adrFlag(args, "--container");
+    const container = get("--container");
     if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
     if (args.includes("--live")) prdrs = prdrs.filter((p) => !recordSupersededBy(p.status, "PRDR"));
     if (args.includes("--json")) {
@@ -285,10 +300,10 @@ function cmdPrdr(args) {
   if (action === "accept") {
     const number = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
     if (!number) { process.stderr.write("faff prdr accept: <number> is required\n"); return 2; }
-    const actor = adrFlag(args, "--actor") || "human";
+    const actor = get("--actor") || "human";
     if (!["human", "loop"].includes(actor)) { process.stderr.write("faff prdr accept: --actor must be human|loop\n"); return 2; }
     const r = prdrAccept(dir, root, number, {
-      actor, admitVerdictJson: adrFlag(args, "--admit-verdict"),
+      actor, admitVerdictJson: get("--admit-verdict"),
       noBranch: args.includes("--no-branch"), cfg: loadConfig(root)[0],
     });
     if (r.out) process.stdout.write(r.out);
@@ -298,7 +313,7 @@ function cmdPrdr(args) {
 
   if (action === "renumber") {
     const selector = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
-    const r = prdrRenumber(dir, root, selector, adrFlag(args, "--to"), adrFlag(args, "--ref-scope"));
+    const r = prdrRenumber(dir, root, selector, get("--to"), get("--ref-scope"));
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
     return r.code;
@@ -306,21 +321,21 @@ function cmdPrdr(args) {
 
   if (action === "new") {
     const title = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
-    const container = adrFlag(args, "--container");
-    const prdGoal = adrFlag(args, "--prd-goal");
+    const container = get("--container");
+    const prdGoal = get("--prd-goal");
     if (!title) { process.stderr.write("faff prdr new: <title> is required\n"); return 2; }
     if (!container) { process.stderr.write("faff prdr new: --container is required\n"); return 2; }
     if (!prdGoal) { process.stderr.write("faff prdr new: --prd-goal is required\n"); return 2; }
-    const provenance = adrFlag(args, "--provenance");
+    const provenance = get("--provenance");
     if (provenance && !PRDR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff prdr new: --provenance must be one of ${PRDR_PROVENANCES.join("|")}\n`); return 2; }
-    const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
+    const date = get("--date") || new Date().toISOString().slice(0, 10);
     const num = prdrNextNumber(dir);
     const file = `${num}-${adrSlug(title)}.md`;
     const full = path.join(dir, file);
     if (fs.existsSync(full)) { process.stderr.write(`faff prdr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
     // provenance default = human (fail-safe: the harder-to-supersede tier; the loop passes --provenance loop).
-    fs.writeFileSync(full, prdrTemplate({ num, title, date, container, prdGoal, provenance: provenance || "human", status: adrFlag(args, "--status") }));
+    fs.writeFileSync(full, prdrTemplate({ num, title, date, container, prdGoal, provenance: provenance || "human", status: get("--status") }));
     process.stdout.write(full + "\n");   // stdout = path ONLY (parity with `adr new`/`prd new`)
     return 0;
   }
@@ -328,7 +343,7 @@ function cmdPrdr(args) {
   if (action === "supersede") {
     // Pure mechanical linker — the SHARED writer, prefix "PRDR" (mirror `adr supersede` exactly;
     // NO actor/authority concept — that is FAFF-255's gate, P1).
-    const r = recordSupersede(dir, root, listPrdrs(dir), args[1], adrFlag(args, "--by"), "PRDR");
+    const r = recordSupersede(dir, root, listPrdrs(dir), args[1], get("--by"), "PRDR");
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
     return r.code;
@@ -338,23 +353,23 @@ function cmdPrdr(args) {
     // The two-gate admission gate (FAFF-255). Pure — no tracker/network call (parity with `faff next`):
     // the agent maps the move's state onto these closed-vocabulary flags. <prdr> is accepted for the
     // human-readable echo / lineage label; the verdict itself is a pure function of the flags.
-    const actor = adrFlag(args, "--actor");
+    const actor = get("--actor");
     if (!PRDR_ACTORS.includes(actor)) { process.stderr.write("faff prdr admit: --actor must be loop|human\n"); return 2; }
-    const sup = adrFlag(args, "--supersedes-provenance");
+    const sup = get("--supersedes-provenance");
     if (!PRDR_SUPERSEDES.includes(sup)) { process.stderr.write("faff prdr admit: --supersedes-provenance must be human|loop|none\n"); return 2; }
     const cfg = loadConfig(root)[0];
-    const tmRaw = adrFlag(args, "--thrash-max") ?? dig(cfg, "prdr.thrash_max") ?? DEFAULTS["prdr.thrash_max"];
+    const tmRaw = get("--thrash-max") ?? dig(cfg, "prdr.thrash_max") ?? DEFAULTS["prdr.thrash_max"];
     const thrashMax = parseInt(tmRaw, 10);
     // thrash_max + lineage are COUNTS — a negative is nonsensical and would breach the ratchet at
     // lineage 0 (lineage >= negative is always true), spuriously rejecting every admit. Reject it.
     if (!Number.isInteger(thrashMax) || thrashMax < 0) { process.stderr.write(`faff prdr admit: thrash_max "${tmRaw}" must be a non-negative integer\n`); return 2; }
-    const lsRaw = adrFlag(args, "--lineage-supersessions");
+    const lsRaw = get("--lineage-supersessions");
     const lineageSupersessions = lsRaw != null ? parseInt(lsRaw, 10) : 0;
     if (!Number.isInteger(lineageSupersessions) || lineageSupersessions < 0) { process.stderr.write(`faff prdr admit: --lineage-supersessions "${lsRaw}" must be a non-negative integer\n`); return 2; }
     let upper = null, lower = null;
-    const upRaw = adrFlag(args, "--upper");
+    const upRaw = get("--upper");
     if (upRaw != null) { try { upper = JSON.parse(upRaw); } catch (e) { process.stderr.write(`faff prdr admit: --upper is not valid JSON: ${e.message}\n`); return 2; } }
-    const loRaw = adrFlag(args, "--lower");
+    const loRaw = get("--lower");
     if (loRaw != null) { try { lower = JSON.parse(loRaw); } catch (e) { process.stderr.write(`faff prdr admit: --lower is not valid JSON: ${e.message}\n`); return 2; } }
     const verdict = computePrdrAdmissionVerdict({
       actor, supersedesProvenance: sup,
@@ -375,26 +390,26 @@ function cmdPrdr(args) {
     // the agent maps the trace + the two slot results onto these closed-vocabulary flags. <prdr> is
     // accepted for the human-readable echo; the verdict is a pure function of the flags. Emits 255's
     // `upper` shape (admit, reason) plus the audit trail; feed it to `faff prdr admit --upper`.
-    const prdGoal = adrFlag(args, "--prd-goal");
+    const prdGoal = get("--prd-goal");
     let prdGoals = [];
-    const goalsRaw = adrFlag(args, "--prd-goals");
+    const goalsRaw = get("--prd-goals");
     if (goalsRaw != null) {
       try { prdGoals = JSON.parse(goalsRaw); } catch (e) { process.stderr.write(`faff prdr yagni: --prd-goals is not valid JSON: ${e.message}\n`); return 2; }
       if (!Array.isArray(prdGoals)) { process.stderr.write("faff prdr yagni: --prd-goals must be a JSON array of strings\n"); return 2; }
     }
-    const proposalVerdict = adrFlag(args, "--proposal");
+    const proposalVerdict = get("--proposal");
     if (proposalVerdict != null && !PRDR_YAGNI_PROPOSAL_VERDICTS.includes(proposalVerdict)) {
       process.stderr.write("faff prdr yagni: --proposal must be admit|reject\n"); return 2;
     }
-    const challenge = adrFlag(args, "--challenge");
+    const challenge = get("--challenge");
     if (challenge != null && challenge !== "survived" && challenge !== "overturned") {
       process.stderr.write("faff prdr yagni: --challenge must be survived|overturned (omit when Phase 2 did not conclude)\n"); return 2;
     }
     const verdict = computePrdrYagniVerdict({
       prdGoal, prdGoals,
-      proposalVerdict, proposalReason: adrFlag(args, "--proposal-reason"),
+      proposalVerdict, proposalReason: get("--proposal-reason"),
       servesGoal: args.includes("--serves-goal"), withinScope: args.includes("--within-scope"),
-      challenge, challengeReason: adrFlag(args, "--challenge-reason"),
+      challenge, challengeReason: get("--challenge-reason"),
       groundingPresent: args.includes("--grounding-present"),
     });
     // Belt-and-braces: the produced verdict must itself conform to the prdr-yagni contract schema.
@@ -411,7 +426,7 @@ function cmdPrdr(args) {
     // Emits 255's `lower` shape at the top level ({covered, uncovered_goals} — feed to `prdr admit --lower`)
     // plus the `prd-satisfied` roll-up; pipe the block to `faff contract prd-coverage`.
     let prdGoals = [];
-    const goalsRaw = adrFlag(args, "--prd-goals");
+    const goalsRaw = get("--prd-goals");
     if (goalsRaw != null) {
       try { prdGoals = JSON.parse(goalsRaw); } catch (e) { process.stderr.write(`faff prdr coverage: --prd-goals is not valid JSON: ${e.message}\n`); return 2; }
       if (!Array.isArray(prdGoals)) { process.stderr.write("faff prdr coverage: --prd-goals must be a JSON array of strings\n"); return 2; }
@@ -420,20 +435,20 @@ function cmdPrdr(args) {
     // directly via --live-prdrs (pure; e.g. from `prdr list --live --json`), or omit it to let the
     // producer read the live PRDRs from docs/prdr itself (the static coverage convenience).
     let livePrdrs = null;
-    const liveRaw = adrFlag(args, "--live-prdrs");
+    const liveRaw = get("--live-prdrs");
     if (liveRaw != null) {
       try { livePrdrs = JSON.parse(liveRaw); } catch (e) { process.stderr.write(`faff prdr coverage: --live-prdrs is not valid JSON: ${e.message}\n`); return 2; }
       if (!Array.isArray(livePrdrs)) { process.stderr.write("faff prdr coverage: --live-prdrs must be a JSON array of objects\n"); return 2; }
     } else {
       // Read live PRDRs from docs/prdr (no network — filesystem only, still pure of side effects).
       let prdrs = listPrdrs(dir).filter((p) => !recordSupersededBy(p.status, "PRDR"));
-      const container = adrFlag(args, "--container");
+      const container = get("--container");
       if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
       livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goal: p.prd_goal }));
     }
     // --dod-verdicts: optional FAFF-34 verdict map { "<prdr-id>": "met"|... }, merged onto livePrdrs by id.
     // Absent ⇒ every DoD unverified ⇒ conservatively not-met (the unbuilt-evaluator default).
-    const dvRaw = adrFlag(args, "--dod-verdicts");
+    const dvRaw = get("--dod-verdicts");
     if (dvRaw != null) {
       let dodVerdicts;
       try { dodVerdicts = JSON.parse(dvRaw); } catch (e) { process.stderr.write(`faff prdr coverage: --dod-verdicts is not valid JSON: ${e.message}\n`); return 2; }
@@ -455,13 +470,13 @@ function cmdPrdr(args) {
     // mirror of `coverage`; emits the per-sibling distance-class ladder for the methodology to compose as a
     // within-band ordering tiebreaker. Not gate-consumed; pipe the block to `faff contract prd-distance`.
     let prdGoals = [];
-    const goalsRaw = adrFlag(args, "--prd-goals");
+    const goalsRaw = get("--prd-goals");
     if (goalsRaw != null) {
       try { prdGoals = JSON.parse(goalsRaw); } catch (e) { process.stderr.write(`faff prdr distance: --prd-goals is not valid JSON: ${e.message}\n`); return 2; }
       if (!Array.isArray(prdGoals)) { process.stderr.write("faff prdr distance: --prd-goals must be a JSON array of strings\n"); return 2; }
     }
     let livePrdrs = null;
-    const liveRaw = adrFlag(args, "--live-prdrs");
+    const liveRaw = get("--live-prdrs");
     if (liveRaw != null) {
       try { livePrdrs = JSON.parse(liveRaw); } catch (e) { process.stderr.write(`faff prdr distance: --live-prdrs is not valid JSON: ${e.message}\n`); return 2; }
       if (!Array.isArray(livePrdrs)) { process.stderr.write("faff prdr distance: --live-prdrs must be a JSON array of objects\n"); return 2; }
@@ -470,12 +485,12 @@ function cmdPrdr(args) {
       // NB: unlike `coverage`, distance CARRIES `container` (the Entry record mandates it for the
       // methodology's issue↔sibling slug-match) — do not drop it here.
       let prdrs = listPrdrs(dir).filter((p) => !recordSupersededBy(p.status, "PRDR"));
-      const container = adrFlag(args, "--container");
+      const container = get("--container");
       if (container) prdrs = prdrs.filter((p) => p.container && adrSlug(p.container) === adrSlug(container));
       livePrdrs = prdrs.map((p) => ({ id: p.num, prd_goal: p.prd_goal, container: p.container }));
     }
     // --dod-verdicts: optional FAFF-34 verdict map { "<prdr-id>": "met"|... }, merged onto livePrdrs by id.
-    const dvRaw = adrFlag(args, "--dod-verdicts");
+    const dvRaw = get("--dod-verdicts");
     if (dvRaw != null) {
       let dodVerdicts;
       try { dodVerdicts = JSON.parse(dvRaw); } catch (e) { process.stderr.write(`faff prdr distance: --dod-verdicts is not valid JSON: ${e.message}\n`); return 2; }

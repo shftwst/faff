@@ -69,24 +69,33 @@ function deriveRunTrigger(s) {
   return { verdict: "drain", reason: "prd-covered" };
 }
 
+const { parseArgs, usageError } = require("./argv");
+const RUN_START_SIGNAL_NAMES = ["target-resolved", "outward", "prd-present", "prd-ambiguous", "prd-admissible", "coverage-measurable", "coverage-covered"];
+const RUN_START_SPEC = { flags: (() => {
+  const f = { "--selftest": { arity: 0 }, "--signals": { arity: 1 } };
+  for (const n of RUN_START_SIGNAL_NAMES) { f[`--${n}`] = { arity: 0 }; f[`--no-${n}`] = { arity: 0 }; }
+  return f;
+})() };
+
 function cmdRunStart(args) {
   if (args.includes("--selftest")) return runStartSelftest();
-  const getFlag = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, RUN_START_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff run-start [--signals JSON] [--<signal>|--no-<signal>]... [--selftest]");
 
   // Signals may arrive as a whole bundle (--signals JSON) and/or as individual
   // flags; a flag OVERRIDES the bundle for that signal. A malformed --signals is a
   // usage error (exit 2), parity with run-done's --budget/--policy handling.
   let raw = {};
-  const sigRaw = getFlag("--signals");
+  const sigRaw = values["--signals"] === undefined ? null : values["--signals"];
   if (sigRaw != null) {
     try { const p = JSON.parse(sigRaw); if (p && typeof p === "object" && !Array.isArray(p)) raw = p; else { process.stderr.write("faff run-start: --signals must be a JSON object\n"); return 2; } }
     catch (e) { process.stderr.write(`faff run-start: --signals is not valid JSON: ${e.message}\n`); return 2; }
   }
   // Per-signal flag overrides: --<name> sets true, --no-<name> sets false.
-  for (const name of ["target-resolved", "outward", "prd-present", "prd-ambiguous", "prd-admissible", "coverage-measurable", "coverage-covered"]) {
+  for (const name of RUN_START_SIGNAL_NAMES) {
     const key = name.replace(/-/g, "_");
-    if (args.includes(`--no-${name}`)) raw[key] = false;
-    else if (args.includes(`--${name}`)) raw[key] = true;
+    if (values[`--no-${name}`]) raw[key] = false;
+    else if (values[`--${name}`]) raw[key] = true;
   }
 
   const signals = normalizeRunTriggerSignals(raw);

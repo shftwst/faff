@@ -20,6 +20,12 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { parseArgs, usageError } = require("./argv");
+const ENV_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--root": { arity: 1 },
+  "--manifest": { arity: 1 }, "--out": { arity: 1 }, "--plan": { arity: 1 }, "--poll-secs": { arity: 1 },
+  "--profile": { arity: 1 }, "--project": { arity: 1 }, "--sla-secs": { arity: 1 },
+}, positionals: { min: 0, max: null, name: "verb" } };
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 
 const DATASTORE_TABLE = {
@@ -576,6 +582,10 @@ function envObjectUpload(root, project, target, datasetDir, composeFile) {
 }
 
 function cmdEnv(args) {
+  // FAFF-576: fail-closed flag gate — env reads a FIXED set of its own flags (it forwards
+  // none to compose), so an unknown flag / missing value exits 2 here before any provisioning.
+  const gate = parseArgs(args, ENV_SPEC);
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff env <compose-gen|up|seed|down> [--profile P] [--plan F] [--out O] [--manifest F] [--project P] [--poll-secs N] [--sla-secs N] [--root DIR]");
   let root = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {

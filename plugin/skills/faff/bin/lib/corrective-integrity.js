@@ -21,6 +21,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const { realFsq } = require("./container-check");
+const { parseArgs, usageError } = require("./argv");
 
 const INTEGRITY_DECL_ENV = "FAFF_INTEGRITY_BOUNDARY";
 // FAFF-514: faff owns the (version, dir-set) content of the declaration. The version token is
@@ -213,16 +214,19 @@ function integrityBoundaryDeclaration(opts) {
   return { version, mode, dirs, declaration: `${version}:${dirs.join(",")}` };
 }
 
-const INTEGRITY_BOUNDARY_FLAGS = new Set(["--root", "--run-dir", "--issue", "--events", "--json", "--selftest"]);
+
+const INTEGRITY_BOUNDARY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--events": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--issue": { arity: 1 } } };
 
 function cmdIntegrityBoundary(args) {
   if (args.includes("--selftest")) return integrityBoundarySelftest();
-  for (const a of args) if (a.startsWith("--") && !INTEGRITY_BOUNDARY_FLAGS.has(a)) { process.stderr.write(`faff integrity-boundary: unknown flag ${a}\n`); return 2; }
-  const json = args.includes("--json");
-  const val = (name) => { const i = args.indexOf(name); if (i === -1) return null; const v = args[i + 1]; return (v && !v.startsWith("--")) ? v : ""; };
+  const parsed = parseArgs(args, INTEGRITY_BOUNDARY_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff integrity-boundary [--run-dir DIR [--issue ID] [--events]] [--root DIR] [--json]");
+  const values = parsed.values;
+  const json = !!values["--json"];
+  const val = (name) => (values[name] === undefined ? null : values[name]);
   const runDir = val("--run-dir");
   const issue = val("--issue");
-  const events = args.includes("--events");
+  const events = !!values["--events"];
 
   if (runDir === null && (issue !== null || events)) { process.stderr.write("faff integrity-boundary: --issue/--events modify the per-run set only — pass them with --run-dir\n"); return 2; }
   let res;
@@ -298,11 +302,14 @@ function integrityBoundarySelftest() {
 
 const CONSUMERS = ["corrective", "detection", "merge-floor"];
 
+const CORRECTIVE_INTEGRITY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--consumer": { arity: 1 }, "--run-dir": { arity: 1 }, "--issue": { arity: 1 } } };
+
 function cmdCorrectiveIntegrity(args) {
   if (args.includes("--selftest")) return correctiveIntegritySelftest();
-  const json = args.includes("--json");
-  const ci = args.indexOf("--consumer");
-  const consumer = ci !== -1 && args[ci + 1] ? args[ci + 1] : "corrective";
+  const { values, errors } = parseArgs(args, CORRECTIVE_INTEGRITY_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff corrective-integrity [--consumer NAME] [--run-dir DIR [--issue ID]] [--json]");
+  const json = !!values["--json"];
+  const consumer = values["--consumer"] || "corrective";
   // Closed vocabulary — reject an unknown --consumer loudly (usage error, exit 2),
   // matching the CLI's other flag validation. The gate's unknown->channel-D fail-safe
   // is defence-in-depth, not a licence for the CLI to accept garbage silently.
@@ -310,10 +317,8 @@ function cmdCorrectiveIntegrity(args) {
     process.stderr.write(`corrective-integrity: unknown --consumer '${consumer}' (expected: ${CONSUMERS.join(" | ")})\n`);
     return 2;
   }
-  const rdi = args.indexOf("--run-dir");
-  const runDir = rdi !== -1 ? args[rdi + 1] : null;
-  const isi = args.indexOf("--issue");
-  const issue = isi !== -1 ? args[isi + 1] : null;
+  const runDir = values["--run-dir"] === undefined ? null : values["--run-dir"];
+  const issue = values["--issue"] === undefined ? null : values["--issue"];
   // No --run-dir -> no required dirs (the probe can still surface no-declaration /
   // env-injection / malformed; dir-mismatch needs a concrete dir set to check).
   // FAFF-466: the `detection` consumer's forge surface additionally covers

@@ -22,6 +22,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
+const { parseArgs, usageError } = require("./argv");
+const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "action" } };
+const SYNC_SPEC = { flags: { "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--script": { arity: 1 } } };
+const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 } } };
 const { loadConfig } = require("./config");
 const { contractQualityGates } = require("./contract-defs");
 const { commandInvokesFaffHook, preToolUseCommands } = require("./hooks-ensure");
@@ -281,9 +285,11 @@ function gatesContractExtraction(outcome) {
 
 function cmdGates(args) {
   if (args.includes("--selftest")) return gatesSelftest();
-  const action = args[0];
-  const json = args.includes("--json");
-  const root = (() => { const i = args.indexOf("--root"); return i !== -1 ? args[i + 1] : findRoot(); })();
+  const { values, positionals, errors } = parseArgs(args, GATES_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff gates <discover|run> [--json] [--root DIR]");
+  const action = positionals[0];
+  const json = !!values["--json"];
+  const root = values["--root"] || findRoot();
 
   if (action === "discover") {
     const { rungs, discovery } = discoverRungs(root);
@@ -485,12 +491,10 @@ function classifyGlobalLink(full) {
 }
 
 function cmdDoctor(args) {
-  let target = null;
-  let root = null;
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--target") target = args[++i];
-    else if (args[i] === "--root") root = args[++i];
-  }
+  const { values, errors } = parseArgs(args, DOCTOR_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff doctor [--target live|intoWorktree] [--root DIR]");
+  let target = values["--target"] === undefined ? null : values["--target"];
+  let root = values["--root"] === undefined ? null : values["--root"];
   if (!target) {
     const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
     target = pluginRoot ? path.join(pluginRoot, "skills") : path.join(process.env.HOME || "", ".claude", "skills");
@@ -608,10 +612,11 @@ function resolveSyncScript(scriptOverride) {
 // Never auto-run in autonomous mode (it mutates ~/.claude outside any PR): the caller
 // (the gateway doctor-at-entry check) only invokes it on an interactive human accept.
 function cmdSync(args) {
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const dryRun = args.includes("--dry-run");
-  const asJson = args.includes("--json");
-  const scriptOverride = get("--script");
+  const { values, errors } = parseArgs(args, SYNC_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff sync [--dry-run] [--script PATH] [--json]");
+  const dryRun = !!values["--dry-run"];
+  const asJson = !!values["--json"];
+  const scriptOverride = values["--script"] === undefined ? null : values["--script"];
 
   const { path: scriptPath, tried } = resolveSyncScript(scriptOverride);
   if (!scriptPath) {

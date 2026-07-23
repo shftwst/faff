@@ -162,9 +162,19 @@ function projectNextSelftest() {
   return fail ? 1 : 0;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const PROJECT_NEXT_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, // --json is accepted (output is always JSON); declared so it isn't rejected
+  "--current": { arity: 1 }, "--kind": { arity: 1 },
+  "--total": { arity: 1 }, "--active": { arity: 1 }, "--done": { arity: 1 },
+  "--has-dod": { arity: 0 }, "--dod-met": { arity: 0 },
+} };
+
 function cmdProjectNext(args) {
   if (args.includes("--selftest")) return projectNextSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, PROJECT_NEXT_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff project-next --current CAT --kind project|initiative --total N --active N --done N [--has-dod] [--dod-met]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const num = (f) => { const v = get(f); return v === null ? 0 : Number(v); }; // non-int/negative → error in projectNext
   const state = {
     current: (get("--current") || "").toLowerCase(),
@@ -172,8 +182,8 @@ function cmdProjectNext(args) {
     total: num("--total"),
     active: num("--active"),
     done: num("--done"),
-    hasDod: args.includes("--has-dod"),
-    dodMet: args.includes("--dod-met"),
+    hasDod: !!values["--has-dod"],
+    dodMet: !!values["--dod-met"],
   };
   const r = projectNext(state);
   if (r.error) { process.stderr.write(`faff project-next: ${r.error}\n`); return 2; }

@@ -152,9 +152,11 @@ test("a non-root --parent (≠ mandate) with no ancestry is a usage error (exit 
 });
 
 test("a dangling value flag is a usage error (exit 2)", () => {
+  // FAFF-576: dangling value-flags are now caught by the shared argv parser as missing-value
+  // ("flag --parent requires a value"); exit 2 is unchanged, only the wording is sharper.
   const r = run("contain", "M", "--parent", "--ancestry", anc(["C", "M"]));
   assert.equal(r.code, 2);
-  assert.match(r.err, /needs a value/);
+  assert.match(r.err, /needs a value|missing-value|requires a value/);
 });
 
 test("the command is PURE — no tracker/network call (smoke: succeeds offline)", () => {

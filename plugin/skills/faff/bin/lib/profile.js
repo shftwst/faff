@@ -20,6 +20,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { loadConfig } = require("./config");
+const { parseArgs, usageError } = require("./argv");
+const PROFILE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--file": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const { dig, findRoot } = require("./shared-infra");
 const { SKIP } = require("./validate-adapters");
 
@@ -224,6 +226,9 @@ function validateProfile(obj) {
 }
 
 function cmdProfile(args) {
+  // FAFF-576: fail-closed flag gate — unknown flag / missing value exits 2 here.
+  const gate = parseArgs(args, PROFILE_SPEC);
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff profile <mine|validate|show> [--file F] [--json] [--root DIR]");
   let root = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {

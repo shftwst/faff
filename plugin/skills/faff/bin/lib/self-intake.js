@@ -76,34 +76,30 @@ function deriveSelfFromConfig(root) {
 
 // `faff self-intake <mandate> --target <json> [--record <run-id>] [--phase p] [--json]`
 // exit 0 self · 3 not-self (fail-closed) · 2 usage/malformed/config-failure.
+const { parseArgs, usageError } = require("./argv");
+const SELF_INTAKE_SPEC = {
+  flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--target": { arity: 1 }, "--record": { arity: 1 }, "--phase": { arity: 1 } },
+  positionals: { min: 0, max: 1, name: "mandate" },
+};
+
 function cmdSelfIntake(args) {
   if (args.includes("--selftest")) return selfIntakeSelftest();
   const usage = "faff self-intake: usage: faff self-intake <mandate> --target <json> [--record <run-id>] [--phase run|tidy|prep|build|plot] [--json]";
 
-  let mandate = null;
-  const flags = {};
-  let danglingValueFlag = null;
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (a === "--self") {
-      // The anti-pattern this ticket closes: a caller-supplied self would re-open
-      // the forgeable seam. Rejected BY NAME, never silently absorbed.
-      process.stderr.write("faff self-intake: there is no --self flag — the self side is derived from committed config, never caller input (FAFF-539).\n");
-      return 2;
-    }
-    if (SELF_INTAKE_VALUE_FLAGS.has(a)) {
-      const nxt = args[i + 1];
-      if (nxt === undefined || nxt.startsWith("--")) { danglingValueFlag = a; continue; }
-      flags[a] = nxt; i++;
-    } else if (a.startsWith("--")) {
-      flags[a] = true;
-    } else if (mandate === null) {
-      mandate = a;
-    }
+  if (args.includes("--self")) {
+    // The anti-pattern this ticket closes: a caller-supplied self would re-open
+    // the forgeable seam. Rejected BY NAME, never silently absorbed (FAFF-539) —
+    // kept ahead of parseArgs so the specific message wins over a generic unknown-flag.
+    process.stderr.write("faff self-intake: there is no --self flag — the self side is derived from committed config, never caller input (FAFF-539).\n");
+    return 2;
   }
+  const parsed = parseArgs(args, SELF_INTAKE_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, usage);
+  const mandate = parsed.positionals[0] || null;
+  const flags = {};
+  for (const k of Object.keys(parsed.values)) flags[k] = parsed.values[k];
   const asJson = flags["--json"] === true;
 
-  if (danglingValueFlag) { process.stderr.write(`faff self-intake: ${danglingValueFlag} needs a value.\n`); return 2; }
   if (!mandate) { process.stderr.write(`${usage}\n`); return 2; }
 
   const targetRaw = flags["--target"];

@@ -305,9 +305,19 @@ function appendCorrectiveEvent(runDir, type, issue, data) {
 
 // --- CLI: author -------------------------------------------------------------------
 
+const { parseArgs, usageError } = require("./argv");
+const CORRECTIVE_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--op": { arity: 1 }, "--root": { arity: 1 },
+  "--cites-signal": { arity: 1 }, "--cites-seq": { arity: 1 }, "--cites-evidence": { arity: 1 },
+  "--cause": { arity: 1 }, "--threshold-key": { arity: 1 }, "--threshold-value": { arity: 1 },
+  "--surface": { arity: 1, repeatable: true }, "--subset": { arity: 1, repeatable: true },
+}, positionals: { min: 0, max: 1, name: "verb" } };
+
 function parseFlags(args) {
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const getAll = (f) => { const out = []; for (let i = 0; i < args.length; i++) if (args[i] === f) out.push(args[i + 1]); return out; };
+  const { values } = parseArgs(args, CORRECTIVE_SPEC);
+  const get = (f) => (values[f] === undefined ? null : (Array.isArray(values[f]) ? values[f][0] : values[f]));
+  const getAll = (f) => (Array.isArray(values[f]) ? values[f] : (values[f] === undefined ? [] : [values[f]]));
   return { get, getAll };
 }
 
@@ -483,7 +493,9 @@ function cmdCorrectiveCheck(args) {
 
 function cmdCorrective(args) {
   if (args.includes("--selftest")) return correctiveSelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
+  const { positionals, errors } = parseArgs(args, CORRECTIVE_SPEC);
+  if (errors.length) return usageError(errors, "faff corrective: expected one of author | check (or --selftest)");
+  const sub = positionals[0];
   if (sub === "author") return cmdCorrectiveAuthor(args);
   if (sub === "check") return cmdCorrectiveCheck(args);
   process.stderr.write("faff corrective: expected one of author | check (or --selftest)\n");

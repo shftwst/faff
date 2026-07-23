@@ -60,6 +60,19 @@ const path = require("node:path");
 const os = require("node:os");
 const { CANONICAL_CONFIG, dig, findConfig, findRoot, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 const { mutateLedgerUnderLock } = require("./heartbeat");
+const { parseArgs, usageError } = require("./argv");
+// budget check / baseline always emit JSON; --json is accepted-and-ignored for CLI-convention
+// parity (live callers — sentry.js, lights-out.js — pass `budget check --json`).
+const BUDGET_CHECK_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--session-id": { arity: 1 },
+  "--until": { arity: 1 }, "--max": { arity: 1 }, "--now": { arity: 1 }, "--now-ms": { arity: 1 },
+}, positionals: { min: 0, max: 1, name: "verb" } };
+const BUDGET_BASELINE_SPEC = { flags: {
+  "--json": { arity: 0 },
+  "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--session-id": { arity: 1 },
+}, positionals: { min: 0, max: 1, name: "verb" } };
+const BUDGET_USAGE = "usage: faff budget check|baseline [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]";
 
 function readGovernanceConfig(root) {
   // Governance config read (budget.* / sentry.* only). Resolution — canonical name,
@@ -624,9 +637,11 @@ function cmdBudget(args) {
   if (args.includes("--selftest")) return budgetSelftest();
   const sub = args.find((a) => !a.startsWith("-"));
   if (sub === "baseline") return cmdBudgetBaseline(args);
-  if (sub !== "check") { process.stderr.write("usage: faff budget check|baseline [--run-dir DIR] [--root DIR] [--session-id ID] [--until HH:MM] [--max N] [--now-ms MS | --now ISO] [--json]\n"); return 2; }
+  if (sub !== "check") { process.stderr.write(BUDGET_USAGE + "\n"); return 2; }
 
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const parsedCheck = parseArgs(args, BUDGET_CHECK_SPEC);
+  if (parsedCheck.errors.length) return usageError(parsedCheck.errors, BUDGET_USAGE);
+  const get = (f) => (parsedCheck.values[f] === undefined ? null : parsedCheck.values[f]);
   const flags = { until: get("--until"), max_attempts: get("--max") };
   const root = get("--root") || findRoot();
   // FAFF-488: an optional `--session-id` selects which session's transcript is
@@ -886,7 +901,9 @@ function cmdBudget(args) {
 // estimate-degraded) — only a genuinely unresolvable run-dir is a usage error
 // (exit 2), mirroring `check`'s own usage-vs-fault split.
 function cmdBudgetBaseline(args) {
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const parsed = parseArgs(args, BUDGET_BASELINE_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff budget baseline --run-dir DIR [--root DIR] [--session-id ID] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const root = get("--root") || findRoot();
   const sessionIdFlag = get("--session-id");
   // FAFF-552: the EFFECTIVE measuring session persisted as this run's owning

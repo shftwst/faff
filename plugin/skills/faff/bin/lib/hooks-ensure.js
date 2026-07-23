@@ -261,12 +261,16 @@ function resolveHookBin(probeRoot) {
   try { return fs.realpathSync(process.argv[1]); } catch { return process.argv[1]; }
 }
 
+const { parseArgs, usageError } = require("./argv");
+const HOOKS_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--root": { arity: 1 } } };
+
 function cmdHooksEnsure(args) {
   if (args.includes("--selftest")) return hooksEnsureSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const root = get("--root") || findRoot();
-  const asJson = args.includes("--json");
-  const dryRun = args.includes("--dry-run");
+  const { values, errors } = parseArgs(args, HOOKS_ENSURE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff hooks-ensure [--root DIR] [--dry-run] [--json]");
+  const root = values["--root"] || findRoot();
+  const asJson = !!values["--json"];
+  const dryRun = !!values["--dry-run"];
   const target = path.join(root, ".claude", "settings.json");
   const local = path.join(root, ".claude", "settings.local.json");
   const existed = fs.existsSync(target);

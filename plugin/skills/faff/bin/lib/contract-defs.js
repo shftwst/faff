@@ -13,6 +13,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { HERE } = require("./shared-infra");
 const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engine");
+const { parseArgs, usageError } = require("./argv");
+const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
 const { RUN_DONE_VERDICTS } = require("./run-done");
 const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, deriveRunTrigger, normalizeRunTriggerSignals } = require("./run-start");
 
@@ -2024,21 +2026,23 @@ function contractSelftest(name) {
 }
 
 function cmdContract(args) {
-  const name = args.find((a) => !a.startsWith("--"));
-  if (args.includes("--selftest")) return contractSelftest(name);
+  const { values, positionals, errors } = parseArgs(args, CONTRACT_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff contract <name> [--in FILE] | [<name>] --selftest   (extraction JSON on stdin)");
+  const name = positionals[0];
+  if (values["--selftest"]) return contractSelftest(name);
   if (!name) { process.stderr.write("usage: faff contract <name> [--in FILE] | [<name>] --selftest   (extraction JSON on stdin)\n"); return 2; }
   const c = CONTRACTS[name];
   if (!c) { process.stderr.write(`faff contract: unknown contract '${name}' (known: ${Object.keys(CONTRACTS).join(", ")})\n`); return 2; }
-  const inIdx = args.indexOf("--in");
+  const inFile = values["--in"];
   let rawIn;
-  try { rawIn = inIdx !== -1 ? fs.readFileSync(args[inIdx + 1], "utf8") : fs.readFileSync(0, "utf8"); }
+  try { rawIn = inFile !== undefined ? fs.readFileSync(inFile, "utf8") : fs.readFileSync(0, "utf8"); }
   catch (e) { process.stderr.write(`faff contract: cannot read input: ${e.message}\n`); return 2; }
   let extraction;
   try { extraction = JSON.parse(rawIn); }
   catch (e) { process.stderr.write(`faff contract ${name}: extraction is not valid JSON: ${e.message}\n`); return 2; }
   // FAFF-384: `--require-spawner-attested` arms the holdout-verdict spawner-attestation ratchet (caller-
   // resolved from the run's lane-boundary cage promise). Ignored by every other contract's run fn.
-  const runOpts = name === "holdout-verdict" && args.includes("--require-spawner-attested") ? { requireSpawnerAttested: true } : undefined;
+  const runOpts = name === "holdout-verdict" && values["--require-spawner-attested"] ? { requireSpawnerAttested: true } : undefined;
   const result = runOpts ? c.run(extraction, runOpts) : c.run(extraction);
   if (result.failLoud) { process.stderr.write(`faff contract ${name}: fail-loud: ${result.failLoud}\n`); return 2; }
   process.stdout.write(JSON.stringify(result.contractData) + "\n");

@@ -42,12 +42,23 @@ function eligibleSelftest() {
   return fail ? 1 : 0;
 }
 
+const { parseArgs, usageError } = require("./argv");
+
+const ELIGIBLE_SPEC = {
+  flags: {
+    "--selftest": { arity: 0 },
+    "--label": { arity: 1, repeatable: true },
+    "--default": { arity: 1 }, // no enum: a non-opt-out value legitimately coerces to opt-in (fail-safe)
+  },
+};
+const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default opt-in|opt-out]";
+
 function cmdEligible(args) {
   if (args.includes("--selftest")) return eligibleSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const labels = [];
-  for (let i = 0; i < args.length; i++) if (args[i] === "--label") labels.push(args[++i]);
-  const def = (get("--default") || "opt-in").toLowerCase();
+  const { values, errors } = parseArgs(args, ELIGIBLE_SPEC);
+  if (errors.length) return usageError(errors, ELIGIBLE_USAGE);
+  const labels = values["--label"] || [];
+  const def = (values["--default"] || "opt-in").toLowerCase();
   console.log(String(automationEligible(labels, def)));
   return 0;
 }

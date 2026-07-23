@@ -79,30 +79,25 @@ function isSafeRunId(runId) {
   if (/[\x00-\x1f]/.test(runId)) return false;
   return true;
 }
+const { parseArgs, usageError } = require("./argv");
+const CONTAIN_SPEC = {
+  flags: {
+    "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 0 }, // --root is boolean despite naming overlap
+    "--parent": { arity: 1 }, "--ancestry": { arity: 1 }, "--record": { arity: 1 }, "--phase": { arity: 1 },
+  },
+  positionals: { min: 0, max: 1, name: "mandate" },
+};
+
 function cmdContain(args) {
   if (args.includes("--selftest")) return containSelftest();
-  // Parse: first bare token is the mandate; --parent takes a value, --root is a
-  // boolean (mutually exclusive with --parent), --ancestry takes a value.
-  let mandate = null;
-  const flags = {};
-  let danglingValueFlag = null;
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (a === "--root") { flags["--root"] = true; continue; } // boolean despite naming overlap
-    if (CONTAIN_VALUE_FLAGS.has(a)) {
-      const nxt = args[i + 1];
-      if (nxt === undefined || nxt.startsWith("--")) { danglingValueFlag = a; continue; }
-      flags[a] = nxt; i++;
-    } else if (a.startsWith("--")) {
-      flags[a] = true;
-    } else if (mandate === null) {
-      mandate = a;
-    }
-  }
-  const asJson = flags["--json"] === true;
   const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--record <run-id>] [--phase run|tidy|prep|build|plot] [--json]";
+  const parsed = parseArgs(args, CONTAIN_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, usage);
+  const mandate = parsed.positionals[0] || null;
+  const flags = {};
+  for (const k of Object.keys(parsed.values)) flags[k] = parsed.values[k];
+  const asJson = flags["--json"] === true;
 
-  if (danglingValueFlag) { process.stderr.write(`faff contain: ${danglingValueFlag} needs a value.\n`); return 2; }
   if (!mandate) { process.stderr.write(`${usage}\n`); return 2; }
 
   const wantRoot = flags["--root"] === true;

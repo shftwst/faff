@@ -5,6 +5,21 @@
 // ===========================================================================
 
 const { runEligibleCases } = require("./eligible");
+const { parseArgs, usageError } = require("./argv");
+
+const NEXT_SPEC = {
+  flags: {
+    "--selftest": { arity: 0 },
+    "--status": { arity: 1 }, // value validated by nextStep (case-insensitive), not an enum here
+    "--spec": { arity: 1 },   // value validated by nextStep
+    "--not-eligible": { arity: 0 },
+    "--held": { arity: 0 },   // deprecated fail-safe alias of --not-eligible
+    "--parked": { arity: 0 },
+    "--blocked": { arity: 0 },
+    "--if-eligible": { arity: 0 },
+  },
+};
+const NEXT_USAGE = "usage: faff next --status STATUS --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--if-eligible]";
 
 const NEXT_STATUSES = ["backlog", "todo", "in-progress", "in-review", "done", "cancelled", "duplicate"];
 // FAFF-484: the single terminal-state set (the one definition of "terminal" in the normalised-status
@@ -79,18 +94,19 @@ function nextSelftest() {
 
 function cmdNext(args) {
   if (args.includes("--selftest")) return nextSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, NEXT_SPEC);
+  if (errors.length) return usageError(errors, NEXT_USAGE);
   // FAFF-61: eligibility replaces the old --held flag. Default eligible (proceed);
   // --not-eligible marks a ticket the autonomous pipeline must skip. `--held` is kept
   // as a deprecated, fail-safe alias of --not-eligible (a held ticket is never eligible),
   // so an un-migrated caller still skips rather than silently proceeding.
   const state = {
-    status: (get("--status") || "").toLowerCase(),
-    spec: (get("--spec") || "none").toLowerCase(),
-    eligible: !(args.includes("--not-eligible") || args.includes("--held")),
-    parked: args.includes("--parked"),
-    blocked: args.includes("--blocked"),
-    ifEligible: args.includes("--if-eligible"),   // FAFF-83: advisory hypothetical
+    status: String(values["--status"] || "").toLowerCase(),
+    spec: String(values["--spec"] || "none").toLowerCase(),
+    eligible: !(values["--not-eligible"] || values["--held"]),
+    parked: !!values["--parked"],
+    blocked: !!values["--blocked"],
+    ifEligible: !!values["--if-eligible"],   // FAFF-83: advisory hypothetical
   };
   const [next, reason] = nextStep(state);
   if (next === "error") { process.stderr.write(`faff next: ${reason}\n`); return 2; }

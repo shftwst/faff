@@ -10,6 +10,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { parseArgs, usageError } = require("./argv");
+const MODELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 2, name: "verb confidence" } };
+// Union across every `config` sub-verb (path|get|set|check|init|spec-docs-path|prd-docs-path). The gate
+// rejects unknown flags / missing values; each sub-verb's own body reads the validated flags below.
+const CONFIG_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--force": { arity: 0 }, "--dry-run": { arity: 0 }, "--create": { arity: 0 },
+  "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] }, "--set": { arity: 1, repeatable: true },
+}, positionals: { min: 0, max: null, name: "verb key value" } };
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
@@ -1112,6 +1120,10 @@ function configCheckSelftest() {
 }
 
 function cmdConfig(args) {
+  // FAFF-576: fail-closed flag gate across all sub-verbs — an unknown flag / missing value exits 2
+  // here; each sub-verb's body below reads validated flags via its own (positional-aware) scan.
+  const gate = parseArgs(args, CONFIG_SPEC);
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff config <path|get|set|check|init|spec-docs-path> [KEY [VALUE]] [-d DEFAULT] [--json] [--set K=V] [--force] [--dry-run] [--root DIR]");
   let root = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
@@ -1403,15 +1415,15 @@ function resolveBuildModel(cfg, conf) {
 // the caller maps to "omit the Agent-tool model param"). Pure; exit 0 token / 2 usage or invalid token.
 function cmdModels(args) {
   if (args.includes("--selftest")) return modelsSelftest();
-  const sub = args.find((a) => !a.startsWith("-"));
+  const { values, positionals, errors } = parseArgs(args, MODELS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff models build-for <confidence> [--root DIR]");
+  const sub = positionals[0];
   if (sub !== "build-for") {
     process.stderr.write("usage: faff models build-for <confidence> [--root DIR]\n");
     return 2;
   }
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-  const root = get("--root") || findRoot();
-  const bfIdx = args.indexOf("build-for");
-  const confArg = (bfIdx !== -1 && args[bfIdx + 1] && !args[bfIdx + 1].startsWith("-")) ? args[bfIdx + 1] : null;
+  const root = values["--root"] || findRoot();
+  const confArg = positionals[1] || null;
   const [cfg] = loadConfig(root);
   const res = resolveBuildModel(cfg, confArg);
   if (res.error) { process.stderr.write(res.error + "\n"); return 2; }

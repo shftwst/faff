@@ -10,6 +10,8 @@
 // ===========================================================================
 
 const { CONTROL_LABELS } = require("./labels");
+const { parseArgs, usageError } = require("./argv");
+const LABEL_SPEC = { flags: { "--selftest": { arity: 0 }, "--present-label": { arity: 1, repeatable: true } }, positionals: { min: 0, max: 3, name: "action issue label" } };
 
 function labelOp({ action, issue, label, present }) {
   const entry = CONTROL_LABELS.find((l) => l.name === label);
@@ -107,21 +109,20 @@ function labelSelftest() {
 
 function cmdLabel(args) {
   if (args.includes("--selftest")) return labelSelftest();
-  const action = args[0];
+  const { values, positionals, errors } = parseArgs(args, LABEL_SPEC);
+  if (errors.length) return usageError(errors, "faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...]");
+  const action = positionals[0];
   if (action !== "add" && action !== "remove") {
     process.stderr.write("faff label: action must be add|remove\n");
     return 2;
   }
-  const issue = args[1];
-  const label = args[2];
-  if (!issue || !label || issue.startsWith("--") || label.startsWith("--")) {
+  const issue = positionals[1];
+  const label = positionals[2];
+  if (!issue || !label) {
     process.stderr.write("faff label: usage: faff label add|remove <issue-id> <label> [--present-label L ...]\n");
     return 2;
   }
-  const present = [];
-  for (let i = 3; i < args.length; i++) {
-    if (args[i] === "--present-label") { const v = args[++i]; if (v != null) present.push(v); }
-  }
+  const present = Array.isArray(values["--present-label"]) ? values["--present-label"] : (values["--present-label"] !== undefined ? [values["--present-label"]] : []);
   const result = labelOp({ action, issue, label, present: present.length ? present : null });
   if (result.rejected) {
     process.stderr.write(`faff label: '${label}' is not a faff control label (see \`faff labels --names\`)\n`);

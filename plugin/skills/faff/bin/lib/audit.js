@@ -15,6 +15,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { auditLedger } = require("./runcheck");
+const { parseArgs, usageError } = require("./argv");
+const AUDIT_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--issue": { arity: 1 } }, positionals: { min: 0, max: 1, name: "run-id" } };
 // FAFF-354: the containment recompute reads the SAME pure primitives `contain`
 // computed the original verdict with — sourced from shared-infra (not contain.js
 // directly), since governance (this file) may reference shared-infra only, never a
@@ -290,17 +292,13 @@ function renderAuditText(recon) {
 
 function cmdAudit(args) {
   if (args.includes("--selftest")) return auditSelftest();
-  let root = null, issue = null;
-  const rest = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--root") root = args[++i];
-    else if (args[i] === "--issue") issue = args[++i];
-    else rest.push(args[i]);
-  }
-  const json = rest.includes("--json");
-  const runId = rest.find((a) => !a.startsWith("--"));
+  const { values, positionals, errors } = parseArgs(args, AUDIT_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff audit <run-id> [--issue ID] [--json] [--root DIR]");
+  const issue = values["--issue"] === undefined ? null : values["--issue"];
+  const json = !!values["--json"];
+  const runId = positionals[0];
   if (!runId) { process.stderr.write("faff audit: <run-id> required\n"); return 2; }
-  root = root || findRoot();
+  const root = values["--root"] || findRoot();
   const runDir = path.join(root, ".faff", "runs", runId);
   if (!fs.existsSync(runDir) || !fs.statSync(runDir).isDirectory()) {
     process.stderr.write(`faff audit: no run dir for ${runId}\n`); return 3;

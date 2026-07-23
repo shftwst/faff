@@ -145,9 +145,14 @@ function parkHistorySelftest() {
   return fail ? 1 : 0;
 }
 
+const { parseArgs, usageError } = require("./argv");
+const PARK_HISTORY_SPEC = { flags: { "--selftest": { arity: 0 }, "--now": { arity: 1 }, "--root": { arity: 1 }, "--issue": { arity: 1 } } };
+
 function cmdParkHistory(args) {
   if (args.includes("--selftest")) return parkHistorySelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, PARK_HISTORY_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff park-history --now ISO-8601 [--root DIR] [--issue ID]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const nowArg = get("--now");
   if (!nowArg) {
     process.stderr.write("faff park-history: --now <ISO-8601> is required (the window end; no ambient clock)\n");

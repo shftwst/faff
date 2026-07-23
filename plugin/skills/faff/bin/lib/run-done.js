@@ -124,12 +124,24 @@ function computeRunDoneVerdict(rawSignals, policy) {
   return mk("run-complete", s.queue_empty ? "drained" : "all-parked", policy_source, "clean-complete", false);
 }
 
+const { parseArgs, usageError } = require("./argv");
+const RUN_DONE_SPEC = { flags: (() => {
+  const f = {
+    "--selftest": { arity: 0 }, "--no-prd": { arity: 0 }, "--non-convergence": { arity: 0 },
+    "--budget": { arity: 1 }, "--prd-coverage": { arity: 1 }, "--policy": { arity: 1 }, "--inflection": { arity: 1 },
+  };
+  for (const n of ["queue-empty", "all-parked", "ledger-clean"]) { f[`--${n}`] = { arity: 0 }; f[`--no-${n}`] = { arity: 0 }; }
+  return f;
+})() };
+
 function cmdRunDone(args) {
   if (args.includes("--selftest")) return runDoneSelftest();
-  const getFlag = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, RUN_DONE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff run-done [--budget JSON] [--prd-coverage JSON] [--policy JSON] [--inflection reached|none] [--<signal>|--no-<signal>]...");
+  const getFlag = (f) => (values[f] === undefined ? null : values[f]);
   const boolSig = (name) => {
-    if (args.includes(`--no-${name}`)) return false;
-    if (args.includes(`--${name}`)) return true;
+    if (values[`--no-${name}`]) return false;
+    if (values[`--${name}`]) return true;
     return false;
   };
   // --budget / --prd-coverage / --policy carry JSON; a malformed value is a usage error (exit 2).
@@ -147,7 +159,7 @@ function cmdRunDone(args) {
   // prd_satisfied: --prd-coverage JSON (read .satisfied) | --no-prd (null) | absent (null, no PRD in scope).
   let prd_satisfied = null;
   const covRaw = getFlag("--prd-coverage");
-  if (covRaw != null && !args.includes("--no-prd")) {
+  if (covRaw != null && !values["--no-prd"]) {
     const p = parseJson(covRaw, "--prd-coverage"); if (!p.ok) return 2;
     const cov = p.value;
     if (cov === null || typeof cov !== "object" || Array.isArray(cov) || typeof cov.satisfied !== "boolean") {
@@ -176,7 +188,7 @@ function cmdRunDone(args) {
     budget,
     prd_satisfied,
     inflection,
-    non_convergence: args.includes("--non-convergence"),
+    non_convergence: !!values["--non-convergence"],
   };
 
   const verdict = computeRunDoneVerdict(signals, policy);

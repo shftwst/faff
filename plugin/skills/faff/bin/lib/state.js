@@ -13,6 +13,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { parseArgs, usageError } = require("./argv");
+const STATE_SPEC = { flags: { "--root": { arity: 1 }, "--json": { arity: 0 } }, positionals: { min: 0, max: 1, name: "issue" } };
 const { spawnSync } = require("node:child_process");
 const { loadConfig, resolveSpecDocsPath } = require("./config");
 const { findRoot, readLedger, sortRunDirsByMtimeDesc } = require("./shared-infra");
@@ -139,16 +141,11 @@ function resolveLedgerOutcome(root, issue) {
 }
 
 function cmdState(args) {
-  let root = null;
-  const positional = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--root") root = args[++i];
-    else if (args[i] === "--json") { /* no-op: JSON is the default + only format */ }
-    else positional.push(args[i]);
-  }
-  const issue = positional[0];
+  const { values, positionals, errors } = parseArgs(args, STATE_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff state <issue> [--root DIR] [--json]");
+  const issue = positionals[0];
   if (!issue) { process.stderr.write("faff state: missing <issue> argument\n"); return 2; }
-  root = root || findRoot();
+  const root = values["--root"] || findRoot();
 
   const [spec, spec_source] = resolveSpec(root, issue);
   const [parked, parked_source] = resolveParked(root, issue);

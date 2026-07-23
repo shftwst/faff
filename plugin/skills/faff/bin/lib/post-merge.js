@@ -137,15 +137,23 @@ function verifyPostMerge({ issue, pr, runDir, shaOverride, root }) {
   return { record, exit };
 }
 
+const { parseArgs, usageError } = require("./argv");
+const POST_MERGE_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--json": { arity: 0 },
+  "--issue": { arity: 1 }, "--pr": { arity: 1 }, "--run-dir": { arity: 1 }, "--sha": { arity: 1 }, "--root": { arity: 1 },
+} };
+
 function cmdPostMergeCheck(args) {
   if (args.includes("--selftest")) return postMergeSelftest();
-  const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
+  const { values, errors } = parseArgs(args, POST_MERGE_SPEC);
+  if (errors.length) return usageError(errors, "faff post-merge-check: usage: --issue ID --pr N --run-dir DIR [--sha SHA] [--json]");
+  const get = (f) => (values[f] === undefined ? null : values[f]);
   const issue = get("--issue");
   const pr = get("--pr");
   const runDir = get("--run-dir");
   const shaOverride = get("--sha");
   const root = get("--root") || findRoot();
-  const json = args.includes("--json");
+  const json = !!values["--json"];
 
   if (!issue || !pr || !runDir) {
     process.stderr.write("faff post-merge-check: usage: --issue ID --pr N --run-dir DIR [--sha SHA] [--json]\n");

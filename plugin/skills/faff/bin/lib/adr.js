@@ -13,6 +13,15 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
+const { parseArgs, usageError } = require("./argv");
+const ADR_SPEC = { flags: {
+  "--json": { arity: 0 }, "--self": { arity: 0 }, "--selftest": { arity: 0 },
+  "--actor": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 }, "--date": { arity: 1 },
+  "--exclude": { arity: 1 }, "--initiative": { arity: 1 }, "--issue": { arity: 1 },
+  "--lineage-supersessions": { arity: 1 }, "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 },
+  "--root": { arity: 1 }, "--status": { arity: 1 }, "--supersedes-provenance": { arity: 1 },
+  "--thrash-max": { arity: 1 }, "--title": { arity: 1 }, "--to": { arity: 1 },
+}, positionals: { min: 0, max: null, name: "verb selector" } };
 // FAFF-199: PRDR_ACTORS/PRDR_SUPERSEDES are reused verbatim (aliased) — the actor/supersedes
 // vocabularies are identical across the ADR and PRDR admission axes (design principle: share
 // enum constants where identical, don't fork a byte-identical enum under a new name).
@@ -387,8 +396,6 @@ function adrAccept(dir, selector) {
   return { code: 0, out: `${filePath}\n`, err: "" };
 }
 
-function adrFlag(args, name) { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : null; }
-
 // FAFF-198 (ADR L3): deterministic mechanics around the `detect_contradictions` LLM seam.
 // These are the plumbing the seam sits inside — input assembly + offer-routing — kept here so
 // they are unit-tested (`adr --selftest`) and the seam stays the only non-deterministic step.
@@ -443,8 +450,11 @@ function adrOfferRoute({ interactive, mode, contradicts, appetite }) {
 
 function cmdAdr(args) {
   if (args.includes("--selftest")) return adrSelftest();
+  const parsed = parseArgs(args, ADR_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept> [flags]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
-  const root = adrFlag(args, "--root") || findRoot();
+  const root = get("--root") || findRoot();
   const dir = adrDir(root);
 
   if (action === "next-number") { process.stdout.write(adrNextNumber(dir) + "\n"); return 0; }
@@ -465,7 +475,7 @@ function cmdAdr(args) {
   if (action === "live-decisions") {
     // FAFF-198: emit `live_adr_decisions` — the seam-input candidate set (non-superseded, exclude-new,
     // each `## Decision` body read). Deterministic plumbing AROUND the LLM seam; never runs the seam.
-    const live = adrLiveDecisions(dir, adrFlag(args, "--exclude"));
+    const live = adrLiveDecisions(dir, get("--exclude"));
     console.log(JSON.stringify(live, null, 2));
     return 0;
   }
@@ -499,19 +509,19 @@ function cmdAdr(args) {
   }
 
   if (action === "new") {
-    const title = adrFlag(args, "--title");
+    const title = get("--title");
     if (!title) { process.stderr.write("faff adr new: --title is required\n"); return 2; }
     // FAFF-199: --provenance human|loop, default "human" (fail-safe: the harder-to-supersede tier;
     // the loop passes --provenance loop explicitly — mirrors `prdr new` ~L165 verbatim).
-    const provenance = adrFlag(args, "--provenance");
+    const provenance = get("--provenance");
     if (provenance && !ADR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff adr new: --provenance must be one of ${ADR_PROVENANCES.join("|")}\n`); return 2; }
-    const date = adrFlag(args, "--date") || new Date().toISOString().slice(0, 10);
+    const date = get("--date") || new Date().toISOString().slice(0, 10);
     const num = adrNextNumber(dir);
     const file = `${num}-${adrSlug(title)}.md`;
     const full = path.join(dir, file);
     if (fs.existsSync(full)) { process.stderr.write(`faff adr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: adrFlag(args, "--issue"), initiative: adrFlag(args, "--initiative"), status: adrFlag(args, "--status"), provenance: provenance || "human" }));
+    fs.writeFileSync(full, adrTemplate({ num, title, date, issue: get("--issue"), initiative: get("--initiative"), status: get("--status"), provenance: provenance || "human" }));
     process.stdout.write(full + "\n");
     return 0;
   }
@@ -520,7 +530,7 @@ function cmdAdr(args) {
     // faff adr supersede <old> --by <new> — link two existing ADRs with the canonical form.
     // The ONE place the CLI edits an existing ADR — and only its Status value + one Supersedes line.
     // FAFF-245: the write is the shared, prefix-parameterised `recordSupersede` (no fork).
-    const r = recordSupersede(dir, root, listAdrs(dir), args[1], adrFlag(args, "--by"), "ADR");
+    const r = recordSupersede(dir, root, listAdrs(dir), args[1], get("--by"), "ADR");
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
     return r.code;
@@ -530,20 +540,20 @@ function cmdAdr(args) {
     // FAFF-199: the two-gate admission gate, ADR 0022's PRDR pattern ported. Pure — no
     // tracker/network call (parity with `faff prdr admit` / `faff next`): the agent maps the
     // move's state onto these closed-vocabulary flags; the verdict is a pure function of them.
-    const actor = adrFlag(args, "--actor");
+    const actor = get("--actor");
     if (!ADR_ACTORS.includes(actor)) { process.stderr.write("faff adr admit: --actor must be loop|human\n"); return 2; }
-    const sup = adrFlag(args, "--supersedes-provenance");
+    const sup = get("--supersedes-provenance");
     if (!ADR_SUPERSEDES.includes(sup)) { process.stderr.write("faff adr admit: --supersedes-provenance must be human|loop|none\n"); return 2; }
     const cfg = loadConfig(root)[0];
-    const tmRaw = adrFlag(args, "--thrash-max") ?? dig(cfg, "adr.thrash_max") ?? DEFAULTS["adr.thrash_max"];
+    const tmRaw = get("--thrash-max") ?? dig(cfg, "adr.thrash_max") ?? DEFAULTS["adr.thrash_max"];
     const thrashMax = parseInt(tmRaw, 10);
     // thrash_max + lineage are COUNTS — a negative is nonsensical and would breach the ratchet at
     // lineage 0 (lineage >= negative is always true), spuriously rejecting every admit. Reject it.
     if (!Number.isInteger(thrashMax) || thrashMax < 0) { process.stderr.write(`faff adr admit: thrash_max "${tmRaw}" must be a non-negative integer\n`); return 2; }
-    const lsRaw = adrFlag(args, "--lineage-supersessions");
+    const lsRaw = get("--lineage-supersessions");
     const lineageSupersessions = lsRaw != null ? parseInt(lsRaw, 10) : 0;
     if (!Number.isInteger(lineageSupersessions) || lineageSupersessions < 0) { process.stderr.write(`faff adr admit: --lineage-supersessions "${lsRaw}" must be a non-negative integer\n`); return 2; }
-    const challengeRaw = adrFlag(args, "--challenge");
+    const challengeRaw = get("--challenge");
     if (challengeRaw != null && challengeRaw !== "survived" && challengeRaw !== "overturned") {
       process.stderr.write("faff adr admit: --challenge must be survived|overturned (omit when the drift challenge did not run or did not conclude)\n"); return 2;
     }
@@ -566,9 +576,9 @@ function cmdAdr(args) {
     // and re-validates; graft's Step-10 merge guard calls it, never free-hands git mv + heading edits.
     const selector = args[1];
     if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr renumber: <selector> (a docs/adr filename or a bare number) is required\n"); return 2; }
-    const to = adrFlag(args, "--to");
+    const to = get("--to");
     if (!to) { process.stderr.write("faff adr renumber: --to <NNNN|next> is required\n"); return 2; }
-    const rsFlag = adrFlag(args, "--ref-scope");
+    const rsFlag = get("--ref-scope");
     const refScope = rsFlag ? rsFlag.split(/[,\s]+/).filter(Boolean) : [];
     const r = adrRenumber(dir, selector, to, refScope);
     if (r.out) process.stdout.write(r.out);
@@ -873,4 +883,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrFlag, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };

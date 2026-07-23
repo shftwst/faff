@@ -65,10 +65,15 @@ function reviewIterationCapSelftest() {
 // `faff review-iteration-cap --appetite <low|medium|high|full>` — print the resolved
 // integer cap on stdout, exit 0. Absent/unrecognised appetite: nothing on stdout, the
 // legal set named on stderr, exit 2 (fail-loud, parity with `models build-for`).
+const { parseArgs, usageError } = require("./argv");
+const REVIEW_ITERATION_CAP_SPEC = { flags: { "--selftest": { arity: 0 }, "--appetite": { arity: 1 } } };
+const REVIEW_ITERATION_CAP_USAGE = "usage: faff review-iteration-cap --appetite low|medium|high|full";
+
 function cmdReviewIterationCap(args) {
   if (args.includes("--selftest")) return reviewIterationCapSelftest();
-  const idx = args.indexOf("--appetite");
-  const appetite = idx !== -1 ? args[idx + 1] : undefined;
+  const { values, errors } = parseArgs(args, REVIEW_ITERATION_CAP_SPEC);
+  if (errors.length) return usageError(errors, REVIEW_ITERATION_CAP_USAGE);
+  const appetite = values["--appetite"]; // undefined when absent — resolveReviewIterationCap validates
   const res = resolveReviewIterationCap(appetite);
   if (res.error) { process.stderr.write(res.error + "\n"); return 2; }
   console.log(String(res.cap));

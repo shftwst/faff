@@ -30,6 +30,12 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { parseArgs, usageError } = require("./argv");
+const EVENTS_SPEC = { flags: {
+  "--selftest": { arity: 0 }, "--tokens": { arity: 0 }, "--json": { arity: 0 },
+  "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
+  "--session-id": { arity: 1 }, "--type": { arity: 1 }, "--issue": { arity: 1 },
+}, positionals: { min: 0, max: null, name: "verb" } };
 const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock } = require("./heartbeat");
@@ -360,6 +366,10 @@ function appendEventRecord(dir, run, payload, ts) {
 }
 
 function cmdEvents(args) {
+  // FAFF-576: fail-closed flag gate — unknown flag / missing value exits 2 before any sub-verb work
+  // (the append/read bodies below then read validated flags via the existing manual scan).
+  const gate = parseArgs(args, EVENTS_SPEC);
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff events <append|validate|read> [--run ID] [--file F] [--ts T] [--tokens] [--session-id ID] [--type T] [--issue ID] [--json] [--root DIR]");
   let root = null, run = null, ts = null, file = null, tokensFlag = false, sessionIdFlag = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {

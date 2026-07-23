@@ -30,7 +30,9 @@ inputs:
     description: >-
       Where committed per-PR chain anchors live in the checkout (FAFF-568). Anchors are
       immutable snapshots verified for chain INTEGRITY ONLY — they never trigger the
-      completeness/budget/liveness/merge_floor sweep that live run dirs do.
+      completeness/budget/liveness/merge_floor sweep that live run dirs do. An anchor
+      carrying events.jsonl without its CLI-written chain-head.json witness fails the
+      integrity leg (witness-absent, fail-closed).
     required: false
     default: ".faff/anchors"
   legacy-policy:
@@ -189,16 +191,20 @@ runs:
       run: |
         set -euo pipefail
         LINE="anchor-missing-for-run-dir: the PR carries run dir(s) under \`${{ inputs.artifacts-path }}\` but no chain anchor under \`${{ inputs.anchors-path }}\` — on-missing: \`${{ inputs.on-missing }}\`"
-        {
-          echo "## faff governance-check"
-          echo ""
-          echo "**⚠ $LINE**"
-        } >> "$GITHUB_STEP_SUMMARY"
         if [ "${{ inputs.on-missing }}" = "fail" ]; then
+          # Fail path: the check step never runs, so this step owns the summary heading.
+          {
+            echo "## faff governance-check"
+            echo ""
+            echo "**⚠ $LINE**"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "verdict=fail" >> "$GITHUB_OUTPUT"
           echo "::error::faff governance-check: $LINE"
           exit 1
         fi
+        # Warn path: the check step still runs and writes the ONE summary heading —
+        # emit only the warning line here (no duplicate heading).
+        echo "**⚠ faff governance-check: $LINE**" >> "$GITHUB_STEP_SUMMARY"
         echo "::warning::faff governance-check: $LINE"
 
     # 3. No carried run dirs ⇒ apply on-missing (write the summary line either way —

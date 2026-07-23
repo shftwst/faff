@@ -155,11 +155,14 @@ function evaluateMergeFloorLeg(runDir, issue, level) {
 // witness disagrees with the re-derived log — a post-anchor rewrite, failed regardless
 // of legacy-policy), and `malformed` (a corrupt committed anchor) all fail-closed. An
 // absent events.jsonl → verified (nothing to break), so a run/PR carrying no chain is
-// a clean no-op. `note` (when set) is a warning line the shell emits to stderr and the
-// renderers carry in the detail column — `warn` is never silently identical to `pass`.
+// a clean no-op. Under `requireWitness` (anchor evaluation only) an events.jsonl with
+// no chain-head.json beside it is `witness-absent` — fail-closed, since deleting the
+// witness would otherwise re-open every spoof the cross-check closed. `note` (when
+// set) is a warning line the shell emits to stderr and the renderers carry in the
+// detail column — `warn` is never silently identical to `pass`.
 // ---------------------------------------------------------------------------
 
-function evaluateIntegrityLeg(dir, legacyPolicy = "pass") {
+function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
   const r = verifyChain(dir, { legacyPolicy });
   let pass, note = null;
   if (r.status === "verified") pass = true;
@@ -171,6 +174,22 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass") {
         : "legacy schema-1 log (no chain) — pass under legacy-policy warn";
     }
   } else pass = false; // broken | witness-mismatch | malformed → fail-closed
+  // FAFF-568 fix pass 2: an ANCHOR requires its witness. `faff events anchor` always
+  // writes chain-head.json, so an anchor dir carrying events.jsonl with NO witness
+  // means post-anchor deletion or a broken writer — and deleting the witness would
+  // otherwise re-open the legacy-downgrade spoof the cross-check closed. Fail-closed
+  // (`witness-absent`), but only when the leg would otherwise pass: an already-failing
+  // status (broken / witness-mismatch / malformed / policy-fail) keeps its more
+  // specific forensics. `requireWitness` is set ONLY when the dir is evaluated AS an
+  // anchor (evaluateAnchorDir) — a bare run dir has no witness by design, and the
+  // verb path (`faff events verify`) is unchanged.
+  if (opts.requireWitness && pass && r.witness === "absent" && fs.existsSync(path.join(dir, "events.jsonl"))) {
+    return {
+      pass: false, status: "witness-absent",
+      detail: "witness-absent: anchor carries events.jsonl but no chain-head.json — an anchor is CLI-written with its witness, so absence means post-anchor deletion or a broken writer (fail-closed)",
+      first_break: null, note: null, torn_tail: r.torn_tail, witness: "absent",
+    };
+  }
   let detail = r.detail;
   if (r.status === "broken" && r.first_break) {
     detail = `broken at line ${r.first_break.line}${r.first_break.seq != null ? ` (seq ${r.first_break.seq})` : ""}`;
@@ -188,7 +207,7 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass") {
 // run-result shape as `evaluateRunDir` so the renderers/reasons are unchanged, with
 // the non-integrity legs marked n/a (pass, never gating). `pass = integrity.pass`.
 function evaluateAnchorDir(dir, legacyPolicy = "pass") {
-  const integrity = evaluateIntegrityLeg(dir, legacyPolicy);
+  const integrity = evaluateIntegrityLeg(dir, legacyPolicy, { requireWitness: true });
   let label = path.basename(dir);
   try {
     const ch = JSON.parse(fs.readFileSync(path.join(dir, "chain-head.json"), "utf8"));
@@ -756,6 +775,9 @@ function governanceCheckSelftest() {
     fs.writeFileSync(path.join(dir, "events.jsonl"), lines.join("\n") + "\n");
     return lines;
   };
+  // An anchor fixture carries its CLI-shape witness (fix pass 2: anchors REQUIRE one).
+  const writeWitness = (dir, runId, issue) => fs.writeFileSync(path.join(dir, "chain-head.json"),
+    JSON.stringify(computeChainHead(fs.readFileSync(path.join(dir, "events.jsonl")), runId, issue), null, 2) + "\n");
   {
     const tmp = mkTmpRunDir("faff-govcheck-integrity-");
     try {
@@ -792,6 +814,13 @@ function governanceCheckSelftest() {
         { phase: "run", type: "run-start" },
         { phase: "build", type: "build-start", issue: "FAFF-1" },
       ]);
+      // Fix pass 2: an anchor without its witness now fails (witness-absent) — assert
+      // that first, then add the witness and assert the clean pass.
+      const { result: noWitnessRc, stdout: noWitnessOut } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", clean, "--json"]));
+      check("anchor: events.jsonl with NO chain-head.json → exit 1 (witness-absent, fail-closed)", noWitnessRc === 1);
+      check("anchor: witness-absent names the condition in the reason",
+        (() => { try { return JSON.parse(noWitnessOut).reasons.some((x) => /witness-absent/.test(x)); } catch { return false; } })());
+      writeWitness(clean, "run-c", "FAFF-1");
       const { result: cleanRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", clean]));
       check("anchor: clean chain → exit 0 (integrity-only, no run-dir sweep)", cleanRc === 0);
 
@@ -800,6 +829,7 @@ function governanceCheckSelftest() {
         { phase: "build", type: "build-start", issue: "FAFF-1" },
         { phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped" } },
       ]);
+      writeWitness(broken, "run-b", "FAFF-1"); // pre-tamper witness: the head line stays intact, so `broken` keeps its own forensics
       const bp = path.join(broken, "events.jsonl");
       const bls = fs.readFileSync(bp, "utf8").split("\n");
       bls[1] = bls[1].replace('"build-start"', '"build-abort"'); // equal-length byte edit of line 2
@@ -832,6 +862,15 @@ function governanceCheckSelftest() {
       const spoofed = evaluateIntegrityLeg(tmp, "pass");
       check("witness: legacy-downgrade spoof → witness-mismatch FAIL even under legacy-policy pass",
         spoofed.pass === false && spoofed.status === "witness-mismatch");
+      // Fix pass 2: deleting the witness does NOT restore the spoof — as an anchor the
+      // dir now fails witness-absent; as a bare run dir (no witness required) the same
+      // log keeps today's legacy-under-policy behaviour.
+      fs.rmSync(path.join(tmp, "chain-head.json"));
+      const minusWitness = evaluateIntegrityLeg(tmp, "pass", { requireWitness: true });
+      check("witness: spoof-minus-witness (deleted chain-head.json) → witness-absent FAIL as an anchor",
+        minusWitness.pass === false && minusWitness.status === "witness-absent");
+      check("witness: the same dir as a bare RUN dir (no witness required) keeps legacy-under-pass",
+        evaluateIntegrityLeg(tmp, "pass").pass === true);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
   {
@@ -840,6 +879,7 @@ function governanceCheckSelftest() {
       const legacy = JSON.stringify({ schema: 1, run_id: "run-m", seq: 0, ts: "t", phase: "run", type: "run-start" });
       const chained = JSON.stringify({ schema: 2, run_id: "run-m", seq: 1, ts: "t", prev: sha256Hex(Buffer.from(legacy, "utf8")), phase: "build", type: "build-start", issue: "FAFF-1" });
       fs.writeFileSync(path.join(tmp, "events.jsonl"), legacy + "\n" + chained + "\n");
+      writeWitness(tmp, "run-m", "FAFF-1"); // anchors require a witness (fix pass 2)
       check("mixed: status mixed, passes under legacy-policy pass",
         (() => { const r = evaluateIntegrityLeg(tmp, "pass"); return r.pass === true && r.status === "mixed" && r.note === null; })());
       check("mixed: fails under legacy-policy fail", evaluateIntegrityLeg(tmp, "fail").pass === false);

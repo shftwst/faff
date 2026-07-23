@@ -215,8 +215,15 @@ test("FAFF-568: a spoofed legacy downgrade on an anchored chain fails governance
 test("FAFF-568: legacy-policy warn passes a legacy anchor WITH a loud stderr note (never silently identical to pass)", () => {
   const anchor = tmpRunDir("faff568-warn-");
   try {
-    appendFileSync(path.join(anchor, "events.jsonl"),
-      JSON.stringify({ schema: 1, run_id: "run-l", seq: 0, ts: "t", phase: "run", type: "run-start" }) + "\n");
+    const line = JSON.stringify({ schema: 1, run_id: "run-l", seq: 0, ts: "t", phase: "run", type: "run-start" });
+    appendFileSync(path.join(anchor, "events.jsonl"), line + "\n");
+    // Fix pass 2: an anchor requires its witness — a legacy anchor carries one too
+    // (CLI-written at anchor time, schema_floor 1).
+    const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+    writeFileSync(path.join(anchor, "chain-head.json"), JSON.stringify({
+      run_id: "run-l", issue: "FAFF-1", head_seq: 0,
+      head_sha256: sha256(Buffer.from(line, "utf8")), line_count: 1, schema_floor: 1,
+    }, null, 2) + "\n");
     const quiet = runCli(["governance-check", "--anchor-dir", anchor, "--legacy-policy", "pass"]);
     assert.equal(quiet.code, 0);
     assert.doesNotMatch(quiet.stderr, /warn/, "pass stays quiet");
@@ -225,5 +232,48 @@ test("FAFF-568: legacy-policy warn passes a legacy anchor WITH a loud stderr not
     assert.match(warned.stderr, /integrity — legacy schema-1 log .*warn/, "warn emits the note");
     const failed = runCli(["governance-check", "--anchor-dir", anchor, "--legacy-policy", "fail"]);
     assert.equal(failed.code, 1, "fail gates");
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+// --- FAFF-568 fix pass 2: an anchor without its witness fails closed -----------
+// Deleting chain-head.json must NOT restore the legacy-downgrade spoof: an anchor
+// dir is CLI-written and always carries its witness, so events.jsonl with no
+// chain-head.json beside it is `witness-absent` — a FAIL, under every policy. A
+// bare run dir (verb path / --run-dir sweep) has no witness by design and is
+// unchanged: the requirement applies only when the dir is evaluated AS an anchor.
+
+test("FAFF-568: an anchor dir with events.jsonl but NO chain-head.json → integrity FAIL (witness-absent)", () => {
+  const anchor = tmpRunDir("faff568-nowitness-");
+  try {
+    buildChainDir(anchor, "run-nw", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `expected witness-absent fail; stdout=${r.stdout} stderr=${r.stderr}`);
+    const verdict = JSON.parse(r.stdout);
+    assert.equal(verdict.runs[0].legs.integrity.status, "witness-absent");
+    assert.ok(verdict.reasons.some((x) => /integrity/.test(x) && /witness-absent/.test(x)), JSON.stringify(verdict.reasons));
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+test("FAFF-568: the spoof-minus-witness repro (stripped prev + deleted chain-head.json) fails the anchor integrity leg", () => {
+  const anchor = tmpRunDir("faff568-spoofminus-");
+  try {
+    const lines = buildChainDir(anchor, "run-sm", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    // The Phase-2 repro: no chain-head.json at all + every prev stripped, schema downgraded.
+    writeFileSync(path.join(anchor, "events.jsonl"),
+      lines.map((l) => { const { prev, ...rest } = JSON.parse(l); return JSON.stringify({ ...rest, schema: 1 }); }).join("\n") + "\n");
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `spoof-minus-witness must not exit 0; stdout=${r.stdout} stderr=${r.stderr}`);
+    assert.equal(JSON.parse(r.stdout).runs[0].legs.integrity.status, "witness-absent");
+    // The verb path on the SAME dir (a bare run dir — no anchor context) keeps
+    // today's behaviour: legacy-unverifiable, exit 0 under the default policy.
+    const verb = runCli(["events", "verify", "--run-dir", anchor, "--json"]);
+    assert.equal(verb.code, 0, verb.stderr);
+    assert.equal(JSON.parse(verb.stdout).status, "legacy-unverifiable");
   } finally { rmSync(anchor, { recursive: true, force: true }); }
 });

@@ -19,7 +19,7 @@ const { parseArgs, usageError } = require("./argv");
 // resolveMergeFlags honours the method ones (--squash/--merge/--rebase); the rest ride --merge-args.
 // They MUST be declared here or a live `faff merge-gate … --squash` would be rejected as unknown.
 const MERGE_GATE_SPEC = { flags: {
-  "--allow-no-ci": { arity: 0 }, "--check-only": { arity: 0 }, "--human-override": { arity: 0 },
+  "--allow-no-ci": { arity: 0 }, "--check-only": { arity: 0 }, "--execute": { arity: 0 }, "--human-override": { arity: 0 },
   "--interactive": { arity: 0 }, "--json": { arity: 0 }, "--local": { arity: 0 }, "--selftest": { arity: 0 },
   "--squash": { arity: 0 }, "--merge": { arity: 0 }, "--rebase": { arity: 0 }, "--delete-branch": { arity: 0 }, "--auto": { arity: 0 },
   "--base": { arity: 1 }, "--branch": { arity: 1 }, "--issue": { arity: 1 }, "--level": { arity: 1 },
@@ -736,6 +736,14 @@ function cmdMergeGate(args) {
   const issue = get("--issue");
   const runDir = get("--run-dir");
   const flagLevel = get("--level");
+  // FAFF-630: --execute is the documented, accepted way to say the (unchanged) default mode.
+  // Both flags together is a caller bug, surfaced loudly before any gh call — never a silent
+  // --check-only precedence, which would let a caller who asked to execute read exit 0
+  // merge-ok off a run that merged nothing.
+  if (args.includes("--execute") && args.includes("--check-only")) {
+    process.stderr.write("faff merge-gate: --execute and --check-only are mutually exclusive\n");
+    return 2;
+  }
   const mode = args.includes("--check-only") ? "check-only" : "execute";
   const interactive = args.includes("--interactive");
   const humanOverride = args.includes("--human-override");

@@ -4,13 +4,32 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
+// FAFF-628 — declared grammar for the two subcommand-dispatch verbs this module owns. `spec`
+// carries BOTH per-subcommand CommandSpecs (a List<CommandSpec>) so the accepted-flag union
+// covers both — `dod classify --view` (a `dod split`-only flag) still correctly reads as unknown.
+const DOD_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: [DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC],
+  subcommands: {
+    classify: { required_flags: [] },
+    split: { required_flags: ["--view"] },
+  },
+};
+const HOLDOUT_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC],
+  subcommands: {
+    verdicts: { required_flags: ["--association"] },
+    verdict: { required_flags: ["--issue"] },
+  },
+};
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
 
 function prdHasComparator(s) {
@@ -652,8 +671,9 @@ function cmdDod(args) {
 function cmdDodSplit(args) {
   const parsed = parseArgs(args, DOD_SPLIT_SPEC);
   if (parsed.errors.length) return usageError(parsed.errors, "faff dod split: usage: faff dod split --spec <path|-> --view builder|full");
+  const splitReqErr = requireFlags(parsed.values, DOD_SURFACE.subcommands.split, "dod", "split");
   const view = parsed.values["--view"] === undefined ? null : parsed.values["--view"];
-  if (view !== "builder" && view !== "full") {
+  if (splitReqErr || (view !== "builder" && view !== "full")) {
     process.stderr.write("faff dod split: usage: faff dod split --spec <path|-> --view builder|full\n");
     return 2;
   }
@@ -823,7 +843,8 @@ function cmdHoldout(args) {
   // --association (required): inline JSON, @path, or - for stdin. A broken association is operator error
   // (fail-loud exit 2), NOT a silent empty map.
   const assocRaw = get("--association");
-  if (assocRaw == null) { process.stderr.write("faff holdout verdicts: --association is required (JSON object { holdout-key: prdr-id }, @path, or - for stdin)\n"); return 2; }
+  const assocReqErr = requireFlags(parsed.values, HOLDOUT_SURFACE.subcommands.verdicts, "holdout", "verdicts");
+  if (assocReqErr) { process.stderr.write(assocReqErr + " (JSON object { holdout-key: prdr-id }, @path, or - for stdin)\n"); return 2; }
   let assocText;
   try {
     if (assocRaw === "-") assocText = fs.readFileSync(0, "utf8");
@@ -876,7 +897,8 @@ function cmdHoldoutVerdict(args) {
   if (parsed.errors.length) return usageError(parsed.errors, "faff holdout verdict: usage: faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const issue = get("--issue");
-  if (!issue) { process.stderr.write("faff holdout verdict: --issue <id> is required\n"); return 2; }
+  const issueReqErr = requireFlags(parsed.values, HOLDOUT_SURFACE.subcommands.verdict, "holdout", "verdict");
+  if (issueReqErr) { process.stderr.write(issueReqErr + "\n"); return 2; }
   // The issue id is a filename component — a safe ticket token only (letters/digits/._-, no leading dash).
   // Reject anything else (path separators, `..`, a stray flag captured as the value) so `--issue` can never
   // traverse out of --dir; usage error (exit 2), never a silent read of an unintended path.
@@ -1122,4 +1144,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, BANNED_VAGUE, DUP_THRESHOLD, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, matchesBannedVague, opensContractFence, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, matchesBannedVague, opensContractFence, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderProseDoneWarning, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

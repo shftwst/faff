@@ -164,6 +164,7 @@ const REGION_MAP = {
   "lint-refs": "factory",
   "lint-cli-doc": "factory",
   "regions": "factory",
+  "cli-surface": "factory",
   // FAFF-350: merge-gate references factory identifiers (holdoutGateResult, decideFloor,
   // computeReviewVerdict) so it is NOT in the extractable governance layer; branch-protection-check
   // mirrors the factory container-check assert-don't-enforce probe.
@@ -277,6 +278,7 @@ const REGION_SELFTEST_ARGV = {
   "lint-refs": ["lint-refs", "--selftest"],
   "lint-cli-doc": ["lint-cli-doc", "--selftest"],
   "regions": ["regions", "--selftest"],
+  "cli-surface": ["cli-surface", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],
   "branch-protection-check": ["branch-protection-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],

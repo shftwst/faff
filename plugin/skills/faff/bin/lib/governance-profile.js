@@ -238,6 +238,16 @@ function activeProfile(env = process.env) {
 
 const { parseArgs, usageError } = require("./argv");
 const PROFILES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--file": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
+// FAFF-628 — declared grammar. `validate` treats --file as optional (defaults to the active
+// profile), so neither sub-verb declares an unconditional required flag.
+const PROFILES_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: PROFILES_SPEC,
+  subcommands: {
+    list: { required_flags: [] },
+    validate: { required_flags: [] },
+  },
+};
 
 function cmdProfiles(args) {
   if (args.includes("--selftest")) return profilesSelftest();
@@ -355,7 +365,7 @@ function profilesSelftest() {
 
 
 module.exports = {
-  DELIVERY_PROFILE, GovernanceProfileError, PROFILE_SENTRY_FAILURE_KEYS, PROFILE_SENTRY_THRASH_KEYS,
+  DELIVERY_PROFILE, GovernanceProfileError, PROFILES_SPEC, PROFILES_SURFACE, PROFILE_SENTRY_FAILURE_KEYS, PROFILE_SENTRY_THRASH_KEYS,
   PROFILE_SENTRY_THRESHOLD_KEYS, PROFILE_TOP_ARRAY_KEYS, SECOND_PROFILE,
   activeProfile, cmdProfiles, isArrOfStrings, isFiniteNum, profilesSelftest, validateProfileShape,
 };

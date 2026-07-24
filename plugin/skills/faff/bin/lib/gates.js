@@ -24,6 +24,16 @@ const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "action" } };
+// FAFF-628 — declared grammar. Neither `discover` nor `run` unconditionally requires a flag
+// today (both default from --root/findRoot()).
+const GATES_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: GATES_SPEC,
+  subcommands: {
+    discover: { required_flags: [] },
+    run: { required_flags: [] },
+  },
+};
 const SYNC_SPEC = { flags: { "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--script": { arity: 1 } } };
 const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 } } };
 const { loadConfig } = require("./config");
@@ -641,4 +651,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATE_COST, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, extractRunCommands, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, mergeFencePresentAt, resolveSyncScript, runLadder, runRung };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, extractRunCommands, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, mergeFencePresentAt, resolveSyncScript, runLadder, runRung };

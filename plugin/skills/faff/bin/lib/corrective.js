@@ -305,7 +305,7 @@ function appendCorrectiveEvent(runDir, type, issue, data) {
 
 // --- CLI: author -------------------------------------------------------------------
 
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const CORRECTIVE_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 },
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--op": { arity: 1 }, "--root": { arity: 1 },
@@ -313,26 +313,37 @@ const CORRECTIVE_SPEC = { flags: {
   "--cause": { arity: 1 }, "--threshold-key": { arity: 1 }, "--threshold-value": { arity: 1 },
   "--surface": { arity: 1, repeatable: true }, "--subset": { arity: 1, repeatable: true },
 }, positionals: { min: 0, max: 1, name: "verb" } };
+// FAFF-628 — declared grammar. Both sub-verbs stage their requiredness checks (a run dir is
+// asserted to exist before the remaining flags are demanded) — the full unconditional set each
+// enforces is declared here; the handler still checks --run-dir first (see the two-call split).
+const CORRECTIVE_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: CORRECTIVE_SPEC,
+  subcommands: {
+    author: { required_flags: ["--run-dir", "--issue", "--op", "--cites-signal"] },
+    check: { required_flags: ["--run-dir", "--issue"] },
+  },
+};
 
 function parseFlags(args) {
   const { values } = parseArgs(args, CORRECTIVE_SPEC);
   const get = (f) => (values[f] === undefined ? null : (Array.isArray(values[f]) ? values[f][0] : values[f]));
   const getAll = (f) => (Array.isArray(values[f]) ? values[f] : (values[f] === undefined ? [] : [values[f]]));
-  return { get, getAll };
+  return { get, getAll, values };
 }
 
 function cmdCorrectiveAuthor(args) {
-  const { get, getAll } = parseFlags(args);
+  const { get, getAll, values } = parseFlags(args);
   const asJson = args.includes("--json");
   const runDir = get("--run-dir");
+  const runDirErr = requireFlags(values, { required_flags: ["--run-dir"] }, "corrective", "author");
+  if (runDirErr) { process.stderr.write(runDirErr + "\n"); return 2; }
+  if (!fs.existsSync(path.join(runDir, "run-ledger.json"))) { process.stderr.write(`faff corrective author: no run dir (${runDir} has no run-ledger.json)\n`); return 3; }
   const issue = get("--issue");
   const op = get("--op");
-  if (!runDir) { process.stderr.write("faff corrective author: --run-dir is required\n"); return 2; }
-  if (!fs.existsSync(path.join(runDir, "run-ledger.json"))) { process.stderr.write(`faff corrective author: no run dir (${runDir} has no run-ledger.json)\n`); return 3; }
-  if (!issue) { process.stderr.write("faff corrective author: --issue is required\n"); return 2; }
-  if (!op) { process.stderr.write("faff corrective author: --op is required\n"); return 2; }
   const citesSignal = get("--cites-signal");
-  if (!citesSignal) { process.stderr.write("faff corrective author: --cites-signal is required — no un-cited corrective input is ever authored\n"); return 2; }
+  const restErr = requireFlags(values, { required_flags: ["--issue", "--op", "--cites-signal"] }, "corrective", "author");
+  if (restErr) { process.stderr.write(restErr + (restErr.includes("--cites-signal") ? " — no un-cited corrective input is ever authored" : "") + "\n"); return 2; }
 
   let payload = {};
   if (op === "park-with-cause") payload = { cause: get("--cause") };
@@ -409,13 +420,15 @@ function cmdCorrectiveAuthor(args) {
 // --- CLI: check ----------------------------------------------------------------
 
 function cmdCorrectiveCheck(args) {
-  const { get } = parseFlags(args);
+  const { get, values } = parseFlags(args);
   const asJson = args.includes("--json");
   const runDir = get("--run-dir");
-  const issue = get("--issue");
-  if (!runDir) { process.stderr.write("faff corrective check: --run-dir is required\n"); return 2; }
+  const runDirErr = requireFlags(values, { required_flags: ["--run-dir"] }, "corrective", "check");
+  if (runDirErr) { process.stderr.write(runDirErr + "\n"); return 2; }
   if (!fs.existsSync(path.join(runDir, "run-ledger.json"))) { process.stderr.write(`faff corrective check: no run dir (${runDir} has no run-ledger.json)\n`); return 3; }
-  if (!issue) { process.stderr.write("faff corrective check: --issue is required\n"); return 2; }
+  const issue = get("--issue");
+  const issueErr = requireFlags(values, { required_flags: ["--issue"] }, "corrective", "check");
+  if (issueErr) { process.stderr.write(issueErr + "\n"); return 2; }
 
   const root = get("--root") || findRoot();
   const cfg = readGovernanceConfig(root);
@@ -613,7 +626,7 @@ function correctiveSelftest() {
 }
 
 module.exports = {
-  CORRECTIVE_OPS, CORRECTIVE_SCHEMA, TIGHTENABLE_KEYS,
+  CORRECTIVE_OPS, CORRECTIVE_SCHEMA, CORRECTIVE_SPEC, CORRECTIVE_SURFACE, TIGHTENABLE_KEYS,
   cmdCorrective, cmdCorrectiveAuthor, cmdCorrectiveCheck,
   correctiveDir, correctiveSelftest, foldCorrectiveConstraints,
   payloadViolations, readCorrectiveArtifacts, validateCorrectiveInput,

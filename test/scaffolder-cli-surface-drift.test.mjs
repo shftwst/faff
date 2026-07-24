@@ -1,35 +1,36 @@
-// FAFF-538 — CLI-surface drift-guard for the external-verification scaffolders.
+// FAFF-538/628 — CLI-surface drift-guard for the external-verification scaffolders.
 //
 // The six SUT scaffolders (docs/external-verification/scaffold-p{1..5}-*.sh + scaffold-faff-lab.sh)
 // embed `.faffrc.yaml` + `RUNBOOK.md` here-docs of faff CLI gestures that rot silently as the CLI
 // surface moves — already three manual repair passes (FAFF-512/513/524/529), each caught only by a
 // human eyeballing the scripts against main. This static guard makes a stale scaffolder fail CI
-// instead: it extracts the here-docs and asserts every embedded `faff` verb/subcommand and every
-// `.faffrc` slot key still exists on the LIVE CLI surface.
+// instead: it extracts the here-docs and asserts every embedded `faff` verb/subcommand/flag still
+// exists on the LIVE CLI surface.
 //
-// The load-bearing model (per the FAFF-538 spec): the CLI's own registries are the single source of
-// truth for "what exists", and the guard checks embedded gestures by IMPORTING those registries,
-// never by re-listing them — a hand-maintained allowlist would just be the same drift one layer up.
-//   - verbs        ← Object.keys(COMMANDS), imported from the entrypoint (FAFF-538 export).
-//   - subcommands  ← each verb's own bare-invocation usage string (memoised probe; FAFF-628 will
-//                    replace the parsing with a `faff cli-surface --json` introspection command).
-//   - config keys  ← DEFAULTS / VALID_APPETITES / model+effort lane validators from config.js.
+// The load-bearing model: the CLI's own registries are the single source of truth for "what
+// exists", and the guard checks embedded gestures by IMPORTING those registries, never by
+// re-listing them — a hand-maintained allowlist would just be the same drift one layer up.
+//   - verbs                 ← Object.keys(COMMANDS), imported from the entrypoint (FAFF-538 export).
+//   - subcommands + flags   ← lib/cli-surface.js's SURFACES map (FAFF-628) — the SAME declared
+//                             grammar `faff cli-surface --json` emits, imported directly (no spawn).
+//   - config keys           ← DEFAULTS / VALID_APPETITES / model+effort lane validators from config.js.
 //
-// v1 SCOPE (both scope Punts closed by a human Decision via /faff-tidy 2026-07-23): verb + subcommand
-// EXISTENCE only. Flag-level validation and the introspection command are follow-up FAFF-628. This is
-// a surface/parse guard — it never executes an embedded command with real args; the only CLI calls it
-// makes are bare, side-effect-free usage probes. It COMPLEMENTS scaffolder-lights-out-dials.test.mjs
-// (L4 dial coherence over the same here-docs) — an orthogonal property, no restatement of dial checks.
-// Fail loud, never skip: a missing here-doc or an unclassifiable verb is a FAILURE (FAFF-274 posture).
+// FAFF-628 SCOPE: verb + subcommand existence (unchanged from v1) PLUS flag-layer assertions —
+// an unknown flag, or a missing declared-required flag — on 4-space-indented command-block lines
+// only (never inline-backtick spans, which legitimately abbreviate). The guard is now FULLY
+// STATIC: it spawns ZERO CLI processes (the v1 bare-invocation usage-string probe is retired). It
+// COMPLEMENTS scaffolder-lights-out-dials.test.mjs (L4 dial coherence over the same here-docs) —
+// an orthogonal property, no restatement of dial checks. Fail loud, never skip: a missing here-doc
+// or an unclassifiable verb is a FAILURE (FAFF-274 posture).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runCli } from "./helpers/run-cli.mjs";
 import { extractHeredoc } from "./helpers/scaffolder-heredocs.mjs";
 import faffEntry from "../plugin/skills/faff/bin/faff";
+import cliSurfaceEntry from "../plugin/skills/faff/bin/lib/cli-surface.js";
 import {
   DEFAULTS,
   VALID_APPETITES,
@@ -38,6 +39,11 @@ import {
 } from "../plugin/skills/faff/bin/lib/config.js";
 
 const { COMMANDS } = faffEntry;
+const { assembleSurfaces, acceptedFlags } = cliSurfaceEntry;
+// The declared grammar — built ONCE, from the SAME COMMANDS registry `faff cli-surface --json`
+// itself reads (assembleSurfaces takes COMMANDS as a parameter — see lib/cli-surface.js's header
+// for why it isn't imported from ../faff at module scope).
+const SURFACES = assembleSurfaces(COMMANDS);
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.join(HERE, "..");
@@ -66,51 +72,20 @@ function validVerbs() {
   return new Set(Object.keys(COMMANDS));
 }
 
-// --- verb/subcommand surface (bare-invocation usage probe, memoised one spawn per verb per run) ----
-
-const _surfaceCache = new Map();
-const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// Run `faff <verb>` bare (side-effect-free — usage output only) and classify it:
-//   - subcommand_dispatch: bare invocation enumerates its second-token vocabulary, in one of two
-//     observed forms — `expected one of[:] a | b | c [(or --selftest)]` (prd/prdr/env/config/adr/
-//     profile/…) or a `usage:\n  faff <verb> <sub> …` block (holdout).
-//   - positional: bare invocation emits a non-enumeration diagnostic (audit/next/state) — its first
-//     argument is data, not a subcommand, so it is validated at verb level only.
-function verbSurface(verb) {
-  if (_surfaceCache.has(verb)) return _surfaceCache.get(verb);
-  const { stdout, stderr } = runCli([verb]);
-  const out = (stdout || "") + (stderr || "");
-  let surface;
-  const m = out.match(/expected one of:?\s*(.+?)\s*(?:\(or\b|$)/);
-  if (m) {
-    const subs = m[1]
-      .split("|")
-      .map((s) => s.trim())
-      .map((s) => s.replace(/\s*\[--.*$/, "")) // strip a trailing " [--strict]"-style annotation
-      .filter(Boolean);
-    surface = { name: verb, kind: "subcommand_dispatch", subcommands: new Set(subs) };
-  } else {
-    const u = out.match(new RegExp(`^faff ${reEsc(verb)}: usage:\\n\\s*faff ${reEsc(verb)} (\\w[\\w-]*)`, "m"));
-    if (u) {
-      surface = { name: verb, kind: "subcommand_dispatch", subcommands: new Set([u[1]]) };
-    } else {
-      surface = { name: verb, kind: "positional", subcommands: new Set() };
-    }
-  }
-  _surfaceCache.set(verb, surface);
-  return surface;
-}
-
 // --- runbook command parsing ----------------------------------------------------------------------
 
 // Collect every `faff …` gesture cited in a RUNBOOK from the two forms the scaffolders use: a
 // 4-space-indented command block, or an inline-backtick span. Prose mentions ("the main faff repo",
 // "references to faff are lowercase") sit in neither and are excluded; a commented-out (`# faff …`)
 // or `/faff-graft` line is excluded because the command token must be exactly `faff`.
+//
+// FAFF-628: command-block lines also capture their ordered `--flag` tokens (name only — a
+// `--flag=value` form is split on `=`; nothing after a bare `--` end-of-flags sentinel is
+// collected). Flag-layer assertions fire ONLY on command-block lines (`isCommandBlock: true`) —
+// inline-backtick spans legitimately abbreviate a mention without its flags.
 function parseEmbeddedFaffCommands(runbookBody, source) {
   const collected = [];
-  const push = (tail, rawLine) => {
+  const push = (tail, rawLine, isCommandBlock) => {
     const parts = tail.trim().split(/\s+/);
     const verb = parts[0];
     if (!verb || !/^[\w-]+$/.test(verb)) return; // not a real verb token
@@ -118,20 +93,28 @@ function parseEmbeddedFaffCommands(runbookBody, source) {
     // (<…>), a quoted arg ('…/"…), or a $VAR.
     const t = parts[1];
     const subcommand = t && /^[A-Za-z][\w-]*$/.test(t) ? t : null;
-    collected.push({ verb, subcommand, raw: rawLine.trim(), source });
+    const flags = [];
+    if (isCommandBlock) {
+      for (const tok of parts.slice(1)) {
+        if (tok === "--") break;
+        if (tok.startsWith("--")) flags.push(tok.split("=")[0]);
+      }
+    }
+    collected.push({ verb, subcommand, raw: rawLine.trim(), source, flags, isCommandBlock });
   };
   for (const line of runbookBody.split("\n")) {
     const m = line.match(/^\s{4,}faff\s+(.*)$/); // 4-space-indented command block
-    if (m) push(m[1], line);
+    if (m) push(m[1], line, true);
   }
   for (const bm of runbookBody.matchAll(/`faff\s+([^`]+)`/g)) {
-    push(bm[1], "`faff " + bm[1] + "`"); // inline-backtick span
+    push(bm[1], "`faff " + bm[1] + "`", false); // inline-backtick span
   }
-  // dedupe identical (verb, subcommand) pairs so one probe covers repeated citations
+  // dedupe identical (verb, subcommand, flags) triples so repeated citations are checked once each
+  // — but two invocations of the SAME command with DIFFERENT flags are each checked (FAFF-628).
   const seen = new Set();
   const out = [];
   for (const c of collected) {
-    const k = c.verb + "\x00" + (c.subcommand ?? "");
+    const k = c.verb + "\x00" + (c.subcommand ?? "") + "\x00" + c.flags.slice().sort().join(",");
     if (seen.has(k)) continue;
     seen.add(k);
     out.push(c);
@@ -139,8 +122,11 @@ function parseEmbeddedFaffCommands(runbookBody, source) {
   return out;
 }
 
-// Assert each RUNBOOK verb exists (COMMANDS registry) and each subcommand (where the verb dispatches
-// on one) is in that verb's live vocabulary. Returns an array of finding strings (empty == clean).
+// Assert each RUNBOOK verb exists (COMMANDS registry), each subcommand (where the verb dispatches
+// on one) is in that verb's declared set, and — command-block lines only — every flag is accepted
+// and every declared-required flag is present. Returns an array of finding strings (empty == clean).
+// FULLY STATIC: every check is a set-membership lookup against the imported SURFACES map — zero
+// CLI processes spawned (FAFF-628; the v1 verbSurface() bare-invocation probe is retired).
 function runbookFindings(body, source) {
   const findings = [];
   const verbs = validVerbs();
@@ -149,13 +135,32 @@ function runbookFindings(body, source) {
       findings.push(`${cmd.source}: \`faff ${cmd.verb}\` is not a live verb (COMMANDS registry) — raw: ${cmd.raw}`);
       continue;
     }
-    const surface = verbSurface(cmd.verb);
-    if (surface.kind === "positional" || cmd.subcommand == null) continue; // verb-existence only
-    if (!surface.subcommands.has(cmd.subcommand)) {
-      const set = [...surface.subcommands].sort().join(",");
-      findings.push(
-        `${cmd.source}: \`faff ${cmd.verb} ${cmd.subcommand}\` — ${cmd.subcommand} ∉ {${set}} — raw: ${cmd.raw}`,
-      );
+    const surface = SURFACES[cmd.verb];
+    if (surface.kind === "subcommand_dispatch" && cmd.subcommand != null) {
+      if (!Object.prototype.hasOwnProperty.call(surface.subcommands, cmd.subcommand)) {
+        const set = Object.keys(surface.subcommands).sort().join(",");
+        findings.push(
+          `${cmd.source}: \`faff ${cmd.verb} ${cmd.subcommand}\` — ${cmd.subcommand} ∉ {${set}} — raw: ${cmd.raw}`,
+        );
+        continue; // unknown subcommand — skip flag checks on this line, no cascading noise
+      }
+    }
+    if (!cmd.isCommandBlock) continue; // flag-layer assertions: command-block lines only
+
+    const accepted = acceptedFlags(surface); // null = unknown accepted set (no spec declared) — skip
+    if (accepted !== null) {
+      for (const f of cmd.flags) {
+        if (!accepted.has(f)) {
+          findings.push(`${cmd.source}: \`faff ${cmd.verb}\` — ${f} is not an accepted flag of faff ${cmd.verb} — raw: ${cmd.raw}`);
+        }
+      }
+    }
+    if (cmd.subcommand != null && surface.subcommands && surface.subcommands[cmd.subcommand]) {
+      for (const r of surface.subcommands[cmd.subcommand].required_flags || []) {
+        if (!cmd.flags.includes(r)) {
+          findings.push(`${cmd.source}: \`faff ${cmd.verb} ${cmd.subcommand}\` — missing required flag ${r} — raw: ${cmd.raw}`);
+        }
+      }
     }
   }
   return findings;
@@ -252,31 +257,47 @@ for (const name of SCAFFOLDERS) {
   });
 }
 
-// Self-test: pin the verbSurface parser against each observed usage-format variant + the positional
-// verbs, so a future usage-string format drift fails HERE loudly (and is the trigger to graduate to
-// the FAFF-628 `cli-surface --json` introspection command).
-test("verbSurface classifies all observed usage-format variants", () => {
-  // subcommand-dispatch verbs, with a known member from each's live vocabulary
+// Self-test: pin the SURFACES map against a known member of each dispatch verb's live
+// vocabulary + the positional verbs — the same pins `faff cli-surface --selftest` asserts (a
+// cheap duplication of pins, not of parsing logic, per the FAFF-628 spec's Layer-3 note). A
+// future SURFACE declaration drift (a verb un-migrated, a subcommand renamed) fails HERE loudly.
+test("SURFACES classifies all live dispatch verbs, matching cli-surface --selftest's pins", () => {
   const expectDispatch = {
-    prd: "new", // colon form: `expected one of: …`
+    prd: "new",
     prdr: "coverage",
     adr: "new",
-    env: "up", // no-colon form: `expected one of …`
+    env: "up",
     config: "get",
     profile: "show",
-    holdout: "verdicts", // `usage:\n  faff holdout <sub> …` form
+    holdout: "verdicts",
   };
   for (const [verb, member] of Object.entries(expectDispatch)) {
-    const s = verbSurface(verb);
+    const s = SURFACES[verb];
     assert.strictEqual(s.kind, "subcommand_dispatch", `${verb} should be subcommand_dispatch`);
-    assert.ok(s.subcommands.size > 0, `${verb} should parse a non-empty subcommand set`);
-    assert.ok(s.subcommands.has(member), `${verb} vocabulary should contain '${member}' — got {${[...s.subcommands].sort()}}`);
+    assert.ok(Object.keys(s.subcommands).length > 0, `${verb} should declare a non-empty subcommand set`);
+    assert.ok(Object.prototype.hasOwnProperty.call(s.subcommands, member), `${verb} vocabulary should contain '${member}' — got {${Object.keys(s.subcommands).sort()}}`);
   }
   for (const verb of ["audit", "next", "state"]) {
-    const s = verbSurface(verb);
+    const s = SURFACES[verb];
     assert.strictEqual(s.kind, "positional", `${verb} should be positional`);
-    assert.strictEqual(s.subcommands.size, 0, `${verb} should carry no subcommand set`);
+    assert.strictEqual(Object.keys(s.subcommands).length, 0, `${verb} should carry no subcommand set`);
   }
+});
+
+// Bijection: SURFACES covers every live COMMANDS key (mirrors cli-surface --selftest's own
+// assertion — re-asserted here so this test file's own import path is also covered).
+test("SURFACES is in bijection with COMMANDS", () => {
+  assert.deepStrictEqual(Object.keys(SURFACES).sort(), Object.keys(COMMANDS).sort());
+});
+
+// `faff cli-surface --json` MUST emit valid JSON whose keys equal COMMANDS' keys and whose `prd`
+// entry declares `link` requiring `--url` (spec §5) — asserted via the pure builder (no spawn).
+test("cli-surface --json's shape matches the ticket's named contract", () => {
+  const { buildCliSurface } = cliSurfaceEntry;
+  const built = JSON.parse(JSON.stringify(buildCliSurface(SURFACES)));
+  assert.deepStrictEqual(Object.keys(built).sort(), Object.keys(COMMANDS).sort());
+  assert.strictEqual(built.prd.kind, "subcommand_dispatch");
+  assert.deepStrictEqual(built.prd.required_flags.link, ["--url"]);
 });
 
 // Negative scenarios (spec §5) — the guard FAILS on the drift classes it exists to catch.
@@ -300,6 +321,51 @@ test("a valid embedded command (prd list) produces no finding", () => {
 
 test("an empty embedded-command list passes without firing assertions", () => {
   assert.deepStrictEqual(runbookFindings("Some prose about the faff-lab repo, no commands here.\n", "fixture"), []);
+});
+
+// --- FAFF-628 flag-layer scenarios (spec §5) --------------------------------------------------
+
+test("a RUNBOOK command-block line missing a declared required flag fails, naming the flag", () => {
+  const findings = runbookFindings("    faff prd link my-container\n", "fixture:RUNBOOK.md");
+  assert.strictEqual(findings.length, 1, findings.join("\n"));
+  assert.match(findings[0], /missing required flag --url/);
+});
+
+test("a RUNBOOK command-block line supplying a flag outside the verb's accepted set fails, naming it", () => {
+  const findings = runbookFindings("    faff prd list --bogus-flag\n", "fixture:RUNBOOK.md");
+  assert.strictEqual(findings.length, 1, findings.join("\n"));
+  assert.match(findings[0], /--bogus-flag is not an accepted flag of faff prd/);
+});
+
+test("supplying the declared required flag produces no finding", () => {
+  assert.deepStrictEqual(
+    runbookFindings("    faff prd link my-container --url https://x/y\n", "fixture:RUNBOOK.md"),
+    [],
+  );
+});
+
+test("a `--flag=value` command-block token is membership-checked on the name", () => {
+  assert.deepStrictEqual(
+    runbookFindings("    faff prd link my-container --url=https://x/y\n", "fixture:RUNBOOK.md"),
+    [],
+  );
+});
+
+test("flag-layer assertions do not fire on inline-backtick spans (verb/subcommand checks still apply)", () => {
+  assert.deepStrictEqual(runbookFindings("See `faff prd link my-container` for the linked-mode flow.\n", "fixture"), []);
+});
+
+test("two command-block lines for the same command with different flags are each checked", () => {
+  const body = "    faff prd link my-container\n    faff prd link my-container --url https://x/y\n";
+  const findings = runbookFindings(body, "fixture:RUNBOOK.md");
+  assert.strictEqual(findings.length, 1, findings.join("\n")); // only the first (missing --url) fires
+  assert.match(findings[0], /missing required flag --url/);
+});
+
+test("the rewritten guard spawns zero CLI processes — no run-cli helper import in this file", () => {
+  const text = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const importsRunCliHelper = /^import\s.*helpers\/run-cli\.mjs/m.test(text);
+  assert.strictEqual(importsRunCliHelper, false);
 });
 
 test("an unknown .faffrc slot key (slots.spec_reviewer) is caught", () => {

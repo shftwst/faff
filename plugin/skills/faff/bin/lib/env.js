@@ -20,12 +20,24 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const ENV_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--root": { arity: 1 },
   "--manifest": { arity: 1 }, "--out": { arity: 1 }, "--plan": { arity: 1 }, "--poll-secs": { arity: 1 },
   "--profile": { arity: 1 }, "--project": { arity: 1 }, "--sla-secs": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb" } };
+// FAFF-628 — declared grammar. `up`/`compose-gen` resolve --project from the infra profile when
+// omitted (optional); `seed`/`down` enforce it/--plan unconditionally today — migrated below.
+const ENV_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: ENV_SPEC,
+  subcommands: {
+    "compose-gen": { required_flags: [] },
+    up: { required_flags: [] },
+    seed: { required_flags: ["--plan"] },
+    down: { required_flags: ["--project"] },
+  },
+};
 const { ENTRYPOINT, findRoot } = require("./shared-infra");
 
 const DATASTORE_TABLE = {
@@ -673,8 +685,9 @@ function cmdEnv(args) {
   }
 
   if (cmd === "seed") {
+    const seedReqErr = requireFlags(gate.values, ENV_SURFACE.subcommands.seed, "env", "seed");
+    if (seedReqErr) { process.stderr.write(seedReqErr + " (the ProvisionPlan from compose-gen)\n"); return 2; }
     const planFile = flag("--plan");
-    if (!planFile) { process.stderr.write("faff env seed: --plan required (the ProvisionPlan from compose-gen)\n"); return 2; }
     let plan;
     try { plan = JSON.parse(fs.readFileSync(planFile, "utf8")); }
     catch { process.stderr.write(`faff env seed: cannot read --plan ${planFile}\n`); return 2; }
@@ -716,8 +729,9 @@ function cmdEnv(args) {
   }
 
   if (cmd === "down") {
+    const downReqErr = requireFlags(gate.values, ENV_SURFACE.subcommands.down, "env", "down");
+    if (downReqErr) { process.stderr.write(downReqErr + "\n"); return 2; }
     const project = flag("--project");
-    if (!project) { process.stderr.write("faff env down: --project required\n"); return 2; }
     if (!envDockerAvailable()) { console.log(`OK — env down (project ${project}); docker unavailable (${envEngineContext()}), nothing to tear down`); return 0; }
     const defaultCompose = path.join(root, ".faff", "env", "docker-compose.yml");
     spawnSync("docker", envDownArgs(root, project, fs.existsSync(defaultCompose) ? defaultCompose : null), { encoding: "utf8", timeout: 2 * 60 * 1000 });
@@ -906,4 +920,4 @@ function envSelftest() {
 }
 
 
-module.exports = { DATASTORE_TABLE, ENV_APP_PORT, ENV_DEFAULT_POLL_SECS, ENV_DEFAULT_SLA_SECS, cmdEnv, composeGen, envAllHealthy, envBuildSql, envDatastoreKindForImage, envDockerAvailable, envDownArgs, envEngineContext, envImageAwareProbe, envMongoImport, envObjectUpload, envParsePs, envRedisLoad, envResolveAppOverride, envSelftest, envShortHash, envSqlLoad, escapeRegExp, extractAppOverride, healthPathFromTest, normaliseEnv, normalisePorts, parseComposeSubset, parseFlowSeq, realignDbHost, renderCompose, stripYamlInlineComment };
+module.exports = { DATASTORE_TABLE, ENV_APP_PORT, ENV_DEFAULT_POLL_SECS, ENV_DEFAULT_SLA_SECS, ENV_SPEC, ENV_SURFACE, cmdEnv, composeGen, envAllHealthy, envBuildSql, envDatastoreKindForImage, envDockerAvailable, envDownArgs, envEngineContext, envImageAwareProbe, envMongoImport, envObjectUpload, envParsePs, envRedisLoad, envResolveAppOverride, envSelftest, envShortHash, envSqlLoad, escapeRegExp, extractAppOverride, healthPathFromTest, normaliseEnv, normalisePorts, parseComposeSubset, parseFlowSeq, realignDbHost, renderCompose, stripYamlInlineComment };

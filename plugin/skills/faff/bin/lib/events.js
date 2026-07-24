@@ -31,7 +31,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const EVENTS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--tokens": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
@@ -39,6 +39,20 @@ const EVENTS_SPEC = { flags: {
   // FAFF-568: verify/anchor sub-verb flags (re-hash + snapshot the chain).
   "--run-dir": { arity: 1 }, "--legacy-policy": { arity: 1 }, "--dest": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb" } };
+// FAFF-628 — declared grammar for `faff cli-surface --json` + the drift-guard's flag-layer
+// assertions. `validate` takes only a positional file path (spec §2 OUT OF SCOPE: value-level
+// checks, not this ticket), so it declares no required flags.
+const EVENTS_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: EVENTS_SPEC,
+  subcommands: {
+    append: { required_flags: ["--run"] },
+    validate: { required_flags: [] },
+    read: { required_flags: ["--run"] },
+    verify: { required_flags: ["--run-dir"] },
+    anchor: { required_flags: ["--run-dir", "--issue", "--dest"] },
+  },
+};
 const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock } = require("./heartbeat");
@@ -634,7 +648,8 @@ function cmdEvents(args) {
   const cmd = rest[0];
 
   if (cmd === "append") {
-    if (!run) { process.stderr.write("faff events append: --run <run-id> is required\n"); return 2; }
+    const reqErr = requireFlags({ "--run": run }, EVENTS_SURFACE.subcommands.append, "events", "append");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     // FAFF-591: from a linked build worktree, the run dir lives in the MAIN checkout's
     // .faff/runs/, not this cwd's — resolveRunDir falls back there (root-explicit only
     // ever uses the cwd-root path, unchanged).
@@ -794,7 +809,8 @@ function cmdEvents(args) {
   }
 
   if (cmd === "read") {
-    if (!run) { process.stderr.write("faff events read: --run <run-id> is required\n"); return 2; }
+    const reqErr = requireFlags({ "--run": run }, EVENTS_SURFACE.subcommands.read, "events", "read");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const eventsPath = path.join(root, ".faff", "runs", run, "events.jsonl");
     if (!fs.existsSync(eventsPath)) { process.stderr.write("faff events read: no events for this run\n"); return 3; }
     const raw = fs.readFileSync(eventsPath, "utf8");
@@ -823,7 +839,8 @@ function cmdEvents(args) {
       else if (args[i] === "--legacy-policy") legacyPolicy = args[i + 1];
       else if (args[i] === "--json") jsonOut = true;
     }
-    if (!dirArg) { process.stderr.write("faff events verify: --run-dir <DIR> is required\n"); return 2; }
+    const verifyReqErr = requireFlags({ "--run-dir": dirArg }, EVENTS_SURFACE.subcommands.verify, "events", "verify");
+    if (verifyReqErr) { process.stderr.write(verifyReqErr + "\n"); return 2; }
     if (!["pass", "warn", "fail"].includes(legacyPolicy)) {
       process.stderr.write(`faff events verify: --legacy-policy must be pass|warn|fail (got ${JSON.stringify(legacyPolicy)})\n`); return 2;
     }
@@ -852,9 +869,8 @@ function cmdEvents(args) {
       else if (args[i] === "--issue") issueArg = args[i + 1];
       else if (args[i] === "--dest") destArg = args[i + 1];
     }
-    if (!dirArg || !issueArg || !destArg) {
-      process.stderr.write("faff events anchor: --run-dir <DIR> --issue <X> --dest <D> are all required\n"); return 2;
-    }
+    const anchorReqErr = requireFlags({ "--run-dir": dirArg, "--issue": issueArg, "--dest": destArg }, EVENTS_SURFACE.subcommands.anchor, "events", "anchor");
+    if (anchorReqErr) { process.stderr.write(anchorReqErr + "\n"); return 2; }
     if (!fs.existsSync(dirArg) || !fs.statSync(dirArg).isDirectory()) {
       process.stderr.write(`faff events anchor: --run-dir is not a directory: ${dirArg}\n`); return 2;
     }
@@ -1165,4 +1181,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { EFFORT_LEVELS, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyExitCode };
+module.exports = { EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyExitCode };

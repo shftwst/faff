@@ -170,6 +170,29 @@ function parseArgs(argv, spec) {
   return { values, positionals, errors };
 }
 
+/**
+ * FAFF-628 — the shared unconditional-requiredness enforcer. A dispatch module's
+ * migrated required-flag checks route through this so the declaration (the SURFACE's
+ * `required_flags` list) and the enforcement are the same object — the guard's
+ * flag-layer assertions and the live CLI can never drift apart.
+ *
+ * @param {object} values             parseArgs' ParseResult.values
+ * @param {object} subcommandSurface  the SURFACE's per-subcommand record — { required_flags: string[] }
+ * @param {string} verb               the top-level verb (for the message)
+ * @param {string} sub                the subcommand (for the message)
+ * @returns {string|null} the stderr-ready error message, or null when every required flag is present
+ */
+function requireFlags(values, subcommandSurface, verb, sub) {
+  const required = (subcommandSurface && Array.isArray(subcommandSurface.required_flags)) ? subcommandSurface.required_flags : [];
+  for (const flag of required) {
+    // == null (not === undefined) so callers that normalise an absent parseArgs value to `null`
+    // via their own get() helper (a common CLI pattern in this codebase) are still caught —
+    // parseArgs itself only ever produces `undefined` for an absent flag, never `null`.
+    if (values[flag] == null) return `faff ${verb} ${sub}: ${flag} is required`;
+  }
+  return null;
+}
+
 function formatError(e) {
   if (e.flag) return `${e.code}: ${e.detail}`;
   return `${e.code}: ${e.detail}`;
@@ -323,4 +346,4 @@ function cmdArgv(args) {
   return 2;
 }
 
-module.exports = { parseArgs, usageError, resolveFlag, looksLikeNextFlag, argvSelftestCases, runArgvSelftest, cmdArgv };
+module.exports = { parseArgs, usageError, resolveFlag, looksLikeNextFlag, requireFlags, argvSelftestCases, runArgvSelftest, cmdArgv };

@@ -204,14 +204,14 @@ default (FAFF-522).
 ## 3. If a lane doesn't auto-fire, drive it directly (this is the value — establishing the wiring)
     faff env compose-gen --profile <p>     # → ProvisionPlan + compose file
     faff env up   --plan <plan>            # docker compose up -d + health-wait → env-handle (status: ready|failed)
-    faff env seed                          # seed synthetic data
+    faff env seed --plan <plan>             # seed synthetic data
     faff holdout verdicts --association <json>   # pure bridge: reads the evaluator's persisted
                                                   # .faff/holdout/<key>.json verdicts (the
                                                   # evaluator slot already exercised the live
                                                   # endpoints to produce them) into prdr
                                                   # coverage's --dod-verdicts shape
     faff prdr coverage --prd-goals '<JSON array of DONE goals>' --dod-verdicts ...   # roll the verdicts into prd-satisfied
-    faff env down                          # tear down (ephemeral)
+    faff env down --project <project>      # tear down (ephemeral)
 
 ## 4. Observe (the run's real signal)
     faff events read --run <id>     # the timeline

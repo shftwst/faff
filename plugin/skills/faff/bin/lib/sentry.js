@@ -101,6 +101,17 @@ const SENTRY_SPEC = { flags: {
   "--issue": { arity: 1 }, "--signal": { arity: 1 }, "--worktree": { arity: 1 },
 }, positionals: { min: 0, max: 1, name: "verb" } };
 const SENTRY_USAGE = "usage: faff sentry check|abort [--run-dir DIR] [--root DIR] [--json] [--forbidden-side-effect] [--issue ID] [--signal S] [--worktree DIR]";
+// FAFF-628 — declared grammar. `--run-dir` resolves through a three-source fallback chain
+// (flag → $FAFF_RUN_DIR → latestRunDir) rather than a flat required-flag check — conditional
+// requiredness stays out of scope (spec §2) — so neither sub-verb declares a required flag.
+const SENTRY_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: SENTRY_SPEC,
+  subcommands: {
+    check: { required_flags: [] },
+    abort: { required_flags: [] },
+  },
+};
 
 const DERAILMENT_SIGNALS = new Set([
   "fix-review-thrash", "budget-breach", "repeated-identical-failure",
@@ -1293,4 +1304,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

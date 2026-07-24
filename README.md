@@ -39,6 +39,12 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 /plugin install faff@faff
 ```
 
+## Requirements
+
+macOS and Linux (POSIX) only, Node ≥ 20. There's no `package.json`/`engines` by design — faff ships dependency-free — so this is the one place the floor is written down.
+
+Native Windows isn't supported: the CLI refuses to run on `win32` with a message pointing you at WSL2, rather than limping through with mis-resolved paths. Full Windows support is a separate, future decision — nothing here implies it's coming.
+
 ## Your first five minutes
 
 1. **Tell it where your stuff lives.** Run `/faff-onboard` to write a `.faffrc.yaml` at your repo root (or drop in three lines by hand — see [Configuration](docs/guide/configuration.md)).

@@ -58,7 +58,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { CANONICAL_CONFIG, dig, findConfig, findRoot, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
+const { CANONICAL_CONFIG, dig, findConfig, findRoot, homeDir, readBaseConfigStrict, readLedger, resolveLedgerOrFault } = require("./shared-infra");
 const { mutateLedgerUnderLock } = require("./heartbeat");
 const { parseArgs, usageError } = require("./argv");
 // budget check / baseline always emit JSON; --json is accepted-and-ignored for CLI-convention
@@ -375,7 +375,7 @@ function computeBudgetState(env, spent, tokensSource) {
 // (Claude Code's transcript project-dir convention — pinned against real on-disk dirs,
 // FAFF-502; hyphens and alphanumerics are preserved verbatim.) Honours $CLAUDE_CONFIG_DIR.
 function transcriptBaseDir(cwd, env) {
-  const home = env.HOME || env.USERPROFILE || "";
+  const home = homeDir(env);
   const configDir = env.CLAUDE_CONFIG_DIR || path.join(home, ".claude");
   const encoded = String(cwd).replace(/[/.]/g, "-");
   return path.join(configDir, "projects", encoded);

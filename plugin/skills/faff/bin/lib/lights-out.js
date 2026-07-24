@@ -42,7 +42,7 @@ const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendRecordUnderLock } = require("./events");
 const { mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
-const { dig, findRoot, mainWorktreeRoot, readLedger } = require("./shared-infra");
+const { dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
 
 const LIGHTS_OUT_GUARDRAILS = [
   { id: "admissibility", contract: "faff admissible --lights-out",          probe: "admissible", enforced: true },
@@ -116,7 +116,7 @@ function resolveWorktreeRoot(repoRoot, env, cfg) {
   if (e.trim() !== "") return { root: e, source: "env" };
   const c = dig(cfg || {}, "worktree_root");
   if (c != null && String(c).trim() !== "") return { root: String(c), source: "config" };
-  const home = (env && env.HOME) ? String(env.HOME) : "~";
+  const home = homeDir(env);
   const base = path.basename(path.resolve(String(repoRoot == null ? "" : repoRoot)));
   return { root: path.join(home, ".faff/worktrees", base), source: "default" };
 }

@@ -244,6 +244,35 @@ jobs:
           FAFF_REQUIRE_DOCKER: "1"
         run: node --test
 
+  # FAFF-580: a cheap macOS smoke lane. Operators run faff on macOS day to day (the Colima note in
+  # .faffrc.yaml), and CI is otherwise ubuntu-only — this catches a macOS-specific load/parse
+  # regression without paying the docker tax on a hosted macOS runner. Pure `--selftest` invocations
+  # only: no docker, no `node --test` under FAFF_REQUIRE_DOCKER. The command list is re-derived from
+  # this file's own `validate` job rather than duplicated by hand, so a selftest step added there is
+  # covered here automatically — the one drift this lane exists to avoid.
+  validate-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run every declared --selftest suite (pure, no docker)
+        run: |
+          set -euo pipefail
+          grep -oE 'faff [a-zA-Z0-9_.-]+( [a-zA-Z0-9_.-]+)? --selftest' .github/workflows/validate.yml \
+            | sed 's|^|node plugin/skills/faff/bin/|' \
+            | sort -u \
+            > /tmp/selftests.txt
+          echo "node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest" >> /tmp/selftests.txt
+          while IFS= read -r cmd; do
+            echo "::group::$cmd"
+            $cmd
+            echo "::endgroup::"
+          done < /tmp/selftests.txt
+
   # FAFF-371: the env lifecycle must also hold against a ROOTLESS daemon reached via DOCKER_HOST —
   # the host-portable stand-in for the bounded nested engine ADR-0041 decision 3 mandates in the
   # L4 cage. The suite runs unmodified: passing against the rootless socket proves the ambient

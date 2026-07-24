@@ -29,7 +29,7 @@ const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 } 
 const { loadConfig } = require("./config");
 const { contractQualityGates } = require("./contract-defs");
 const { commandInvokesFaffHook, preToolUseCommands } = require("./hooks-ensure");
-const { dig, findRoot, mainWorktreeRoot } = require("./shared-infra");
+const { dig, findRoot, homeDir, mainWorktreeRoot } = require("./shared-infra");
 
 const GATE_COST = { FORMAT: 10, LINT: 20, TYPECHECK: 30, STATIC_ANALYSIS: 40, UNIT: 50, OTHER: 60 };
 
@@ -497,7 +497,7 @@ function cmdDoctor(args) {
   let root = values["--root"] === undefined ? null : values["--root"];
   if (!target) {
     const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
-    target = pluginRoot ? path.join(pluginRoot, "skills") : path.join(process.env.HOME || "", ".claude", "skills");
+    target = pluginRoot ? path.join(pluginRoot, "skills") : path.join(homeDir(), ".claude", "skills");
   }
   root = root || findRoot();
   const isFaffSkill = (n) => n === "faff" || n.startsWith("faff-") || n.startsWith("faffter-") || n.startsWith("faffidavit-");
@@ -534,7 +534,7 @@ function cmdDoctor(args) {
       console.log(`  ✗ ${name}  COPY — not dev-linked; shipped changes won't go live`);
     }
   }
-  const bin = path.join(process.env.HOME || "", ".local", "bin", "faff");
+  const bin = path.join(homeDir(), ".local", "bin", "faff");
   try {
     const bst = fs.lstatSync(bin);
     if (bst.isSymbolicLink()) {

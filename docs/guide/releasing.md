@@ -1,6 +1,6 @@
 # Releasing faff
 
-Releases are cut automatically by [release-please](../../.github/workflows/release-please.yml) —
+Releases are cut automatically by [release-please](https://github.com/shftwst/faff/blob/main/.github/workflows/release-please.yml) —
 it opens and maintains the release PR from Conventional Commit history. This runbook is the
 **human pre-release checklist** that sits alongside that automation: the checks a person confirms
 before letting a release PR merge. It does not replace release-please and adds no CI job.

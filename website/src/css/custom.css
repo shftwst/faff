@@ -1,0 +1,23 @@
+/**
+ * Minimal overrides only — no theme polish this slice (FAFF-508 §2).
+ * The default classic theme is left mostly as-is; this file exists so a
+ * later slice has an obvious place to hang styling work.
+ */
+
+:root {
+  --ifm-color-primary: #2e5aac;
+  --ifm-color-primary-dark: #29509a;
+  --ifm-color-primary-darker: #274c91;
+  --ifm-color-primary-light: #3364bd;
+  --ifm-color-primary-lighter: #3f6bc0;
+  --ifm-color-primary-lightest: #5c81c8;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #7ea3e0;
+  --ifm-color-primary-dark: #5f8bd8;
+  --ifm-color-primary-darker: #4f7fd3;
+  --ifm-color-primary-light: #9dbbe8;
+  --ifm-color-primary-lighter: #adc6ec;
+  --ifm-color-primary-lightest: #d3e0f5;
+}

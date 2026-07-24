@@ -14,6 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -120,4 +121,159 @@ test("FAFF-363: a malformed run-ledger.json is fail-loud exit 2, never folded in
   } finally {
     rmSync(runDir, { recursive: true, force: true });
   }
+});
+
+// --- FAFF-568 fix pass: anchor discovery derivation + containment (CLI-side) ----
+// `--derive-anchor-dirs` is the Action's discovery core: prefix-strip at ANY
+// anchors-path depth, reject ".." traversal, realpath-contain, skip deleted dirs.
+
+test("FAFF-568: --derive-anchor-dirs handles 1/2/3-segment anchors-paths and rejects '..' traversal", () => {
+  const root = tmpRunDir("faff568-derive-");
+  try {
+    for (const p of ["anchors", ".faff/anchors", ".faff/sub/anchors"]) {
+      mkdirSync(path.join(root, p, "run-1", "FAFF-1"), { recursive: true });
+    }
+    const cases = [
+      ["anchors", "anchors/run-1/FAFF-1/events.jsonl", "anchors/run-1/FAFF-1"],
+      [".faff/anchors", ".faff/anchors/run-1/FAFF-1/chain-head.json", ".faff/anchors/run-1/FAFF-1"],
+      [".faff/sub/anchors", ".faff/sub/anchors/run-1/FAFF-1/events.jsonl", ".faff/sub/anchors/run-1/FAFF-1"],
+    ];
+    for (const [anchorsPath, changed, want] of cases) {
+      const r = runCli(["governance-check", "--derive-anchor-dirs", anchorsPath], { cwd: root, input: changed + "\n" });
+      assert.equal(r.code, 0, r.stderr);
+      assert.equal(r.stdout.trim(), want, `anchors-path ${anchorsPath}`);
+    }
+    // ".." traversal: dropped with a loud stderr warning, never a derived dir.
+    const trav = runCli(["governance-check", "--derive-anchor-dirs", ".faff/anchors"],
+      { cwd: root, input: ".faff/anchors/../../evil/x/events.jsonl\n" });
+    assert.equal(trav.code, 0);
+    assert.equal(trav.stdout.trim(), "", "no dir derived from a traversal path");
+    assert.match(trav.stderr, /dropped.*traversal/, "the drop is warned, never silent");
+    // A dir the PR deleted is skipped without a warning (not carried anymore).
+    const gone = runCli(["governance-check", "--derive-anchor-dirs", ".faff/anchors"],
+      { cwd: root, input: ".faff/anchors/run-gone/FAFF-9/events.jsonl\n" });
+    assert.equal(gone.code, 0);
+    assert.equal(gone.stdout.trim(), "");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-568: --anchors-root rejects an --anchor-dir that resolves outside it (exit 2, fail-loud)", () => {
+  const root = tmpRunDir("faff568-root-");
+  try {
+    mkdirSync(path.join(root, "anchors", "run-1", "FAFF-1"), { recursive: true });
+    mkdirSync(path.join(root, "outside"), { recursive: true });
+    const ok = runCli(["governance-check", "--anchor-dir", path.join(root, "anchors", "run-1", "FAFF-1"), "--anchors-root", path.join(root, "anchors")]);
+    assert.equal(ok.code, 0, ok.stderr);
+    const bad = runCli(["governance-check", "--anchor-dir", path.join(root, "outside"), "--anchors-root", path.join(root, "anchors")]);
+    assert.equal(bad.code, 2, `expected containment exit 2; stdout=${bad.stdout} stderr=${bad.stderr}`);
+    assert.match(bad.stderr, /outside the anchors root/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// --- FAFF-568 fix pass: witness gating + legacy-policy warn through the CLI -----
+
+function buildChainDir(dir, runId, payloads) {
+  const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+  let prevBytes = null;
+  const lines = payloads.map((p, i) => {
+    const prev = prevBytes === null ? sha256(Buffer.from(runId, "utf8")) : sha256(prevBytes);
+    const line = JSON.stringify({ schema: 2, run_id: runId, seq: i, ts: "t", prev, ...p });
+    prevBytes = Buffer.from(line, "utf8");
+    return line;
+  });
+  writeFileSync(path.join(dir, "events.jsonl"), lines.join("\n") + "\n");
+  return lines;
+}
+
+test("FAFF-568: a spoofed legacy downgrade on an anchored chain fails governance-check with a witness-mismatch integrity reason", () => {
+  const anchor = tmpRunDir("faff568-witness-");
+  try {
+    const lines = buildChainDir(anchor, "run-w", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    // Anchor-time witness (CLI-shape: head_sha256 / line_count / schema_floor).
+    const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+    writeFileSync(path.join(anchor, "chain-head.json"), JSON.stringify({
+      run_id: "run-w", issue: "FAFF-1", head_seq: 1,
+      head_sha256: sha256(Buffer.from(lines[lines.length - 1], "utf8")),
+      line_count: lines.length, schema_floor: 2,
+    }, null, 2) + "\n");
+    const before = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(before.code, 0, before.stderr);
+    // The spoof: strip every prev + downgrade schema.
+    writeFileSync(path.join(anchor, "events.jsonl"),
+      lines.map((l) => { const { prev, ...rest } = JSON.parse(l); return JSON.stringify({ ...rest, schema: 1 }); }).join("\n") + "\n");
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `expected integrity fail; stdout=${r.stdout} stderr=${r.stderr}`);
+    const verdict = JSON.parse(r.stdout);
+    assert.equal(verdict.runs[0].legs.integrity.status, "witness-mismatch");
+    assert.ok(verdict.reasons.some((x) => /integrity/.test(x) && /witness/.test(x)), JSON.stringify(verdict.reasons));
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+test("FAFF-568: legacy-policy warn passes a legacy anchor WITH a loud stderr note (never silently identical to pass)", () => {
+  const anchor = tmpRunDir("faff568-warn-");
+  try {
+    const line = JSON.stringify({ schema: 1, run_id: "run-l", seq: 0, ts: "t", phase: "run", type: "run-start" });
+    appendFileSync(path.join(anchor, "events.jsonl"), line + "\n");
+    // Fix pass 2: an anchor requires its witness — a legacy anchor carries one too
+    // (CLI-written at anchor time, schema_floor 1).
+    const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+    writeFileSync(path.join(anchor, "chain-head.json"), JSON.stringify({
+      run_id: "run-l", issue: "FAFF-1", head_seq: 0,
+      head_sha256: sha256(Buffer.from(line, "utf8")), line_count: 1, schema_floor: 1,
+    }, null, 2) + "\n");
+    const quiet = runCli(["governance-check", "--anchor-dir", anchor, "--legacy-policy", "pass"]);
+    assert.equal(quiet.code, 0);
+    assert.doesNotMatch(quiet.stderr, /warn/, "pass stays quiet");
+    const warned = runCli(["governance-check", "--anchor-dir", anchor, "--legacy-policy", "warn"]);
+    assert.equal(warned.code, 0, warned.stderr);
+    assert.match(warned.stderr, /integrity — legacy schema-1 log .*warn/, "warn emits the note");
+    const failed = runCli(["governance-check", "--anchor-dir", anchor, "--legacy-policy", "fail"]);
+    assert.equal(failed.code, 1, "fail gates");
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+// --- FAFF-568 fix pass 2: an anchor without its witness fails closed -----------
+// Deleting chain-head.json must NOT restore the legacy-downgrade spoof: an anchor
+// dir is CLI-written and always carries its witness, so events.jsonl with no
+// chain-head.json beside it is `witness-absent` — a FAIL, under every policy. A
+// bare run dir (verb path / --run-dir sweep) has no witness by design and is
+// unchanged: the requirement applies only when the dir is evaluated AS an anchor.
+
+test("FAFF-568: an anchor dir with events.jsonl but NO chain-head.json → integrity FAIL (witness-absent)", () => {
+  const anchor = tmpRunDir("faff568-nowitness-");
+  try {
+    buildChainDir(anchor, "run-nw", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `expected witness-absent fail; stdout=${r.stdout} stderr=${r.stderr}`);
+    const verdict = JSON.parse(r.stdout);
+    assert.equal(verdict.runs[0].legs.integrity.status, "witness-absent");
+    assert.ok(verdict.reasons.some((x) => /integrity/.test(x) && /witness-absent/.test(x)), JSON.stringify(verdict.reasons));
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+test("FAFF-568: the spoof-minus-witness repro (stripped prev + deleted chain-head.json) fails the anchor integrity leg", () => {
+  const anchor = tmpRunDir("faff568-spoofminus-");
+  try {
+    const lines = buildChainDir(anchor, "run-sm", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    // The Phase-2 repro: no chain-head.json at all + every prev stripped, schema downgraded.
+    writeFileSync(path.join(anchor, "events.jsonl"),
+      lines.map((l) => { const { prev, ...rest } = JSON.parse(l); return JSON.stringify({ ...rest, schema: 1 }); }).join("\n") + "\n");
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `spoof-minus-witness must not exit 0; stdout=${r.stdout} stderr=${r.stderr}`);
+    assert.equal(JSON.parse(r.stdout).runs[0].legs.integrity.status, "witness-absent");
+    // The verb path on the SAME dir (a bare run dir — no anchor context) keeps
+    // today's behaviour: legacy-unverifiable, exit 0 under the default policy.
+    const verb = runCli(["events", "verify", "--run-dir", anchor, "--json"]);
+    assert.equal(verb.code, 0, verb.stderr);
+    assert.equal(JSON.parse(verb.stdout).status, "legacy-unverifiable");
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
 });

@@ -31,6 +31,7 @@ node_modules/
 dist/
 *.log
 .env.claude-box
+.faffrc.local.yaml
 EOF
 
 cat > .faffrc.yaml <<'EOF'
@@ -84,12 +85,11 @@ backends:
     api_key_env: GEMINI_API_KEY
     egress: external
     timeout: 480
-  ollama-local:
-    provider: ollama
-    model: qwen3-next:80b-a3b-instruct-q4_K_M
-    host: http://studio.longhair-escalator.ts.net:11434 # operator's tailnet host; cage reaches it
-    auth: none
-    egress: local
+  # ollama-local (operator-private tailnet ollama backend) relocated to the
+  # gitignored .faffrc.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
+  # repo carries no operator host. The overlay's adversarial refs list restates
+  # all three entries (sequences replace wholesale); this base advertises only
+  # the two cloud backends.
 
 # faffter-dark: adversarial `review`/`spec_review` slots' reference list — points at the named
 # backends: entries above, primary-first (FAFF-523's ordered-reference form, no "primary" key).
@@ -98,8 +98,32 @@ faffter_dark:
     refs:
       - nvidia-glm
       - gemini-gemma
+EOF
+
+# Local ollama overlay (FAFF-618): written from FAFF_EVAL_LOCAL_BASE_URL so the operator's
+# tailnet host never lands in this committed config. The base heredoc above stays quoted;
+# only this small overlay heredoc is unquoted, so ${FAFF_EVAL_LOCAL_BASE_URL} interpolates
+# and nothing else in the base risks expanding.
+if [ -n "${FAFF_EVAL_LOCAL_BASE_URL:-}" ]; then
+  cat > .faffrc.local.yaml <<EOF
+backends:
+  ollama-local:
+    provider: ollama
+    model: qwen3-next:80b-a3b-instruct-q4_K_M
+    host: ${FAFF_EVAL_LOCAL_BASE_URL}
+    auth: none
+    egress: local
+faffter_dark:
+  adversarial:
+    refs:                      # sequence — replaces the base two-item list wholesale
+      - nvidia-glm
+      - gemini-gemma
       - ollama-local
 EOF
+  echo "wrote .faffrc.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
+else
+  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faffrc.local.yaml) to add the local ollama backend" >&2
+fi
 
 cat > BRIEF.md <<'EOF'
 # SUT P1 — Link-shortener (greenfield micro-service)

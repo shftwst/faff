@@ -68,6 +68,7 @@ Each step offers to chain into the next, so you can just keep saying yes. That's
 
 Everything past the pitch lives in `docs/`:
 
+- [Glossary](docs/GLOSSARY.md) — every load-bearing faff noun, one sentence and the artifact it names.
 - [Walkthroughs](docs/guide/walkthroughs.md) — two guided runs: idea → tickets, and a first build start to finish.
 - [Unattended runs](docs/guide/unattended.md) — the L3 deep-dive: the loop, fire-and-forget, park protocol, run-ledger, tracker-as-control-plane, and running over SSH.
 - [Adopting by change-class](docs/guide/adopting-by-change-class.md) — the adoption pattern: risk-tiered delegation per change-class, not a per-team level, built on per-ticket eligibility, appetite, and the verdict gate.

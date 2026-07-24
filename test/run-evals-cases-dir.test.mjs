@@ -98,6 +98,16 @@ function bodyOf(src, fnName) {
   return nextFn === -1 ? rest : rest.slice(0, nextFn);
 }
 
+// ── Adversarial-review finding (major, FAFF-625 Phase 2): --cases-dir combined with a non-plain-sweep
+//    entry point is silently ignored — warn loudly rather than a silent no-op. ────────────────────────
+test("--cases-dir combined with --gate/--against/--update-baseline/--compare warns loudly (silent-no-op guard)", () => {
+  const r1 = spawnSync(process.execPath, [CLI, "--gate", "--driver", "local", "--cases-dir", "/bogus/dir"], { encoding: "utf8", cwd: REPO_ROOT });
+  assert.match(r1.stderr, /--cases-dir is ignored/);
+
+  const r2 = spawnSync(process.execPath, [CLI, "--reps", "0", "--cases-dir", "eval/cases-seeded"], { encoding: "utf8", cwd: REPO_ROOT });
+  assert.doesNotMatch(r2.stderr, /--cases-dir is ignored/, "the plain-sweep entry itself must never warn — it's the one path that DOES use the flag");
+});
+
 test("gateAgainst / updateBaseline / compare each call loadCases() with no argument and never touch casesDir", () => {
   const src = readFileSync(CLI, "utf8");
   for (const fn of ["gateAgainst", "updateBaseline", "compare"]) {

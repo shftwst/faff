@@ -663,6 +663,13 @@ async function main(argv) {
   const cliPresets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
   const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
   const presets = { ...cliPresets, makeDirectOllamaDriver };
+  // FAFF-625 review finding (major): --cases-dir is plain-sweep-only (below) — every OTHER entry path
+  // below calls loadCases() with no argument and silently ignores the flag if present. A silent no-op
+  // is a footgun (the codebase's fail-loud convention), so warn loudly here, once, before any entry
+  // path's own logic runs — advisory only, never blocks (none of these paths error on an unknown flag).
+  if (argv.includes("--cases-dir") && (argv.includes("--gate") || argv.includes("--compare") || argFlag(argv, "--against") || argFlag(argv, "--update-baseline"))) {
+    console.warn("[run-evals] WARN: --cases-dir is ignored by --gate / --against / --update-baseline / --compare (plain-sweep-only); this run uses the default eval/cases/.");
+  }
   if (argv.includes("--gate")) {                                              // FAFF-180 proportionate gate
     const baselinePath = argFlag(argv, "--against") ?? join(HERE, "baselines", "frontier.json");
     return gate(argv, presets, baselinePath);

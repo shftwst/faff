@@ -13,7 +13,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
-const { findRoot } = require("./shared-infra");
+const { findRoot, homeDir } = require("./shared-infra");
 
 // FAFF-471: sentrycheck joins the Stop family as ADR-0065's cheap assist watchdog
 // locus — a staleness-triggered `faff sentry check` consult on any session's
@@ -254,7 +254,7 @@ function resolveHookBin(probeRoot) {
   if (onPath && FAFF_ALL_HOOKS.every((s) => probeServes(onPath, s, probeRoot))) return onPath;
   const installed = process.env.CLAUDE_PLUGIN_ROOT
     ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "skills", "faff", "bin", "faff")
-    : path.join(process.env.HOME || "", ".claude", "skills", "faff", "bin", "faff");
+    : path.join(homeDir(), ".claude", "skills", "faff", "bin", "faff");
   try {
     if (fs.existsSync(installed) && FAFF_ALL_HOOKS.every((s) => probeServes(installed, s, probeRoot))) return installed;
   } catch { /* fall through to the running binary */ }

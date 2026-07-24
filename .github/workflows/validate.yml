@@ -244,6 +244,51 @@ jobs:
           FAFF_REQUIRE_DOCKER: "1"
         run: node --test
 
+  # FAFF-580: a cheap macOS smoke lane. Operators run faff on macOS day to day (the Colima note in
+  # .faffrc.yaml), and CI is otherwise ubuntu-only — this catches a macOS-specific load/parse
+  # regression without paying the docker tax on a hosted macOS runner. Pure `--selftest` invocations
+  # only: no docker, no `node --test` under FAFF_REQUIRE_DOCKER. The command list is re-derived from
+  # this file's own `validate` job rather than duplicated by hand, so a selftest step added there is
+  # covered here automatically — the one drift this lane exists to avoid.
+  validate-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run every declared --selftest suite (pure, no docker)
+        run: |
+          set -euo pipefail
+          grep -oE 'faff [a-zA-Z0-9_.-]+( [a-zA-Z0-9_.-]+)? --selftest' .github/workflows/validate.yml \
+            | sed 's|^|node plugin/skills/faff/bin/|' \
+            | sort -u \
+            | grep -v 'integrity-digest --selftest' \
+            > /tmp/selftests.txt
+          echo "node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest" >> /tmp/selftests.txt
+          # integrity-digest --selftest shells out to the absolute /usr/bin/sha256sum (a
+          # deliberate same-uid tool-poisoning mitigation, ADR-0039) — macOS has no such
+          # binary (it ships /usr/bin/shasum instead), so this one command isn't portable
+          # yet. Excluded here rather than fixed in-band: it's a real, separate macOS
+          # compatibility gap this lane surfaced, not part of this ticket's file list.
+          # Tracked as discovered scope for its own ticket.
+          # Sanity floor: the grep above is only as good as this file's own text, so a
+          # reformat or regex miss could silently shrink the list to near-nothing and this
+          # lane would go green having tested almost none of it. Fail loud instead of quietly
+          # thinning out — bump the floor if the real count ever drops for a legitimate reason.
+          count=$(wc -l < /tmp/selftests.txt)
+          if [ "$count" -lt 40 ]; then
+            echo "::error::only found ${count} --selftest commands to run (expected at least 40) — the extraction regex likely missed some; check .github/workflows/validate.yml"
+            exit 1
+          fi
+          while IFS= read -r cmd; do
+            echo "::group::$cmd"
+            $cmd
+            echo "::endgroup::"
+          done < /tmp/selftests.txt
+
   # FAFF-371: the env lifecycle must also hold against a ROOTLESS daemon reached via DOCKER_HOST —
   # the host-portable stand-in for the bounded nested engine ADR-0041 decision 3 mandates in the
   # L4 cage. The suite runs unmodified: passing against the rootless socket proves the ambient

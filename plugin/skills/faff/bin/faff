@@ -230,6 +230,21 @@ function main(argv) {
 // `require`/ESM `import` of this file for its exported pure functions (the FAFF-373
 // corrective-integrity tests) does NOT execute a subcommand.
 if (require.main === module) {
+  // FAFF-580: faff's stated floor is POSIX (macOS/Linux) + Node >= 20 (ADR 0086) — native
+  // Windows is a separate, future decision, not implied by anything here. Refuse a CLI
+  // invocation on win32 with a clear message rather than letting it limp through with
+  // mis-resolved paths. Deliberately inside this block, not at module top level: it must
+  // fire only on an actual CLI invocation, never on a `require` of this file for its
+  // exported pure functions (the FAFF-373 corrective-integrity tests import it on POSIX CI).
+  if (process.platform === "win32") {
+    process.stderr.write(
+      "faff is POSIX-only (macOS/Linux). Native Windows is not supported — " +
+      "run faff under WSL2. See the Requirements section in the README.\n"
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   // FAFF-422: `engine call` is the first async handler (network one-shot) — a returned
   // Promise resolves to the exit code; every other handler stays a plain synchronous int.
   // The rejection arm is belt-and-braces: cmdEngine maps every internal error to an exit

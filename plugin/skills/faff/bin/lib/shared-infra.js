@@ -494,6 +494,19 @@ function mainWorktreeRoot(root) {
   return path.basename(commonDir) === ".git" ? path.dirname(commonDir) : null;
 }
 
+// FAFF-580: the one place faff resolves the user's home directory. `HOME` first
+// (the POSIX case), `USERPROFILE` as a fallback, `""` when neither is set — a
+// verbatim generalisation of budget.js's transcriptBaseDir, the most complete
+// form any call site had before this. `""` (not a thrown error) is deliberate:
+// an unset HOME on a supported POSIX platform is vanishingly rare, and the one
+// site where "" was actively harmful (resolveWorktreeRoot's default) is already
+// caught downstream by FAFF-382's strictly-under `--assert` isolation check.
+// Every home-directory lookup in bin/lib goes through this — never a fresh
+// `HOME || …` inline at a new call site.
+function homeDir(env = process.env) {
+  return env.HOME || env.USERPROFILE || "";
+}
+
 function findConfig(root) {
   const here = findConfigIn(root);
   if (here) return here;
@@ -623,4 +636,4 @@ function readBaseConfigStrict(filePath, env = process.env) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, isPlainConfigMap, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

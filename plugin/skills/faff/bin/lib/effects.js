@@ -24,7 +24,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { eventLineCount } = require("./events");
-const { findRoot } = require("./shared-infra");
+const { findRoot, resolveRunDir } = require("./shared-infra");
 
 const EFFECT_KINDS = new Set([
   "merge", "branch-delete", "deploy", "db-migration", "secret-rotation",
@@ -373,6 +373,9 @@ function cmdEffects(args) {
     else rest.push(args[i]);
   }
   if (rest.includes("--selftest")) return effectsSelftest();
+  // FAFF-591: an explicit --root is a strict escape hatch (no worktree fallback);
+  // the default-from-findRoot() path may still resolve to the main checkout below.
+  const rootExplicit = root !== null;
   root = root || findRoot();
   const cmd = rest[0];
   const asJson = rest.includes("--json");
@@ -381,7 +384,10 @@ function cmdEffects(args) {
     if (!run) { process.stderr.write(`faff effects ${cmd}: --run <run-id> is required\n`); return 2; }
     if (!issue) { process.stderr.write(`faff effects ${cmd}: --issue <id> is required\n`); return 2; }
     if (!step) { process.stderr.write(`faff effects ${cmd}: --step <name> is required\n`); return 2; }
-    const dir = path.join(root, ".faff", "runs", run);
+    // FAFF-591: from a linked build worktree, the run dir lives in the MAIN checkout's
+    // .faff/runs/, not this cwd's — resolveRunDir falls back there (root-explicit only
+    // ever uses the cwd-root path, unchanged).
+    const dir = resolveRunDir(root, run, rootExplicit);
     // A missing path OR a non-directory there is "no valid run dir" → exit 3 (parity with
     // `events append`), never an uncaught ENOTDIR when appendFileSync hits a file.
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
@@ -397,9 +403,10 @@ function cmdEffects(args) {
     const descriptors = Array.isArray(payload) ? payload : [payload];
     if (descriptors.length === 0) { process.stderr.write(`faff effects ${cmd}: no effect descriptors in payload\n`); return 1; }
     // "issue" — the unit key (compat dialect; rename deferred to extraction schema-v2). run_id
-    // is `run` verbatim here (dir's basename === run by construction — dir was just built as
-    // path.join(root, ".faff", "runs", run) above), so appendEffectEntries's basename-derived
-    // run_id is byte-identical to what this CLI wrote before the extraction.
+    // is `run` verbatim here (dir's basename === run by construction — dir was just resolved
+    // via resolveRunDir above, cwd-root or main-checkout, either way basename === run), so
+    // appendEffectEntries's basename-derived run_id is byte-identical to what this CLI wrote
+    // before the extraction.
     const result = appendEffectEntries(dir, cmd, issue, step, descriptors, ts);
     if (result.violations) {
       // Validate ALL before writing ANY (all-or-nothing; a bad descriptor writes nothing) —
@@ -414,8 +421,11 @@ function cmdEffects(args) {
   if (cmd === "check") {
     if (!run) { process.stderr.write("faff effects check: --run <run-id> is required\n"); return 2; }
     // Absence of the ledger is a CLEAN state (no declared-effects activity), NOT exit 3 —
-    // parity with `events read` tolerance, and the spec's explicit edge case.
-    const ledgerPath = path.join(root, ".faff", "runs", run, "declared-effects.jsonl");
+    // parity with `events read` tolerance, and the spec's explicit edge case. FAFF-591: resolve
+    // the run dir the same worktree-aware way as declare/observe, so `check` from a build
+    // worktree reads the main checkout's ledger instead of false-reporting clean against an
+    // empty worktree root.
+    const ledgerPath = path.join(resolveRunDir(root, run, rootExplicit), "declared-effects.jsonl");
     let entries = [];
     if (fs.existsSync(ledgerPath)) {
       entries = fs.readFileSync(ledgerPath, "utf8").split("\n").filter((l) => l.trim() !== "")

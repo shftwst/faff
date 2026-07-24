@@ -76,7 +76,7 @@ Examples of a founded non-approve verdict:
 { "verdict": "revise", "objections": [ { "lens": "QA", "severity": "major" } ] }
 ```
 
-The fixed verdict shape (`approve` / `revise` / `reject-approach` / `needs-human`, plus `objections: [{ lens, severity }]` over the enums `architectural|infosec|methodology|QA` × `blocker|major|minor`) and its validation live in the gateway's contract-as-code surface. A swapped-in reviewer (e.g. an adversarial per-lens occupant) conforms by emitting the same block.
+The fixed verdict shape and its validation (canonical semantics: `faff contract spec-review-verdict --describe`) live in the gateway's contract-as-code surface. A swapped-in reviewer (e.g. an adversarial per-lens occupant) conforms by emitting the same block.
 
 ## Level gradient (the cost-stable boundary)
 

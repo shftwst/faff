@@ -1,6 +1,6 @@
 ---
 name: faffter-dark-adversarial-review
-description: "Adversarial second-opinion code review for the `review` slot: a standard structural pass plus an adversarial review by a different LLM to catch correlated blind spots. Returns the fixed pass/fail/needs-human verdict. Swappable review occupant; runs as a configured slot, not the user `/` menu."
+description: "Adversarial second-opinion code review for the `review` slot: a standard structural pass plus an adversarial review by a different LLM to catch correlated blind spots. Returns the fixed review-verdict (faff contract review-verdict --describe). Swappable review occupant; runs as a configured slot, not the user `/` menu."
 user-invocable: false
 judgement_seam: refutation-code, adr-drift
 ---
@@ -9,7 +9,7 @@ judgement_seam: refutation-code, adr-drift
 
 Two-phase code review: standard structural review (delegated to `faffter-noon-review`) followed by an adversarial second opinion via a different LLM. Catches correlated blind spots by bringing different training biases from the model that wrote the code.
 
-Plugs into the `review` slot — replaces the default review, not augments it. The hard signal it returns conforms to the gateway Review-verdict contract: `pass` / `fail` / `needs-human` in that envelope. The adversarial phase adds evidence, never a fourth verdict.
+Plugs into the `review` slot — replaces the default review, not augments it. The hard signal it returns conforms to the gateway Review-verdict contract (canonical semantics: `faff contract review-verdict --describe`). The adversarial phase adds evidence, never a fourth verdict.
 
 Configure in `.faffrc`:
 
@@ -26,11 +26,11 @@ Invoked by faff-graft Step 9 as the configured `review` skill.
 
 ### Phase 1: Standard review (delegated to faffter-noon-review)
 
-Runs the full `faffter-noon-review` five-pass review (AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging). If this returns `fail` or `needs-human`, return that signal immediately — no point running the adversarial pass on code that hasn't passed basic review.
+Runs the full `faffter-noon-review` five-pass review (AC coverage, obvious bugs, scope check, spec fidelity, human-judgement flagging). If this returns anything other than the approving verdict, return that signal immediately — no point running the adversarial pass on code that hasn't passed basic review.
 
 ### Phase 2: Adversarial review (different LLM)
 
-Only runs if Phase 1 returned `pass`. Sends the diff to a structurally different model for an independent second opinion. This is not a repeat of Phase 1 — it targets what same-model review is likely to miss. The backend call is made by the bundled **`review-call.mjs`** helper (preflight + streaming + `think:false` + token budget) — **not** a hand-rolled API call; see **Backend call** below.
+Only runs if Phase 1 returned the approving verdict. Sends the diff to a structurally different model for an independent second opinion. This is not a repeat of Phase 1 — it targets what same-model review is likely to miss. The backend call is made by the bundled **`review-call.mjs`** helper (preflight + streaming + `think:false` + token budget) — **not** a hand-rolled API call; see **Backend call** below.
 
 ## Input
 
@@ -44,7 +44,7 @@ Faff-graft provides:
 
 ## Output
 
-Phase 1 returns a hard signal (`pass` / `fail` / `needs-human`) per `faffter-noon-review`.
+Phase 1 returns a hard signal (canonical semantics: `faff contract review-verdict --describe`) per `faffter-noon-review`.
 
 Phase 2 returns a **soft signal** — findings only, no verdict. The adversarial reviewer may be a less capable model; its findings are hypotheses, not rulings. Attribution — naming which backend served the response — is **not** the model's job (see below); the reviewer's job is the finding body:
 
@@ -231,7 +231,7 @@ On a **lights-out (L4)** run the adversarial second opinion is *mandatory* — `
 
 - **The helper derives mandatory-ness itself from the run ledger — no prose→flag translation (FAFF-401).** Pass `--run-dir "$run_dir"` on every autonomous invocation (above); `review-call.mjs` reads `<run-dir>/run-ledger.json` and treats `level: "L4"` as mandatory, with `FAFF_RUN_DIR` as the ambient fallback. The slot no longer decides a boolean — it only carries the run-dir **path**, so a dropped/misread `lights_out` signal can no longer silently downgrade the review to advisory. `--lights-out` remains as an explicit deterministic **override** that forces mandatory (tests, or a caller that already resolved L4-ness); the two are OR-composed (`mandatory = ledger || --lights-out`). Unresolved/absent (no run-dir, non-L4 ledger, no flag) ⇒ advisory, byte-for-byte today's behaviour.
 - When the review resolves **mandatory** (ledger-derived or flag-forced), the helper remaps a no-opinion exhaustion (all-unreachable `5` or deadline `8`) to **exit `9` (MANDATORY_OUTAGE)**; a config-fault class (2/4/6/7) still **dominates unchanged** (the remap never masks a cause).
-- On exit `9`, author `signal: unavailable` (FAFF-405 — a KNOWN fail-closed value distinct from `needs-human`; never `pass`) with one finding naming the outage (a location + an action, per the needs-human finding-shape rule), and set `adversarial_outcome:"mandatory-chain-outage"` (forensics-only — the signal now carries the meaning). faff-graft dispositions `unavailable` EXACTLY as `needs-human`: this is Phase 1's hard signal, so faff-graft's Step 9 parks it pre-PR, unchanged (no PR is opened — same no-PR human handoff as `needs-human` today; FAFF-403 will later give `unavailable` its own retry-later disposition, not this ticket). No graft merge-floor edit is needed either way — `unavailable` was already never `pass`, so a stray block reaching Step 10 would fail the floor regardless.
+- On exit `9`, author the availability signal (FAFF-405 — a KNOWN fail-closed value distinct from the human-judgement one; canonical semantics: `faff contract review-verdict --describe`) with one finding naming the outage (a location + an action, per the needs-human finding-shape rule), and set `adversarial_outcome:"mandatory-chain-outage"` (forensics-only — the signal now carries the meaning). faff-graft dispositions it EXACTLY as the human-judgement verdict: this is Phase 1's hard signal, so faff-graft's Step 9 parks it pre-PR, unchanged (no PR is opened — same no-PR human handoff today; FAFF-403 will later give it its own retry-later disposition, not this ticket). No graft merge-floor edit is needed either way — the availability signal was already never the approving verdict, so a stray block reaching Step 10 would fail the floor regardless.
 
 **Why this keys off `lights_out`, not `autonomous` (intentional asymmetry).** A Phase-2 `critical` *finding* is a real code defect — even an L3 overnight merge must not land it — so **Autonomous-run escalation** keys off `autonomous` and fires at L3 too. A chain *outage* is infra, not a defect: an L3 overnight run has a **morning human** to whom the loudly-annotated exit-5 skip surfaces the gap, so pass+skip is tolerable there; an L4 lights-out run has **no** human at all, so the only safe direction is to park. Advisory exit `5`/`8` (L1–L3, or any run where mandatory-ness stays unresolved — no L4 ledger and no `--lights-out`) keep today's pass+skip and the `chain-outage-skipped` annotation, unchanged.
 
@@ -240,7 +240,7 @@ On a **lights-out (L4)** run the adversarial second opinion is *mandatory* — `
 When faff-graft forwards `$run_dir` + `<ISSUE>` (autonomous L3/L4 only — interactive skips this), write the review-progress checkpoint at the phase boundaries so a re-dispatched build subagent **resumes** instead of repeating the slow Phase-2 (graft Step 9 → **Resume from a review-progress checkpoint**). All writes go through the deterministic CLI — never a hand-rolled JSON edit:
 
 - **Honour a resume hint.** If graft invoked with "skip Phase-1, run only Phase-2" (its diff-identity guard confirmed the checkpointed `phase1.verdict=pass` still matches the current diff), **do not re-run Phase-1** — resume at Phase-2. Absent a hint, run Phase-1 normally.
-- **After a Phase-1 `pass`:** `faff review-progress write "$run_dir" <ISSUE> --phase1-pass --diff-hash <cur_hash>` (a `fail`/`needs-human` is already terminal — return, write nothing, no Phase-2).
+- **After a Phase-1 approving verdict:** `faff review-progress write "$run_dir" <ISSUE> --phase1-pass --diff-hash <cur_hash>` (any other Phase-1 verdict is already terminal — return, write nothing, no Phase-2).
 - **Before the `review-call.mjs` call:** `faff review-progress write "$run_dir" <ISSUE> --phase2 in_flight` — this is the stall window the checkpoint exists to survive.
 - **On the call's resolution, map the exit → the phase2 status:** exit `0` → `--phase2 complete --findings <path>`; exit `8` → `--phase2 skipped_deadline`; a `5`/`6`-class unreachable pass+skip → `--phase2 skipped_unreachable`. **Exit `9` (mandatory chain-outage) is a terminal `unavailable` (FAFF-405), NOT a skip** — it returns terminal without any `--phase2 skipped*` write (a `skipped_unreachable` status would misrepresent a fail-closed park as a tolerated skip). (A needs-human or unavailable exit returns terminal without a `complete` write.)
 
@@ -248,7 +248,7 @@ The checkpoint is a **hint** — graft reconciles it against git/PR/worktree tru
 
 ## Output to faff-graft
 
-Returns Phase 1's hard signal (`pass` / `fail` / `needs-human` / `unavailable` — the last only from a MANDATORY chain-outage, FAFF-405) plus the adversarial findings and the implementor's dispositions. The adversarial phase does not alter the signal — it adds evidence that the implementor has addressed. Sequencing (iterate, raise PR, park) belongs to faff-graft.
+Returns Phase 1's hard signal (canonical semantics: `faff contract review-verdict --describe` — the availability value arises only from a MANDATORY chain-outage, FAFF-405) plus the adversarial findings and the implementor's dispositions. The adversarial phase does not alter the signal — it adds evidence that the implementor has addressed. Sequencing (iterate, raise PR, park) belongs to faff-graft.
 
 ## Contract artifact (FAFF-108)
 
@@ -256,17 +256,17 @@ After the output above, append **one** fenced code block — tagged `faff-contra
 
 ````
 ```faff-contract:review-verdict
-{ "signal": "<Phase 1's verdict: pass|fail|needs-human>",
+{ "signal": "<Phase 1's verdict — faff contract review-verdict --describe>",
   "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per Phase-1 finding ],
   "adversarial_outcome": "chain-outage-skipped"   // OPTIONAL — omit unless the autonomous full-chain-outage case fired
 }
 ```
 ````
 
-- **Phase 1's verdict only** — *except on the autonomous path*, where a Phase-2 `critical` escalates `signal` to `needs-human` (see **Autonomous-run escalation**). Otherwise `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
+- **Phase 1's verdict only** — *except on the autonomous path*, where a Phase-2 `critical` escalates `signal` to the human-judgement verdict (see **Autonomous-run escalation**). Otherwise `signal` is Phase 1's hard signal; `findings` carries one entry per **Phase-1** finding, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`).
 - **Phase-2 adversarial hypotheses are NOT the verdict** — they stay prose under `## Adversarial findings` and are **never** entered into `findings[]` (except the single autonomous-escalation carve-out below). Folding soft hypotheses in would misrepresent the hard verdict the gate routes on. The one narrow carve-out is the autonomous `critical` escalation below: there the escalating `critical` *is* the verdict-driver (the signal is `needs-human` **because of** it), so it is entered honestly — scoped strictly to that escalation, off which this rule is unchanged.
 - **`adversarial_outcome` is OPTIONAL and additive** — include it **only** in the autonomous full-chain-outage case, set to `"chain-outage-skipped"` (see **Full-chain outage annotation**); omit it on every other path. The contract validator (`faff contract review-verdict`) reads only `signal`+`findings` and **neither rejects nor forwards** unknown fields — its output is rebuilt from `signal`+`findings` alone, so `adversarial_outcome` **never gates the verdict**. It rides instead on the **raw verdict block** graft persists per-issue (`review-verdict.json`), which the beep-boop orchestrator reads **directly** during its reconciliation to populate the ledger's `review_adversarial_skipped` array — not from the contract script's stdout.
-- `pass` may carry zero findings; `fail` / `needs-human` carry ≥1 (the contract script enforces this).
+- the approving verdict may carry zero findings; every other verdict carries ≥1 (the contract script enforces this — canonical semantics: `faff contract review-verdict --describe`).
 - Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction the gate routes on is just `{ signal, findings }` (plus the optional `adversarial_outcome` annotation above).
 - **One** block, at the very end, machine-only. **Always emit it** — a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-graft reading your prose — the absent-block fallback.)
 
@@ -283,7 +283,7 @@ On an **interactive (L2)** run — `autonomous` false — this section is inert:
 
 ## ADR drift challenge (FAFF-199)
 
-This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return **`survived`** (the argument stands) or **`overturned`** (it doesn't; name why). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as **absent** (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
+This same adversarial engine is also called by faff-graft Step 3b's autonomous ADR-supersession path — a distinct, narrower question from the code review above, sharing only the "different model, independent second opinion" mechanism. Given `{old Decision body, new Decision body, why}`, judge whether the argument for superseding the old ADR with the new one actually holds — return the closed challenge-outcome vocabulary (canonical semantics: `faff contract adr-admission --describe`). This is the `adr-drift` seam (`judgement_seam` above); it feeds `faff adr admit --challenge <outcome>` directly, never the `faff-contract:review-verdict` block above (a different contract, `adr-admission`, consumed by a different caller). Unreachable/unanswered after the normal fallback chain → the caller treats it as the absent outcome (a missing skeptic is a reject, never a pass) — no separate outage-annotation shape is needed here, unlike the review-verdict chain-outage case.
 
 ## Rules
 

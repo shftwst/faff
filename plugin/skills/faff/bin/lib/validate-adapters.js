@@ -9,6 +9,7 @@ const { parseArgs, usageError } = require("./argv");
 const VALIDATE_ADAPTERS_SPEC = { flags: { "--configured": { arity: 0 }, "--root": { arity: 1 }, "--skills-dir": { arity: 1 } } };
 const { loadConfig, DEFAULTS } = require("./config");
 const { CANONICAL_CONFIG, findRoot } = require("./shared-infra");
+const { CONTRACT_DESCRIBES } = require("./contract-defs");
 
 const REGISTRY = {
   "faffidavit-routing": { type: "adaptor", slot: "routing_adaptor", contract: "automation-routing" },
@@ -73,6 +74,47 @@ const NON_NORMATIVE = /non-normative|gateway wins/i;
 // same class of limit as FAFF-57's chain-gate). It catches the realistic drift: a
 // skill that drops the rule entirely.
 const RENDERING_REF = /rendering_adaptor|Universal-routing|→\s*\*?\*?Rendering|gateway['’]s? \*?\*?Rendering/;
+
+// FAFF-598: derive the inline-enum-restatement lint's value sets from CONTRACT_DESCRIBES — the SAME
+// data `faff contract <name> --describe` renders — never a hand-copied list of its own. One set per
+// lintable (default true; the sole false today is spec-readiness's producer-authored marker dialect)
+// value group with >=3 values (the floor that keeps generic two-value sets out); identical sets shared
+// across contracts (e.g. two contracts reusing PRDR_DISPOSITIONS) dedupe to one reported owner.
+function inlineEnumLintSets() {
+  const sets = new Map();
+  for (const [contract, describe] of Object.entries(CONTRACT_DESCRIBES)) {
+    for (const g of describe.values || []) {
+      if (g.lintable === false) continue;
+      if (!Array.isArray(g.enum) || g.enum.length < 3) continue;
+      const key = [...g.enum].sort().join("|");
+      if (!sets.has(key)) sets.set(key, { contract, field: g.field, values: g.enum });
+    }
+  }
+  return [...sets.values()];
+}
+
+// FAFF-598: a lintable enum's FULL value set appearing together within a 2-line window is an inline
+// restatement of prose `faff contract <name> --describe` already generates from the same data —
+// exactly the FAFF-582 drift class (a hand-copied enum going stale against the validator). Matching is
+// backtick-stripped, word-boundary tokens; a single-value mention, a partial reference, or an example
+// never fires (the full-set requirement is the precision floor, not a matcher heuristic).
+function lintInlineEnumRestatement(skillText) {
+  const findings = [];
+  const lintSets = inlineEnumLintSets();
+  if (!lintSets.length) return findings;
+  const lines = skillText.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(".example") || (lines[i + 1] || "").includes(".example")) continue;
+    const windowText = `${lines[i]}\n${lines[i + 1] || ""}`;
+    const tokens = new Set((windowText.match(/`?[A-Za-z0-9][A-Za-z0-9_-]*`?/g) || []).map((t) => t.replace(/`/g, "")));
+    for (const set of lintSets) {
+      if (set.values.every((v) => tokens.has(v))) {
+        findings.push(`line ${i + 1}: inline enum restatement of ${set.contract}.${set.field} — point at \`faff contract ${set.contract} --describe\` instead (FAFF-598)`);
+      }
+    }
+  }
+  return findings;
+}
 
 // FAFF-51: internal slot skills hide from the user `/` menu via `user-invocable: false`
 // frontmatter; user-facing commands (the faff-* skills) and the authoring dev tool must NOT.
@@ -550,6 +592,19 @@ function cmdValidateAdapters(args) {
       }
     }
   }
+  // FAFF-598: inline-enum-restatement lint — a skill hand-restating a lintable fixed-contract enum's
+  // full value set (with per-value meaning) is exactly the drift class FAFF-582 caught; the remedy is
+  // always the same pointer. Reuses allSkills above.
+  for (const name of allSkills) {
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    const findings = lintInlineEnumRestatement(text);
+    if (findings.length) {
+      failed = true;
+      console.log(`FAIL  ${name} (inline enum restatement)`);
+      for (const f of findings) console.log(`        ✗ ${f}`);
+    }
+  }
+
   // FAFF-120: skill-authoring charter — the lintable subset (docs/skill-authoring.md). Per-file
   // rules (line cap, paragraph length, stray markers) run in one pass; the cross-file dedup detector
   // collects significant-line windows here and reports after the loop. Reuses allSkills above.
@@ -689,4 +744,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdValidateAdapters, hasUserInvocableFalse, isProseLine, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdValidateAdapters, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

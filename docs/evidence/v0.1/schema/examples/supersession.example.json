@@ -1,0 +1,7 @@
+{
+  "issue": "FAFF-000",
+  "superseded_by": ["FAFF-001"],
+  "delivered_surface": "the surface FAFF-000 described, confirmed present on main via FAFF-001",
+  "closed_at": "2026-07-24T00:00:00.000Z",
+  "run_id": "run-20260724-000000-example"
+}

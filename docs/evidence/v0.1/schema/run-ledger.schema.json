@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.1/run-ledger",
+  "title": "run-ledger.json",
+  "description": "Shape is normative here; semantics live in ../run-ledger.md. The enums restate the closed vocabularies exported by plugin/skills/faff/bin/lib/governance-profile.js (DELIVERY_PROFILE) — that module is the implementation source of truth, this schema mirrors it. additionalProperties is intentionally true: the ledger is an open, orchestrator-extended record and this schema closes only the fields consumers gate on (FAFF-601 v0.1 Design Decision Rationale, 'How strict is the run-ledger schema?').",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["run_id", "admitted", "outcomes"],
+  "properties": {
+    "run_id": { "type": "string", "description": "equals the run-dir basename" },
+    "admitted": { "type": "array", "items": { "type": "string" }, "description": "issue ids admitted to the build queue" },
+    "outcomes": {
+      "type": "object",
+      "description": "per-issue terminal outcome; string-only (FAFF-554) — rich detail lives in outcome_details, never inline here",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded"]
+      }
+    },
+    "owner": {
+      "type": "object",
+      "description": "legacy-tolerated absent — a run-ledger with no owner block is still liveness-valid",
+      "additionalProperties": true,
+      "properties": {
+        "status": { "type": "string", "enum": ["running", "done", "aborted-resumable"] },
+        "pid": { "type": "integer" },
+        "session_id": { "type": "string" },
+        "started_at": { "type": "string" },
+        "last_heartbeat": { "type": "string" }
+      }
+    },
+    "budget": { "type": "object", "description": "envelope + token checkpoints; documented, not closed — shape varies by budget policy", "additionalProperties": true },
+    "stop_reason": { "type": "string" },
+    "outcome_details": { "type": "object", "description": "rich per-issue detail sidecar (FAFF-554) — outcomes[] stays string-only", "additionalProperties": true },
+    "discovered_scope_filed": { "type": "integer" },
+    "review_adversarial_skipped": { "type": "array", "items": { "type": "string" } },
+    "review_outage_pending": { "type": "array", "items": { "type": "string" } }
+  }
+}

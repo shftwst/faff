@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-634",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8ab3db3b2a54317cfdb7d4de00ca515b8374d7dc9c8c2f1aed01d1c1e065cb34",
+    "branch": "faff-634-style-voice-dispatch-threading",
+    "pushed_at": "2026-07-24T22:14:27.869Z"
+  },
+  "updated_at": "2026-07-24T22:14:27.869Z"
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "run_id": "run-20260724-125424-beepboop-full",
+  "seq": 29,
+  "ts": "2026-07-24T22:08:52.263Z",
+  "prev": "2703a7005da561e005cb9548a9ac088e059fb7e8820fad35809a438480a51484",
+  "phase": "build",
+  "type": "issue-outcome",
+  "issue": "FAFF-633",
+  "data": {
+    "outcome": "shipped",
+    "rework_turns": 0,
+    "tokens": {
+      "input": 181,
+      "output": 96937,
+      "cache_write": 2594672,
+      "cache_read": 35865288
+    },
+    "tokens_source": "transcript"
+  }
+}

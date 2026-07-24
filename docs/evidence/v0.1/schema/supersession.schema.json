@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.1/supersession",
+  "title": "<run-dir>/<issue>/supersession.json",
+  "description": "Shape is normative here; semantics live in ../supersession.md. Written by faff-graft's build-time premise-superseded gate (FAFF-573) when an issue's deliverables are already confirmed on main via other, main-verified tickets. superseded_by is the only reconcile-load-bearing field — non-empty, main-verified IDs only (FAFF-571 §3).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["issue", "superseded_by", "delivered_surface", "closed_at", "run_id"],
+  "properties": {
+    "issue": { "type": "string" },
+    "superseded_by": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "delivered_surface": { "type": "string" },
+    "closed_at": { "type": "string" },
+    "run_id": { "type": "string" }
+  }
+}

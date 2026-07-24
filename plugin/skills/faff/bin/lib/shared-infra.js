@@ -507,6 +507,28 @@ function homeDir(env = process.env) {
   return env.HOME || env.USERPROFILE || "";
 }
 
+// FAFF-591: worktree-aware `.faff/runs/<run>` resolution — the same fallback shape
+// as findConfig/findOverlay above, applied to run dirs instead of config files. A
+// build worktree is its own checkout, so `<root>/.faff/runs/<run>` is absent there
+// even though the run genuinely exists in the MAIN checkout's `.faff/runs/<run>`
+// (a run is initialised once, from the main checkout, before any worktree exists).
+// Pure precedence logic; `mainWorktreeRoot` does the only git probing, reused
+// rather than re-implemented. `rootExplicit` (was `root` an operator-supplied
+// `--root`, not the `findRoot()` default?) gates the fallback: an explicit --root
+// is a strict, deterministic escape hatch with no surprise git probe.
+function resolveRunDir(root, run, rootExplicit) {
+  const cwdDir = path.join(root, ".faff", "runs", run);
+  if (fs.existsSync(cwdDir) && fs.statSync(cwdDir).isDirectory()) return cwdDir;
+  if (!rootExplicit) {
+    const mainRoot = mainWorktreeRoot(root);
+    if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) {
+      const mainDir = path.join(mainRoot, ".faff", "runs", run);
+      if (fs.existsSync(mainDir) && fs.statSync(mainDir).isDirectory()) return mainDir;
+    }
+  }
+  return cwdDir;
+}
+
 function findConfig(root) {
   const here = findConfigIn(root);
   if (here) return here;
@@ -636,4 +658,4 @@ function readBaseConfigStrict(filePath, env = process.env) {
 }
 
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, containerParent, decideSelfIntake, deepMergeConfig, dig, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, resolveLedgerOrFault, resolveRunDir, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, HERE, ENTRYPOINT };

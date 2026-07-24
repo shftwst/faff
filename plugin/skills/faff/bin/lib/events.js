@@ -43,7 +43,7 @@ const { TOKEN_DELTA_CLASSES, measureTokensByClass } = require("./budget");
 const { activeProfile, DELIVERY_PROFILE } = require("./governance-profile");
 const { mutateLedgerUnderLock } = require("./heartbeat");
 const { withFileLock } = require("./fs-lock");
-const { findRoot } = require("./shared-infra");
+const { findRoot, resolveRunDir } = require("./shared-infra");
 
 // FAFF-362: EVENT_PHASES / EVENT_TYPES / EVENT_ISSUE_SCOPED / EVENT_LEDGER_OUTCOMES
 // stay exported (contain.js — factory — reuses EVENT_PHASES directly) but are now
@@ -621,6 +621,9 @@ function cmdEvents(args) {
     else rest.push(args[i]);
   }
   if (rest.includes("--selftest")) return eventsSelftest();
+  // FAFF-591: an explicit --root is a strict escape hatch (no worktree fallback);
+  // the default-from-findRoot() path may still resolve to the main checkout below.
+  const rootExplicit = root !== null;
   root = root || findRoot();
   // FAFF-488: an optional `--session-id` selects which session's transcript is
   // metered by --tokens, overriding $CLAUDE_CODE_SESSION_ID in the EFFECTIVE env
@@ -632,7 +635,10 @@ function cmdEvents(args) {
 
   if (cmd === "append") {
     if (!run) { process.stderr.write("faff events append: --run <run-id> is required\n"); return 2; }
-    const dir = path.join(root, ".faff", "runs", run);
+    // FAFF-591: from a linked build worktree, the run dir lives in the MAIN checkout's
+    // .faff/runs/, not this cwd's — resolveRunDir falls back there (root-explicit only
+    // ever uses the cwd-root path, unchanged).
+    const dir = resolveRunDir(root, run, rootExplicit);
     // A missing path OR a non-directory at that path is "no valid run dir" → exit 3 (fail-loud),
     // never an uncaught ENOTDIR crash when appendFileSync hits a file-where-a-dir-was-expected.
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {

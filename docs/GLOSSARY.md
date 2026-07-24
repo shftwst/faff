@@ -42,9 +42,9 @@ faff coins a lot of vocabulary, and every coined noun is load-bearing because it
 | spec | The durable, reviewable artefact a build is gated on — produced by the `spec` slot, attached to the tracker issue, and committed to the feature branch on graft. Never a substitute description, however well-written. | `/faff-prep`; gateway → **Spec discovery** |
 | tidy | The verb/skill that grooms the backlog in both directions — finds problems and promotes ready issues to Todo. | `/faff-tidy` (`plugin/skills/faff-tidy/SKILL.md`) |
 | tier | Reserved for the external-verification P-levels (P1–P5) — the throwaway scaffolded SUTs faff's own lab runs itself against. Never used for the L1–L4 trust ladder (that's rungs) or sentry corrective steps (that's channels). Execution of this reservation across existing prose folds into FAFF-74. | `docs/external-verification/README.md`; see **Naming decisions** |
-| verdict | The fixed, enumerated outcome a producer's contract block carries — e.g. `pass`/`fail`/`needs-human` for review, `meets-spec` for holdout — never a free-text judgement. | `faff contract <name> --describe` |
+| verdict | The fixed, closed-vocabulary outcome a producer's contract block carries — never a free-text judgement. Its exact value set is per-contract, not restated here. | `faff contract <name> --describe` |
 | wave | One re-entry pass of `/faff-beep-boop`'s queue assembly, where eligibility, status, and human edits are re-read fresh before the next batch of issues is picked. | `/faff-beep-boop` (`plugin/skills/faff-beep-boop/SKILL.md`) |
-| worktree | The isolated git checkout `/faff-graft` provisions per issue, under the resolved worktree root, so a build never touches the main checkout. | `plugin/skills/faff-graft/setup-worktree.sh`; `faff worktree-root` (`plugin/skills/faff/bin/lib/`) |
+| worktree | The isolated git checkout `/faff-graft` provisions per issue, under the resolved worktree root, so a build never touches the main checkout. | `plugin/skills/faff-graft/setup-worktree.sh`; `faff worktree-root` (`plugin/skills/faff/bin/lib/lights-out.js`) |
 
 ## Naming decisions
 

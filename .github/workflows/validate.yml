@@ -267,6 +267,15 @@ jobs:
             | sort -u \
             > /tmp/selftests.txt
           echo "node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest" >> /tmp/selftests.txt
+          # Sanity floor: the grep above is only as good as this file's own text, so a
+          # reformat or regex miss could silently shrink the list to near-nothing and this
+          # lane would go green having tested almost none of it. Fail loud instead of quietly
+          # thinning out — bump the floor if the real count ever drops for a legitimate reason.
+          count=$(wc -l < /tmp/selftests.txt)
+          if [ "$count" -lt 40 ]; then
+            echo "::error::only found ${count} --selftest commands to run (expected at least 40) — the extraction regex likely missed some; check .github/workflows/validate.yml"
+            exit 1
+          fi
           while IFS= read -r cmd; do
             echo "::group::$cmd"
             $cmd

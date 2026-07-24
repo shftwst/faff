@@ -85,3 +85,24 @@ test("source guard: --cases-dir is read in exactly one place (the plain-sweep en
   // which is asserted behaviourally above; this guard just keeps the read-site count from silently growing.
   assert.ok(hits >= 1 && hits <= 4, `expected 1-4 "--cases-dir" source hits (read site + docs), got ${hits}`);
 });
+
+// ── Per-function source guard: gateAgainst / updateBaseline / compare each still call the PARAMETERLESS
+//    loadCases() and never reference `casesDir` — the exact "flag-absent unchanged on every existing entry
+//    path" clause, checked against each function's own body (not just a repo-wide grep). ────────────────
+function bodyOf(src, fnName) {
+  const start = src.indexOf(`function ${fnName}(`);
+  assert.ok(start >= 0, `function ${fnName} not found in ${CLI}`);
+  // Find the next top-level `function ` or `async function ` declaration after this one, as the body end.
+  const rest = src.slice(start + 1);
+  const nextFn = rest.search(/\n(async )?function [A-Za-z]/);
+  return nextFn === -1 ? rest : rest.slice(0, nextFn);
+}
+
+test("gateAgainst / updateBaseline / compare each call loadCases() with no argument and never touch casesDir", () => {
+  const src = readFileSync(CLI, "utf8");
+  for (const fn of ["gateAgainst", "updateBaseline", "compare"]) {
+    const body = bodyOf(src, fn);
+    assert.ok(/loadCases\(\)/.test(body), `${fn}: expected a bare loadCases() call, unchanged by --cases-dir`);
+    assert.ok(!/casesDir/.test(body), `${fn}: must not reference casesDir — --cases-dir is plain-sweep-only`);
+  }
+});

@@ -83,11 +83,6 @@ const { cmdValidateAdapters } = require("./lib/validate-adapters");
 const { cmdWorktreePrune } = require("./lib/worktree-prune");
 
 // ===========================================================================
-// === region:shell — dispatch ===
-// ===========================================================================
-
-
-// ===========================================================================
 // === region:shell — subcommand registry + main dispatch ===
 // ===========================================================================
 // Subcommand registry (ADR 0014) — the single source of truth for the CLI command

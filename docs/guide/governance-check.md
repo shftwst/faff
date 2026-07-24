@@ -30,7 +30,7 @@ verb's flags, see the [`governance-check` row in the CLI reference](cli.md).
 ## 1. Wire the workflow
 
 Add a workflow that runs the composite Action on `pull_request` (faff's own
-[`.github/workflows/governance.yml`](../../.github/workflows/governance.yml) is the
+[`.github/workflows/governance.yml`](https://github.com/shftwst/faff/blob/main/.github/workflows/governance.yml) is the
 reference — dogfooded on this repo's own PRs):
 
 ```yaml

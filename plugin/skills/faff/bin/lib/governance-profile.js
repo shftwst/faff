@@ -59,7 +59,12 @@ const { RUN_HEARTBEAT_STALE_SECS_DEFAULT } = require("./shared-infra");
 // so they deliberately stay put, mirroring the ticket's budget/economics
 // out-of-scope carve.
 const DELIVERY_PROFILE = {
-  terminal_states: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "superseded"],
+  // FAFF-594: "parked-window" is the terminal state for an admitted issue whose
+  // remainder was held by a global 5h budget.window breach (at_ceiling:
+  // park-until-window-reset) — parallel to "unreached-budget" (the dollar/
+  // attempts/until backstops' non-dispatch terminal), so runcheck's dangling
+  // check (admitted issue with no terminal outcome) does not flag it.
+  terminal_states: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "superseded", "parked-window"],
   event_phases: ["run", "tidy", "prep", "build", "plot"],
   event_types: [
     "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
@@ -84,7 +89,7 @@ const DELIVERY_PROFILE = {
     "corrective-authored", "corrective-consumed", "containment-check", "self-intake-check",
   ],
   outcome_required_types: ["issue-outcome"],
-  ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded"],
+  ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded", "parked-window"],
   sentry: {
     // stall_window_secs REFERENCES runcheck's RUN_HEARTBEAT_STALE_SECS_DEFAULT
     // (now sourced from shared-infra to break the require cycle) rather than

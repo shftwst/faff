@@ -114,7 +114,11 @@ function readGovernanceConfig(root) {
     throw e;
   }
 }
-const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate"]);
+// FAFF-594: "park-until-window-reset" is the global 5h-window disposition — on
+// a budget.window breach, park the run with a recorded resume_at instead of
+// stopping/narrowing/escalating. Unknown at_ceiling values still coerce to
+// "stop" in envelopeFrom below; this Set is the sole closed vocabulary.
+const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate", "park-until-window-reset"]);
 const BUDGET_TOKEN_USAGE_KEYS = [
   "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
 ];
@@ -332,6 +336,18 @@ function envelopeFrom(cfg, flags) {
   const pricing = "map"; // FAFF-446: flat pricing can no longer be freshly configured
   let atCeiling = b.at_ceiling != null ? String(b.at_ceiling).trim().toLowerCase() : "stop";
   if (!AT_CEILING_OUTCOMES.has(atCeiling)) atCeiling = "stop"; // unknown coerces to the safe default
+  // FAFF-594: budget.window is an ADDITIVE, opt-in dimension — a global 5h
+  // (for now) rolling token-draw ceiling, independent of budget.tokens (the
+  // existing all-run backstop). Well-formed (both hours and tokens positive
+  // finite numbers) -> {hours, tokens}; absent OR malformed -> null (inert,
+  // never a hidden vacuous ceiling — mirrors until_invalid's fail-open-on-
+  // malformed posture: a bad window block simply resolves to no window
+  // dimension, exactly as an absent one does).
+  const w = (b.window && typeof b.window === "object") ? b.window : null;
+  const winHours = w ? num(w.hours) : null;
+  const winTokens = w ? num(w.tokens) : null;
+  const window = (winHours != null && winHours > 0 && winTokens != null && winTokens > 0)
+    ? { hours: winHours, tokens: winTokens } : null;
   return {
     ceilings: { until, max_attempts: maxAttempts, tokens, cost },
     until_invalid,
@@ -339,6 +355,7 @@ function envelopeFrom(cfg, flags) {
     at_ceiling: atCeiling,
     price_per_mtok: 0,
     pricing,
+    window,
   };
 }
 
@@ -357,7 +374,19 @@ function computeBudgetState(env, spent, tokensSource) {
   if (c.max_attempts != null && spent.attempts >= c.max_attempts) breached.push("max_attempts");
   if (c.tokens != null && spent.tokens >= c.tokens) breached.push("tokens");
   if (c.cost != null && spent.cost != null && spent.cost >= c.cost) breached.push("cost");
+  // FAFF-594: the global 5h window is a SEPARATE dimension from `tokens` (the
+  // all-run backstop) — `env.window` is null unless budget.window is configured
+  // (additive, inert-when-absent). `spent.window_tokens` is the draw ACCUMULATED
+  // WITHIN the current window (the caller — cmdBudget — resolves that against the
+  // persisted anchor; this pure core never reads/writes the ledger).
+  if (env.window != null && spent.window_tokens != null && spent.window_tokens >= env.window.tokens) {
+    breached.push("window");
+  }
   const outcome = breached.length ? env.at_ceiling : "none";
+  // resume_at is populated ONLY when the breach outcome is park-until-window-reset —
+  // every other outcome (stop/narrow/escalate/none) carries no resume_at, unchanged.
+  const resume_at = (outcome === "park-until-window-reset" && spent.window_reset_epoch != null)
+    ? new Date(spent.window_reset_epoch).toISOString() : null;
   return {
     spent: {
       elapsed_ms: spent.elapsed_ms ?? null,
@@ -368,6 +397,7 @@ function computeBudgetState(env, spent, tokensSource) {
     tokens_source: tokensSource,
     breached,
     outcome,
+    resume_at,
   };
 }
 
@@ -625,7 +655,9 @@ function byModelClassTotal(byModel) {
 // beep-boop's --max which "counts every build-queue dispatch regardless of
 // outcome"). routed-out / unreached-budget never got a graft invocation, so they
 // don't count. Falls back to the admitted count when outcomes are absent.
-const BUDGET_NON_ATTEMPT_OUTCOMES = new Set(["routed-out", "unreached-budget"]);
+// FAFF-594: "parked-window" (a global 5h budget.window breach) never got a
+// graft invocation either — the same non-attempt shape as "unreached-budget".
+const BUDGET_NON_ATTEMPT_OUTCOMES = new Set(["routed-out", "unreached-budget", "parked-window"]);
 function attemptsFromLedger(ledger) {
   const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
   const keys = Object.keys(outcomes);
@@ -776,11 +808,18 @@ function cmdBudget(args) {
   const measuredFull = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
+  // FAFF-594: the WHOLE-SESSION scalar total this invocation measured (before the
+  // run-start/window baseline is subtracted) — the window governor's own draw
+  // baseline is anchored against THIS figure, not the run-start-baselined `tokens`
+  // delta below (a window can open mid-run, long after run start). null on the
+  // estimate path (no transcript to measure a whole-session total from).
+  let wholeSessionTotalForWindow = null;
   const costWarnings = [];         // accumulated unconditionally; the single costConfigured gate is at the flush point
   const costConfigured = env.ceilings.cost != null;
   if (measuredFull.source === "transcript") {
     const wholeSessionTotal = measuredFull.totals.input + measuredFull.totals.output
       + measuredFull.totals.cache_write + measuredFull.totals.cache_read;
+    wholeSessionTotalForWindow = wholeSessionTotal;
     tokens = Math.max(0, wholeSessionTotal - tokensAtStart); // this-run delta, baselined at run start
     tokensSource = "transcript";
 
@@ -851,6 +890,45 @@ function cmdBudget(args) {
   }
   const untilEpoch = untilToEpoch(env.ceilings.until, nowMs);
 
+  // FAFF-594: resolve + roll the global 5h window state. `runDir == null` (no
+  // live run) degrades to "never breaches" — there is nowhere to persist a
+  // window anchor, so the dimension is simply inert for that invocation
+  // (identical posture to the estimate-source / no-transcript degrade below).
+  // ADR: the window anchors at the FIRST DRAW recorded within it — a check
+  // that observes zero whole-session draw does not open a window (windowTokens
+  // stays null, so the breach check in computeBudgetState never fires); a
+  // subsequent check that DOES observe draw opens fresh, anchored at THAT
+  // instant. Once open, the anchor/reset/baseline are read-only for the
+  // remainder of the window (only mutated on open/re-open) — no per-check lock
+  // write is needed to merely accumulate draw against an already-open window.
+  let windowTokens = null;
+  let windowResetEpoch = null;
+  if (env.window != null && runDir != null && wholeSessionTotalForWindow != null) {
+    const winMs = env.window.hours * 3600 * 1000;
+    const existingWindow = (ledger.budget && ledger.budget.window && typeof ledger.budget.window === "object")
+      ? ledger.budget.window : null;
+    const expired = existingWindow != null && Number.isFinite(existingWindow.reset_epoch) && nowMs >= existingWindow.reset_epoch;
+    if (existingWindow == null || expired) {
+      if (wholeSessionTotalForWindow > 0) {
+        const anchorEpoch = nowMs;
+        const resetEpoch = anchorEpoch + winMs;
+        const tokensAtAnchor = wholeSessionTotalForWindow;
+        try {
+          mutateLedgerUnderLock(runDir, (fresh) => {
+            const base = fresh || ledger;
+            return { ...base, budget: { ...(base.budget || {}), window: { anchor_epoch: anchorEpoch, reset_epoch: resetEpoch, tokens_at_anchor: tokensAtAnchor } } };
+          });
+        } catch { /* best-effort persistence — a lock race degrades to re-opening fresh next check, never a hard failure */ }
+        windowTokens = 0; // just anchored — no draw accumulated yet within the fresh window
+        windowResetEpoch = resetEpoch;
+      }
+      // else: no draw observed yet — no window in effect this invocation.
+    } else {
+      windowTokens = Math.max(0, wholeSessionTotalForWindow - existingWindow.tokens_at_anchor);
+      windowResetEpoch = existingWindow.reset_epoch;
+    }
+  }
+
   const state = computeBudgetState(env, {
     now_epoch: nowMs,
     until_epoch: untilEpoch,
@@ -858,6 +936,8 @@ function cmdBudget(args) {
     attempts,
     tokens,
     cost,
+    window_tokens: windowTokens,
+    window_reset_epoch: windowResetEpoch,
   }, tokensSource);
 
   // FAFF-364 — a malformed until (config or --until) degrades to a WARNING, never a
@@ -1100,6 +1180,10 @@ function envelopeFromLedger(rec, flags, cfg) {
     at_ceiling: atCeiling,
     price_per_mtok,
     pricing,
+    // FAFF-594: a pre-FAFF-594 recorded envelope never carries `window` — fall back
+    // to the freshly-resolved live config, same pattern as at_ceiling above (a
+    // recorded envelope predating this dimension must not silently disable it).
+    window: (rec.window && typeof rec.window === "object") ? rec.window : fresh.window,
   };
 }
 

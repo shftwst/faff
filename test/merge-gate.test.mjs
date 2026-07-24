@@ -67,6 +67,33 @@ test("merge-gate: a bad --level → exit 2", () => {
   assert.equal(code, 2);
 });
 
+// --- FAFF-630: --execute is documented ([--execute|--check-only] in the usage string) but was
+// missing from MERGE_GATE_SPEC, so the fail-closed FAFF-576 parser rejected it as unknown-flag.
+// Paired with a deliberately-invalid --level so the run hits a KNOWN, network-independent
+// exit-2 path (the pre-existing bad-level check) rather than falling through to a real `gh`
+// call — a bare --pr/--issue/--run-dir run would reach live PR-observation network I/O, whose
+// exit code depends on ambient `gh` auth/repo state (this is exactly what made the flag-only
+// version of this test pass locally against an authenticated gh but fail in CI, where PR #1's
+// real state/reachability differs — never assert on that path here).
+test("merge-gate: --execute is not rejected as unknown-flag — parsing proceeds past argv to the next (known, non-network) validation step (FAFF-630)", () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "faff-merge-gate-execute-"));
+  try {
+    const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", tmp, "--level", "L9", "--execute"]);
+    assert.equal(code, 2);
+    assert.doesNotMatch(stderr, /unknown[- ]flag/);
+    assert.doesNotMatch(stderr, /unknown flag --execute/);
+    assert.match(stderr, /--level/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("merge-gate: --execute --check-only together → exit 2 naming the mutual exclusion (FAFF-630)", () => {
+  const { code, stderr } = runCli(["merge-gate", "--pr", "1", "--issue", "FAFF-1", "--run-dir", "/tmp/x", "--level", "L3", "--execute", "--check-only"]);
+  assert.equal(code, 2);
+  assert.match(stderr, /--execute and --check-only are mutually exclusive/);
+});
+
 // --- FAFF-325: the "forged level input" failure mode — a build lane forges run-ledger.json's
 // `level` field down (e.g. L4→L1) to try to downgrade the corrective-integrity gate's L4
 // defence-in-depth branch (and the pre-existing holdout leg). The level MUST arrive via

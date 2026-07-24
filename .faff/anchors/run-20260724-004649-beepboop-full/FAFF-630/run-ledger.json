@@ -1,0 +1,58 @@
+{
+  "run_id": "run-20260724-004649-beepboop-full",
+  "admitted": [
+    "FAFF-579",
+    "FAFF-591",
+    "FAFF-598",
+    "FAFF-599",
+    "FAFF-600",
+    "FAFF-624",
+    "FAFF-625",
+    "FAFF-626",
+    "FAFF-627",
+    "FAFF-628",
+    "FAFF-630",
+    "FAFF-631"
+  ],
+  "outcomes": {
+    "FAFF-474": "routed-out"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "measure_session_id": "5cc42d9d-79ce-44ed-b674-2f846a9e944f",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 53,
+        "output": 23468,
+        "cache_write": 520128,
+        "cache_read": 2976685
+      }
+    },
+    "tokens_at_start": 3520334,
+    "tokens_at_last_event": {
+      "input": 86,
+      "output": 42115,
+      "cache_write": 541412,
+      "cache_read": 5662749
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 29963,
+    "session_id": "run-20260724-004649-beepboop-full",
+    "started_at": "2026-07-24T00:47:03Z",
+    "last_heartbeat": "2026-07-24T00:47:03Z"
+  }
+}

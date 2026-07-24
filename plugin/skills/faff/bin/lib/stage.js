@@ -95,13 +95,6 @@ function guardStaged(worktree, mode) {
   return { secretStaged, ok: secretStaged.length === 0, unstaged: [] };
 }
 
-// Selective ALLOWLIST stage: tracked changes via `git add -u`, then each
-// intended new path added by EXPLICIT pathspec — never `-A` / `.` / a wildcard.
-function selectiveStage(worktree, { trackedChanges = false, newPaths = [] } = {}) {
-  if (trackedChanges) spawnSync("git", ["-C", worktree, "add", "-u"], { encoding: "utf8" });
-  for (const p of newPaths) spawnSync("git", ["-C", worktree, "add", "--", p], { encoding: "utf8" });
-}
-
 // WIP-preservation stage (sentry-abort / member-park): capture ALL legitimate
 // in-flight work without sweeping a secret. Stages tracked modifications/
 // deletions (already in history — cannot be a stray secret) plus each untracked
@@ -217,6 +210,6 @@ function stageSelftest() {
 
 module.exports = {
   SECRET_CLASS_PATTERNS, SECRET_CLASS_ALLOW, STAGE_SELFTEST_CASES,
-  isSecretClass, stagedPaths, guardStaged, selectiveStage, wipStage,
+  isSecretClass, stagedPaths, guardStaged, wipStage,
   cmdStageGuard, stageSelftest,
 };

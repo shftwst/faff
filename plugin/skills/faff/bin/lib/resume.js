@@ -32,11 +32,6 @@ function isEscalateStopReason(stopReason) {
   return ESCALATE_STOP_EXACT.has(stopReason);
 }
 
-// The re-enterable states + the refusal states (spec §3 ENUM). A run is admitted for
-// resume iff it classifies to one of RE_ENTERABLE; the refusals exit 2, ledger untouched.
-const RE_ENTERABLE_STATES = ["aborted-resumable", "escalated", "dead-running"];
-const RESUME_REFUSAL_STATES = ["live-running", "done-clean", "unparseable"];
-
 // Ledger outcomes that are terminal-and-NOT-shipped: a resume never resurrects them
 // (they keep as-is) and never re-dispatches them. `shipped` is handled separately
 // (reconcile-proven skip vs divergence park).
@@ -50,6 +45,10 @@ const TERMINAL_NON_SHIPPED = new Set(["pr-open", "parked", "errored", "routed-ou
 //      the escalation is the anchor, not the liveness)
 //   3. owner.status running → held ⇒ live-running REFUSE, stale ⇒ dead-running
 //   4. otherwise → done-clean REFUSE
+// The re-enterable states are "aborted-resumable" | "escalated" | "dead-running"; the
+// refusal states are "live-running" | "done-clean" | "unparseable" (spec §3 ENUM). A run
+// is admitted for resume iff it classifies to one of the re-enterable states; the
+// refusals exit 2, ledger untouched.
 // Returns { reEnterable, state, refuseReason? }.
 function classifyReEnterable(ledger, opts) {
   const held = !!(opts && opts.held);
@@ -317,7 +316,7 @@ function resumeSelftest() {
 }
 
 module.exports = {
-  RE_ENTERABLE_STATES, RESUME_REFUSAL_STATES, TERMINAL_NON_SHIPPED,
+  TERMINAL_NON_SHIPPED,
   applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner,
   resolveShippedDivergence, resumeSelftest, runResumeEvent,
 };

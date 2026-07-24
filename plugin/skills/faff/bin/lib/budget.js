@@ -110,7 +110,6 @@ function readGovernanceConfig(root) {
     throw e;
   }
 }
-const BUDGET_DIMENSIONS = ["until", "max_attempts", "tokens", "cost"];
 const AT_CEILING_OUTCOMES = new Set(["stop", "narrow", "escalate"]);
 const BUDGET_TOKEN_USAGE_KEYS = [
   "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
@@ -139,6 +138,15 @@ const TOKEN_CLASS_FROM_USAGE = {
 // map is consulted FIRST (per-model; see resolveEconomicsPriceMap). A model
 // absent from BOTH prices to null (cost:null, kept distinct from $0). A dated
 // model-id suffix (-YYYYMMDD) is stripped before lookup, exactly as the reference.
+//
+// PRICE_TABLE_AS_OF marks when these defaults were last confirmed against the
+// vendor's published pricing (FAFF-579). It is a freshness anchor, not a
+// correctness gate — `budgetSelftest`'s freshness nudge below warns (never
+// fails) once it ages past STALENESS_THRESHOLD_DAYS. The config override
+// (`budget.price_per_mtok_by_model`, via resolveEconomicsPriceMap) supersedes
+// these defaults regardless of how stale this anchor gets — reconfirm and bump
+// this date, or set the override, when the nudge fires.
+const PRICE_TABLE_AS_OF = "2026-07-23";
 const PRICE_PER_MTOK = {
   "claude-fable-5": { input: 10, output: 50, cache_write: 12.5, cache_read: 1.0 },
   "claude-opus-4-8": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
@@ -150,6 +158,24 @@ const PRICE_PER_MTOK = {
   "claude-sonnet-4-5": { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
   "claude-haiku-4-5": { input: 1, output: 5, cache_write: 1.25, cache_read: 0.1 },
 };
+
+// FAFF-579 item E: non-failing price-table freshness nudge. Guideline threshold —
+// past this many days since PRICE_TABLE_AS_OF, the defaults are worth reconfirming.
+const STALENESS_THRESHOLD_DAYS = 180;
+
+// PURE: is the price table's freshness anchor stale relative to `now` (an injected
+// epoch-ms — NEVER Date.now() read internally, so callers stay deterministic)?
+// Returns { stale, days_old, message }; `message` is a `[warn]`-style advisory notice
+// when stale, else null. This never fails anything itself — the caller (budgetSelftest,
+// or a future live invocation) decides whether/how to surface it, always non-blocking.
+function priceFreshnessNudge(now) {
+  const days_old = Math.floor((now - Date.parse(PRICE_TABLE_AS_OF)) / (24 * 3600 * 1000));
+  const stale = days_old > STALENESS_THRESHOLD_DAYS;
+  const message = stale
+    ? `price table PRICE_TABLE_AS_OF is ${days_old}d old — reconfirm defaults or set budget.price_per_mtok_by_model`
+    : null;
+  return { stale, days_old, message };
+}
 
 // Resolve a model's per-class price row, or null when unknown in BOTH the config
 // override and the built-in map (caller renders cost:null). A missing class within
@@ -1076,7 +1102,11 @@ function envelopeFromLedger(rec, flags, cfg) {
 // Selftest — drives the pure cores (envelopeFrom · untilToEpoch · computeBudgetState
 // · attemptsFromLedger) over in-memory cases; no filesystem, no tracker. Mirrors the
 // contain/next selftest shape: per-case ok/FAIL + a RESULT line, non-zero on any fail.
-function budgetSelftest() {
+// `now` (default Date.now()) is ONLY consulted by the price-freshness nudge below — a
+// live `faff budget --selftest` can surface a genuinely-current staleness warning
+// without making the rest of this deterministic suite time-dependent; every other
+// date-sensitive case here still pins its own fixed NOW (FAFF-579 item E).
+function budgetSelftest(now = Date.now()) {
   let fail = 0;
   const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
   const NOW = Date.parse("2026-06-23T12:00:00Z");
@@ -1259,6 +1289,19 @@ function budgetSelftest() {
   ok("resolveEconomicsPriceMap: config override wins per-model, built-ins retained", pm427["claude-opus-4-8"].input === 99 && pm427["claude-sonnet-4-6"].input === 3);
   ok("resolveEconomicsPriceMap: no override → built-in map (identity)", resolveEconomicsPriceMap({}) === PRICE_PER_MTOK);
 
+  // --- FAFF-579 item E: price-table freshness nudge — non-failing, `now`-injected ---
+  const freshAtAnchor = priceFreshnessNudge(Date.parse(PRICE_TABLE_AS_OF));
+  ok("priceFreshnessNudge: at the anchor date itself → not stale, no message", freshAtAnchor.stale === false && freshAtAnchor.message === null);
+  const staleWell = Date.parse(PRICE_TABLE_AS_OF) + (STALENESS_THRESHOLD_DAYS + 1) * 24 * 3600 * 1000;
+  const stalePastThreshold = priceFreshnessNudge(staleWell);
+  ok("priceFreshnessNudge: more than the threshold past the anchor → stale, warn message present",
+    stalePastThreshold.stale === true && typeof stalePastThreshold.message === "string" && stalePastThreshold.message.includes("PRICE_TABLE_AS_OF"));
+  // Surface (never fail on) the LIVE freshness state for this run's injected `now` —
+  // a real `faff budget --selftest` invocation gets a genuinely current advisory.
+  const liveNudge = priceFreshnessNudge(now);
+  if (liveNudge.stale) console.log(`[warn] ${liveNudge.message}`);
+  ok("priceFreshnessNudge never fails the selftest regardless of live staleness", true);
+
   // --- FAFF-427: conservativePriceRow / priceModelClassSums (fail-safe unpriced pricing) ---
   const consRow = conservativePriceRow(PRICE_PER_MTOK);
   ok("conservativePriceRow: max per-class rate across the map", consRow.input === 10 && consRow.output === 50 && consRow.cache_write === 12.5 && consRow.cache_read === 1.0);
@@ -1326,4 +1369,4 @@ function budgetSelftest() {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_DIMENSIONS, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

@@ -87,7 +87,11 @@ function readGovernanceConfig(root) {
         "faff: legacy config filename found (" + names + "). faff uses only `" + CANONICAL_CONFIG +
         "` — rename it to `" + CANONICAL_CONFIG + "`. (Loud error, never a silent default — " +
         "a governance ceiling must not disappear on a filename mistake.)\n");
-      process.exit(2);
+      // FAFF-627: was process.exit(2) — killed any importer (test runners, future
+      // lib consumers) outright. Rethrow the original error (e.legacy intact) so
+      // the entrypoint's dispatch boundary owns the exit, mirroring the
+      // base-parse-error throw immediately below.
+      throw e;
     }
     throw e;
   }

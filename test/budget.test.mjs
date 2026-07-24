@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { readGovernanceConfig } from "../plugin/skills/faff/bin/lib/budget.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -1292,4 +1293,35 @@ test("FAFF-560 AC3: no persisted measure_session_id in the ledger → byte-for-b
     assert.equal(s.tokens_source, "transcript");
     assert.equal(s.spent.tokens, 49, "absent measure_session_id must fall through to ambient, byte-for-byte");
   } finally { f.cleanup(); }
+});
+
+test("FAFF-627: readGovernanceConfig THROWS legacy-config-name (no longer process.exit(2)) — importer survives", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-budget-legacy-"));
+  try {
+    // Legacy-named config file (not .faffrc.yaml) at the fixture root.
+    writeFileSync(join(root, ".faffrc"), "budget:\n  tokens: 1\n");
+    assert.throws(
+      () => readGovernanceConfig(root),
+      (e) => e && e.message === "legacy-config-name" && Array.isArray(e.legacy) && e.legacy.includes(".faffrc"),
+      "readGovernanceConfig must throw legacy-config-name (carrying e.legacy) rather than killing the process"
+    );
+    // Reaching here proves the importing test process survived the call — the
+    // whole point of FAFF-627 (was process.exit(2), which would have killed
+    // this very test runner before this assertion ever ran).
+    assert.ok(true, "importing process is still alive after the throw");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-627: `faff budget check` on a legacy-named config still exits 2 with the loud message (CLI surface unchanged)", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-budget-legacy-cli-"));
+  const runDir = join(root, ".faff", "runs", "run-test");
+  try {
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(root, ".faffrc"), "budget:\n  tokens: 1\n");
+    writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify(baseLedger()));
+    const r = run(["budget", "check", "--run-dir", runDir, "--root", root]);
+    assert.equal(r.code, 2, r.err);
+    assert.match(r.err, /legacy config filename/, "the detailed governance stderr message must still fire");
+    assert.match(r.err, /faff budget: cannot proceed — legacy config filename/, "the dispatch-boundary command-level line must fire too");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

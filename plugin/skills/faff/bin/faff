@@ -209,6 +209,16 @@ function main(argv) {
         process.stderr.write(`faff ${sub}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
         return 2;
       }
+      // FAFF-627: readGovernanceConfig now rethrows "legacy-config-name" (was an
+      // in-lib process.exit(2)) instead of exiting directly — the detailed
+      // governance-flavoured message already fired on stderr from the lib before
+      // this throw, mirroring the base-parse-error arm above; this is just the
+      // command-level exit.
+      if (e && e.message === "legacy-config-name") {
+        const names = (e.legacy || []).join(", ");
+        process.stderr.write(`faff ${sub}: cannot proceed — legacy config filename (${names}); rename to .faffrc.yaml.\n`);
+        return 2;
+      }
       throw e;
     }
   }

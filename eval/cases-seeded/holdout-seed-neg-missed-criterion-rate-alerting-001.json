@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-rate-alerting-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`error_rate_pct` for checkout-svc crossing above 5 fires exactly one alert to the on-call channel."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`error_rate_pct` returning back below 5 after an alert fires a resolved notification, not left open forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`error_rate_pct` oscillating around 5 (crossing it repeatedly within a short window) does not spam a fresh alert on every single crossing — flap-suppression applies."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The alert payload for a `error_rate_pct` breach includes the actual observed value, not just a static \"threshold breached\" message."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "error_rate_pct crosses above 5 for checkout-svc",
+        "alerting": "1 alert fired"
+      },
+      {
+        "event": "error_rate_pct drops back below 5 after an open alert",
+        "alerting": "alert remains open indefinitely"
+      },
+      {
+        "event": "error_rate_pct crosses 5 5 times in 60s",
+        "alerting": "1 alert fired (flap-suppressed)"
+      },
+      {
+        "event": "error_rate_pct breach at value 42",
+        "alerting": "alert body includes observed value 42"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

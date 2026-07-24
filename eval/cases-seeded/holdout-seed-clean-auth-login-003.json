@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-clean-auth-login-003",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A correct username/password for `carol` on mobile-api returns a valid session token and HTTP 200."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "5 consecutive wrong-password attempts for `carol` locks the account and further correct-password attempts are rejected until unlock."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A wrong password for `carol` returns HTTP 401 with a generic error (never revealing whether the username exists)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The session token issued on login carries the exact `carol` identity — a subsequent `/me` call with that token returns `carol`, not another account."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The login error messaging is reassuring rather than alarming for a simple typo."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST /login {\"user\":\"carol\",\"pass\":\"correct\"}",
+        "response": "200 OK; body {\"token\":\"tok-carol-1\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"carol\",\"pass\":\"wrong3\"} x5",
+        "response": "423 Locked; body {\"error\":\"account_locked\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"carol\",\"pass\":\"wrong3\"}",
+        "response": "401 Unauthorized; body {\"error\":\"invalid_credentials\"}"
+      },
+      {
+        "request": "GET /me (Authorization: Bearer tok-carol-1)",
+        "response": "200 OK; body {\"user\":\"carol\"}"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

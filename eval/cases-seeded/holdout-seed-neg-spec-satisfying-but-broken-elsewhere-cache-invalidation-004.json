@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-cache-invalidation-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Writing `config:feature-flags` to redis-config and reading it back within 15s returns the written value from cache (no re-fetch from the source of truth)."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Explicitly invalidating `config:feature-flags` makes the very next read miss the cache and hit the source of truth."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A cached entry older than 15s is treated as expired and re-fetched, never served stale past its TTL."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Updating the source-of-truth value for `config:feature-flags` without an explicit invalidation leaves the cached copy exactly as it was (write-through is NOT assumed for this cache) — no silent staleness masquerading as freshness."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "write config:feature-flags=v1, read within 15s",
+        "result": "cache hit, returned v1"
+      },
+      {
+        "op": "invalidate config:feature-flags, immediate read",
+        "result": "cache miss, source of truth read"
+      },
+      {
+        "op": "read config:feature-flags at age 20s (past TTL 15s)",
+        "result": "cache miss, treated as expired"
+      },
+      {
+        "op": "source updated to v2, no invalidation call made, cache read",
+        "result": "returned v2 (unexpected write-through)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

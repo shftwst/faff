@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-permission-check-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A user with role `hr-manager` performing `delete` on `user-records` is allowed."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A user with role `employee`, which lacks `delete` permission on `user-records`, is denied with HTTP 403."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A denied `delete` attempt on `user-records` is written to the audit log with the actor's identity, not silently dropped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Revoking `hr-manager`'s `delete` permission on `user-records` takes effect on the NEXT request from an already-logged-in `hr-manager` user, not only for new logins."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The 403 response explains what permission is missing, without revealing more than the caller should know."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "hr-manager attempts delete on user-records",
+        "response": "403 Forbidden"
+      },
+      {
+        "request": "employee attempts delete on user-records",
+        "response": "403 Forbidden"
+      },
+      {
+        "request": "employee's denied attempt",
+        "response": "audit log entry written with actor=employee"
+      },
+      {
+        "request": "hr-manager's permission revoked mid-session; next request",
+        "response": "403 Forbidden (revocation applied)"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

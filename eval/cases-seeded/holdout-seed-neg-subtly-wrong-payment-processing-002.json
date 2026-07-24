@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-payment-processing-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Charging 120.00 EUR against a valid card via adyen-like for order `ord-9002` succeeds and the order is marked paid."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A declined card is reported to the caller as declined (not silently retried against the same card) and the order stays unpaid."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "The same idempotency key submitted twice for order `ord-9002` results in exactly one charge, not two."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A refund issued against a charge for `ord-9002` updates the order's paid amount to reflect the refund; the order does not still show the original full amount as paid."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The decline-reason messaging shown to the customer is helpful without exposing raw gateway internals."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "charge 120.00 EUR to order ord-9002 via adyen-like",
+        "response": "declined; order stays unpaid"
+      },
+      {
+        "request": "charge declined card for order ord-9002",
+        "response": "declined; reported once, no auto-retry; order unpaid"
+      },
+      {
+        "request": "same idempotency key submitted twice for order ord-9002",
+        "response": "1 charge recorded (2nd submission returned the original result)"
+      },
+      {
+        "request": "refund issued for order ord-9002",
+        "response": "order's paid amount reduced to reflect the refund"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

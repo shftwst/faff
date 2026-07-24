@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-auth-login-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A correct username/password for `bob` on admin-console returns a valid session token and HTTP 200."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "3 consecutive wrong-password attempts for `bob` locks the account and further correct-password attempts are rejected until unlock."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A wrong password for `bob` returns HTTP 401 with a generic error (never revealing whether the username exists)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The session token issued on login carries the exact `bob` identity — a subsequent `/me` call with that token returns `bob`, not another account."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The login error messaging is reassuring rather than alarming for a simple typo."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST /login {\"user\":\"bob\",\"pass\":\"correct\"}",
+        "response": "200 OK; body {\"token\":\"tok-bob-1\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"bob\",\"pass\":\"wrong2\"} x3",
+        "response": "423 Locked; body {\"error\":\"account_locked\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"bob\",\"pass\":\"wrong2\"}",
+        "response": "401 Unauthorized; body {\"error\":\"invalid_credentials\"}"
+      },
+      {
+        "request": "GET /me (Authorization: Bearer tok-bob-1)",
+        "response": "200 OK; body {\"user\":\"someone-else\"}"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

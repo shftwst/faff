@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-search-indexing-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Indexing a document with `summary` containing \"refund\" into `support-index` makes it findable by searching for \"refund\" immediately after indexing completes."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Deleting document `doc-4` from `support-index` removes it from subsequent search results for terms it previously matched."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Re-indexing document `doc-4` with updated `summary` content replaces the old indexed version — search no longer matches on the OLD `summary` value."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A search for \"refund\" returns document `doc-4` at most once, even if \"refund\" appears multiple times within its `summary`."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "index doc doc-4 with summary=\"...refund...\", then search \"refund\"",
+        "result": "0 results"
+      },
+      {
+        "op": "delete doc doc-4 from support-index, then search a term it previously matched",
+        "result": "doc doc-4 not returned"
+      },
+      {
+        "op": "re-index doc doc-4 with new summary content, search OLD summary value",
+        "result": "doc doc-4 does not match the old value"
+      },
+      {
+        "op": "search \"refund\" (matches doc doc-4 3x within its summary)",
+        "result": "doc doc-4 appears once in results"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

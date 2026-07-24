@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-rate-alerting-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`cpu_pct` for api-gateway crossing above 90 fires exactly one alert to the on-call channel."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`cpu_pct` returning back below 90 after an alert fires a resolved notification, not left open forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`cpu_pct` oscillating around 90 (crossing it repeatedly within a short window) does not spam a fresh alert on every single crossing — flap-suppression applies."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The alert payload for a `cpu_pct` breach includes the actual observed value, not just a static \"threshold breached\" message."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "cpu_pct crosses above 90 for api-gateway",
+        "alerting": "1 alert fired"
+      },
+      {
+        "event": "cpu_pct drops back below 90 after an open alert",
+        "alerting": "resolved notification fired"
+      },
+      {
+        "event": "cpu_pct crosses 90 5 times in 60s",
+        "alerting": "1 alert fired (flap-suppressed)"
+      },
+      {
+        "event": "cpu_pct breach at value 127",
+        "alerting": "alert body: \"threshold breached\" (no value)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-clean-queue-consumer-003",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`thumbnail-worker` consuming a well-formed message from `image-queue` processes it and acks it exactly once."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A message that fails processing 4 times in a row is moved to the poison-message queue, not requeued forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`thumbnail-worker` never acks a message before processing completes (an ack-before-process would lose messages on a crash)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Two workers consuming `image-queue` concurrently never both process the same message (no double-processing under concurrency)."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The poison-queue alert gives an operator enough to triage without replaying the message by hand first."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_event": "thumbnail-worker received msg-1 from image-queue",
+        "outcome": "processed, ack sent once"
+      },
+      {
+        "queue_event": "msg-2 fails processing x4",
+        "outcome": "moved to poison queue"
+      },
+      {
+        "queue_event": "thumbnail-worker receives msg-3",
+        "outcome": "ack sent only after processing completes"
+      },
+      {
+        "queue_event": "worker-A and worker-B both receive msg-4 concurrently",
+        "outcome": "exactly one of worker-A/worker-B processed msg-4"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-audit-logging-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`admin-2` performing `grant-role` on `user-77` in access-system produces exactly one audit-log entry naming the actor, action, and target."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A failed (rejected) `grant-role` attempt is ALSO audit-logged, not only successful ones."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "An audit-log entry, once written, is never mutated by a later action — re-reading it after other events occur returns the byte-identical original entry."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The audit-log timestamp for an entry matches the actual time the action occurred, not the time a batched writer happened to flush it."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "Audit entries read clearly enough for a compliance reviewer with no system context to understand what happened."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "admin-2 performs grant-role on user-77",
+        "log": "1 audit entry: actor=admin-2 action=grant-role target=user-77"
+      },
+      {
+        "event": "admin-2's grant-role on user-77 is rejected",
+        "log": "1 audit entry, outcome=rejected"
+      },
+      {
+        "event": "re-read the entry after 3 unrelated later events",
+        "log": "entry byte-identical to the original write"
+      },
+      {
+        "event": "action occurred at T, batched writer flushed at T+30s",
+        "log": "entry timestamp = T+30s (flush time)"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

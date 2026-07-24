@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-clean-file-upload-002",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Uploading `avatar.png` under the 5MB limit to avatar-store succeeds and returns a retrievable file id."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Uploading a file over the 5MB limit is rejected with HTTP 413, not accepted and truncated."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A file uploaded and then downloaded from avatar-store is byte-for-byte identical to what was uploaded (no re-encoding/corruption)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Deleting an uploaded file makes it immediately return HTTP 404 on subsequent download attempts, not still-servable stale content."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The 413-too-large error message tells the user the actual limit, not a generic failure."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "upload avatar.png (under 5MB)",
+        "response": "201 Created; file id issued"
+      },
+      {
+        "request": "upload oversized.bin (over 5MB)",
+        "response": "413 Payload Too Large"
+      },
+      {
+        "request": "download avatar.png after upload; compare bytes",
+        "response": "bytes identical to the original upload"
+      },
+      {
+        "request": "delete avatar.png, then download it",
+        "response": "404 Not Found"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

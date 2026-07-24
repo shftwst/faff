@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-notification-send-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Sending a `otp` notification to `user-2` over sms succeeds and is recorded as delivered."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A transient send failure is retried up to 2 times before being marked permanently failed."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A recipient who has opted out of `otp` notifications never receives one, regardless of trigger."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A successfully delivered notification is recorded exactly once in the delivery log — a retried-then-succeeded send does not double-log."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The notification copy for `otp` reads naturally, not like a template dump."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_msg": "send otp to user-2 via sms",
+        "result": "delivered"
+      },
+      {
+        "queue_msg": "send otp to user-2, transient failure x2",
+        "result": "delivered on final retry (2 attempts)"
+      },
+      {
+        "queue_msg": "send otp to user-2 (opted-out)",
+        "result": "suppressed: recipient opted out"
+      },
+      {
+        "queue_msg": "send otp to user-2, retried once then succeeded",
+        "result": "delivery log has 2 entries for this send"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

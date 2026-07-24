@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-cli-deploy-004",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`rollout deploy --env eu-west --version 5.3.0` exits 0 and prints \"deployed 5.3.0 to eu-west\"."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`rollout deploy --env eu-west --version bogus` (an unpublished version) exits 1 with \"version not found\"."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`rollout deploy` invoked with no --env exits 2 and prints usage, without contacting the deploy target."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "After a successful deploy, `rollout status --env eu-west` reports the version just deployed, not a stale prior one."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "rollout deploy --env eu-west --version 5.3.0",
+        "output": "exit 0\ndeployed 5.3.0 to eu-west"
+      },
+      {
+        "command": "rollout deploy --env eu-west --version bogus",
+        "output": "exit 1\nerror: version not found"
+      },
+      {
+        "command": "rollout deploy --version 5.3.0",
+        "output": "exit 2\nusage: rollout deploy --env <env> --version <ver>"
+      },
+      {
+        "command": "rollout status --env eu-west",
+        "output": "current version: 5.3.0"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

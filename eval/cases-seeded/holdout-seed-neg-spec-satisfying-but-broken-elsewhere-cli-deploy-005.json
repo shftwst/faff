@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-cli-deploy-005",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`cfctl deploy --env dr --version 0.9.1` exits 0 and prints \"deployed 0.9.1 to dr\"."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`cfctl deploy --env dr --version bogus` (an unpublished version) exits 1 with \"version not found\"."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`cfctl deploy` invoked with no --env exits 2 and prints usage, without contacting the deploy target."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "After a successful deploy, `cfctl status --env dr` reports the version just deployed, not a stale prior one."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The deploy tool's console output is easy to follow under time pressure."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "cfctl deploy --env dr --version 0.9.1",
+        "output": "exit 0\ndeployed 0.9.1 to dr"
+      },
+      {
+        "command": "cfctl deploy --env dr --version bogus",
+        "output": "exit 1\nerror: version not found"
+      },
+      {
+        "command": "cfctl deploy --version 0.9.1",
+        "output": "exit 2\nusage: cfctl deploy --env <env> --version <ver>"
+      },
+      {
+        "command": "cfctl status --env dr",
+        "output": "current version: 0.9.0"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

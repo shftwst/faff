@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-permission-check-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A user with role `finance-lead` performing `export` on `financial-report` is allowed."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A user with role `sales-rep`, which lacks `export` permission on `financial-report`, is denied with HTTP 403."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A denied `export` attempt on `financial-report` is written to the audit log with the actor's identity, not silently dropped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Revoking `finance-lead`'s `export` permission on `financial-report` takes effect on the NEXT request from an already-logged-in `finance-lead` user, not only for new logins."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "finance-lead attempts export on financial-report",
+        "response": "403 Forbidden"
+      },
+      {
+        "request": "sales-rep attempts export on financial-report",
+        "response": "403 Forbidden"
+      },
+      {
+        "request": "sales-rep's denied attempt",
+        "response": "audit log entry written with actor=sales-rep"
+      },
+      {
+        "request": "finance-lead's permission revoked mid-session; next request",
+        "response": "403 Forbidden (revocation applied)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

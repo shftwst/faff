@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-auth-login-004",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A correct username/password for `dave` on partner-hub returns a valid session token and HTTP 200."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "10 consecutive wrong-password attempts for `dave` locks the account and further correct-password attempts are rejected until unlock."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A wrong password for `dave` returns HTTP 401 with a generic error (never revealing whether the username exists)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The session token issued on login carries the exact `dave` identity — a subsequent `/me` call with that token returns `dave`, not another account."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST /login {\"user\":\"dave\",\"pass\":\"correct\"}",
+        "response": "200 OK; body {\"token\":\"tok-dave-1\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"dave\",\"pass\":\"wrong4\"} x10",
+        "response": "423 Locked; body {\"error\":\"account_locked\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"dave\",\"pass\":\"wrong4\"}",
+        "response": "401 Unauthorized; body {\"error\":\"invalid_credentials\"}"
+      },
+      {
+        "request": "GET /me (Authorization: Bearer tok-dave-1)",
+        "response": "200 OK; body {\"user\":\"dave\"}"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

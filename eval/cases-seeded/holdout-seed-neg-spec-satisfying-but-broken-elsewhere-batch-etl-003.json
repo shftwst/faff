@@ -1,0 +1,64 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-batch-etl-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A clean run of `billing-etl` over 1200 source rows loads exactly 1200 rows into `invoices_fact` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A source file containing 3 malformed rows causes `billing-etl` to quarantine those rows (never load them) and still exit 0."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A duplicate primary key across two source rows is rejected — the job logs a dedup-conflict error and does not silently overwrite the earlier row."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Row counts logged at job completion (loaded + quarantined) sum to the total source row count read."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The job's completion summary is clear about what happened, not just a raw number dump."
+      }
+    ],
+    "recordings": [
+      {
+        "log": "[billing-etl] read 1200 rows from source"
+      },
+      {
+        "log": "[billing-etl] loaded 1200 rows into invoices_fact; exit 0"
+      },
+      {
+        "log": "[billing-etl] quarantined 3 malformed rows (0 loaded from that set); exit 0"
+      },
+      {
+        "log": "[billing-etl] duplicate pk detected; logged dedup-conflict, row not loaded"
+      },
+      {
+        "log": "[billing-etl] summary: loaded 1200, quarantined 3 (totals do not reconcile against 1200 read)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human"
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-search-indexing-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Indexing a document with `body` containing \"migration\" into `articles-index` makes it findable by searching for \"migration\" immediately after indexing completes."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Deleting document `doc-2` from `articles-index` removes it from subsequent search results for terms it previously matched."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Re-indexing document `doc-2` with updated `body` content replaces the old indexed version — search no longer matches on the OLD `body` value."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A search for \"migration\" returns document `doc-2` at most once, even if \"migration\" appears multiple times within its `body`."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "Search result snippets highlight the matched term in a way that's actually useful to a user scanning results."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "index doc doc-2 with body=\"...migration...\", then search \"migration\"",
+        "result": "doc doc-2 found"
+      },
+      {
+        "op": "delete doc doc-2 from articles-index, then search a term it previously matched",
+        "result": "doc doc-2 still returned"
+      },
+      {
+        "op": "re-index doc doc-2 with new body content, search OLD body value",
+        "result": "doc doc-2 does not match the old value"
+      },
+      {
+        "op": "search \"migration\" (matches doc doc-2 3x within its body)",
+        "result": "doc doc-2 appears once in results"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

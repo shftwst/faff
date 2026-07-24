@@ -1,0 +1,84 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-batch-etl-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A clean run of `clickstream-etl` over 82000 source rows loads exactly 82000 rows into `events_fact` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A source file containing 340 malformed rows causes `clickstream-etl` to quarantine those rows (never load them) and still exit 0."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A duplicate primary key across two source rows is rejected — the job logs a dedup-conflict error and does not silently overwrite the earlier row."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Row counts logged at job completion (loaded + quarantined) sum to the total source row count read."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The job's completion summary is clear about what happened, not just a raw number dump."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "log": "[clickstream-etl] read 82000 rows from source"
+      },
+      {
+        "log": "[clickstream-etl] loaded 82000 rows into events_fact; exit 0"
+      },
+      {
+        "log": "[clickstream-etl] 340 malformed rows loaded into events_fact anyway; exit 0"
+      },
+      {
+        "log": "[clickstream-etl] duplicate pk detected; logged dedup-conflict, row not loaded"
+      },
+      {
+        "log": "[clickstream-etl] summary: loaded 81660, quarantined 340 (reconciles to 82000 read)"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

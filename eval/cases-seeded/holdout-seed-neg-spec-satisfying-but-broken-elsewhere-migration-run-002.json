@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-migration-run-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Running `schemer migrate up` applies the pending migration adding `fulfilled_at` to `orders` and records it as applied."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Running `schemer migrate down` after that reverts the `fulfilled_at` addition and the migration is recorded as un-applied again."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A migration that fails partway through is rolled back in full — `orders` is left in its pre-migration state, not half-migrated."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Existing rows in `orders` retain their original values for every column other than the new `fulfilled_at` after the migration runs (no unrelated data drift)."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The migration tool's dry-run preview gives an operator real confidence before running it for real against staging."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "schemer migrate up",
+        "output": "applied 1 migration: add fulfilled_at to orders"
+      },
+      {
+        "command": "schemer migrate down",
+        "output": "reverted 1 migration; fulfilled_at removed from orders"
+      },
+      {
+        "command": "schemer migrate up (injected failure mid-migration)",
+        "output": "migration failed and was fully rolled back; orders unchanged"
+      },
+      {
+        "command": "SELECT * FROM orders LIMIT 1 (before/after migration)",
+        "output": "other column values changed unexpectedly"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-rate-alerting-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`p99_latency_ms` for search-svc crossing above 800 fires exactly one alert to the on-call channel."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`p99_latency_ms` returning back below 800 after an alert fires a resolved notification, not left open forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`p99_latency_ms` oscillating around 800 (crossing it repeatedly within a short window) does not spam a fresh alert on every single crossing — flap-suppression applies."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The alert payload for a `p99_latency_ms` breach includes the actual observed value, not just a static \"threshold breached\" message."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The alert text gives an on-call engineer enough to decide urgency without opening a dashboard first."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "p99_latency_ms crosses above 800 for search-svc",
+        "alerting": "1 alert fired"
+      },
+      {
+        "event": "p99_latency_ms drops back below 800 after an open alert",
+        "alerting": "resolved notification fired"
+      },
+      {
+        "event": "p99_latency_ms crosses 800 5 times in 60s",
+        "alerting": "5 separate alerts fired"
+      },
+      {
+        "event": "p99_latency_ms breach at value 837",
+        "alerting": "alert body includes observed value 837"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

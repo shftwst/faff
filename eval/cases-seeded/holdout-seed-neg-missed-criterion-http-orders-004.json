@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-http-orders-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "POST /bookings with a valid payload returns HTTP 201 and a new booking id in the response body."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "DELETE /bookings/<id> for a booking id that does not exist returns HTTP 404."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A request missing the required `guest_email` field is rejected with HTTP 422 and an error body naming the missing field."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The room_type selected at booking creation is faithfully persisted — querying the booking afterward returns the same value that was originally submitted."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST http://env:8083/bookings {\"guest_email\":\"a@x.io\",\"room_type\":\"room_type-1\"}",
+        "response": "201 Created; body {\"id\":\"bkg-4001\",\"status\":\"pending\"}"
+      },
+      {
+        "request": "POST http://env:8083/bookings {\"room_type\":\"room_type-1\"}",
+        "response": "422 Unprocessable Entity; body {\"error\":\"missing_field\",\"field\":\"guest_email\"}"
+      },
+      {
+        "request": "GET http://env:8083/bookings/bkg-4001",
+        "response": "200 OK; body {\"id\":\"bkg-4001\",\"status\":\"pending\",\"room_type\":\"room_type-1\"}"
+      },
+      {
+        "request": "DELETE http://env:8083/bookings/bkg-41019",
+        "response": "200 OK; body {\"deleted\":true}"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-rate-alerting-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`queue_depth` for worker-pool crossing above 1000 fires exactly one alert to the on-call channel."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`queue_depth` returning back below 1000 after an alert fires a resolved notification, not left open forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`queue_depth` oscillating around 1000 (crossing it repeatedly within a short window) does not spam a fresh alert on every single crossing — flap-suppression applies."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The alert payload for a `queue_depth` breach includes the actual observed value, not just a static \"threshold breached\" message."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The alert text gives an on-call engineer enough to decide urgency without opening a dashboard first."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "queue_depth crosses above 1000 for worker-pool",
+        "alerting": "1 alert fired"
+      },
+      {
+        "event": "queue_depth drops back below 1000 after an open alert",
+        "alerting": "alert remains open indefinitely"
+      },
+      {
+        "event": "queue_depth crosses 1000 5 times in 60s",
+        "alerting": "1 alert fired (flap-suppressed)"
+      },
+      {
+        "event": "queue_depth breach at value 1037",
+        "alerting": "alert body includes observed value 1037"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

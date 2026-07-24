@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-search-indexing-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Indexing a document with `bio` containing \"engineer\" into `users-index` makes it findable by searching for \"engineer\" immediately after indexing completes."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Deleting document `doc-3` from `users-index` removes it from subsequent search results for terms it previously matched."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Re-indexing document `doc-3` with updated `bio` content replaces the old indexed version — search no longer matches on the OLD `bio` value."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A search for \"engineer\" returns document `doc-3` at most once, even if \"engineer\" appears multiple times within its `bio`."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "Search result snippets highlight the matched term in a way that's actually useful to a user scanning results."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "index doc doc-3 with bio=\"...engineer...\", then search \"engineer\"",
+        "result": "doc doc-3 found"
+      },
+      {
+        "op": "delete doc doc-3 from users-index, then search a term it previously matched",
+        "result": "doc doc-3 not returned"
+      },
+      {
+        "op": "re-index doc doc-3 with new bio content, search OLD bio value",
+        "result": "doc doc-3 does not match the old value"
+      },
+      {
+        "op": "search \"engineer\" (matches doc doc-3 3x within its bio)",
+        "result": "doc doc-3 appears 3 times in results"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet",
+      "c4:needs-human"
+    ]
+  }
+}

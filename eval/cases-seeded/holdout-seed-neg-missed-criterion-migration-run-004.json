@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-migration-run-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Running `railsmig migrate up` applies the pending migration adding `device_type` to `sessions` and records it as applied."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Running `railsmig migrate down` after that reverts the `device_type` addition and the migration is recorded as un-applied again."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A migration that fails partway through is rolled back in full — `sessions` is left in its pre-migration state, not half-migrated."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Existing rows in `sessions` retain their original values for every column other than the new `device_type` after the migration runs (no unrelated data drift)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "railsmig migrate up",
+        "output": "applied 1 migration: add device_type to sessions"
+      },
+      {
+        "command": "railsmig migrate down",
+        "output": "no-op; device_type still present on sessions"
+      },
+      {
+        "command": "railsmig migrate up (injected failure mid-migration)",
+        "output": "migration failed and was fully rolled back; sessions unchanged"
+      },
+      {
+        "command": "SELECT * FROM sessions LIMIT 1 (before/after migration)",
+        "output": "all other column values unchanged"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

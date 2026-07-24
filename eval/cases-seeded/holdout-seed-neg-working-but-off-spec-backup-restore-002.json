@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-backup-restore-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`volback backup users-db` produces a snapshot `snap-2026-02` and `volback verify snap-2026-02` confirms it is restorable."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`volback restore snap-2026-02` into a fresh target reproduces `users-db`'s row counts exactly as they were at backup time."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A backup taken while a write is mid-transaction never captures a partially-committed row (the snapshot is transactionally consistent)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Restoring `snap-2026-02` into an already-populated target refuses by default (no silent overwrite) unless an explicit `--force` is given."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The restore tool's confirmation prompt makes the blast radius of the operation clear before it runs."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "volback backup users-db; volback verify snap-2026-02",
+        "output": "verify OK: snap-2026-02 restorable"
+      },
+      {
+        "command": "volback restore snap-2026-02 into fresh target",
+        "output": "row counts match backup time exactly"
+      },
+      {
+        "command": "backup taken during a mid-transaction write",
+        "output": "snapshot contains a partially-committed row"
+      },
+      {
+        "command": "volback restore snap-2026-02 into an already-populated target (no --force)",
+        "output": "refused: target not empty, use --force"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-file-upload-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Uploading `report.pdf` under the 25MB limit to media-store succeeds and returns a retrievable file id."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Uploading a file over the 25MB limit is rejected with HTTP 413, not accepted and truncated."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A file uploaded and then downloaded from media-store is byte-for-byte identical to what was uploaded (no re-encoding/corruption)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Deleting an uploaded file makes it immediately return HTTP 404 on subsequent download attempts, not still-servable stale content."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "upload report.pdf (under 25MB)",
+        "response": "201 Created; file id issued"
+      },
+      {
+        "request": "upload oversized.bin (over 25MB)",
+        "response": "201 Created; file truncated to 25MB and stored"
+      },
+      {
+        "request": "download report.pdf after upload; compare bytes",
+        "response": "bytes identical to the original upload"
+      },
+      {
+        "request": "delete report.pdf, then download it",
+        "response": "404 Not Found"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

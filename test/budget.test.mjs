@@ -1518,3 +1518,40 @@ test("FAFF-594 CLI integration: runcheck does not flag an admitted issue with th
     assert.match(r.out, /clean: every admitted issue reached a terminal outcome\./, "parked-window is a recognised terminal state — not flagged dangling");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("FAFF-594: estimate-fallback mode (no transcript) opens a window on first observed draw, just like the transcript path", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 100000\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger({ admitted: ["A"], outcomes: { A: "shipped" } }), // 1 attempt * 200000 default est = 200000
+  });
+  try {
+    // No CLAUDE_CODE_SESSION_ID / no transcript → estimate path.
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "5000000"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.deepEqual(s.breached, [], "the window just opened this invocation — no draw has accumulated within it yet, regardless of the estimate's magnitude");
+    const ledgerAfter = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(ledgerAfter.budget.window.tokens_at_anchor, 200000, "anchored at the estimate figure this invocation observed");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594: estimate-fallback mode still checks the window ceiling on a SECOND draw within the same window — not silently inert like a transcript-only feature would be", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 100000\n  at_ceiling: park-until-window-reset\n",
+    // A window already anchored at 1 attempt's estimate (200000); a 2nd attempt lands, pushing the
+    // estimate to 400000 — 200000 of NEW draw within the still-open window, over the 100000 ceiling.
+    ledger: baseLedger({
+      admitted: ["A", "B"], outcomes: { A: "shipped", B: "shipped" },
+      budget: { window: { anchor_epoch: 1000000, reset_epoch: 1000000 + 5 * 3600 * 1000, tokens_at_anchor: 200000 } },
+    }),
+  });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "1001000"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.deepEqual(s.breached, ["window"], "the window ceiling still resolves from the estimate figure, not silently inert on the no-transcript path");
+    assert.equal(s.outcome, "park-until-window-reset");
+  } finally { f.cleanup(); }
+});

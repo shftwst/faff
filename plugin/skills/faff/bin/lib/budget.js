@@ -857,6 +857,14 @@ function cmdBudget(args) {
     const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
     tokens = attemptsForEst * estPer;
     tokensSource = "estimate";
+    // FAFF-594: without a transcript there is no whole-session total to anchor a
+    // window against — but the window ceiling must still be checkable in estimate
+    // mode (parity with `budget.tokens`, which resolves via this same estimate
+    // rather than silently going inert). The estimate `tokens` figure IS already
+    // this run's total estimated draw (not a delta from a baseline — there is no
+    // baseline concept in estimate mode), so it fills the same role
+    // `wholeSessionTotalForWindow` plays on the transcript path.
+    wholeSessionTotalForWindow = tokens;
   }
   // FAFF-527: add the closed session spans' spend to the current-span delta. Zero when
   // no sessions array is present (byte-for-byte the single-session total). Never

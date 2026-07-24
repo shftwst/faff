@@ -1,13 +1,13 @@
 ---
 name: faffidavit-rendering
-description: "Default `rendering_adaptor` — the house output style (visual-vs-prose, canonical visual forms, table-vs-list, density caps) plus validation of draft output. The one slot with no internal contract. Runs as a configured slot, not the user `/` menu."
+description: "Default `rendering_adaptor` — the house output style and prose voice (visual-vs-prose, canonical visual forms, table-vs-list, density caps, house voice) plus validation of draft output. The one slot with no internal contract. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
 judgement_seam: gloss, explanatory-order
 ---
 
 # faffidavit-rendering
 
-The default **adaptor** for the `rendering_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps), and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
+The default **adaptor** for the `rendering_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output — both its *form* (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) and its *prose voice* (the house voice the output reads in, homed in **Voice** below) — and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
 
 Every sub-skill that emits user-facing output renders through it; it can be swapped wholesale for a different house style.
 
@@ -32,6 +32,16 @@ Unlike `spec` — which is produced by `faffter-noon-spec` (issue → new spec, 
 ## Scope — all human-facing faff output
 
 Everything this adaptor defines and normalises applies to **all human-facing output a faff sub-skill emits: terminal output, tracker descriptions, and tracker comments alike** (gateway → **Rendering**, Universal-routing rule). The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs — read in wider contexts, not human-facing in the same sense. There is no central emit point, so each skill runs the normalise pass itself as a final step before printing or writing.
+
+## Voice
+
+Form is half of house style; the other half is the **voice** the prose reads in — casual-but-credible, claims discipline, the banned-word list. Those rules have a single home: **`.agents/STYLE.md`** at the repo root, a fixed repo convention. This section *references* that file and never copies it — the rules live there so they have one place to drift from, not two (and the `faff validate-adapters` dedup lint fails CI on any block copied across skills).
+
+**Injection.** Voice reaches a context-stripped executor the same way form reaches the reader: through the dispatch envelope. The gateway stamps a one-line pointer at the STYLE source into every dispatch that writes durable prose — the mechanism, its carrier rule, and the engine-lane fork all live at gateway → **Producer dispatch → Voice clause**. This charter owns *what* the house voice is for; the gateway owns *how* it rides each dispatch.
+
+**Swapping the voice.** A project with a different voice edits `.agents/STYLE.md` — same path, different contents, read fresh on the next dispatch (nothing caches it). The source path is a fixed convention, not adaptor-resolved: dispatch sites stamp the pointer without reading this adaptor first. Swapping the *adaptor* changes form rules and validation; it does not change where the voice rules live.
+
+**Fold, not a sibling.** Voice is folded into this adaptor rather than split into a sibling `voice` slot. Voice and form are both purely human-facing with no pipeline contract behind them — the exact property that defines this slot — so they belong in the one skill that already owns "how faff's output reads", with one swap point instead of two. The charter widening to name voice is deliberate, recorded here. A sibling `voice` adaptor stays a clean future extraction if a project ever needs voice swappable independently of form.
 
 ## Prose skimmability
 

@@ -1,4 +1,4 @@
-# ADR 0086 — The faff CLI is the single prose home for fixed-contract semantics; gateway and occupant skills carry pointers
+# ADR 0087 — The faff CLI is the single prose home for fixed-contract semantics; gateway and occupant skills carry pointers
 
 - **Status:** Proposed
 - **Provenance:** loop

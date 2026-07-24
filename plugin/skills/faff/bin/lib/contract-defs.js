@@ -5,7 +5,7 @@
 // data on stdout — or fails loud. Contract data flows ONLY from here (the wiring the
 // spec adaptor is checked against). Schema = shape (the .json); `faff contract <name>
 // --describe` = semantics, bound BY REFERENCE to the same validation enums this file
-// branches on (FAFF-598, amending ADR-0001's schema/gateway split — see ADR-0086);
+// branches on (FAFF-598, amending ADR-0001's schema/gateway split — see ADR-0087);
 // gate MEANINGS (high/medium/low promotion) still live upstream, never here.
 // ===========================================================================
 

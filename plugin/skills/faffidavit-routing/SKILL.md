@@ -18,9 +18,8 @@ slots:
 
 The automation-routing contract itself is a faff-core invariant and lives in the gateway (_Core contracts and adaptor slots → Automation-routing verdict_), **not** here. Fixed there, and unaffected by swapping this slot:
 
-- the closed **six-verdict vocabulary** (`fire-and-forget`, `likely-fire`, `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`),
-- the **build-queue admission rule** — only `fire-and-forget` + `likely-fire` ever enter the queue; all others route out with a one-line reason surfaced in wtf, never silently dropped,
-- the **root-cause class enum** (`punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`) shared by repeat-park detection and the calibration log.
+- the closed six-verdict vocabulary and the root-cause class enum shared by repeat-park detection and the calibration log — canonical semantics: `faff contract automation-routing --describe`,
+- the **build-queue admission rule** — only the two build-ready verdicts ever enter the queue; all others route out with a one-line reason surfaced in wtf, never silently dropped.
 
 These are the stable boundary between the `methodology` slot and three consumers — `/faff-beep-boop`'s admission gate, `/faff-wtf`'s morning brief, `/faff-graft`'s park logic. Whatever methodology detects the backlog problems, the verdict words that gate admission stay fixed in the gateway. This skill does not get to change them. What it owns is *assignment + display* — how an issue is mapped onto a verdict, and how verdicts are rendered.
 

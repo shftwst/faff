@@ -25,7 +25,7 @@ The contract (`faff contract architecture-proposal`) validates the envelope's **
 ## How it proposes
 
 - **Fit the profile.** Derive the architecture from the infra evidence (runtimes, CI, deploy targets, PaaS availability, stated prefs) and the brief — not a generic best-practice template.
-- **Build-biased.** Default `recommendation: "build"` (local-first tenet). Use `"buy"`/`"hybrid"` only when the best fit is not locally buildable; a buy/hybrid is **surfaced for a human**, never actioned here (procurement is a separate, out-of-scope concern).
+- **Build-biased.** Default `recommendation: "build"` (local-first tenet). Use a non-build recommendation only when the best fit is not locally buildable; any non-build recommendation is **surfaced for a human**, never actioned here (procurement is a separate, out-of-scope concern).
 - **Born-verifiable.** State concrete decisions and `assumptions` a human (or a later check) can verify. "Is this production-grade?" is the **human gate** in v1 — this producer does not self-judge proposal quality.
 - **ADR candidates.** Name the decisions worth an ADR as candidates only (`{title, decision, rationale}`); echo each into the `## ADR promotion intent` section.
 
@@ -43,4 +43,4 @@ Emit exactly one fenced block as the producer's output — the consumer locates 
 
 Then emit a matching `## ADR promotion intent` section (one entry per candidate) and a closing `confidence:` line (`high` / `medium` / `low`) — an advisory self-rating of the proposal, never a quality verdict.
 
-`recommendation` is one of `build` / `buy` / `hybrid` (enforced by the contract via `violations`); empty `chosen_architecture`/`rationale` or a malformed candidate is a contract violation. A swapped-in proposer (e.g. a cost-first or cloud-native strategy) conforms by emitting the same block.
+`recommendation` is one of a closed three-value set (canonical semantics: `faff contract architecture-proposal --describe`; enforced via `violations`); empty `chosen_architecture`/`rationale` or a malformed candidate is a contract violation. A swapped-in proposer (e.g. a cost-first or cloud-native strategy) conforms by emitting the same block.

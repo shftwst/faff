@@ -85,6 +85,9 @@ jobs:
       - name: Validate prdr-admission contract script
         run: node plugin/skills/faff/bin/faff contract prdr-admission --selftest
 
+      - name: Validate adr-admission contract script (FAFF-199)
+        run: node plugin/skills/faff/bin/faff contract adr-admission --selftest
+
       - name: Validate l4-topology-envelope contract script (FAFF-493)
         run: node plugin/skills/faff/bin/faff contract l4-topology-envelope --selftest
 
@@ -93,6 +96,12 @@ jobs:
 
       - name: Validate prd-coverage (lower/coverage gate + prd-satisfied roll-up) contract script
         run: node plugin/skills/faff/bin/faff contract prd-coverage --selftest
+
+      - name: Validate prd-distance contract script (FAFF-535)
+        run: node plugin/skills/faff/bin/faff contract prd-distance --selftest
+
+      - name: Validate lane-boundary contract script (FAFF-276)
+        run: node plugin/skills/faff/bin/faff contract lane-boundary --selftest
 
       - name: Validate prdr command + the upper-gate arbitration table
         run: node plugin/skills/faff/bin/faff prdr --selftest

@@ -40,9 +40,9 @@ Emit exactly one fenced block **last** in output — the caller locates it, `JSO
 
 Shape rules the contract enforces — emit a conformant block, do not re-validate here:
 
-- `verdict` is `admissible` or `not-ready`; `creative_licence` is `broad` or `tight`.
+- `verdict` and `creative_licence` are each one of a closed pair (canonical semantics: `faff contract prd-readiness --describe`).
 - `admissible` requires `stop_conditions_verifiable: true` and an **empty** `reason`.
-- `not-ready` carries a non-empty `reason` — one of `no-stop-conditions` (no done-criteria at all), `ambiguous-stop-conditions` (criteria present but none machine-checkable), or `other`.
+- `not-ready` carries a non-empty `reason` from the closed reason set — no done-criteria at all, criteria present but none machine-checkable, or a reason outside that pair.
 
 ## Rules
 

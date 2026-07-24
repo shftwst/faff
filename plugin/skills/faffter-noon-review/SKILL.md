@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-review
-description: "Default code review for the `review` slot — a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns pass/fail/needs-human. Runs via faff-graft, not the user `/` menu."
+description: "Default code review for the `review` slot — a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns a review verdict (faff contract review-verdict --describe). Runs via faff-graft, not the user `/` menu."
 user-invocable: false
 judgement_seam: verdict-revert, verdict-build
 ---
@@ -16,7 +16,7 @@ slots:
   review: faffter-noon-review   # the default — explicit for clarity
 ```
 
-The verdict vocabulary (`pass` / `fail` / `needs-human`) and its semantics are **not** defined here — they're the fixed review-verdict contract in the gateway, which also defines the output envelope (the `review_adaptor` slot was retired; this producer emits its verdict as a `faff-contract:review-verdict` block faff-graft parses). This skill is a reviewer: it owns the five passes below and the mapping from its findings to a verdict. It conforms to the contract; it does not define it.
+The verdict vocabulary and its semantics (`faff contract review-verdict --describe`) are **not** defined here — they're the fixed review-verdict contract in the gateway, which also defines the output envelope (the `review_adaptor` slot was retired; this producer emits its verdict as a `faff-contract:review-verdict` block faff-graft parses). This skill is a reviewer: it owns the five passes below and the mapping from its findings to a verdict. It conforms to the contract; it does not define it.
 
 ## Why pre-PR
 
@@ -42,7 +42,7 @@ Faff-graft provides:
 A single signal plus findings, in the envelope defined in the gateway Review-verdict contract:
 
 ```
-signal: pass | fail | needs-human
+signal: <the closed review-verdict vocabulary — faff contract review-verdict --describe>
 
 ## Findings
 
@@ -109,13 +109,13 @@ Any finding here → `needs-human` (park, don't iterate)
 
 This maps *this reviewer's* five passes onto the contract's three verdicts. The verdicts' meaning and the revert test (`fail` vs `needs-human`) are part of the fixed review-verdict contract in the gateway, which also defines the envelope this reviewer emits them in.
 
-- Any finding from pass 5 (human-judgement) → `needs-human`
-- Any finding from passes 1–4 → `fail` (iterate: fix, re-test, re-review)
-- No findings → `pass`
+- Any finding from pass 5 (human-judgement) → the human-judgement verdict
+- Any finding from passes 1–4 → the fixable-issues verdict (iterate: fix, re-test, re-review)
+- No findings → the approving verdict
 
 ## Output
 
-Returns the signal (`pass` / `fail` / `needs-human`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-graft.
+Returns the signal (the closed review-verdict vocabulary — `faff contract review-verdict --describe`) and structured findings to the calling skill. The review does not decide what happens next — sequencing (iterate, raise PR, park) belongs to faff-graft.
 
 ## Contract artifact (FAFF-108)
 
@@ -123,13 +123,13 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 
 ````
 ```faff-contract:review-verdict
-{ "signal": "<your verdict: pass|fail|needs-human>",
+{ "signal": "<your verdict — faff contract review-verdict --describe>",
   "findings": [ { "location_present": <bool>, "action_present": <bool> }, ... one per finding you raised ] }
 ```
 ````
 
 - **One** block, at the very end. `signal` is the same value as your `signal:` line. `findings` carries one entry per finding you raised, each declaring whether it named a code **location** (`location_present`) and a concrete **action/fix** (`action_present`) — you raised the finding, so you know both directly.
-- `pass` may carry zero findings; `fail` / `needs-human` carry ≥1 (the contract script enforces this).
+- the approving verdict may carry zero findings; the fixable-issues and human-judgement verdicts carry ≥1 (the contract script enforces this).
 - Do **not** include `provenance_present` — that field is spec-specific; the review-verdict extraction is just `{ signal, findings }`.
 - The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-graft reading your prose — the absent-block fallback.)
 
@@ -150,5 +150,5 @@ Review quality (what counts as a finding) does not loosen at any appetite level.
 - Never pass a diff that adds dead code (code with no execution path from the feature).
 - The review is the diff vs the spec — not the diff vs "what I think good code looks like." If the spec says do X and the code does X correctly, it passes even if you'd have done it differently.
 - Findings must be specific and actionable: file, line, what's wrong, what to do. "This might be a problem" is not a finding.
-- When in doubt between `fail` and `pass`, choose `fail` — iteration is cheap, shipping a bug is not.
-- When in doubt between `fail` and `needs-human`, choose `fail` — only escalate when the code literally cannot proceed without a human decision.
+- When in doubt between the fixable-issues verdict and the approving verdict, choose fixable-issues — iteration is cheap, shipping a bug is not.
+- When in doubt between the fixable-issues verdict and the human-judgement verdict, choose fixable-issues — only escalate when the code literally cannot proceed without a human decision.

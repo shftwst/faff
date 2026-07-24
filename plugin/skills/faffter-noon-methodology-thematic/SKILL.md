@@ -189,7 +189,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 ### `build-queue`
 
-**Admission:** `fire-and-forget` + `likely-fire` verdicts enter; `needs-decision-first` / `gap-blocked` / `circular-blocked` / `repeat-parked` route out.
+**Admission:** the two build-ready verdicts enter; every other routing verdict routes out (canonical semantics: `faff contract automation-routing --describe`).
 
 **Ordering:** `pick-ordering` — including its optional **`prd-distance`** within-band composition (FAFF-535) when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
 

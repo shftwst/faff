@@ -3,8 +3,10 @@
 // `faff contract <name>` reads an extraction JSON (the adaptor's LLM-read of the
 // producer's prose output) on stdin and emits the canonical, schema-valid contract
 // data on stdout — or fails loud. Contract data flows ONLY from here (the wiring the
-// spec adaptor is checked against). Schema = shape (the .json); gateway = semantics
-// (this script encodes NO gate meanings — high/medium/low promotion lives upstream).
+// spec adaptor is checked against). Schema = shape (the .json); `faff contract <name>
+// --describe` = semantics, bound BY REFERENCE to the same validation enums this file
+// branches on (FAFF-598, amending ADR-0001's schema/gateway split — see ADR-0087);
+// gate MEANINGS (high/medium/low promotion) still live upstream, never here.
 // ===========================================================================
 
 // The marker → classification map (deterministic; FAFF-77 Decision B).
@@ -14,7 +16,7 @@ const path = require("node:path");
 const { HERE } = require("./shared-infra");
 const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engine");
 const { parseArgs, usageError } = require("./argv");
-const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
+const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 }, "--describe": { arity: 0 }, "--json": { arity: 0 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
 const { RUN_DONE_VERDICTS } = require("./run-done");
 const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, deriveRunTrigger, normalizeRunTriggerSignals } = require("./run-start");
 
@@ -2007,6 +2009,468 @@ const CONTRACTS = {
   },
 };
 
+// ===========================================================================
+// === FAFF-598: describe data — one ContractDescription per CONTRACTS entry ===
+// `faff contract <name> --describe` renders these. Every `enum` field below is a
+// BY-REFERENCE binding to the same validation constant `run` branches on (never a
+// fresh literal copy) — that identity is what makes the described enum and the
+// validated enum structurally impossible to drift apart (FAFF-582's failure class).
+// Envelope shape is NOT duplicated here — the renderer loads it from the on-disk
+// contracts/<name>.schema.json at render time (contract-engine's schemaCheck path).
+// `lintable` defaults true (participates in validate-adapters' inline-enum-restatement
+// check); the sole `lintable:false` group today is spec-readiness's marker dialect —
+// producers legitimately restate the marker vocabulary they must write.
+// ===========================================================================
+const CONTRACT_DESCRIBES = {
+  "integrity-floor": {
+    purpose: "The merge floor's pure decision core — what `faff merge-gate` interlocks on to decide merge-ok vs refuse from AC/review/CI/level/holdout inputs.",
+    values: [
+      { field: "review_verdict", enum: FLOOR_REVIEW_VERDICTS, semantics: {
+        pass: "review passed — no blocker from this leg",
+        fail: "review found fixable issues — blocks merge",
+        "needs-human": "review needs human judgement — blocks merge",
+        unavailable: "review-chain outage, no verdict produced — blocks merge, never treated as pass",
+        missing: "no review-verdict artifact found — blocks merge (fail-closed on absence)",
+      } },
+      { field: "ci_state", enum: CI_STATES, semantics: {
+        "ci-green": "at least one applicable check ran and all passed",
+        "ci-red": "at least one applicable check failed — blocks merge",
+        "no-ci-coverage": "the applicable-checks set is empty — blocks merge unless no_ci_policy is allow",
+        indeterminate: "CI state could not be established (e.g. not on the current head sha) — blocks merge",
+      } },
+      { field: "level", enum: FLOOR_LEVELS, semantics: {
+        L1: "manual/interactive autonomy tier — no holdout gate",
+        L2: "interactive-with-assist tier — no holdout gate",
+        L3: "autonomous tier (beep-boop default) — no holdout gate",
+        L4: "lights-out autonomous tier — the holdout leg is additionally asserted",
+      } },
+      { field: "holdout", enum: FLOOR_HOLDOUTS, semantics: {
+        "meets-spec": "the L4 code-blind evaluator's aggregate verdict — passes the holdout leg",
+        blocked: "the holdout evaluator returned fails/gaps/needs-human/non-blind — blocks merge at L4",
+        missing: "no holdout verdict artifact found for an L4 run — blocks merge (fail-closed)",
+        "not-applicable": "level is not L4 — the holdout leg is skipped, never a blocker",
+      } },
+      { field: "no_ci_policy", enum: NO_CI_POLICIES, semantics: {
+        "needs-human": "default — a no-ci-coverage state blocks merge and requires a human's explicit override",
+        allow: "explicit opt-in that lets a no-ci-coverage state pass the CI leg",
+      } },
+    ],
+    coercions: [
+      "an out-of-enum review_verdict, ci_state, level, holdout, or no_ci_policy → fail-loud (exit 2) — a shell bug producing an unrecognised state is never coerced into a decidable input",
+      "any blocker present → refuse (exit 1); zero blockers → merge-ok (exit 0)",
+    ],
+    producer_notes: ["`faff merge-gate` gathers FloorInputs impurely (observed CI, on-disk artifacts) and calls this PURE decision core (decideFloor) — the core itself never observes CI or reads a file."],
+  },
+  "spec-readiness": {
+    purpose: "The spec-stage marker-classification contract — whether every decision in a spec resolved to a canonical marker (chosen/punt/assumes) with a provenance stamp, for faff-prep's readiness gate.",
+    values: [
+      { field: "decisions[].marker", enum: Object.keys(MARKER_CLASS), lintable: false, semantics: {
+        chosen: "a closed decision — the spec picked one option and stated it forward",
+        punt: "an open decision — deliberately deferred to the build agent or a human",
+        assumes: "an external assumption — a fact taken as given, not decided here",
+      } },
+    ],
+    coercions: [
+      "confidence missing or outside {high,medium,low} → fail-loud (exit 2) — no safe coerce target (FAFF-76 Decision 3)",
+      "a decision with no canonical marker → not fail-loud; recorded as a well-formed verdict with markers_valid:false (exit 1)",
+      "provenance_present:false → markers_valid:false (exit 1), not fail-loud",
+    ],
+    producer_notes: [],
+  },
+  "review-verdict": {
+    purpose: "The fixed four-value verdict every code-review pass (the `review` slot) emits — what faff-graft's Step 9 and the merge floor branch on.",
+    values: [
+      { field: "signal", enum: ["pass", "fail", "needs-human", "unavailable"], semantics: {
+        pass: "diff matches spec, ACs covered, no flagged items — proceed to merge",
+        fail: "fixable issues found (failing tests, missing coverage, obvious bugs, scope creep) — iterate and re-review",
+        "needs-human": "genuine human judgement required (product call, security/privacy concern, irreversible side effect, spec gap) — park, no auto-merge",
+        unavailable: "no review verdict could be produced — a review-chain outage (provider down), not a verdict about the work; never treated as pass",
+      } },
+    ],
+    coercions: ["an out-of-enum signal → coerced to needs-human (never pass) — a malformed verdict never reads as a green light", "a fail/needs-human signal with zero findings → conformant:false (exit 1)"],
+    producer_notes: ["the producer never self-reports `unavailable` — that signal is the orchestrator's own outage detection (FAFF-405), not something a reviewer LLM emits about its own run"],
+  },
+  "delivery-outcome": {
+    purpose: "The fixed three-value outcome the `ship` producer emits after attempting to merge/deploy — what faff-graft routes the caller-facing return on.",
+    values: [
+      { field: "outcome", enum: ["shipped", "not-ready", "failed"], semantics: {
+        shipped: "merged (and deployed, if the producer is deploy-capable) — corroborated by the producer's own result",
+        "not-ready": "the merge was deferred without merging — a deploy-readiness tier or a delivery precondition (push/token-scope/merge-method/actions-policy) blocked it; retry-later, not a defect",
+        failed: "merge conflict, deploy error, or an unmappable result coerced to failed",
+      } },
+    ],
+    coercions: [
+      "an out-of-enum outcome → coerced to failed (never shipped)",
+      "outcome:shipped with corroborated:false → coerced to failed — an uncorroborated shipped claim is never trusted at face value",
+      "not-ready or failed with an empty reason → conformant:false (exit 1)",
+    ],
+    producer_notes: [],
+  },
+  "automation-routing": {
+    purpose: "The closed six-value verdict the autonomous build-queue routing adaptor assigns to a not-yet-buildable issue — what faff-graft's resolve-attempt-before-park logic branches on.",
+    values: [
+      { field: "verdict", enum: ROUTING_VERDICTS, semantics: {
+        "fire-and-forget": "ready to build with no human touch expected",
+        "likely-fire": "ready to build, minor residual ambiguity a resolve-attempt can likely close",
+        "needs-decision-first": "a spec punt or open decision blocks the build — resolve-attempt then park",
+        "gap-blocked": "an external dependency is missing — resolve-attempt (precautionary vs load-bearing) then park",
+        "circular-blocked": "a dependency cycle blocks the build — resolve-attempt (serialise defensive edges) then park",
+        "repeat-parked": "this issue has parked before on the same class of ambiguity — no resolve-attempt, always park",
+      } },
+      { field: "root_cause", enum: ROOT_CAUSES, semantics: {
+        "punt-not-closed": "a spec Punt marker was never resolved",
+        gap: "a named external dependency is missing",
+        cycle: "a dependency cycle involves this issue",
+        "spec-ambiguous-external": "the ambiguity depends on information outside the spec",
+        other: "a root cause outside the named set",
+      } },
+    ],
+    coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, an assignment bug", "an out-of-enum root_cause → normalised to null (exit 1)"],
+    producer_notes: ["the build-queue ADMISSION RULE (which verdicts actually enter the queue) is gateway semantics, NOT encoded in this script"],
+  },
+  "quality-gates": {
+    purpose: "The engineering-quality gate-ladder verdict (`faff gates run`) faff-graft Step 7.5 branches on before spending a review pass or CI on code that doesn't format/lint/type-check.",
+    values: [
+      { field: "signal", enum: ["pass", "fail", "needs-human"], semantics: {
+        pass: "every required rung passed (or no declared gates were found, under the explicit advisory opt-out)",
+        fail: "a required rung failed (fail-fast stopped at it) — fix the cause and re-run",
+        "needs-human": "a rung errored (tool missing/crashed), or no gates were discovered under the fail-closed default — park, no PR",
+      } },
+      { field: "rungs[].kind", enum: GATE_RUNG_KINDS, semantics: {
+        FORMAT: "a formatting check", LINT: "a lint check", TYPECHECK: "a type-check", STATIC_ANALYSIS: "a static-analysis check", UNIT: "the unit/test-suite rung — also the AC-verification suite run", OTHER: "any declared rung outside the named kinds",
+      } },
+      { field: "rungs[].status", enum: GATE_RUNG_STATUSES, semantics: {
+        pass: "the rung ran and passed", fail: "the rung ran and failed", skipped: "the rung was not applicable this run", errored: "the rung's tool crashed or was missing — can't conclude the code is bad",
+      } },
+    ],
+    coercions: ["an out-of-enum signal → coerced to needs-human (never pass)", "a fail/needs-human signal with zero rungs → conformant:false", "a fail signal with no failing rung, or a pass signal with a failing rung → conformant:false (the signal must be backed by the rungs)"],
+    producer_notes: [],
+  },
+  "post-merge-verification": {
+    purpose: "The post-merge health check (`faff post-merge-check`) re-runs the repo's own UNIT rung against the merged sha — catches a regression the pre-merge gates missed.",
+    values: [
+      { field: "verdict", enum: POST_MERGE_VERIFICATION_VERDICTS, semantics: {
+        "verified-ok": "the UNIT rung re-ran against the merged sha and passed",
+        "verified-fail": "the UNIT rung re-ran against the merged sha and failed — a discovered-scope regression entry is recorded, status stays Done",
+        unverified: "no UNIT rung was discoverable, or the check itself errored (worktree/spawn failure) — not a defect signal, just an unprovable verdict",
+      } },
+    ],
+    coercions: ["an out-of-enum verdict → coerced to unverified (never verified-ok — no guessing ok)", "a verified-ok/verified-fail verdict with no command named → conformant:false (a verified verdict must name the rung it ran)", "any verdict with no basis text → conformant:false"],
+    producer_notes: [],
+  },
+  "ci-triage": {
+    purpose: "The three-axis CI-failure classifier (`faff ci-triage`) that decides whether a red PR check is worth a re-run, whose fault it is, and what to do next.",
+    values: [
+      // transience/fault_domain/origin/action are lintable:false: they are `faff ci-triage`'s own
+      // three observation axes plus the action PURELY DERIVED from them (deriveTriageAction) —
+      // the CLI's internal classification dialect a caller narrates while walking the procedure,
+      // parallel to l4-topology-envelope's op-kind table, not a consumer-facing routing verdict.
+      { field: "transience", enum: CI_TRIAGE_TRANSIENCE, lintable: false, semantics: { transient: "a clean same-sha re-run went green — proceed", persistent: "the failure repeated on re-run — inspect fault domain", unknown: "not yet determined (pre-re-run, or a budget-exhausted persistent-by-fiat call) — fails closed" } },
+      { field: "fault_domain", enum: CI_TRIAGE_FAULT_DOMAIN, lintable: false, semantics: { infra: "a runner/tooling outage, not a code defect", code: "the failure traces to this PR's own diff", unknown: "metadata and the LLM tiebreaker were both inconclusive" } },
+      { field: "origin", enum: CI_TRIAGE_ORIGIN, lintable: false, semantics: { mine: "the failing check is specific to this PR's diff", "main-was-red": "the same check is already red on main's head — never spend a fix attempt on it, never merge past it", unknown: "main's head state could not be read — fails closed" } },
+      { field: "action", enum: CI_TRIAGE_ACTIONS, lintable: false, semantics: {
+        "proceed-to-merge-gate": "the failure was transient — treat as resolved, proceed",
+        "fix-attempt": "a persistent, code-domain, this-PR failure — one autonomous iteration attempt",
+        "park-errored": "a persistent, infra-domain failure — not a code defect, park as errored",
+        "park-needs-human": "origin is main-was-red/unknown, or transience/fault_domain is unresolved — fail-closed park",
+      } },
+      { field: "evidence.fault_domain_source", enum: CI_TRIAGE_FAULT_DOMAIN_SOURCES, semantics: { metadata: "fault domain was decided from check-run metadata alone", llm: "metadata was inconclusive; an LLM read the failure log as a tiebreaker", none: "no fault-domain determination was attempted" } },
+    ],
+    coercions: ["action is ALWAYS a pure function of transience/fault_domain/origin (deriveTriageAction) — a caller-supplied action that disagrees with the derived one is flagged as a violation, the derived action always governs (a forged/stale action can never widen past what the axes justify)", "an out-of-enum transience/fault_domain/origin → coerced to unknown"],
+    producer_notes: [],
+  },
+  "prd-readiness": {
+    purpose: "The product-axis analog of spec-readiness — whether an L4 run's target container's PRD is admissible (verifiable stop conditions) before the run starts.",
+    values: [
+      { field: "verdict", enum: PRD_READINESS_VERDICTS, semantics: { admissible: "the PRD's stop conditions are verifiable — admit the run", "not-ready": "the PRD lacks verifiable stop conditions — refuse and escalate before starting" } },
+      { field: "reason", enum: PRD_READINESS_REASONS, semantics: { "no-stop-conditions": "the PRD declares no stop conditions at all", "ambiguous-stop-conditions": "stop conditions exist but are not verifiable as stated", other: "a reason outside the named set" } },
+      { field: "creative_licence", enum: PRD_READINESS_LICENCES, semantics: { broad: "the PRD grants wide creative latitude to the build — calibrates the downstream YAGNI/PRDR reviewer more permissively", tight: "the PRD constrains the build narrowly — calibrates the downstream reviewer more strictly" } },
+    ],
+    coercions: ["an out-of-enum verdict or creative_licence → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "not-ready with an empty reason, or admissible with a non-empty reason, or admissible with stop_conditions_verifiable:false → conformant:false"],
+    producer_notes: ["`creative_licence` is shape-checked but not itself gate-decisive — it is forward-carried context for a downstream reviewer, not a pass/fail input here"],
+  },
+  "prdr-admission": {
+    purpose: "The PRDR (product-requirement-decision-record) admission verdict — the two-gate-bound decision that lets a proposed PRDR supersede an existing one, or blocks it.",
+    values: [
+      { field: "disposition", enum: PRDR_DISPOSITIONS, semantics: { admit: "both gates pass and the mover is not a loop superseding a human-authored PRDR — the supersession lands", "propose-only": "both gates pass but a loop is superseding a human-provenance PRDR — recorded, effective only on human ratification", reject: "at least one gate failed" } },
+      { field: "authority.actor", enum: PRDR_ACTORS, semantics: { loop: "the autonomous run proposed this move", human: "a human proposed this move — always by_level:ok" } },
+      { field: "authority.supersedes_provenance", enum: PRDR_SUPERSEDES, semantics: { human: "the PRDR being superseded was human-authored", loop: "the PRDR being superseded was loop-authored", none: "no prior PRDR is being superseded" } },
+      { field: "authority.by_level", enum: PRDR_BY_LEVEL, semantics: { ok: "no recursive-authority violation", violation: "a loop is attempting to supersede the PRDR governing its own current increment — always blocks admit" } },
+    ],
+    coercions: ["an out-of-enum disposition or authority field → fail-loud (exit 2) — faff's own producer emits this, so an out-of-enum value is an assignment bug", "admit declared without satisfying the two-gate constraint (upper.admit ∧ by_level==ok ∧ ¬ratchet.breached ∧ lower.covered ∧ ¬(loop supersedes human)) → conformant:false", "propose-only declared when the sole bar is not a loop-supersedes-human move → conformant:false"],
+    producer_notes: [],
+  },
+  "adr-admission": {
+    purpose: "The ADR-axis sibling of prdr-admission — a two-gate admission verdict (authority + a drift-challenge, in place of PRDR's upper/lower value gates) that lets a loop supersede its own earlier ADRs while human/legacy ADRs stay guardrails.",
+    values: [
+      { field: "disposition", enum: PRDR_DISPOSITIONS, semantics: { admit: "the challenge survived, by_level is ok, the ratchet is unbreached, and the mover is not a loop superseding a human-provenance ADR", "propose-only": "gates pass but a loop is superseding a human-provenance ADR — recorded, effective only on human ratification", reject: "at least one gate failed" } },
+      { field: "authority.actor", enum: PRDR_ACTORS, semantics: { loop: "the autonomous run proposed this move", human: "a human proposed this move — always by_level:ok" } },
+      { field: "authority.supersedes_provenance", enum: PRDR_SUPERSEDES, semantics: { human: "the ADR being superseded was human-authored", loop: "the ADR being superseded was loop-authored", none: "no prior ADR is being superseded" } },
+      { field: "authority.by_level", enum: PRDR_BY_LEVEL, semantics: { ok: "no recursive-authority violation", violation: "a loop is attempting to supersede the ADR governing its own current increment — always blocks admit" } },
+      { field: "challenge.outcome", enum: ADR_CHALLENGE_OUTCOMES, semantics: { survived: "an adversarial (different-model) drift review examined the supersession argument and found it sound", overturned: "the adversarial review found the supersession argument unsound", absent: "no adversarial review ran, or it was unreachable after its fallback chain — a missing skeptic is a reject, never a pass" } },
+    ],
+    coercions: ["an out-of-enum disposition, authority field, or challenge.outcome → fail-loud (exit 2)", "admit declared without satisfying the two-gate constraint (challenge.outcome==survived ∧ by_level==ok ∧ ¬ratchet.breached ∧ ¬(loop supersedes human)) → conformant:false"],
+    producer_notes: [],
+  },
+  "l4-topology-envelope": {
+    purpose: "The L4 topology-write-authority envelope — re-derives the admit/propose-only/reject disposition for a structural op (create/reparent/cancel/…) from a fixed decision table and checks a claimed verdict conforms.",
+    values: [
+      { field: "op.kind", enum: L4_ENVELOPE_OP_KINDS, semantics: {
+        "container-create": "creating a project/initiative-level container",
+        "epic-create": "creating a first-slice epic",
+        reparent: "moving an existing node to a new parent", convert: "converting a node's type", rehome: "moving a node to a different container",
+        cancel: "cancelling a node — always reject, every level (reversibility floor)",
+        delete: "deleting a node — always reject, every level (reversibility floor)",
+      } },
+      { field: "op.level", enum: L4_ENVELOPE_LEVELS, semantics: { L1: "manual tier", L2: "interactive-with-assist tier", L3: "autonomous tier", L4: "lights-out tier — the only level admit is reachable at for epic-create/container-create" } },
+      { field: "op.provenance", enum: L4_ENVELOPE_PROVENANCE, semantics: { "faff-authored": "the structure faff itself created", "human-curated": "structure a human created or edited — always propose-only, never silently restructured" } },
+      { field: "verdict.disposition", enum: PRDR_DISPOSITIONS, semantics: { admit: "the op is admitted outright", "propose-only": "the op is recorded for confirmation, not applied", reject: "the op is refused (cancel/delete, or an unrecognised op kind)" } },
+    ],
+    coercions: ["an out-of-enum op.kind/op.level/op.provenance/verdict.disposition → fail-loud (exit 2)", "a declared disposition or reversible flag that disagrees with the decision table's re-derivation for the given op → conformant:false — a producer never trusted at face value"],
+    producer_notes: [],
+  },
+  "prdr-yagni": {
+    purpose: "The UPPER (YAGNI/value) gate of PRDR admission — arbitrates whether a proposed PRDR is warranted (serves its PRD goal without exceeding it), conservative on any doubt.",
+    values: [
+      { field: "proposal.verdict", enum: PRDR_YAGNI_PROPOSAL_VERDICTS, semantics: { admit: "the methodology's Phase-1 proposal judged the PRDR warranted", reject: "the methodology's Phase-1 proposal judged the PRDR unwarranted or out of scope" } },
+    ],
+    coercions: ["an out-of-enum proposal.verdict → fail-loud (exit 2) — no safe coerce target", "admit declared without trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns → conformant:false", "reject with an empty reason → conformant:false"],
+    producer_notes: ["`grounding_present` is shape-checked but ADVISORY — never gate-decisive; its absence never blocks judgment"],
+  },
+  "prd-coverage": {
+    purpose: "The LOWER (coverage) gate of PRDR admission plus the prd-satisfied roll-up — whether every PRD goal is still covered by a live PRDR, and whether every live PRDR's DoD is actually met.",
+    values: [],
+    coercions: [
+      "covered must agree with uncovered_goals being empty — a disagreement is conformant:false",
+      "completion.all_met must agree with unmet_or_unverified being empty — a disagreement is conformant:false",
+      "satisfied:true while covered:false, or while any DoD is unmet/unverified → conformant:false (no false done — unverified never reads as done)",
+      "satisfied:false with an empty reason → conformant:false",
+    ],
+    producer_notes: ["a PRDR with no `met` DoD verdict (the evaluator hasn't run, or found gaps) is conservatively unverified, never treated as met — `prd-satisfied` stays false until the evaluator actually vouches for it"],
+  },
+  "prd-distance": {
+    purpose: "The PRD-satisfaction-greedy drain-ordering signal — a four-class ladder of how many steps remain to a `met` DoD for every live PRDR and every PRD goal, as a pure input the methodology composes as a tiebreaker.",
+    values: [
+      { field: "entries[].distance_class", enum: DISTANCE_CLASSES, semantics: {
+        met: "the PRDR's DoD is verified met — nearest to done (excluded from preference, kept for observability)",
+        unverified: "a live PRDR with no DoD verdict yet — one evaluation from met",
+        unmet: "a live PRDR with a DoD verdict present but not met — a known gap: fix and re-evaluate",
+        uncovered: "a PRD goal with no live PRDR at all — the furthest class, the whole pipeline remains",
+      } },
+    ],
+    coercions: [
+      "an out-of-enum distance_class → fail-loud (exit 2)",
+      "class_rank disagreeing with the fixed ladder for its distance_class (met 0 / unverified 1 / unmet 2 / uncovered 3) → conformant:false",
+      "kind==\"goal\" must biconditionally match distance_class==\"uncovered\" — a mismatch is conformant:false",
+    ],
+    producer_notes: ["this is an ORDERING SIGNAL, not a judgement or a takeover of the ordering slot — the methodology composes it as a within-band tiebreaker; the orchestration layer holds no ordering opinion of its own"],
+  },
+  "spec-review-verdict": {
+    purpose: "The fixed spec-stage review verdict every spec_review slot occupant emits — what faff-prep's readiness gate and the L1–L4 review lenses (architectural/infosec/methodology/QA) all map onto.",
+    values: [
+      { field: "verdict", enum: SPEC_REVIEW_VERDICTS, semantics: { approve: "the spec is ready to build as written — carries no objections", revise: "fixable objections exist — the spec needs changes before it's build-ready", "reject-approach": "the whole approach is unsound — a different design is needed, not a patch", "needs-human": "a human judgement call the reviewer can't resolve on its own" } },
+      // lens/severity are lintable:false: the reviewer producer must WRITE these labels while
+      // classifying its own findings (a checklist dialect, like spec-readiness's markers) — not a
+      // routing verdict a consumer branches on. `verdict` above stays lintable (the closed 4-value
+      // routing enum every consumer pipes through `faff contract spec-review-verdict`).
+      { field: "objections[].lens", enum: SPEC_REVIEW_LENSES, lintable: false, semantics: { architectural: "a structural/design-fit objection", infosec: "a security or privacy objection", methodology: "a delivery-process or sequencing objection", QA: "a testability or verification-coverage objection" } },
+      { field: "objections[].severity", enum: SPEC_REVIEW_SEVERITIES, lintable: false, semantics: { blocker: "must be resolved before the spec can be built", major: "should be resolved but isn't necessarily build-blocking on its own", minor: "a nice-to-fix, not build-blocking" } },
+    ],
+    coercions: ["an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, faff's own producer emits this", "approve declared with any objections, or a non-approve verdict declared with zero objections → conformant:false", "an out-of-enum objection lens/severity → conformant:false (not fail-loud — an echoed bad value on a soft field)"],
+    producer_notes: [],
+  },
+  "architecture-proposal": {
+    purpose: "The best-fit, build-biased architecture proposal the `architecture` slot producer generates from an infra profile + brief — the generative counterpart to FAFF-9's architectural review lens, which only critiques a proposal already landed in a spec.",
+    values: [
+      { field: "recommendation", enum: ARCHITECTURE_RECOMMENDATIONS, semantics: { build: "recommends building the component in-house", buy: "recommends a managed/third-party service", hybrid: "recommends a mix — some components built, some bought" } },
+    ],
+    coercions: ["an empty chosen_architecture or rationale, an out-of-enum recommendation, or an adr_candidate missing title/decision/rationale → conformant:false (never fail-loud — the only fail-loud case is a non-object extraction)"],
+    producer_notes: [],
+  },
+  "env-handle": {
+    purpose: "The provisioned-environment handle the `env` slot producer emits — a running, health-checked stand-in for the system under build that the holdout evaluator points at and later tears down.",
+    values: [
+      { field: "status", enum: ENV_HANDLE_STATUSES, semantics: { ready: "the env is up, health-checked, and gate-passing — the only status that satisfies the holdout gate", provisioning: "still coming up — not yet gate-passing", failed: "provisioning failed — not gate-passing", terminated: "already torn down — not gate-passing" } },
+    ],
+    coercions: ["an out-of-enum status → conformant:false (never fail-loud — the only fail-loud case is a non-object extraction)", "status:ready with a missing endpoint, empty health_checks, or a missing teardown_ref/provisioned_at/provisioner → conformant:false", "any non-ready status → conformant:false — exit 0 requires status:ready AND zero violations"],
+    producer_notes: [],
+  },
+  "holdout-verdict": {
+    purpose: "The code-blind holdout verdict the `evaluator` slot producer emits after exercising a built feature against its spec's DoD in a provisioned env — the L4 per-issue merge gate re-reads this.",
+    values: [
+      { field: "aggregate", enum: HOLDOUT_AGGREGATES, semantics: { "meets-spec": "every judged criterion met — the only aggregate that passes the merge gate", gaps: "a mix of met and unmet criteria", fails: "every judged criterion unmet", "needs-human": "at least one criterion needs human judgement, or nothing was judged at all" } },
+      // class/verdict are lintable:false: the evaluator producer must WRITE these labels while
+      // classifying and judging each of its own criteria (the DoD-classification dialect it
+      // produces via `faff dod classify`) — not a routing verdict a consumer branches on.
+      // `aggregate` above stays lintable (the closed 4-value routing enum the merge floor reads).
+      { field: "criteria[].class", enum: HOLDOUT_CLASSES, lintable: false, semantics: { scenario: "an end-to-end behavioural scenario from the spec's DoD", assertion: "a narrower, machine-checkable assertion", prose: "a criterion that can't be machine-judged — its verdict MUST be needs-human, never machine-decided" } },
+      { field: "criteria[].verdict", enum: HOLDOUT_VERDICTS, lintable: false, semantics: { met: "the criterion was verified satisfied, with evidence", unmet: "the criterion was verified unsatisfied, with evidence", "needs-human": "the criterion could not be machine-judged (mandatory for class:prose)" } },
+    ],
+    coercions: [
+      "an out-of-enum aggregate → coerced to needs-human (never meets-spec)",
+      "code_blind ≠ true → conformant:false — a non-blind verdict is structurally inadmissible regardless of aggregate (exit 0 requires code_blind:true AND the aggregate matching the criteria's derivation)",
+      "a class:prose criterion with verdict ≠ needs-human → conformant:false (prose is never machine-judged)",
+      "a met/unmet criterion with evidence_present:false → conformant:false (no evidence, no verdict)",
+      "the declared aggregate disagreeing with the derivation from criteria (deriveHoldoutAggregate) → conformant:false",
+    ],
+    producer_notes: [
+      "FAFF-384 spawner attestation: when the run's lane-boundary cage promise requires it (`--require-spawner-attested`), a self-attested (non-spawner-derived) code_blind:true is refused at this contract's gate, not merely by prose instruction",
+    ],
+  },
+  "lane-boundary": {
+    purpose: "The versioned intent an orchestrator authors declaring what physical isolation boundary an evaluator lane needs — a DECLARATION of intent, never itself a trust source (the physical assert-in check is `faff evaluator-preflight`).",
+    values: [
+      { field: "lane", enum: LANE_BOUNDARY_LANES, semantics: { evaluator: "the code-blind holdout evaluator lane — the only lane this contract covers today" } },
+      { field: "container", enum: LANE_BOUNDARY_CONTAINERS, semantics: { shared: "runs inside the same container as the builder", own: "runs in its own separate container" } },
+      { field: "accesses.repo", enum: LANE_BOUNDARY_ACCESS, semantics: { absent: "the repo is provably withheld from this lane", present: "the repo is accessible to this lane" } },
+      { field: "accesses.host_socket", enum: LANE_BOUNDARY_ACCESS, semantics: { absent: "the host socket is provably withheld from this lane", present: "the host socket is accessible to this lane" } },
+    ],
+    coercions: ["version < 1 or non-integer, an out-of-enum lane/container/accesses.*, a missing accesses object, or a non-boolean integrity_signal → conformant:false (never fail-loud — the only fail-loud case is a non-object extraction)"],
+    producer_notes: ["this contract validates the DECLARATION's shape only — it never asserts the boundary is physically true; that assertion is `faff evaluator-preflight`'s job at the in-cage entry point"],
+  },
+  "run-termination": {
+    purpose: "The L4 run-done verdict — whether an unattended run should stop (run-complete), keep going (continue), or hand off to a human (escalate) — with three safety-floor reasons that pin their verdict regardless of policy.",
+    values: [
+      { field: "verdict", enum: RUN_DONE_VERDICTS, semantics: { "run-complete": "the run is finished — nothing left to do or drained cleanly", continue: "the run should keep dispatching work", escalate: "the run should stop and hand off to a human" } },
+      { field: "policy_source", enum: RUN_TERMINATION_POLICY_SOURCES, semantics: { "structural-default": "the verdict came from the built-in structural ladder, no methodology override", methodology: "a methodology slot softened or overrode the structural default for a non-floor reason" } },
+    ],
+    coercions: [
+      "an out-of-enum verdict or policy_source → fail-loud (exit 2) — no safe coerce target",
+      "an empty or unrecognised stop reason → conformant:false",
+      "the reason `budget-escalated(...)` declared with a verdict other than escalate → conformant:false (a safety floor — no policy may complete through it)",
+      "the reason `undispatched-ledger` declared with a verdict other than continue, or `product-incomplete` with a verdict other than escalate → conformant:false (the other two safety floors)",
+    ],
+    producer_notes: ["only the three floor reasons pin their verdict; every other stop reason may legitimately be softened by a methodology's policy"],
+  },
+  "run-trigger": {
+    purpose: "The L4 run-start refusal-biased ladder — re-derives plan/drain/refuse from the run's admission signals (target resolved, outward-directed, PRD present/admissible/covered) and checks a claimed verdict conforms.",
+    values: [
+      { field: "verdict", enum: RUN_TRIGGER_VERDICTS, semantics: { plan: "coverage is thin — plan more work before draining", drain: "the PRD is covered (or absent, nothing to plan) — drain the build queue", refuse: "the run cannot proceed (no target, self-directed, or the PRD is ambiguous/inadmissible/unmeasurable)" } },
+      { field: "reason", enum: RUN_TRIGGER_REASONS, semantics: {
+        "coverage-thin": "the PRD is admissible but not yet covered — plan more work",
+        "prd-covered": "the PRD's coverage gate is satisfied — drain the build queue",
+        "no-prd-nothing-to-plan": "no PRD is present for the target — nothing to plan, drain",
+        "no-target": "no target could be resolved at all — refuse",
+        "self-directed": "the run's target is inward, not outward (ADR-0069) — refuse, checked before any PRD logic",
+        "prd-ambiguous": "multiple Active/Frozen PRDs are in scope — refuse rather than guess which one governs",
+        "prd-inadmissible": "the target PRD failed the prd-readiness admissibility check — refuse (fail-safe)",
+        "coverage-unmeasurable": "the PRD's coverage could not be measured (malformed input) — refuse (fail-safe)",
+      } },
+    ],
+    coercions: [
+      "a non-object extraction → fail-loud (exit 2) — nothing to re-derive from",
+      "a declared verdict or reason that disagrees with the re-derivation from signals → conformant:false — the derived pair always governs, never the caller's claim (a forged/hand-altered verdict can never widen past what the signals justify)",
+      "an out-of-enum declared verdict → conformant:false, NOT fail-loud (the run-start refusal bias, distinct from run-termination's fail-loud on a bad verdict)",
+      "malformed/missing signals → every signal normalises to false → the ladder derives refuse/no-target (fail-safe: the privileged plan/drain verdicts are structurally unreachable without every affirmative signal explicitly true)",
+    ],
+    producer_notes: [],
+  },
+};
+for (const [name, describe] of Object.entries(CONTRACT_DESCRIBES)) {
+  if (CONTRACTS[name]) CONTRACTS[name].describe = describe;
+}
+
+// FAFF-598: load the on-disk envelope schema for a contract's describe render. Reuses the SAME
+// resolution schemaCheck uses (contracts/<name>.schema.json relative to the binary) — describe never
+// forks a second loader. Read-only, never fail-loud: a missing/unparseable schema is documentation, not
+// validation, so this returns null and the renderer emits an "envelope unavailable" line instead.
+function loadEnvelopeSchema(name) {
+  const schemaPath = path.resolve(HERE, "..", "contracts", `${name}.schema.json`);
+  try { return { schema: JSON.parse(fs.readFileSync(schemaPath, "utf8")), reason: null }; }
+  catch (e) { return { schema: null, reason: e.message }; }
+}
+
+// Render the `## Envelope` section body from a loaded JSON-Schema-subset object (validateAgainstSchema's
+// dialect: type/required/properties/enum/additionalProperties/items). Shallow — one level of properties,
+// which is what every shipped contract schema needs (contract data is flat-to-one-nested by convention).
+function renderEnvelopeLines(schema) {
+  const lines = [];
+  const props = (schema && schema.properties && typeof schema.properties === "object") ? schema.properties : {};
+  const required = new Set(Array.isArray(schema && schema.required) ? schema.required : []);
+  for (const [key, sub] of Object.entries(props)) {
+    const type = sub && sub.type ? sub.type : (sub && sub.enum ? "enum" : "any");
+    const req = required.has(key) ? "required" : "optional";
+    const enumSuffix = sub && Array.isArray(sub.enum) ? ` — one of {${sub.enum.join(", ")}}` : "";
+    lines.push(`- \`${key}\` (${type}, ${req})${enumSuffix}`);
+  }
+  return lines;
+}
+
+// FAFF-598: render a ContractDescription (+ on-disk envelope) as markdown. A section with nothing to
+// say is omitted, per the spec's rendered-sections rule.
+function renderContractDescribeMarkdown(name, entry) {
+  const d = entry.describe;
+  const lines = [`# faff contract ${name}`, "", d.purpose, ""];
+  if (d.values && d.values.length) {
+    lines.push("## Values");
+    for (const g of d.values) {
+      lines.push("", `### \`${g.field}\``, "", `Enum: ${g.enum.map((v) => `\`${v}\``).join(", ")}`, "", "| Value | Meaning |", "|---|---|");
+      for (const v of g.enum) lines.push(`| \`${v}\` | ${g.semantics[v] || ""} |`);
+    }
+    lines.push("");
+  }
+  lines.push("## Coercion & fail direction", "", "Exit codes: `0` conformant · `1` violations · `2` fail-loud.");
+  if (d.coercions && d.coercions.length) { lines.push(""); for (const c of d.coercions) lines.push(`- ${c}`); }
+  lines.push("");
+  lines.push("## Envelope");
+  const { schema, reason } = loadEnvelopeSchema(name);
+  if (schema) { lines.push("", ...renderEnvelopeLines(schema)); }
+  else { lines.push("", `envelope unavailable: ${reason}`); }
+  lines.push("");
+  if (d.producer_notes && d.producer_notes.length) {
+    lines.push("## Producer notes", "");
+    for (const n of d.producer_notes) lines.push(`- ${n}`);
+    lines.push("");
+  }
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+}
+
+// FAFF-598: render the same data as JSON (ContractDescription + envelope), for tooling consumers.
+function renderContractDescribeJson(name, entry) {
+  const { schema, reason } = loadEnvelopeSchema(name);
+  return {
+    name,
+    purpose: entry.describe.purpose,
+    values: entry.describe.values || [],
+    coercions: entry.describe.coercions || [],
+    producer_notes: entry.describe.producer_notes || [],
+    envelope: schema ? schema : { unavailable: reason },
+  };
+}
+
+// FAFF-598: the selftest's describe-coverage checks (folded into contractSelftest, per-contract — see
+// HOW → Selftest placement). Emits normal ok/FAIL rows so the existing CI steps and RESULT: summary pick
+// them up unchanged; increments the caller's fail/total counters in place via the returned tallies.
+function describeChecks(name, entry) {
+  const rows = [];
+  const d = entry.describe;
+  const push = (ok, label) => rows.push({ ok, label });
+  push(!!(d && typeof d.purpose === "string" && d.purpose.trim()), "describe/purpose-present");
+  for (const g of (d && d.values) || []) {
+    const enumOk = Array.isArray(g.enum) && g.enum.length > 0 && g.enum.every((v) => typeof v === "string");
+    push(enumOk, `describe/${g.field}/enum-non-empty-strings`);
+    const semKeys = new Set(Object.keys(g.semantics || {}));
+    const enumSet = new Set(g.enum || []);
+    const missing = [...enumSet].filter((v) => !semKeys.has(v));
+    const extra = [...semKeys].filter((v) => !enumSet.has(v));
+    push(missing.length === 0, `describe/${g.field}/semantics-covers-every-enum-value${missing.length ? ` (missing: ${missing.join(",")})` : ""}`);
+    push(extra.length === 0, `describe/${g.field}/semantics-has-no-extra-keys${extra.length ? ` (extra: ${extra.join(",")})` : ""}`);
+  }
+  // Acceptance-sketch check: the rendered markdown enumerates every value of every described enum verbatim.
+  let rendered = "";
+  try { rendered = renderContractDescribeMarkdown(name, entry); } catch (e) { rendered = ""; }
+  let allValuesPresent = rendered.length > 0;
+  for (const g of (d && d.values) || []) {
+    for (const v of g.enum || []) if (!rendered.includes(v)) allValuesPresent = false;
+  }
+  push(allValuesPresent, "describe/rendered-markdown-contains-every-enum-value-verbatim");
+  // --json round-trips through JSON.parse.
+  let jsonOk = false;
+  try { JSON.parse(JSON.stringify(renderContractDescribeJson(name, entry))); jsonOk = true; } catch (e) { jsonOk = false; }
+  push(jsonOk, "describe/json-round-trips");
+  return rows;
+}
+
 function contractSelftest(name) {
   const names = name ? [name] : Object.keys(CONTRACTS);
   let fail = 0, total = 0;
@@ -2020,6 +2484,11 @@ function contractSelftest(name) {
       if (!ok) fail++;
       console.log(`${ok ? "ok  " : "FAIL"} ${n}/${f.name} → exit ${exit} (want ${f.wantExit})`);
     }
+    for (const row of describeChecks(n, c)) {
+      total++;
+      if (!row.ok) fail++;
+      console.log(`${row.ok ? "ok  " : "FAIL"} ${n}/${row.label}`);
+    }
   }
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
@@ -2027,10 +2496,27 @@ function contractSelftest(name) {
 
 function cmdContract(args) {
   const { values, positionals, errors } = parseArgs(args, CONTRACT_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff contract <name> [--in FILE] | [<name>] --selftest   (extraction JSON on stdin)");
+  if (errors.length) return usageError(errors, "usage: faff contract <name> [--in FILE] | [<name>] --selftest | [<name>] --describe [--json]   (extraction JSON on stdin)");
   const name = positionals[0];
   if (values["--selftest"]) return contractSelftest(name);
-  if (!name) { process.stderr.write("usage: faff contract <name> [--in FILE] | [<name>] --selftest   (extraction JSON on stdin)\n"); return 2; }
+  // FAFF-598: --describe is a read-only rendering branch, checked BEFORE the --in/stdin validation path
+  // and reaching NO fs.readFileSync(0) — it must never block on a tty stdin.
+  if (values["--describe"]) {
+    if (values["--in"] !== undefined) { process.stderr.write("faff contract: --describe takes no input (--in is invalid with --describe)\n"); return 2; }
+    if (!name) {
+      // Unnamed --describe = index: one "name — purpose" line per dispatcher-known contract (mirrors
+      // the unnamed --selftest convention — runs/lists all).
+      for (const n of Object.keys(CONTRACTS)) process.stdout.write(`${n} — ${CONTRACTS[n].describe.purpose}\n`);
+      return 0;
+    }
+    const c = CONTRACTS[name];
+    if (!c) { process.stderr.write(`faff contract: unknown contract '${name}' (known: ${Object.keys(CONTRACTS).join(", ")})\n`); return 2; }
+    if (values["--json"]) { process.stdout.write(JSON.stringify(renderContractDescribeJson(name, c)) + "\n"); return 0; }
+    process.stdout.write(renderContractDescribeMarkdown(name, c));
+    return 0;
+  }
+  if (values["--json"]) { process.stderr.write("faff contract: --json requires --describe\n"); return 2; }
+  if (!name) { process.stderr.write("usage: faff contract <name> [--in FILE] | [<name>] --selftest | [<name>] --describe [--json]   (extraction JSON on stdin)\n"); return 2; }
   const c = CONTRACTS[name];
   if (!c) { process.stderr.write(`faff contract: unknown contract '${name}' (known: ${Object.keys(CONTRACTS).join(", ")})\n`); return 2; }
   const inFile = values["--in"];
@@ -2050,4 +2536,4 @@ function cmdContract(args) {
 }
 
 
-module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };
+module.exports = { ADR_CHALLENGE_OUTCOMES, ARCHITECTURE_RECOMMENDATIONS, CI_STATES, DISTANCE_CLASSES, DISTANCE_CLASS_RANK, CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, CONTRACTS, CONTRACT_DESCRIBES, ENV_HANDLE_STATUSES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_LANES, MARKER_CLASS, NO_CI_POLICIES, POST_MERGE_VERIFICATION_VERDICTS, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS, RUN_TERMINATION_FLOOR_VERDICT, RUN_TERMINATION_KNOWN_PLAIN, RUN_TERMINATION_POLICY_SOURCES, RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, adrGatesPass, cmdContract, computeAdrAdmission, computeAdrAdmissionVerdict, computeArchitectureProposal, computeAutomationRouting, computeCiTriage, computeDeliveryOutcome, computeEnvHandle, computeHoldoutVerdict, computeHoldoutVerdictsMap, computeIntegrityFloor, computeL4TopologyEnvelope, computeLaneBoundary, computePostMergeVerification, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, computePrdReadiness, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict, computeQualityGates, computeReviewVerdict, computeRunTermination, computeRunTrigger, computeSpecReadiness, computeSpecReviewVerdict, contractAdrAdmission, contractArchitectureProposal, contractAutomationRouting, contractCiTriage, contractDeliveryOutcome, contractEnvHandle, contractHoldoutVerdict, contractIntegrityFloor, contractL4TopologyEnvelope, contractLaneBoundary, contractPostMergeVerification, contractPrdCoverage, contractPrdDistance, contractPrdReadiness, contractPrdrAdmission, contractPrdrYagni, contractQualityGates, contractReviewVerdict, contractRunTermination, contractRunTrigger, contractSelftest, contractSpecReadiness, contractSpecReviewVerdict, decideFloor, deriveHoldoutAggregate, deriveTriageAction, holdoutGateResult, isKnownStopReason, l4TopologyDecision, prdrGatesPass, resolveGateLevel };

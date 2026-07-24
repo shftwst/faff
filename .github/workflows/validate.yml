@@ -274,15 +274,8 @@ jobs:
           grep -oE 'faff [a-zA-Z0-9_.-]+( [a-zA-Z0-9_.-]+)? --selftest' .github/workflows/validate.yml \
             | sed 's|^|node plugin/skills/faff/bin/|' \
             | sort -u \
-            | grep -v 'integrity-digest --selftest' \
             > /tmp/selftests.txt
           echo "node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest" >> /tmp/selftests.txt
-          # integrity-digest --selftest shells out to the absolute /usr/bin/sha256sum (a
-          # deliberate same-uid tool-poisoning mitigation, ADR-0039) — macOS has no such
-          # binary (it ships /usr/bin/shasum instead), so this one command isn't portable
-          # yet. Excluded here rather than fixed in-band: it's a real, separate macOS
-          # compatibility gap this lane surfaced, not part of this ticket's file list.
-          # Tracked as discovered scope for its own ticket.
           # Sanity floor: the grep above is only as good as this file's own text, so a
           # reformat or regex miss could silently shrink the list to near-nothing and this
           # lane would go green having tested almost none of it. Fail loud instead of quietly

@@ -9,7 +9,11 @@ import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, rmSync, chmodSyn
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
+
+const require = createRequire(import.meta.url);
+const { resolveHasher, SHA256_CANDIDATES } = require("../plugin/skills/faff/bin/lib/integrity-digest.js");
 
 function evidenceDir() {
   const rd = mkdtempSync(path.join(tmpdir(), "faff-idig-t-"));
@@ -161,4 +165,46 @@ test("exit-2 seam: an unreadable member (chmod 000) → exit 2 (never 0) — the
     chmodSync(ledger, 0o000); // a same-uid subagent forcing exit 2 (unreadable member)
     assert.equal(runVerify(rd, held).code, 2); // never a silent verified
   } finally { chmodSync(ledger, 0o644); rmSync(rd, { recursive: true, force: true }); }
+});
+
+// --- FAFF-633: portable hasher resolution (absolute candidate list, never PATH) ---
+
+test("resolveHasher walks the injected list in order and returns the first existing bin", () => {
+  // Two existing absolute paths — /bin and /usr/bin both exist as dirs on POSIX hosts, so use real
+  // files present on any runner (node itself + /bin/sh) to prove first-present-wins ordering.
+  const first = { bin: process.execPath, args: ["first"] };
+  const second = { bin: "/bin/sh", args: ["second"] };
+  assert.equal(resolveHasher([first, second]), first, "first existing candidate wins");
+  assert.equal(resolveHasher([{ bin: "/nonexistent/x", args: [] }, second]), second, "skips missing, picks next present");
+});
+
+test("resolveHasher with an all-missing injected list throws the no-candidate message naming every tried path", () => {
+  assert.throws(
+    () => resolveHasher([{ bin: "/no/such/sha256sum", args: [] }, { bin: "/also/missing/shasum", args: ["-a", "256"] }]),
+    /no SHA-256 tool found \(tried \/no\/such\/sha256sum, \/also\/missing\/shasum\).*refusing to report verified/s,
+  );
+});
+
+test("every default candidate bin is an absolute path (never a bare name / PATH)", () => {
+  assert.ok(SHA256_CANDIDATES.length >= 1);
+  for (const c of SHA256_CANDIDATES) assert.ok(path.isAbsolute(c.bin), `${c.bin} must be absolute`);
+});
+
+test("hash action: stdout is the node:crypto SHA-256 of the piped bytes + newline, exit 0", () => {
+  const bytes = "the quick brown fox\n binaryÿ";
+  const r = runCli(["integrity-digest", "hash"], { input: bytes });
+  assert.equal(r.code, 0, r.stderr);
+  const expected = createHash("sha256").update(Buffer.from(bytes)).digest("hex");
+  assert.equal(r.stdout, expected + "\n");
+});
+
+test("hash action spawns the hasher under a sanitized env — an injected PERL5OPT/PERL5LIB never reaches it (Perl-script shasum stays uncorrupted)", () => {
+  // A poisoned PERL5OPT would make a Perl-based /usr/bin/shasum die at startup if the env were
+  // inherited (exit 2, fail-loud). The sanitized spawn env drops it, so the digest is still correct
+  // on macOS; on a coreutils host the binary ignores it — either way, exit 0 + the right digest.
+  const bytes = "abc";
+  const poisoned = { ...process.env, PERL5OPT: "-Mfaff_nonexistent_module_633", PERL5LIB: "/nonexistent/perl5lib" };
+  const r = runCli(["integrity-digest", "hash"], { input: bytes, env: poisoned });
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(r.stdout, createHash("sha256").update(Buffer.from(bytes)).digest("hex") + "\n");
 });

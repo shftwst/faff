@@ -17,17 +17,49 @@ const { spawnSync } = require("node:child_process");
 const { correctiveIntegrityDirs } = require("./corrective-integrity");
 
 const MANIFEST_VERSION = "d1";
-// The same-uid tool-poisoning MITIGATION (not elimination): the absolute root-owned tool, never
-// a PATH-resolved / repo-local sha256sum a same-uid lane could shadow.
-const SHA256SUM = "/usr/bin/sha256sum";
+// The same-uid tool-poisoning MITIGATION (not elimination): every hasher is an ABSOLUTE root-owned
+// path drawn from this fixed in-code list, never a PATH-resolved / repo-local sha256sum a same-uid
+// lane could shadow. Two decisions live here separately — WHICH tool hashes and HOW it is found:
+// we keep absolute-only resolution but probe a short list so the same mitigation holds on macOS,
+// which ships /usr/bin/shasum rather than coreutils' sha256sum. First present wins; fail loud if none.
+const SHA256_CANDIDATES = [
+  { bin: "/usr/bin/sha256sum", args: [] },          // Linux, coreutils
+  { bin: "/bin/sha256sum", args: [] },              // Linux variants without merged /usr
+  { bin: "/usr/bin/shasum", args: ["-a", "256"] },  // macOS system tool (also present on most Linux)
+];
 
-// Hash a byte buffer via the absolute sha256sum over stdin. Fail-LOUD on any spawn failure
-// (binary absent / non-zero) — a hash we could not compute must NEVER read as "verified".
+// The minimal fixed environment every hasher spawn runs under. /usr/bin/shasum is a Perl script, so
+// an inherited environment lets a same-uid actor inject code via PERL5LIB / PERL5OPT despite the
+// absolute path — a channel the coreutils binary doesn't have. A fixed env with only PATH closes it
+// for the script candidate and costs nothing for the binary ones. Mitigation-consistent, not complete.
+const SANITIZED_ENV = { PATH: "/usr/bin:/bin" };
+
+let _resolvedDefault = null;
+// Return the first candidate whose bin exists on this host. Memoized ONLY for the default list (a
+// snapshot hashes many leaves); an injected list is never memoized, so tests can probe freely.
+// Fail-LOUD when none exists — a hash we cannot compute must never read as "verified". The tried
+// list in the message is derived from the candidates, never restated by hand.
+function resolveHasher(candidates = SHA256_CANDIDATES) {
+  const isDefault = candidates === SHA256_CANDIDATES;
+  if (isDefault && _resolvedDefault) return _resolvedDefault;
+  const found = candidates.find((c) => fs.existsSync(c.bin));
+  if (!found) {
+    const tried = candidates.map((c) => c.bin).join(", ");
+    throw new Error(`no SHA-256 tool found (tried ${tried}) — install coreutils or ensure the system shasum exists; cannot hash, refusing to report verified`);
+  }
+  if (isDefault) _resolvedDefault = found;
+  return found;
+}
+
+// Hash a byte buffer via the resolved absolute hasher over stdin, under the sanitized env. Fail-LOUD
+// on any spawn failure (binary absent / non-zero) — a hash we could not compute must NEVER read as
+// "verified". Error messages name the resolved bin, not a hardcoded tool.
 function sha256(bytes) {
-  const r = spawnSync(SHA256SUM, [], { input: bytes, encoding: "utf8" });
-  if (r.error || r.status !== 0) throw new Error(`sha256sum failed (${r.error ? r.error.code : "exit " + r.status}) — cannot hash; refusing to report verified`);
+  const hasher = resolveHasher();
+  const r = spawnSync(hasher.bin, hasher.args, { input: bytes, encoding: "utf8", env: SANITIZED_ENV });
+  if (r.error || r.status !== 0) throw new Error(`${hasher.bin} failed (${r.error ? r.error.code : "exit " + r.status}) — cannot hash; refusing to report verified`);
   const m = (r.stdout || "").match(/^([0-9a-f]{64})\b/);
-  if (!m) throw new Error(`sha256sum produced no digest: ${JSON.stringify((r.stdout || "").slice(0, 40))}`);
+  if (!m) throw new Error(`${hasher.bin} produced no digest: ${JSON.stringify((r.stdout || "").slice(0, 40))}`);
   return m[1];
 }
 
@@ -156,7 +188,7 @@ const INTEGRITY_DIGEST_SPEC = {
 function cmdIntegrityDigest(args) {
   if (args.includes("--selftest")) return integrityDigestSelftest();
   const { values, positionals, errors } = parseArgs(args, INTEGRITY_DIGEST_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff integrity-digest <snapshot|verify> --run-dir DIR [--issue ID] [--events] [--manifest json|file|-] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff integrity-digest <snapshot|verify|hash> --run-dir DIR [--issue ID] [--events] [--manifest json|file|-] [--json]");
   const action = positionals[0];
   const json = !!values["--json"];
   const flag = (name) => (values[name] === undefined ? null : values[name]);
@@ -164,11 +196,17 @@ function cmdIntegrityDigest(args) {
   const issue = flag("--issue");
   const events = !!values["--events"];
 
-  if (action !== "snapshot" && action !== "verify") { process.stderr.write("faff integrity-digest: <snapshot|verify> is required\n"); return 2; }
-  if (!runDir) { process.stderr.write("faff integrity-digest: --run-dir requires a directory argument\n"); return 2; }
-  if (issue === "") { process.stderr.write("faff integrity-digest: --issue requires an argument\n"); return 2; }
+  if (action !== "snapshot" && action !== "verify" && action !== "hash") { process.stderr.write("faff integrity-digest: <snapshot|verify|hash> is required\n"); return 2; }
 
   try {
+    if (action === "hash") {
+      // Read stdin to EOF and print the digest — the orchestrator's intended-content check pipes
+      // its in-context bytes here so it shares this module's one resolver instead of its own policy.
+      process.stdout.write(sha256(fs.readFileSync(0)) + "\n");
+      return 0;
+    }
+    if (!runDir) { process.stderr.write("faff integrity-digest: --run-dir requires a directory argument\n"); return 2; }
+    if (issue === "") { process.stderr.write("faff integrity-digest: --issue requires an argument\n"); return 2; }
     if (action === "snapshot") {
       const manifest = buildManifest(runDir, issue, events);
       process.stdout.write(JSON.stringify(manifest) + "\n");
@@ -263,8 +301,13 @@ function integrityDigestSelftest() {
   const evil = { version: "d1", grain: "run", members: { "../../../etc/passwd": { present: true, sha256: "0".repeat(64) } } };
   ok(diffAgainstManifest(rd, evil).some((d) => d.includes("invalid member path")), "verify: a manifest member escaping runDir (..) is rejected, never read");
 
-  // hashing uses the absolute /usr/bin/sha256sum (never PATH)
-  ok(SHA256SUM === "/usr/bin/sha256sum" && path.isAbsolute(SHA256SUM), "hashing binary is the absolute /usr/bin/sha256sum (never PATH)");
+  // hashing resolves an ABSOLUTE candidate, never a bare name / PATH — asserted without pinning a platform
+  const resolved = resolveHasher();
+  ok(path.isAbsolute(resolved.bin) && SHA256_CANDIDATES.includes(resolved), "resolved hasher bin is absolute and a member of SHA256_CANDIDATES (never PATH)");
+  ok(SHA256_CANDIDATES.every((c) => path.isAbsolute(c.bin)), "every candidate bin is an absolute path");
+  let threw = false;
+  try { resolveHasher([{ bin: "/nonexistent/sha256sum", args: [] }, { bin: "/also/missing/shasum", args: ["-a", "256"] }]); } catch (e) { threw = /no SHA-256 tool found \(tried /.test(e.message); }
+  ok(threw, "resolveHasher with an all-missing injected list throws the no-candidate message");
   // trust-class boundary: the module CODE (comments stripped) never names the mount-asserted
   // symbols. Needles built from fragments so this assertion's own source doesn't match itself.
   const self = fs.readFileSync(__filename, "utf8").replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, "");
@@ -277,4 +320,4 @@ function integrityDigestSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MANIFEST_VERSION, SHA256SUM, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest };
+module.exports = { MANIFEST_VERSION, SHA256_CANDIDATES, resolveHasher, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest };

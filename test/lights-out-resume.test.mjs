@@ -134,6 +134,35 @@ test("applyResumeToLedger: pre-527 ledger (no epoch) → epoch 1; repeated resum
   assert.equal(r2.resume.length, 2);
 });
 
+// FAFF-624 §8 DoD: "A post-change-minted ledger's stamp survives --resume untouched (resume
+// never rewrites dial_profile); a legacy stamp-less ledger resumes without error and the
+// brace still forces (test-asserted)." applyResumeToLedger spreads `...src` into `next` and
+// never mentions dial_profile — this asserts that structural guarantee directly, for both a
+// post-change ledger (carries the convergence:"forced" stamp) and a legacy one (predates it).
+test("applyResumeToLedger: dial_profile.convergence stamp survives resume byte-unchanged (mint-time record, never rewritten)", () => {
+  const plan = reconstructResumePlan({ admitted: [] }, {});
+  const before = {
+    run_id: "R", admitted: [], outcomes: {},
+    owner: { status: "running", session_id: "s" },
+    dial_profile: { appetite: "full", convergence: "forced", slots: { review: "faffter-dark-adversarial-review", spec_review: "faffter-dark-spec-review" }, gates: "fail-closed" },
+  };
+  const { ledger: after } = applyResumeToLedger(before, { nowIso: "t1", sessionId: "a", pid: 1, priorState: "dead-running", plan });
+  assert.deepEqual(after.dial_profile, before.dial_profile, "resume must not touch the mint-time dial_profile record");
+  assert.equal(after.dial_profile.convergence, "forced");
+});
+
+test("applyResumeToLedger: a legacy stamp-less dial_profile (pre-FAFF-624) resumes without error, untouched", () => {
+  const plan = reconstructResumePlan({ admitted: [] }, {});
+  const before = {
+    run_id: "R", admitted: [], outcomes: {},
+    owner: { status: "running", session_id: "s" },
+    dial_profile: { appetite: "full", slots: {}, gates: null }, // no `convergence` key at all
+  };
+  const { ledger: after } = applyResumeToLedger(before, { nowIso: "t1", sessionId: "a", pid: 1, priorState: "dead-running", plan });
+  assert.deepEqual(after.dial_profile, before.dial_profile, "a legacy ledger's dial_profile is carried forward verbatim, never backfilled");
+  assert.equal(after.dial_profile.convergence, undefined, "no retro-stamping — the resume never invents a stamp on an old ledger");
+});
+
 // ---------------------------------------------------------------------------
 // Owner-epoch write fence (takeover safety).
 // ---------------------------------------------------------------------------

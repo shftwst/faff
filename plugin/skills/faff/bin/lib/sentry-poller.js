@@ -376,8 +376,9 @@ function cmdStatus(runDir, asJson) {
 // passes the exact dir it resolved). Returns a Promise resolving to the exit code.
 function cmdRun(get) {
   const runDir = get("--run-dir");
-  if (!runDir) {
-    process.stderr.write("faff sentry-poller run: --run-dir is required\n");
+  const reqErr = requireFlags({ "--run-dir": runDir }, SENTRY_POLLER_SURFACE.subcommands.run, "sentry-poller", "run");
+  if (reqErr) {
+    process.stderr.write(reqErr + "\n");
     return 2;
   }
   if (!fs.existsSync(runDir)) {
@@ -392,10 +393,23 @@ function cmdRun(get) {
   return runLoop(runDir, intervalRes.value).then(() => 0);
 }
 
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const SENTRY_POLLER_SPEC = {
   flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--interval-secs": { arity: 1 } },
   positionals: { min: 0, max: 1, name: "verb" },
+};
+// FAFF-628 — declared grammar. `run` is the internal loop entrypoint and unconditionally
+// requires --run-dir (no chain resolution); start/stop/status resolve it via resolveRunDir
+// instead (see cmdSentryPoller), so they declare no required flags here.
+const SENTRY_POLLER_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: SENTRY_POLLER_SPEC,
+  subcommands: {
+    run: { required_flags: ["--run-dir"] },
+    start: { required_flags: [] },
+    stop: { required_flags: [] },
+    status: { required_flags: [] },
+  },
 };
 
 function cmdSentryPoller(args) {
@@ -505,7 +519,7 @@ function sentryPollerSelftest() {
 }
 
 module.exports = {
-  DEFAULT_INTERVAL_SECS, FAULT_CAP, LOG_TOKENS, SENTRY_POLLER_SELFTEST_CASES,
+  DEFAULT_INTERVAL_SECS, FAULT_CAP, LOG_TOKENS, SENTRY_POLLER_SELFTEST_CASES, SENTRY_POLLER_SPEC, SENTRY_POLLER_SURFACE,
   appendLog, atomicWriteFile, cmdSentryPoller, decideTick, gatherFacts, handlePath,
   logDecision, parseIntervalSecs, pidAlive, readHandle, resolveRunDir, runLoop,
   sentryPollerSelftest, stopSentinelPath, logPathFor, writeHandle,

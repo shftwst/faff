@@ -13,11 +13,25 @@ const path = require("node:path");
 const os = require("node:os");
 const { acceptanceSection, classifyAcceptanceCriteria } = require("./admissibility");
 const { adrField } = require("./adr");
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const PRD_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--strict": { arity: 0 },
   "--date": { arity: 1 }, "--root": { arity: 1 }, "--status": { arity: 1 }, "--url": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb container" } };
+// FAFF-628 — the declared, machine-readable command grammar `faff cli-surface --json`
+// aggregates. subcommands' required_flags are migrated from the ad-hoc checks below —
+// `requireFlags` is the shared enforcer BOTH this handler and the drift-guard read from.
+const PRD_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: PRD_SPEC,
+  subcommands: {
+    path: { required_flags: [] },
+    new: { required_flags: [] },
+    link: { required_flags: ["--url"] },
+    list: { required_flags: [] },
+    validate: { required_flags: [] },
+  },
+};
 const { loadConfig, resolvePrdDocsPath } = require("./config");
 const { findRoot } = require("./shared-infra");
 
@@ -192,8 +206,9 @@ function cmdPrd(args) {
 
   if (action === "link") {
     if (!container) { process.stderr.write("faff prd link: <container> is required\n"); return 2; }
+    const reqErr = requireFlags(parsed.values, PRD_SURFACE.subcommands.link, "prd", "link");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const url = get("--url");
-    if (!url) { process.stderr.write("faff prd link: --url is required\n"); return 2; }
     // The CLI makes NO tracker call — it emits the line; the orchestrator applies it (degrade-not-fail).
     process.stdout.write(`**PRD:** ${url}\n`);
     return 0;
@@ -309,4 +324,4 @@ function prdSelftest() {
 }
 
 
-module.exports = { PRD_FILE_RE, PRD_STATUSES, cmdPrd, listPrds, prdDir, prdHeader, prdSelftest, prdSlug, prdStatusIsFrozen, prdStrictCheck, prdTemplate, prdValidate };
+module.exports = { PRD_FILE_RE, PRD_STATUSES, PRD_SPEC, PRD_SURFACE, cmdPrd, listPrds, prdDir, prdHeader, prdSelftest, prdSlug, prdStatusIsFrozen, prdStrictCheck, prdTemplate, prdValidate };

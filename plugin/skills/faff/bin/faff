@@ -24,6 +24,7 @@ const { cmdBackgroundFence } = require("./lib/background-fence");
 const { cmdBackends } = require("./lib/backends");
 const { cmdBudget } = require("./lib/budget");
 const { cmdCiTriage } = require("./lib/ci-triage");
+const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
 const { cmdContainerCheck } = require("./lib/container-check");
@@ -165,6 +166,7 @@ const COMMANDS = {
   "lint-refs": cmdLintRefs,
   "lint-cli-doc": (args) => cmdLintCliDoc(args, COMMANDS),
   "regions": (args) => cmdRegions(args, COMMANDS),
+  "cli-surface": (args) => cmdCliSurface(args, COMMANDS),
   "models": cmdModels,
   "adversarial-backends": cmdAdversarialBackends,
   "review-iteration-cap": cmdReviewIterationCap,

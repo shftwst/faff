@@ -23,8 +23,27 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { requireFlags } = require("./argv");
 const { eventLineCount } = require("./events");
 const { findRoot, resolveRunDir } = require("./shared-infra");
+
+// FAFF-628 — declared grammar for `faff cli-surface --json`. `effects` reads its own fixed
+// flag set manually (never forwards to a sub-process), so no CommandSpec import is needed for
+// parsing — `spec` below is a minimal declaration purely for the flag-membership half of the
+// drift-guard + the cli-surface accepted-flag list.
+const EFFECTS_SPEC = { flags: {
+  "--json": { arity: 0 }, "--selftest": { arity: 0 },
+  "--root": { arity: 1 }, "--run": { arity: 1 }, "--issue": { arity: 1 }, "--step": { arity: 1 }, "--ts": { arity: 1 },
+} };
+const EFFECTS_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: EFFECTS_SPEC,
+  subcommands: {
+    declare: { required_flags: ["--run", "--issue", "--step"] },
+    observe: { required_flags: ["--run", "--issue", "--step"] },
+    check: { required_flags: ["--run"] },
+  },
+};
 
 const EFFECT_KINDS = new Set([
   "merge", "branch-delete", "deploy", "db-migration", "secret-rotation",
@@ -381,9 +400,8 @@ function cmdEffects(args) {
   const asJson = rest.includes("--json");
 
   if (cmd === "declare" || cmd === "observe") {
-    if (!run) { process.stderr.write(`faff effects ${cmd}: --run <run-id> is required\n`); return 2; }
-    if (!issue) { process.stderr.write(`faff effects ${cmd}: --issue <id> is required\n`); return 2; }
-    if (!step) { process.stderr.write(`faff effects ${cmd}: --step <name> is required\n`); return 2; }
+    const reqErr = requireFlags({ "--run": run, "--issue": issue, "--step": step }, EFFECTS_SURFACE.subcommands[cmd], "effects", cmd);
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     // FAFF-591: from a linked build worktree, the run dir lives in the MAIN checkout's
     // .faff/runs/, not this cwd's — resolveRunDir falls back there (root-explicit only
     // ever uses the cwd-root path, unchanged).
@@ -419,7 +437,8 @@ function cmdEffects(args) {
   }
 
   if (cmd === "check") {
-    if (!run) { process.stderr.write("faff effects check: --run <run-id> is required\n"); return 2; }
+    const reqErr = requireFlags({ "--run": run }, EFFECTS_SURFACE.subcommands.check, "effects", "check");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     // Absence of the ledger is a CLEAN state (no declared-effects activity), NOT exit 3 —
     // parity with `events read` tolerance, and the spec's explicit edge case. FAFF-591: resolve
     // the run dir the same worktree-aware way as declare/observe, so `check` from a build
@@ -542,4 +561,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, cmdBuildProgress, cmdEffects, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest };
+module.exports = { EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, cmdBuildProgress, cmdEffects, cmdReviewProgress, computeEscapes, effectDescriptorViolations, effectTargetMatches, effectsSelftest, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest };

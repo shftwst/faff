@@ -13,6 +13,17 @@ const path = require("node:path");
 const { loadConfig } = require("./config");
 const { parseArgs, usageError } = require("./argv");
 const FIXTURES_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--file": { arity: 1 }, "--out": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+// FAFF-628 — declared grammar. No sub-verb here enforces an unconditional --flag requirement
+// today (validate/show/realise all read --file/--out as optional, defaulting elsewhere).
+const FIXTURES_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: FIXTURES_SPEC,
+  subcommands: {
+    validate: { required_flags: [] },
+    show: { required_flags: [] },
+    realise: { required_flags: [] },
+  },
+};
 const { dig, findRoot } = require("./shared-infra");
 
 const FIELD_TYPES = new Set(["string", "int", "bool", "timestamp", "uuid"]);
@@ -260,4 +271,4 @@ function fixturesSelftest() {
 }
 
 
-module.exports = { FIELD_TYPES, FIXTURES_EPOCH_MS, cmdFixtures, deterministicValue, fixturesSelftest, seededPrng, validateFixtures };
+module.exports = { FIELD_TYPES, FIXTURES_EPOCH_MS, FIXTURES_SPEC, FIXTURES_SURFACE, cmdFixtures, deterministicValue, fixturesSelftest, seededPrng, validateFixtures };

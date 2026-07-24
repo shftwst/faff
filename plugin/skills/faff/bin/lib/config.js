@@ -18,6 +18,24 @@ const CONFIG_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--force": { arity: 0 }, "--dry-run": { arity: 0 }, "--create": { arity: 0 },
   "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] }, "--set": { arity: 1, repeatable: true },
 }, positionals: { min: 0, max: null, name: "verb key value" } };
+// FAFF-628 — declared grammar. Every sub-verb reads its "required" argument as a positional
+// (KEY for `get`, the file for `check`), never a `--flag` — so no unconditional required_flags
+// is migrated here (see FAFF-628 spec §2 OUT OF SCOPE: this module has none to declare).
+const CONFIG_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: CONFIG_SPEC,
+  subcommands: {
+    path: { required_flags: [] },
+    check: { required_flags: [] },
+    get: { required_flags: [] },
+    defaults: { required_flags: [] },
+    "spec-docs-path": { required_flags: [] },
+    "prd-docs-path": { required_flags: [] },
+    dump: { required_flags: [] },
+    init: { required_flags: [] },
+    resolved: { required_flags: [] },
+  },
+};
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
@@ -1506,4 +1524,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };

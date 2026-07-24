@@ -13,7 +13,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const ADR_SPEC = { flags: {
   "--json": { arity: 0 }, "--self": { arity: 0 }, "--selftest": { arity: 0 },
   "--actor": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 }, "--date": { arity: 1 },
@@ -22,6 +22,25 @@ const ADR_SPEC = { flags: {
   "--root": { arity: 1 }, "--status": { arity: 1 }, "--supersedes-provenance": { arity: 1 },
   "--thrash-max": { arity: 1 }, "--title": { arity: 1 }, "--to": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb selector" } };
+// FAFF-628 — the declared grammar `faff cli-surface --json` aggregates + the drift-guard's
+// flag-layer assertions read. Only the unconditional checks the handler already enforces are
+// declared — a conditional/positional-selector check (accept/admit's <selector>, --actor's
+// enum) stays ad-hoc in the handler (see FAFF-628 spec §2 OUT OF SCOPE).
+const ADR_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: ADR_SPEC,
+  subcommands: {
+    "next-number": { required_flags: [] },
+    list: { required_flags: [] },
+    "live-decisions": { required_flags: [] },
+    validate: { required_flags: [] },
+    accept: { required_flags: [] },
+    new: { required_flags: ["--title"] },
+    supersede: { required_flags: ["--by"] },
+    admit: { required_flags: [] },
+    renumber: { required_flags: ["--to"] },
+  },
+};
 // FAFF-199: PRDR_ACTORS/PRDR_SUPERSEDES are reused verbatim (aliased) — the actor/supersedes
 // vocabularies are identical across the ADR and PRDR admission axes (design principle: share
 // enum constants where identical, don't fork a byte-identical enum under a new name).
@@ -510,7 +529,8 @@ function cmdAdr(args) {
 
   if (action === "new") {
     const title = get("--title");
-    if (!title) { process.stderr.write("faff adr new: --title is required\n"); return 2; }
+    const reqErr = requireFlags(parsed.values, ADR_SURFACE.subcommands.new, "adr", "new");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     // FAFF-199: --provenance human|loop, default "human" (fail-safe: the harder-to-supersede tier;
     // the loop passes --provenance loop explicitly — mirrors `prdr new` ~L165 verbatim).
     const provenance = get("--provenance");
@@ -530,6 +550,8 @@ function cmdAdr(args) {
     // faff adr supersede <old> --by <new> — link two existing ADRs with the canonical form.
     // The ONE place the CLI edits an existing ADR — and only its Status value + one Supersedes line.
     // FAFF-245: the write is the shared, prefix-parameterised `recordSupersede` (no fork).
+    const reqErr = requireFlags(parsed.values, ADR_SURFACE.subcommands.supersede, "adr", "supersede");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const r = recordSupersede(dir, root, listAdrs(dir), args[1], get("--by"), "ADR");
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
@@ -576,8 +598,9 @@ function cmdAdr(args) {
     // and re-validates; graft's Step-10 merge guard calls it, never free-hands git mv + heading edits.
     const selector = args[1];
     if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr renumber: <selector> (a docs/adr filename or a bare number) is required\n"); return 2; }
+    const reqErr = requireFlags(parsed.values, ADR_SURFACE.subcommands.renumber, "adr", "renumber");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const to = get("--to");
-    if (!to) { process.stderr.write("faff adr renumber: --to <NNNN|next> is required\n"); return 2; }
     const rsFlag = get("--ref-scope");
     const refScope = rsFlag ? rsFlag.split(/[,\s]+/).filter(Boolean) : [];
     const r = adrRenumber(dir, selector, to, refScope);
@@ -883,4 +906,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };
+module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, listAdrs, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo };

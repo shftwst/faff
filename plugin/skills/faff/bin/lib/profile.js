@@ -22,6 +22,17 @@ const path = require("node:path");
 const { loadConfig } = require("./config");
 const { parseArgs, usageError } = require("./argv");
 const PROFILE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--file": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+// FAFF-628 — declared grammar. --file (validate/show) defaults elsewhere — no sub-verb here
+// unconditionally requires a flag.
+const PROFILE_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: PROFILE_SPEC,
+  subcommands: {
+    mine: { required_flags: [] },
+    validate: { required_flags: [] },
+    show: { required_flags: [] },
+  },
+};
 const { dig, findRoot } = require("./shared-infra");
 const { SKIP } = require("./validate-adapters");
 
@@ -337,4 +348,4 @@ function profileSelftest() {
 }
 
 
-module.exports = { PROFILE_DATASTORE_PATTERNS, PROFILE_LIST_FIELDS, PROFILE_MINER_NAME, cmdProfile, mineRepo, profileDedupe, profileRel, profileRepoSlug, profileSafeRead, profileSelftest, profileWalk, validateProfile };
+module.exports = { PROFILE_DATASTORE_PATTERNS, PROFILE_LIST_FIELDS, PROFILE_MINER_NAME, PROFILE_SPEC, PROFILE_SURFACE, cmdProfile, mineRepo, profileDedupe, profileRel, profileRepoSlug, profileSafeRead, profileSelftest, profileWalk, validateProfile };

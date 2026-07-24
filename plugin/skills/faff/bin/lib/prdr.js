@@ -16,7 +16,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { adrField, adrSlug, recordSupersede, recordSupersededBy, recordSupersessionProblems, renumberRefsTo } = require("./adr");
-const { parseArgs, usageError } = require("./argv");
+const { parseArgs, requireFlags, usageError } = require("./argv");
 const PRDR_SPEC = { flags: {
   "--drops-last-goal": { arity: 0 }, "--grounding-present": { arity: 0 }, "--json": { arity: 0 },
   "--live": { arity: 0 }, "--new-capability": { arity: 0 }, "--no-branch": { arity: 0 }, "--self": { arity: 0 },
@@ -28,6 +28,27 @@ const PRDR_SPEC = { flags: {
   "--provenance": { arity: 1 }, "--ref-scope": { arity: 1 }, "--root": { arity: 1 }, "--status": { arity: 1 },
   "--supersedes-provenance": { arity: 1 }, "--thrash-max": { arity: 1 }, "--to": { arity: 1 }, "--upper": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "verb selector" } };
+// FAFF-628 — declared grammar for `faff cli-surface --json` + the drift-guard's flag-layer
+// assertions. `new` is the only subcommand with an unconditional required-flag check today;
+// `coverage`'s --prd-goals is genuinely OPTIONAL now (the FAFF-512 regression is gone) — an
+// empty required_flags list here is what keeps the guard honest about that.
+const PRDR_SURFACE = {
+  kind: "subcommand_dispatch",
+  spec: PRDR_SPEC,
+  subcommands: {
+    path: { required_flags: [] },
+    list: { required_flags: [] },
+    validate: { required_flags: [] },
+    accept: { required_flags: [] },
+    renumber: { required_flags: [] },
+    new: { required_flags: ["--container", "--prd-goal"] },
+    supersede: { required_flags: ["--by"] },
+    admit: { required_flags: [] },
+    yagni: { required_flags: [] },
+    coverage: { required_flags: [] },
+    distance: { required_flags: [] },
+  },
+};
 const { DEFAULTS, loadConfig, resolvePrdrDocsPath } = require("./config");
 const { PRDR_ACTORS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, computePrdCoverage, computePrdCoverageVerdict, computePrdDistance, contractPrdDistance, computePrdrAdmission, computePrdrAdmissionVerdict, computePrdrYagni, computePrdrYagniVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
@@ -324,8 +345,8 @@ function cmdPrdr(args) {
     const container = get("--container");
     const prdGoal = get("--prd-goal");
     if (!title) { process.stderr.write("faff prdr new: <title> is required\n"); return 2; }
-    if (!container) { process.stderr.write("faff prdr new: --container is required\n"); return 2; }
-    if (!prdGoal) { process.stderr.write("faff prdr new: --prd-goal is required\n"); return 2; }
+    const reqErr = requireFlags(parsed.values, PRDR_SURFACE.subcommands.new, "prdr", "new");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const provenance = get("--provenance");
     if (provenance && !PRDR_PROVENANCES.includes(provenance)) { process.stderr.write(`faff prdr new: --provenance must be one of ${PRDR_PROVENANCES.join("|")}\n`); return 2; }
     const date = get("--date") || new Date().toISOString().slice(0, 10);
@@ -343,6 +364,8 @@ function cmdPrdr(args) {
   if (action === "supersede") {
     // Pure mechanical linker — the SHARED writer, prefix "PRDR" (mirror `adr supersede` exactly;
     // NO actor/authority concept — that is FAFF-255's gate, P1).
+    const reqErr = requireFlags(parsed.values, PRDR_SURFACE.subcommands.supersede, "prdr", "supersede");
+    if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const r = recordSupersede(dir, root, listPrdrs(dir), args[1], get("--by"), "PRDR");
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
@@ -820,4 +843,4 @@ function prdrSelftest() {
 }
 
 
-module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, cmdPrdr, listPrdrs, prdrAccept, prdrDir, prdrGitTier, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate };
+module.exports = { PRDR_FILE_RE, PRDR_PROVENANCES, PRDR_SECTIONS, PRDR_STATUSES, PRDR_SPEC, PRDR_SURFACE, cmdPrdr, listPrdrs, prdrAccept, prdrDir, prdrGitTier, prdrNextNumber, prdrRenumber, prdrSelftest, prdrTemplate, prdrValidate };

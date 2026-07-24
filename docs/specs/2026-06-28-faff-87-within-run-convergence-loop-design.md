@@ -7,6 +7,8 @@
 - **§5 D6:** spike-vs-feature Punt → **Chosen: single thin feature** (FAFF-38 settled the termination design, so no separate de-risking spike).
 - **Blocker:** `blockedBy FAFF-38` is satisfied (FAFF-38 Done); the link can be cleared at build.
 
+**Superseded in part 2026-07-23:** D4's default-off posture was flipped by FAFF-534 (PR #466) — see the dated annotation on D4.
+
 ## 1. WHY
 
 Today execution-discovered scope is filed and picked up *next* run (beep-boop step 10), so greenfield depth grows ~one layer per run. The L4 form closes the loop **within one run**: after a build wave, file discovered scope → prep it → re-enter the build loop until **both** bottom-up tributaries (chain-gap + execution-discovered) run dry. "Both dry" is the real definition of done — the literal *"describe an app → wake up to it built"* capability.
@@ -33,6 +35,10 @@ The termination *signals* (unchanged): primary = **genuine dryness** (a wave fil
 - **D2 — Chosen — termination = `faff run-done`:** at each wave boundary call `run-done` with the assembled `RunSignals`; **`continue` → loop again** (re-enter for discovered/chain-gap work), **`run-complete` → converged/drained stop, `escalate` → needs-human stop.** FAFF-87 owns computing the two orchestrator-supplied signals: `non_convergence` (K consecutive no-progress waves — files zero new concrete items) and the discovered-scope re-entry that keeps `queue_empty` false while real work remains.
 - **D3 — Chosen — hard cap is a backstop only:** the iteration cap feeds run-done's `non_convergence` input → `escalate/non-convergence` (a distinct, reported stop reason — a bug signal), never the normal exit, never a silent truncation.
 - **D4 — Chosen — default off / opt-in:** within-run convergence is an opt-in beep-boop mode (convergence is L4 discipline); it composes with the existing `--until` / `--max` budget gates (run-done already reads `budget`, so a budget breach short-circuits the loop before re-entry).
+  - **Superseded 2026-07-23 by FAFF-534 (PR #466):** the shipped default flipped ON —
+    L4 non-optional (knob/flag inert), L3 default-on with an explicit opt-out only
+    (`--no-converge` / `enabled: false`). See docs/specs/2026-07-23-faff-534-within-run-convergence-default-posture-design.md.
+    Original text below preserved as the decision as made.
 - **D5 — Chosen — single thin feature:** with FAFF-38 shipped, the termination design is settled, so this is a thin wave-re-entry extension + signal wiring on top of `run-done` — **no separate de-risking spike**.
 - **D6 — Chosen — dryness ⟺ run-done `run-complete` with no fresh re-entry:** "both tributaries dry" is operationalised as: a wave that files zero new concrete discovered items AND surfaces no new spec-referenced untracked work, at which point the re-assembled build queue is empty and `run-done` returns `run-complete/drained`. Value/concreteness + dedup gating (shipped) bounds what re-enters.
 
@@ -46,6 +52,6 @@ The termination *signals* (unchanged): primary = **genuine dryness** (a wave fil
 - [ ] FAFF-87 computes and supplies `non_convergence` (K consecutive no-progress waves) so run-done's `non-convergence` escalate can fire; the hard cap is a backstop only, reported, never a silent truncation.
 - [ ] Depth is bounded by budget (FAFF-36, read by run-done) + value/concreteness + dedup gating — **not** a fixed iteration count as the primary mechanism.
 - [ ] runcheck / run-ledger invariants hold for in-run discovered tickets; the `converged/both-dry` stop reason is recorded; the next-run file-and-defer form remains the fallback when the mode is off or budget-capped.
-- [ ] Within-run convergence is an opt-in mode that composes with `--until` / `--max`.
+- [ ] Within-run convergence is an opt-in mode that composes with `--until` / `--max`. *(default posture superseded 2026-07-23 by FAFF-534 — now default-on / L4 non-optional; the budget-gate composition still holds)*
 
 confidence: high

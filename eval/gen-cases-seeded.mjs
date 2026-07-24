@@ -25,7 +25,7 @@
 //
 // Zero-dependency: node builtins only (mirrors the rest of eval/).
 
-import { writeFileSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 

@@ -472,7 +472,11 @@ function renderLightsOutBanner(armed, floor, proceed, probes, enforced, degrades
   // operator actually confirms an L4 run against (mirrors the gateway levels table's L4
   // row + guarantee table). Dropped when FAFF-435's frontier holdout run passes.
   lines.push(`faff lights-out — L4 (preview) run banner`);
-  lines.push(`  level: L4 (preview)   container: ${probes && probes.container === "contained" ? "contained" : "refused"}`);
+  // FAFF-624: convergence is level-forced at L4 — a constant of the L4 surface (like the level
+  // token itself), rendered unconditionally on every banner, derived from no probe. It never
+  // reads the convergence config knob; the mint-time dial_profile.convergence stamp carries
+  // the same constant into the ledger (see assembleLightsOutPreflight below).
+  lines.push(`  level: L4 (preview)   container: ${probes && probes.container === "contained" ? "contained" : "refused"}   convergence: forced`);
   lines.push(`  guardrails (${LIGHTS_OUT_GUARDRAILS.length}):`);
   for (const g of LIGHTS_OUT_GUARDRAILS) {
     const st = armed[g.id];
@@ -851,8 +855,15 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
   // operator dial here). The level-scoping is recorded at mint time in the ledger, which the
   // `resolveAppetite` brace then reads so every consumer sees `full`.
   const appetite = "full";
+  // FAFF-624: convergence is level-forced too, mirroring the appetite forcing directly above —
+  // the mint-time record of WHY the within-run convergence loop runs (level-forced), never a
+  // consultable boolean. This file must never read the convergence config knob to decide anything;
+  // the value is inert at L4 by design (FAFF-534's named anti-pattern). The config-side brace
+  // (config.js's resolveConvergence) is the read-chokepoint half of the same guarantee.
+  const convergence = "forced";
   const dial_profile = {
     appetite,
+    convergence,
     slots: { review: reviewOccupant, spec_review: specReviewOccupant },
     gates: resolveSlotOccupant(cfg, "gates"),
   };
@@ -1299,6 +1310,9 @@ function lightsOutSelftest() {
   // FAFF-351 — the L4 preview caveat rides the banner headline + level line.
   check("banner headline carries the L4 (preview) caveat", happy.banner.includes("L4 (preview) run banner"));
   check("banner level line carries the L4 (preview) caveat", happy.banner.includes("level: L4 (preview)"));
+  // FAFF-624 — convergence is level-forced at L4, rendered unconditionally on the same level
+  // line as a constant of the L4 surface (never derived from a probe, never gated on any dial).
+  check("banner level line carries convergence: forced", happy.banner.includes("convergence: forced"));
 
   // FAFF-305 — enforced map: reported alongside armed, fail-closed via strict === true.
   check("preflight returns an enforced map", happy.enforced && typeof happy.enforced === "object");

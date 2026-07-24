@@ -126,6 +126,10 @@ const DEFAULTS = {
   // sibling require_container/require_branch_protection warn|block enums (resolved by SKILL.md
   // prose), this is a boolean.
   "autonomous.engine_bounded": "false",
+  // FAFF-624: the code-side default for the convergence brace (resolveConvergence below) —
+  // matches the FAFF-534-flipped `.faffrc.example.yaml` default, so a config-less repo's
+  // `faff config get convergence.enabled` answers "true"/exit 0 rather than exit 3.
+  "convergence.enabled": "true",
 };
 
 // FAFF-315: closed value vocabulary for the Agent-tool model lanes. A configured value outside
@@ -314,6 +318,31 @@ function resolveAppetite(cfg, env = process.env) {
   // 3. config → baked default — the unchanged L1–L3 path.
   const v = dig(cfg, "appetite");
   return (v === null || v === undefined) ? DEFAULTS["appetite"] : v;
+}
+
+// FAFF-624: convergence is level-forced, mirroring resolveAppetite's shape (FAFF-308) — the
+// read chokepoint behind `faff config get convergence.enabled`. Under a live L4 lights-out run
+// convergence resolves to "true" unconditionally and config `convergence.enabled` is ignored;
+// config stays authoritative for L1–L3. This is the brace half of the FAFF-624 guarantee — the
+// mint-time stamp (lights-out.js's dial_profile.convergence: "forced") is the other half. The
+// value is INERT at L4 by design (FAFF-534's named anti-pattern): this function never refuses,
+// never warns — it only forces the answer for any occupant that consults the knob.
+// Precedence: LIVE-L4 ledger (FAFF_RUN_DIR, level:"L4" AND runIsHeld) > config
+// `convergence.enabled` > baked default. Deliberately NO env-var channel (unlike appetite's
+// FAFF_APPETITE belt) — see the FAFF-624 spec's Decision B: an env override here could only add
+// a way to disable forcing, the exact door this guarantee closes.
+function resolveConvergence(cfg, env = process.env) {
+  const runDir = env.FAFF_RUN_DIR;
+  if (runDir) {
+    try {
+      const ledger = readLedger(runDir);
+      if (ledger) overlayHeartbeat(ledger, readHeartbeatFile(runDir));
+      if (ledger && ledger.level === "L4" && runIsHeld(ledger, Date.now(), env)) return "true";
+    }
+    catch { /* unreadable / absent ledger → fall through (never fabricate `true`) */ }
+  }
+  const v = dig(cfg, "convergence.enabled");
+  return (v === null || v === undefined) ? DEFAULTS["convergence.enabled"] : fmt(v);
 }
 
 function fmt(value) {
@@ -1169,6 +1198,14 @@ function cmdConfig(args) {
         console.log(wantJson ? JSON.stringify(app) : app);
         return 0;
       }
+      // FAFF-624: convergence.enabled is the second level-scoped dial — route it through the
+      // sole convergence resolver so a live L4 run forces "true". Guarded to this key ONLY;
+      // every other key's resolution below is byte-for-byte unchanged.
+      if (key === "convergence.enabled") {
+        const conv = resolveConvergence(data, process.env);
+        console.log(wantJson ? JSON.stringify(conv) : conv);
+        return 0;
+      }
       const value = dig(data, key);
       if (value === null || value === undefined) {
         // FAFF-182: a registry key resolves to its baked default (exit 0) — no prose `-d` needed.
@@ -1214,6 +1251,8 @@ function cmdConfig(args) {
           "graft.review_outage_retry_limit",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
+          // FAFF-624: the convergence brace's code-side default.
+          "convergence.enabled",
         ];
         const missing = expected.filter((k) => !Object.prototype.hasOwnProperty.call(DEFAULTS, k));
         if (missing.length) { process.stderr.write(`config defaults --selftest: missing ${missing.join(", ")}\n`); return 1; }
@@ -1467,4 +1506,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };

@@ -29,10 +29,12 @@ inputs:
   anchors-path:
     description: >-
       Where committed per-PR chain anchors live in the checkout (FAFF-568). Anchors are
-      immutable snapshots verified for chain INTEGRITY ONLY — they never trigger the
-      completeness/budget/liveness/merge_floor sweep that live run dirs do. An anchor
-      carrying events.jsonl without its CLI-written chain-head.json witness fails the
-      integrity leg (witness-absent, fail-closed).
+      immutable snapshots verified for chain integrity (always) and merge-floor conformance
+      (FAFF-623, when the anchor carries ac-checklist.json/review-verdict.json/holdout.json) —
+      never the completeness/budget/liveness sweep that live run dirs do (those stay run-scoped;
+      a frozen anchor's run-ledger.json is not PR-scoped). An anchor carrying events.jsonl
+      without its CLI-written chain-head.json witness fails the integrity leg (witness-absent,
+      fail-closed).
     required: false
     default: ".faff/anchors"
   legacy-policy:
@@ -241,7 +243,8 @@ runs:
         while IFS= read -r d; do
           [ -n "$d" ] && ARGS+=(--run-dir "$d")
         done <<< "${{ steps.discover.outputs.dirs }}"
-        # FAFF-568: anchors are integrity-only targets (--anchor-dir), never a run-dir sweep.
+        # FAFF-568/623: anchors are --anchor-dir targets (integrity + merge-floor legs), never a
+        # full run-dir sweep (completeness/budget/liveness stay run-scoped).
         while IFS= read -r d; do
           [ -n "$d" ] && ARGS+=(--anchor-dir "$d")
         done <<< "${{ steps.discover-anchors.outputs.dirs }}"

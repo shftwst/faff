@@ -160,9 +160,15 @@ test("FAFF-568: --derive-anchor-dirs handles 1/2/3-segment anchors-paths and rej
 test("FAFF-568: --anchors-root rejects an --anchor-dir that resolves outside it (exit 2, fail-loud)", () => {
   const root = tmpRunDir("faff568-root-");
   try {
-    mkdirSync(path.join(root, "anchors", "run-1", "FAFF-1"), { recursive: true });
+    const anchorDir = path.join(root, "anchors", "run-1", "FAFF-1");
+    mkdirSync(anchorDir, { recursive: true });
     mkdirSync(path.join(root, "outside"), { recursive: true });
-    const ok = runCli(["governance-check", "--anchor-dir", path.join(root, "anchors", "run-1", "FAFF-1"), "--anchors-root", path.join(root, "anchors")]);
+    // FAFF-623: this test asserts CONTAINMENT — with no events.jsonl, integrity trivially
+    // passes, but merge_floor now also runs against the anchor dir and fails closed on
+    // missing floor evidence. Write it so the assertion stays about containment.
+    writeFileSync(path.join(anchorDir, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+    writeFileSync(path.join(anchorDir, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+    const ok = runCli(["governance-check", "--anchor-dir", anchorDir, "--anchors-root", path.join(root, "anchors")]);
     assert.equal(ok.code, 0, ok.stderr);
     const bad = runCli(["governance-check", "--anchor-dir", path.join(root, "outside"), "--anchors-root", path.join(root, "anchors")]);
     assert.equal(bad.code, 2, `expected containment exit 2; stdout=${bad.stdout} stderr=${bad.stderr}`);
@@ -199,6 +205,10 @@ test("FAFF-568: a spoofed legacy downgrade on an anchored chain fails governance
       head_sha256: sha256(Buffer.from(lines[lines.length - 1], "utf8")),
       line_count: lines.length, schema_floor: 2,
     }, null, 2) + "\n");
+    // FAFF-623: merge_floor now also gates anchors — clean floor evidence keeps this test's
+    // "before" baseline a true clean pass, isolating the spoof's effect to integrity alone.
+    writeFileSync(path.join(anchor, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+    writeFileSync(path.join(anchor, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
     const before = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
     assert.equal(before.code, 0, before.stderr);
     // The spoof: strip every prev + downgrade schema.
@@ -224,6 +234,10 @@ test("FAFF-568: legacy-policy warn passes a legacy anchor WITH a loud stderr not
       run_id: "run-l", issue: "FAFF-1", head_seq: 0,
       head_sha256: sha256(Buffer.from(line, "utf8")), line_count: 1, schema_floor: 1,
     }, null, 2) + "\n");
+    // FAFF-623: merge_floor now also gates anchors — clean floor evidence keeps `quiet`/`warned`
+    // isolated to the legacy-policy/integrity behaviour this test is actually about.
+    writeFileSync(path.join(anchor, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+    writeFileSync(path.join(anchor, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
     const quiet = runCli(["governance-check", "--anchor-dir", anchor, "--legacy-policy", "pass"]);
     assert.equal(quiet.code, 0);
     assert.doesNotMatch(quiet.stderr, /warn/, "pass stays quiet");

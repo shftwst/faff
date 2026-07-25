@@ -200,34 +200,53 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
   return { pass, status: r.status, detail, first_break: r.first_break, note, torn_tail: r.torn_tail, witness: r.witness };
 }
 
-// An ANCHOR is a per-PR snapshot, not a live run dir — it is verified INTEGRITY-ONLY.
-// The completeness/budget/merge_floor/liveness legs never run against it (its
-// run-ledger.json is a frozen copy whose `admitted` array is run-scoped, not
-// PR-scoped — sweeping it would false-fail on undispatched work). Returns the same
-// run-result shape as `evaluateRunDir` so the renderers/reasons are unchanged, with
-// the non-integrity legs marked n/a (pass, never gating). `pass = integrity.pass`.
-function evaluateAnchorDir(dir, legacyPolicy = "pass") {
+// An ANCHOR is a per-PR snapshot, not a live run dir — completeness/budget/liveness never run
+// against it (its run-ledger.json is a frozen copy whose `admitted` array is run-scoped, not
+// PR-scoped — sweeping it would false-fail on undispatched work). FAFF-623: merge_floor DOES
+// run against it — unlike completeness/budget it reads only per-ISSUE floor artifacts
+// (ac-checklist.json / review-verdict.json / holdout.json), which `faff events anchor` now also
+// copies DIRECTLY INTO the anchor dir (`--dest`), and nothing about the leg depends on the rest
+// of a shared run. Reused via `evaluateMergeFloorLeg(dir, ".", level)` — the "." issue segment is
+// a deliberate `path.join` no-op (`path.join(dir, ".", "x")` normalises to `path.join(dir, "x")`),
+// so the floor files are read straight out of `dir` itself. This is chosen over the tempting
+// `evaluateMergeFloorLeg(path.dirname(dir), issue, level)` shortcut, which only works when the
+// anchor dir's OWN BASENAME happens to equal the issue id (true for graft's own
+// `.faff/anchors/<run>/<issue>/` convention, but not a real invariant of this function or of
+// `--anchor-dir` callers generally — the "." form has no such hidden dependency on caller-chosen
+// directory names). `issue` for display/reasons purposes is still resolved from chain-head.json
+// (falling back to the dir basename only when that's unreadable) and spliced onto the result
+// below, independently of the file-lookup path. Returns the same run-result shape as
+// `evaluateRunDir` so the renderers/reasons are unchanged; completeness/budget/liveness stay n/a.
+// `pass = integrity.pass && merge_floor.pass`.
+function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
   const integrity = evaluateIntegrityLeg(dir, legacyPolicy, { requireWitness: true });
   let label = path.basename(dir);
+  let issue = path.basename(dir);
   try {
     const ch = JSON.parse(fs.readFileSync(path.join(dir, "chain-head.json"), "utf8"));
     if (ch && typeof ch.run_id === "string" && ch.run_id) label = ch.run_id + (ch.issue ? `/${ch.issue}` : "");
-  } catch { /* no chain-head witness — label stays the dir basename */ }
+    if (ch && typeof ch.issue === "string" && ch.issue) issue = ch.issue;
+  } catch { /* no chain-head witness — label/issue stay the dir basename */ }
+  // Wrapped in the same `{ pass, issues: [...] }` shape `evaluateRunDir` uses (line ~376) —
+  // buildReasons/the text+markdown renderers index `legs.merge_floor.issues`, so the raw
+  // per-issue evaluateMergeFloorLeg result (no `issues` array) must never be assigned directly.
+  const floorResult = { ...evaluateMergeFloorLeg(dir, ".", level), issue };
+  const merge_floor = { pass: floorResult.pass, issues: [floorResult] };
   const naDetail = (name) => `n/a — anchor snapshot (${name} runs on live run dirs only)`;
   return {
     run_id: label,
     run_dir: dir,
-    issues_checked: [],
+    issues_checked: [issue],
     is_anchor: true,
     legs: {
       completeness: { pass: true, undispatched: [], invalid_outcomes: [], detail: naDetail("completeness") },
       budget: { pass: true, detail: naDetail("budget") },
-      merge_floor: { pass: true, issues: [], detail: naDetail("merge_floor") },
+      merge_floor,
       coherence: { clean: true },
       liveness: { pass: true, detail: naDetail("liveness"), status: null, heartbeat_age_secs: null },
       integrity,
     },
-    pass: integrity.pass,
+    pass: integrity.pass && merge_floor.pass,
   };
 }
 
@@ -453,7 +472,8 @@ const { parseArgs, usageError } = require("./argv");
 const GOVERNANCE_CHECK_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 },
   "--run-dir": { arity: 1, repeatable: true }, "--issue": { arity: 1 }, "--level": { arity: 1 }, "--summary-md": { arity: 1 },
-  // FAFF-568: anchors are integrity-only targets; --anchors-root re-asserts containment;
+  // FAFF-568/623: anchors are integrity + merge-floor targets (never the run-scoped
+  // completeness/budget/liveness sweep); --anchors-root re-asserts containment;
   // --derive-anchor-dirs is the Action's discovery mode (changed paths on stdin).
   "--anchor-dir": { arity: 1, repeatable: true }, "--legacy-policy": { arity: 1 },
   "--anchors-root": { arity: 1 }, "--derive-anchor-dirs": { arity: 1 },
@@ -535,9 +555,10 @@ function cmdGovernanceCheck(args) {
     }
     results.push(r);
   }
-  // FAFF-568: anchors are integrity-verified ONLY — never swept as run dirs.
+  // FAFF-568: anchors are integrity-verified always; FAFF-623: also merge-floor-verified
+  // (never completeness/budget/liveness-swept — those stay run-scoped, see evaluateAnchorDir).
   for (const d of anchorDirs) {
-    results.push(evaluateAnchorDir(d, legacyPolicy));
+    results.push(evaluateAnchorDir(d, legacyPolicy, levelFlag));
   }
 
   const pass = results.every((r) => r.pass);
@@ -827,8 +848,16 @@ function governanceCheckSelftest() {
       check("anchor: witness-absent names the condition in the reason",
         (() => { try { return JSON.parse(noWitnessOut).reasons.some((x) => /witness-absent/.test(x)); } catch { return false; } })());
       writeWitness(clean, "run-c", "FAFF-1");
+      // Pre-FAFF-623: no merge-floor evidence in the anchor → merge_floor now correctly fails,
+      // even though integrity is clean — asserted explicitly before adding the floor files.
+      const { result: noFloorRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", clean]));
+      check("anchor: clean chain but NO merge-floor evidence → exit 1 (merge_floor fail, integrity still clean)", noFloorRc === 1);
+      // FAFF-623: ac-checklist.json/review-verdict.json copied straight into the anchor dir
+      // (mirroring `faff events anchor`'s own copy target) → merge_floor now passes too.
+      fs.writeFileSync(path.join(clean, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(clean, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
       const { result: cleanRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", clean]));
-      check("anchor: clean chain → exit 0 (integrity-only, no run-dir sweep)", cleanRc === 0);
+      check("anchor: clean chain + clean merge-floor evidence → exit 0 (integrity + merge_floor, no full run-dir sweep)", cleanRc === 0);
 
       buildChainFixture(broken, "run-b", [
         { phase: "run", type: "run-start" },
@@ -927,6 +956,12 @@ function governanceCheckSelftest() {
     try {
       fs.mkdirSync(path.join(tmp, "anchors", "run-1", "FAFF-1"), { recursive: true });
       fs.mkdirSync(path.join(tmp, "outside"), { recursive: true });
+      // FAFF-623: this test asserts CONTAINMENT, not full-evaluation content — with no events.jsonl
+      // at all, integrity trivially passes (nothing to verify), but merge_floor now also runs
+      // against the same dir and fails closed on missing ac-checklist.json/review-verdict.json.
+      // Write clean floor evidence so the assertion stays about containment, not merge_floor.
+      fs.writeFileSync(path.join(tmp, "anchors", "run-1", "FAFF-1", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(tmp, "anchors", "run-1", "FAFF-1", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
       const { result: contained } = captureOutput(() =>
         cmdGovernanceCheck(["--anchor-dir", path.join(tmp, "anchors", "run-1", "FAFF-1"), "--anchors-root", path.join(tmp, "anchors")]));
       check("anchors-root: contained --anchor-dir accepted", contained === 0);
@@ -934,6 +969,36 @@ function governanceCheckSelftest() {
         cmdGovernanceCheck(["--anchor-dir", path.join(tmp, "outside"), "--anchors-root", path.join(tmp, "anchors")]));
       check("anchors-root: escaping --anchor-dir → exit 2 (fail-loud, never verified)", escaped === 2);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  {
+    // FAFF-623: L4 holdout on an anchor needs BOTH holdout.json and its build-progress.json
+    // checkpoint — readHoldout's freshness check has nothing to compare against without the
+    // latter, and reports "blocked" even for a genuinely valid holdout (the exact false-fail
+    // this ticket's file-copy list exists to avoid introducing).
+    const l4 = mkTmpRunDir("faff-govcheck-anchor-l4-");
+    try {
+      buildChainFixture(l4, "run-l4", [
+        { phase: "run", type: "run-start" },
+        { phase: "build", type: "build-start", issue: "FAFF-9" },
+      ]);
+      const writeWitnessL4 = (dir, runId, issue) => fs.writeFileSync(path.join(dir, "chain-head.json"),
+        JSON.stringify(computeChainHead(fs.readFileSync(path.join(dir, "events.jsonl")), runId, issue), null, 2) + "\n");
+      writeWitnessL4(l4, "run-l4", "FAFF-9");
+      fs.writeFileSync(path.join(l4, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(l4, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+      const buildCompleteAt = new Date(Date.now() - 60000).toISOString();
+      fs.writeFileSync(path.join(l4, "holdout.json"), JSON.stringify({
+        aggregate: "meets-spec", code_blind: true,
+        criteria: [{ class: "scenario", verdict: "met", evidence_present: true }],
+      }));
+
+      const { result: noProgressRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", l4, "--level", "L4"]));
+      check("anchor L4: holdout.json present but NO build-progress.json → exit 1 (freshness unprovable, blocked)", noProgressRc === 1);
+
+      fs.writeFileSync(path.join(l4, "build-progress.json"), JSON.stringify({ updated_at: buildCompleteAt, build: { pushed_at: buildCompleteAt } }));
+      const { result: withProgressRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", l4, "--level", "L4"]));
+      check("anchor L4: holdout.json + its build-progress.json → exit 0 (meets-spec, not blocked)", withProgressRc === 0);
+    } finally { fs.rmSync(l4, { recursive: true, force: true }); }
   }
   {
     // A run dir carrying a clean chain still passes end-to-end (integrity wired into the full sweep).

@@ -22,7 +22,7 @@ This spec re-scopes FAFF-623 after FAFF-568 (merged, PR #471) shipped the chain-
 | System | Relevance |
 |---|---|
 | `plugin/skills/faff/bin/lib/events.js` (`cmdEvents`, `anchor` subcommand) | Where the anchor snapshot is written; gains the additional per-issue-file copy this spec adds |
-| `plugin/skills/faff/bin/lib/governance-check.js` (`evaluateAnchorDir`, `evaluateMergeFloorLeg`) | `evaluateAnchorDir` is where `merge_floor` moves from hardcoded `n/a` to a real leg; `evaluateMergeFloorLeg` is reused unchanged, called with `(path.dirname(anchorDir), issueFromAnchor, level)` — the anchor's own directory layout (`.faff/anchors/<run>/<issue>/`) already matches the `<runDir>/<issue>/…` shape those readers expect |
+| `plugin/skills/faff/bin/lib/governance-check.js` (`evaluateAnchorDir`, `evaluateMergeFloorLeg`) | `evaluateAnchorDir` is where `merge_floor` moves from hardcoded `n/a` to a real leg; `evaluateMergeFloorLeg` is reused unchanged, called as `(dir, ".", level)` — corrected during implementation from this spec's first-draft `(path.dirname(anchorDir), issue, level)`, which only resolves correctly when the anchor dir's own basename happens to equal the issue id (true for graft's own `.faff/anchors/<run>/<issue>/` convention, but not a real invariant of the function or of `--anchor-dir` callers generally — the existing test fixtures violate it). `"."` is a deliberate `path.join` no-op (`path.join(dir, ".", "x")` normalises to `path.join(dir, "x")`), so the floor files are read straight out of `dir` itself regardless of its basename |
 | `plugin/skills/faff/bin/lib/merge-gate.js` (`readAcComplete`, `readReviewVerdict`, `readHoldout`) | Reused verbatim — the same functions `merge-gate` itself calls at merge time; no forked rule |
 | `plugin/skills/faff-graft/SKILL.md` §9b ("Anchor the chain head first") | Where the anchor is invoked; widens from copying 2 files to copying up to 5, and drops the "autonomous run dirs only" scoping (see §3) |
 | `.github/actions/governance-check/action.yml` | No input/discovery changes needed — it already passes every discovered anchor dir through `--anchor-dir`; the leg widening is entirely inside `evaluateAnchorDir` |
@@ -43,12 +43,13 @@ This spec re-scopes FAFF-623 after FAFF-568 (merged, PR #471) shipped the chain-
 |---|---|
 | anchor (existing, FAFF-568) | The immutable, committed per-PR snapshot at `.faff/anchors/<run-id>/<issue-id>/`, today holding `events.jsonl` + `run-ledger.json` + `chain-head.json` |
 | merge-floor evidence (new to the anchor) | `ac-checklist.json` + `review-verdict.json` (always) + `holdout.json` + `build-progress.json` (L4 builds only) — the files `merge-gate` re-reads at merge time, now byte-copied into the anchor alongside the existing two files. `build-progress.json` is required alongside `holdout.json`, not optional to it: `readHoldout` compares the holdout verdict's timestamp against `build-progress.json`'s `updated_at`/`build.pushed_at` to reject a stale holdout — without it, `readHoldout` sees no checkpoint, treats the holdout as unprovably fresh, and returns `"blocked"` even for a genuinely valid L4 holdout. |
-| anchor merge-floor leg | The `merge_floor` entry in `evaluateAnchorDir`'s result, computed by calling the existing `evaluateMergeFloorLeg(path.dirname(anchorDir), issue, level)` against the anchor's own copied files — a real gating leg instead of the current hardcoded `n/a` |
+| anchor merge-floor leg | The `merge_floor` entry in `evaluateAnchorDir`'s result, computed by calling the existing `evaluateMergeFloorLeg(dir, ".", level)` against the anchor's own copied files (see the reference-context row above for why `"."`, not a `path.dirname` reconstruction) — a real gating leg instead of the current hardcoded `n/a` |
 
 **Interfaces changed:**
 
 - `faff events anchor --run-dir <dir> --issue <ID> --dest <dest>` (`events.js`) — **Chosen:** after the existing `events.jsonl`/`run-ledger.json` copy, also copy `<dir>/<ID>/ac-checklist.json`, `<dir>/<ID>/review-verdict.json`, `<dir>/<ID>/holdout.json`, and `<dir>/<ID>/build-progress.json` into `<dest>` **when each source file exists** (each copy is independently best-effort-present, never required). No new flags; no change to `chain-head.json`'s shape.
-- `evaluateAnchorDir(dir, legacyPolicy, level)` (`governance-check.js`) — **Chosen:** gains a `level` parameter (default `"L3"`), and its `merge_floor` field becomes `evaluateMergeFloorLeg(path.dirname(dir), issueFromLabel, level)` instead of the hardcoded n/a stub. `pass` becomes `integrity.pass && merge_floor.pass` (was `integrity.pass` alone). `completeness`/`budget`/`liveness` keep their existing `n/a`, hardcoded-pass stubs, unchanged.
+- `evaluateAnchorDir(dir, legacyPolicy, level)` (`governance-check.js`) — **Chosen:** gains a `level` parameter (default `"L3"`), and its `merge_floor` field becomes `evaluateMergeFloorLeg(dir, ".", level)` instead of the hardcoded n/a stub (the `issue` field on the returned result is still the real issue id, read from `chain-head.json` and spliced onto the leg's own `.issue` for display — only the file-lookup path uses `"."`). `pass` becomes `integrity.pass && merge_floor.pass` (was `integrity.pass` alone). `completeness`/`budget`/`liveness` keep their existing `n/a`, hardcoded-pass stubs, unchanged.
+- Adversarial review flagged that `--issue` reaches a filesystem read (`path.join(dirArg, issueArg, file)`) in the `faff events anchor` subcommand without the same shape validation `merge-gate.js`'s `--issue` already applies. **Chosen (fixed during review):** `events.js`'s `anchor` subcommand now rejects a malformed `--issue` (anything outside `^[A-Za-z0-9][A-Za-z0-9._-]*$` or containing `..`) with the same regex `merge-gate.js` uses — defence-in-depth on a CLI trust boundary, not a forked rule.
 - `cmdGovernanceCheck`'s call site for anchor dirs — **Chosen:** thread the already-parsed `--level` flag through to `evaluateAnchorDir`.
 - `faff-graft/SKILL.md` §9b — **Chosen:** drop "autonomous run dirs only" (runs in both interactive and autonomous), and name the full copied-file set.
 
@@ -64,7 +65,7 @@ This spec re-scopes FAFF-623 after FAFF-568 (merged, PR #471) shipped the chain-
 
 1. Compute `integrity` exactly as today.
 2. Resolve `issue` from `chain-head.json`'s `issue` field, falling back to `path.basename(dir)`.
-3. Compute `merge_floor := evaluateMergeFloorLeg(path.dirname(dir), issue, level)`.
+3. Compute `merge_floor := evaluateMergeFloorLeg(dir, ".", level)`, then splice the real `issue` (from step 2) onto the returned leg's `.issue` field for display.
 4. `completeness`, `budget`, `liveness` unchanged (`n/a`).
 5. `pass := integrity.pass && merge_floor.pass`.
 
@@ -115,5 +116,7 @@ This spec re-scopes FAFF-623 after FAFF-568 (merged, PR #471) shipped the chain-
 - Test coverage per §5's scenarios, including the L4 holdout-freshness case.
 - `.github/workflows/governance.yml`'s `on-missing` is unchanged.
 - A follow-up note is left on FAFF-562.
+
+**Operational heads-up (adversarial review):** governance-check is not yet a required status check (that flip is FAFF-562's own unshipped scope), so this change cannot newly *block* any merge. But any already-open PR carrying a pre-this-ticket anchor (events.jsonl + run-ledger.json only, no floor files) will start showing governance-check as **failing** rather than passing on its next push, once this merges — a visible status-check regression, not a merge block. Worth a one-line mention in the PR description so it doesn't read as a surprise.
 
 confidence: high

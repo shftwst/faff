@@ -874,6 +874,15 @@ function cmdEvents(args) {
     if (!fs.existsSync(dirArg) || !fs.statSync(dirArg).isDirectory()) {
       process.stderr.write(`faff events anchor: --run-dir is not a directory: ${dirArg}\n`); return 2;
     }
+    // FAFF-623 adversarial review: --issue is joined onto --run-dir to locate the per-issue
+    // merge-floor files (below) — a source-path read, not just the label already accepted
+    // unsanitised into chain-head.json. Same shape check merge-gate.js's --issue already
+    // applies (defence-in-depth, never a forked rule): reject anything that isn't a bare
+    // issue-id token, so a malformed/malicious --issue can't walk the read path outside
+    // --run-dir via a ".." segment.
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issueArg) || issueArg.includes("..")) {
+      process.stderr.write(`faff events anchor: --issue ${JSON.stringify(issueArg)} is not a valid issue id\n`); return 2;
+    }
     let eventsBuf;
     try { eventsBuf = fs.readFileSync(path.join(dirArg, "events.jsonl")); }
     catch { process.stderr.write(`faff events anchor: no events.jsonl in ${dirArg} — nothing to anchor\n`); return 3; }

@@ -13,7 +13,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, appendFileSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, appendFileSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -268,6 +268,79 @@ test("FAFF-568: an anchor dir with events.jsonl but NO chain-head.json → integ
     const verdict = JSON.parse(r.stdout);
     assert.equal(verdict.runs[0].legs.integrity.status, "witness-absent");
     assert.ok(verdict.reasons.some((x) => /integrity/.test(x) && /witness-absent/.test(x)), JSON.stringify(verdict.reasons));
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+// --- FAFF-562: unconditional fail-closed guard --------------------------------
+// `governance-check` (the verb) takes no `--on-missing` input at all — that knob
+// lives only in the Action's `on-missing`-branch step, which is skipped entirely
+// whenever a run dir or an anchor is discovered (action.yml's "Run governance-check"
+// step condition). So a present-but-invalid anchor already fails independent of any
+// on-missing posture; this guard test locks that as an assertion so a future refactor
+// can't quietly route anchor evaluation behind the adoption-mode branch (i.e. reading
+// an `on-missing`-shaped flag before deciding whether a present anchor's failure
+// counts). No such flag is passed below — its total absence from the invocation is
+// itself part of what's being asserted: the fail-closed path takes no such input.
+
+test("FAFF-562: a present anchor with INCOMPLETE merge_floor evidence fails unconditionally (no --on-missing input exists on the verb)", () => {
+  const anchor = tmpRunDir("faff562-incomplete-floor-");
+  try {
+    buildChainDir(anchor, "run-562a", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+    const lines = readFileSync(path.join(anchor, "events.jsonl"), "utf8").trim().split("\n");
+    writeFileSync(path.join(anchor, "chain-head.json"), JSON.stringify({
+      run_id: "run-562a", issue: "FAFF-1", head_seq: lines.length - 1,
+      head_sha256: sha256(Buffer.from(lines[lines.length - 1], "utf8")),
+      line_count: lines.length, schema_floor: 2,
+    }, null, 2) + "\n");
+    // Only ac-checklist.json — review-verdict.json is missing entirely (incomplete,
+    // not merely non-pass). Integrity is clean; merge_floor must still fail closed.
+    writeFileSync(path.join(anchor, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `expected merge_floor fail; stdout=${r.stdout} stderr=${r.stderr}`);
+    const verdict = JSON.parse(r.stdout);
+    assert.equal(verdict.runs[0].legs.integrity.pass, true, "integrity itself is clean — isolates the assertion to merge_floor");
+    assert.equal(verdict.runs[0].legs.merge_floor.pass, false);
+    assert.ok(
+      verdict.reasons.some((x) => /merge_floor/.test(x)),
+      `expected a merge_floor reason; got ${JSON.stringify(verdict.reasons)}`,
+    );
+
+    // The unconditional part: no --on-missing-shaped flag exists on this verb at all —
+    // the CLI's own usage/help text never mentions it (that knob is Action-only).
+    const help = runCli(["governance-check", "--help"]);
+    assert.doesNotMatch(`${help.stdout}${help.stderr}`, /on-missing/, "on-missing is not a verb-level input");
+  } finally { rmSync(anchor, { recursive: true, force: true }); }
+});
+
+test("FAFF-562: a present anchor with BOTH broken integrity and incomplete merge_floor still fails (compound, unconditional)", () => {
+  const anchor = tmpRunDir("faff562-compound-broken-");
+  try {
+    const lines = buildChainDir(anchor, "run-562b", [
+      { phase: "run", type: "run-start" },
+      { phase: "build", type: "build-start", issue: "FAFF-1" },
+    ]);
+    const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+    writeFileSync(path.join(anchor, "chain-head.json"), JSON.stringify({
+      run_id: "run-562b", issue: "FAFF-1", head_seq: 1,
+      head_sha256: sha256(Buffer.from(lines[lines.length - 1], "utf8")),
+      line_count: lines.length, schema_floor: 2,
+    }, null, 2) + "\n");
+    // Break integrity (strip prev + downgrade schema) AND leave merge_floor evidence
+    // absent — neither leg should save the other; the verdict must still be a fail.
+    writeFileSync(path.join(anchor, "events.jsonl"),
+      lines.map((l) => { const { prev, ...rest } = JSON.parse(l); return JSON.stringify({ ...rest, schema: 1 }); }).join("\n") + "\n");
+
+    const r = runCli(["governance-check", "--anchor-dir", anchor, "--json"]);
+    assert.equal(r.code, 1, `expected fail; stdout=${r.stdout} stderr=${r.stderr}`);
+    const verdict = JSON.parse(r.stdout);
+    assert.equal(verdict.runs[0].legs.integrity.pass, false);
+    assert.equal(verdict.runs[0].legs.merge_floor.pass, false);
+    assert.equal(verdict.pass, false);
   } finally { rmSync(anchor, { recursive: true, force: true }); }
 });
 

@@ -2,12 +2,24 @@ name: governance-check
 
 # FAFF-363: faff's own dogfood of the harness-independent enforcement binding — the
 # factory becomes consumer #1 of the layer it ships, alongside the Stop hooks (belt and
-# braces at different chokepoints). `on-missing: pass` (adoption mode) because faff's own
-# repo is mixed (human PRs alongside agent-built ones) and no emitter-side step yet
-# commits run dirs onto PR branches (that's its own slice — see the FAFF-363 spec's OUT
-# OF SCOPE). Marking this check REQUIRED in branch protection stays a documented human
-# toggle (assert-don't-enforce, mirroring branch-protection-check's own posture) — this
-# workflow only makes the check RUNNABLE.
+# braces at different chokepoints).
+#
+# FAFF-562: `on-missing: pass` is the deliberate FOOTPRINT-DISCRIMINATING posture, not
+# a hole in the floor. faff's own repo is mixed — human PRs alongside agent-built ones —
+# and the artifact footprint (a committed `.faff/anchors/**` entry, FAFF-568/623) is the
+# signal that tells the two apart: an agent (graft) PR carries one, a hand-authored human
+# PR never does. A PRESENT anchor is gated fail-closed regardless of this setting — the
+# "Run governance-check" step below fires whenever a run dir or anchor is discovered and
+# exits with the verb's own code; `on-missing` governs only the branch where NEITHER is
+# found. So `pass` here passes a zero-footprint (presumptively-human) PR while still
+# failing an agent PR whose anchor is broken or incomplete. Accepted residual: a
+# determined actor can strip the anchor to present as a zero-footprint human PR and
+# bypass the floor — closed only by flipping to `on-missing: fail` once this branch
+# becomes agent-only (no hand-authored PRs), which this same knob supports with no code
+# change. `governance-check` is marked REQUIRED in the repo's "Main" GitHub ruleset via a
+# documented human runbook (docs/guide/governance-check.md §2) — a repo-settings mutation
+# the loop never performs (assert-don't-enforce, mirroring branch-protection-check's own
+# posture, ADR-0010) — this workflow only makes the check RUNNABLE.
 
 on:
   pull_request:

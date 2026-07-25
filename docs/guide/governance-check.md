@@ -65,8 +65,35 @@ pinned to a **commit sha** (§4). Faff's own dogfood workflow uses the local for
 ## 2. Mark the check required
 
 The Action never mutates branch protection — same assert-don't-enforce posture as
-`faff branch-protection-check`. Marking `governance-check` required is a one-click human
-action (or the `gh api` equivalent):
+`faff branch-protection-check`. Marking `governance-check` required is a human repo-admin
+action (console or `gh api`); the loop never performs it (FAFF-562 — a repo-settings
+mutation outside the PR-merge flow, gateway Autonomous Mode Contract hard-floor category c).
+
+**Use the rulesets API, not the legacy branch-protection endpoint.** A repo protected by a
+GitHub **ruleset** (Settings → Rules → Rulesets — the modern surface, and the one
+`faff branch-protection-check` reads) is not bound by the classic
+`branches/<branch>/protection/required_status_checks` endpoint; PATCHing that endpoint on a
+ruleset-protected repo silently mutates a different, unused surface and the check stays
+non-binding. Confirm which surface you're on before picking a recipe below.
+
+**Rulesets (recommended, and what faff's own repo uses):**
+
+```console
+# 1. Discover the ruleset id targeting your branch:
+$ gh api repos/<owner>/<repo>/rulesets --jq '.[] | select(.name=="Main") | .id'
+
+# 2. Read the current required_status_checks rule:
+$ gh api repos/<owner>/<repo>/rulesets/<id> --jq '.rules[] | select(.type=="required_status_checks")'
+
+# 3. PATCH the ruleset so required_status_checks contains BOTH your existing checks
+#    and "governance-check" (the API replaces the rule wholesale — send the full
+#    rules array back with governance-check added). Console equivalent:
+#    Settings -> Rules -> Rulesets -> <ruleset name> -> Require status checks ->
+#    add governance-check.
+```
+
+**Legacy classic branch protection** (only if your repo genuinely has no ruleset and
+still uses the older `branches/.../protection` surface):
 
 ```console
 $ gh api -X PUT repos/<owner>/<repo>/branches/<branch>/protection/required_status_checks \
@@ -74,8 +101,13 @@ $ gh api -X PUT repos/<owner>/<repo>/branches/<branch>/protection/required_statu
     -f 'contexts[]=governance-check'
 ```
 
-Confirm it landed with `faff branch-protection-check --branch <branch>` — it prints the
-branch's `required_checks` list, which should now include `governance-check`.
+Either way, confirm it landed with `faff branch-protection-check --branch <branch>` — it
+prints the branch's `required_checks` list (reading the rulesets surface first), which
+should now include `governance-check`. Also confirm the required-check context string
+equals the job name `governance-check` exactly — a mismatch leaves PRs stuck on
+"Expected — waiting for status" forever, even once the job itself is green.
+
+For the broader sweep of other docs still naming the legacy endpoint, see FAFF-570.
 
 ## 3. Pick your artifact-passing convention
 
@@ -99,6 +131,25 @@ carries none) is a declared policy choice, not a silent pass:
   Flip individual branches to this once every PR landing there is agent-emitted and
   expected to carry artifacts (e.g. a branch protection rule scoped to an agent-only
   integration branch).
+
+**FAFF-562 — why `on-missing: pass` is the deliberate posture on a mixed repo, not a
+hole.** Once a required check gates real PRs, "what happens on zero footprint" stops
+being a rollout detail and becomes the whole gating model. faff's own repo mixes
+human-authored PRs (which never run graft, so never carry an anchor) with agent-built
+ones (which always do, since FAFF-568/623). The artifact footprint — a committed
+`.faff/anchors/**` entry — is exactly the signal that discriminates the two classes, and
+it's already what the Action's discovery step keys off. So the posture is
+**footprint-discriminating adoption**: a PR that carries an anchor is gated fail-closed
+(the `integrity` + `merge_floor` legs, real since FAFF-623) *regardless* of `on-missing`
+— that knob only governs the branch where no footprint is found at all, which `pass`
+treats as presumptively-human and lets through. This is what makes a required check
+non-blocking for every hand-authored PR while still binding for the honest agent-PR case.
+The accepted residual: a determined actor can strip the anchor to present as a
+zero-footprint human PR and bypass the floor — unobservable by construction, since the
+discriminator and the evidence are the same artifact. That's the intrinsic ceiling of
+adoption mode on a mixed repo, closed only by flipping to `on-missing: fail` once a
+branch becomes agent-only (no hand-authored PRs land there) — the same knob, no code
+change, is the future lockdown lever.
 
 ## 4. Pin the binary fetch
 

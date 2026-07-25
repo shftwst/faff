@@ -1,4 +1,4 @@
-# ADR 0086 — Offline-proxy production error-rate machinery for the holdout judge (FAFF-625)
+# ADR 0089 — Offline-proxy production error-rate machinery for the holdout judge (FAFF-625)
 
 - **Status:** Accepted
 - **Provenance:** loop

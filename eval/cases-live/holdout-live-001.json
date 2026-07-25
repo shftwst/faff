@@ -1,0 +1,18 @@
+{
+  "id": "holdout-live-001",
+  "kind": "holdout-live",
+  "note": "Baseline live case: a single http-echo container whose body IS the author-controlled ground truth. One born-verifiable criterion the live endpoint satisfies (met) + one prose criterion pinned needs-human. The model must issue the request itself to see ORDER_SUBMITTED — it is never handed a transcript.",
+  "fixture": {
+    "image": "hashicorp/http-echo",
+    "args": ["-listen=:5678", "-text=ORDER_SUBMITTED"],
+    "port": 18781,
+    "health_path": "/"
+  },
+  "spec_dod": [
+    { "key": "c1", "class": "assertion", "text": "The order endpoint MUST report ORDER_SUBMITTED when a client GETs it." },
+    { "key": "c2", "class": "prose", "text": "The submission flow reads clearly to a new operator." }
+  ],
+  "oracle": {
+    "closed_set": ["c1:met", "c2:needs-human"]
+  }
+}

@@ -11,10 +11,17 @@ import assert from "node:assert";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { classifyDoD, buildVerdict } from "./helpers/holdout-exercise.mjs";
+// FAFF-474 — the up/waitReady/down/dangling lifecycle now lives once in eval/docker-fixture.mjs, shared
+// with the live holdout-live driver. This test drives it through http-echo exactly as it always did.
+import { up as upFixture, down, dangling, waitReady } from "../eval/docker-fixture.mjs";
 
 const FAFF = fileURLToPath(new URL("../plugin/skills/faff/bin/faff", import.meta.url));
 const IMAGE = "hashicorp/http-echo";
 const SKIP = spawnSync("docker", ["info"], { stdio: "ignore" }).status === 0 ? false : "docker unavailable";
+// http-echo serves one fixed `-text` body on its `-listen` port — the shared up() with echo's launch args.
+function up(name, text, port) {
+  return upFixture({ name, image: IMAGE, args: ["-listen=:5678", `-text=${text}`], hostPort: port, containerPort: 5678 });
+}
 
 // A tiny spec whose born-verifiable DoD the fixture env can satisfy or violate.
 const SPEC = [
@@ -31,20 +38,6 @@ const SPEC = [
 
 function contractExit(verdict) {
   return spawnSync("node", [FAFF, "contract", "holdout-verdict"], { input: JSON.stringify(verdict), encoding: "utf8" }).status;
-}
-function up(name, text, port) {
-  spawnSync("docker", ["rm", "-f", name], { stdio: "ignore" });
-  const r = spawnSync("docker", ["run", "-d", "--name", name, "-p", `${port}:5678`, IMAGE, "-listen=:5678", `-text=${text}`], { encoding: "utf8" });
-  return r.status === 0;
-}
-function down(name) { spawnSync("docker", ["rm", "-f", name], { stdio: "ignore" }); }
-function dangling(name) { return spawnSync("docker", ["ps", "-aq", "--filter", `name=${name}`], { encoding: "utf8" }).stdout.trim(); }
-async function waitReady(endpoint, tries = 40) {
-  for (let i = 0; i < tries; i++) {
-    try { const r = await fetch(endpoint); if (r.ok) return true; } catch { /* not up yet */ }
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  return false;
 }
 
 test("holdout loop: a satisfying feature → met → meets-spec, env torn down (docker-gated)", { skip: SKIP }, async () => {

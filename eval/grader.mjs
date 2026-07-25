@@ -243,8 +243,15 @@ import { fileURLToPath } from "node:url";
 //                     the FAFF-816 spec). Surface = faffter-dark-adversarial-review (the same
 //                     adversarial engine adr-drift/refutation-code use — a distinct question, same
 //                     mechanism).
-export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni"];
-export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni"]);
+// FAFF-474 — the live-lane LIVE_KINDS holdout adapter adds one closed-set kind:
+//   holdout-live    — SHIPPED. The live-lane counterpart to holdout-exercise: the real evaluator is
+//                     driven AGENTICALLY (host-mediated command derivation-and-execution, `eval/
+//                     live-agent-driver.mjs`) against a live docker env (`eval/docker-fixture.mjs`)
+//                     rather than a fixed recording. Structurally identical to holdout-exercise (same
+//                     closed-set predictedSet extraction — env["holdout-exercise"] shape) but exercised
+//                     live, so it graded through run-live-evals.mjs's LIVE_KINDS, not the offline runner.
+export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere", "prdr-yagni"];
+export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "holdout-live", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift", "prdr-yagni"]);
 
 // FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
 // gradeSplittable / gradeChainGap) but deliberately NOT in CLOSED_SET_KINDS above, because they grade
@@ -325,6 +332,10 @@ const FIXTURE_SHAPE = {
   // as `holdout`; `recordings` is a list of RAW, UNALIGNED request/response observations (no per-
   // criterion labelling — includes distractors/traps the judge must derive the mapping over itself).
   "holdout-exercise": ["spec_dod", "recordings"],
+  // FAFF-474 — holdout-live: the fixture describes the live container(s) to stand up (not a recorded
+  // transcript). `spec_dod` rides at the CASE top level (not in fixture), so it is guarded in the driver,
+  // not here; validateCase asserts the container descriptor fields the lifecycle reads.
+  "holdout-live": ["image", "args", "port", "health_path"],
   // FAFF-282 — spec-verdict: the reviewer reads the spec body under its 4-lens rubric and emits one
   // verdict. The fixture carries `spec_body` (the spec under review — the confidence precedent);
   // validateCase asserts it is present. The predicted verdict rides env.verdict (the routing arm).
@@ -671,7 +682,13 @@ function predictedSet(c, env) {
     // env["holdout-exercise"] map → empty set (pairsOf fail-safe) → a clean FAIL, never a crash. The
     // fail-closed (no-bearing-recording → needs-human) and trap (believed-claim → unmet) rules are
     // asserted at the CASE level via the oracle — no grader-side coercion, mirroring `holdout`.
+    // FAFF-474 — holdout-live: the LIVE-driven twin of holdout-exercise. Its driver derives the SAME
+    // per-criterion `<criterion-key>:<class>` map by probing a live env (not a recorded transcript) and
+    // normalises it into the EXISTING `env["holdout-exercise"]` field (spec §6 D3), so a live-lane score
+    // is directly comparable to the recorded-lane score. It JOINS holdout-exercise's arm — zero new grade
+    // math — exactly as routing/verdict-build/spec-verdict share the `env.verdict` arm.
     case "holdout-exercise":
+    case "holdout-live":
       return pairsOf(env["holdout-exercise"]);
     // FAFF-283 — refutation-spec: the objecting-lens SET (not a single verdict — that is spec-verdict's
     // job, one altitude down). Each independent lens-refuter contributes an objection {lens, severity};

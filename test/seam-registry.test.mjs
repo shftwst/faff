@@ -35,7 +35,7 @@ test("a KIND added to one side but not the other throws a drift error", () => {
   assert.throws(() => assertRegistryConsistent(extra), /KINDS drift/);
 });
 
-test("seed is truthful: status:covered ⇔ ≥1 case in eval/cases/; designed are exactly the two zero-case kinds", () => {
+test("seed is truthful: status:covered ⇔ ≥1 case in eval/cases/; designed are exactly the zero-case (live-lane) kinds", () => {
   const caseKinds = new Set();
   for (const f of readdirSync(join(REPO, "eval", "cases"))) {
     const m = f.match(/^(.*)-\d+\.json$/);
@@ -47,7 +47,7 @@ test("seed is truthful: status:covered ⇔ ≥1 case in eval/cases/; designed ar
     assert.ok(entry.surface && typeof entry.surface === "string", `${kind} has a surface`);
   }
   const designed = Object.entries(registry.kinds).filter(([, e]) => e.status === "designed").map(([k]) => k);
-  assert.deepEqual(new Set(designed), new Set(["reconciliation", "verdict-build", "prd-readiness"]));
+  assert.deepEqual(new Set(designed), new Set(["reconciliation", "verdict-build", "holdout-live", "prd-readiness"]));
 });
 
 // ---- validate-adapters reconciliation ----

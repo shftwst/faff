@@ -1750,3 +1750,44 @@ test("FAFF-604 ESTIMATE COST: the measured engine portion prices; the transcript
       "the partial figure must say what it excludes, never read as a complete cost");
   } finally { f.cleanup(); }
 });
+
+// --- FAFF-604 review findings: regressions the pre-PR review caught ---------
+
+test("FAFF-604 REGRESSION: the allow_unmetered waiver survives the LEDGER envelope path", () => {
+  // beep-boop records an envelope in the ledger at run start, so the ledger path is
+  // the NORMAL path. A waiver read only from fresh config would be silently inert
+  // there — and an inert waiver does not merely get ignored: it forces cost:null,
+  // and a null cost makes computeBudgetState skip the cost dimension entirely, so
+  // the operator loses the very ceiling they were keeping.
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
+  const f = fixture({
+    rc,
+    ledger: baseLedger({ budget: { envelope: { ceilings: { cost: 25, tokens: null, until: null, max_attempts: null }, at_ceiling: "stop", price_per_mtok: 0, pricing: "map" } } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: true }],
+      "the waiver must be honoured on the ledger-envelope path, not only on fresh config");
+    assert.ok(!(s.warnings || []).some((w) => /cost not meterable/.test(w)),
+      "a waived engine must not blank the dollar ceiling the operator kept");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 REGRESSION: an unmetered engine with NO cost ceiling keeps its informational cost figure", () => {
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  tokens: 100000\n";
+  const f = fixture({ rc, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    // No dollar ceiling armed ⇒ nothing to refuse; the engine is still NAMED.
+    assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: false }]);
+    assert.ok(s.warnings.some((w) => /telemetry: none/.test(w)));
+  } finally { f.cleanup(); }
+});

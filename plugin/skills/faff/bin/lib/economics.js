@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokensByModelClass, readEngineSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir, unmeteredFleetEngines } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokensByModelClass, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir, unmeteredFleetEngines } = require("./budget");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
@@ -402,18 +402,21 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
       return { key: cls, ...one, cost: price ? (byClass[cls] / 1e6) * price[cls] : null };
     });
   } else if (axis === "model") {
-    // FAFF-604: every model row names WHERE its tokens were read. Transcript rows
-    // say so explicitly rather than leaving the source implicit, so a mixed-fleet
-    // breakdown can be read without inferring which lane a model belonged to.
-    rows = [...byModel.entries()].map(([model, b]) => ({ ...mkRow(model, b, model), source: "transcript-jsonl" }))
-      .sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
-    if (engineSpend && engineSpend.by_model instanceof Map) {
-      const engineRows = [...engineSpend.by_model.entries()].map(([model, counts]) => {
+    // FAFF-604: on a MIXED-fleet run every model row names where its tokens were
+    // read, so the breakdown can be read without inferring which lane a model
+    // belonged to. On a transcript-only run the field is omitted entirely — the
+    // byte-identical guarantee is about exactly this: an unchanged run must emit
+    // unchanged JSON, down to the absent key.
+    const engineRows = engineSpend && engineSpend.by_model instanceof Map && engineSpend.by_model.size > 0
+      ? [...engineSpend.by_model.entries()].map(([model, counts]) => {
         const b = { ...counts, total: counts.input + counts.output + counts.cache_write + counts.cache_read };
         return { ...mkRow(model, b, model), source: "exec-json-events" };
-      });
-      rows = rows.concat(engineRows).sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
-    }
+      })
+      : [];
+    rows = [...byModel.entries()].map(([model, b]) => (engineRows.length
+      ? { ...mkRow(model, b, model), source: "transcript-jsonl" }
+      : mkRow(model, b, model)));
+    rows = rows.concat(engineRows).sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
   } else if (axis === "day") {
     rows = [...byDay.entries()].map(([day, dm]) => {
       const agg = mkc();
@@ -751,7 +754,10 @@ function cmdEconomics(args) {
   // no-`--by` common path now reads the transcript exactly once (the top-line no
   // longer needs a separate `readRunTranscriptRecords`). The scalar total is still
   // baselined at run start, the same figure budget gates on.
-  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  // FAFF-604: the SAME combining call `budget check` makes — one owner of the
+  // two-source union, so the two top lines can never drift into independent folds.
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, cfg, allowUnmetered: env.allow_unmetered });
+  const measured = runSpend.transcript;
   const measuredSource = measured.source;
   const measuredTotal = measuredSource === "transcript"
     ? (measured.totals.input + measured.totals.output + measured.totals.cache_write + measured.totals.cache_read)
@@ -771,7 +777,7 @@ function cmdEconomics(args) {
   // them, keeping the two top lines reconciled. `tokens_source` keeps its exact
   // prior meaning — the TRANSCRIPT-side measurement basis — so the estimate-mode
   // sanity gate downstream is untouched; measured engine spend counts either way.
-  const engineSpend = readEngineSpend(runDir);
+  const engineSpend = runSpend.engine_spend;
   const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
     + engineSpend.totals.cache_write + engineSpend.totals.cache_read;
   const transcriptPortion = tokensTotal;
@@ -887,7 +893,7 @@ function cmdEconomics(args) {
     });
     econ.spend_sources = spendSources;
   }
-  const unmetered = unmeteredFleetEngines(cfg, env.allow_unmetered);
+  const unmetered = runSpend.unmetered_engines;
   const unmeteredAll = unmeteredFleetEngines(cfg, []);
   if (unmeteredAll.length) {
     econ.unmetered_engines = unmeteredAll.map((name) => ({ engine: name, waived: !unmetered.includes(name) }));

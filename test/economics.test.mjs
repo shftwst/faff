@@ -808,3 +808,18 @@ test("FAFF-604: an unmetered engine is named in economics and never counted as f
       "the run must say its figures exclude an unobservable engine, never imply completeness");
   } finally { f.cleanup(); }
 });
+
+test("FAFF-604 REGRESSION: --by model rows carry NO source field on a transcript-only run", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100, output_tokens: 20 }] } });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "transcript");
+    assert.ok(bd.rows.length > 0);
+    assert.ok(bd.rows.every((row) => !("source" in row)),
+      "the byte-identical guarantee covers the absent key, not just the values");
+  } finally { f.cleanup(); }
+});

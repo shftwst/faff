@@ -956,7 +956,15 @@ function cmdBudget(args) {
   // `measureTokens` would (its `totals` is the sum over `by_model`, by
   // construction), so this is not a second walk — it is the one walk, now also
   // carrying what map-pricing needs. Estimate fallback when the transcript is gone.
-  const measuredFull = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  // FAFF-604: ONE combining call — `measureRunSpend` owns the union of the two
+  // spend sources, so budget and economics can never drift into two independent
+  // folds of the same data (the "one measurement, all ceilings" principle applied
+  // to the seam itself, not just to the ceilings downstream of it). Its
+  // `transcript` half is exactly what `measureTokensByModelClass` returned before,
+  // so the baselining below is untouched; the run-scoped `engine_spend` half needs
+  // no baseline and is folded in after.
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, cfg, allowUnmetered: env.allow_unmetered });
+  const measuredFull = runSpend.transcript;
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
   const costWarnings = [];         // accumulated unconditionally; the single costConfigured gate is at the flush point
@@ -1015,7 +1023,7 @@ function cmdBudget(args) {
   // (tokens, cost, and window alike) with no edit to the window governor.
   // Counts in estimate mode too: these tokens were MEASURED off the child's own
   // event stream, whatever the transcript side could or couldn't resolve.
-  const engineSpend = readEngineSpend(runDir);
+  const engineSpend = runSpend.engine_spend;
   const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
     + engineSpend.totals.cache_write + engineSpend.totals.cache_read;
   tokens += engineSpendTotal;
@@ -1037,7 +1045,7 @@ function cmdBudget(args) {
   // non-zero exit as unbreached, so refusing via the exit code would fail the whole
   // budget signal OPEN, masking a real breach (the FAFF-364 reasoning). The hard
   // refusal lives at the lights-out mint, where refusing carries no such risk.
-  const unmeteredEngines = unmeteredFleetEngines(cfg, env.allow_unmetered);
+  const unmeteredEngines = runSpend.unmetered_engines;
   // FAFF-594: `tokens` at this point is a CROSS-RESUME-SAFE cumulative-since-run-start
   // figure — Σ closed-span deltas (FAFF-527) + the current open span's live delta,
   // baselined at run start. The window governor reuses THIS figure (not a raw
@@ -1061,7 +1069,12 @@ function cmdBudget(args) {
   // not sprout warnings nobody asked for — without every branch re-deriving that
   // guard, the one place a future branch would forget it).
   let cost;
-  if (unmeteredEngines.length) {
+  // Gated on `costConfigured` to match the mint-side gate (which arms only when
+  // budget.cost is set): with no dollar ceiling armed there is nothing to refuse,
+  // and blanking the informational cost figure would degrade a run that never
+  // asked for a ceiling. The engine is still NAMED in that state — see the
+  // unconditional `unmetered_engines` label at the output tail.
+  if (costConfigured && unmeteredEngines.length) {
     // FAFF-604: an unobservable engine in the fleet makes the dollar figure a
     // lie, not a lower bound worth printing — cost is unknowable, never a number
     // that reads as "under budget" because an engine's spend was invisible.
@@ -1436,6 +1449,15 @@ function envelopeFromLedger(rec, flags, cfg) {
       const rt = rw ? num(rw.tokens) : null;
       return (rh != null && rh > 0 && rt != null && rt > 0) ? { hours: rh, tokens: rt } : fresh.window;
     })(),
+    // FAFF-604: the unmetered waiver is LIVE CONFIG POLICY, not a minted ceiling —
+    // it is always read from `fresh`, never from the record. A minted ledger
+    // predates any waiver the operator adds later, and forgetting this field here
+    // would make the waiver silently inert on every real run (beep-boop writes a
+    // recorded envelope at run start, so the ledger path is the normal path) —
+    // which does not merely ignore the waiver: it forces `cost: null`, and a null
+    // cost makes computeBudgetState skip the cost dimension entirely, so the
+    // operator loses the dollar ceiling they were trying to keep.
+    allow_unmetered: fresh.allow_unmetered,
   };
 }
 
@@ -1448,7 +1470,10 @@ function envelopeFromLedger(rec, flags, cfg) {
 // date-sensitive case here still pins its own fixed NOW (FAFF-579 item E).
 function budgetSelftest(now = Date.now()) {
   let fail = 0;
-  const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
+  let checks = 0;
+  // `checks` counts what actually ran — the printed total used to be a hardcoded
+  // literal, which drifted every time a row was added (FAFF-604 review finding).
+  const ok = (name, cond) => { checks++; if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
   const NOW = Date.parse("2026-06-23T12:00:00Z");
 
   // --- envelopeFrom: config + flag override ---
@@ -1770,7 +1795,7 @@ function budgetSelftest(now = Date.now()) {
   ok("envelopeFrom: a scalar allow_unmetered is accepted as a one-name list",
     envelopeFrom({ budget: { allow_unmetered: "lan" } }, {}).allow_unmetered.join(",") === "lan");
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${36} checks, ${fail} failed)`);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${checks} checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 

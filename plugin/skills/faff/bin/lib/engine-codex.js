@@ -72,21 +72,34 @@ function parseCodexEvents(raw) {
 }
 
 // PURE (FAFF-604): total the usage carried on the stream's `turn.completed`
-// events into the four token classes budget/economics bucket by. codex reports
-// no cache-write class, so it is always 0 — the field is kept for shape parity
-// with the transcript source, so the two union without a special case. Missing
-// or non-finite fields contribute nothing (an under-count, the safe direction —
-// the same posture the transcript loop takes on a malformed record).
+// events into the four token classes budget/economics bucket by.
+//
+// The class model comes from the Anthropic transcript, where the classes are
+// DISJOINT (`input_tokens` excludes the two cache classes). The codex/OpenAI
+// shape differs: `cached_input_tokens` is a SUBSET of `input_tokens` — which is
+// why codex-rs exposes a `non_cached_input()` helper at all. So the cached
+// portion is SUBTRACTED out of the input class rather than added alongside it;
+// adding both would count those tokens twice and, once codex models reach the
+// price map, bill them twice (at the full input rate AND the cache-read rate).
+// Floored at 0: a stream reporting more cached than input is incoherent, and
+// clamping keeps the class non-negative rather than propagating the nonsense.
+//
+// codex reports no cache-write class, so it is always 0 — the field is kept for
+// shape parity with the transcript source, so the two union without a special
+// case. Missing or non-finite fields contribute nothing (an under-count, the
+// safe direction — the same posture the transcript loop takes on a malformed
+// record).
 function sumCodexUsage(events) {
   const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
-  const add = (cls, v) => { if (typeof v === "number" && Number.isFinite(v)) totals[cls] += v; };
+  const n = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
   for (const ev of events || []) {
     if (!ev || ev.type !== "turn.completed") continue;
     const u = ev.usage;
     if (!u || typeof u !== "object") continue;
-    add("input", u.input_tokens);
-    add("output", u.output_tokens);
-    add("cache_read", u.cached_input_tokens);
+    const cached = n(u.cached_input_tokens);
+    totals.input += Math.max(0, n(u.input_tokens) - cached);
+    totals.output += n(u.output_tokens);
+    totals.cache_read += cached;
   }
   return totals;
 }
@@ -281,9 +294,11 @@ function codexSelftest() {
       { type: "turn.completed", usage: { input_tokens: 1, output_tokens: 2 } },
       { type: "item.completed", usage: { input_tokens: 999 } }, // not a turn event — never counted
     ]);
-    ok("usage: sums turn.completed across the stream, maps cached_input_tokens -> cache_read",
-      u.input === 11 && u.output === 7 && u.cache_read === 3 && u.cache_write === 0);
-    ok("usage: a non-turn event's usage is not counted", u.input === 11);
+    // input_tokens 10+1 = 11, of which 3 are cached → 8 non-cached input + 3 cache_read.
+    ok("usage: sums turn.completed, splitting cached input OUT of the input class (disjoint, never double-counted)",
+      u.input === 8 && u.output === 7 && u.cache_read === 3 && u.cache_write === 0);
+    ok("usage: the two input classes partition input_tokens", u.input + u.cache_read === 11);
+    ok("usage: a non-turn event's usage is not counted", u.input === 8);
     const empty = sumCodexUsage([{ type: "turn.completed" }, { type: "turn.completed", usage: { input_tokens: "x" } }]);
     ok("usage: missing/non-numeric fields contribute nothing (under-count, the safe direction)",
       empty.input === 0 && empty.output === 0 && empty.cache_read === 0);
@@ -306,6 +321,7 @@ function codexSelftest() {
       r && r.engine === "seat" && r.provider === "codex" && r.model === "gpt-5-codex" && r.source === "exec-json-events");
     ok("sink: record carries the class-mapped usage sums",
       r && r.input === 10 && r.output === 5 && r.cache_read === 0 && r.cache_write === 0);
+    ok("sink: TURN_LINE carries no cached tokens, so input is unsplit here", r && r.input === 10);
   }
   {
     // A failed call records nothing — attributing partial usage from a failure is

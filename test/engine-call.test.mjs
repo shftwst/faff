@@ -440,7 +440,8 @@ test("FAFF-604: sumCodexUsage totals turn.completed usage into the four token cl
     { type: "turn.completed", usage: { input_tokens: 40, output_tokens: 12, cached_input_tokens: 8 } },
     { type: "turn.completed", usage: { input_tokens: 2 } },
   ]);
-  assert.deepEqual(u, { input: 42, output: 12, cache_write: 0, cache_read: 8 });
+  // 40 input of which 8 cached → 32 non-cached; plus 2 uncached from the second turn.
+  assert.deepEqual(u, { input: 34, output: 12, cache_write: 0, cache_read: 8 });
 });
 
 test("FAFF-604: a successful codex call hands the sink one record with class-mapped usage", () => {
@@ -461,7 +462,7 @@ test("FAFF-604: a successful codex call hands the sink one record with class-map
   assert.equal(code, ENGINE_EXIT.OK);
   assert.deepEqual(recorded, [{
     ts: "2026-07-25T00:00:00Z", engine: "seat", provider: "codex", model: "gpt-5-codex",
-    source: "exec-json-events", input: 30, output: 9, cache_write: 0, cache_read: 4,
+    source: "exec-json-events", input: 26, output: 9, cache_write: 0, cache_read: 4,
   }]);
 });
 
@@ -505,4 +506,16 @@ test("FAFF-604: --run-dir is accepted by `engine call` (explicit in-run attribut
     // The flag is known to the parser — an unknown flag would be a usage exit 2.
     assert.notEqual(r.code, 2, r.stderr);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-604 REGRESSION: codex cached input is a SUBSET of input_tokens, never double-counted", () => {
+  // The four-class model is Anthropic's, where the classes are disjoint. codex
+  // reports cached input INSIDE input_tokens (hence codex-rs's non_cached_input
+  // helper), so counting both would bill those tokens twice.
+  const u = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 40, output_tokens: 12, cached_input_tokens: 8 } }]);
+  assert.deepEqual(u, { input: 32, output: 12, cache_write: 0, cache_read: 8 });
+  assert.equal(u.input + u.cache_read, 40, "the classes must partition input_tokens, not overlap it");
+  // Incoherent stream (more cached than input) clamps rather than going negative.
+  const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 9 } }]);
+  assert.equal(weird.input, 0);
 });

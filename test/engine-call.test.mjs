@@ -13,9 +13,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli, repoRoot } from "./helpers/run-cli.mjs";
 import engine from "../plugin/skills/faff/bin/lib/engine.js";
+import engineCodex from "../plugin/skills/faff/bin/lib/engine-codex.js";
 import config from "../plugin/skills/faff/bin/lib/config.js";
 
 const { buildEngineRequest, parseEngineResponse, preflightEngine, runEngineCall, ENGINE_EXIT } = engine;
+const { buildCodexArgv, parseCodexEvents, runCodexCall } = engineCodex;
 const { resolveEngineForLane, validateEngineRef, ENGINE_CALL_LANES } = config;
 
 function fixtureDir(faffrcBody) {
@@ -254,4 +256,172 @@ test("preflightEngine: openai 401 on the probe classifies as auth-failed, not un
   const e = Object.assign(new Error("HTTP 401: nope"), { statusCode: 401 });
   const pf = await preflightEngine({ family: "openai", host: "https://x/v1", model: "m", apiKey: "k", getFn: async () => { throw e; } });
   assert.equal(pf.authFailed, true);
+});
+
+// --- FAFF-593: codex spawn family — read-time guards (config get) ---
+
+const CODEX_BLOCK = "backends:\n  codex-seat:\n    provider: codex\n    model: gpt-5-codex\n";
+
+test("codex: engine:codex-seat on models.methodology resolves at read (host-less is valid)", () => {
+  const dir = fixtureDir(CODEX_BLOCK + "models:\n  methodology: engine:codex-seat\n");
+  try {
+    const r = runCli(["config", "get", "models.methodology"], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.stdout.trim(), "engine:codex-seat");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("codex: a present host is refused at read with the named error", () => {
+  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    host: http://h:1\nmodels:\n  intake: engine:c\n");
+  try {
+    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /a codex engine has no host/);
+    assert.match(r.stderr, /bin_path/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("codex: reasoning_off: true is refused at read (no codex mapping exists)", () => {
+  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    reasoning_off: true\nmodels:\n  intake: engine:c\n");
+  try {
+    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /reasoning_off is not supported on provider codex/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("codex: auth: none is refused at read (codex always authenticates)", () => {
+  const dir = fixtureDir("backends:\n  c:\n    provider: codex\n    model: m\n    auth: none\nmodels:\n  intake: engine:c\n");
+  try {
+    const r = runCli(["config", "get", "models.intake"], { cwd: dir });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /auth "none" is refused on provider codex/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("codex: a non-allowlisted lane still rejects an engine value at read (unchanged guard)", () => {
+  const dir = fixtureDir(CODEX_BLOCK + "models:\n  build: engine:codex-seat\n");
+  try {
+    const r = runCli(["config", "get", "models.build"], { cwd: dir });
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /models\.methodology \| models\.intake/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("codex: resolveEngineForLane returns the codex-shaped record (binPath, no host)", () => {
+  const r = resolveEngineForLane({
+    backends: { c: { provider: "codex", model: "gpt-5-codex", bin_path: "/opt/codex/bin/codex", timeout: 30 } },
+    models: { intake: "engine:c" },
+  }, "intake");
+  assert.equal(r.error, undefined);
+  assert.equal(r.family, "codex");
+  assert.equal(r.host, null);
+  assert.equal(r.binPath, "/opt/codex/bin/codex");
+  assert.equal(r.timeoutMs, 30000);
+});
+
+// --- FAFF-593: codex dispatch table (injected spawn — zero real spawns) ---
+
+const CODEX_ENGINE = { name: "codex-seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+const AGENT_LINE = JSON.stringify({ type: "item.completed", item: { id: "item_0", item_type: "agent_message", text: "the producer block" } });
+const TURN_LINE = JSON.stringify({ type: "turn.completed", usage: { input_tokens: 10, output_tokens: 5 } });
+const PROBE_OK = { status: 0, stdout: "Logged in using ChatGPT", stderr: "", error: null, signal: null };
+const sink = () => {};
+// Injected spawn dispatcher: probe calls (login status) vs exec calls, with capture.
+function spawnSeq(probeRes, execRes, calls = []) {
+  return (cmd, args, opts) => {
+    calls.push({ cmd, args, opts });
+    return args[0] === "login" ? probeRes : execRes;
+  };
+}
+
+test("codex dispatch: happy path — exit 0, stdout is the final agent message, one exec spawn", () => {
+  const calls = [];
+  let stdout = "";
+  const code = runCodexCall({
+    engine: CODEX_ENGINE, system: "SYS", user: "USR",
+    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+    stdoutWrite: (s) => (stdout += s), stderrWrite: sink,
+  });
+  assert.equal(code, ENGINE_EXIT.OK);
+  assert.equal(stdout, "the producer block\n");
+  const exec = calls.filter((c) => c.args[0] === "exec");
+  assert.equal(exec.length, 1);
+  assert.deepEqual(exec[0].args, buildCodexArgv("gpt-5-codex"));
+  assert.equal(exec[0].opts.input, "SYS\n\nUSR");
+});
+
+test("codex dispatch: seat probe exit 1 → auth-failed exit 6, codex exec never spawned", () => {
+  const calls = [];
+  let stderr = "";
+  const code = runCodexCall({
+    engine: CODEX_ENGINE, system: "S", user: "U",
+    spawnFn: spawnSeq({ status: 1, stdout: "", stderr: "Not logged in", error: null, signal: null }, null, calls),
+    stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+  });
+  assert.equal(code, ENGINE_EXIT.AUTH);
+  assert.match(stderr, /codex login/);
+  assert.equal(calls.filter((c) => c.args[0] === "exec").length, 0);
+});
+
+test("codex dispatch: ENOENT → engine-unreachable exit 5 naming install/bin_path", () => {
+  let stderr = "";
+  const enoent = { status: null, stdout: null, stderr: null, error: Object.assign(new Error("spawnSync codex ENOENT"), { code: "ENOENT" }), signal: null };
+  const code = runCodexCall({ engine: CODEX_ENGINE, system: "S", user: "U", spawnFn: () => enoent, stdoutWrite: sink, stderrWrite: (s) => (stderr += s) });
+  assert.equal(code, ENGINE_EXIT.UNREACHABLE);
+  assert.match(stderr, /codex binary not found/);
+  assert.match(stderr, /bin_path/);
+});
+
+test("codex dispatch: non-JSON stdout line → malformed-response exit 7 with excerpt", () => {
+  let stderr = "";
+  const code = runCodexCall({
+    engine: CODEX_ENGINE, system: "S", user: "U",
+    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${AGENT_LINE}\nplain chatter\n`, stderr: "", error: null, signal: null }),
+    stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+  });
+  assert.equal(code, ENGINE_EXIT.MALFORMED);
+  assert.match(stderr, /plain chatter/);
+});
+
+test("codex dispatch: clean exit with no agent message → malformed-response exit 7", () => {
+  let stderr = "";
+  const code = runCodexCall({
+    engine: CODEX_ENGINE, system: "S", user: "U",
+    spawnFn: spawnSeq(PROBE_OK, { status: 0, stdout: `${TURN_LINE}\n`, stderr: "", error: null, signal: null }),
+    stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+  });
+  assert.equal(code, ENGINE_EXIT.MALFORMED);
+  assert.match(stderr, /no agent message/);
+});
+
+test("codex dispatch: auth-shaped child failure → auth-failed exit 6", () => {
+  let stderr = "";
+  const code = runCodexCall({
+    engine: CODEX_ENGINE, system: "S", user: "U",
+    spawnFn: spawnSeq(PROBE_OK, { status: 1, stdout: "", stderr: "HTTP 401 unauthorized", error: null, signal: null }),
+    stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+  });
+  assert.equal(code, ENGINE_EXIT.AUTH);
+  assert.match(stderr, /remedy: codex login/);
+});
+
+test("codex dispatch: declared api_key_env unset → exit 6 before ANY spawn (probe included)", () => {
+  const calls = [];
+  let stderr = "";
+  const code = runCodexCall({
+    engine: { ...CODEX_ENGINE, apiKeyEnv: "FAFF593_TEST_UNSET_KEY" }, system: "S", user: "U",
+    spawnFn: spawnSeq(PROBE_OK, null, calls), env: {},
+    stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+  });
+  assert.equal(code, ENGINE_EXIT.AUTH);
+  assert.match(stderr, /FAFF593_TEST_UNSET_KEY/);
+  assert.equal(calls.length, 0);
+});
+
+test("codex parse: events (usage fields included) survive in the parse result — the FAFF-604 seam", () => {
+  const p = parseCodexEvents(`${TURN_LINE}\n${AGENT_LINE}\n`);
+  assert.equal(p.finalMessage, "the producer block");
+  assert.equal(p.events.length, 2);
+  assert.equal(p.events[0].usage.output_tokens, 5);
 });

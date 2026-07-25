@@ -4,7 +4,8 @@
 // `faff engine call` — the direct-API one-shot transport for engine-valued lanes.
 // A models.<lane> value of `engine:<name>` routes the producer request out of session
 // as ONE non-streaming completion against the configured engine (ollama /api/chat, or
-// an openai-compatible /v1/chat/completions). v1 allowlist: methodology | intake (the
+// an openai-compatible /v1/chat/completions; the codex SPAWN family forks to
+// engine-codex.js after resolution — FAFF-593). v1 allowlist: methodology | intake (the
 // pure-data-in producers) — enforced HERE at dispatch as well as at config read (the
 // capability-mismatch guard, enforced not documented).
 //
@@ -207,6 +208,18 @@ function cmdEngine(args) {
   }
   const res = resolveEngineForLane(cfg, lane);
   if (res.error) { process.stderr.write(`faff engine call: ${res.error}\n`); return ENGINE_EXIT.CONFIG; }
+  // FAFF-593: the codex family is a SPAWN transport, not HTTP — fork after config
+  // resolution to engine-codex.js, which owns its whole procedure (api-key guard,
+  // seat probe, exec spawn, parse, classify) and its own failure tags (a codex
+  // record has no host, so the HTTP `@ host` tag would be a lie). Synchronous int
+  // return — bin/faff's dispatcher accepts int-or-Promise.
+  if (res.family === "codex") {
+    let system, user;
+    try { system = fs.readFileSync(systemFile, "utf8"); user = fs.readFileSync(userFile, "utf8"); }
+    catch (e) { process.stderr.write(`faff engine call: cannot read prompt file — ${e.message}\n`); return ENGINE_EXIT.CONFIG; }
+    const { runCodexCall } = require("./engine-codex");
+    return runCodexCall({ engine: res, system, user });
+  }
   // api_key_env indirection: config carries the env var NAME, never the key. A declared
   // name whose env is unset is auth-failed BEFORE any network call — named, never a 401 later.
   let apiKey = null;
@@ -350,6 +363,11 @@ async function engineSelftest() {
     const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", api_key_env: "K", timeout: 30, reasoning_off: true } }, models: { intake: "engine:s" } }, "intake");
     ok("resolve: openai-compatible family + options", !r.error && r.family === "openai" && r.apiKeyEnv === "K" && r.timeoutMs === 30000 && r.reasoningOff === true);
   }
+
+  // FAFF-593: fold the codex spawn family's table in — `faff engine --selftest`
+  // stays the single entry point for the whole engine-call transport.
+  const { codexSelftest } = require("./engine-codex");
+  fail += codexSelftest();
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (engine call, ${fail} failed)`);
   return fail ? 1 : 0;

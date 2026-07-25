@@ -1,8 +1,8 @@
 # ADR 0086 — Offline-proxy production error-rate machinery for the holdout judge (FAFF-625)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** loop
-- **Date:** 2026-07-24
+- **Date:** 2026-07-24 (machinery); **updated 2026-07-25** with the production sweep's measured number
 - **Issue:** FAFF-625
 
 ## Context
@@ -19,14 +19,47 @@ toward the `subtly-wrong` / `working-but-off-spec` strata, plus ≥60 clean) and
 
 ## Decision
 
-**Ship the offline-proxy production machinery and corpus now; the production frontier sweep itself did
-not run in this build.** This build (an unattended `/faff-beep-boop` autonomous run) had no verified
-frontier access/spend budget available to it — the spec's own build-start assumption ("frontier access
-and budget are available at build time for ~360 judgement calls … on sustained frontier unavailability the
-run parks rather than substituting an unpinned model") is exactly the condition this run is under. Per
-that assumption, this build does **not** fabricate a measurement, does **not** invent a resolved model
-name, and does **not** write a `eval/error-rates/*.json` report with placeholder or synthetic numbers.
-Instead it ships everything the spec scoped as prerequisite to running the sweep for real:
+**Ship the offline-proxy production machinery, corpus, and the production frontier sweep's measured
+result.** The machinery below was built and merged first; the sweep itself was gated on human-approved
+frontier spend, which arrived after this ADR's initial Proposed record. That approval has now been spent:
+`node eval/run-evals.mjs --cases-dir eval/cases-seeded --reps 1 --driver frontier` ran to completeness
+(all 450 corpus cases graded, 0 skipped) against the pinned `models.eval` lane (**`claude-opus-4-8`**),
+scored via `eval/score-error-rates.mjs`, and committed to
+`eval/error-rates/2026-07-25-offline-frontier.json`.
+
+**The measured offline-proxy lower bound:**
+
+| Metric | Value |
+|---|---|
+| Negatives (n) | 360 |
+| Positives (n) | 90 |
+| False-pass (cardinal) | **0 / 360** — rate 0, 95%-upper (rule-of-three) **0.83%** (3/360) |
+| False-fail (non-cardinal) | 65 / 90 — rate 72.2% |
+| Driver / model | frontier / `claude-opus-4-8` |
+| Reps | 1 (breadth, per ADR-0029 methodology) |
+
+**Per-stratum false-pass (all four defect classes, n=90 each):**
+
+| Defect class | n | False-pass | Rate |
+|---|---|---|---|
+| `missed-criterion` | 90 | 0 | 0 |
+| `subtly-wrong` | 90 | 0 | 0 |
+| `working-but-off-spec` | 90 | 0 | 0 |
+| `spec-satisfying-but-broken-elsewhere` | 90 | 0 | 0 |
+
+Zero false-passes across every stratum, including the subtle ones the corpus deliberately over-weighted,
+is the reportable headline: on this offline, recordings-fixed surface the judge never accepted a case with
+an observable defect. The upper-95 rule-of-three bound (0.83%) improves on ADR-0029's diff-as-text 1.9%
+bound and is now measured against the **shipped, recordings-driven judge**, not a strawman.
+
+**The false-fail rate (72.2%) is a valid, reportable finding, not a measurement failure.** Per the spec's
+design principle ("false-pass is cardinal; false-fail merely parks"), a high false-fail rate means the
+judge frequently routes clean cases to `needs-human` rather than confidently passing them — costly to
+review throughput, but never a correctness risk to the L4 trust story the way a false-pass would be. This
+is flagged as a candidate follow-up finding (see Residuals) rather than auto-filed, per the spec's
+"surfaced, not auto-filed" rule for non-zero/notable rates.
+
+This build also verified and retained everything the spec scoped as prerequisite machinery:
 
 - **The production corpus** — `eval/cases-seeded/` (450 cases: 90 clean, 360 defective — 90 per stratum
   across all four defect classes, clearing every floor the spec's "Chosen:" settlement named — ≥300
@@ -46,34 +79,31 @@ Instead it ships everything the spec scoped as prerequisite to running the sweep
   + flag-absent byte-identity test, and the spec's mock-driver integration smoke (1 clean + 1 defective
   through `runEvals` → `score-error-rates.mjs`, closing the loop end to end without a frontier call).
 
-**What is explicitly NOT in this build:** the real `node eval/run-evals.mjs --cases-dir eval/cases-seeded
---reps 1 --driver frontier` sweep, the committed `eval/error-rates/<date>-offline-frontier.json` report,
-and this ADR's own Accepted status with the measured false-pass rate, the per-stratum table, and the
-resolved `models.eval` name. Those are the follow-up: an operator (or a build run with confirmed frontier
-budget) runs the sweep per spec §4 HOW, scores it, commits the report, and updates this ADR from Proposed
-to Accepted with the actual numbers — at that point it extends this record in place (the same document),
-not a new one, since the corpus/harness decision recorded here does not change.
-
-**FAFF-317 caveat (carried forward, verbatim, for when the number lands):** "offline-proxy
+**FAFF-317 caveat (verbatim, attached to the report and restated here):** "offline-proxy
 (holdout-exercise recordings): per FAFF-317 this measures the judge's criteria-mapping + met/unmet
 reasoning over a FIXED recorded surface, NOT the live agentic end-to-end sensitivity the L4 trust story
-needs (FAFF-629). Do not cite as the live rate." Whatever bound the eventual sweep measures is a **lower
-bound on reasoning quality**, never the live sensitivity — FAFF-629 stays the honest live number's home.
+needs (FAFF-629). Do not cite as the live rate." The bound above is a **lower bound on reasoning quality**,
+never the live sensitivity — FAFF-629 stays the honest live number's home. Any citation of this ADR's
+number without that caveat is a defect per the spec's own design principle.
 
 ## Consequences
 
-- **No citable offline production rate exists yet.** ADR-0029's ~1.9% bound remains the only measured
-  number on record, and it still belongs to the diff-as-text strawman, not the shipped judge. Any citation
-  of judge sensitivity today is still either borrowed from the wrong apparatus or unmeasured — this ADR
-  does not close that gap, it removes every non-frontier-budget blocker to closing it.
-- **The corpus is reviewable and reusable independent of when the sweep runs.** Because `eval/cases-seeded/`
+- **The shipped judge now has a citable offline production rate.** ADR-0029's ~1.9% bound was measured
+  against a diff-as-text strawman; this ADR extends the measurement record to the shipped,
+  recordings-driven judge with a tighter bound (0/360 false-pass, 0.83% upper-95) at production scale. The
+  trust story may now cite: "the judge's offline reasoning surface measured a 0/360 false-pass rate (upper
+  bound 0.83%; lower bound on reasoning quality; live lane pending FAFF-629)" — never as the live rate.
+- **The corpus is reviewable and reusable independent of any future re-run.** Because `eval/cases-seeded/`
   is outside `eval/cases/` and gated behind the additive `--cases-dir` flag, it costs nothing extra on any
-  ordinary sweep, regression gate, or re-baseline — the FAFF-563 cost-contamination principle holds.
-- **The next action is mechanical, not exploratory.** Whoever picks this up next runs exactly the
-  procedure in the FAFF-625 spec §4 (`run-evals.mjs --cases-dir eval/cases-seeded --reps 1 --driver
-  frontier`, score, commit the report, update this ADR) — no design decision remains open.
-- **FAFF-629 (the live agentic lane) is unaffected and stays gated on FAFF-474** as scoped; this ADR's
-  incompleteness does not change that gating.
+  ordinary sweep, regression gate, or re-baseline — the FAFF-563 cost-contamination principle holds, and
+  the same corpus can be re-run cheaply (relative to a fresh authoring pass) if the judge changes.
+- **The false-fail rate (72.2%) is a flagged, non-blocking finding**, not a follow-up ticket auto-filed by
+  this build — per the spec's "surfaced, not auto-filed" rule, it is named here as a candidate for a human
+  to scope (e.g. why the judge routes so many clean cases to `needs-human` rather than a confident pass;
+  whether that is itself a judge-prompt tuning opportunity, explicitly out of scope for this ticket).
+- **FAFF-629 (the live agentic lane) is unaffected and stays gated on FAFF-474** as scoped; a strong
+  offline bound does not substitute for the live number — it only informs whether FAFF-629's full-scale
+  live lane is proportionate, which is FAFF-629's call to make.
 
 ### Residuals (carried + new)
 
@@ -81,7 +111,7 @@ bound on reasoning quality**, never the live sensitivity — FAFF-629 stays the 
   (generator-authored, not independently re-reviewed) — same posture ADR-0029's corpus had.
 - **Local-model / cost characterisation (ADR-0029 residual, unchanged).** Frontier lane only; not
   addressed here.
-- **NEW — the production frontier sweep has not been executed.** This is the residual this ADR exists to
-  flag: the machinery and corpus are complete and tested; the measurement itself is pending an operator
-  (or a future build) with confirmed frontier budget. Tracked by FAFF-625 remaining open until the sweep
-  runs, the report is committed, and this ADR is updated to Accepted.
+- **NEW — the live agentic lane (FAFF-629) remains the honest end-to-end sensitivity number's home.** This
+  offline lower bound informs but does not discharge it.
+- **NEW — the high false-fail rate (72.2%) is an unscoped candidate finding**, surfaced for a human to
+  triage into a follow-up ticket if judge-prompt tuning is warranted; not auto-filed by this build.

@@ -1,0 +1,39 @@
+{
+  "n_positive": 90,
+  "n_negative": 360,
+  "false_pass": 0,
+  "false_fail": 65,
+  "false_pass_rate": 0,
+  "false_fail_rate": 0.7222222222222222,
+  "false_pass_upper_95": 0.008333333333333333,
+  "by_defect_class": {
+    "missed-criterion": {
+      "n": 90,
+      "false_pass": 0,
+      "rate": 0
+    },
+    "subtly-wrong": {
+      "n": 90,
+      "false_pass": 0,
+      "rate": 0
+    },
+    "working-but-off-spec": {
+      "n": 90,
+      "false_pass": 0,
+      "rate": 0
+    },
+    "spec-satisfying-but-broken-elsewhere": {
+      "n": 90,
+      "false_pass": 0,
+      "rate": 0
+    }
+  },
+  "reps": 1,
+  "skipped": 0,
+  "driver": "frontier",
+  "caveat": "offline-proxy (holdout-exercise recordings): per FAFF-317 this measures the judge's criteria-mapping + met/unmet reasoning over a FIXED recorded surface, NOT the live agentic end-to-end sensitivity the L4 trust story needs (FAFF-629). Do not cite as the live rate.",
+  "run_id": "20260724-232928",
+  "captured_at": "2026-07-25T00:53:16.669Z",
+  "commit": "261e043",
+  "model": "claude-opus-4-8"
+}

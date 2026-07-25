@@ -66,8 +66,9 @@ pinned to a **commit sha** (§4). Faff's own dogfood workflow uses the local for
 
 The Action never mutates branch protection — same assert-don't-enforce posture as
 `faff branch-protection-check`. Marking `governance-check` required is a human repo-admin
-action (console or `gh api`); the loop never performs it (FAFF-562 — a repo-settings
-mutation outside the PR-merge flow, gateway Autonomous Mode Contract hard-floor category c).
+action (console or `gh api`); the autonomous build loop never performs it — it's a
+repo-settings mutation outside the PR-merge flow, the same category of side effect the
+loop's own hard floor keeps out of unattended reach.
 
 **Use the rulesets API, not the legacy branch-protection endpoint.** A repo protected by a
 GitHub **ruleset** (Settings → Rules → Rulesets — the modern surface, and the one
@@ -107,7 +108,8 @@ should now include `governance-check`. Also confirm the required-check context s
 equals the job name `governance-check` exactly — a mismatch leaves PRs stuck on
 "Expected — waiting for status" forever, even once the job itself is green.
 
-For the broader sweep of other docs still naming the legacy endpoint, see FAFF-570.
+A broader sweep for other docs still naming the legacy endpoint is tracked separately —
+this guide corrects only its own recipe.
 
 ## 3. Pick your artifact-passing convention
 
@@ -132,24 +134,23 @@ carries none) is a declared policy choice, not a silent pass:
   expected to carry artifacts (e.g. a branch protection rule scoped to an agent-only
   integration branch).
 
-**FAFF-562 — why `on-missing: pass` is the deliberate posture on a mixed repo, not a
-hole.** Once a required check gates real PRs, "what happens on zero footprint" stops
-being a rollout detail and becomes the whole gating model. faff's own repo mixes
-human-authored PRs (which never run graft, so never carry an anchor) with agent-built
-ones (which always do, since FAFF-568/623). The artifact footprint — a committed
-`.faff/anchors/**` entry — is exactly the signal that discriminates the two classes, and
-it's already what the Action's discovery step keys off. So the posture is
-**footprint-discriminating adoption**: a PR that carries an anchor is gated fail-closed
-(the `integrity` + `merge_floor` legs, real since FAFF-623) *regardless* of `on-missing`
-— that knob only governs the branch where no footprint is found at all, which `pass`
-treats as presumptively-human and lets through. This is what makes a required check
-non-blocking for every hand-authored PR while still binding for the honest agent-PR case.
-The accepted residual: a determined actor can strip the anchor to present as a
-zero-footprint human PR and bypass the floor — unobservable by construction, since the
-discriminator and the evidence are the same artifact. That's the intrinsic ceiling of
-adoption mode on a mixed repo, closed only by flipping to `on-missing: fail` once a
-branch becomes agent-only (no hand-authored PRs land there) — the same knob, no code
-change, is the future lockdown lever.
+**Why `on-missing: pass` is the deliberate posture on a mixed repo, not a hole.** Once a
+required check gates real PRs, "what happens on zero footprint" stops being a rollout
+detail and becomes the whole gating model. A repo that mixes human-authored PRs (which
+never run an agent build, so never carry an anchor) with agent-built ones (which always
+do) has, in the artifact footprint itself — a committed `.faff/anchors/**` entry — exactly
+the signal that discriminates the two classes, and it's already what the Action's
+discovery step keys off. So the posture is **footprint-discriminating adoption**: a PR
+that carries an anchor is gated fail-closed (the `integrity` + `merge_floor` legs)
+*regardless* of `on-missing` — that knob only governs the branch where no footprint is
+found at all, which `pass` treats as presumptively-human and lets through. This is what
+makes a required check non-blocking for every hand-authored PR while still binding for the
+honest agent-PR case. The accepted residual: a determined actor can strip the anchor to
+present as a zero-footprint human PR and bypass the floor — unobservable by construction,
+since the discriminator and the evidence are the same artifact. That's the intrinsic
+ceiling of adoption mode on a mixed repo, closed only by flipping to `on-missing: fail`
+once a branch becomes agent-only (no hand-authored PRs land there) — the same knob, no
+code change, is the future lockdown lever.
 
 ## 4. Pin the binary fetch
 

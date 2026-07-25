@@ -1555,3 +1555,38 @@ test("FAFF-594: estimate-fallback mode still checks the window ceiling on a SECO
     assert.equal(s.outcome, "park-until-window-reset");
   } finally { f.cleanup(); }
 });
+
+test("FAFF-594 (adversarial review finding): window draw survives a lights-out --resume — a resumed session's cumulative draw is folded in via closedSessionsSpend, never reset near-zero by the new session's raw transcript total alone", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 300\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger({
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z" },
+      budget: {
+        tokens_at_start: 0,
+        window: { anchor_epoch: 500000, reset_epoch: 500000 + 5 * 3600 * 1000, tokens_at_anchor: 0 },
+        sessions: [
+          // Session A drew 400 tokens before a lights-out --resume closed its span.
+          { session_id: "sess-A", baseline_by_model_class: {}, closed_delta_by_model_class: { m1: { input: 400, output: 0, cache_write: 0, cache_read: 0 } }, closed_at: "t1", close_source: "transcript" },
+          // Session B is the resumed run's NEW open span — its own transcript starts fresh.
+          { session_id: "sess-B", baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null },
+        ],
+      },
+    }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-B", {
+      "sess-B.jsonl": [{ input_tokens: 80, output_tokens: 20 }], // the NEW session's own draw so far: 100
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "600000"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-B" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    // Cumulative since the window anchor = closed span A's 400 + open span B's 100 = 500,
+    // over the 300 ceiling. A regressed implementation reading only session B's raw
+    // transcript total (100) would report NOT breached — silently under-counting across
+    // the resume boundary.
+    assert.deepEqual(s.breached, ["window"], "the window's cumulative draw must include the closed session's spend, not reset to the new session's raw total alone");
+    assert.equal(s.outcome, "park-until-window-reset");
+  } finally { f.cleanup(); }
+});

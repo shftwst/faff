@@ -808,18 +808,11 @@ function cmdBudget(args) {
   const measuredFull = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
-  // FAFF-594: the WHOLE-SESSION scalar total this invocation measured (before the
-  // run-start/window baseline is subtracted) — the window governor's own draw
-  // baseline is anchored against THIS figure, not the run-start-baselined `tokens`
-  // delta below (a window can open mid-run, long after run start). null on the
-  // estimate path (no transcript to measure a whole-session total from).
-  let wholeSessionTotalForWindow = null;
   const costWarnings = [];         // accumulated unconditionally; the single costConfigured gate is at the flush point
   const costConfigured = env.ceilings.cost != null;
   if (measuredFull.source === "transcript") {
     const wholeSessionTotal = measuredFull.totals.input + measuredFull.totals.output
       + measuredFull.totals.cache_write + measuredFull.totals.cache_read;
-    wholeSessionTotalForWindow = wholeSessionTotal;
     tokens = Math.max(0, wholeSessionTotal - tokensAtStart); // this-run delta, baselined at run start
     tokensSource = "transcript";
 
@@ -857,19 +850,24 @@ function cmdBudget(args) {
     const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
     tokens = attemptsForEst * estPer;
     tokensSource = "estimate";
-    // FAFF-594: without a transcript there is no whole-session total to anchor a
-    // window against — but the window ceiling must still be checkable in estimate
-    // mode (parity with `budget.tokens`, which resolves via this same estimate
-    // rather than silently going inert). The estimate `tokens` figure IS already
-    // this run's total estimated draw (not a delta from a baseline — there is no
-    // baseline concept in estimate mode), so it fills the same role
-    // `wholeSessionTotalForWindow` plays on the transcript path.
-    wholeSessionTotalForWindow = tokens;
   }
   // FAFF-527: add the closed session spans' spend to the current-span delta. Zero when
   // no sessions array is present (byte-for-byte the single-session total). Never
   // undercounts: an unknowable prior span is closed as `degraded`, never at zero.
   tokens += closedSpend.total;
+  // FAFF-594: `tokens` at this point is a CROSS-RESUME-SAFE cumulative-since-run-start
+  // figure — Σ closed-span deltas (FAFF-527) + the current open span's live delta,
+  // baselined at run start. The window governor reuses THIS figure (not a raw
+  // whole-session transcript total) as its own draw baseline: a raw single-session
+  // total resets near-zero across a `lights-out --resume` re-entry (new
+  // $CLAUDE_CODE_SESSION_ID, new transcript file), which would silently zero out an
+  // open window's accumulated draw on every resume — the same over-count/under-count
+  // class FAFF-527's session-accumulation machinery exists to prevent for this exact
+  // dimension. Reusing `tokens` inherits that fix for free (adversarial review
+  // finding, FAFF-594). Correct in estimate mode too: `tokens` there is already this
+  // run's total estimated draw across all attempts, resume-agnostic by construction
+  // (attempts are counted from the ledger, not a transcript file).
+  const cumulativeForWindow = tokens;
 
   const attempts = attemptsFromLedger(ledger);
 
@@ -911,28 +909,36 @@ function cmdBudget(args) {
   // write is needed to merely accumulate draw against an already-open window.
   let windowTokens = null;
   let windowResetEpoch = null;
-  if (env.window != null && runDir != null && wholeSessionTotalForWindow != null) {
+  if (env.window != null && runDir != null) {
     const winMs = env.window.hours * 3600 * 1000;
     const existingWindow = (ledger.budget && ledger.budget.window && typeof ledger.budget.window === "object")
       ? ledger.budget.window : null;
     const expired = existingWindow != null && Number.isFinite(existingWindow.reset_epoch) && nowMs >= existingWindow.reset_epoch;
     if (existingWindow == null || expired) {
-      if (wholeSessionTotalForWindow > 0) {
+      if (cumulativeForWindow > 0) {
         const anchorEpoch = nowMs;
         const resetEpoch = anchorEpoch + winMs;
-        const tokensAtAnchor = wholeSessionTotalForWindow;
+        const tokensAtAnchor = cumulativeForWindow;
         try {
           mutateLedgerUnderLock(runDir, (fresh) => {
-            const base = fresh || ledger;
+            // FAFF-594 (adversarial review finding): `fresh` is the re-read-UNDER-THE-LOCK
+            // ledger — the up-to-date base that correctly carries any concurrent mutation
+            // (heartbeat, outcome recording, another session's budget write) that landed
+            // between this function's initial `resolveLedgerOrFault` read and lock
+            // acquisition. Falling back to the stale outer-scope `ledger` on a genuinely
+            // missing ledger (`fresh` null — deleted mid-run) would silently resurrect a
+            // gone file's stale content; `{}` mint-from-scratch is the safe direction
+            // (mirrors `mutateLedgerUnderLock`'s own "absent -> mint-from-scratch" contract).
+            const base = fresh || {};
             return { ...base, budget: { ...(base.budget || {}), window: { anchor_epoch: anchorEpoch, reset_epoch: resetEpoch, tokens_at_anchor: tokensAtAnchor } } };
           });
-        } catch { /* best-effort persistence — a lock race degrades to re-opening fresh next check, never a hard failure */ }
+        } catch { /* best-effort persistence (ENOENT / a busy lock / a corrupt-ledger throw) — degrades to re-anchoring fresh next check; the CLI's fail-open-on-write posture (never hard-fail `budget check` over a ledger-write fault, matching the until_invalid/price_per_mtok_removed handling above) */ }
         windowTokens = 0; // just anchored — no draw accumulated yet within the fresh window
         windowResetEpoch = resetEpoch;
       }
       // else: no draw observed yet — no window in effect this invocation.
     } else {
-      windowTokens = Math.max(0, wholeSessionTotalForWindow - existingWindow.tokens_at_anchor);
+      windowTokens = Math.max(0, cumulativeForWindow - existingWindow.tokens_at_anchor);
       windowResetEpoch = existingWindow.reset_epoch;
     }
   }
@@ -1191,7 +1197,19 @@ function envelopeFromLedger(rec, flags, cfg) {
     // FAFF-594: a pre-FAFF-594 recorded envelope never carries `window` — fall back
     // to the freshly-resolved live config, same pattern as at_ceiling above (a
     // recorded envelope predating this dimension must not silently disable it).
-    window: (rec.window && typeof rec.window === "object") ? rec.window : fresh.window,
+    // FAFF-594 (adversarial review finding): re-validate a recorded `window` exactly
+    // as envelopeFrom validates a fresh one — never trust a raw recorded shape
+    // verbatim (matches the pattern the sibling ceilings above already follow via
+    // `num()`). A corrupted/hand-edited record carrying a non-positive hours/tokens
+    // degrades to `fresh.window` (byte-for-byte the same "malformed -> inert, never a
+    // hidden vacuous ceiling" rule envelopeFrom applies) rather than passing through
+    // and silently always-breaching.
+    window: (() => {
+      const rw = (rec.window && typeof rec.window === "object") ? rec.window : null;
+      const rh = rw ? num(rw.hours) : null;
+      const rt = rw ? num(rw.tokens) : null;
+      return (rh != null && rh > 0 && rt != null && rt > 0) ? { hours: rh, tokens: rt } : fresh.window;
+    })(),
   };
 }
 

@@ -24,7 +24,10 @@ const { findRoot, latestRunDir, readLedger } = require("./shared-infra");
 // backlog triage surfaced by /faff-wtf) are CLEAN — counting routed-out would make
 // near-every run red and train wrappers to ignore the signal. `pr-open` IS attention: a
 // PR left open for human review is precisely a "human must act" outcome of this run.
-const ATTENTION_OUTCOMES = new Set(["parked", "errored", "unreached-budget", "pr-open"]);
+// FAFF-594: "parked-window" (a global 5h budget.window breach, at_ceiling:
+// park-until-window-reset) is attention exactly like "unreached-budget" — a
+// window-parked run still surfaces for a human to see, never silently clean.
+const ATTENTION_OUTCOMES = new Set(["parked", "errored", "unreached-budget", "pr-open", "parked-window"]);
 
 // The escalate-class stop_reason tokens that raise a run-escalation item even when
 // every issue shipped. `budget-escalated` carries dimensions (budget-escalated(tokens))

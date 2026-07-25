@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { readGovernanceConfig } from "../plugin/skills/faff/bin/lib/budget.js";
+import { readGovernanceConfig, computeBudgetState, envelopeFrom } from "../plugin/skills/faff/bin/lib/budget.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -1324,4 +1324,269 @@ test("FAFF-627: `faff budget check` on a legacy-named config still exits 2 with 
     assert.match(r.err, /legacy config filename/, "the detailed governance stderr message must still fire");
     assert.match(r.err, /faff budget: cannot proceed — legacy config filename/, "the dispatch-boundary command-level line must fire too");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ===========================================================================
+// FAFF-594 — window-mode budget: a GLOBAL 5h rolling token-draw ceiling with
+// a new at_ceiling disposition (park-until-window-reset). Deterministic,
+// fake-clock (--now-ms) tests only — no real wall-clock waits anywhere.
+// ===========================================================================
+
+test("FAFF-594: envelopeFrom resolves a well-formed budget.window; absent/malformed → null (inert)", () => {
+  const e1 = envelopeFrom({ budget: { window: { hours: 5, tokens: 500000 } } }, {});
+  assert.deepEqual(e1.window, { hours: 5, tokens: 500000 });
+  const e2 = envelopeFrom({ budget: {} }, {});
+  assert.equal(e2.window, null, "no budget.window at all → null");
+  const e3 = envelopeFrom({ budget: { window: { hours: 5 } } }, {}); // missing tokens
+  assert.equal(e3.window, null, "malformed (missing tokens) → null, never a crash");
+  const e4 = envelopeFrom({ budget: { window: { hours: 0, tokens: 100 } } }, {}); // hours<=0
+  assert.equal(e4.window, null, "non-positive hours → null");
+  // Dollar/attempts/until ceilings stay byte-for-byte unchanged when budget.window is absent.
+  const e5 = envelopeFrom({ budget: { tokens: 100, max_attempts: 3 } }, {});
+  assert.equal(e5.window, null);
+  assert.equal(e5.ceilings.tokens, 100);
+  assert.equal(e5.ceilings.max_attempts, 3);
+});
+
+test("FAFF-594: AT_CEILING_OUTCOMES accepts park-until-window-reset; unknown at_ceiling still coerces to stop", () => {
+  const e1 = envelopeFrom({ budget: { at_ceiling: "park-until-window-reset" } }, {});
+  assert.equal(e1.at_ceiling, "park-until-window-reset");
+  const e2 = envelopeFrom({ budget: { at_ceiling: "bogus" } }, {});
+  assert.equal(e2.at_ceiling, "stop", "unknown value still coerces to the safe default");
+});
+
+test("FAFF-594 unit: computeBudgetState — window draw AT/OVER ceiling + at_ceiling park-until-window-reset → outcome + correct resume_at", () => {
+  const env = envelopeFrom({ budget: { window: { hours: 5, tokens: 1000 }, at_ceiling: "park-until-window-reset" } }, {});
+  const resetEpoch = Date.now() + 3 * 3600 * 1000;
+  const s = computeBudgetState(env, {
+    now_epoch: Date.now(), attempts: 0, tokens: 0,
+    window_tokens: 1000, window_reset_epoch: resetEpoch,
+  }, "transcript");
+  assert.deepEqual(s.breached, ["window"]);
+  assert.equal(s.outcome, "park-until-window-reset");
+  assert.equal(s.resume_at, new Date(resetEpoch).toISOString(), "resume_at equals the injected reset_epoch as ISO-8601");
+
+  // Over ceiling (not just at) also breaches.
+  const sOver = computeBudgetState(env, {
+    now_epoch: Date.now(), attempts: 0, tokens: 0,
+    window_tokens: 5000, window_reset_epoch: resetEpoch,
+  }, "transcript");
+  assert.deepEqual(sOver.breached, ["window"]);
+  assert.equal(sOver.outcome, "park-until-window-reset");
+});
+
+test("FAFF-594 unit: computeBudgetState — window draw UNDER ceiling → not breached, no resume_at", () => {
+  const env = envelopeFrom({ budget: { window: { hours: 5, tokens: 1000 }, at_ceiling: "park-until-window-reset" } }, {});
+  const s = computeBudgetState(env, {
+    now_epoch: Date.now(), attempts: 0, tokens: 0,
+    window_tokens: 500, window_reset_epoch: Date.now() + 3600 * 1000,
+  }, "transcript");
+  assert.deepEqual(s.breached, []);
+  assert.equal(s.outcome, "none");
+  assert.equal(s.resume_at, null);
+});
+
+test("FAFF-594 unit: no window configured (env.window null) → window dimension never breaches regardless of window_tokens", () => {
+  const env = envelopeFrom({ budget: { tokens: 999999999 } }, {}); // no budget.window
+  const s = computeBudgetState(env, {
+    now_epoch: Date.now(), attempts: 0, tokens: 0,
+    window_tokens: 999999999, window_reset_epoch: Date.now() + 1000,
+  }, "transcript");
+  assert.deepEqual(s.breached, [], "window_tokens is ignored entirely when env.window is null");
+});
+
+test("FAFF-594 unit: a resume_at is populated ONLY on the park-until-window-reset outcome, never on stop/escalate/none", () => {
+  const envStop = envelopeFrom({ budget: { window: { hours: 5, tokens: 10 }, at_ceiling: "stop" } }, {});
+  const s = computeBudgetState(envStop, {
+    now_epoch: Date.now(), attempts: 0, tokens: 0,
+    window_tokens: 50, window_reset_epoch: Date.now() + 1000,
+  }, "transcript");
+  assert.equal(s.outcome, "stop");
+  assert.equal(s.resume_at, null, "a stop outcome (even from the window dimension) carries no resume_at");
+});
+
+test("FAFF-594 CLI integration: first budget-check invocation with no prior ledger.budget.window opens a window anchored at injected now", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 500000\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger(),
+  });
+  try {
+    const sid = "sess-w1";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 1000, output_tokens: 500 }],
+    });
+    const now = String(Date.parse("2026-07-24T12:00:00Z"));
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", now],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.deepEqual(s.breached, [], "1500 tokens is well under the 500000 window ceiling");
+    const ledgerAfter = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.ok(ledgerAfter.budget && ledgerAfter.budget.window, "window state persisted to the ledger");
+    assert.equal(ledgerAfter.budget.window.anchor_epoch, Number(now), "anchored at the injected now — the first-draw instant");
+    assert.equal(ledgerAfter.budget.window.reset_epoch, Number(now) + 5 * 3600 * 1000, "reset_epoch = anchor + 5h");
+    assert.equal(ledgerAfter.budget.window.tokens_at_anchor, 1500);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594 CLI integration: a window breach with at_ceiling park-until-window-reset returns outcome + resume_at and does not falsely breach dollar/attempts", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 1000\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger({ budget: { window: { anchor_epoch: 1000000, reset_epoch: 1000000 + 5 * 3600 * 1000, tokens_at_anchor: 0 } } }),
+  });
+  try {
+    const sid = "sess-w2";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 900, output_tokens: 200 }], // 1100 total, over the 1000 window ceiling
+    });
+    const now = String(1000000 + 1000); // still well inside the open window
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", now],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    assert.deepEqual(s.breached, ["window"]);
+    assert.equal(s.outcome, "park-until-window-reset");
+    assert.equal(s.resume_at, new Date(1000000 + 5 * 3600 * 1000).toISOString());
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594 CLI integration: an expired window (now >= reset_epoch) re-opens FRESH on the next draw, discarding the expired baseline", () => {
+  const oldAnchor = 1000000;
+  const oldReset = oldAnchor + 5 * 3600 * 1000;
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 1000\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger({ budget: { window: { anchor_epoch: oldAnchor, reset_epoch: oldReset, tokens_at_anchor: 0 } } }),
+  });
+  try {
+    const sid = "sess-w3";
+    const cfg = withTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ input_tokens: 900, output_tokens: 200 }], // 1100 whole-session — would have breached the OLD window
+    });
+    const nowPastReset = String(oldReset + 1000); // just past the old window's reset
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", nowPastReset],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    const s = JSON.parse(r.out);
+    // A fresh window anchors AT this draw (tokens_at_anchor = 1100), so draw-within-the-new-window = 0 → not breached.
+    assert.deepEqual(s.breached, [], "the fresh window is not blocked by the expired one's exhausted ceiling");
+    const ledgerAfter = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(ledgerAfter.budget.window.anchor_epoch, Number(nowPastReset), "re-anchored at the new draw's instant");
+    assert.notEqual(ledgerAfter.budget.window.reset_epoch, oldReset, "the expired window's reset_epoch is discarded");
+    assert.equal(ledgerAfter.budget.window.tokens_at_anchor, 1100, "baselined at the fresh anchor's whole-session total");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594 CLI integration: no draw observed yet (whole-session total 0) does not open a window", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 1000\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger(),
+  });
+  try {
+    const sid = "sess-w4";
+    const cfg = withTranscripts(f.root, f.root, sid, { [`${sid}.jsonl`]: [] }); // transcript exists, zero usage records
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "1000000"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const ledgerAfter = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(ledgerAfter.budget, undefined, "no window state written when there has been no draw yet");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594 CLI integration: dollar-mode / attempts / until dimensions are unaffected by a configured budget.window (byte-for-byte)", () => {
+  const f = fixture({
+    rc: "budget:\n  max_attempts: 1\n  window:\n    hours: 5\n    tokens: 999999999\n  at_ceiling: stop\n",
+    ledger: baseLedger(),
+  });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.deepEqual(s.breached, ["max_attempts"], "the pre-existing max_attempts breach is untouched by the window dimension being configured");
+    assert.equal(s.outcome, "stop");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594 CLI integration: runcheck does not flag an admitted issue with the new parked-window terminal outcome as dangling", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-runcheck-window-"));
+  const runDir = join(root, ".faff", "runs", "run-test");
+  try {
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({
+      run_id: "run-test", admitted: ["FAFF-X"], outcomes: { "FAFF-X": "parked-window" },
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z" },
+    }));
+    const r = run(["runcheck", runDir]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /clean: every admitted issue reached a terminal outcome\./, "parked-window is a recognised terminal state — not flagged dangling");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-594: estimate-fallback mode (no transcript) opens a window on first observed draw, just like the transcript path", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 100000\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger({ admitted: ["A"], outcomes: { A: "shipped" } }), // 1 attempt * 200000 default est = 200000
+  });
+  try {
+    // No CLAUDE_CODE_SESSION_ID / no transcript → estimate path.
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "5000000"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.deepEqual(s.breached, [], "the window just opened this invocation — no draw has accumulated within it yet, regardless of the estimate's magnitude");
+    const ledgerAfter = JSON.parse(readFileSync(join(f.runDir, "run-ledger.json"), "utf8"));
+    assert.equal(ledgerAfter.budget.window.tokens_at_anchor, 200000, "anchored at the estimate figure this invocation observed");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594: estimate-fallback mode still checks the window ceiling on a SECOND draw within the same window — not silently inert like a transcript-only feature would be", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 100000\n  at_ceiling: park-until-window-reset\n",
+    // A window already anchored at 1 attempt's estimate (200000); a 2nd attempt lands, pushing the
+    // estimate to 400000 — 200000 of NEW draw within the still-open window, over the 100000 ceiling.
+    ledger: baseLedger({
+      admitted: ["A", "B"], outcomes: { A: "shipped", B: "shipped" },
+      budget: { window: { anchor_epoch: 1000000, reset_epoch: 1000000 + 5 * 3600 * 1000, tokens_at_anchor: 200000 } },
+    }),
+  });
+  try {
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "1001000"]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.deepEqual(s.breached, ["window"], "the window ceiling still resolves from the estimate figure, not silently inert on the no-transcript path");
+    assert.equal(s.outcome, "park-until-window-reset");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-594 (adversarial review finding): window draw survives a lights-out --resume — a resumed session's cumulative draw is folded in via closedSessionsSpend, never reset near-zero by the new session's raw transcript total alone", () => {
+  const f = fixture({
+    rc: "budget:\n  window:\n    hours: 5\n    tokens: 300\n  at_ceiling: park-until-window-reset\n",
+    ledger: baseLedger({
+      owner: { status: "running", started_at: "2026-06-23T15:00:00Z" },
+      budget: {
+        tokens_at_start: 0,
+        window: { anchor_epoch: 500000, reset_epoch: 500000 + 5 * 3600 * 1000, tokens_at_anchor: 0 },
+        sessions: [
+          // Session A drew 400 tokens before a lights-out --resume closed its span.
+          { session_id: "sess-A", baseline_by_model_class: {}, closed_delta_by_model_class: { m1: { input: 400, output: 0, cache_write: 0, cache_read: 0 } }, closed_at: "t1", close_source: "transcript" },
+          // Session B is the resumed run's NEW open span — its own transcript starts fresh.
+          { session_id: "sess-B", baseline_by_model_class: {}, closed_delta_by_model_class: null, closed_at: null, close_source: null },
+        ],
+      },
+    }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-B", {
+      "sess-B.jsonl": [{ input_tokens: 80, output_tokens: 20 }], // the NEW session's own draw so far: 100
+    });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "600000"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-B" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "transcript");
+    // Cumulative since the window anchor = closed span A's 400 + open span B's 100 = 500,
+    // over the 300 ceiling. A regressed implementation reading only session B's raw
+    // transcript total (100) would report NOT breached — silently under-counting across
+    // the resume boundary.
+    assert.deepEqual(s.breached, ["window"], "the window's cumulative draw must include the closed session's spend, not reset to the new session's raw total alone");
+    assert.equal(s.outcome, "park-until-window-reset");
+  } finally { f.cleanup(); }
 });

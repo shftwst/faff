@@ -192,13 +192,16 @@ function validateModelLane(key, value) {
 const ENGINE_CALL_LANES = ["methodology", "intake"];
 const ENGINE_LANE_KEYS = ENGINE_CALL_LANES.map((l) => `models.${l}`);
 // Provider families reuse review-call.mjs's whitelist semantics: ollama has its own wire
-// format; the rest ride the openai-compatible /v1 shape. `anthropic` is refused at resolution
-// (Anthropic engines are what the Agent-token vocabulary is for — two spellings of the same
-// dispatch with different transports would be a trap), and an unknown provider fails loud.
+// format; most of the rest ride the openai-compatible /v1 shape. `codex` is the first SPAWN
+// family (FAFF-593): its transport is a `codex exec --json` child process, not an HTTP POST.
+// `anthropic` is refused at resolution (Anthropic engines are what the Agent-token vocabulary
+// is for — two spellings of the same dispatch with different transports would be a trap),
+// and an unknown provider fails loud.
 const ENGINE_PROVIDER_FAMILY = {
   ollama: "ollama",
   openai: "openai", vllm: "openai", openrouter: "openai", nvidia: "openai",
   deepseek: "openai", "openai-compatible": "openai", gemini: "openai",
+  codex: "codex",
 };
 
 // PURE: validate an `engine:<name>` value's reference against the shared
@@ -215,10 +218,13 @@ function validateEngineRef(cfg, value) {
     const configured = Object.keys(merged.backends);
     return `unknown engine "${name}" — configured engines: ${configured.length ? configured.join(", ") : "(none — add a top-level engines: or backends: block)"}`;
   }
-  for (const field of ["provider", "model", "host"]) {
+  // Required fields are provider-conditional (FAFF-593): the HTTP families need a host;
+  // the codex spawn family has no host by construction — it spawns a binary instead.
+  const missing = (field) => {
     const v = entry[field];
-    if (v === null || v === undefined || v === "") return `engines.${name}: missing required field "${field}" (an engine needs provider, model, host)`;
-  }
+    return v === null || v === undefined || v === "";
+  };
+  if (missing("provider")) return `engines.${name}: missing required field "provider" (an engine needs provider, model, host)`;
   const provider = String(entry.provider).toLowerCase();
   if (provider === "anthropic") {
     return `engines.${name}: provider "anthropic" is refused — Anthropic models are what the Agent-token vocabulary is for (set models.<lane> to sonnet | opus | haiku | fable instead)`;
@@ -226,15 +232,35 @@ function validateEngineRef(cfg, value) {
   if (!ENGINE_PROVIDER_FAMILY[provider]) {
     return `engines.${name}: unknown provider "${entry.provider}" — legal providers: ${Object.keys(ENGINE_PROVIDER_FAMILY).join(" | ")}`;
   }
+  const isCodex = ENGINE_PROVIDER_FAMILY[provider] === "codex";
+  for (const field of isCodex ? ["model"] : ["model", "host"]) {
+    if (missing(field)) {
+      return isCodex
+        ? `engines.${name}: missing required field "${field}" (a codex engine needs provider, model)`
+        : `engines.${name}: missing required field "${field}" (an engine needs provider, model, host)`;
+    }
+  }
+  if (isCodex) {
+    if (!missing("host")) {
+      return `engines.${name}: a codex engine has no host — it spawns the codex binary; set bin_path if the binary is not on PATH`;
+    }
+    if (entry.reasoning_off === true) {
+      return `engines.${name}: reasoning_off is not supported on provider codex — no codex mapping exists; remove it`;
+    }
+    if (entry.auth === "none") {
+      return `engines.${name}: auth "none" is refused on provider codex — codex always authenticates (subscription-seat via codex login, or api-key via api_key_env)`;
+    }
+  }
   return null;
 }
 
 // PURE: resolve an allowlisted lane to its configured engine for dispatch (`faff engine call`).
 // Fail-loud at every step — allowlist, engine: shape, engines.<name> reference, and the
 // effort×engine conflict (an `effort.<lane>` that isn't inherit is refused, not silently
-// dropped: Agent-tool reasoning-effort doesn't map onto a local engine; per-engine tuning
-// belongs in the engine object). Returns { name, provider, family, model, host, apiKeyEnv,
-// reasoningOff, timeoutMs } or { error }.
+// dropped: Agent-tool reasoning-effort doesn't map onto an engine backend; per-engine tuning
+// belongs in the engine object). Returns { name, provider, family, model, host, binPath,
+// apiKeyEnv, reasoningOff, timeoutMs } or { error }. The codex family's record is
+// host-less and carries binPath instead (FAFF-593 — spawn transport, not HTTP).
 function resolveEngineForLane(cfg, lane) {
   if (!ENGINE_CALL_LANES.includes(lane)) {
     return { error: `lane "${lane}" is not engine-dispatchable — v1 allowlist: ${ENGINE_CALL_LANES.join(" | ")} (FAFF-422)` };
@@ -252,7 +278,7 @@ function resolveEngineForLane(cfg, lane) {
   const effortRaw = dig(cfg, `effort.${lane}`);
   const effort = (effortRaw === null || effortRaw === undefined || effortRaw === "") ? "inherit" : String(effortRaw).trim();
   if (effort !== "inherit") {
-    return { error: `effort.${lane} is "${effort}" but ${key} is an engine value — Agent-tool reasoning-effort does not map onto a local engine; set effort.${lane} to inherit and tune the engine in engines.<name> (reasoning_off, timeout)` };
+    return { error: `effort.${lane} is "${effort}" but ${key} is an engine value — Agent-tool reasoning-effort does not map onto an engine backend; set effort.${lane} to inherit and tune the engine in engines.<name> (reasoning_off, timeout)` };
   }
   const name = value.slice("engine:".length).trim();
   // validateEngineRef above already proved the merged backends:+engines: namespace has
@@ -265,11 +291,14 @@ function resolveEngineForLane(cfg, lane) {
   const entry = merged.backends && merged.backends[name];
   if (!entry) return { error: `${key}: engines.${name} vanished after validation (concurrent config edit?)` };
   const provider = String(entry.provider).toLowerCase();
+  const family = ENGINE_PROVIDER_FAMILY[provider];
   return {
-    name, provider,
-    family: ENGINE_PROVIDER_FAMILY[provider],
+    name, provider, family,
     model: String(entry.model),
-    host: String(entry.host),
+    // codex is host-less by construction (validateEngineRef refused any present host);
+    // it spawns bin_path instead — default "codex", PATH-resolved at spawn time.
+    host: family === "codex" ? null : String(entry.host),
+    binPath: family === "codex" ? ((entry.bin_path === null || entry.bin_path === undefined || entry.bin_path === "") ? "codex" : String(entry.bin_path)) : null,
     apiKeyEnv: (entry.api_key_env === null || entry.api_key_env === undefined || entry.api_key_env === "") ? null : String(entry.api_key_env),
     reasoningOff: entry.reasoning_off === true,
     timeoutMs: (entry.timeout !== null && entry.timeout !== undefined && entry.timeout !== "") ? Number(entry.timeout) * 1000 : 120000,

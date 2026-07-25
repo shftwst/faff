@@ -20,7 +20,7 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
-  "provider", "model", "host", "auth", "api_key_env", "egress", "reasoning_off", "timeout",
+  "provider", "model", "host", "bin_path", "auth", "api_key_env", "egress", "reasoning_off", "timeout",
 ];
 
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
@@ -30,10 +30,12 @@ const EGRESS_VALUES = ["local", "external"];
 // callers only invoke this on an absent/unset raw auth). Mirrors the spec's
 // deriveAuth procedure exactly: api_key_env present -> api-key; keyless
 // anthropic -> subscription-seat (binds to the ambient interactive session,
-// no handle field); else none.
+// no handle field); keyless codex -> subscription-seat (FAFF-593: the ChatGPT
+// seat travels with the codex CLI's own login state, not the harness); else none.
 function deriveAuth(b) {
   if (present(b.api_key_env)) return "api-key";
-  if (String(b.provider || "").toLowerCase() === "anthropic") return "subscription-seat";
+  const provider = String(b.provider || "").toLowerCase();
+  if (provider === "anthropic" || provider === "codex") return "subscription-seat";
   return "none";
 }
 
@@ -99,6 +101,7 @@ function normalizeBackend(name, raw) {
   b.provider = present(raw.provider) ? String(raw.provider) : undefined;
   b.model = present(raw.model) ? String(raw.model) : undefined;
   b.host = present(raw.host) ? String(raw.host) : undefined;
+  b.bin_path = present(raw.bin_path) ? String(raw.bin_path) : undefined;
   b.api_key_env = present(raw.api_key_env) ? String(raw.api_key_env) : undefined;
   b.reasoning_off = raw.reasoning_off === true ? true : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
@@ -170,11 +173,17 @@ function resolveBackendRefs(cfg, refs) {
 // actually exists on.
 const CURRENT_HARNESS = "claude-code";
 
-// PURE: (harness, provider, auth) admission. subscription-seat only exists on
-// the interactive/claude-code harness (the ambient session IS the seat); api-key
-// and none are harness-agnostic direct-transport auth modes.
+// PURE: (harness, provider, auth) admission. The Anthropic subscription-seat
+// only exists on the interactive/claude-code harness (the ambient session IS
+// the seat); the codex seat travels with the codex CLI's own login state
+// ($CODEX_HOME/auth.json), independent of the harness faff runs on, so it
+// admits everywhere (FAFF-593). api-key and none are harness-agnostic
+// direct-transport auth modes.
 function portableMatrixAdmits(harness, provider, auth) {
-  if (auth === "subscription-seat") return harness === CURRENT_HARNESS;
+  if (auth === "subscription-seat") {
+    if (String(provider || "").toLowerCase() === "codex") return true;
+    return harness === CURRENT_HARNESS;
+  }
   if (auth === "api-key" || auth === "none") return true;
   return false;
 }
@@ -227,7 +236,11 @@ function checkRealizable(cfg, consumer, harness) {
     if (residencyRequired && deriveEgress(b) === "external") {
       return { refuse: true, reason: `residency-violation: ${b.name} egresses` };
     }
-    if (!present(b.host)) continue;
+    // Host presence gates realizability for the HTTP families only: a codex
+    // backend has no host by construction (FAFF-593) — its binary's existence
+    // is a dispatch-time fact, not a config-time one, so realizability for
+    // codex is matrix admission alone.
+    if (String(b.provider || "").toLowerCase() !== "codex" && !present(b.host)) continue;
     if (!portableMatrixAdmits(h, b.provider, b.auth)) continue;
     realizableCount++;
   }

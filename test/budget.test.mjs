@@ -1590,3 +1590,204 @@ test("FAFF-594 (adversarial review finding): window draw survives a lights-out -
     assert.equal(s.outcome, "park-until-window-reset");
   } finally { f.cleanup(); }
 });
+
+// ---------------------------------------------------------------------------
+// FAFF-604 — the telemetry adapter seam: budget reads an engine-declared spend
+// source, unions it with the transcript, and refuses a dollar ceiling it cannot
+// see. Fixtures write engine-spend.jsonl directly (the shape the codex call
+// boundary appends), so these pin the READ side end-to-end through the CLI.
+// ---------------------------------------------------------------------------
+
+// Seed a run's engine-spend.jsonl with the records a codex lane would have appended.
+function withEngineSpend(runDir, records) {
+  writeFileSync(join(runDir, "engine-spend.jsonl"), records.map((r) => JSON.stringify(r)).join("\n") + "\n");
+}
+const codexRecord = (over = {}) => ({
+  ts: "2026-07-25T12:00:00Z", engine: "seat", provider: "codex", model: "gpt-5-codex",
+  source: "exec-json-events", input: 0, output: 0, cache_read: 0, cache_write: 0, ...over,
+});
+// A mixed fleet: a Claude orchestrator (transcript-jsonl) + a codex build lane
+// (exec-json-events) — the acceptance sketch's exact configuration.
+const MIXED_FLEET_RC = "backends:\n  seat:\n    provider: codex\n    model: gpt-5-codex\nmodels:\n  methodology: engine:seat\n";
+
+test("FAFF-604 PARITY: a run with no engine-spend.jsonl measures byte-identically to before the seam", () => {
+  const rc = "budget:\n  tokens: 1000\n";
+  const mk = () => fixture({ rc, ledger: baseLedger() });
+  const a = mk();
+  try {
+    const cfg = withTranscripts(a.root, a.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100, output_tokens: 50 }] });
+    const r = run(["budget", "check", "--run-dir", a.runDir, "--root", a.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.spent.tokens, 150);
+    assert.equal(s.tokens_source, "transcript");
+    // The additive labels must be ABSENT on a single-source run — that absence is
+    // what makes an unchanged run's JSON byte-identical to before this change.
+    assert.equal(s.spend_sources, undefined, "spend_sources must be omitted on a transcript-only run");
+    assert.equal(s.unmetered_engines, undefined, "unmetered_engines must be omitted when the fleet is fully metered");
+  } finally { a.cleanup(); }
+});
+
+test("FAFF-604 MIXED FLEET: budget check unions transcript + engine spend into one total", () => {
+  const f = fixture({ rc: MIXED_FLEET_RC + "budget:\n  tokens: 100000\n", ledger: baseLedger() });
+  try {
+    withEngineSpend(f.runDir, [
+      codexRecord({ input: 1000, output: 500 }),
+      codexRecord({ input: 200, output: 100, cache_read: 50 }),
+    ]);
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100, output_tokens: 50 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    // 150 transcript + 1850 engine = 2000. A regressed implementation reading only
+    // the transcript would report 150 and call a codex-heavy run nearly free.
+    assert.equal(s.spent.tokens, 2000, "the total must include the codex lane's measured spend");
+    const src = Object.fromEntries(s.spend_sources.map((x) => [x.source, x]));
+    assert.equal(src["transcript-jsonl"].tokens, 150);
+    assert.equal(src["exec-json-events"].tokens, 1850);
+    assert.equal(src["exec-json-events"].records, 2);
+    assert.deepEqual(src["exec-json-events"].engines, ["seat"]);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 WINDOW: the window draw includes engine spend (one combined figure)", () => {
+  const f = fixture({
+    rc: MIXED_FLEET_RC + "budget:\n  at_ceiling: park-until-window-reset\n  window:\n    hours: 5\n    tokens: 1000\n",
+    ledger: baseLedger({ budget: { window: { anchor_epoch: 0, reset_epoch: 18000000, tokens_at_anchor: 0 } } }),
+  });
+  try {
+    withEngineSpend(f.runDir, [codexRecord({ input: 900, output: 200 })]);
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 50 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", "600000"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    // 50 transcript + 1100 engine = 1150, over the 1000 window ceiling. Transcript
+    // alone (50) would not breach — the mixed-fleet window must be a true total.
+    assert.deepEqual(s.breached, ["window"], "window draw must count the codex lane's spend");
+    assert.equal(s.outcome, "park-until-window-reset");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 REFUSAL: an unmetered engine under a dollar ceiling reports cost:null + warns, exit 0", () => {
+  // An ollama backend derives telemetry: none — its spend is unobservable.
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n";
+  const f = fixture({ rc, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    // Exit stays 0 — sentryReadBudget reads any non-zero exit as UNBREACHED, so
+    // refusing via the exit code here would fail the whole budget signal open.
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.spent.cost, null, "cost must be unknowable, never a number computed as if the engine spent nothing");
+    assert.ok(s.warnings.some((w) => /telemetry: none/.test(w) && /lan/.test(w)), "the warning must name the engine");
+    assert.ok(s.warnings.some((w) => /budget\.window/.test(w) && /allow_unmetered/.test(w)), "the warning must name both remedies");
+    assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: false }]);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 WAIVER: budget.allow_unmetered clears the refusal but never the visibility", () => {
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
+  const f = fixture({ rc, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    // Waived: cost is computed again. But the engine is STILL named — opted out of
+    // the refusal, never out of the visibility, and never reported as spending 0.
+    assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: true }]);
+    assert.ok(!(s.warnings || []).some((w) => /cost not meterable/.test(w)));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 MALFORMED: a partial engine-spend line is skipped and named, never fatal", () => {
+  const f = fixture({ rc: MIXED_FLEET_RC + "budget:\n  cost: 100\n", ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(codexRecord({ input: 100 })) + "\n{partial write\n");
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 10 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.spent.tokens, 110, "the good record still counts");
+    assert.ok(s.warnings.some((w) => /malformed line/.test(w)), "the skip must be named, never silent");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 ESTIMATE MODE: measured engine spend still counts when the transcript is gone", () => {
+  const f = fixture({ rc: MIXED_FLEET_RC + "budget:\n  tokens: 10000000\n", ledger: baseLedger() });
+  try {
+    withEngineSpend(f.runDir, [codexRecord({ input: 700, output: 300 })]);
+    // No CLAUDE_CODE_SESSION_ID → the transcript side degrades to estimate.
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate", "tokens_source keeps its transcript-side meaning");
+    // 1 attempt x 200000 default estimate + 1000 measured engine tokens.
+    assert.equal(s.spent.tokens, 201000, "measured engine spend is added to the estimate, not discarded");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 ESTIMATE COST: the measured engine portion prices; the transcript remainder is named as missing", () => {
+  const f = fixture({ rc: MIXED_FLEET_RC + "budget:\n  cost: 100\n", ledger: baseLedger() });
+  try {
+    // A priced model so the engine half has a rate; no session id → transcript degrades.
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(codexRecord({ model: "claude-sonnet-5", input: 1_000_000, output: 0 })) + "\n");
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.equal(s.tokens_source, "estimate");
+    assert.ok(s.spent.cost > 0, "measured engine spend must price even when the transcript half cannot");
+    assert.ok(s.warnings.some((w) => /MEASURED engine-spend portion only/.test(w)),
+      "the partial figure must say what it excludes, never read as a complete cost");
+  } finally { f.cleanup(); }
+});
+
+// --- FAFF-604 review findings: regressions the pre-PR review caught ---------
+
+test("FAFF-604 REGRESSION: the allow_unmetered waiver survives the LEDGER envelope path", () => {
+  // beep-boop records an envelope in the ledger at run start, so the ledger path is
+  // the NORMAL path. A waiver read only from fresh config would be silently inert
+  // there — and an inert waiver does not merely get ignored: it forces cost:null,
+  // and a null cost makes computeBudgetState skip the cost dimension entirely, so
+  // the operator loses the very ceiling they were keeping.
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  cost: 25\n  allow_unmetered:\n    - lan\n";
+  const f = fixture({
+    rc,
+    ledger: baseLedger({ budget: { envelope: { ceilings: { cost: 25, tokens: null, until: null, max_attempts: null }, at_ceiling: "stop", price_per_mtok: 0, pricing: "map" } } }),
+  });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: true }],
+      "the waiver must be honoured on the ledger-envelope path, not only on fresh config");
+    assert.ok(!(s.warnings || []).some((w) => /cost not meterable/.test(w)),
+      "a waived engine must not blank the dollar ceiling the operator kept");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604 REGRESSION: an unmetered engine with NO cost ceiling keeps its informational cost figure", () => {
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\nbudget:\n  tokens: 100000\n";
+  const f = fixture({ rc, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": [{ input_tokens: 100 }] });
+    const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    // No dollar ceiling armed ⇒ nothing to refuse; the engine is still NAMED.
+    assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: false }]);
+    assert.ok(s.warnings.some((w) => /telemetry: none/.test(w)));
+  } finally { f.cleanup(); }
+});

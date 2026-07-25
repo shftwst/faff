@@ -21,10 +21,17 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
   "provider", "model", "host", "bin_path", "auth", "api_key_env", "egress", "reasoning_off", "timeout",
+  "telemetry",
 ];
 
 const AUTH_VALUES = ["subscription-seat", "api-key", "none"];
 const EGRESS_VALUES = ["local", "external"];
+// FAFF-604: where this backend's SPEND can be read. `transcript-jsonl` is the
+// Claude Code transcript path budget/economics have always walked;
+// `exec-json-events` is the usage carried on a spawned child's own JSONL event
+// stream; `none` says the spend is unobservable — the value that makes a dollar
+// ceiling REFUSE rather than read the engine as free.
+const TELEMETRY_VALUES = ["transcript-jsonl", "exec-json-events", "none"];
 
 // PURE: derive `auth` when not explicitly set (explicit value always wins —
 // callers only invoke this on an absent/unset raw auth). Mirrors the spec's
@@ -36,6 +43,19 @@ function deriveAuth(b) {
   if (present(b.api_key_env)) return "api-key";
   const provider = String(b.provider || "").toLowerCase();
   if (provider === "anthropic" || provider === "codex") return "subscription-seat";
+  return "none";
+}
+
+// PURE: derive `telemetry` when not explicitly set (explicit value always wins —
+// callers only invoke this on an absent/unset raw telemetry). Mirrors deriveAuth's
+// shape: an anthropic backend's spend lands in the Claude Code transcript; a codex
+// backend's lands on its own `codex exec --json` event stream; every other family
+// has no spend source faff can read today, so it derives `none` — the honest
+// default, which refuses a dollar ceiling rather than counting the engine as free.
+function deriveTelemetry(b) {
+  const provider = String(b.provider || "").toLowerCase();
+  if (provider === "anthropic") return "transcript-jsonl";
+  if (provider === "codex") return "exec-json-events";
   return "none";
 }
 
@@ -84,6 +104,22 @@ function validateBackendConstraints(name, b) {
   if (b.auth === "none" && present(b.api_key_env)) {
     return `backends.${name}: auth: none must not carry api_key_env`;
   }
+  // FAFF-604: telemetry is a CLOSED enum with family-capability constraints — a
+  // backend may not CLAIM a spend source its family cannot physically serve
+  // (only anthropic writes a Claude Code transcript; only codex emits an exec
+  // event stream). `none` is legal everywhere: it is the safe universal claim.
+  // Caught here, at normalize time, rather than at spend-read time — where the
+  // symptom would be a silently missing contribution instead of a named fault.
+  if (!TELEMETRY_VALUES.includes(b.telemetry)) {
+    return `backends.${name}: invalid telemetry "${b.telemetry}" — legal set: ${TELEMETRY_VALUES.join(" | ")}`;
+  }
+  const provider = String(b.provider || "").toLowerCase();
+  if (b.telemetry === "transcript-jsonl" && provider !== "anthropic") {
+    return `backends.${name}: telemetry: transcript-jsonl requires provider anthropic (only the Claude Code transcript carries that spend); provider is "${b.provider}"`;
+  }
+  if (b.telemetry === "exec-json-events" && provider !== "codex") {
+    return `backends.${name}: telemetry: exec-json-events requires provider codex (only a codex exec child emits that event stream); provider is "${b.provider}"`;
+  }
   return null;
 }
 
@@ -106,6 +142,7 @@ function normalizeBackend(name, raw) {
   b.reasoning_off = raw.reasoning_off === true ? true : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.auth = present(raw.auth) ? String(raw.auth) : deriveAuth(b);
+  b.telemetry = present(raw.telemetry) ? String(raw.telemetry) : deriveTelemetry(b);
   const egressExplicit = present(raw.egress);
   b.egress = egressExplicit ? String(raw.egress) : deriveEgress(b);
   b._egress_explicit = egressExplicit; // internal marker — the derived-egress config-check guard only
@@ -114,6 +151,47 @@ function normalizeBackend(name, raw) {
   if (err) return { error: err };
   return { backend: b };
 }
+
+// FAFF-604: the engine backends this run's fleet can reach, resolved from the
+// `engine:<name>` values on the models.* lanes (the only place a config points a
+// lane at a backend). Returns the resolved Backend records, so a caller can read
+// each one's declared telemetry source.
+//
+// Lives HERE, in the factory region, because it is a fact about backends —
+// governance (budget.js) may never require this module (ADR-0042's require-graph
+// direction invariant), so the governance side is HANDED the resolved answer
+// rather than reaching for it. The dispatch shell, which is exempt by design, is
+// where the two regions meet for `budget check`.
+function fleetEngineBackends(cfg) {
+  const lanes = dig(cfg, "models");
+  if (!lanes || typeof lanes !== "object" || Array.isArray(lanes)) return [];
+  const refs = [];
+  const walk = (node) => {
+    for (const v of Object.values(node)) {
+      if (typeof v === "string" && v.startsWith("engine:")) {
+        const n = v.slice("engine:".length).trim();
+        if (n && !refs.includes(n)) refs.push(n);
+      } else if (v && typeof v === "object" && !Array.isArray(v)) walk(v);
+    }
+  };
+  walk(lanes);
+  if (!refs.length) return [];
+  const merged = mergeBackendsNamespace(cfg);
+  if (merged.error) return [];
+  return refs.map((n) => merged.backends[n]).filter(Boolean);
+}
+
+// The fleet engines whose spend is UNOBSERVABLE (`telemetry: none`) and which
+// the budget block has not explicitly waived. This is the set that makes a
+// dollar ceiling refuse: counting them as zero would report "under budget" on
+// a figure that never saw their spend at all.
+function unmeteredFleetEngines(cfg, allowUnmetered) {
+  const allow = new Set(Array.isArray(allowUnmetered) ? allowUnmetered.map(String) : []);
+  return fleetEngineBackends(cfg)
+    .filter((b) => b.telemetry === "none" && !allow.has(b.name))
+    .map((b) => b.name);
+}
+
 
 // PURE: fold the top-level `engines:` map into `backends:` at load (spec §4
 // "Load-time merge + normalize"). A name present in BOTH is a hard error
@@ -272,6 +350,23 @@ function backendsConfigCheckFindings(cfg) {
     findings.push({ severity, surface: "backends", message: merged.error });
     return findings;
   }
+  // FAFF-604: a `budget.allow_unmetered` entry naming a backend that no longer
+  // exists is a DEAD waiver — it silently protects nothing, and the operator who
+  // wrote it believes a ceiling is waived when it is not. A warn (not an error):
+  // a renamed backend must not brick the config, but the stale name should be
+  // visible in the one place a human actually reads config posture.
+  const allowUnmetered = dig(cfg, "budget.allow_unmetered");
+  if (Array.isArray(allowUnmetered)) {
+    for (const raw of allowUnmetered) {
+      const name = String(raw).trim();
+      if (name === "" || merged.backends[name]) continue;
+      findings.push({
+        severity: "warn",
+        surface: "budget.allow_unmetered",
+        message: `budget.allow_unmetered names "${name}", which is not a configured backend — the waiver is dead (it protects nothing). Remove it, or fix the name to match a backends: entry.`,
+      });
+    }
+  }
   const adv = dig(cfg, "faffter_dark.adversarial");
   if (adv && typeof adv === "object" && !Array.isArray(adv) && present(adv.requires) && Array.isArray(adv.refs)) {
     if (!RESIDENCY_REQUIRED_VALUES.includes(adv.requires)) {
@@ -368,19 +463,57 @@ function backendsSelftest() {
   ok("deriveEgress: RFC1918 172.16-31.x -> local", deriveEgress({ host: "http://172.20.0.5:1234" }) === "local");
   ok("deriveEgress: empty host -> external (conservative, never a false-safe local)", deriveEgress({ host: "" }) === "external");
 
+  // --- deriveTelemetry (FAFF-604) ---------------------------------------------
+  ok("deriveTelemetry: anthropic -> transcript-jsonl", deriveTelemetry({ provider: "anthropic" }) === "transcript-jsonl");
+  ok("deriveTelemetry: codex -> exec-json-events", deriveTelemetry({ provider: "codex" }) === "exec-json-events");
+  ok("deriveTelemetry: ollama -> none (no readable spend source)", deriveTelemetry({ provider: "ollama" }) === "none");
+  ok("deriveTelemetry: nvidia -> none", deriveTelemetry({ provider: "nvidia" }) === "none");
+  ok("deriveTelemetry: absent provider -> none (never a false-metered claim)", deriveTelemetry({}) === "none");
+  ok("normalizeBackend: telemetry derived for codex",
+    normalizeBackend("cx", { provider: "codex", model: "gpt-5" }).backend.telemetry === "exec-json-events");
+  ok("normalizeBackend: explicit telemetry wins over derivation",
+    normalizeBackend("cx", { provider: "codex", model: "gpt-5", telemetry: "none" }).backend.telemetry === "none");
+  ok("normalizeBackend: unknown telemetry value -> named error",
+    /invalid telemetry "bogus"/.test(normalizeBackend("cx", { provider: "codex", model: "m", telemetry: "bogus" }).error || ""));
+  ok("normalizeBackend: exec-json-events on a non-codex provider -> named error",
+    /requires provider codex/.test(normalizeBackend("x", { provider: "ollama", model: "m", host: "http://localhost:11434", telemetry: "exec-json-events" }).error || ""));
+  ok("normalizeBackend: transcript-jsonl on a non-anthropic provider -> named error",
+    /requires provider anthropic/.test(normalizeBackend("x", { provider: "codex", model: "m", telemetry: "transcript-jsonl" }).error || ""));
+  ok("normalizeBackend: telemetry none is legal on any provider",
+    normalizeBackend("x", { provider: "nvidia", model: "m", host: "https://h/v1", api_key_env: "K", telemetry: "none" }).error === undefined);
+  ok("BACKEND_RECORD_KEYS carries telemetry (so `faff backends resolve` prints it)",
+    BACKEND_RECORD_KEYS.includes("telemetry"));
+
+  // --- fleet telemetry scan (FAFF-604) — moved here from budget.js: governance
+  // may not require this module, so the factory owns the resolution.
+  const codexFleet = { backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, models: { methodology: "engine:seat" } };
+  const localFleet = { backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } }, models: { intake: "engine:lan" } };
+  ok("fleetEngineBackends: resolves an engine:<name> lane value to its backend",
+    fleetEngineBackends(codexFleet).map((b) => b.name).join(",") === "seat");
+  ok("fleetEngineBackends: no engine lanes -> empty (an all-Agent-token fleet)",
+    fleetEngineBackends({ models: { build: "sonnet" } }).length === 0);
+  ok("fleetEngineBackends: an engine ref naming no configured backend is dropped, never a throw",
+    fleetEngineBackends({ backends: {}, models: { intake: "engine:ghost" } }).length === 0);
+  ok("unmeteredFleetEngines: a codex engine is METERED (exec-json-events), never flagged",
+    unmeteredFleetEngines(codexFleet, []).length === 0);
+  ok("unmeteredFleetEngines: an ollama engine derives telemetry: none -> flagged",
+    unmeteredFleetEngines(localFleet, []).join(",") === "lan");
+  ok("unmeteredFleetEngines: an explicit budget.allow_unmetered waiver clears the flag",
+    unmeteredFleetEngines(localFleet, ["lan"]).length === 0);
+
   // --- validateBackendConstraints ------------------------------------------------------------
   ok("constraints: api-key without api_key_env -> error",
-    !!validateBackendConstraints("x", { auth: "api-key" }));
+    !!validateBackendConstraints("x", { auth: "api-key", egress: "local", telemetry: "none" }));
   ok("constraints: subscription-seat WITH api_key_env -> error (no handle field)",
-    !!validateBackendConstraints("x", { auth: "subscription-seat", api_key_env: "K" }));
+    !!validateBackendConstraints("x", { auth: "subscription-seat", api_key_env: "K", egress: "local", telemetry: "none" }));
   ok("constraints: none WITH api_key_env -> error",
-    !!validateBackendConstraints("x", { auth: "none", api_key_env: "K" }));
+    !!validateBackendConstraints("x", { auth: "none", api_key_env: "K", egress: "local", telemetry: "none" }));
   ok("constraints: subscription-seat, no api_key_env -> ok",
-    validateBackendConstraints("x", { auth: "subscription-seat", egress: "local" }) === null);
+    validateBackendConstraints("x", { auth: "subscription-seat", egress: "local", telemetry: "none" }) === null);
   ok("constraints: invalid auth value -> error",
-    !!validateBackendConstraints("x", { auth: "bogus", egress: "local" }));
+    !!validateBackendConstraints("x", { auth: "bogus", egress: "local", telemetry: "none" }));
   ok("constraints: invalid egress value -> error",
-    !!validateBackendConstraints("x", { auth: "none", egress: "bogus" }));
+    !!validateBackendConstraints("x", { auth: "none", egress: "bogus", telemetry: "none" }));
 
   // --- mergeBackendsNamespace ------------------------------------------------------------
   {
@@ -535,7 +668,9 @@ function backendsSelftest() {
 
 module.exports = {
   AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES, RESIDENCY_REQUIRED_VALUES,
+  TELEMETRY_VALUES,
   backendsConfigCheckFindings, backendsSelftest, checkRealizable, cmdBackends,
-  deriveAuth, deriveEgress, mergeBackendsNamespace, normalizeBackend,
+  deriveAuth, deriveEgress, deriveTelemetry, fleetEngineBackends, mergeBackendsNamespace, normalizeBackend,
+  unmeteredFleetEngines,
   portableMatrixAdmits, resolveBackendRefs, resolveTokenSource, validateBackendConstraints,
 };

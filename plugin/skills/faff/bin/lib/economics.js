@@ -19,7 +19,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokensByModelClass, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { unmeteredFleetEngines } = require("./backends");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
@@ -343,7 +344,7 @@ function econAttributeCacheRead(lightRecords) {
 // requested axis' buckets, prices per-model × per-class, and reconciles to the
 // top-line total (`topLineTotal`, the raw measureTokens sum over the SAME files;
 // null for the estimate path). Selftest-coverable like computeUnitEconomics.
-function economicsBreakdown(records, axis, priceMap, topLineTotal) {
+function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend = null) {
   const grandTotal = { total: 0 };
   const byClass = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
   const byModel = new Map();               // model -> {input,output,cache_write,cache_read,total}
@@ -402,8 +403,21 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal) {
       return { key: cls, ...one, cost: price ? (byClass[cls] / 1e6) * price[cls] : null };
     });
   } else if (axis === "model") {
-    rows = [...byModel.entries()].map(([model, b]) => mkRow(model, b, model))
-      .sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
+    // FAFF-604: on a MIXED-fleet run every model row names where its tokens were
+    // read, so the breakdown can be read without inferring which lane a model
+    // belonged to. On a transcript-only run the field is omitted entirely — the
+    // byte-identical guarantee is about exactly this: an unchanged run must emit
+    // unchanged JSON, down to the absent key.
+    const engineRows = engineSpend && engineSpend.by_model instanceof Map && engineSpend.by_model.size > 0
+      ? [...engineSpend.by_model.entries()].map(([model, counts]) => {
+        const b = { ...counts, total: counts.input + counts.output + counts.cache_write + counts.cache_read };
+        return { ...mkRow(model, b, model), source: "exec-json-events" };
+      })
+      : [];
+    rows = [...byModel.entries()].map(([model, b]) => (engineRows.length
+      ? { ...mkRow(model, b, model), source: "transcript-jsonl" }
+      : mkRow(model, b, model)));
+    rows = rows.concat(engineRows).sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
   } else if (axis === "day") {
     rows = [...byDay.entries()].map(([day, dm]) => {
       const agg = mkc();
@@ -419,12 +433,22 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal) {
   }
 
   const grand = rows.reduce((s, r) => s + r.total, 0);
+  // FAFF-604: the model axis is the one axis that folds in engine spend, so its
+  // reconciliation target must include that half too — otherwise a mixed-fleet
+  // breakdown would report `reconciles: false` for a census that is in fact
+  // complete. The class/day axes stay transcript-only and reconcile unchanged.
+  const engineFolded = axis === "model" && engineSpend && engineSpend.by_model instanceof Map
+    ? [...engineSpend.by_model.values()].reduce((s, c) => s + c.input + c.output + c.cache_write + c.cache_read, 0)
+    : 0;
+  const target = (typeof topLineTotal === "number") ? topLineTotal + engineFolded : null;
   const reconciliation = {
     grand_total: grand,
-    top_line_total: (typeof topLineTotal === "number") ? topLineTotal : null,
-    reconciles: (typeof topLineTotal === "number") ? grand === topLineTotal : false,
+    top_line_total: target,
+    reconciles: (target != null) ? grand === target : false,
   };
-  const out = { axis, source: "transcript", rows, reconciliation };
+  // `source` names the axis' census basis: a model-axis breakdown that folded in
+  // engine spend drew on both, and says so rather than claiming transcript alone.
+  const out = { axis, source: engineFolded > 0 ? "transcript+engine-spend" : "transcript", rows, reconciliation };
   if (axis === "class") out.priced_at_model = pricedAtModel;
   return out;
 }
@@ -731,7 +755,10 @@ function cmdEconomics(args) {
   // no-`--by` common path now reads the transcript exactly once (the top-line no
   // longer needs a separate `readRunTranscriptRecords`). The scalar total is still
   // baselined at run start, the same figure budget gates on.
-  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  // FAFF-604: the SAME combining call `budget check` makes — one owner of the
+  // two-source union, so the two top lines can never drift into independent folds.
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, unmeteredEngines: unmeteredFleetEngines(cfg, env.allow_unmetered) });
+  const measured = runSpend.transcript;
   const measuredSource = measured.source;
   const measuredTotal = measuredSource === "transcript"
     ? (measured.totals.input + measured.totals.output + measured.totals.cache_write + measured.totals.cache_read)
@@ -745,6 +772,17 @@ function cmdEconomics(args) {
     tokensTotal = attemptsFromLedger(ledger) * estPer;
     tokensSource = "estimate";
   }
+
+  // FAFF-604 — the second spend source. Engine-spend records are run-scoped, so
+  // they are added raw (no run-start baseline) exactly as `budget check` adds
+  // them, keeping the two top lines reconciled. `tokens_source` keeps its exact
+  // prior meaning — the TRANSCRIPT-side measurement basis — so the estimate-mode
+  // sanity gate downstream is untouched; measured engine spend counts either way.
+  const engineSpend = runSpend.engine_spend;
+  const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
+    + engineSpend.totals.cache_write + engineSpend.totals.cache_read;
+  const transcriptPortion = tokensTotal;
+  tokensTotal += engineSpendTotal;
 
   // Per-issue attribution is transcript-only (the estimate path has no
   // transcripts to sum) and best-effort — an empty list is a clean fallback.
@@ -770,11 +808,44 @@ function cmdEconomics(args) {
   // silently dropped from the dollar figure.
   let mapCost = null;
   const mapWarnings = [];
+  // FAFF-604: engine-spend models price from the SAME map, on measured per-record
+  // sums (no baseline, no pro-rate). Priced outside the transcript-gated block so
+  // a codex lane's cost is still reported when the transcript side degraded to an
+  // estimate — those tokens were measured, whatever the transcript could resolve.
+  let engineMapCost = null;
+  if (env.pricing === "map" && engineSpend.records > 0) {
+    let priced = 0, anyPriced = false;
+    const unpricedEngine = [];
+    for (const [model, counts] of engineSpend.by_model) {
+      const rate = economicsPriceForModel(model, priceMap);
+      if (!rate) { if (TOKEN_DELTA_CLASSES.some((cls) => (counts[cls] || 0) > 0)) unpricedEngine.push(model); continue; }
+      for (const cls of TOKEN_DELTA_CLASSES) priced += ((counts[cls] || 0) / 1e6) * rate[cls];
+      anyPriced = true;
+    }
+    if (anyPriced) engineMapCost = priced;
+    if (unpricedEngine.length) {
+      mapWarnings.push(`engine-spend model(s) absent from the price map, excluded from cost (never silently free): ${unpricedEngine.join(", ")}`);
+    }
+    // A priced engine half with an UNPRICEABLE transcript half is a PARTIAL cost.
+    // Before the seam this state reported cost_total: null — an honest unknown.
+    // Reporting the engine portion alone without saying so would swap that for a
+    // confident understatement, which is the same never-silently-zero failure in a
+    // different costume. `budget check` warns in the identical state; so does this.
+    if (anyPriced && measuredSource !== "transcript") {
+      mapWarnings.push("cost covers the MEASURED engine-spend portion only — the transcript half is not meterable from estimates (no per-model data to price against the ADR-0048 map); resolve a transcript so per-model token spend can be measured");
+    }
+  }
+  if (engineSpend.malformed > 0) {
+    mapWarnings.push(`${engineSpend.malformed} malformed line(s) skipped in engine-spend.jsonl — engine spend may be under-reported`);
+  }
   if (env.pricing === "map" && measuredSource === "transcript") {
     const baseByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
       && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
       ? ledger.budget.tokens_at_start_by_model_class : null;
-    const scale = measuredTotal > 0 ? tokensTotal / measuredTotal : 0;
+    // FAFF-604: the pro-rate scale is the TRANSCRIPT portion over the transcript
+    // measurement — engine spend is measured per-record and never pro-rated, so
+    // folding it into this ratio would inflate every transcript model's delta.
+    const scale = measuredTotal > 0 ? transcriptPortion / measuredTotal : 0;
     let priced = 0, anyPriced = false;
     const unpriced = [];
     for (const [model, counts] of measured.by_model) {
@@ -804,11 +875,39 @@ function cmdEconomics(args) {
     mapWarnings.push(`budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; economics prices from the ADR-0048 map. Unset budget.price_per_mtok in .faffrc.yaml (set budget.price_per_mtok_by_model to override specific models).`);
   }
 
+  // FAFF-604: the engine half of the priced total. Summed here so `cost_total`
+  // covers BOTH sources; null + null stays null (nothing priceable), and a
+  // priced engine half alone still reports rather than reading as free.
+  const combinedMapCost = (mapCost == null && engineMapCost == null) ? null
+    : (mapCost || 0) + (engineMapCost || 0);
+
   const econ = computeUnitEconomics(ledger, {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
     tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
-    pricing: env.pricing, map_cost: mapCost, map_warnings: mapWarnings,
+    pricing: env.pricing, map_cost: combinedMapCost, map_warnings: mapWarnings,
   });
+
+  // FAFF-604 — additive metering-provenance labels, so a mixed-fleet run reports
+  // honestly about WHERE its numbers came from. Both are omitted on a
+  // single-source transcript run with a fully metered fleet, so unchanged runs
+  // emit byte-identical JSON.
+  if (engineSpend.records > 0) {
+    const spendSources = [];
+    if (tokensSource === "transcript") {
+      spendSources.push({ source: "transcript-jsonl", tokens: transcriptPortion, cost: mapCost });
+    }
+    spendSources.push({
+      source: "exec-json-events", tokens: engineSpendTotal, cost: engineMapCost,
+      records: engineSpend.records, engines: engineSpend.engines,
+    });
+    econ.spend_sources = spendSources;
+  }
+  const unmetered = runSpend.unmetered_engines;
+  const unmeteredAll = unmeteredFleetEngines(cfg, []);
+  if (unmeteredAll.length) {
+    econ.unmetered_engines = unmeteredAll.map((name) => ({ engine: name, waived: !unmetered.includes(name) }));
+    econ.warnings.push(`engine(s) with telemetry: none in the fleet — ${unmeteredAll.join(", ")}; their spend is unobservable and is NOT counted in the figures above`);
+  }
 
   // No `--by` → today's behaviour, byte-for-byte (always-JSON UnitEconomics blob).
   if (byAxis == null) {
@@ -846,7 +945,7 @@ function cmdEconomics(args) {
     if (byAxis === "mcp") {
       bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
     } else {
-      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal);
+      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal, engineSpend);
     }
   }
 

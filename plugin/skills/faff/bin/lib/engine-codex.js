@@ -71,6 +71,39 @@ function parseCodexEvents(raw) {
   return { events, finalMessage };
 }
 
+// PURE (FAFF-604): total the usage carried on the stream's `turn.completed`
+// events into the four token classes budget/economics bucket by.
+//
+// The class model comes from the Anthropic transcript, where the classes are
+// DISJOINT (`input_tokens` excludes the two cache classes). The codex/OpenAI
+// shape differs: `cached_input_tokens` is a SUBSET of `input_tokens` — which is
+// why codex-rs exposes a `non_cached_input()` helper at all. So the cached
+// portion is SUBTRACTED out of the input class rather than added alongside it;
+// adding both would count those tokens twice and, once codex models reach the
+// price map, bill them twice (at the full input rate AND the cache-read rate).
+// Floored at 0: a stream reporting more cached than input is incoherent, and
+// clamping keeps the class non-negative rather than propagating the nonsense.
+//
+// codex reports no cache-write class, so it is always 0 — the field is kept for
+// shape parity with the transcript source, so the two union without a special
+// case. Missing or non-finite fields contribute nothing (an under-count, the
+// safe direction — the same posture the transcript loop takes on a malformed
+// record).
+function sumCodexUsage(events) {
+  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const n = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  for (const ev of events || []) {
+    if (!ev || ev.type !== "turn.completed") continue;
+    const u = ev.usage;
+    if (!u || typeof u !== "object") continue;
+    const cached = n(u.cached_input_tokens);
+    totals.input += Math.max(0, n(u.input_tokens) - cached);
+    totals.output += n(u.output_tokens);
+    totals.cache_read += cached;
+  }
+  return totals;
+}
+
 // PURE: split a failed child exit into auth-failed vs engine-unreachable. An
 // auth-shaped signal is stderr matching /login|auth|401|403/i or an auth-classed
 // error event in the parsed stream; everything else is unreachable. The seat
@@ -89,7 +122,7 @@ function classifyCodexFailure(stderr, events) {
 // guard → seat probe → ONE exec spawn → fail-loud parse → classify. Returns an
 // ENGINE_EXIT int synchronously (bin/faff's dispatcher accepts int-or-Promise).
 // spawnFn/env/writers injectable — the selftest and CI make zero real spawns.
-function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process.env, stdoutWrite, stderrWrite, mkdtempFn = fs.mkdtempSync } = {}) {
+function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process.env, stdoutWrite, stderrWrite, mkdtempFn = fs.mkdtempSync, spendSink = null, nowFn = () => new Date().toISOString() } = {}) {
   const out = stdoutWrite || ((s) => process.stdout.write(s));
   const err = stderrWrite || ((s) => process.stderr.write(s));
   const binPath = engine.binPath || "codex";
@@ -191,7 +224,31 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
     return ENGINE_EXIT.MALFORMED;
   }
 
-  // 7. stdout is the producer block, handed verbatim to the caller (trim only).
+  // 7. FAFF-604 — record this call's spend. codex exec is `--ephemeral`: no
+  // session file, temp cwd already gone, so nothing codex-side survives to be
+  // attributed later. The call boundary is the ONLY place that knows both the
+  // usage and the run, so attribution happens here, via an injected sink (the
+  // caller supplies one bound to the run dir; absent — an ad-hoc call outside a
+  // run — nothing is recorded). A sink fault WARNS and leaves the exit code
+  // alone: spend metering must never break a producer dispatch. Recorded only on
+  // the success path; a failed call's partial usage is left uncounted, the same
+  // under-count-not-over-count direction the transcript path already errs in.
+  if (spendSink) {
+    try {
+      spendSink({
+        ts: nowFn(),
+        engine: engine.name,
+        provider: engine.provider,
+        model: engine.model,
+        source: "exec-json-events",
+        ...sumCodexUsage(parsed.events),
+      });
+    } catch (e) {
+      err(`faff engine call: warning — could not record codex spend: ${excerpt(e && e.message)}\n`);
+    }
+  }
+
+  // 8. stdout is the producer block, handed verbatim to the caller (trim only).
   out(parsed.finalMessage.trim() + "\n");
   return ENGINE_EXIT.OK;
 }
@@ -229,6 +286,77 @@ function codexSelftest() {
   { let threw = false; try { parseCodexEvents(`${AGENT_LINE}\nnot json\n`); } catch (e) { threw = /non-JSON line/.test(e.message); }
     ok("parse: stray non-JSON line fails loud even with a message present", threw); }
   ok("parse: only turn events -> no final message (null, not empty pass)", parseCodexEvents(`${TURN_LINE}\n`).finalMessage === null);
+
+  // usage summing (FAFF-604) — pure
+  {
+    const u = sumCodexUsage([
+      { type: "turn.completed", usage: { input_tokens: 10, output_tokens: 5, cached_input_tokens: 3 } },
+      { type: "turn.completed", usage: { input_tokens: 1, output_tokens: 2 } },
+      { type: "item.completed", usage: { input_tokens: 999 } }, // not a turn event — never counted
+    ]);
+    // input_tokens 10+1 = 11, of which 3 are cached → 8 non-cached input + 3 cache_read.
+    ok("usage: sums turn.completed, splitting cached input OUT of the input class (disjoint, never double-counted)",
+      u.input === 8 && u.output === 7 && u.cache_read === 3 && u.cache_write === 0);
+    ok("usage: the two input classes partition input_tokens", u.input + u.cache_read === 11);
+    ok("usage: a non-turn event's usage is not counted", u.input === 8);
+    const empty = sumCodexUsage([{ type: "turn.completed" }, { type: "turn.completed", usage: { input_tokens: "x" } }]);
+    ok("usage: missing/non-numeric fields contribute nothing (under-count, the safe direction)",
+      empty.input === 0 && empty.output === 0 && empty.cache_read === 0);
+    ok("usage: empty/absent stream -> zeros, never a throw", sumCodexUsage(null).input === 0 && sumCodexUsage([]).output === 0);
+  }
+
+  // spend sink (FAFF-604) — the call-boundary attribution, zero real I/O
+  {
+    const recorded = [];
+    const code = runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+      stdoutWrite: sink, stderrWrite: sink,
+      spendSink: (r) => recorded.push(r), nowFn: () => "2026-07-25T00:00:00Z",
+    });
+    const r = recorded[0];
+    ok("sink: a successful call records exactly one SpendRecord",
+      code === ENGINE_EXIT.OK && recorded.length === 1);
+    ok("sink: record carries engine/provider/model + the exec-json-events source label",
+      r && r.engine === "seat" && r.provider === "codex" && r.model === "gpt-5-codex" && r.source === "exec-json-events");
+    ok("sink: record carries the class-mapped usage sums",
+      r && r.input === 10 && r.output === 5 && r.cache_read === 0 && r.cache_write === 0);
+    ok("sink: TURN_LINE carries no cached tokens, so input is unsplit here", r && r.input === 10);
+  }
+  {
+    // A failed call records nothing — attributing partial usage from a failure is
+    // an over-count risk; leaving it uncounted errs the way the transcript already does.
+    const recorded = [];
+    const code = runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk, { status: 1, stdout: "", stderr: "boom", error: null, signal: null }),
+      stdoutWrite: sink, stderrWrite: sink, spendSink: (r) => recorded.push(r),
+    });
+    ok("sink: a FAILED call records no spend", code !== ENGINE_EXIT.OK && recorded.length === 0);
+  }
+  {
+    // A sink fault must never change the dispatch's exit code — metering is
+    // observability, not a precondition of the producer call succeeding.
+    let stderr = "", stdout = "";
+    const code = runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+      stdoutWrite: (s) => (stdout += s), stderrWrite: (s) => (stderr += s),
+      spendSink: () => { throw new Error("ENOSPC writing engine-spend.jsonl"); },
+    });
+    ok("sink: a write fault warns and leaves the exit code + producer output untouched",
+      code === ENGINE_EXIT.OK && stdout.trim() === "the block"
+      && /warning — could not record codex spend/.test(stderr) && /ENOSPC/.test(stderr));
+  }
+  {
+    // No sink (an ad-hoc call outside a run) is a clean no-op, never a throw.
+    const code = runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }),
+      stdoutWrite: sink, stderrWrite: sink, spendSink: null,
+    });
+    ok("sink: absent sink is a clean no-op", code === ENGINE_EXIT.OK);
+  }
 
   // classifier
   ok("classify: 401 stderr -> auth", classifyCodexFailure("HTTP 401 from upstream", []) === "auth");
@@ -374,4 +502,4 @@ function codexSelftest() {
   return fail;
 }
 
-module.exports = { buildCodexArgv, classifyCodexFailure, codexSelftest, parseCodexEvents, runCodexCall };
+module.exports = { buildCodexArgv, classifyCodexFailure, codexSelftest, parseCodexEvents, runCodexCall, sumCodexUsage };

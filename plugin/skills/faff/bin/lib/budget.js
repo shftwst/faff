@@ -348,6 +348,17 @@ function envelopeFrom(cfg, flags) {
   const winTokens = w ? num(w.tokens) : null;
   const window = (winHours != null && winHours > 0 && winTokens != null && winTokens > 0)
     ? { hours: winHours, tokens: winTokens } : null;
+  // FAFF-604: `budget.allow_unmetered` waives the dollar-mode refusal for named
+  // backends whose spend is unobservable (`telemetry: none`). It lives on the
+  // BUDGET block, not the backend record, deliberately: accepting unmetered spend
+  // under a ceiling is a policy owned by whoever set the ceiling — a per-backend
+  // flag would let an engine definition quietly waive someone else's. A waived
+  // engine is still NAMED in every output; it is opted out of the refusal, never
+  // out of visibility.
+  const allowRaw = b.allow_unmetered;
+  const allow_unmetered = Array.isArray(allowRaw)
+    ? allowRaw.map((v) => String(v).trim()).filter((v) => v !== "")
+    : (allowRaw != null && String(allowRaw).trim() !== "" ? [String(allowRaw).trim()] : []);
   return {
     ceilings: { until, max_attempts: maxAttempts, tokens, cost },
     until_invalid,
@@ -356,6 +367,7 @@ function envelopeFrom(cfg, flags) {
     price_per_mtok: 0,
     pricing,
     window,
+    allow_unmetered,
   };
 }
 
@@ -578,6 +590,114 @@ function measureTokensByModelClass(opts) {
   return { by_model, totals, source: "transcript" };
 }
 
+// ---------------------------------------------------------------------------
+// FAFF-604 — the SECOND spend source: a run-owned `engine-spend.jsonl`.
+//
+// A spawned engine (codex) writes no Claude Code transcript, so its spend can
+// never be found by the walk above. The call boundary — the only place that
+// knows both the usage and the run — appends one record per completed call to
+// this run-scoped file, and the combining measurer below unions the two sources.
+// The transcript walk above is UNTOUCHED by this: the seam is a layer over it,
+// never an edit inside it, so a transcript-only run measures byte-for-byte as
+// it did before.
+//
+// Records are run-scoped by construction (they live in the run dir), so unlike
+// the whole-session transcript they need NO run-start baseline subtraction.
+// ---------------------------------------------------------------------------
+const ENGINE_SPEND_FILENAME = "engine-spend.jsonl";
+
+function engineSpendPath(runDir) { return path.join(runDir, ENGINE_SPEND_FILENAME); }
+
+// Append one SpendRecord. Throws on a write fault — the CALLER decides the
+// posture (the codex sink warns and leaves the dispatch's exit code alone:
+// metering must never break a producer dispatch).
+function appendEngineSpend(runDir, record) {
+  fs.mkdirSync(runDir, { recursive: true });
+  fs.appendFileSync(engineSpendPath(runDir), `${JSON.stringify(record)}\n`, "utf8");
+}
+
+// Read + total a run's engine-spend records. Malformed lines are SKIPPED, not
+// fatal — the same posture the transcript loop takes, and for the same reason:
+// a partial write from an in-flight append must never crash a budget check.
+// `malformed` carries the skipped count so economics can name it rather than
+// silently under-report. A missing file is the common case: zeros, no error.
+function readEngineSpend(runDir) {
+  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const by_model = new Map();
+  const engines = new Set();
+  let records = 0, malformed = 0;
+  if (!runDir) return { totals, by_model, engines: [], records, malformed };
+  let text;
+  try { text = fs.readFileSync(engineSpendPath(runDir), "utf8"); }
+  catch { return { totals, by_model, engines: [], records, malformed }; }
+  for (const line of text.split("\n")) {
+    const s = line.trim();
+    if (!s) continue;
+    let rec;
+    try { rec = JSON.parse(s); } catch { malformed++; continue; }
+    if (!rec || typeof rec !== "object") { malformed++; continue; }
+    const model = (typeof rec.model === "string" && rec.model) || "unknown";
+    if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    const mb = by_model.get(model);
+    for (const cls of TOKEN_DELTA_CLASSES) {
+      const v = rec[cls];
+      if (typeof v === "number" && Number.isFinite(v)) { totals[cls] += v; mb[cls] += v; }
+    }
+    if (typeof rec.engine === "string" && rec.engine) engines.add(rec.engine);
+    records++;
+  }
+  return { totals, by_model, engines: [...engines], records, malformed };
+}
+
+// FAFF-604 — the combining layer. Measures BOTH sources and reports which
+// contributed, without touching either one's reader. `totals`/`by_model` are the
+// raw union (whole-session transcript + run-scoped engine spend); a caller that
+// baselines (cmdBudget subtracts run-start from the transcript half) folds the
+// two parts itself from `transcript`/`engine_spend` — the engine half needs no
+// baseline, being run-scoped already. `tokens_source` keeps its exact prior
+// meaning: the TRANSCRIPT-side measurement basis, unchanged for every consumer
+// that reads it today.
+function measureRunSpend(opts) {
+  const { cwd, env, runStartMs, runDir, unmeteredEngines } = opts;
+  const transcript = measureTokensByModelClass({ cwd, env, runStartMs });
+  const engine_spend = readEngineSpend(runDir);
+  const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+  const by_model = new Map();
+  const fold = (src) => {
+    if (!src) return;
+    for (const cls of TOKEN_DELTA_CLASSES) totals[cls] += (src.totals ? src.totals[cls] : 0) || 0;
+    const m = src.by_model instanceof Map ? src.by_model : new Map();
+    for (const [model, counts] of m) {
+      if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+      const mb = by_model.get(model);
+      for (const cls of TOKEN_DELTA_CLASSES) mb[cls] += counts[cls] || 0;
+    }
+  };
+  if (transcript.source === "transcript") fold(transcript);
+  fold(engine_spend);
+  const sumOf = (t) => t.input + t.output + t.cache_write + t.cache_read;
+  const sources = [];
+  if (transcript.source === "transcript") {
+    sources.push({ source: "transcript-jsonl", tokens: sumOf(transcript.totals) });
+  }
+  if (engine_spend.records > 0) {
+    sources.push({ source: "exec-json-events", tokens: sumOf(engine_spend.totals), records: engine_spend.records, engines: engine_spend.engines });
+  }
+  return {
+    transcript,
+    engine_spend,
+    totals,
+    by_model,
+    tokens_source: transcript.source,
+    sources,
+    // Handed in by the caller, never resolved here: which engines are unmetered is
+    // a fact about BACKENDS (the factory region), and governance may not require
+    // that module (ADR-0042). Absent ⇒ empty, so a caller with nothing to declare
+    // measures exactly as it did before the seam.
+    unmetered_engines: Array.isArray(unmeteredEngines) ? unmeteredEngines : [],
+  };
+}
+
 // Scalar this-run total: the sum of the four classes measureTokensByClass returns
 // (same session file + same child-attribution gate). Returns { total, source }:
 // 'transcript' + summed total, or 'estimate' + null (caller supplies the estimate).
@@ -695,7 +815,12 @@ function resolveBudgetNow(get) {
   return { now_ms: Date.now() }; // unchanged production default
 }
 
-function cmdBudget(args) {
+// `resolveUnmetered` is injected by the dispatch shell (bin/faff), which is exempt
+// from the region lint and is therefore where governance and factory legitimately
+// meet. Defaulting it to "nothing unmetered" keeps every other caller — the
+// selftest, a direct require — working unchanged, and fails in the safe direction:
+// a missing resolver can only UNDER-report the refusal, never invent one.
+function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   if (args.includes("--selftest")) return budgetSelftest();
   const sub = args.find((a) => !a.startsWith("-"));
   if (sub === "baseline") return cmdBudgetBaseline(args);
@@ -805,7 +930,15 @@ function cmdBudget(args) {
   // `measureTokens` would (its `totals` is the sum over `by_model`, by
   // construction), so this is not a second walk — it is the one walk, now also
   // carrying what map-pricing needs. Estimate fallback when the transcript is gone.
-  const measuredFull = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  // FAFF-604: ONE combining call — `measureRunSpend` owns the union of the two
+  // spend sources, so budget and economics can never drift into two independent
+  // folds of the same data (the "one measurement, all ceilings" principle applied
+  // to the seam itself, not just to the ceilings downstream of it). Its
+  // `transcript` half is exactly what `measureTokensByModelClass` returned before,
+  // so the baselining below is untouched; the run-scoped `engine_spend` half needs
+  // no baseline and is folded in after.
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, unmeteredEngines: resolveUnmetered(cfg, env.allow_unmetered) });
+  const measuredFull = runSpend.transcript;
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
   const costWarnings = [];         // accumulated unconditionally; the single costConfigured gate is at the flush point
@@ -855,6 +988,38 @@ function cmdBudget(args) {
   // no sessions array is present (byte-for-byte the single-session total). Never
   // undercounts: an unknowable prior span is closed as `degraded`, never at zero.
   tokens += closedSpend.total;
+
+  // FAFF-604 — the second source. Engine-spend records are RUN-SCOPED (they live
+  // in this run's dir), so unlike the whole-session transcript they take no
+  // run-start baseline subtraction: every record in the file IS this run's spend.
+  // Folding here — after the transcript delta, before `cumulativeForWindow` —
+  // is what makes a mixed-fleet figure one combined total for every ceiling
+  // (tokens, cost, and window alike) with no edit to the window governor.
+  // Counts in estimate mode too: these tokens were MEASURED off the child's own
+  // event stream, whatever the transcript side could or couldn't resolve.
+  const engineSpend = runSpend.engine_spend;
+  const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
+    + engineSpend.totals.cache_write + engineSpend.totals.cache_read;
+  tokens += engineSpendTotal;
+  if (engineSpend.records > 0 && tokensByModelDelta) {
+    for (const [model, counts] of engineSpend.by_model) {
+      const existing = tokensByModelDelta.get(model) || { input: 0, output: 0, cache_write: 0, cache_read: 0 };
+      for (const cls of TOKEN_DELTA_CLASSES) existing[cls] = (Number(existing[cls]) || 0) + (Number(counts[cls]) || 0);
+      tokensByModelDelta.set(model, existing);
+    }
+  }
+  if (engineSpend.malformed > 0) {
+    costWarnings.push(`${engineSpend.malformed} malformed line(s) skipped in ${ENGINE_SPEND_FILENAME} — engine spend may be under-reported`);
+  }
+
+  // FAFF-604 — the dollar-mode refusal, check-side. An engine whose spend is
+  // unobservable and unwaived must never be counted as free: report cost as null
+  // (unknowable) rather than a number computed as if it spent nothing. The exit
+  // code is deliberately UNCHANGED — sentryReadBudget / run-done --budget read any
+  // non-zero exit as unbreached, so refusing via the exit code would fail the whole
+  // budget signal OPEN, masking a real breach (the FAFF-364 reasoning). The hard
+  // refusal lives at the lights-out mint, where refusing carries no such risk.
+  const unmeteredEngines = runSpend.unmetered_engines;
   // FAFF-594: `tokens` at this point is a CROSS-RESUME-SAFE cumulative-since-run-start
   // figure — Σ closed-span deltas (FAFF-527) + the current open span's live delta,
   // baselined at run start. The window governor reuses THIS figure (not a raw
@@ -878,14 +1043,38 @@ function cmdBudget(args) {
   // not sprout warnings nobody asked for — without every branch re-deriving that
   // guard, the one place a future branch would forget it).
   let cost;
-  if (env.pricing === "flat") {
+  // Gated on `costConfigured` to match the mint-side gate (which arms only when
+  // budget.cost is set): with no dollar ceiling armed there is nothing to refuse,
+  // and blanking the informational cost figure would degrade a run that never
+  // asked for a ceiling. The engine is still NAMED in that state — see the
+  // unconditional `unmetered_engines` label at the output tail.
+  if (costConfigured && unmeteredEngines.length) {
+    // FAFF-604: an unobservable engine in the fleet makes the dollar figure a
+    // lie, not a lower bound worth printing — cost is unknowable, never a number
+    // that reads as "under budget" because an engine's spend was invisible.
+    cost = null;
+    costWarnings.push(`cost not meterable: engine(s) with telemetry: none in the fleet — ${unmeteredEngines.join(", ")}; their spend is unobservable and is NOT counted as zero. Remedy: use budget.window instead of budget.cost, or waive explicitly with budget.allow_unmetered: [${unmeteredEngines.join(", ")}]`);
+  } else if (env.pricing === "flat") {
     cost = env.price_per_mtok > 0 ? (tokens / 1_000_000) * env.price_per_mtok : null;
     if (env.price_per_mtok > 0) {
       costWarnings.push("budget.price_per_mtok is deprecated — unset it (or set budget.price_per_mtok_by_model to override specific models) to price per-model x per-class from the ADR-0048 map");
     }
   } else if (tokensSource === "estimate") {
-    cost = null;
-    costWarnings.push("cost ceiling not meterable from estimates (no per-model data to price against the ADR-0048 map) — resolve a transcript so per-model token spend can be measured");
+    // FAFF-604: the transcript half is unpriceable from estimates (unchanged), but
+    // engine-spend records were MEASURED off the child's own event stream — they
+    // price normally. So an estimate-mode run with codex spend reports the measured
+    // portion rather than a bare null, and still warns that the transcript
+    // remainder is missing from the figure.
+    const engineOnly = engineSpend.records > 0
+      ? priceModelClassSums(engineSpend.by_model, resolveEconomicsPriceMap(cfg))
+      : null;
+    cost = engineOnly ? engineOnly.cost : null;
+    costWarnings.push(engineOnly
+      ? "cost covers the MEASURED engine-spend portion only — the transcript half is not meterable from estimates (no per-model data to price against the ADR-0048 map); resolve a transcript so per-model token spend can be measured"
+      : "cost ceiling not meterable from estimates (no per-model data to price against the ADR-0048 map) — resolve a transcript so per-model token spend can be measured");
+    if (engineOnly && engineOnly.unpriced_models.length) {
+      costWarnings.push(`unpriced model(s) priced at the costliest known rate (fail-safe overcount): ${engineOnly.unpriced_models.join(", ")}`);
+    }
   } else {
     const priceMap = resolveEconomicsPriceMap(cfg);
     const priced = priceModelClassSums(tokensByModelDelta, priceMap);
@@ -998,7 +1187,31 @@ function cmdBudget(args) {
   // ceiling is actually configured — the one place the "stay silent when
   // unconfigured" invariant lives, rather than repeated at every push site.
   if (costConfigured) for (const w of costWarnings) warnings.push(w);
+  // FAFF-604: an unmetered engine is named whether or not a cost ceiling is armed —
+  // it is a metering-honesty fact about the run, not a cost diagnostic. A waived
+  // engine (budget.allow_unmetered) is opted out of the REFUSAL, never out of this
+  // visibility, so it still appears in `unmetered_engines` below.
+  if (unmeteredEngines.length && !costConfigured) {
+    warnings.push(`engine(s) with telemetry: none in the fleet — ${unmeteredEngines.join(", ")}; their spend is unobservable and is not counted in any figure here`);
+  }
   if (warnings.length) state.warnings = warnings;
+
+  // FAFF-604 — additive metering-provenance labels. Both are OMITTED when the run
+  // is single-source pure-transcript with a fully metered fleet, so an unchanged
+  // run's JSON stays byte-identical to before this change.
+  const spendSources = [];
+  if (tokensSource === "transcript") spendSources.push({ source: "transcript-jsonl", tokens: Math.max(0, tokens - engineSpendTotal) });
+  if (engineSpend.records > 0) {
+    spendSources.push({ source: "exec-json-events", tokens: engineSpendTotal, records: engineSpend.records, engines: engineSpend.engines });
+  }
+  if (engineSpend.records > 0) state.spend_sources = spendSources;
+  const allUnmetered = resolveUnmetered(cfg, []);
+  if (allUnmetered.length) {
+    state.unmetered_engines = allUnmetered.map((name) => ({
+      engine: name,
+      waived: !unmeteredEngines.includes(name),
+    }));
+  }
 
   console.log(JSON.stringify(state));
   return 0;
@@ -1210,6 +1423,15 @@ function envelopeFromLedger(rec, flags, cfg) {
       const rt = rw ? num(rw.tokens) : null;
       return (rh != null && rh > 0 && rt != null && rt > 0) ? { hours: rh, tokens: rt } : fresh.window;
     })(),
+    // FAFF-604: the unmetered waiver is LIVE CONFIG POLICY, not a minted ceiling —
+    // it is always read from `fresh`, never from the record. A minted ledger
+    // predates any waiver the operator adds later, and forgetting this field here
+    // would make the waiver silently inert on every real run (beep-boop writes a
+    // recorded envelope at run start, so the ledger path is the normal path) —
+    // which does not merely ignore the waiver: it forces `cost: null`, and a null
+    // cost makes computeBudgetState skip the cost dimension entirely, so the
+    // operator loses the dollar ceiling they were trying to keep.
+    allow_unmetered: fresh.allow_unmetered,
   };
 }
 
@@ -1222,7 +1444,10 @@ function envelopeFromLedger(rec, flags, cfg) {
 // date-sensitive case here still pins its own fixed NOW (FAFF-579 item E).
 function budgetSelftest(now = Date.now()) {
   let fail = 0;
-  const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
+  let checks = 0;
+  // `checks` counts what actually ran — the printed total used to be a hardcoded
+  // literal, which drifted every time a row was added (FAFF-604 review finding).
+  const ok = (name, cond) => { checks++; if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
   const NOW = Date.parse("2026-06-23T12:00:00Z");
 
   // --- envelopeFrom: config + flag override ---
@@ -1478,9 +1703,63 @@ function budgetSelftest(now = Date.now()) {
   const elWithPricing = envelopeFromLedger({ ceilings: { cost: 5, tokens: null, until: null, max_attempts: null }, at_ceiling: "stop", price_per_mtok: 0, pricing: "map" }, {}, {});
   ok("envelopeFromLedger: a recorded `pricing` field is honoured verbatim", elWithPricing.pricing === "map");
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${36} checks, ${fail} failed)`);
+  // --- FAFF-604: the engine-spend source + the telemetry seam ------------------
+  const esd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-enginespend-"));
+  try {
+    const empty = readEngineSpend(esd);
+    ok("readEngineSpend: no file → zeros, never an error (the common transcript-only case)",
+      empty.records === 0 && empty.totals.input === 0 && empty.malformed === 0);
+    ok("readEngineSpend: a null run dir → zeros, never a throw", readEngineSpend(null).records === 0);
+
+    appendEngineSpend(esd, { ts: "t", engine: "seat", provider: "codex", model: "gpt-5-codex", source: "exec-json-events", input: 100, output: 50, cache_read: 10, cache_write: 0 });
+    appendEngineSpend(esd, { ts: "t", engine: "seat", provider: "codex", model: "gpt-5-codex", source: "exec-json-events", input: 5, output: 5, cache_read: 0, cache_write: 0 });
+    const two = readEngineSpend(esd);
+    ok("appendEngineSpend/readEngineSpend: records accumulate per class and per model",
+      two.records === 2 && two.totals.input === 105 && two.totals.output === 55 && two.totals.cache_read === 10
+      && two.by_model.get("gpt-5-codex").input === 105);
+    ok("readEngineSpend: the engine names are carried for labelling", two.engines.length === 1 && two.engines[0] === "seat");
+
+    fs.appendFileSync(engineSpendPath(esd), "{not json\n", "utf8");
+    const withBad = readEngineSpend(esd);
+    ok("readEngineSpend: a malformed line is SKIPPED and counted, never fatal (partial-write safety)",
+      withBad.records === 2 && withBad.malformed === 1 && withBad.totals.input === 105);
+  } finally { fs.rmSync(esd, { recursive: true, force: true }); }
+
+  // measureRunSpend — the combining layer itself
+  {
+    const mrd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-mrs-"));
+    try {
+      appendEngineSpend(mrd, { engine: "seat", model: "gpt-5-codex", input: 60, output: 40, cache_read: 0, cache_write: 0 });
+      // No session id → the transcript half degrades to estimate; the engine half
+      // still measures, which is the whole point of the union.
+      const m = measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd, unmeteredEngines: [] });
+      ok("measureRunSpend: unions both sources into totals/by_model",
+        m.totals.input === 60 && m.totals.output === 40 && m.by_model.get("gpt-5-codex").input === 60);
+      ok("measureRunSpend: tokens_source keeps its TRANSCRIPT-side meaning",
+        m.tokens_source === "estimate");
+      ok("measureRunSpend: sources label names only the sources that contributed",
+        m.sources.length === 1 && m.sources[0].source === "exec-json-events" && m.sources[0].tokens === 100);
+      ok("measureRunSpend: a fully metered fleet reports no unmetered engines",
+        m.unmetered_engines.length === 0);
+      const mLocal = measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd, unmeteredEngines: ["lan"] });
+      ok("measureRunSpend: the caller-supplied unmetered list is carried through verbatim",
+        mLocal.unmetered_engines.join(",") === "lan");
+      ok("measureRunSpend: an absent unmetered list degrades to empty, never a throw",
+        measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd }).unmetered_engines.length === 0);
+    } finally { fs.rmSync(mrd, { recursive: true, force: true }); }
+  }
+
+  // envelope — the waiver list
+  ok("envelopeFrom: budget.allow_unmetered parses to a name list",
+    envelopeFrom({ budget: { cost: 25, allow_unmetered: ["lan", "other"] } }, {}).allow_unmetered.join(",") === "lan,other");
+  ok("envelopeFrom: absent allow_unmetered → empty list (never a vacuous waiver)",
+    envelopeFrom({ budget: { cost: 25 } }, {}).allow_unmetered.length === 0);
+  ok("envelopeFrom: a scalar allow_unmetered is accepted as a one-name list",
+    envelopeFrom({ budget: { allow_unmetered: "lan" } }, {}).allow_unmetered.join(",") === "lan");
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${checks} checks, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, appendEngineSpend, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

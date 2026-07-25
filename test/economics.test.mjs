@@ -823,3 +823,22 @@ test("FAFF-604 REGRESSION: --by model rows carry NO source field on a transcript
       "the byte-identical guarantee covers the absent key, not just the values");
   } finally { f.cleanup(); }
 });
+
+test("FAFF-604 REGRESSION: a partial (engine-only) cost is NAMED as partial, never reported as the run total", () => {
+  // Before the seam this state reported cost_total: null — an honest unknown.
+  // Reporting the engine portion alone without saying so would swap that for a
+  // confident understatement, the same never-silently-zero failure in a new costume.
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ model: "claude-sonnet-5", input: 1_000_000 })) + "\n");
+    // No CLAUDE_CODE_SESSION_ID → the transcript half degrades to estimate.
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root]);
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "estimate");
+    assert.ok(e.cost_total > 0, "the measured engine portion still prices");
+    assert.ok(e.warnings.some((w) => /MEASURED engine-spend portion only/.test(w)),
+      "a partial cost must say what it excludes — budget check warns in the identical state");
+  } finally { f.cleanup(); }
+});

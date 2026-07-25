@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokensByModelClass, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir, unmeteredFleetEngines } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir, unmeteredFleetEngines } = require("./budget");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
@@ -824,6 +824,14 @@ function cmdEconomics(args) {
     if (anyPriced) engineMapCost = priced;
     if (unpricedEngine.length) {
       mapWarnings.push(`engine-spend model(s) absent from the price map, excluded from cost (never silently free): ${unpricedEngine.join(", ")}`);
+    }
+    // A priced engine half with an UNPRICEABLE transcript half is a PARTIAL cost.
+    // Before the seam this state reported cost_total: null — an honest unknown.
+    // Reporting the engine portion alone without saying so would swap that for a
+    // confident understatement, which is the same never-silently-zero failure in a
+    // different costume. `budget check` warns in the identical state; so does this.
+    if (anyPriced && measuredSource !== "transcript") {
+      mapWarnings.push("cost covers the MEASURED engine-spend portion only — the transcript half is not meterable from estimates (no per-model data to price against the ADR-0048 map); resolve a transcript so per-model token spend can be measured");
     }
   }
   if (engineSpend.malformed > 0) {

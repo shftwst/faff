@@ -1,0 +1,84 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-batch-etl-005",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A clean run of `hr-etl` over 640 source rows loads exactly 640 rows into `employees_fact` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A source file containing 2 malformed rows causes `hr-etl` to quarantine those rows (never load them) and still exit 0."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A duplicate primary key across two source rows is rejected — the job logs a dedup-conflict error and does not silently overwrite the earlier row."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Row counts logged at job completion (loaded + quarantined) sum to the total source row count read."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The job's completion summary is clear about what happened, not just a raw number dump."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "log": "[hr-etl] read 640 rows from source"
+      },
+      {
+        "log": "[hr-etl] loaded 640 rows into employees_fact; exit 0"
+      },
+      {
+        "log": "[hr-etl] quarantined 2 malformed rows (0 loaded from that set); exit 0"
+      },
+      {
+        "log": "[hr-etl] duplicate pk detected; overwrote earlier row silently"
+      },
+      {
+        "log": "[hr-etl] summary: loaded 638, quarantined 2 (reconciles to 640 read)"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

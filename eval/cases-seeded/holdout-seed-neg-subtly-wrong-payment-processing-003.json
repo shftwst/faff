@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-payment-processing-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Charging 15.50 GBP against a valid card via braintree-like for order `ord-9003` succeeds and the order is marked paid."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A declined card is reported to the caller as declined (not silently retried against the same card) and the order stays unpaid."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "The same idempotency key submitted twice for order `ord-9003` results in exactly one charge, not two."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A refund issued against a charge for `ord-9003` updates the order's paid amount to reflect the refund; the order does not still show the original full amount as paid."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The decline-reason messaging shown to the customer is helpful without exposing raw gateway internals."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "charge 15.50 GBP to order ord-9003 via braintree-like",
+        "response": "declined; order stays unpaid"
+      },
+      {
+        "request": "charge declined card for order ord-9003",
+        "response": "declined; reported once, no auto-retry; order unpaid"
+      },
+      {
+        "request": "same idempotency key submitted twice for order ord-9003",
+        "response": "1 charge recorded (2nd submission returned the original result)"
+      },
+      {
+        "request": "refund issued for order ord-9003",
+        "response": "order's paid amount reduced to reflect the refund"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

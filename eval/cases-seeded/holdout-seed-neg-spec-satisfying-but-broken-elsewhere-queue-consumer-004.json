@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-queue-consumer-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`export-worker` consuming a well-formed message from `export-queue` processes it and acks it exactly once."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A message that fails processing 6 times in a row is moved to the poison-message queue, not requeued forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`export-worker` never acks a message before processing completes (an ack-before-process would lose messages on a crash)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Two workers consuming `export-queue` concurrently never both process the same message (no double-processing under concurrency)."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_event": "export-worker received msg-1 from export-queue",
+        "outcome": "processed, ack sent once"
+      },
+      {
+        "queue_event": "msg-2 fails processing x6",
+        "outcome": "moved to poison queue"
+      },
+      {
+        "queue_event": "export-worker receives msg-3",
+        "outcome": "ack sent only after processing completes"
+      },
+      {
+        "queue_event": "worker-A and worker-B both receive msg-4 concurrently",
+        "outcome": "both processed msg-4"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-config-validate-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A config file with every required key present, including `max_conns`, validates cleanly under `appcfg config validate` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A config file missing the required `api_key` key fails validation and names `api_key` specifically in the error."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A config file with an out-of-range value for `max_conns` (e.g. a negative timeout) is rejected, not silently clamped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Validating a config file never mutates the file on disk — a byte-for-byte diff of the file before and after `config validate` is empty."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The validation error for a missing key tells you exactly which file and line to fix."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "appcfg config validate (all keys present incl. max_conns)",
+        "output": "exit 0: config OK"
+      },
+      {
+        "command": "appcfg config validate (missing api_key)",
+        "output": "exit 1: validation failed (no key named)"
+      },
+      {
+        "command": "appcfg config validate (max_conns=-5, out of range)",
+        "output": "exit 1: max_conns must be >= 0"
+      },
+      {
+        "command": "appcfg config validate; diff config.yaml before/after",
+        "output": "diff empty"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

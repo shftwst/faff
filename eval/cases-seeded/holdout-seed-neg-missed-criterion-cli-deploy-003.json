@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-cli-deploy-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`pushtool deploy --env canary --version 2.1.0-rc3` exits 0 and prints \"deployed 2.1.0-rc3 to canary\"."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`pushtool deploy --env canary --version bogus` (an unpublished version) exits 1 with \"version not found\"."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`pushtool deploy` invoked with no --env exits 2 and prints usage, without contacting the deploy target."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "After a successful deploy, `pushtool status --env canary` reports the version just deployed, not a stale prior one."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The deploy tool's console output is easy to follow under time pressure."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "pushtool deploy --env canary --version 2.1.0-rc3",
+        "output": "exit 0\ndeployed 2.1.0-rc3 to canary"
+      },
+      {
+        "command": "pushtool deploy --env canary --version bogus",
+        "output": "exit 0\ndeployed bogus to canary"
+      },
+      {
+        "command": "pushtool deploy --version 2.1.0-rc3",
+        "output": "exit 2\nusage: pushtool deploy --env <env> --version <ver>"
+      },
+      {
+        "command": "pushtool status --env canary",
+        "output": "current version: 2.1.0-rc3"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

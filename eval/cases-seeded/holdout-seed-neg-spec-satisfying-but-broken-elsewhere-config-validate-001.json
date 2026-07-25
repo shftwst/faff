@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-config-validate-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A config file with every required key present, including `timeout_ms`, validates cleanly under `svcctl config validate` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A config file missing the required `db_url` key fails validation and names `db_url` specifically in the error."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A config file with an out-of-range value for `timeout_ms` (e.g. a negative timeout) is rejected, not silently clamped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Validating a config file never mutates the file on disk — a byte-for-byte diff of the file before and after `config validate` is empty."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "svcctl config validate (all keys present incl. timeout_ms)",
+        "output": "exit 0: config OK"
+      },
+      {
+        "command": "svcctl config validate (missing db_url)",
+        "output": "exit 1: missing required key \"db_url\""
+      },
+      {
+        "command": "svcctl config validate (timeout_ms=-5, out of range)",
+        "output": "exit 1: timeout_ms must be >= 0"
+      },
+      {
+        "command": "svcctl config validate; diff config.yaml before/after",
+        "output": "diff non-empty: trailing whitespace normalized"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

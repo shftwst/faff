@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-http-orders-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "POST /tickets with a valid payload returns HTTP 201 and a new ticket id in the response body."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "DELETE /tickets/<id> for a ticket id that does not exist returns HTTP 404."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A request missing the required `reporter` field is rejected with HTTP 422 and an error body naming the missing field."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The priority selected at ticket creation is faithfully persisted — querying the ticket afterward returns the same value that was originally submitted."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The ticket confirmation copy feels reassuring and on-brand."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST http://env:8082/tickets {\"reporter\":\"a@x.io\",\"priority\":\"priority-1\"}",
+        "response": "200 OK; body {\"id\":\"tkt-3001\",\"status\":\"pending\"}"
+      },
+      {
+        "request": "POST http://env:8082/tickets {\"priority\":\"priority-1\"}",
+        "response": "422 Unprocessable Entity; body {\"error\":\"missing_field\",\"field\":\"reporter\"}"
+      },
+      {
+        "request": "GET http://env:8082/tickets/tkt-3001",
+        "response": "200 OK; body {\"id\":\"tkt-3001\",\"status\":\"pending\",\"priority\":\"priority-1\"}"
+      },
+      {
+        "request": "DELETE http://env:8082/tickets/tkt-31019",
+        "response": "404 Not Found; body {\"error\":\"not_found\"}"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

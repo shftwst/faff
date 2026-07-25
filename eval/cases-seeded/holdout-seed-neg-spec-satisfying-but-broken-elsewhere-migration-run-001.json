@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-migration-run-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Running `dbmig migrate up` applies the pending migration adding `last_login_at` to `users` and records it as applied."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Running `dbmig migrate down` after that reverts the `last_login_at` addition and the migration is recorded as un-applied again."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A migration that fails partway through is rolled back in full — `users` is left in its pre-migration state, not half-migrated."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Existing rows in `users` retain their original values for every column other than the new `last_login_at` after the migration runs (no unrelated data drift)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "dbmig migrate up",
+        "output": "applied 1 migration: add last_login_at to users"
+      },
+      {
+        "command": "dbmig migrate down",
+        "output": "reverted 1 migration; last_login_at removed from users"
+      },
+      {
+        "command": "dbmig migrate up (injected failure mid-migration)",
+        "output": "migration failed and was fully rolled back; users unchanged"
+      },
+      {
+        "command": "SELECT * FROM users LIMIT 1 (before/after migration)",
+        "output": "other column values changed unexpectedly"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

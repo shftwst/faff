@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-clean-permission-check-003",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A user with role `release-manager` performing `approve` on `deploy-pipeline` is allowed."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A user with role `developer`, which lacks `approve` permission on `deploy-pipeline`, is denied with HTTP 403."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A denied `approve` attempt on `deploy-pipeline` is written to the audit log with the actor's identity, not silently dropped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Revoking `release-manager`'s `approve` permission on `deploy-pipeline` takes effect on the NEXT request from an already-logged-in `release-manager` user, not only for new logins."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The 403 response explains what permission is missing, without revealing more than the caller should know."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "release-manager attempts approve on deploy-pipeline",
+        "response": "200 OK"
+      },
+      {
+        "request": "developer attempts approve on deploy-pipeline",
+        "response": "403 Forbidden"
+      },
+      {
+        "request": "developer's denied attempt",
+        "response": "audit log entry written with actor=developer"
+      },
+      {
+        "request": "release-manager's permission revoked mid-session; next request",
+        "response": "403 Forbidden (revocation applied)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

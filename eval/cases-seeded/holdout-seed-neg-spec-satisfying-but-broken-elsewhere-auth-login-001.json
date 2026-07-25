@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-auth-login-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A correct username/password for `alice` on portal returns a valid session token and HTTP 200."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "5 consecutive wrong-password attempts for `alice` locks the account and further correct-password attempts are rejected until unlock."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A wrong password for `alice` returns HTTP 401 with a generic error (never revealing whether the username exists)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The session token issued on login carries the exact `alice` identity — a subsequent `/me` call with that token returns `alice`, not another account."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST /login {\"user\":\"alice\",\"pass\":\"correct\"}",
+        "response": "200 OK; body {\"token\":\"tok-alice-1\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"alice\",\"pass\":\"wrong1\"} x5",
+        "response": "423 Locked; body {\"error\":\"account_locked\"}"
+      },
+      {
+        "request": "POST /login {\"user\":\"alice\",\"pass\":\"wrong1\"}",
+        "response": "401 Unauthorized; body {\"error\":\"invalid_credentials\"}"
+      },
+      {
+        "request": "GET /me (Authorization: Bearer tok-alice-1)",
+        "response": "200 OK; body {\"user\":\"someone-else\"}"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

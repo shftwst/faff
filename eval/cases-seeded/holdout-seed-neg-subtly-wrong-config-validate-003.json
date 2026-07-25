@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-config-validate-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A config file with every required key present, including `retry_budget`, validates cleanly under `envtool config validate` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A config file missing the required `region` key fails validation and names `region` specifically in the error."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A config file with an out-of-range value for `retry_budget` (e.g. a negative timeout) is rejected, not silently clamped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Validating a config file never mutates the file on disk — a byte-for-byte diff of the file before and after `config validate` is empty."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The validation error for a missing key tells you exactly which file and line to fix."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "envtool config validate (all keys present incl. retry_budget)",
+        "output": "exit 1: unexpected error"
+      },
+      {
+        "command": "envtool config validate (missing region)",
+        "output": "exit 1: missing required key \"region\""
+      },
+      {
+        "command": "envtool config validate (retry_budget=-5, out of range)",
+        "output": "exit 1: retry_budget must be >= 0"
+      },
+      {
+        "command": "envtool config validate; diff config.yaml before/after",
+        "output": "diff empty"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-cli-deploy-001",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`shipctl deploy --env staging --version 1.4.2` exits 0 and prints \"deployed 1.4.2 to staging\"."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`shipctl deploy --env staging --version bogus` (an unpublished version) exits 1 with \"version not found\"."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`shipctl deploy` invoked with no --env exits 2 and prints usage, without contacting the deploy target."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "After a successful deploy, `shipctl status --env staging` reports the version just deployed, not a stale prior one."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "shipctl deploy --env staging --version 1.4.2",
+        "output": "exit 0\ndeployed 1.4.2 to staging"
+      },
+      {
+        "command": "shipctl deploy --env staging --version bogus",
+        "output": "exit 1\nerror: version not found"
+      },
+      {
+        "command": "shipctl deploy --version 1.4.2",
+        "output": "exit 2\nusage: shipctl deploy --env <env> --version <ver>"
+      },
+      {
+        "command": "shipctl status --env staging",
+        "output": "current version: 1.4.2"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

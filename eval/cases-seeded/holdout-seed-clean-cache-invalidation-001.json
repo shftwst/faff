@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-cache-invalidation-001",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Writing `user:42:profile` to redis-profiles and reading it back within 60s returns the written value from cache (no re-fetch from the source of truth)."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Explicitly invalidating `user:42:profile` makes the very next read miss the cache and hit the source of truth."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A cached entry older than 60s is treated as expired and re-fetched, never served stale past its TTL."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Updating the source-of-truth value for `user:42:profile` without an explicit invalidation leaves the cached copy exactly as it was (write-through is NOT assumed for this cache) — no silent staleness masquerading as freshness."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "write user:42:profile=v1, read within 60s",
+        "result": "cache hit, returned v1"
+      },
+      {
+        "op": "invalidate user:42:profile, immediate read",
+        "result": "cache miss, source of truth read"
+      },
+      {
+        "op": "read user:42:profile at age 65s (past TTL 60s)",
+        "result": "cache miss, treated as expired"
+      },
+      {
+        "op": "source updated to v2, no invalidation call made, cache read",
+        "result": "returned v1 (cached copy unchanged, as designed)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

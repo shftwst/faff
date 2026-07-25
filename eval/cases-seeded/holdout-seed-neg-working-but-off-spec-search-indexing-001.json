@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-search-indexing-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Indexing a document with `title` containing \"wireless\" into `products-index` makes it findable by searching for \"wireless\" immediately after indexing completes."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Deleting document `doc-1` from `products-index` removes it from subsequent search results for terms it previously matched."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Re-indexing document `doc-1` with updated `title` content replaces the old indexed version — search no longer matches on the OLD `title` value."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A search for \"wireless\" returns document `doc-1` at most once, even if \"wireless\" appears multiple times within its `title`."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "index doc doc-1 with title=\"...wireless...\", then search \"wireless\"",
+        "result": "doc doc-1 found"
+      },
+      {
+        "op": "delete doc doc-1 from products-index, then search a term it previously matched",
+        "result": "doc doc-1 not returned"
+      },
+      {
+        "op": "re-index doc doc-1 with new title content, search OLD title value",
+        "result": "doc doc-1 still matches the old value"
+      },
+      {
+        "op": "search \"wireless\" (matches doc doc-1 3x within its title)",
+        "result": "doc doc-1 appears once in results"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met"
+    ]
+  }
+}

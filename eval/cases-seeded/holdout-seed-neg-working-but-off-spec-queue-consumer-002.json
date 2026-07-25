@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-queue-consumer-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`email-worker` consuming a well-formed message from `email-queue` processes it and acks it exactly once."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A message that fails processing 3 times in a row is moved to the poison-message queue, not requeued forever."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`email-worker` never acks a message before processing completes (an ack-before-process would lose messages on a crash)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Two workers consuming `email-queue` concurrently never both process the same message (no double-processing under concurrency)."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The poison-queue alert gives an operator enough to triage without replaying the message by hand first."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_event": "email-worker received msg-1 from email-queue",
+        "outcome": "processed, ack sent once"
+      },
+      {
+        "queue_event": "msg-2 fails processing x3",
+        "outcome": "moved to poison queue"
+      },
+      {
+        "queue_event": "email-worker receives msg-3",
+        "outcome": "acked immediately, then processing begins"
+      },
+      {
+        "queue_event": "worker-A and worker-B both receive msg-4 concurrently",
+        "outcome": "exactly one of worker-A/worker-B processed msg-4"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

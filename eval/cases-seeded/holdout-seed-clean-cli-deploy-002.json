@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-clean-cli-deploy-002",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`releaser deploy --env production --version 9.0.0` exits 0 and prints \"deployed 9.0.0 to production\"."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`releaser deploy --env production --version bogus` (an unpublished version) exits 1 with \"version not found\"."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "`releaser deploy` invoked with no --env exits 2 and prints usage, without contacting the deploy target."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "After a successful deploy, `releaser status --env production` reports the version just deployed, not a stale prior one."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The deploy tool's console output is easy to follow under time pressure."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "releaser deploy --env production --version 9.0.0",
+        "output": "exit 0\ndeployed 9.0.0 to production"
+      },
+      {
+        "command": "releaser deploy --env production --version bogus",
+        "output": "exit 1\nerror: version not found"
+      },
+      {
+        "command": "releaser deploy --version 9.0.0",
+        "output": "exit 2\nusage: releaser deploy --env <env> --version <ver>"
+      },
+      {
+        "command": "releaser status --env production",
+        "output": "current version: 9.0.0"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

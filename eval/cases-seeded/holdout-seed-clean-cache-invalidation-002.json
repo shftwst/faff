@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-clean-cache-invalidation-002",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Writing `product:900:price` to redis-catalog and reading it back within 30s returns the written value from cache (no re-fetch from the source of truth)."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Explicitly invalidating `product:900:price` makes the very next read miss the cache and hit the source of truth."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A cached entry older than 30s is treated as expired and re-fetched, never served stale past its TTL."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Updating the source-of-truth value for `product:900:price` without an explicit invalidation leaves the cached copy exactly as it was (write-through is NOT assumed for this cache) — no silent staleness masquerading as freshness."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "Cache-hit/miss log lines are informative enough to debug a staleness complaint quickly."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "op": "write product:900:price=v1, read within 30s",
+        "result": "cache hit, returned v1"
+      },
+      {
+        "op": "invalidate product:900:price, immediate read",
+        "result": "cache miss, source of truth read"
+      },
+      {
+        "op": "read product:900:price at age 35s (past TTL 30s)",
+        "result": "cache miss, treated as expired"
+      },
+      {
+        "op": "source updated to v2, no invalidation call made, cache read",
+        "result": "returned v1 (cached copy unchanged, as designed)"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

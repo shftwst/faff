@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-notification-send-005",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Sending a `alert` notification to `user-5` over slack succeeds and is recorded as delivered."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A transient send failure is retried up to 1 times before being marked permanently failed."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A recipient who has opted out of `alert` notifications never receives one, regardless of trigger."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A successfully delivered notification is recorded exactly once in the delivery log — a retried-then-succeeded send does not double-log."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The notification copy for `alert` reads naturally, not like a template dump."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_msg": "send alert to user-5 via slack",
+        "result": "delivered"
+      },
+      {
+        "queue_msg": "send alert to user-5, transient failure x1",
+        "result": "delivered on final retry (1 attempts)"
+      },
+      {
+        "queue_msg": "send alert to user-5 (opted-out)",
+        "result": "delivered"
+      },
+      {
+        "queue_msg": "send alert to user-5, retried once then succeeded",
+        "result": "delivery log has 1 entry for this send"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

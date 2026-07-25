@@ -1,0 +1,58 @@
+{
+  "id": "holdout-seed-clean-batch-etl-004",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A clean run of `inventory-etl` over 9600 source rows loads exactly 9600 rows into `stock_fact` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A source file containing 41 malformed rows causes `inventory-etl` to quarantine those rows (never load them) and still exit 0."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A duplicate primary key across two source rows is rejected — the job logs a dedup-conflict error and does not silently overwrite the earlier row."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Row counts logged at job completion (loaded + quarantined) sum to the total source row count read."
+      }
+    ],
+    "recordings": [
+      {
+        "log": "[inventory-etl] read 9600 rows from source"
+      },
+      {
+        "log": "[inventory-etl] loaded 9600 rows into stock_fact; exit 0"
+      },
+      {
+        "log": "[inventory-etl] quarantined 41 malformed rows (0 loaded from that set); exit 0"
+      },
+      {
+        "log": "[inventory-etl] duplicate pk detected; logged dedup-conflict, row not loaded"
+      },
+      {
+        "log": "[inventory-etl] summary: loaded 9559, quarantined 41 (reconciles to 9600 read)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

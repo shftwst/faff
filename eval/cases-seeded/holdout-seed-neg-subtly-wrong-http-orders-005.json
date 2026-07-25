@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-http-orders-005",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "POST /shipments with a valid payload returns HTTP 201 and a new shipment id in the response body."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "DELETE /shipments/<id> for a shipment id that does not exist returns HTTP 404."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A request missing the required `recipient` field is rejected with HTTP 422 and an error body naming the missing field."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The carrier selected at shipment creation is faithfully persisted — querying the shipment afterward returns the same value that was originally submitted."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The shipment confirmation copy feels reassuring and on-brand."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST http://env:8084/shipments {\"recipient\":\"a@x.io\",\"carrier\":\"carrier-1\"}",
+        "response": "200 OK; body {\"id\":\"shp-5001\",\"status\":\"pending\"}"
+      },
+      {
+        "request": "POST http://env:8084/shipments {\"carrier\":\"carrier-1\"}",
+        "response": "422 Unprocessable Entity; body {\"error\":\"missing_field\",\"field\":\"recipient\"}"
+      },
+      {
+        "request": "GET http://env:8084/shipments/shp-5001",
+        "response": "200 OK; body {\"id\":\"shp-5001\",\"status\":\"pending\",\"carrier\":\"carrier-1\"}"
+      },
+      {
+        "request": "DELETE http://env:8084/shipments/shp-51019",
+        "response": "404 Not Found; body {\"error\":\"not_found\"}"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

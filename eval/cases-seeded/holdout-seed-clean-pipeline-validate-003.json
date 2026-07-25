@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-clean-pipeline-validate-003",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A record whose `trace_id` matches the declared schema passes `logs-pipeline`'s validation stage unchanged."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A record missing `trace_id` entirely is routed to the dead-letter output, never the accepted stream."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "When the reject ratio for a batch exceeds 10%, `logs-pipeline` halts the batch and raises an alert instead of continuing to process it."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Records that pass validation retain every original field byte-for-byte in the accepted-stream output (no silent field coercion)."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The dead-letter alert's phrasing gives an on-call engineer enough context to act without digging."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "record {\"trace_id\":\"ok-1\"} -> validation",
+        "outcome": "accepted, unchanged"
+      },
+      {
+        "event": "record {} (missing trace_id) -> validation",
+        "outcome": "routed to dead-letter"
+      },
+      {
+        "event": "batch reject ratio 15% (threshold 10%)",
+        "outcome": "batch halted, alert raised"
+      },
+      {
+        "event": "record {\"trace_id\":\"ok-2\",\"extra\":\"x\"} -> accepted stream",
+        "outcome": "output byte-identical to input"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

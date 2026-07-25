@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-payment-processing-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Charging 49.99 USD against a valid card via stripe-like for order `ord-9001` succeeds and the order is marked paid."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A declined card is reported to the caller as declined (not silently retried against the same card) and the order stays unpaid."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "The same idempotency key submitted twice for order `ord-9001` results in exactly one charge, not two."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A refund issued against a charge for `ord-9001` updates the order's paid amount to reflect the refund; the order does not still show the original full amount as paid."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "charge 49.99 USD to order ord-9001 via stripe-like",
+        "response": "charge succeeded; order ord-9001 marked paid"
+      },
+      {
+        "request": "charge declined card for order ord-9001",
+        "response": "declined; reported once, no auto-retry; order unpaid"
+      },
+      {
+        "request": "same idempotency key submitted twice for order ord-9001",
+        "response": "1 charge recorded (2nd submission returned the original result)"
+      },
+      {
+        "request": "refund issued for order ord-9001",
+        "response": "order still shows full 49.99 USD as paid"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

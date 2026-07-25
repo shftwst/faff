@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-audit-logging-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`operator-1` performing `restart-service` on `svc-payments` in infra-system produces exactly one audit-log entry naming the actor, action, and target."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A failed (rejected) `restart-service` attempt is ALSO audit-logged, not only successful ones."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "An audit-log entry, once written, is never mutated by a later action — re-reading it after other events occur returns the byte-identical original entry."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The audit-log timestamp for an entry matches the actual time the action occurred, not the time a batched writer happened to flush it."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "operator-1 performs restart-service on svc-payments",
+        "log": "1 audit entry: actor=operator-1 action=restart-service target=svc-payments"
+      },
+      {
+        "event": "operator-1's restart-service on svc-payments is rejected",
+        "log": "1 audit entry, outcome=rejected"
+      },
+      {
+        "event": "re-read the entry after 3 unrelated later events",
+        "log": "entry fields differ from the original write"
+      },
+      {
+        "event": "action occurred at T, batched writer flushed at T+30s",
+        "log": "entry timestamp = T (actual action time)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met"
+    ]
+  }
+}

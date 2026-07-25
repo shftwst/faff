@@ -649,7 +649,8 @@ export async function gate(argv, presets, baselinePath, opts = {}) {
 }
 
 // CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
-// `node eval/run-evals.mjs [--driver frontier|local|ollama-direct] [--model M] [--base-url URL] [--think] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
+// `node eval/run-evals.mjs [--driver frontier|local|ollama-direct] [--model M] [--base-url URL] [--think] [--plugin-dir P | --no-plugin] [--only ID] [--reps N] [--cases-dir DIR]`
+// `--cases-dir DIR` (FAFF-625): additive, plain-sweep-only — routes loadCases(DIR) instead of the default eval/cases/. Absent, behaviour is byte-identical. NOT read by --gate / --against / --update-baseline / --compare.
 // `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
 // `node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]`   (FAFF-180: proportionate gate — smart default; local/smart soft+exit-0, frontier hard)
 // `node eval/run-evals.mjs --driver frontier --against eval/baselines/frontier.json`   (FAFF-169: regression gate — exit non-zero on a per-kind drop)
@@ -662,6 +663,13 @@ async function main(argv) {
   const cliPresets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
   const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
   const presets = { ...cliPresets, makeDirectOllamaDriver };
+  // FAFF-625 review finding (major): --cases-dir is plain-sweep-only (below) — every OTHER entry path
+  // below calls loadCases() with no argument and silently ignores the flag if present. A silent no-op
+  // is a footgun (the codebase's fail-loud convention), so warn loudly here, once, before any entry
+  // path's own logic runs — advisory only, never blocks (none of these paths error on an unknown flag).
+  if (argv.includes("--cases-dir") && (argv.includes("--gate") || argv.includes("--compare") || argFlag(argv, "--against") || argFlag(argv, "--update-baseline"))) {
+    console.warn("[run-evals] WARN: --cases-dir is ignored by --gate / --against / --update-baseline / --compare (plain-sweep-only); this run uses the default eval/cases/.");
+  }
   if (argv.includes("--gate")) {                                              // FAFF-180 proportionate gate
     const baselinePath = argFlag(argv, "--against") ?? join(HERE, "baselines", "frontier.json");
     return gate(argv, presets, baselinePath);
@@ -673,8 +681,14 @@ async function main(argv) {
   if (updatePath) return updateBaseline(argv, presets, updatePath);          // FAFF-169 deliberate re-baseline
   const only = argFlag(argv, "--only");
   const repsArg = argFlag(argv, "--reps");
+  // FAFF-625 — additive, plain-sweep-only: routes the already-parameterised loadCases(dir) at a
+  // separate corpus dir (e.g. a production seeded-defect corpus) WITHOUT touching --gate / --against /
+  // --update-baseline / --compare, each of which still calls loadCases() with no argument (untouched,
+  // byte-identical). Absent this flag, `casesDir` is undefined and loadCases() falls back to its own
+  // default `cases/` dir exactly as before this change.
+  const casesDir = argFlag(argv, "--cases-dir");
   const driver = resolveDriver(argv, presets); // fail-loud before loadCases/runEvals if local underspecified
-  let cases = loadCases();
+  let cases = loadCases(casesDir || undefined);
   if (only) cases = cases.filter((c) => c.id === only);
   const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for the full sweep
   console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);

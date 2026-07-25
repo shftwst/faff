@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-permission-check-001",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A user with role `admin` performing `edit` on `billing-settings` is allowed."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A user with role `viewer`, which lacks `edit` permission on `billing-settings`, is denied with HTTP 403."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A denied `edit` attempt on `billing-settings` is written to the audit log with the actor's identity, not silently dropped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Revoking `admin`'s `edit` permission on `billing-settings` takes effect on the NEXT request from an already-logged-in `admin` user, not only for new logins."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "admin attempts edit on billing-settings",
+        "response": "200 OK"
+      },
+      {
+        "request": "viewer attempts edit on billing-settings",
+        "response": "403 Forbidden"
+      },
+      {
+        "request": "viewer's denied attempt",
+        "response": "audit log entry written with actor=viewer"
+      },
+      {
+        "request": "admin's permission revoked mid-session; next request",
+        "response": "403 Forbidden (revocation applied)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

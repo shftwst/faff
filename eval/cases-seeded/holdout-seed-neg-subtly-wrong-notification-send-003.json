@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-notification-send-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Sending a `reminder` notification to `user-3` over push succeeds and is recorded as delivered."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A transient send failure is retried up to 3 times before being marked permanently failed."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A recipient who has opted out of `reminder` notifications never receives one, regardless of trigger."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A successfully delivered notification is recorded exactly once in the delivery log — a retried-then-succeeded send does not double-log."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The notification copy for `reminder` reads naturally, not like a template dump."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_msg": "send reminder to user-3 via push",
+        "result": "delivery_failed: unknown_recipient"
+      },
+      {
+        "queue_msg": "send reminder to user-3, transient failure x3",
+        "result": "delivered on final retry (3 attempts)"
+      },
+      {
+        "queue_msg": "send reminder to user-3 (opted-out)",
+        "result": "suppressed: recipient opted out"
+      },
+      {
+        "queue_msg": "send reminder to user-3, retried once then succeeded",
+        "result": "delivery log has 1 entry for this send"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

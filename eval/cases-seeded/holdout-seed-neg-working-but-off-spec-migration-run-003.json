@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-migration-run-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Running `flyweight-mig migrate up` applies the pending migration adding `currency_code` to `invoices` and records it as applied."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "Running `flyweight-mig migrate down` after that reverts the `currency_code` addition and the migration is recorded as un-applied again."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A migration that fails partway through is rolled back in full — `invoices` is left in its pre-migration state, not half-migrated."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Existing rows in `invoices` retain their original values for every column other than the new `currency_code` after the migration runs (no unrelated data drift)."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The migration tool's dry-run preview gives an operator real confidence before running it for real against production."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "flyweight-mig migrate up",
+        "output": "applied 1 migration: add currency_code to invoices"
+      },
+      {
+        "command": "flyweight-mig migrate down",
+        "output": "reverted 1 migration; currency_code removed from invoices"
+      },
+      {
+        "command": "flyweight-mig migrate up (injected failure mid-migration)",
+        "output": "partial state left on invoices; not rolled back"
+      },
+      {
+        "command": "SELECT * FROM invoices LIMIT 1 (before/after migration)",
+        "output": "all other column values unchanged"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

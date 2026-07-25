@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-cron-scheduler-001",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`nightly-report` scheduled at `0 2 * * *` fires at its next scheduled time and completes successfully."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "If `nightly-report`'s previous run is still executing when the next scheduled time arrives, the scheduler applies its `skip` policy rather than starting a second concurrent run unconditionally."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A run of `nightly-report` that throws is recorded as `failed`, not silently swallowed as a completed run."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The scheduler's next-run-time calculation for `0 2 * * *` accounts for the job's OWN actual last-run time, not a naive fixed-interval guess that could drift."
+      }
+    ],
+    "recordings": [
+      {
+        "log": "[scheduler] nightly-report fired at scheduled time (0 2 * * *)",
+        "log2": "run recorded as succeeded"
+      },
+      {
+        "log": "[scheduler] nightly-report still running; next fire time reached (overlapMode=skip)",
+        "log2": "applied skip policy"
+      },
+      {
+        "log": "[scheduler] nightly-report run threw an exception",
+        "log2": "run recorded as failed"
+      },
+      {
+        "log": "[scheduler] nightly-report last actual run was late by 90s",
+        "log2": "next-run time computed accounting for the actual last-run"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-clean-webhook-delivery-003",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A `shipment.updated` webhook POSTed to `https://partner-c.example/hook` that returns HTTP 200 is marked delivered and not retried."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "An endpoint returning HTTP 500 is retried with exponential backoff starting at 3s, not retried instantly in a tight loop."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Every outbound webhook payload is signed with an HMAC using `whsec-c` and the signature header is present on every attempt, including retries."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The payload body delivered on a retry is byte-identical to the original attempt (no re-serialization drift between attempts)."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The webhook delivery dashboard makes it obvious at a glance which endpoints are unhealthy."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "POST https://partner-c.example/hook {\"event\":\"shipment.updated\"}",
+        "response": "200 OK, no retry scheduled"
+      },
+      {
+        "request": "POST https://partner-c.example/hook {\"event\":\"shipment.updated\"} (endpoint returns 500)",
+        "response": "retry scheduled after 3s backoff"
+      },
+      {
+        "request": "POST https://partner-c.example/hook attempt 2 (retry)",
+        "response": "sent with X-Signature: hmac-sha256(...,\"whsec-c\")"
+      },
+      {
+        "request": "POST https://partner-c.example/hook attempt 2 body diff vs attempt 1",
+        "response": "byte-identical to attempt 1"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

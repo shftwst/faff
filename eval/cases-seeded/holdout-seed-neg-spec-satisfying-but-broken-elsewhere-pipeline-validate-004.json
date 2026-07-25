@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-spec-satisfying-but-broken-elsewhere-pipeline-validate-004",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "spec-satisfying-but-broken-elsewhere",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A record whose `order_id` matches the declared schema passes `orders-pipeline`'s validation stage unchanged."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A record missing `order_id` entirely is routed to the dead-letter output, never the accepted stream."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "When the reject ratio for a batch exceeds 1%, `orders-pipeline` halts the batch and raises an alert instead of continuing to process it."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Records that pass validation retain every original field byte-for-byte in the accepted-stream output (no silent field coercion)."
+      }
+    ],
+    "recordings": [
+      {
+        "event": "record {\"order_id\":\"ok-1\"} -> validation",
+        "outcome": "accepted, unchanged"
+      },
+      {
+        "event": "record {} (missing order_id) -> validation",
+        "outcome": "routed to dead-letter"
+      },
+      {
+        "event": "batch reject ratio 3% (threshold 1%)",
+        "outcome": "batch halted, alert raised"
+      },
+      {
+        "event": "record {\"order_id\":\"ok-2\",\"extra\":\"x\"} -> accepted stream",
+        "outcome": "field \"extra\" coerced to null in output"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:unmet"
+    ]
+  }
+}

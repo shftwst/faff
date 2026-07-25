@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-session-management-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A freshly-issued web-portal session for `frank` is accepted on the very next authenticated request."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A session idle for longer than 30 minutes is rejected on the next request, requiring re-authentication."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Logging out `frank` invalidates that session immediately — a request replayed with the same (now-logged-out) session token is rejected."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Two concurrent sessions for `frank` (e.g. two devices) are independent — logging out one does not invalidate the other."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "authenticated request, session issued 1s ago",
+        "response": "401 Unauthorized"
+      },
+      {
+        "request": "authenticated request, session idle 31 minutes",
+        "response": "401 Unauthorized, re-auth required"
+      },
+      {
+        "request": "logout frank, then replay old session token",
+        "response": "401 Unauthorized"
+      },
+      {
+        "request": "frank logs out device A; request on device B's session",
+        "response": "200 OK (device B unaffected)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

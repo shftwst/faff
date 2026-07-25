@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-working-but-off-spec-rate-limiter-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "working-but-off-spec",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`client-z` making 120 requests to /v1/orders in one minute succeeds on all 120."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`client-z`'s (120 + 1)th request within the same minute is rejected with HTTP 429."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "The 429 response carries a `Retry-After` header naming a wait time, not a bare rejection."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The rate-limit counter for `client-z` resets at the minute boundary — a request one second into the next minute is not still counted against the prior window."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The 429 error body is written for the API consumer, not an internal stack trace."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "client-z: 120 req/min to /v1/orders",
+        "response": "all 120 requests 200 OK"
+      },
+      {
+        "request": "client-z: request #121 same minute",
+        "response": "429 Too Many Requests"
+      },
+      {
+        "request": "429 response headers",
+        "response": "no Retry-After header present"
+      },
+      {
+        "request": "client-z: request 1s into next minute",
+        "response": "200 OK (fresh window)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:unmet",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

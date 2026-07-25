@@ -1,0 +1,85 @@
+{
+  "id": "holdout-seed-neg-subtly-wrong-session-management-002",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "subtly-wrong",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A freshly-issued mobile-app session for `grace` is accepted on the very next authenticated request."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A session idle for longer than 15 minutes is rejected on the next request, requiring re-authentication."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "Logging out `grace` invalidates that session immediately — a request replayed with the same (now-logged-out) session token is rejected."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Two concurrent sessions for `grace` (e.g. two devices) are independent — logging out one does not invalidate the other."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The session-expired message tells the user what happened without sounding like a security alarm."
+      },
+      {
+        "key": "cx1",
+        "class": "scenario",
+        "text": "An unrelated read-only endpoint touched incidentally by this flow behaves as documented elsewhere (distractor — not part of this case's seeded defect)."
+      },
+      {
+        "key": "cx2",
+        "class": "assertion",
+        "text": "A concurrent, unrelated request against a different resource is unaffected by this flow (distractor — not part of this case's seeded defect)."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "authenticated request, session issued 1s ago",
+        "response": "401 Unauthorized"
+      },
+      {
+        "request": "authenticated request, session idle 16 minutes",
+        "response": "401 Unauthorized, re-auth required"
+      },
+      {
+        "request": "logout grace, then replay old session token",
+        "response": "401 Unauthorized"
+      },
+      {
+        "request": "grace logs out device A; request on device B's session",
+        "response": "200 OK (device B unaffected)"
+      },
+      {
+        "note": "GET /health (unrelated endpoint touched incidentally by this flow)",
+        "response": "200 OK; body {\"status\":\"ok\"}"
+      },
+      {
+        "note": "a concurrent, unrelated request against a different resource, observed mid-flow",
+        "response": "200 OK; unaffected by this flow"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:unmet",
+      "c1:met",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human",
+      "cx1:met",
+      "cx2:met"
+    ]
+  }
+}

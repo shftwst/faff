@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-notification-send-001",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Sending a `welcome` notification to `user-1` over email succeeds and is recorded as delivered."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A transient send failure is retried up to 3 times before being marked permanently failed."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A recipient who has opted out of `welcome` notifications never receives one, regardless of trigger."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A successfully delivered notification is recorded exactly once in the delivery log — a retried-then-succeeded send does not double-log."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_msg": "send welcome to user-1 via email",
+        "result": "delivered"
+      },
+      {
+        "queue_msg": "send welcome to user-1, transient failure x3",
+        "result": "gave up after 1 attempt (retryMax 3 not honoured)"
+      },
+      {
+        "queue_msg": "send welcome to user-1 (opted-out)",
+        "result": "suppressed: recipient opted out"
+      },
+      {
+        "queue_msg": "send welcome to user-1, retried once then succeeded",
+        "result": "delivery log has 1 entry for this send"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

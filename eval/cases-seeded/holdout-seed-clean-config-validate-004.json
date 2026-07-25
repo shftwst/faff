@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-config-validate-004",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "A config file with every required key present, including `cache_ttl`, validates cleanly under `confcheck config validate` and exits 0."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A config file missing the required `log_level` key fails validation and names `log_level` specifically in the error."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A config file with an out-of-range value for `cache_ttl` (e.g. a negative timeout) is rejected, not silently clamped."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Validating a config file never mutates the file on disk — a byte-for-byte diff of the file before and after `config validate` is empty."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "confcheck config validate (all keys present incl. cache_ttl)",
+        "output": "exit 0: config OK"
+      },
+      {
+        "command": "confcheck config validate (missing log_level)",
+        "output": "exit 1: missing required key \"log_level\""
+      },
+      {
+        "command": "confcheck config validate (cache_ttl=-5, out of range)",
+        "output": "exit 1: cache_ttl must be >= 0"
+      },
+      {
+        "command": "confcheck config validate; diff config.yaml before/after",
+        "output": "diff empty"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

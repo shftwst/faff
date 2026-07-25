@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-rate-limiter-001",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`client-x` making 60 requests to /v1/search in one minute succeeds on all 60."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`client-x`'s (60 + 1)th request within the same minute is rejected with HTTP 429."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "The 429 response carries a `Retry-After` header naming a wait time, not a bare rejection."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "The rate-limit counter for `client-x` resets at the minute boundary — a request one second into the next minute is not still counted against the prior window."
+      }
+    ],
+    "recordings": [
+      {
+        "request": "client-x: 60 req/min to /v1/search",
+        "response": "all 60 requests 200 OK"
+      },
+      {
+        "request": "client-x: request #61 same minute",
+        "response": "429 Too Many Requests"
+      },
+      {
+        "request": "429 response headers",
+        "response": "Retry-After: 42"
+      },
+      {
+        "request": "client-x: request 1s into next minute",
+        "response": "200 OK (fresh window)"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

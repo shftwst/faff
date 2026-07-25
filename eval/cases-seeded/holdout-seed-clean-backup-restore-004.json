@@ -1,0 +1,59 @@
+{
+  "id": "holdout-seed-clean-backup-restore-004",
+  "kind": "holdout-exercise",
+  "label": "clean",
+  "defect_class": null,
+  "expected_aggregate": "meets-spec",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "`quickback backup billing-db` produces a snapshot `snap-2026-04` and `quickback verify snap-2026-04` confirms it is restorable."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "`quickback restore snap-2026-04` into a fresh target reproduces `billing-db`'s row counts exactly as they were at backup time."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A backup taken while a write is mid-transaction never captures a partially-committed row (the snapshot is transactionally consistent)."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "Restoring `snap-2026-04` into an already-populated target refuses by default (no silent overwrite) unless an explicit `--force` is given."
+      }
+    ],
+    "recordings": [
+      {
+        "command": "quickback backup billing-db; quickback verify snap-2026-04",
+        "output": "verify OK: snap-2026-04 restorable"
+      },
+      {
+        "command": "quickback restore snap-2026-04 into fresh target",
+        "output": "row counts match backup time exactly"
+      },
+      {
+        "command": "backup taken during a mid-transaction write",
+        "output": "snapshot is transactionally consistent"
+      },
+      {
+        "command": "quickback restore snap-2026-04 into an already-populated target (no --force)",
+        "output": "refused: target not empty, use --force"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:met",
+      "c2:met",
+      "c3:met"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "id": "holdout-seed-neg-missed-criterion-notification-send-003",
+  "kind": "holdout-exercise",
+  "label": "defective",
+  "defect_class": "missed-criterion",
+  "expected_aggregate": "gaps",
+  "fixture": {
+    "version": 1,
+    "spec_dod": [
+      {
+        "key": "c0",
+        "class": "scenario",
+        "text": "Sending a `reminder` notification to `user-3` over push succeeds and is recorded as delivered."
+      },
+      {
+        "key": "c1",
+        "class": "scenario",
+        "text": "A transient send failure is retried up to 3 times before being marked permanently failed."
+      },
+      {
+        "key": "c2",
+        "class": "assertion",
+        "text": "A recipient who has opted out of `reminder` notifications never receives one, regardless of trigger."
+      },
+      {
+        "key": "c3",
+        "class": "assertion",
+        "text": "A successfully delivered notification is recorded exactly once in the delivery log — a retried-then-succeeded send does not double-log."
+      },
+      {
+        "key": "c4",
+        "class": "prose",
+        "text": "The notification copy for `reminder` reads naturally, not like a template dump."
+      }
+    ],
+    "recordings": [
+      {
+        "queue_msg": "send reminder to user-3 via push",
+        "result": "delivered"
+      },
+      {
+        "queue_msg": "send reminder to user-3, transient failure x3",
+        "result": "gave up after 1 attempt (retryMax 3 not honoured)"
+      },
+      {
+        "queue_msg": "send reminder to user-3 (opted-out)",
+        "result": "suppressed: recipient opted out"
+      },
+      {
+        "queue_msg": "send reminder to user-3, retried once then succeeded",
+        "result": "delivery log has 1 entry for this send"
+      }
+    ]
+  },
+  "question": "Derive which of the raw recordings bear on each DoD criterion (ignore any that bear on none), classify each met / unmet / needs-human, and force every `prose` criterion to needs-human.",
+  "oracle": {
+    "closed_set": [
+      "c0:met",
+      "c1:unmet",
+      "c2:met",
+      "c3:met",
+      "c4:needs-human"
+    ]
+  }
+}

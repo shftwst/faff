@@ -1,6 +1,6 @@
 # ADR 0091 — Engine-declared telemetry source: spend measurement is a two-source union behind one dispatch layer
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-07-25
 - **Issue:** FAFF-604

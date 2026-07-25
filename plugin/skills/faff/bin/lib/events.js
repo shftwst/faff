@@ -874,6 +874,15 @@ function cmdEvents(args) {
     if (!fs.existsSync(dirArg) || !fs.statSync(dirArg).isDirectory()) {
       process.stderr.write(`faff events anchor: --run-dir is not a directory: ${dirArg}\n`); return 2;
     }
+    // FAFF-623 adversarial review: --issue is joined onto --run-dir to locate the per-issue
+    // merge-floor files (below) — a source-path read, not just the label already accepted
+    // unsanitised into chain-head.json. Same shape check merge-gate.js's --issue already
+    // applies (defence-in-depth, never a forked rule): reject anything that isn't a bare
+    // issue-id token, so a malformed/malicious --issue can't walk the read path outside
+    // --run-dir via a ".." segment.
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issueArg) || issueArg.includes("..")) {
+      process.stderr.write(`faff events anchor: --issue ${JSON.stringify(issueArg)} is not a valid issue id\n`); return 2;
+    }
     let eventsBuf;
     try { eventsBuf = fs.readFileSync(path.join(dirArg, "events.jsonl")); }
     catch { process.stderr.write(`faff events anchor: no events.jsonl in ${dirArg} — nothing to anchor\n`); return 3; }
@@ -882,9 +891,26 @@ function cmdEvents(args) {
     fs.writeFileSync(path.join(destArg, "events.jsonl"), eventsBuf); // verbatim byte-copy
     const srcLedger = path.join(dirArg, "run-ledger.json");
     if (fs.existsSync(srcLedger)) fs.copyFileSync(srcLedger, path.join(destArg, "run-ledger.json"));
+    // FAFF-623: also carry the merge-floor evidence `evaluateMergeFloorLeg` (governance-check.js)
+    // needs — `ac-checklist.json` + `review-verdict.json` always, `holdout.json` +
+    // `build-progress.json` at L4 (the latter required ALONGSIDE holdout.json, not optional to
+    // it — `readHoldout` compares the holdout verdict's timestamp against build-progress.json's
+    // checkpoint to reject a stale holdout; without it the freshness check has nothing to compare
+    // against and reports "blocked" even for a genuinely valid holdout). Each file is independently
+    // best-effort-present: a run dir that hasn't reached Step 9 yet legitimately has no
+    // review-verdict.json, and that's a normal merge_floor "not yet passed" reason, not an
+    // anchor-command error — never required, unlike events.jsonl above.
+    const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "holdout.json", "build-progress.json"];
+    const issueDir = path.join(dirArg, issueArg);
+    const copiedFloorFiles = [];
+    for (const f of optionalFloorFiles) {
+      const src = path.join(issueDir, f);
+      if (fs.existsSync(src)) { fs.copyFileSync(src, path.join(destArg, f)); copiedFloorFiles.push(f); }
+    }
     const head = computeChainHead(eventsBuf, path.basename(dirArg), issueArg);
     fs.writeFileSync(path.join(destArg, "chain-head.json"), JSON.stringify(head, null, 2) + "\n");
-    console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})`);
+    const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
+    console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}`);
     return 0;
   }
 
@@ -1171,6 +1197,43 @@ function eventsSelftest() {
         vcheck("anchor: line_count matches", head.line_count === lines.length);
         vcheck("anchor: issue recorded", head.issue === "FAFF-1");
         vcheck("anchor: run_id is the run-dir basename", head.run_id === path.basename(src));
+      } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(dest, { recursive: true, force: true }); }
+    }
+    { // FAFF-623: merge-floor evidence copy — best-effort per-file, none required.
+      const src = mkDir(), dest = mkDir();
+      try {
+        buildChain(src, "run-floor", [
+          { phase: "run", type: "run-start" },
+          { phase: "build", type: "build-start", issue: "FAFF-1" },
+        ]);
+        // No FAFF-1/ subdir at all yet — anchor must still succeed (chain-only), copying nothing extra.
+        let rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest]);
+        vcheck("anchor: no per-issue floor files present → exit 0, none copied", rc === 0
+          && !fs.existsSync(path.join(dest, "ac-checklist.json")) && !fs.existsSync(path.join(dest, "review-verdict.json")));
+
+        // Now populate ac-checklist.json + review-verdict.json only (holdout/build-progress absent —
+        // the normal case below L4) and re-anchor to a fresh dest.
+        const dest2 = mkDir();
+        fs.mkdirSync(path.join(src, "FAFF-1"), { recursive: true });
+        fs.writeFileSync(path.join(src, "FAFF-1", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+        fs.writeFileSync(path.join(src, "FAFF-1", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+        rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest2]);
+        vcheck("anchor: ac-checklist.json + review-verdict.json present → exit 0, both copied verbatim", rc === 0
+          && fs.readFileSync(path.join(dest2, "ac-checklist.json"), "utf8") === fs.readFileSync(path.join(src, "FAFF-1", "ac-checklist.json"), "utf8")
+          && fs.readFileSync(path.join(dest2, "review-verdict.json"), "utf8") === fs.readFileSync(path.join(src, "FAFF-1", "review-verdict.json"), "utf8"));
+        vcheck("anchor: holdout.json/build-progress.json absent below L4 → not copied (no error)",
+          !fs.existsSync(path.join(dest2, "holdout.json")) && !fs.existsSync(path.join(dest2, "build-progress.json")));
+        fs.rmSync(dest2, { recursive: true, force: true });
+
+        // L4: add holdout.json + build-progress.json too — all four copy.
+        const dest3 = mkDir();
+        fs.writeFileSync(path.join(src, "FAFF-1", "holdout.json"), JSON.stringify({ aggregate: "meets-spec", code_blind: true, criteria: [] }));
+        fs.writeFileSync(path.join(src, "FAFF-1", "build-progress.json"), JSON.stringify({ updated_at: new Date().toISOString() }));
+        rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest3]);
+        vcheck("anchor: all four merge-floor files present → exit 0, all four copied", rc === 0
+          && fs.existsSync(path.join(dest3, "ac-checklist.json")) && fs.existsSync(path.join(dest3, "review-verdict.json"))
+          && fs.existsSync(path.join(dest3, "holdout.json")) && fs.existsSync(path.join(dest3, "build-progress.json")));
+        fs.rmSync(dest3, { recursive: true, force: true });
       } finally { fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(dest, { recursive: true, force: true }); }
     }
   }

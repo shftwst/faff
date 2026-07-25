@@ -89,7 +89,7 @@ function classifyCodexFailure(stderr, events) {
 // guard → seat probe → ONE exec spawn → fail-loud parse → classify. Returns an
 // ENGINE_EXIT int synchronously (bin/faff's dispatcher accepts int-or-Promise).
 // spawnFn/env/writers injectable — the selftest and CI make zero real spawns.
-function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process.env, stdoutWrite, stderrWrite } = {}) {
+function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process.env, stdoutWrite, stderrWrite, mkdtempFn = fs.mkdtempSync } = {}) {
   const out = stdoutWrite || ((s) => process.stdout.write(s));
   const err = stderrWrite || ((s) => process.stderr.write(s));
   const binPath = engine.binPath || "codex";
@@ -130,7 +130,17 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
   // (auth store discovery), CODEX_HOME (auth store override), and PATH; api-key
   // mode additionally injects the named env var's VALUE as OPENAI_API_KEY.
   const childEnv = apiKey ? { ...env, OPENAI_API_KEY: apiKey } : env;
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-codex-"));
+  // mkdtemp failure (tmpdir unwritable/full) must land on a NAMED exit, never an
+  // escaped throw — runCodexCall's contract is a synchronous ENGINE_EXIT int on
+  // every path (adversarial-review finding, 2026-07-25). mkdtempFn injectable so
+  // the selftest can drive this row without touching the real tmpdir.
+  let tmp;
+  try {
+    tmp = mkdtempFn(path.join(os.tmpdir(), "faff-codex-"));
+  } catch (e) {
+    err(`faff engine call: engine-unreachable — could not create temp working dir for codex exec: ${excerpt(e && e.message)}\n`);
+    return ENGINE_EXIT.UNREACHABLE;
+  }
   let r;
   try {
     r = spawnFn(binPath, buildCodexArgv(engine.model), {
@@ -284,6 +294,18 @@ function codexSelftest() {
       stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
     });
     ok("malformed JSONL: exit 7 with excerpt", code === ENGINE_EXIT.MALFORMED && /chatter, not JSON/.test(stderr));
+  }
+  {
+    const calls = [];
+    let stderr = "";
+    const code = runCodexCall({
+      engine, system: "S", user: "U",
+      spawnFn: seq(probeOk, null, calls),
+      mkdtempFn: () => { throw new Error("ENOSPC: no space left on device"); },
+      stdoutWrite: sink, stderrWrite: (s) => (stderr += s),
+    });
+    ok("mkdtemp failure: named exit 5, no exec spawn, never an escaped throw",
+      code === ENGINE_EXIT.UNREACHABLE && /temp working dir/.test(stderr) && /ENOSPC/.test(stderr) && calls.every((c) => c.args[0] === "login"));
   }
   {
     let stderr = "";

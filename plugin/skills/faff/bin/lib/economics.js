@@ -19,7 +19,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir, unmeteredFleetEngines } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { unmeteredFleetEngines } = require("./backends");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 
@@ -756,7 +757,7 @@ function cmdEconomics(args) {
   // baselined at run start, the same figure budget gates on.
   // FAFF-604: the SAME combining call `budget check` makes — one owner of the
   // two-source union, so the two top lines can never drift into independent folds.
-  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, cfg, allowUnmetered: env.allow_unmetered });
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, unmeteredEngines: unmeteredFleetEngines(cfg, env.allow_unmetered) });
   const measured = runSpend.transcript;
   const measuredSource = measured.source;
   const measuredTotal = measuredSource === "transcript"

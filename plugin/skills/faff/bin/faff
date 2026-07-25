@@ -21,7 +21,7 @@ const { cmdAdr } = require("./lib/adr");
 const { cmdAdversarialBackends } = require("./lib/adversarial-backends");
 const { cmdAudit } = require("./lib/audit");
 const { cmdBackgroundFence } = require("./lib/background-fence");
-const { cmdBackends } = require("./lib/backends");
+const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
 const { cmdBudget } = require("./lib/budget");
 const { cmdCiTriage } = require("./lib/ci-triage");
 const { cmdCliSurface } = require("./lib/cli-surface");
@@ -102,7 +102,11 @@ const COMMANDS = {
   "intake-record": cmdIntakeRecord,
   "contain": cmdContain,
   "self-intake": cmdSelfIntake,
-  "budget": cmdBudget,
+  // FAFF-604: the dispatch shell is the sanctioned meeting point for the two
+  // regions (it is exempt from the require-graph lint by design). `budget check`
+  // is governance and may not require the factory, so the fleet-telemetry
+  // resolver is handed to it here rather than reached for inside it.
+  "budget": (args) => cmdBudget(args, { resolveUnmetered: unmeteredFleetEngines }),
   "economics": cmdEconomics,
   "disposition": cmdDisposition,
   "quality": cmdQuality,

@@ -649,41 +649,6 @@ function readEngineSpend(runDir) {
   return { totals, by_model, engines: [...engines], records, malformed };
 }
 
-// The engine names this run's fleet can reach, resolved from the `engine:<name>`
-// values on the models.* lanes (the only place a config points a lane at a
-// backend). Returns the resolved Backend records, so the caller can read each
-// one's declared telemetry source.
-function fleetEngineBackends(cfg) {
-  const lanes = dig(cfg, "models");
-  if (!lanes || typeof lanes !== "object" || Array.isArray(lanes)) return [];
-  const refs = [];
-  const walk = (node) => {
-    for (const v of Object.values(node)) {
-      if (typeof v === "string" && v.startsWith("engine:")) {
-        const n = v.slice("engine:".length).trim();
-        if (n && !refs.includes(n)) refs.push(n);
-      } else if (v && typeof v === "object" && !Array.isArray(v)) walk(v);
-    }
-  };
-  walk(lanes);
-  if (!refs.length) return [];
-  const { mergeBackendsNamespace } = require("./backends");
-  const merged = mergeBackendsNamespace(cfg);
-  if (merged.error) return [];
-  return refs.map((n) => merged.backends[n]).filter(Boolean);
-}
-
-// The fleet engines whose spend is UNOBSERVABLE (`telemetry: none`) and which
-// the budget block has not explicitly waived. This is the set that makes a
-// dollar ceiling refuse: counting them as zero would report "under budget" on
-// a figure that never saw their spend at all.
-function unmeteredFleetEngines(cfg, allowUnmetered) {
-  const allow = new Set(Array.isArray(allowUnmetered) ? allowUnmetered.map(String) : []);
-  return fleetEngineBackends(cfg)
-    .filter((b) => b.telemetry === "none" && !allow.has(b.name))
-    .map((b) => b.name);
-}
-
 // FAFF-604 — the combining layer. Measures BOTH sources and reports which
 // contributed, without touching either one's reader. `totals`/`by_model` are the
 // raw union (whole-session transcript + run-scoped engine spend); a caller that
@@ -693,7 +658,7 @@ function unmeteredFleetEngines(cfg, allowUnmetered) {
 // meaning: the TRANSCRIPT-side measurement basis, unchanged for every consumer
 // that reads it today.
 function measureRunSpend(opts) {
-  const { cwd, env, runStartMs, runDir, cfg, allowUnmetered } = opts;
+  const { cwd, env, runStartMs, runDir, unmeteredEngines } = opts;
   const transcript = measureTokensByModelClass({ cwd, env, runStartMs });
   const engine_spend = readEngineSpend(runDir);
   const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
@@ -725,7 +690,11 @@ function measureRunSpend(opts) {
     by_model,
     tokens_source: transcript.source,
     sources,
-    unmetered_engines: unmeteredFleetEngines(cfg, allowUnmetered),
+    // Handed in by the caller, never resolved here: which engines are unmetered is
+    // a fact about BACKENDS (the factory region), and governance may not require
+    // that module (ADR-0042). Absent ⇒ empty, so a caller with nothing to declare
+    // measures exactly as it did before the seam.
+    unmetered_engines: Array.isArray(unmeteredEngines) ? unmeteredEngines : [],
   };
 }
 
@@ -846,7 +815,12 @@ function resolveBudgetNow(get) {
   return { now_ms: Date.now() }; // unchanged production default
 }
 
-function cmdBudget(args) {
+// `resolveUnmetered` is injected by the dispatch shell (bin/faff), which is exempt
+// from the region lint and is therefore where governance and factory legitimately
+// meet. Defaulting it to "nothing unmetered" keeps every other caller — the
+// selftest, a direct require — working unchanged, and fails in the safe direction:
+// a missing resolver can only UNDER-report the refusal, never invent one.
+function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   if (args.includes("--selftest")) return budgetSelftest();
   const sub = args.find((a) => !a.startsWith("-"));
   if (sub === "baseline") return cmdBudgetBaseline(args);
@@ -963,7 +937,7 @@ function cmdBudget(args) {
   // `transcript` half is exactly what `measureTokensByModelClass` returned before,
   // so the baselining below is untouched; the run-scoped `engine_spend` half needs
   // no baseline and is folded in after.
-  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, cfg, allowUnmetered: env.allow_unmetered });
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, unmeteredEngines: resolveUnmetered(cfg, env.allow_unmetered) });
   const measuredFull = runSpend.transcript;
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
@@ -1231,7 +1205,7 @@ function cmdBudget(args) {
     spendSources.push({ source: "exec-json-events", tokens: engineSpendTotal, records: engineSpend.records, engines: engineSpend.engines });
   }
   if (engineSpend.records > 0) state.spend_sources = spendSources;
-  const allUnmetered = unmeteredFleetEngines(cfg, []);
+  const allUnmetered = resolveUnmetered(cfg, []);
   if (allUnmetered.length) {
     state.unmetered_engines = allUnmetered.map((name) => ({
       engine: name,
@@ -1751,20 +1725,6 @@ function budgetSelftest(now = Date.now()) {
       withBad.records === 2 && withBad.malformed === 1 && withBad.totals.input === 105);
   } finally { fs.rmSync(esd, { recursive: true, force: true }); }
 
-  // fleet scan — which engines the models.* lanes can reach, and their telemetry
-  const codexFleet = { backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, models: { methodology: "engine:seat" } };
-  const localFleet = { backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } }, models: { intake: "engine:lan" } };
-  ok("fleetEngineBackends: resolves an engine:<name> lane value to its backend",
-    fleetEngineBackends(codexFleet).map((b) => b.name).join(",") === "seat");
-  ok("fleetEngineBackends: no engine lanes → empty (an all-Agent-token fleet)",
-    fleetEngineBackends({ models: { build: "sonnet" } }).length === 0);
-  ok("unmeteredFleetEngines: a codex engine is METERED (exec-json-events), never flagged",
-    unmeteredFleetEngines(codexFleet, []).length === 0);
-  ok("unmeteredFleetEngines: an ollama engine derives telemetry: none → flagged",
-    unmeteredFleetEngines(localFleet, []).join(",") === "lan");
-  ok("unmeteredFleetEngines: an explicit budget.allow_unmetered waiver clears the flag",
-    unmeteredFleetEngines(localFleet, ["lan"]).length === 0);
-
   // measureRunSpend — the combining layer itself
   {
     const mrd = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-mrs-"));
@@ -1772,7 +1732,7 @@ function budgetSelftest(now = Date.now()) {
       appendEngineSpend(mrd, { engine: "seat", model: "gpt-5-codex", input: 60, output: 40, cache_read: 0, cache_write: 0 });
       // No session id → the transcript half degrades to estimate; the engine half
       // still measures, which is the whole point of the union.
-      const m = measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd, cfg: codexFleet });
+      const m = measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd, unmeteredEngines: [] });
       ok("measureRunSpend: unions both sources into totals/by_model",
         m.totals.input === 60 && m.totals.output === 40 && m.by_model.get("gpt-5-codex").input === 60);
       ok("measureRunSpend: tokens_source keeps its TRANSCRIPT-side meaning",
@@ -1781,9 +1741,11 @@ function budgetSelftest(now = Date.now()) {
         m.sources.length === 1 && m.sources[0].source === "exec-json-events" && m.sources[0].tokens === 100);
       ok("measureRunSpend: a fully metered fleet reports no unmetered engines",
         m.unmetered_engines.length === 0);
-      const mLocal = measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd, cfg: localFleet });
-      ok("measureRunSpend: an unmetered fleet engine is surfaced for the caller to refuse on",
+      const mLocal = measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd, unmeteredEngines: ["lan"] });
+      ok("measureRunSpend: the caller-supplied unmetered list is carried through verbatim",
         mLocal.unmetered_engines.join(",") === "lan");
+      ok("measureRunSpend: an absent unmetered list degrades to empty, never a throw",
+        measureRunSpend({ cwd: mrd, env: {}, runStartMs: null, runDir: mrd }).unmetered_engines.length === 0);
     } finally { fs.rmSync(mrd, { recursive: true, force: true }); }
   }
 
@@ -1800,4 +1762,4 @@ function budgetSelftest(now = Date.now()) {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, appendEngineSpend, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, fleetEngineBackends, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, unmeteredFleetEngines, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, appendEngineSpend, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

@@ -152,6 +152,47 @@ function normalizeBackend(name, raw) {
   return { backend: b };
 }
 
+// FAFF-604: the engine backends this run's fleet can reach, resolved from the
+// `engine:<name>` values on the models.* lanes (the only place a config points a
+// lane at a backend). Returns the resolved Backend records, so a caller can read
+// each one's declared telemetry source.
+//
+// Lives HERE, in the factory region, because it is a fact about backends —
+// governance (budget.js) may never require this module (ADR-0042's require-graph
+// direction invariant), so the governance side is HANDED the resolved answer
+// rather than reaching for it. The dispatch shell, which is exempt by design, is
+// where the two regions meet for `budget check`.
+function fleetEngineBackends(cfg) {
+  const lanes = dig(cfg, "models");
+  if (!lanes || typeof lanes !== "object" || Array.isArray(lanes)) return [];
+  const refs = [];
+  const walk = (node) => {
+    for (const v of Object.values(node)) {
+      if (typeof v === "string" && v.startsWith("engine:")) {
+        const n = v.slice("engine:".length).trim();
+        if (n && !refs.includes(n)) refs.push(n);
+      } else if (v && typeof v === "object" && !Array.isArray(v)) walk(v);
+    }
+  };
+  walk(lanes);
+  if (!refs.length) return [];
+  const merged = mergeBackendsNamespace(cfg);
+  if (merged.error) return [];
+  return refs.map((n) => merged.backends[n]).filter(Boolean);
+}
+
+// The fleet engines whose spend is UNOBSERVABLE (`telemetry: none`) and which
+// the budget block has not explicitly waived. This is the set that makes a
+// dollar ceiling refuse: counting them as zero would report "under budget" on
+// a figure that never saw their spend at all.
+function unmeteredFleetEngines(cfg, allowUnmetered) {
+  const allow = new Set(Array.isArray(allowUnmetered) ? allowUnmetered.map(String) : []);
+  return fleetEngineBackends(cfg)
+    .filter((b) => b.telemetry === "none" && !allow.has(b.name))
+    .map((b) => b.name);
+}
+
+
 // PURE: fold the top-level `engines:` map into `backends:` at load (spec §4
 // "Load-time merge + normalize"). A name present in BOTH is a hard error
 // (ambiguous reference, never last-wins). Every entry — from either source —
@@ -443,6 +484,23 @@ function backendsSelftest() {
   ok("BACKEND_RECORD_KEYS carries telemetry (so `faff backends resolve` prints it)",
     BACKEND_RECORD_KEYS.includes("telemetry"));
 
+  // --- fleet telemetry scan (FAFF-604) — moved here from budget.js: governance
+  // may not require this module, so the factory owns the resolution.
+  const codexFleet = { backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, models: { methodology: "engine:seat" } };
+  const localFleet = { backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } }, models: { intake: "engine:lan" } };
+  ok("fleetEngineBackends: resolves an engine:<name> lane value to its backend",
+    fleetEngineBackends(codexFleet).map((b) => b.name).join(",") === "seat");
+  ok("fleetEngineBackends: no engine lanes -> empty (an all-Agent-token fleet)",
+    fleetEngineBackends({ models: { build: "sonnet" } }).length === 0);
+  ok("fleetEngineBackends: an engine ref naming no configured backend is dropped, never a throw",
+    fleetEngineBackends({ backends: {}, models: { intake: "engine:ghost" } }).length === 0);
+  ok("unmeteredFleetEngines: a codex engine is METERED (exec-json-events), never flagged",
+    unmeteredFleetEngines(codexFleet, []).length === 0);
+  ok("unmeteredFleetEngines: an ollama engine derives telemetry: none -> flagged",
+    unmeteredFleetEngines(localFleet, []).join(",") === "lan");
+  ok("unmeteredFleetEngines: an explicit budget.allow_unmetered waiver clears the flag",
+    unmeteredFleetEngines(localFleet, ["lan"]).length === 0);
+
   // --- validateBackendConstraints ------------------------------------------------------------
   ok("constraints: api-key without api_key_env -> error",
     !!validateBackendConstraints("x", { auth: "api-key", egress: "local", telemetry: "none" }));
@@ -612,6 +670,7 @@ module.exports = {
   AUTH_VALUES, BACKEND_RECORD_KEYS, CURRENT_HARNESS, EGRESS_VALUES, RESIDENCY_REQUIRED_VALUES,
   TELEMETRY_VALUES,
   backendsConfigCheckFindings, backendsSelftest, checkRealizable, cmdBackends,
-  deriveAuth, deriveEgress, deriveTelemetry, mergeBackendsNamespace, normalizeBackend,
+  deriveAuth, deriveEgress, deriveTelemetry, fleetEngineBackends, mergeBackendsNamespace, normalizeBackend,
+  unmeteredFleetEngines,
   portableMatrixAdmits, resolveBackendRefs, resolveTokenSource, validateBackendConstraints,
 };

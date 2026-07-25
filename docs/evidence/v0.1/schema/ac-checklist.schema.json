@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.1/ac-checklist",
+  "title": "<run-dir>/<issue>/ac-checklist.json",
+  "description": "Shape is normative here; semantics live in ../ac-checklist.md. readAcComplete (bin/lib/merge-gate.js) accepts either the canonical `all_verified` key or the legacy `ac_complete` alternative — both documented, either satisfies the merge_floor leg. This subset validator has no anyOf, so the schema requires the canonical key; a legacy-only file (ac_complete, no all_verified) is a real accepted shape the schema does not close on (additionalProperties: true covers it) — see the page's Integrity section for the discrepancy.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["all_verified"],
+  "properties": {
+    "all_verified": { "type": "boolean", "description": "canonical key — true only when every auto-verifiable AC is ticked" },
+    "ac_complete": { "type": "boolean", "description": "legacy-accepted alternative key; readAcComplete treats it identically to all_verified" }
+  }
+}

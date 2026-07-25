@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.1/run-event",
+  "title": "RunEvent — one JSON object per events.jsonl line",
+  "description": "Shape is normative here; semantics (seq authority, hash-chain construction, torn-line handling) live in ../events.md. Per-line schema: this validates ONE parsed record, not the file — a file is a sequence of these separated by newlines. schema/prev pairing (prev required iff schema==2, forbidden iff schema==1) and cross-line invariants (seq monotonicity, chain hashing) are NOT expressible in JSON Schema and are restated as conformance rules on the events page, enforced by `faff events validate`.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema", "run_id", "seq", "ts", "phase", "type"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [1, 2] },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer", "description": "authoritative monotonic order; ts is best-effort only" },
+    "ts": { "type": "string" },
+    "prev": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "required iff schema==2, forbidden iff schema==1 — SHA-256 of the previous physical line's raw bytes (genesis: SHA-256 of this record's own run_id)" },
+    "phase": { "type": "string", "enum": ["run", "tidy", "prep", "build", "plot"] },
+    "type": {
+      "type": "string",
+      "enum": [
+        "run-start", "run-end", "tidy-done", "issue-admitted", "prep-start", "prep-done",
+        "build-start", "issue-outcome", "discovered-scope-filed", "budget-checkpoint", "park",
+        "sentry-checkpoint", "corrective-authored", "corrective-consumed", "containment-check",
+        "self-intake-check", "run-resume", "ledger-write"
+      ]
+    },
+    "issue": { "type": "string", "description": "required iff type is issue-scoped (issue-admitted, prep-start, prep-done, build-start, issue-outcome, park, corrective-authored, corrective-consumed, containment-check, self-intake-check)" },
+    "data": { "type": "object", "description": "free-form; typed optional tags include tokens/tokens_source, effort, gate/rework_turns, outcome (required for issue-outcome, one of the ledger_outcomes enum), ledger_sha256 (required Hex64 for type ledger-write)", "additionalProperties": true }
+  }
+}

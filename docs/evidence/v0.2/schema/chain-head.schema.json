@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.2/chain-head",
+  "title": "<anchor-dir>/chain-head.json",
+  "description": "Shape is normative here; semantics live in ../anchor-integrity.md. CLI-computed by computeChainHead (events.js) inside `faff events anchor` — never caller-supplied. Every field is a closed derived value with a single producer, so additionalProperties is false (unlike the open run-ledger record). head_seq/head_sha256/schema_floor can each independently be null (an all-torn or empty source events.jsonl) — this subset validator has no null-union type, so those fields carry no `type` constraint here; ../anchor-integrity.md documents the null cases explicitly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "issue", "head_seq", "head_sha256", "line_count", "schema_floor"],
+  "properties": {
+    "run_id": { "type": "string", "description": "the SOURCE run dir's basename — NOT the anchor dir's basename, which is the issue id" },
+    "issue": { "type": "string", "description": "the --issue value at anchor time" },
+    "head_seq": { "description": "integer or null — the last PARSEABLE record's seq (torn tail excluded); null if no parseable record" },
+    "head_sha256": { "description": "64-lowercase-hex string, or null — SHA-256 of the head (last) physical line's raw bytes; null if events.jsonl was empty at anchor time" },
+    "line_count": { "type": "integer", "description": "count of physical lines; a torn tail counts as a line" },
+    "schema_floor": { "description": "integer or null — min(schema) across all parseable records; null if none carry an integer schema field" }
+  }
+}

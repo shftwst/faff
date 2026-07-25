@@ -9,7 +9,9 @@ emits the artifact format, and git refuses an unearned merge regardless of which
 (or none) produced the PR.
 
 **Read this if you're wiring the check into your own repo.** If you're looking for the
-verb's flags, see the [`governance-check` row in the CLI reference](cli.md).
+verb's flags, see the [`governance-check` row in the CLI reference](cli.md). For the
+schemas and conformance statement behind the legs this check runs, see
+[the Agent Delivery Evidence spec](../evidence/v0.2/conformance.md).
 
 ## Two warnings, stated plainly
 

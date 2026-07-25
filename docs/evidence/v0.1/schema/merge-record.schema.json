@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.1/merge-record",
+  "title": "<run-dir>/<issue>/merge-record.json",
+  "description": "Shape is normative here; semantics live in ../merge-record.md. `pr: 0` is the git-only null-coerced sentinel (FAFF-526) — a real PR number is otherwise always > 0. `integrity` is the corrective-artifact trust posture (FAFF-325/FAFF-373 pid-1 mount declaration) at merge time — a DIFFERENT concept from the FAFF-568 chain-anchor `integrity` leg documented in v0.2/anchor-integrity.md; the shared field name is coincidental.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["pr", "head_sha", "merged"],
+  "properties": {
+    "pr": { "type": "integer", "description": "0 is the git-only sentinel (no PR — FAFF-526); otherwise the real PR number" },
+    "head_sha": { "type": "string" },
+    "merged": { "type": "boolean" },
+    "merged_at": { "type": "string" },
+    "integrity": { "type": "string", "enum": ["asserted", "unasserted", "violated"], "description": "corrective-artifact trust posture recorded at merge time (FAFF-325/FAFF-373; writeMergeRecord defaults to 'unasserted' when the caller omits it) — not the FAFF-568 chain-anchor integrity leg. decideFloor's own gate states (unasserted-ok/unasserted-refuse) are the level-graded GATING decision this field's plain 'unasserted' feeds into — see bin/lib/merge-gate.js." }
+  }
+}

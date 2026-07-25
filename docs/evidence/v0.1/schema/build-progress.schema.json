@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.1/build-progress",
+  "title": "<run-dir>/<issue>/build-progress.json",
+  "description": "Shape is normative here; semantics live in ../supporting-artifacts.md. Written at Step 8b of faff-graft (FAFF-402) once the build is complete and pushed. Closed only on the freshness fields the L4 holdout gate's build-progress read consumes — this is a resume checkpoint, not a general-purpose progress log.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["issue", "build", "updated_at"],
+  "properties": {
+    "issue": { "type": "string" },
+    "build": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["complete"] },
+        "diff_hash": { "type": "string" },
+        "branch": { "type": "string" },
+        "pushed_at": { "type": "string" }
+      }
+    },
+    "updated_at": { "type": "string" }
+  }
+}

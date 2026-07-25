@@ -22,7 +22,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const https = require("node:https");
 const { ENGINE_CALL_LANES, loadConfig, resolveEngineForLane } = require("./config");
-const { CANONICAL_CONFIG, findRoot } = require("./shared-infra");
+const { CANONICAL_CONFIG, findRoot, latestRunDir } = require("./shared-infra");
 
 // engine-call's own small exit taxonomy (distinct named codes; NOT review-call's EXIT
 // table — that one routes review verdicts). 2 = usage/config fault, per house convention.
@@ -166,7 +166,7 @@ async function runEngineCall({ engine, apiKey = null, system, user, getFn = defa
   catch (e) { return { status: "malformed-response", note: e.message }; }
 }
 
-const ENGINE_USAGE = "usage: faff engine call --lane methodology|intake --system FILE --user FILE [--root DIR]\n";
+const ENGINE_USAGE = "usage: faff engine call --lane methodology|intake --system FILE --user FILE [--root DIR] [--run-dir DIR]\n";
 
 // `faff engine call` — stdout is the engine's completion text (the producer output).
 // exit 0 ok · 2 usage/config fault (non-allowlisted lane, unknown engine, missing field,
@@ -175,9 +175,30 @@ const ENGINE_USAGE = "usage: faff engine call --lane methodology|intake --system
 // terminal: the caller surfaces/parks per its existing failure handling.
 const { parseArgs, usageError } = require("./argv");
 const ENGINE_SPEC = {
-  flags: { "--selftest": { arity: 0 }, "--lane": { arity: 1 }, "--system": { arity: 1 }, "--user": { arity: 1 }, "--root": { arity: 1 } },
+  flags: { "--selftest": { arity: 0 }, "--lane": { arity: 1 }, "--system": { arity: 1 }, "--user": { arity: 1 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } },
   positionals: { min: 0, max: 1, name: "call" },
 };
+
+// FAFF-604: bind the codex spend sink to a run. `--run-dir` is EXPLICIT for any
+// dispatcher that already knows its run — every in-run producer dispatch must
+// pass it, because "the newest run dir" is an mtime-shaped ownership signal, and
+// with concurrent runs in one repo it can attribute a call to a sibling run (the
+// attribution class FAFF-229 retired for transcripts). The latest-run fallback
+// exists only for an ad-hoc human call, where there is no dispatcher to know
+// better. No run at all → no sink: nothing is recorded, and we say so once
+// rather than silently dropping the spend.
+function resolveSpendSink(runDirFlag, root) {
+  let runDir = runDirFlag;
+  if (!runDir) {
+    try { runDir = latestRunDir(root); } catch { runDir = null; }
+  }
+  if (!runDir) {
+    process.stderr.write("faff engine call: engine call outside a run — spend not metered (pass --run-dir to attribute it)\n");
+    return null;
+  }
+  const { appendEngineSpend } = require("./budget");
+  return (record) => appendEngineSpend(runDir, record);
+}
 
 function cmdEngine(args) {
   if (args.includes("--selftest")) return engineSelftest();
@@ -218,7 +239,7 @@ function cmdEngine(args) {
     try { system = fs.readFileSync(systemFile, "utf8"); user = fs.readFileSync(userFile, "utf8"); }
     catch (e) { process.stderr.write(`faff engine call: cannot read prompt file — ${e.message}\n`); return ENGINE_EXIT.CONFIG; }
     const { runCodexCall } = require("./engine-codex");
-    return runCodexCall({ engine: res, system, user });
+    return runCodexCall({ engine: res, system, user, spendSink: resolveSpendSink(get("--run-dir"), root) });
   }
   // api_key_env indirection: config carries the env var NAME, never the key. A declared
   // name whose env is unset is auth-failed BEFORE any network call — named, never a 401 later.

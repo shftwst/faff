@@ -35,7 +35,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
+const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass, unmeteredFleetEngines } = require("./budget");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
@@ -384,6 +384,16 @@ function lightsOutPreflight(probes) {
   // must not launch under stale config that no longer means what it appears to.
   if (probes.budgetPriceRemoved != null)
     refusals.push({ gate: "budget-price-per-mtok-removed", detail: `budget.price_per_mtok ('${probes.budgetPriceRemoved}') is removed (FAFF-446) — unset it in .faffrc.yaml; budget.cost prices from the ADR-0048 map by default (set budget.price_per_mtok_by_model to override specific models)` });
+  // FAFF-604 — a dollar ceiling cannot see an engine whose spend is unobservable
+  // (`telemetry: none`). Counting it as zero would report "under budget" on a
+  // figure that never saw its spend, so the mint refuses rather than launch an
+  // unattended run under a ceiling that silently does not cover part of the fleet.
+  // This is the hard half of the refusal pair: mint-time refusal is free of the
+  // fail-open risk that keeps `budget check` on a warning (a refusal blocks the
+  // mint outright, it can never mask an in-flight breach) — the same reasoning
+  // FAFF-446 applied directly above. The two remedies are named, not implied.
+  if (Array.isArray(probes.budgetUnmeteredEngines) && probes.budgetUnmeteredEngines.length)
+    refusals.push({ gate: "budget-telemetry-unobservable", detail: `budget.cost is set but engine(s) ${probes.budgetUnmeteredEngines.join(", ")} declare telemetry: none — their spend is unobservable and a dollar ceiling cannot see it. Remedy: use budget.window instead of budget.cost, or waive explicitly with budget.allow_unmetered: [${probes.budgetUnmeteredEngines.join(", ")}]` });
   // FAFF-325 / FAFF-525 — the L4 admission side of the corrective-integrity Punt-1 disposition.
   // An absent pid-1 FAFF_INTEGRITY_BOUNDARY declaration (`no-declaration`) DEGRADES to an advisory,
   // it no longer refuses: the cage cannot enforce the matching read-only mount yet (FAFF-517
@@ -837,6 +847,11 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
   const probes = {
     container, reachable, reviewReachable, specReviewSlot, budgetCeilingSet,
     budgetUntilInvalid: envelope.until_invalid, budgetPriceRemoved: envelope.price_per_mtok_removed,
+    // FAFF-604 — only a DOLLAR ceiling is blind to an unmetered engine; a
+    // token/window ceiling meters what it can see and labels the rest, so the
+    // probe is armed solely when budget.cost is configured.
+    budgetUnmeteredEngines: envelope.ceilings.cost != null
+      ? unmeteredFleetEngines(cfg, envelope.allow_unmetered) : [],
     // FAFF-577 — the escape hatch armed (set, non-empty) refuses the mint: a
     // lights-out run must never start with governance-read leniency armed.
     configBaseLenientSet: !!process.env.FAFF_CONFIG_BASE_LENIENT,
@@ -1448,6 +1463,20 @@ function lightsOutSelftest() {
     priceRemoved.refusals.find((r) => r.gate === "budget-price-per-mtok-removed").detail.includes("'3'"));
   check("null budgetPriceRemoved (the common/unset case) never fires budget-price-per-mtok-removed",
     !happy.refusals.some((r) => r.gate === "budget-price-per-mtok-removed"));
+
+  // FAFF-604 — a dollar ceiling that cannot see part of the fleet refuses the L4
+  // mint (the hard half of the pair; `budget check` warns instead, to avoid the
+  // fail-open the non-zero exit would cause).
+  const unmetered = lightsOutPreflight(armedProbes({ budgetUnmeteredEngines: ["lan"] }));
+  check("an unmetered engine under a dollar ceiling refuses the mint",
+    unmetered.proceed === false && unmetered.refusals.some((r) => r.gate === "budget-telemetry-unobservable"));
+  check("budget-telemetry-unobservable refusal names the engine AND both remedies",
+    /lan/.test(unmetered.refusals.find((r) => r.gate === "budget-telemetry-unobservable").detail)
+    && /budget\.window/.test(unmetered.refusals.find((r) => r.gate === "budget-telemetry-unobservable").detail)
+    && /allow_unmetered/.test(unmetered.refusals.find((r) => r.gate === "budget-telemetry-unobservable").detail));
+  check("an empty unmetered list (fully metered fleet, or no cost ceiling) never fires the gate",
+    !happy.refusals.some((r) => r.gate === "budget-telemetry-unobservable")
+    && !lightsOutPreflight(armedProbes({ budgetUnmeteredEngines: [] })).refusals.some((r) => r.gate === "budget-telemetry-unobservable"));
 
   // FAFF-325 / FAFF-525 — the L4 admission side of the Punt-1 disposition: no declaration now
   // DEGRADES to an advisory (does not refuse — the mount is unenforceable yet, FAFF-517, so

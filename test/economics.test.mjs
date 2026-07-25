@@ -727,3 +727,84 @@ test("Integration smoke (FAFF-488): budget check (baseline) -> events append --t
       "per-issue attribution is populated end-to-end, not empty");
   } finally { f.cleanup(); rmSync(worktree, { recursive: true, force: true }); }
 });
+
+// ---------------------------------------------------------------------------
+// FAFF-604 — mixed-fleet reporting honesty: economics labels WHERE each figure
+// came from, and never reports an unobservable engine as free.
+// ---------------------------------------------------------------------------
+
+const ECON_MIXED_RC = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\nmodels:\n  methodology: engine:seat\n";
+const econCodexRecord = (over = {}) => ({
+  ts: "2026-07-25T12:00:00Z", engine: "seat", provider: "codex", model: "claude-sonnet-5",
+  source: "exec-json-events", input: 0, output: 0, cache_read: 0, cache_write: 0, ...over,
+});
+
+test("FAFF-604 PARITY: a transcript-only run emits no spend_sources / unmetered_engines", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100, output_tokens: 20 }] } });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_total, 120);
+    assert.equal(e.spend_sources, undefined, "the additive label must be absent on a single-source run");
+    assert.equal(e.unmetered_engines, undefined);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604: a mixed-fleet run labels both sources and totals across them", () => {
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ input: 1000, output: 200 })) + "\n");
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100, output_tokens: 20 }] } });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_total, 1320, "the top line covers both sources");
+    const src = Object.fromEntries(e.spend_sources.map((x) => [x.source, x]));
+    assert.equal(src["transcript-jsonl"].tokens, 120);
+    assert.equal(src["exec-json-events"].tokens, 1200);
+    assert.equal(src["exec-json-events"].records, 1);
+    // Both halves priced from the same map, so cost_total covers the codex lane too.
+    assert.ok(e.cost_total > 0, "a priced mixed-fleet run must report a cost covering both sources");
+    assert.ok(src["exec-json-events"].cost > 0, "the engine half carries its own priced figure");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604: --by model rows carry a source label and reconcile across both sources", () => {
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: baseLedger() });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ input: 500 })) + "\n");
+    const cfg = withTranscripts(f.root, f.root, "sess-1", {
+      "sess-1.jsonl": { usage: [{ input_tokens: 100, output_tokens: 20 }] },
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "transcript+engine-spend", "the census basis must name both sources");
+    assert.ok(bd.rows.every((row) => row.source === "transcript-jsonl" || row.source === "exec-json-events"),
+      "every model row must name where its tokens were read");
+    assert.ok(bd.rows.some((row) => row.source === "exec-json-events"), "the codex lane must appear as its own row");
+    assert.equal(bd.reconciliation.reconciles, true, "a mixed-fleet census must still reconcile to the top line");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-604: an unmetered engine is named in economics and never counted as free", () => {
+  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\nmodels:\n  intake: engine:lan\n";
+  const f = fixture({ rc, ledger: baseLedger() });
+  try {
+    const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100 }] } });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.deepEqual(e.unmetered_engines, [{ engine: "lan", waived: false }]);
+    assert.ok(e.warnings.some((w) => /telemetry: none/.test(w) && /lan/.test(w)),
+      "the run must say its figures exclude an unobservable engine, never imply completeness");
+  } finally { f.cleanup(); }
+});

@@ -61,15 +61,15 @@ test("normalizeBackend: explicit auth/egress always wins over derivation", () =>
 // ===========================================================================
 
 test("constraints: auth: subscription-seat MUST NOT carry api_key_env (no seat_ref handle field, FAFF-523)", () => {
-  const err = validateBackendConstraints("claude-sub", { auth: "subscription-seat", api_key_env: "SOME_KEY", egress: "external" });
+  const err = validateBackendConstraints("claude-sub", { auth: "subscription-seat", api_key_env: "SOME_KEY", egress: "external", telemetry: "none" });
   assert.match(err, /must not carry api_key_env/);
 });
 test("constraints: auth: api-key requires api_key_env", () => {
-  const err = validateBackendConstraints("x", { auth: "api-key", egress: "external" });
+  const err = validateBackendConstraints("x", { auth: "api-key", egress: "external", telemetry: "none" });
   assert.match(err, /requires api_key_env/);
 });
 test("constraints: a fully valid record passes", () => {
-  assert.equal(validateBackendConstraints("x", { auth: "none", egress: "local" }), null);
+  assert.equal(validateBackendConstraints("x", { auth: "none", egress: "local", telemetry: "none" }), null);
 });
 
 // ===========================================================================
@@ -430,4 +430,42 @@ test("integration: engines:/backends: name collision surfaces at the engine-lane
   };
   const res = resolveEngineForLane(cfg, "intake");
   assert.match(res.error, /name collision/);
+});
+
+// --- FAFF-604: the telemetry field -----------------------------------------
+
+test("telemetry derives per family and is carried on the normalized record", () => {
+  const codex = normalizeBackend("seat", { provider: "codex", model: "gpt-5-codex" });
+  assert.equal(codex.backend.telemetry, "exec-json-events");
+  const local = normalizeBackend("lan", { provider: "ollama", model: "q", host: "http://localhost:11434" });
+  assert.equal(local.backend.telemetry, "none", "a family with no readable spend source must derive none, never a false-metered claim");
+});
+
+test("an explicit telemetry value wins over the derivation", () => {
+  const r = normalizeBackend("seat", { provider: "codex", model: "m", telemetry: "none" });
+  assert.equal(r.backend.telemetry, "none");
+});
+
+test("a backend cannot claim a spend source its family cannot serve", () => {
+  const r = normalizeBackend("lan", { provider: "ollama", model: "q", host: "http://localhost:11434", telemetry: "exec-json-events" });
+  assert.match(r.error, /requires provider codex/);
+  const r2 = normalizeBackend("seat", { provider: "codex", model: "m", telemetry: "transcript-jsonl" });
+  assert.match(r2.error, /requires provider anthropic/);
+});
+
+test("an off-vocabulary telemetry value fails loud at normalize time, naming the legal set", () => {
+  const r = normalizeBackend("seat", { provider: "codex", model: "m", telemetry: "transcript" });
+  assert.match(r.error, /invalid telemetry "transcript"/);
+  assert.match(r.error, /transcript-jsonl \| exec-json-events \| none/);
+});
+
+test("FAFF-604: a budget.allow_unmetered entry naming no configured backend warns as a dead waiver", () => {
+  const findings = backendsConfigCheckFindings({
+    backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } },
+    budget: { allow_unmetered: ["lan", "ghost"] },
+  });
+  const dead = findings.filter((f) => f.surface === "budget.allow_unmetered");
+  assert.equal(dead.length, 1, "only the unknown name is flagged, never the live one");
+  assert.equal(dead[0].severity, "warn", "a renamed backend must not brick the config");
+  assert.match(dead[0].message, /"ghost"/);
 });

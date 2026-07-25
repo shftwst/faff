@@ -425,3 +425,84 @@ test("codex parse: events (usage fields included) survive in the parse result �
   assert.equal(p.events.length, 2);
   assert.equal(p.events[0].usage.output_tokens, 5);
 });
+
+// --- FAFF-604: the codex call boundary records spend into the run ------------
+// codex exec is --ephemeral (no session file, temp cwd removed), so nothing
+// codex-side survives to be attributed later: the caller is the only place that
+// knows both the usage and the run. These pin that the sink is wired end to end
+// through `faff engine call`, and that a missing run degrades honestly.
+
+const { sumCodexUsage } = engineCodex;
+const CODEX_FIXTURE = "backends:\n  seat:\n    provider: codex\n    model: gpt-5-codex\nmodels:\n  methodology: engine:seat\n";
+
+test("FAFF-604: sumCodexUsage totals turn.completed usage into the four token classes", () => {
+  const u = sumCodexUsage([
+    { type: "turn.completed", usage: { input_tokens: 40, output_tokens: 12, cached_input_tokens: 8 } },
+    { type: "turn.completed", usage: { input_tokens: 2 } },
+  ]);
+  assert.deepEqual(u, { input: 42, output: 12, cache_write: 0, cache_read: 8 });
+});
+
+test("FAFF-604: a successful codex call hands the sink one record with class-mapped usage", () => {
+  const engineRef = { name: "seat", provider: "codex", family: "codex", model: "gpt-5-codex", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+  const stream = [
+    JSON.stringify({ type: "turn.completed", usage: { input_tokens: 30, output_tokens: 9, cached_input_tokens: 4 } }),
+    JSON.stringify({ type: "item.completed", item: { item_type: "agent_message", text: "block" } }),
+  ].join("\n") + "\n";
+  const recorded = [];
+  const code = runCodexCall({
+    engine: engineRef, system: "S", user: "U",
+    spawnFn: (cmd, args) => (args[0] === "login"
+      ? { status: 0, stdout: "ok", stderr: "", error: null, signal: null }
+      : { status: 0, stdout: stream, stderr: "", error: null, signal: null }),
+    stdoutWrite: () => {}, stderrWrite: () => {},
+    spendSink: (r) => recorded.push(r), nowFn: () => "2026-07-25T00:00:00Z",
+  });
+  assert.equal(code, ENGINE_EXIT.OK);
+  assert.deepEqual(recorded, [{
+    ts: "2026-07-25T00:00:00Z", engine: "seat", provider: "codex", model: "gpt-5-codex",
+    source: "exec-json-events", input: 30, output: 9, cache_write: 0, cache_read: 4,
+  }]);
+});
+
+test("FAFF-604: a spend-sink write fault never changes the dispatch's exit code", () => {
+  const engineRef = { name: "seat", provider: "codex", family: "codex", model: "m", binPath: "codex", apiKeyEnv: null, timeoutMs: 1000 };
+  const stream = JSON.stringify({ type: "item.completed", item: { item_type: "agent_message", text: "block" } }) + "\n";
+  let stderr = "";
+  const code = runCodexCall({
+    engine: engineRef, system: "S", user: "U",
+    spawnFn: (cmd, args) => (args[0] === "login"
+      ? { status: 0, stdout: "ok", stderr: "", error: null, signal: null }
+      : { status: 0, stdout: stream, stderr: "", error: null, signal: null }),
+    stdoutWrite: () => {}, stderrWrite: (s) => (stderr += s),
+    spendSink: () => { throw new Error("EACCES"); },
+  });
+  assert.equal(code, ENGINE_EXIT.OK, "metering must never break a producer dispatch");
+  assert.match(stderr, /could not record codex spend/);
+});
+
+test("FAFF-604: `engine call` outside a run says so rather than silently dropping the spend", () => {
+  const dir = fixtureDir(CODEX_FIXTURE);
+  try {
+    const sys = path.join(dir, "s.txt"); const usr = path.join(dir, "u.txt");
+    writeFileSync(sys, "S"); writeFileSync(usr, "U");
+    // No .faff/runs at all, and no --run-dir: there is no run to attribute to.
+    // The call still proceeds (it fails later on the absent codex binary) — the
+    // point is the named notice, never a silent drop.
+    const r = runCli(["engine", "call", "--lane", "methodology", "--system", sys, "--user", usr, "--root", dir], { cwd: dir });
+    assert.match(r.stderr, /outside a run — spend not metered/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-604: --run-dir is accepted by `engine call` (explicit in-run attribution)", () => {
+  const dir = fixtureDir(CODEX_FIXTURE);
+  try {
+    const sys = path.join(dir, "s.txt"); const usr = path.join(dir, "u.txt");
+    writeFileSync(sys, "S"); writeFileSync(usr, "U");
+    const r = runCli(["engine", "call", "--lane", "methodology", "--system", sys, "--user", usr, "--root", dir, "--run-dir", dir], { cwd: dir });
+    // An explicit run dir resolves, so the outside-a-run notice must NOT fire.
+    assert.ok(!/outside a run/.test(r.stderr), r.stderr);
+    // The flag is known to the parser — an unknown flag would be a usage exit 2.
+    assert.notEqual(r.code, 2, r.stderr);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

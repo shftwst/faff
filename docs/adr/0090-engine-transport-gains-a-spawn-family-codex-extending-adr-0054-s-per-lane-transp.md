@@ -1,6 +1,6 @@
 # ADR 0090 — Engine transport gains a spawn family (codex) extending ADR-0054's per-lane transport fork
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-07-25
 - **Issue:** FAFF-593

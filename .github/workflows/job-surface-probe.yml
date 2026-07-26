@@ -59,13 +59,13 @@ jobs:
         run: |
           set -u
           out="$RUNNER_TEMP/precheckout-hosted-direct.txt"
-          cmd='ls -1An "$(dirname "$GITHUB_WORKSPACE")"'
+          cmd='ls -1An "$RUNNER_WORKSPACE"'
           {
             printf 'precheckout_shape: %s\n' 'hosted-direct'
             printf 'precheckout_command: %s\n' "$cmd"
             printf 'precheckout_captured_at: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             printf 'precheckout_euid: %s\n' "$(id -u)"
-            ls -1An "$(dirname "$GITHUB_WORKSPACE")" 2>&1 || true
+            ls -1An "$RUNNER_WORKSPACE" 2>&1 || true
           } > "$out"
           cat "$out"
 
@@ -75,30 +75,47 @@ jobs:
         run: |
           set -u
           chmod +x docs/spikes/2026-07-26-FAFF-654/probe.sh
+          # NOT piped into tee: a pipeline reports its LAST command's status, so
+          # tee would swallow a failing self-test and the step would go green.
           sh docs/spikes/2026-07-26-FAFF-654/probe.sh --selftest \
-            | tee "$RUNNER_TEMP/selftest-hosted-direct.txt"
+            > "$RUNNER_TEMP/selftest-hosted-direct.txt"
+          rc=$?
+          cat "$RUNNER_TEMP/selftest-hosted-direct.txt"
+          exit $rc
 
       - name: Probe
+        env:
+          PROBE_ENVIRON_KEYS: ${{ inputs.environ_keys }}
         run: |
           set -u
           sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
             --shape hosted-direct \
-            --environ-keys '${{ inputs.environ_keys }}' \
-            | tee "$RUNNER_TEMP/hosted-direct.txt"
+            --environ-keys "$PROBE_ENVIRON_KEYS" \
+            > "$RUNNER_TEMP/hosted-direct.txt"
+          rc=$?
+          cat "$RUNNER_TEMP/hosted-direct.txt"
+          exit $rc
 
       # The same-job removal. On this shape there is no host-side hook before the
       # job, so this is explicitly a DIFFERENT measurement from the self-hosted
       # before-the-job removal FAFF-656 takes, and the transcript says so.
       - name: Same-job socket removal, then re-probe
+        env:
+          PROBE_ENVIRON_KEYS: ${{ inputs.environ_keys }}
         run: |
           set -u
-          sudo rm -f /var/run/docker.sock /run/docker.sock || true
+          # No `|| true`: if the removal fails, the step fails, rather than the
+          # transcript asserting present(same-job removal) with nothing behind it.
+          sudo rm -f /var/run/docker.sock /run/docker.sock
           PROBE_SOCKET_REMOVED=1 \
           PROBE_NOTES='same-job removal: the socket was removed by a step INSIDE this job, not on the host before it started' \
             sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
-              --shape hosted-direct-after-same-job-removal \
-              --environ-keys '${{ inputs.environ_keys }}' \
-            | tee "$RUNNER_TEMP/hosted-direct-after-removal.txt"
+              --shape hosted-direct \
+              --environ-keys "$PROBE_ENVIRON_KEYS" \
+            > "$RUNNER_TEMP/hosted-direct-after-removal.txt"
+          rc=$?
+          cat "$RUNNER_TEMP/hosted-direct-after-removal.txt"
+          exit $rc
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -124,10 +141,12 @@ jobs:
       - name: Tool presence check
         run: |
           set -u
-          # Six tools: the probe needs a shell, ls, id and cksum; the checkout
-          # action needs git, or an archiver for its API-tarball fallback. It
-          # also injects its own Node runtime, so the image must be glibc-based.
-          for t in ls id cksum git tar; do
+          # The probe's own hard dependencies AND the job's. dd is the one with
+          # no fallback: without it every readable file would classify
+          # unreadable(read-failed). git (or tar, for the API-tarball fallback)
+          # is what actions/checkout needs; it also injects its own Node runtime,
+          # so the image must be glibc-based.
+          for t in ls id cksum dd mktemp wc tr sed sort head grep date uname dirname git tar; do
             printf '%-8s ' "$t"
             command -v "$t" || printf '(absent)\n'
           done
@@ -136,13 +155,13 @@ jobs:
         run: |
           set -u
           out="$RUNNER_TEMP/precheckout-hosted-container.txt"
-          cmd='ls -1An "$(dirname "$GITHUB_WORKSPACE")"'
+          cmd='ls -1An "$RUNNER_WORKSPACE"'
           {
             printf 'precheckout_shape: %s\n' 'hosted-container'
             printf 'precheckout_command: %s\n' "$cmd"
             printf 'precheckout_captured_at: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             printf 'precheckout_euid: %s\n' "$(id -u)"
-            ls -1An "$(dirname "$GITHUB_WORKSPACE")" 2>&1 || true
+            ls -1An "$RUNNER_WORKSPACE" 2>&1 || true
           } > "$out"
           cat "$out"
 
@@ -152,17 +171,29 @@ jobs:
         run: |
           set -u
           chmod +x docs/spikes/2026-07-26-FAFF-654/probe.sh
+          # NOT piped into tee: a pipeline reports its LAST command's status, so
+          # tee would swallow a failing self-test and the step would go green.
           sh docs/spikes/2026-07-26-FAFF-654/probe.sh --selftest \
-            | tee "$RUNNER_TEMP/selftest-hosted-container.txt"
+            > "$RUNNER_TEMP/selftest-hosted-container.txt"
+          rc=$?
+          cat "$RUNNER_TEMP/selftest-hosted-container.txt"
+          exit $rc
 
       - name: Probe
+        # image is free-form dispatch input: passed through env, never
+        # interpolated into the script body, so a quote in it cannot run.
+        env:
+          PROBE_CONTAINER_IMAGE: ${{ inputs.image }}
+          PROBE_ENVIRON_KEYS: ${{ inputs.environ_keys }}
         run: |
           set -u
-          PROBE_CONTAINER_IMAGE='${{ inputs.image }}' \
-            sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
-              --shape hosted-container \
-              --environ-keys '${{ inputs.environ_keys }}' \
-            | tee "$RUNNER_TEMP/hosted-container.txt"
+          sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+            --shape hosted-container \
+            --environ-keys "$PROBE_ENVIRON_KEYS" \
+            > "$RUNNER_TEMP/hosted-container.txt"
+          rc=$?
+          cat "$RUNNER_TEMP/hosted-container.txt"
+          exit $rc
 
       - uses: actions/upload-artifact@v4
         if: always()

@@ -229,7 +229,10 @@ selftest() {
 
   printf 'probe selftest — probe_version %s, euid %s\n\n' "$PROBE_VERSION" "$st_euid"
 
-  st_case 'a readable-with-bytes'     'present('    "$(classify_path "$st_root/a_hasbytes")"
+  # Asserts present(read-ok), not the bare present( prefix: present("empty")
+  # also matches that prefix, so a defect collapsing a byte read to an empty
+  # read would leave this case green.
+  st_case 'a readable-with-bytes'     'present(read-ok)' "$(classify_path "$st_root/a_hasbytes")"
   st_case 'b missing-leaf'            'absent'      "$(classify_path "$st_root/b_not_here")"
 
   if [ "$st_euid" = 0 ]; then
@@ -254,6 +257,12 @@ selftest() {
   st_case 'g unconstructible-path'    'unmeasurable_here(PROBE_SELFTEST_UNSET unset' \
     "$(classify_var "" PROBE_SELFTEST_UNSET /sock)"
   st_case 'h empty-file'              'present("empty")' "$(classify_path "$st_root/h_empty")"
+  # The assertion is the same bare `absent` as case (b), because the two branches
+  # return an identical token by design. What (i) adds over (b) is that the
+  # ancestor-walk branch at step 2a is exercised at all — a defect there would
+  # otherwise be invisible, since (b) never reaches it. The branches are not
+  # separately distinguishable from the token alone, and that is recorded rather
+  # than papered over with an assertion that cannot tell them apart.
   st_case 'i missing-ancestor'        'absent'      "$(classify_path "$st_root/i_absent_dir/leaf")"
   st_case 'j directory'               'present('    "$(classify_path "$st_root/j_dir")"
 
@@ -305,6 +314,12 @@ probe() {
   emit runner_arch "$(uname -m 2>/dev/null || printf 'unknown')"
   emit container_image "${PROBE_CONTAINER_IMAGE:-none}"
   emit environ_keys_mode "$p_environ_mode"
+  # dd is the one hard dependency with no fallback: without it every readable
+  # file would classify unreadable(read-failed), which is the silent-wrong-answer
+  # class this classifier exists to prevent. The transcript says so rather than
+  # letting a whole column read read-failed for a missing tool.
+  if command -v dd >/dev/null 2>&1; then emit probe_dd present
+  else emit probe_dd 'absent — every read-step classification in this transcript is unreliable'; fi
   emit notes "${PROBE_NOTES:-}"
 
   # --- mounts ------------------------------------------------------------
@@ -333,11 +348,11 @@ probe() {
   # --- rootless engine sockets, separately labelled ----------------------
   # HOST_SOCKET_PATHS excludes these deliberately (container-check.js:72-74):
   # they are the recommended bounded posture and must never read as a violation.
-  emit socket.rootless.docker \
-    "$(classify_var "$p_euid" 'id -u' '' >/dev/null 2>&1; \
-       if [ "$p_euid" = unknown ]; then \
-         printf 'unmeasurable_here(id -u failed: path not constructible)'; \
-       else classify_path "/run/user/$p_euid/docker.sock" ls; fi)"
+  if [ "$p_euid" = unknown ]; then
+    emit socket.rootless.docker 'unmeasurable_here(id -u failed: path not constructible)'
+  else
+    emit socket.rootless.docker "$(classify_path "/run/user/$p_euid/docker.sock" ls)"
+  fi
   emit socket.rootless.podman \
     "$(classify_var "${XDG_RUNTIME_DIR:-}" XDG_RUNTIME_DIR /podman/podman.sock ls)"
   if [ -n "${DOCKER_HOST:-}" ]; then emit env.DOCKER_HOST "present($DOCKER_HOST)"
@@ -412,20 +427,23 @@ probe() {
     emit workdir.listing 'unmeasurable_here(no runner workspace variable set: path not constructible)'
   else
     emit workdir.path "present($p_work)"
-    p_wparent=$(dirname "$p_work" 2>/dev/null)
-    emit workdir.parent "$(classify_path "$p_wparent" ls)"
+    emit workdir.parent "$(classify_path "$(dirname "$p_work" 2>/dev/null)" ls)"
     if [ -n "${GITHUB_WORKSPACE:-}" ]; then
       emit workdir.checkout "present($GITHUB_WORKSPACE)"
     else
       emit workdir.checkout 'unmeasurable_here(GITHUB_WORKSPACE unset: checkout location not constructible)'
     fi
-    if [ -r "$p_wparent" ] && [ -x "$p_wparent" ]; then
+    # Lists the work path ITSELF, not its parent — the pre-checkout step lists the
+    # same directory, and worktree_changed_by_checkout is the entry-name set
+    # difference between the two. Listing different levels would make that field
+    # read yes on every shape for a reason unrelated to checkout.
+    if [ -r "$p_work" ] && [ -x "$p_work" ]; then
       # exactly one level deep: names, type and numeric owner. No descent.
-      p_listing=$(ls -1An "$p_wparent" 2>/dev/null)
+      p_listing=$(ls -1An "$p_work" 2>/dev/null)
       emit workdir.listing "present($(printf '%s\n' "$p_listing" | grep -c . ) entries, one level)"
       printf '%s\n' "$p_listing" | emit_block
     else
-      emit workdir.listing "$(classify_path "$p_wparent")"
+      emit workdir.listing "$(classify_path "$p_work")"
     fi
   fi
 
@@ -453,10 +471,19 @@ probe() {
     emit socket_removal./var/run/docker.sock.after "$(classify_path /var/run/docker.sock ls)"
     emit socket_removal./run/docker.sock.after "$(classify_path /run/docker.sock ls)"
   else
-    emit socket_removal.performed \
-      'unmeasurable_here(hosted runner: the job container is started before any step runs, so no step can act on the host before it exists)'
-    emit socket_removal.kind \
-      'unmeasurable_here(hosted runner: no host-side hook before the job container starts)'
+    # The reason is shape-specific. A job container is only in the story on a
+    # shape that has one — asserting it on hosted-direct would ship a false
+    # explanation in a column the ADR will be cited from.
+    case "$p_shape" in
+      *container*)
+        p_removal_why='unmeasurable_here(hosted runner: the job container is started before any step runs, so no step can act on the host before it exists)'
+        p_removal_kind='unmeasurable_here(hosted runner: no host-side hook before the job container starts)' ;;
+      *)
+        p_removal_why='unmeasurable_here(hosted runner: the VM is created per job, so no earlier step and no earlier job can act on the host before this one starts)'
+        p_removal_kind='unmeasurable_here(hosted runner: no host-side hook before the job)' ;;
+    esac
+    emit socket_removal.performed "$p_removal_why"
+    emit socket_removal.kind "$p_removal_kind"
     emit socket_removal./var/run/docker.sock.after \
       'unmeasurable_here(no removal was performed on this shape)'
     emit socket_removal./run/docker.sock.after \

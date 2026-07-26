@@ -19,6 +19,7 @@ hosted-direct: unobtained — the workflow has not been dispatched
 hosted-container: unobtained — the workflow has not been dispatched
 selfhosted-direct: owned_by FAFF-656
 selfhosted-container: owned_by FAFF-656
+hosted-direct-after-removal: unobtained — a second reading on the hosted-direct shape, taken after a same-job socket removal; it is not a fifth shape, and its socket_removal.kind carries the distinction
 columns_identical: unobtained — requires two hosted transcripts
 worktree_changed_by_checkout.hosted-direct: unobtained
 worktree_changed_by_checkout.hosted-container: unobtained
@@ -106,8 +107,8 @@ Table: signal-roster — 41 signals — shapes: hosted-direct, hosted-container
 | socket_removal./var/run/docker.sock.after |
 | socket_removal./run/docker.sock.after |
 | crosscheck.container_check_json |
-| crosscheck.container_check_plain |
 | crosscheck.container_check_exit |
+| crosscheck.container_check_plain |
 
 ## Notes
 

@@ -406,12 +406,19 @@ probe() {
   if [ -z "$p_work" ]; then
     emit workdir.path 'unmeasurable_here(no runner workspace variable set: path not constructible)'
     emit workdir.parent 'unmeasurable_here(no runner workspace variable set: path not constructible)'
+    # Never skip a key: the columns must line up, and a reader must be able to
+    # tell a missing measurement from an absent signal.
+    emit workdir.checkout 'unmeasurable_here(no runner workspace variable set: path not constructible)'
     emit workdir.listing 'unmeasurable_here(no runner workspace variable set: path not constructible)'
   else
     emit workdir.path "present($p_work)"
     p_wparent=$(dirname "$p_work" 2>/dev/null)
     emit workdir.parent "$(classify_path "$p_wparent" ls)"
-    emit workdir.checkout "present(${GITHUB_WORKSPACE:-unknown})"
+    if [ -n "${GITHUB_WORKSPACE:-}" ]; then
+      emit workdir.checkout "present($GITHUB_WORKSPACE)"
+    else
+      emit workdir.checkout 'unmeasurable_here(GITHUB_WORKSPACE unset: checkout location not constructible)'
+    fi
     if [ -r "$p_wparent" ] && [ -x "$p_wparent" ]; then
       # exactly one level deep: names, type and numeric owner. No descent.
       p_listing=$(ls -1An "$p_wparent" 2>/dev/null)

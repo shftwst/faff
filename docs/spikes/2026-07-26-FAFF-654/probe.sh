@@ -474,13 +474,21 @@ probe() {
     # The reason is shape-specific. A job container is only in the story on a
     # shape that has one — asserting it on hosted-direct would ship a false
     # explanation in a column the ADR will be cited from.
+    # Match the two hosted labels EXPLICITLY. A catch-all that asserts a hosted
+    # runner would state a fact about a machine the probe never measured — on
+    # the default `unknown` shape, on a hand-run, and on the self-hosted
+    # baseline FAFF-656 takes with this same instrument, where a per-job VM is
+    # exactly what the host is not.
     case "$p_shape" in
-      *container*)
+      hosted-container*)
         p_removal_why='unmeasurable_here(hosted runner: the job container is started before any step runs, so no step can act on the host before it exists)'
         p_removal_kind='unmeasurable_here(hosted runner: no host-side hook before the job container starts)' ;;
-      *)
+      hosted-direct*)
         p_removal_why='unmeasurable_here(hosted runner: the VM is created per job, so no earlier step and no earlier job can act on the host before this one starts)'
         p_removal_kind='unmeasurable_here(hosted runner: no host-side hook before the job)' ;;
+      *)
+        p_removal_why='unmeasurable_here(no removal was performed, and this methodology cannot say what host-side hook this shape has)'
+        p_removal_kind='unmeasurable_here(shape not known to this instrument: no claim made about its host-side hooks)' ;;
     esac
     emit socket_removal.performed "$p_removal_why"
     emit socket_removal.kind "$p_removal_kind"

@@ -15,14 +15,14 @@ canonical_vs_rootless: the canonical and rootless socket paths are two separatel
 
 ## Column status
 
-hosted-direct: unobtained — the workflow has not been dispatched
-hosted-container: unobtained — the workflow has not been dispatched
+hosted-direct: unobtained — owned_by FAFF-657; partly corroborated already by validate.yml's env-rootless job, which is this shape
+hosted-container: unobtained — owned_by FAFF-657; the shape carrying the new information, and the one to take first
 selfhosted-direct: owned_by FAFF-656
 selfhosted-container: owned_by FAFF-656
-hosted-direct-after-removal: unobtained — a second reading on the hosted-direct shape, taken after a same-job socket removal; it is not a fifth shape, and its socket_removal.kind carries the distinction
-columns_identical: unobtained — requires two hosted transcripts
-worktree_changed_by_checkout.hosted-direct: unobtained
-worktree_changed_by_checkout.hosted-container: unobtained
+hosted-direct-after-removal: unobtained — owned_by FAFF-657; a second reading on the hosted-direct shape after a same-job socket removal, not a fifth shape, and its socket_removal.kind carries the distinction
+columns_identical: unobtained — owned_by FAFF-657; requires two hosted transcripts
+worktree_changed_by_checkout.hosted-direct: unobtained — owned_by FAFF-657
+worktree_changed_by_checkout.hosted-container: unobtained — owned_by FAFF-657
 worktree_changed_by_checkout.derivation: yes when the set of entry names one level deep differs between the pre-checkout file and the transcript's work-directory listing; no when those two sets are equal; names only, not byte equality and not owner or mode
 actions_runner_controller: unmeasured — needs a cluster and a controller install, outside this timebox; not derivable from this repository; carried as the open punt on FAFF-654 and to be filed as its own ticket
 
@@ -114,7 +114,9 @@ Table: signal-roster — 41 signals — shapes: hosted-direct, hosted-container
 
 notes: This is the one free-prose line class in this record. Every other line above is a provenance field, a table row, a caption matching the fixed template, a column-status line, or a heading, and every table cell is a value-grammar token, a signal name, a shape name, or the literal non-decisive marker. The advisory word-list check runs over this section specifically and its hits are recorded here with a reason each.
 
-notes: No shape has been dispatched, so this record carries no observations. The instrument, its self-test and the workflow are committed; obtaining the two hosted columns is a dispatch of job-surface-probe.yml and a commit of the uploaded artifacts, verbatim. Until then every reading cell is absent from this file rather than filled with a placeholder, because a placeholder in an observation table is indistinguishable from a measurement.
+notes: No shape has been dispatched, so this record carries no observations. The instrument, its self-test and the workflow are committed; taking the readings is FAFF-657. It is a separate ticket for a structural reason, not a timebox one: a dispatch-only workflow does not fire until its file is on the default branch, so no session that builds the workflow can also dispatch it. Until FAFF-657 runs, every reading cell is absent from this file rather than filled with a placeholder, because a placeholder in an observation table is indistinguishable from a measurement.
+
+notes: validate.yml's env-rootless job is already the hosted-direct shape and has been green for months. It independently establishes part of that column: the runner carries docker.service and docker.socket units, the runner user has passwordless sudo able to stop host services and write kernel sysctls, the XDG runtime directory is unset by default with no live systemd user session, and a same-job socket removal works without falling back to a host daemon. It calls no containment check and says nothing about a containerised job. When the hosted-direct column is filled, this record cites that job beside it, so a reader knows one column has independent corroboration for part of its content and the other does not.
 
 notes: Operator attestation, image digest — NOT YET SATISFIED. The workflow takes the container image as a dispatch input defaulting to a bare tag, which is runnable but not reproducible. Before taking a reading that goes into this record, resolve the digest from the tag on the day, pass it as the input, and paste the resolving command and its output here.
 

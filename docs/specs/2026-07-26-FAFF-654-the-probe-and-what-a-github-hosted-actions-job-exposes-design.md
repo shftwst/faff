@@ -6,6 +6,8 @@ The self-hosted columns and all their provisioning live on FAFF-656, which is `b
 
 **Amendment applied 2026-07-26** (human tie-break at the review loop cap): the read step, its rationale, the coverage statement, and three acceptance items were corrected against measurement. See §4.
 
+**Scope corrected 2026-07-26, during the build.** The transcripts have moved to FAFF-657. A `workflow_dispatch` workflow only fires if the file is on the default branch, so the readings need this work merged first — and this ticket's merge floor was red *because* the readings were missing. A closed loop. Building the instrument and taking a reading with it have different execution substrates, which is the same cut that produced FAFF-656, applied to a boundary the first split missed. **This ticket delivers the instrument, its self-test, the workflow and the record's scaffold.** FAFF-657 dispatches and fills the table.
+
 ## 1. WHY — problem and principles
 
 **The load-bearing model.** A CI job is not one environment; it is a point in a two-axis space, and faff reads the two axes with two separate detectors. The first axis is **containment** — is the job's process tree inside a container at all — which `containerCheck` answers from marker files and environment variables. The second is **host reach** — can the job talk to the machine's engine socket and to the runner's own files — which `hostSocketProbe` answers from two canonical paths. The axes are orthogonal by design and the repo says so in `container-check.js`'s own region banner: a `contained` verdict can still sit behind an unbounded engine.
@@ -37,7 +39,7 @@ The self-hosted columns and all their provisioning live on FAFF-656, which is `b
 | `docs/spikes/2026-07-10-faff-411/` | A spike committed as a directory: its own code, its raw machine output, and `RESULTS.md` | The layout this ticket's findings record follows |
 | `.github/workflows/validate.yml:9`, `governance.yml:27` | `permissions: contents: read` at workflow level | Every existing workflow pins one; the new one does too |
 
-**Scope.** This is the front of the FAFF-646 chain: it produces the instrument and the two hosted columns, FAFF-656 produces the two self-hosted columns and unblocks FAFF-646, and FAFF-646 writes the ADR. It touches no shipped CLI surface.
+**Scope.** This is the front of the FAFF-646 chain: it produces the instrument, the workflow and the record's scaffold. FAFF-657 takes the two hosted readings once the workflow reaches the default branch, FAFF-656 takes the two self-hosted columns and unblocks FAFF-646, and FAFF-646 writes the ADR. It touches no shipped CLI surface.
 
 ## 2. OUT OF SCOPE
 

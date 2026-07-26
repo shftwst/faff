@@ -1,0 +1,175 @@
+# FAFF-654 — measure what a GitHub-hosted Actions job exposes.
+#
+# Dispatch-only. It is deliberately NOT part of validate.yml: that runs on every
+# PR and push to main, and a probe there is cost and noise on every change.
+# It is kept after the run so the transcripts stay reproducible.
+#
+# Each job is gated on the `shape` input, so one dispatch runs exactly one shape.
+# Only hosted runners are declared here. FAFF-656 adds its self-hosted jobs when
+# it has a host to point them at — a committed job whose label matches nothing is
+# a small lie in the repository.
+#
+# This workflow decides nothing. It runs the instrument and uploads what it read.
+
+name: job-surface-probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      shape:
+        description: Which shape to measure
+        required: true
+        type: choice
+        options:
+          - hosted-direct
+          - hosted-container
+      image:
+        description: >
+          Image for the hosted-container shape. MUST be digest-pinned for a
+          reading that goes into the findings record — resolve the digest from
+          the tag on the day and paste the resolving command and its output into
+          the RESULTS.md provenance notes. The tag default below is runnable but
+          NOT reproducible, and a transcript taken against it must say so.
+        required: false
+        default: debian:bookworm-slim
+      environ_keys:
+        description: Whether to emit pid-1 environ key names or only a count
+        required: false
+        default: names
+        type: choice
+        options:
+          - names
+          - count
+
+# A workflow whose entire purpose is to enumerate what a job can reach must not
+# run on the repository default. Matches validate.yml:9 and governance.yml:27.
+permissions:
+  contents: read
+
+jobs:
+  hosted-direct:
+    if: inputs.shape == 'hosted-direct'
+    runs-on: ubuntu-latest
+    steps:
+      # Before checkout, so the transcript can show whether the measurement
+      # itself changed the answer. Its own committed file — the probe runs after
+      # checkout and the transcript's key set is fixed, so this listing has no
+      # key it could occupy.
+      - name: Pre-checkout work-directory listing
+        run: |
+          set -u
+          out="$RUNNER_TEMP/precheckout-hosted-direct.txt"
+          cmd='ls -1An "$(dirname "$GITHUB_WORKSPACE")"'
+          {
+            printf 'precheckout_shape: %s\n' 'hosted-direct'
+            printf 'precheckout_command: %s\n' "$cmd"
+            printf 'precheckout_captured_at: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'precheckout_euid: %s\n' "$(id -u)"
+            ls -1An "$(dirname "$GITHUB_WORKSPACE")" 2>&1 || true
+          } > "$out"
+          cat "$out"
+
+      - uses: actions/checkout@v4
+
+      - name: Self-test the instrument
+        run: |
+          set -u
+          chmod +x docs/spikes/2026-07-26-FAFF-654/probe.sh
+          sh docs/spikes/2026-07-26-FAFF-654/probe.sh --selftest \
+            | tee "$RUNNER_TEMP/selftest-hosted-direct.txt"
+
+      - name: Probe
+        run: |
+          set -u
+          sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+            --shape hosted-direct \
+            --environ-keys '${{ inputs.environ_keys }}' \
+            | tee "$RUNNER_TEMP/hosted-direct.txt"
+
+      # The same-job removal. On this shape there is no host-side hook before the
+      # job, so this is explicitly a DIFFERENT measurement from the self-hosted
+      # before-the-job removal FAFF-656 takes, and the transcript says so.
+      - name: Same-job socket removal, then re-probe
+        run: |
+          set -u
+          sudo rm -f /var/run/docker.sock /run/docker.sock || true
+          PROBE_SOCKET_REMOVED=1 \
+          PROBE_NOTES='same-job removal: the socket was removed by a step INSIDE this job, not on the host before it started' \
+            sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+              --shape hosted-direct-after-same-job-removal \
+              --environ-keys '${{ inputs.environ_keys }}' \
+            | tee "$RUNNER_TEMP/hosted-direct-after-removal.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe-hosted-direct
+          path: |
+            ${{ runner.temp }}/precheckout-hosted-direct.txt
+            ${{ runner.temp }}/selftest-hosted-direct.txt
+            ${{ runner.temp }}/hosted-direct.txt
+            ${{ runner.temp }}/hosted-direct-after-removal.txt
+          if-no-files-found: error
+
+  hosted-container:
+    if: inputs.shape == 'hosted-container'
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+    steps:
+      # The job container is started by the runner before any step runs, so
+      # there is no point at which a step can act on the host before it exists.
+      # That is why this shape records the socket-removal keys as unobtainable
+      # under this methodology rather than as impossible on the shape.
+      - name: Tool presence check
+        run: |
+          set -u
+          # Six tools: the probe needs a shell, ls, id and cksum; the checkout
+          # action needs git, or an archiver for its API-tarball fallback. It
+          # also injects its own Node runtime, so the image must be glibc-based.
+          for t in ls id cksum git tar; do
+            printf '%-8s ' "$t"
+            command -v "$t" || printf '(absent)\n'
+          done
+
+      - name: Pre-checkout work-directory listing
+        run: |
+          set -u
+          out="$RUNNER_TEMP/precheckout-hosted-container.txt"
+          cmd='ls -1An "$(dirname "$GITHUB_WORKSPACE")"'
+          {
+            printf 'precheckout_shape: %s\n' 'hosted-container'
+            printf 'precheckout_command: %s\n' "$cmd"
+            printf 'precheckout_captured_at: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'precheckout_euid: %s\n' "$(id -u)"
+            ls -1An "$(dirname "$GITHUB_WORKSPACE")" 2>&1 || true
+          } > "$out"
+          cat "$out"
+
+      - uses: actions/checkout@v4
+
+      - name: Self-test the instrument
+        run: |
+          set -u
+          chmod +x docs/spikes/2026-07-26-FAFF-654/probe.sh
+          sh docs/spikes/2026-07-26-FAFF-654/probe.sh --selftest \
+            | tee "$RUNNER_TEMP/selftest-hosted-container.txt"
+
+      - name: Probe
+        run: |
+          set -u
+          PROBE_CONTAINER_IMAGE='${{ inputs.image }}' \
+            sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+              --shape hosted-container \
+              --environ-keys '${{ inputs.environ_keys }}' \
+            | tee "$RUNNER_TEMP/hosted-container.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe-hosted-container
+          path: |
+            ${{ runner.temp }}/precheckout-hosted-container.txt
+            ${{ runner.temp }}/selftest-hosted-container.txt
+            ${{ runner.temp }}/hosted-container.txt
+          if-no-files-found: error

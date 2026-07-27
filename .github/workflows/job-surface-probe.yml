@@ -153,7 +153,7 @@ jobs:
           # one step later. sh is listed because these steps invoke the probe
           # with it: the run: block may be served by bash, so a container with
           # bash and no sh would pass the block and fail the invocation.
-          for t in sh ls id cksum dd mktemp wc tr cut sed sort head grep date uname dirname cat chmod git tar; do
+          for t in sh ls id cksum dd mktemp wc tr cut sed sort head grep date uname dirname cat chmod mkdir ln rm git tar; do
             printf '%-8s ' "$t"
             command -v "$t" || printf '(absent)\n'
           done

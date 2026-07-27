@@ -84,9 +84,16 @@ const config = {
     // The bare /guide and /concept routes have no page of their own —
     // Docusaurus only serves individual doc pages, and the canonical guide
     // Markdown is read in place unmodified (no `slug: /` frontmatter added
-    // to pick a "landing" doc). Redirect the section root to its first doc
-    // so the navbar/footer/landing-page links to /guide and /concept above
-    // resolve to a real page instead of 404ing.
+    // to pick a "landing" doc). These redirects catch someone who *types*
+    // /guide or /concept, or follows an external link to one.
+    //
+    // They do NOT cover in-app navigation, and must not be relied on for it:
+    // each redirect is a static `<meta http-equiv="refresh">` file, so it only
+    // runs on a full page load. A Docusaurus <Link> to a section root is
+    // handled client-side by the router, which has no route for the root
+    // (only for its child docs) and renders the not-found page instead. So
+    // every in-app link — navbar, footer, landing page — points at a real doc
+    // route, not at the section root (FAFF-658).
     [
       '@docusaurus/plugin-client-redirects',
       /** @type {import('@docusaurus/plugin-client-redirects').Options} */
@@ -106,12 +113,16 @@ const config = {
         title: 'faff',
         items: [
           {
-            to: '/guide',
+            type: 'doc',
+            docsPluginId: 'guide',
+            docId: 'adopting-by-change-class',
             label: 'Guide',
             position: 'left',
           },
           {
-            to: '/concept',
+            type: 'doc',
+            docsPluginId: 'concept',
+            docId: 'intro',
             label: 'Concept',
             position: 'left',
           },
@@ -128,8 +139,8 @@ const config = {
           {
             title: 'Docs',
             items: [
-              { label: 'Guide', to: '/guide' },
-              { label: 'Concept', to: '/concept' },
+              { label: 'Guide', to: '/guide/adopting-by-change-class' },
+              { label: 'Concept', to: '/concept/intro' },
             ],
           },
           {

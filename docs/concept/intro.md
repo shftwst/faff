@@ -5,8 +5,8 @@ sidebar_position: 1
 # Concept
 
 This section is the theory behind faff — what it is, the levels model, and
-the principles that steer every design call. If the [guide](/guide) is the
-how, this is the why.
+the principles that steer every design call. If the
+[guide](/guide/adopting-by-change-class) is the how, this is the why.
 
 *Faff* (n.): the tedious palaver around the actual engineering. Writing the
 tickets, the specs, the test plans, the review write-ups, working out what's

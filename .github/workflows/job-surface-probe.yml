@@ -74,7 +74,6 @@ jobs:
       - name: Self-test the instrument
         run: |
           set -u
-          chmod +x docs/spikes/2026-07-26-FAFF-654/probe.sh
           # Not piped into tee — a pipeline reports its LAST command's status, so
           # tee would swallow a failing self-test. And not `rc=$?` either: the
           # default shell is `bash -e`, which aborts the step before any line
@@ -141,13 +140,17 @@ jobs:
       - name: Tool presence check
         run: |
           set -u
-          # Every tool the probe AND these steps depend on. dd is the one with
-          # no fallback: without it every readable file would classify
-          # unreadable(read-failed). cat and chmod are used by the steps below,
-          # not by the probe — the probe dropped its own cat dependency, but the
-          # steps still cat their output and chmod the script. git (or tar, for
-          # the API-tarball fallback) is what actions/checkout needs; it also
-          # injects its own Node runtime, so the image must be glibc-based.
+          # Every tool the probe AND these steps depend on, for three distinct
+          # reasons. dd is the probe's one dependency with no fallback: without
+          # it every readable file would classify unreadable(read-failed).
+          # chmod, mkdir, ln and rm are the SELF-TEST's fixture dependencies —
+          # without chmod, cases (c) and (e) have no mode-0000 fixture; without
+          # ln the dangling symlink is simply missing, so case (d) would pass
+          # for the wrong reason. cat is the only one that is these steps' and
+          # not the probe's: the probe dropped its own cat dependency, but the
+          # steps still cat their output. git (or tar, for the API-tarball
+          # fallback) is what actions/checkout needs; it also injects its own
+          # Node runtime, so the image must be glibc-based.
           # The image input is free-form, so a hand-picked minimal base is
           # exactly the case this step exists to catch — before checkout, not
           # one step later. sh is listed because these steps invoke the probe
@@ -177,7 +180,6 @@ jobs:
       - name: Self-test the instrument
         run: |
           set -u
-          chmod +x docs/spikes/2026-07-26-FAFF-654/probe.sh
           # Not piped into tee — a pipeline reports its LAST command's status, so
           # tee would swallow a failing self-test. And not `rc=$?` either: the
           # default shell is `bash -e`, which aborts the step before any line

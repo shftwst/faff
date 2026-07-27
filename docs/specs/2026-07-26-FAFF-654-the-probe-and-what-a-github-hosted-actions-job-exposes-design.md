@@ -117,6 +117,11 @@ RECORD ProvenanceHeader:
   runner_os, runner_arch: String
   container_image:  String | "none"   # verbatim, digest-pinned where set
   environ_keys_mode: "names" | "count"
+  probe_dd:         "present" | String   # dd is the one dependency with no
+                                         # fallback: absent, every read-step
+                                         # classification is unreliable, and the
+                                         # transcript says so rather than letting
+                                         # a whole column read read-failed
   notes:            String        # provenance only, never findings; the one free-prose field
 ```
 
@@ -172,7 +177,9 @@ docs/spikes/2026-07-26-FAFF-654/
 
 **Chosen:** a directory under `docs/spikes/` following `2026-07-10-faff-411/`, not an ADR. It matches the established layout — that spike commits its own code beside its raw output and `RESULTS.md`. The website builds only `docs/guide` and `docs/concept`, so nothing here is published. And an ADR ends in a Decision section, which is a space that wants filling; FAFF-646's ADR is the right place for a decision and this artifact has nowhere to put one. `RESULTS.md` also drops FAFF-411's `Headline` section, which is the one place prose could state a finding.
 
-**Chosen:** one shared directory and one table, owned by this ticket, which FAFF-656 extends. `RESULTS.md` carries a per-column `status` line: `obtained` for the two hosted columns, `owned_by: FAFF-656` for the two self-hosted ones. Not `unobtained` — they are not missing from this ticket, they are not this ticket's. A separate FAFF-656 record would give FAFF-646 two tables to reconcile.
+**Chosen:** one shared directory and one table, owned by this ticket, which FAFF-656 and FAFF-657 extend. `RESULTS.md` carries a per-column `status` line in one of three forms: `obtained` for a column captured by the ticket that owns the record; `owned_by: <ticket>` for a column that is simply another ticket's to take; and `unobtained — owned_by: <ticket>` for a column that is *owed* — promised by this chain, named here, and not yet supplied.
+
+The two hosted columns take the third form after the scope correction, and the distinction matters. They are not merely elsewhere in the way the self-hosted pair always was; this ticket's own workflow is what takes them, and it cannot until it reaches the default branch. Marking them plain `owned_by` would read as a clean division of labour and hide a debt. A separate record per ticket would give FAFF-646 several tables to reconcile.
 
 ## 4. HOW — behaviour
 
@@ -328,7 +335,7 @@ So both tokens are exercised only in the field, and possibly not even there. **M
 | — | `unreadable(open-failed)` | no fixture — see above | no fixture |
 | — | `unreadable(read-failed)` | no fixture — see above | no fixture |
 
-**Chosen:** the portability guarantee rests on at least one committed **non-root** self-test run, and the criterion says so. Under euid 0 the two permission cases skip, which is not a demonstration of the tokens this spec's central principle is about. `hosted-direct` is expected to run as a non-root user, so the directory as a whole should carry one non-root run; that is an expectation checked at run time, not an assertion. If both hosted runs come back at euid 0, `RESULTS.md` records that no non-root demonstration was obtained on this ticket and FAFF-656 must obtain one before relying on the instrument.
+**Chosen:** the portability guarantee rests on at least one committed **non-root** self-test run, and the criterion says so. Under euid 0 the two permission cases skip, which is not a demonstration of the tokens this spec's central principle is about. `hosted-direct` is expected to run as a non-root user, so the directory as a whole should carry one non-root run; that is an expectation checked at run time, not an assertion. If both hosted runs come back at euid 0, `RESULTS.md` records that no non-root demonstration was obtained on this ticket and names FAFF-657 — which dispatches the hosted shapes — as owing one before the instrument is relied on.
 
 **Dismissed:** re-running the self-test as an unprivileged user inside the containerised job to close the euid-0 gap. It would work, but it adds a run-day dependency on a privilege-dropping tool being present in whichever image is chosen and on an unprivileged account existing in it — precisely the class of snag a half-day timebox cannot absorb, for a gap the `hosted-direct` run already covers.
 
@@ -540,7 +547,7 @@ Two records give FAFF-646 two tables to reconcile. One table with per-column sta
 
 ### From WHAT — mechanically checkable
 - [ ] `docs/spikes/2026-07-26-FAFF-654/` exists and contains `probe.sh`, `RESULTS.md`, and per obtained shape: one probe transcript, one self-test output, and one pre-checkout listing file.
-- [ ] Every transcript carries a provenance header with `probe_version`, `probe_cksum`, `probe_sha256`, `probe_bytes`, `shape`, `source_repository`, `probe_euid`, `captured_at`, `runner_os`, `runner_arch`, `container_image`, and `environ_keys_mode`.
+- [ ] Every transcript carries a provenance header with `probe_version`, `probe_cksum`, `probe_sha256`, `probe_bytes`, `shape`, `source_repository`, `probe_euid`, `captured_at`, `runner_os`, `runner_arch`, `container_image`, `environ_keys_mode`, `probe_dd`, and `notes`.
 - [ ] `probe_cksum` is identical across every transcript obtained, and matches `cksum` over the committed `probe.sh`.
 - [ ] The canonical and rootless socket paths appear as two separately-labelled groups in both the transcripts and `RESULTS.md`.
 - [ ] Each canonical socket path carries a `_dangling_symlink: yes | no` sibling key; the rootless paths do not.
@@ -558,7 +565,7 @@ Two records give FAFF-646 two tables to reconcile. One table with per-column sta
 - [ ] `classify()` probes the open separately from the read, returning `unreadable(open-failed)`, `unreadable(read-failed)` or `present("empty")` as three distinct outcomes; directories short-circuit before the read; the read goes to a scratch file, never a pipe.
 - [ ] `RESULTS.md` states in provenance that `present("empty")` means the read succeeded and obtained no bytes, and is not a claim that the file is empty.
 - [ ] `probe.sh --selftest` builds all ten fixture cases, asserts each case's token, prints case / expected / observed / status per case plus the passed/skipped/failed summary, exits non-zero on any mismatch, and reports cases (c) and (e) as `unmeasurable_here` rather than failing them when euid is 0.
-- [ ] At least one committed self-test output has a non-zero euid and reports zero skipped cases; if none does, `RESULTS.md` records that no non-root demonstration was obtained and names FAFF-656 as owing one.
+- [ ] At least one committed self-test output has a non-zero euid and reports zero skipped cases; if none does, `RESULTS.md` records that no non-root demonstration was obtained and names FAFF-657 as owing one.
 - [ ] For each of `unreadable(open-failed)` and `unreadable(read-failed)`, `RESULTS.md` either names the transcript and key that demonstrated it, or records that it was not observed in this run. The bare claim that it is demonstrated by transcript is not sufficient on its own.
 - [ ] `RESULTS.md` states that both those tokens have no fixture and why no portable fixture exists.
 - [ ] `probe.sh` accepts `--environ-keys=names|count` and the shape label as arguments; no shape requires editing the file.

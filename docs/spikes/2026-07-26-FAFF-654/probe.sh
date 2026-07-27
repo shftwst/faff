@@ -324,9 +324,14 @@ probe() {
 
   # --- mounts ------------------------------------------------------------
   if [ -r /proc/self/mounts ]; then
-    p_mounts=$(cat /proc/self/mounts 2>/dev/null)
-    emit mounts.table "present($(printf '%s\n' "$p_mounts" | wc -l | tr -d ' \t') lines)"
-    printf '%s\n' "$p_mounts" | emit_block
+    # Read with the shell, not `cat`. An absent `cat` would collapse a command
+    # substitution to the empty string, and the count would then read
+    # present(1 lines) with an empty continuation — a fabricated observation in
+    # a green job. Removing the dependency is better than documenting it.
+    p_n=0
+    while IFS= read -r p_ml; do p_n=$((p_n + 1)); done < /proc/self/mounts
+    emit mounts.table "present($p_n lines)"
+    while IFS= read -r p_ml; do printf '  | %s\n' "$p_ml"; done < /proc/self/mounts
   else
     emit mounts.table "$(classify_path /proc/self/mounts)"
   fi
@@ -411,9 +416,13 @@ probe() {
   # no container hint. Recording it is fine; treating it as decisive is not.
   emit containment.proc1.cgroup "$(classify_path /proc/1/cgroup)"
   emit containment.proc1.cgroup.decisiveness 'non-decisive'
-  if [ -r /proc/1/cgroup ]; then cat /proc/1/cgroup 2>/dev/null | emit_block; fi
+  if [ -r /proc/1/cgroup ]; then
+    while IFS= read -r p_cl; do printf '  | %s\n' "$p_cl"; done < /proc/1/cgroup
+  fi
   emit containment.proc1.comm "$(classify_path /proc/1/comm)"
-  if [ -r /proc/1/comm ]; then cat /proc/1/comm 2>/dev/null | emit_block; fi
+  if [ -r /proc/1/comm ]; then
+    while IFS= read -r p_cm; do printf '  | %s\n' "$p_cm"; done < /proc/1/comm
+  fi
 
   # --- the work directory ------------------------------------------------
   p_work=${RUNNER_WORKSPACE:-}

@@ -143,12 +143,14 @@ jobs:
           # Every tool the probe AND these steps depend on, for three distinct
           # reasons. dd is the probe's one dependency with no fallback: without
           # it every readable file would classify unreadable(read-failed).
-          # chmod, mkdir, ln and rm are the SELF-TEST's fixture dependencies —
+          # chmod, mkdir and ln are the SELF-TEST's fixture dependencies —
           # without chmod, cases (c) and (e) have no mode-0000 fixture; without
           # ln the dangling symlink is simply missing, so case (d) would pass
-          # for the wrong reason. cat is the only one that is these steps' and
-          # not the probe's: the probe dropped its own cat dependency, but the
-          # steps still cat their output. git (or tar, for the API-tarball
+          # for the wrong reason. rm is the probe's own: classify_path deletes
+          # the scratch file after every byte read, and the self-test deletes
+          # its fixture root when done. cat is the only one that is these steps'
+          # and not the probe's: the probe dropped its own cat dependency, but
+          # the steps still cat their output. git (or tar, for the API-tarball
           # fallback) is what actions/checkout needs; it also injects its own
           # Node runtime, so the image must be glibc-based.
           # The image input is free-form, so a hand-picked minimal base is

@@ -41,12 +41,20 @@ export default function Home() {
             marginTop: '2rem',
           }}
         >
-          <Link className="button button--primary button--lg" to="/guide">
+          {/* Link to the section's first doc, not the section root. The roots
+              have no client-side route (only the child docs do), so a <Link>
+              pointing at one is handled by the router, matches nothing, and
+              renders the not-found page without ever asking the server for the
+              redirect stub. */}
+          <Link
+            className="button button--primary button--lg"
+            to="/guide/adopting-by-change-class"
+          >
             Read the guide
           </Link>
           <Link
             className="button button--secondary button--lg"
-            to="/concept"
+            to="/concept/intro"
           >
             The theory
           </Link>

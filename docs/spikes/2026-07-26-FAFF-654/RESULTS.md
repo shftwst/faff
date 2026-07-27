@@ -53,7 +53,7 @@ unfixturable.read-failed.observed: not yet observed; on the machine measured dur
 
 no_byte_emitting_code_path: the probe has no code path that prints the bytes of a file it classified; every file-facing key emits a token, a long-listing line, or a name
 exception_1: the mount table, printed verbatim
-exception_2: the pid-1 environ key names, never values, under the names mode
+exception_2: the pid-1 environ key names, never values, under the names mode. A name is not a credential — no value is emitted — but the scan cannot catch a secret-shaped name either, because a block continuation line has no key-value separator for the generic branch to split on. The defence here is the mode flag plus the operator attestation below, not the scan. The names default is safe on a hosted runner, where pid 1 is the VM's init; FAFF-656 runs where that argument does not hold and must choose the mode deliberately
 exception_3: the value of the container key from the pid-1 environ, printed in full
 exception_4: long-listing lines, carrying mode, numeric uid and gid, size and name
 exception_5: faff container-check stdout, both JSON and plain

@@ -141,12 +141,19 @@ jobs:
       - name: Tool presence check
         run: |
           set -u
-          # The probe's own hard dependencies AND the job's. dd is the one with
+          # Every tool the probe AND these steps depend on. dd is the one with
           # no fallback: without it every readable file would classify
-          # unreadable(read-failed). git (or tar, for the API-tarball fallback)
-          # is what actions/checkout needs; it also injects its own Node runtime,
-          # so the image must be glibc-based.
-          for t in ls id cksum dd mktemp wc tr cut sed sort head grep date uname dirname git tar; do
+          # unreadable(read-failed). cat and chmod are used by the steps below,
+          # not by the probe — the probe dropped its own cat dependency, but the
+          # steps still cat their output and chmod the script. git (or tar, for
+          # the API-tarball fallback) is what actions/checkout needs; it also
+          # injects its own Node runtime, so the image must be glibc-based.
+          # The image input is free-form, so a hand-picked minimal base is
+          # exactly the case this step exists to catch — before checkout, not
+          # one step later. sh is listed because these steps invoke the probe
+          # with it: the run: block may be served by bash, so a container with
+          # bash and no sh would pass the block and fail the invocation.
+          for t in sh ls id cksum dd mktemp wc tr cut sed sort head grep date uname dirname cat chmod git tar; do
             printf '%-8s ' "$t"
             command -v "$t" || printf '(absent)\n'
           done

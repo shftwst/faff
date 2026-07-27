@@ -177,7 +177,12 @@ docs/spikes/2026-07-26-FAFF-654/
 
 **Chosen:** a directory under `docs/spikes/` following `2026-07-10-faff-411/`, not an ADR. It matches the established layout — that spike commits its own code beside its raw output and `RESULTS.md`. The website builds only `docs/guide` and `docs/concept`, so nothing here is published. And an ADR ends in a Decision section, which is a space that wants filling; FAFF-646's ADR is the right place for a decision and this artifact has nowhere to put one. `RESULTS.md` also drops FAFF-411's `Headline` section, which is the one place prose could state a finding.
 
-**Chosen:** one shared directory and one table, owned by this ticket, which FAFF-656 and FAFF-657 extend. `RESULTS.md` carries a per-column `status` line in one of three forms: `obtained` for a column captured by the ticket that owns the record; `owned_by: <ticket>` for a column that is simply another ticket's to take; and `unobtained — owned_by: <ticket>` for a column that is *owed* — promised by this chain, named here, and not yet supplied.
+**Chosen:** one shared directory and one table, owned by this ticket, which FAFF-656 and FAFF-657 extend. `RESULTS.md` carries a per-column `status` line in one of four forms — written without a colon after `owned_by`, since the line is already a `key: value` pair:
+
+- `obtained` — captured by the ticket that owns the record.
+- `unobtained — owned_by <ticket>` — *owed*: promised by this chain, named here, not yet supplied.
+- `owned_by <ticket>` — simply another ticket's to take, never this one's.
+- `unmeasured — <reason>` — a shape nobody owns and no ticket has been filed for.
 
 The two hosted columns take the third form after the scope correction, and the distinction matters. They are not merely elsewhere in the way the self-hosted pair always was; this ticket's own workflow is what takes them, and it cannot until it reaches the default branch. Marking them plain `owned_by` would read as a clean division of labour and hide a debt. A separate record per ticket would give FAFF-646 several tables to reconcile.
 
@@ -556,7 +561,7 @@ Two records give FAFF-646 two tables to reconcile. One table with per-column sta
 - [ ] The attestation-evidence group reports, per canonical socket, existence, socket-type, the long-listing line, and readable/writable test results, and states in `RESULTS.md` that the writable test is a proxy for connectability, not proof.
 - [ ] Home-directory reachability reports existence, a long-listing line, and an open-and-read result, and no contents.
 - [ ] The work-directory listing is exactly one level deep, with type and numeric owner per entry, and identifies the running workflow's own checkout.
-- [ ] `RESULTS.md` carries a per-column `status` line: `obtained` for each hosted column captured, `owned_by: FAFF-656` for both self-hosted columns.
+- [ ] Every column-status line in `RESULTS.md` takes one of the four forms in §3: `obtained` for a column this ticket captured; `unobtained — owned_by <ticket>` for one that is owed; `owned_by <ticket>` for one that is simply another ticket's; `unmeasured — <reason>` for a shape nobody owns. Post-rescope the two hosted columns and the derived fields are `unobtained — owned_by FAFF-657`, the two self-hosted columns are `owned_by FAFF-656`, and the actions-runner-controller shape is `unmeasured`.
 - [ ] `RESULTS.md` carries a computed `columns_identical` field and a per-column `worktree_changed_by_checkout` field, the latter derived as the entry-name set difference stated in section 4.
 
 ### From HOW — mechanically checkable

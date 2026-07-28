@@ -17,10 +17,13 @@
 // on the session model (the FAFF-50 silent-downgrade failure mode).
 //
 // Event/flag shapes follow codex-rs (`exec/src/exec_events.rs`, `exec/src/cli.rs`,
-// `cli/src/login.rs`) as pinned in the spec. No codex binary was installed on the
-// build machine, so the spec's codex-rs-sourced assumptions stand verbatim —
-// re-pin parseCodexEvents/buildCodexArgv against a live binary if a healthy run
-// exits 7 "no agent message" (the spec's named drift observable).
+// `cli/src/login.rs`) as pinned in the spec, and were CONFIRMED against a live
+// codex-cli 0.145.0 on 2026-07-28 (FAFF-665): the argv below runs exit 0, the
+// `item.completed` → `agent_message` envelope holds, taking the LAST agent_message
+// is what returns the answer on a multi-message turn, and the usage subtraction
+// checks out. Captures in `docs/architecture/codex-cli-observed.md`.
+// The drift observable still stands for future versions — re-pin
+// parseCodexEvents/buildCodexArgv if a healthy run exits 7 "no agent message".
 
 const fs = require("node:fs");
 const os = require("node:os");

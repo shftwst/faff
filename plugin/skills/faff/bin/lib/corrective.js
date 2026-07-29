@@ -30,6 +30,7 @@
 // wrapper (cmdCorrective) + --selftest, mirroring sentry / corrective-integrity.
 // ===========================================================================
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { realFsq } = require("./container-check");
@@ -395,23 +396,28 @@ function cmdCorrectiveAuthor(args) {
   }
   let seq = maxSeq + 1;
   let fname, fullPath;
+  const body = JSON.stringify(record, null, 2) + "\n";
   for (;;) {
     fname = `${String(seq).padStart(4, "0")}-${issue}.json`;
     fullPath = path.join(dir, fname);
     try {
-      fs.writeFileSync(fullPath, JSON.stringify(record, null, 2) + "\n", { flag: "wx" });
+      fs.writeFileSync(fullPath, body, { flag: "wx" });
       break;
     } catch (e) {
       if (e.code !== "EEXIST") throw e;
       seq++; // occupied (race, or a gap this scan didn't see) — never overwrite, try the next slot
     }
   }
+  // FAFF-679: the sha256 of the exact bytes just written at `path` — the same treatment
+  // Class A ledger writers give their own writes (gateway's mid-bracket write rule), so
+  // a `corrective/` addition is verifiable against a held custody baseline too.
+  const sha256 = crypto.createHash("sha256").update(body).digest("hex");
 
   // data = the full written CorrectiveInput record (events.js's documenting comment
   // for this type) — the audit trail is only as reviewable as what it actually carries.
   const eventResult = appendCorrectiveEvent(runDir, "corrective-authored", issue, { ...record, artifact: fname });
 
-  const out = { written: true, path: fullPath, run_id: record.run_id, issue, op, event_appended: eventResult.appended };
+  const out = { written: true, path: fullPath, sha256, run_id: record.run_id, issue, op, event_appended: eventResult.appended };
   if (asJson) console.log(JSON.stringify(out));
   else console.log(`corrective: authored ${op} for ${issue} → ${fullPath}${eventResult.appended ? "" : " (WARNING: event append failed)"}`);
   return 0;

@@ -24,6 +24,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, utimesSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -196,7 +197,10 @@ test("a null-returning mutate aborts without writing (and without a yield)", () 
   try {
     const before = readFileSync(ledgerPath, "utf8");
     const res = mutateLedgerUnderLock(runDir, () => null);
-    assert.deepEqual(res, { written: false, yielded: false });
+    // FAFF-679: a null-returning (abort) mutate still reports before_sha256 (the digest
+    // of the pre-write bytes it read under the lock) — only after_sha256 stays null,
+    // since nothing was written.
+    assert.deepEqual(res, { written: false, yielded: false, before_sha256: createHash("sha256").update(before).digest("hex"), after_sha256: null });
     assert.equal(readFileSync(ledgerPath, "utf8"), before, "nothing written on a null mutate");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

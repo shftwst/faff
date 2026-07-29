@@ -1310,8 +1310,9 @@ function cmdBudgetBaseline(args) {
   // serialises the write, and the mutation derives from the fresh read, so a resumed
   // run's ledger can no longer be clobbered by a stale pre-built object.
   let already = false;
+  let writeRes;
   try {
-    mutateLedgerUnderLock(runDir, (fresh) => {
+    writeRes = mutateLedgerUnderLock(runDir, (fresh) => {
       if (!fresh) { const e = new Error(`run-ledger.json missing in ${runDir}`); e.code = "ENOENT"; throw e; }
       if (baselineAlreadyWritten(fresh.budget)) { already = true; return null; }
       fresh.budget = { ...(fresh.budget || {}), measure_session_id: session, tokens_at_start_by_model_class: byModel, tokens_at_start: scalar };
@@ -1333,8 +1334,12 @@ function cmdBudgetBaseline(args) {
     return 0;
   }
 
-  // Step 9.
-  console.log(JSON.stringify({ baseline_written: true, reason: degraded ? "estimate-degraded" : "fresh", measure_session_id: session, tokens_at_start: scalar }));
+  // Step 9. FAFF-679: the before/after ledger digest pair (Class A of the gateway's
+  // mid-bracket write rule) — what this locked write saw and what it left.
+  console.log(JSON.stringify({
+    baseline_written: true, reason: degraded ? "estimate-degraded" : "fresh", measure_session_id: session, tokens_at_start: scalar,
+    ledger_sha256_before: writeRes.before_sha256, ledger_sha256_after: writeRes.after_sha256,
+  }));
   return 0;
 }
 

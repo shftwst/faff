@@ -35,21 +35,39 @@ substrate parity with tamper because a subagent can force it) both park the unit
 evidence unconsumed and never proceed as verified; and the verdict surfaces only as the
 `digest-verified` trust class — never `FAFF_INTEGRITY_BOUNDARY`, never `integrityGate`, never a
 mount-asserted basis. Each executor's `SKILL.md` carries only its own placement/mechanics prose
-and refers back. The sequential executor uses **disjoint per-dispatch brackets** (foreground
-blocking means no orchestrator write sits inside a bracket, so zero re-baselining). The parallel
-executor maintains **one continuous run-grain custody chain per wave**: a single baseline taken
-at wave start, verified on every subagent return, and re-baselined around each orchestrator
-own-write to a byte-exact member in the order **verify → write → post-write check → re-snapshot
-→ intended-content check** — the post-write CLI verify of the old baseline must name exactly the
-just-written members (any other member is tamper), and the candidate baseline's recorded sha256
-for each just-written member must equal an in-context hash of the intended bytes (closing the
-touched-member launder); event appends are exempt from re-baselining under the prefix rule. This
-is the sanctioned re-baselining bookkeeping arm of the write-authority decision. The reviewer's
-build-time strengthening note — swapping the post-write check and re-snapshot so a tamper landing
-between the check's read and the snapshot's read can never enter the candidate — was considered
-at authoring; the ordering as written is retained because it already sits within the rung's
-accepted residual class, and adopting the swap is left to a clean build-time call rather than
-mandated here.
+and refers back. **Both executors maintain one continuous run-grain custody chain per orchestrator**
+(the parallel executor's per-wave; the sequential executor's per its own single-dispatch-at-a-time
+run — see the FAFF-679 amendment below for why the sequential executor is not exempt from
+re-baselining either): a single baseline held from chain-open to chain-close, verified on every
+subagent return, and re-baselined around each orchestrator own-write to a byte-exact member in the
+order **verify → write → post-write check → re-snapshot → intended-content check** — the post-write
+CLI verify of the old baseline must name exactly the just-written members (any other member is
+tamper), and the candidate baseline's recorded sha256 for each just-written member must equal
+either the before/after digest pair that write's own CLI command reported (Class A) or, for the
+orchestrator's own direct session edit of the ledger (Class B, which has no CLI-reported hash),
+a copy composed from the baseline-verified in-context state rather than a fresh disk read (closing
+the touched-member launder both classes are otherwise exposed to). Event appends are exempt from
+re-baselining under the prefix rule. This is the sanctioned re-baselining bookkeeping arm of the
+write-authority decision. The reviewer's build-time strengthening note — swapping the post-write
+check and re-snapshot so a tamper landing between the check's read and the snapshot's read can
+never enter the candidate — was considered at authoring; the ordering as written is retained
+because it already sits within the rung's accepted residual class, and adopting the swap is left
+to a clean build-time call rather than mandated here.
+
+**Amendment (FAFF-679, 2026-07-29).** The sequential clause above originally read "disjoint
+per-dispatch brackets (foreground blocking means no orchestrator write sits inside a bracket, so
+zero re-baselining)". That premise is false: the detached sentry poller's `sentry abort` writes
+the ledger from another process on its own schedule and can land while a sequential dispatch is
+still open, and it was never true that "the trusted orchestrator writes nothing inside its own
+bracket" in general — obligation 5's own re-baseline sequence exists precisely because a trusted
+write inside an open bracket is normal, not exceptional. The recorded decision above (one chain,
+the write sequence, the Class A/B closing treatment) is unchanged; only the sequential executor's
+"exempt from re-baselining" corollary is retracted. Fixing this also closed a real gap the first
+review pass of the FAFF-679 spec missed: the write sequence's original intended-content check
+compared against a freshly-composed guess, which for the orchestrator's own direct ledger edit
+(Class B) could itself be composed from already-tampered bytes and launder them into the new
+baseline — closed by requiring that composition come from the held baseline-verified copy, never
+a fresh disk read.
 
 ## Consequences
 

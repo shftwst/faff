@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import { readGovernanceConfig, computeBudgetState, envelopeFrom } from "../plugin/skills/faff/bin/lib/budget.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
@@ -803,6 +804,27 @@ test("FAFF-558: `budget baseline` fresh write populates BOTH tokens_at_start_by_
     assert.equal(persisted.budget.tokens_at_start, 7000);
     assert.deepEqual(persisted.budget.tokens_at_start_by_model_class, { "claude-opus-4-8": { input: 5000, output: 0, cache_write: 0, cache_read: 2000 } });
     assert.equal(persisted.budget.measure_session_id, sid, "FAFF-552: the effective measuring session must be persisted");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-679: `budget baseline` surfaces the before/after ledger digest pair (Class A of the gateway's mid-bracket write rule)", () => {
+  const f = fixture({ rc: null, ledger: baseLedger() });
+  try {
+    const preBytes = readFileSync(join(f.runDir, "run-ledger.json"));
+    const sid = "sess-baseline-digest";
+    const cfg = withModelTranscripts(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [{ model: "claude-opus-4-8", usage: { input_tokens: 100 } }],
+    });
+    const r = run(["budget", "baseline", "--run-dir", f.runDir, "--root", f.root, "--session-id", sid],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const out = JSON.parse(r.out);
+    assert.equal(out.ledger_sha256_before, createHash("sha256").update(preBytes).digest("hex"),
+      "before-hash is the digest of the pre-write bytes — what a custody baseline held BEFORE this write would compare against");
+    const postBytes = readFileSync(join(f.runDir, "run-ledger.json"));
+    assert.equal(out.ledger_sha256_after, createHash("sha256").update(postBytes).digest("hex"),
+      "after-hash is the digest of the exact bytes just written — the new baseline entry");
+    assert.notEqual(out.ledger_sha256_before, out.ledger_sha256_after);
   } finally { f.cleanup(); }
 });
 

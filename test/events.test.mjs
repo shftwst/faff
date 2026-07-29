@@ -330,7 +330,9 @@ test("append --tokens: four-class delta from transcript; checkpoint advances", (
     const cfg = withTranscripts(dir, dir, sid, {
       [`${sid}.jsonl`]: [{ input_tokens: 100, output_tokens: 20, cache_creation_input_tokens: 5, cache_read_input_tokens: 0 }],
     });
-    writeLedger(dir, "R", { run_id: "R", owner: { started_at: "2020-01-01T00:00:00Z" }, budget: { tokens_at_start_by_class: { ...ZERO_BY_CLASS } } });
+    const preLedger = { run_id: "R", owner: { started_at: "2020-01-01T00:00:00Z" }, budget: { tokens_at_start_by_class: { ...ZERO_BY_CLASS } } };
+    writeLedger(dir, "R", preLedger);
+    const preBytes = readFileSync(ledgerPath(dir, "R"));
     const r = run(dir, ["events", "append", "--run", "R", "--root", dir, "--tokens"],
       JSON.stringify({ phase: "prep", type: "prep-done", issue: "X-1" }),
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
@@ -346,6 +348,13 @@ test("append --tokens: four-class delta from transcript; checkpoint advances", (
     assert.deepEqual(readLedger(dir, "R").budget.tokens_at_last_event, { input: 100, output: 20, cache_write: 5, cache_read: 0 });
     // the ledger-write's hash is the post-write on-disk ledger bytes
     assert.equal(ev[0].data.ledger_sha256, createHash("sha256").update(readFileSync(ledgerPath(dir, "R"))).digest("hex"));
+    // FAFF-679: Class A of the gateway's mid-bracket write rule — --tokens is a
+    // ledger-mutating command, so it surfaces the before/after digest pair too. The
+    // before-hash is what a custody-holding caller's baseline should have matched
+    // BEFORE this write took the lock; the after-hash equals the ledger-write note's
+    // hash (both derive from the same atomicWriteLedger call).
+    assert.equal(ev[1].data.ledger_sha256_before, createHash("sha256").update(preBytes).digest("hex"));
+    assert.equal(ev[1].data.ledger_sha256_after, ev[0].data.ledger_sha256);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -514,6 +523,8 @@ test("S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects th
     const raw = readFileSync(logPath(dir, "R"), "utf8");
     assert.ok(!raw.includes(sid), "the --session-id value must never appear in the emitted event line");
     assert.deepEqual(Object.keys(ev[1].data.tokens).sort(), ["cache_read", "cache_write", "input", "output"]);
-    assert.deepEqual(Object.keys(ev[1].data).sort(), ["tokens", "tokens_source"], "data carries only tokens + tokens_source — no session id, no extra field");
+    // FAFF-679: the before/after ledger digest pair is additive, expected data — not a leak.
+    assert.deepEqual(Object.keys(ev[1].data).sort(), ["ledger_sha256_after", "ledger_sha256_before", "tokens", "tokens_source"],
+      "data carries tokens + tokens_source + the FAFF-679 ledger digest pair — no session id, no other extra field");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

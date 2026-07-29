@@ -173,6 +173,12 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 // by the driving session, not CLI subprocess calls, so this CLI-side lock cannot
 // serialise them; a follow-up routing them through a locked `faff` op would close it.
 //
+// FAFF-679 — Class A of the gateway's mid-bracket write rule (obligation 5): every
+// writer above surfaces the before/after digest pair mutateLedgerUnderLock now returns,
+// so the orchestrator can assert what the ledger WAS when the writer took the lock
+// (against its held custody baseline) rather than only what it BECAME (which
+// atomicWriteLedger serialises from an under-lock read the caller never sees).
+//
 // DURABILITY (stated posture, not an accident): ledger writes are rename-only — no
 // fsync. The ledger is a re-derivable bookkeeping snapshot; a power loss can lose at
 // most the latest rename, degrading to a slightly stale ledger every read seam
@@ -206,17 +212,22 @@ function writeMemberHeartbeatFile(runDir, issue, nowIso) {
 // (ACQUIRE_BUDGET_MS) also stays well under the ledger lock's stale-takeover bound.
 // The require is call-time (lazy): events.js requires this module at load (for
 // mutateLedgerUnderLock), so a top-level import here would cycle.
+// Returns the sha256 of the exact bytes just written (FAFF-679) — the same hash the
+// ledger-write event fold below records, so a caller composing a before/after digest
+// pair (mutateLedgerUnderLock) never re-hashes independently and can never drift from
+// the chained event's own value.
 function atomicWriteLedger(runDir, ledger) {
   const body = JSON.stringify(ledger, null, 2) + "\n";
+  const sha = crypto.createHash("sha256").update(body).digest("hex");
   atomicWriteSingleValueFile(path.join(runDir, "run-ledger.json"), body);
   try {
     const { appendEventRecord } = require("./events");
     const runId = ledger && typeof ledger.run_id === "string" && ledger.run_id !== "" ? ledger.run_id : path.basename(runDir);
-    const sha = crypto.createHash("sha256").update(body).digest("hex");
     appendEventRecord(runDir, runId, { phase: "run", type: "ledger-write", data: { ledger_sha256: sha } });
   } catch (e) {
     process.stderr.write(`ledger-write event append failed in ${runDir}: ${e && e.message ? e.message : e} — the ledger IS written; the chain gap will surface at FAFF-568 verification\n`);
   }
+  return sha;
 }
 
 // FAFF-527 — owner-epoch write fence (takeover safety). A resume of a *dead-running*
@@ -277,21 +288,32 @@ function ownerEpochFenceStale(diskOwner, expected) {
 // each caller surfaces it per its own loudness contract, and NEVER falls back to an
 // unlocked write (that would reintroduce the race under exactly the contention that
 // fires it).
+// FAFF-679: reports the ledger digest this writer SAW and the digest it LEFT (Class A
+// of the mid-bracket write rule — gateway obligation 5). `before_sha256` is the sha256
+// of the raw on-disk bytes read under this same lock acquisition (null on a mint, where
+// no prior file exists); `after_sha256` is atomicWriteLedger's return (null when
+// nothing was written — yielded or a null-mutate abort). The before-hash is read from
+// raw bytes, never a re-serialize of the parsed object, so it reflects exactly what a
+// concurrent tamperer would have left — a byte comparison needs no JSON semantics.
 function mutateLedgerUnderLock(runDir, mutate, expectedOwner) {
   const lockPath = path.join(runDir, "run-ledger.json.lock");
   return withFileLock(lockPath, () => {
     let fresh = null;
-    try { fresh = readLedger(runDir); }
-    catch (e) { if (!e || e.code !== "ENOENT") throw e; } // absent ⇒ mint-from-scratch (fresh stays null); malformed throws
+    let beforeSha256 = null;
+    try {
+      const raw = fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8");
+      beforeSha256 = crypto.createHash("sha256").update(raw).digest("hex");
+      fresh = JSON.parse(raw);
+    } catch (e) { if (!e || e.code !== "ENOENT") throw e; } // absent ⇒ mint-from-scratch (fresh stays null); malformed throws
     if (expectedOwner && fresh && ownerEpochFenceStale(fresh.owner, expectedOwner)) {
       process.stderr.write(`ledger write yielded: owner epoch/session moved on in ${runDir} ` +
         `(writer epoch ${expectedOwner.epoch ?? 0}/${expectedOwner.session_id ?? "?"}, on-disk epoch ${(fresh.owner && fresh.owner.epoch) ?? 0}/${(fresh.owner && fresh.owner.session_id) ?? "?"}) — a newer resume owns this run\n`);
-      return { written: false, yielded: true };
+      return { written: false, yielded: true, before_sha256: beforeSha256, after_sha256: null };
     }
     const next = mutate(fresh);
-    if (next === null || next === undefined) return { written: false, yielded: false };
-    atomicWriteLedger(runDir, next);
-    return { written: true, yielded: false };
+    if (next === null || next === undefined) return { written: false, yielded: false, before_sha256: beforeSha256, after_sha256: null };
+    const afterSha256 = atomicWriteLedger(runDir, next);
+    return { written: true, yielded: false, before_sha256: beforeSha256, after_sha256: afterSha256 };
   }, { code: "LEDGER_LOCKED", label: "ledger lock" });
 }
 
@@ -547,6 +569,31 @@ function heartbeatSelftest() {
   check("isValidIssueId accepts a normal issue id", isValidIssueId("FAFF-327") === true);
   check("isValidIssueId rejects empty/traversal/absent", isValidIssueId("") === false && isValidIssueId("..") === false &&
     isValidIssueId("../../etc/passwd") === false && isValidIssueId(null) === false && isValidIssueId(undefined) === false);
+
+  // --- FAFF-679: mutateLedgerUnderLock reports the before/after ledger digest pair
+  // (Class A of the gateway's mid-bracket write rule) ---
+  {
+    const os = require("node:os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-hb-digest-"));
+    try {
+      const mintRes = mutateLedgerUnderLock(tmp, () => ({ run_id: "t", owner: { status: "running" } }));
+      check("mint: before_sha256 is null (nothing existed to bracket)", mintRes.before_sha256 === null);
+      check("mint: after_sha256 equals an independent digest of the written bytes", mintRes.written &&
+        mintRes.after_sha256 === crypto.createHash("sha256").update(fs.readFileSync(path.join(tmp, "run-ledger.json"), "utf8")).digest("hex"));
+      const preEditBytes = fs.readFileSync(path.join(tmp, "run-ledger.json"), "utf8");
+      const editRes = mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, note: "edited" }));
+      check("edit: before_sha256 equals the digest of the pre-write bytes", editRes.before_sha256 ===
+        crypto.createHash("sha256").update(preEditBytes).digest("hex"));
+      check("edit: before_sha256 differs from after_sha256 on a real content change", editRes.before_sha256 !== editRes.after_sha256);
+      // Simulate an out-of-band edit landing between an orchestrator's baseline and its
+      // next write: a caller holding the mint's after_sha256 as its baseline should see
+      // the next writer's before_sha256 disagree once a third party has touched the file.
+      fs.writeFileSync(path.join(tmp, "run-ledger.json"), JSON.stringify({ run_id: "t", tampered: true }) + "\n");
+      const afterTamperRes = mutateLedgerUnderLock(tmp, (fresh) => ({ ...fresh, note: "post-tamper" }));
+      check("a baseline held from the mint no longer matches the before-hash after an out-of-band edit",
+        afterTamperRes.before_sha256 !== mintRes.after_sha256);
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
 
   if (failed) return 1;
   console.log("heartbeat --selftest: ok");

@@ -734,6 +734,12 @@ function cmdEvents(args) {
           if (res.written && delta) {
             base.tokens = delta;
             base.tokens_source = "transcript";
+            // FAFF-679: Class A of the gateway's mid-bracket write rule — the digest
+            // pair this locked write saw/left, so an --tokens caller holding a custody
+            // baseline can tell "I only appended an event" from "I also touched the
+            // bracketed ledger member" without a second read.
+            base.ledger_sha256_before = res.before_sha256;
+            base.ledger_sha256_after = res.after_sha256;
             emitted = true;
           }
         } catch { /* unreadable/unwritable/LEDGER_LOCKED ledger → estimate below (no fabricated delta; checkpoint NOT advanced) */ }

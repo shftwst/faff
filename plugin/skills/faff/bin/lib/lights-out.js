@@ -975,14 +975,16 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   // uncontended lock cycle, and no second unlocked write path survives to decay). The
   // trivial mutate ignores the fresh read (initial creation); a LEDGER_LOCKED throw
   // here is impossible in practice and would surface as the mint failure it is.
-  mutateLedgerUnderLock(runDir, () => ledger);
+  const mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger);
 
   // Emit the run-start event onto the observability timeline substrate (FAFF-574: through
   // the shared lock-guarded core — the seq is minted from the log's tail under the lock).
   appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => ({ schema: 2, run_id: runId, seq, ts: nowIso, prev: prevHash, phase: "run", type: "run-start" }));
 
   if (json) {
-    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner, degrades: pf.degrades }) + "\n");
+    // FAFF-679: ledger_sha256_before is always null on a mint (nothing existed to bracket
+    // yet) — carried anyway so a mint is byte-consistent with every other Class-A writer.
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", run_id: runId, run_dir: runDir, container: "contained", corrective_authority: correctiveAuthority, armed: pf.armed, enforced: pf.enforced, dial_profile, banner: pf.banner, degrades: pf.degrades, ledger_sha256_before: mintWriteRes.before_sha256, ledger_sha256_after: mintWriteRes.after_sha256 }) + "\n");
   } else {
     console.log(pf.banner);
     console.log(`\nPreflight PASS — L4 run minted: ${runDir}`);
@@ -1105,9 +1107,10 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
   // the lock; run-resume carries its extra fields via runResumeEvent(id, seq, …).
   appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => runResumeEvent(resumeId, seq, nowIso, priorState, { ...plan, epoch }, prevHash));
 
-  // STEP 6: HAND OFF exactly as mint does.
+  // STEP 6: HAND OFF exactly as mint does. FAFF-679: the before/after ledger digest
+  // pair (Class A of the gateway's mid-bracket write rule).
   if (json) {
-    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", resume: resumeId, run_id: resumeId, run_dir: runDir, epoch, state: priorState, plan, banner }) + "\n");
+    process.stdout.write(JSON.stringify({ proceed: true, level: "L4", resume: resumeId, run_id: resumeId, run_dir: runDir, epoch, state: priorState, plan, banner, ledger_sha256_before: writeRes.before_sha256, ledger_sha256_after: writeRes.after_sha256 }) + "\n");
   } else {
     console.log(banner);
     console.log(`\nRe-entered L4 run (epoch ${epoch}): ${runDir}`);

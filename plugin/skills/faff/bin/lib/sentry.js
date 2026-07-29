@@ -904,8 +904,9 @@ function cmdSentry(args) {
     // write. The WIP commit above deliberately ran BEFORE acquiring the lock
     // (critical-section hygiene — no subprocess/git work inside the lock-held span).
     const abortRec = { issue, signal, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped, at: new Date().toISOString() };
+    let ledgerWriteRes;
     try {
-      mutateLedgerUnderLock(runDir, (fresh) => {
+      ledgerWriteRes = mutateLedgerUnderLock(runDir, (fresh) => {
         // The mark derives ONLY from the under-lock read — never the pre-lock copy
         // (which only gated the malformed-ledger exit 2 above). A ledger that vanished
         // between that read and lock acquisition is a fault, not "the same ledger":
@@ -921,9 +922,16 @@ function cmdSentry(args) {
       if (e && e.code === "ENOENT") { process.stderr.write(`faff sentry abort: ${e.message} — abort mark NOT written\n`); return 2; }
       throw e;
     }
-    const payload = { run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null, wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped };
+    // FAFF-679: the before/after ledger digest pair — Class A of the gateway's
+    // mid-bracket write rule — so a custody-holding orchestrator can assert what the
+    // ledger WAS when this write took the lock, not only what it became.
+    const payload = {
+      run_dir: runDir, aborted: true, status: "aborted-resumable", issue: issue || null, signal: signal || null,
+      wip_commit: wipCommit, wip_skipped_secret_class: wipSkipped,
+      ledger_sha256_before: ledgerWriteRes.before_sha256, ledger_sha256_after: ledgerWriteRes.after_sha256,
+    };
     if (asJson) console.log(JSON.stringify(payload));
-    else console.log(`sentry: run aborted (resumable)${wipCommit ? ` — WIP committed ${wipCommit.slice(0, 8)}` : ""}${wipSkipped.length ? ` — omitted ${wipSkipped.length} secret-class path(s) from WIP` : ""}; ledger marked aborted-resumable`);
+    else console.log(`sentry: run aborted (resumable)${wipCommit ? ` — WIP committed ${wipCommit.slice(0, 8)}` : ""}${wipSkipped.length ? ` — omitted ${wipSkipped.length} secret-class path(s) from WIP` : ""}; ledger marked aborted-resumable (${ledgerWriteRes.before_sha256 ? ledgerWriteRes.before_sha256.slice(0, 8) : "none"} → ${ledgerWriteRes.after_sha256.slice(0, 8)})`);
     return 0;
   }
 

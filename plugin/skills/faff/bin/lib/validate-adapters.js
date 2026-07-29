@@ -335,6 +335,68 @@ function checksFor(meta, t) {
   return out;
 }
 
+// FAFF-678: voice-pointer lint — the gateway's `House voice:` clause names a canonical path; every
+// other SKILL.md quoting that clause must name the SAME path, and (only when linting faff's own
+// source tree) the path must resolve on disk. This is what would have caught PR #500: the pointer
+// went stale, the clause's own fallback failed open by design, and nothing else was watching it.
+// Three legs, run in order:
+//   1. Extract the canonical token from the gateway's `House voice:` line (first backticked token
+//      containing "/" or ending ".md"). No gateway file at all -> skip silently (the sibling fixture
+//      suites spawn against a gateway-less tmpdir and must keep passing). Gateway present but the
+//      clause or its path-shaped token is missing -> hard fail, but ONLY in the source tree — an
+//      absent clause is exactly the drift this lint exists to catch, so reusing the "no gateway"
+//      skip here would make the guard silently vacuous in the one case that matters.
+//   2. Agreement — every other SKILL.md line mentioning the voice (case-insensitive "house voice" /
+//      "voice rules" / "the voice") that carries a path-shaped backticked token must name the same
+//      canonical token. A mismatch is a partial repoint.
+//   3. Resolution — the canonical token must exist on disk, checked only when the resolved root
+//      looks like faff's own source tree (an `eval/` dir present — the same marker
+//      loadSeamRegistryForLint() uses). `--root` drives this leg explicitly so a fixture under
+//      `--skills-dir` is judged on its own root, never the surrounding checkout (fixture isolation).
+function extractVoicePathToken(line) {
+  const backticked = [...line.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+  return backticked.find((t) => /[A-Za-z0-9]/.test(t) && (t.includes("/") || t.endsWith(".md"))) || null;
+}
+function lintVoicePointer(args, skillsDir, allSkills) {
+  const findings = [];
+  const gatewayPath = path.join(skillsDir, "faff", "SKILL.md");
+  if (!fs.existsSync(gatewayPath)) return findings; // leg 1, no-gateway case: skip silently
+
+  const { values } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
+  const root = values["--root"] !== undefined ? values["--root"] : path.resolve(HERE, "..", "..", "..", "..");
+  const inSourceTree = fs.existsSync(path.join(root, "eval"));
+
+  const gatewayLine = fs.readFileSync(gatewayPath, "utf8").split("\n").find((l) => l.includes("House voice:"));
+  const canonical = gatewayLine ? extractVoicePathToken(gatewayLine) : null;
+  if (!gatewayLine || !canonical) {
+    if (inSourceTree) {
+      findings.push("faff/SKILL.md: no `House voice:` clause with a path-shaped token found — the voice-pointer guard has nothing to check against (FAFF-678)");
+    }
+    return findings; // leg 1, gateway-present-but-clause-missing case
+  }
+
+  // leg 2: agreement
+  const VOICE_MENTION = /house voice|voice rules|the voice/i;
+  for (const name of allSkills) {
+    if (name === "faff") continue;
+    const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
+    for (const line of text.split("\n")) {
+      if (!VOICE_MENTION.test(line)) continue;
+      const tok = extractVoicePathToken(line);
+      if (tok && tok !== canonical) {
+        findings.push(`${name}/SKILL.md: names voice source "${tok}", gateway names "${canonical}" — partial repoint (FAFF-678)`);
+      }
+    }
+  }
+
+  // leg 3: resolution — source tree only
+  if (inSourceTree && !fs.existsSync(path.resolve(root, canonical))) {
+    findings.push(`voice source does not resolve: "${canonical}" (FAFF-678)`);
+  }
+
+  return findings;
+}
+
 function resolveSkillsDir(args) {
   const { values } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
   if (values["--skills-dir"] !== undefined) return values["--skills-dir"];
@@ -605,6 +667,16 @@ function cmdValidateAdapters(args) {
     }
   }
 
+  // FAFF-678: voice-pointer lint — see lintVoicePointer for the three-leg description.
+  {
+    const voiceFindings = lintVoicePointer(args, skillsDir, allSkills);
+    if (voiceFindings.length) {
+      failed = true;
+      console.log(`FAIL  voice-pointer (FAFF-678)`);
+      for (const f of voiceFindings) console.log(`        ✗ ${f}`);
+    }
+  }
+
   // FAFF-120: skill-authoring charter — the lintable subset (docs/skill-authoring.md). Per-file
   // rules (line cap, paragraph length, stray markers) run in one pass; the cross-file dedup detector
   // collects significant-line windows here and reports after the loop. Reuses allSkills above.
@@ -744,4 +816,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdValidateAdapters, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

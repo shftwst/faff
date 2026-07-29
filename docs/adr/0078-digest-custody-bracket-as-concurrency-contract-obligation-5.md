@@ -69,6 +69,14 @@ compared against a freshly-composed guess, which for the orchestrator's own dire
 baseline — closed by requiring that composition come from the held baseline-verified copy, never
 a fresh disk read.
 
+**What this chain does and does not promise.** The chain gives "no unobserved window on a
+bracketed member" — every byte a trusted write leaves is one the orchestrator either composed
+itself from a verified copy or can verify against a reported before/after hash. It does **not**
+give "the member is frozen for the dispatch" — a legitimate trusted write can and does land inside
+an open bracket, by design. Those are different strengths, and confusing them is exactly the
+mistake this amendment exists to correct; a reader wanting the stronger "frozen" property is
+pointed at the re-baselining-vs-journalled-ledger punt this ticket left for a human.
+
 ## Consequences
 
 - The bracket is inherited by contract, not convention: every current and future `concurrency`

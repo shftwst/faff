@@ -11,9 +11,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import path from "node:path";
+import path, { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { runCli } from "./helpers/run-cli.mjs";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const gatewaySkill = readFileSync(join(repoRoot, "plugin", "skills", "faff", "SKILL.md"), "utf8");
+const sequentialSkill = readFileSync(join(repoRoot, "plugin", "skills", "faffter-noon-concurrency-sequential", "SKILL.md"), "utf8");
+const parallelSkill = readFileSync(join(repoRoot, "plugin", "skills", "faffter-dark-concurrency-parallel", "SKILL.md"), "utf8");
 
 function evidenceDir() {
   const rd = mkdtempSync(path.join(tmpdir(), "faff-679-bw-"));
@@ -181,4 +187,64 @@ test("DONE-6 (negative, companion): composing a direct ledger edit from a FRESH 
     const persisted = JSON.parse(readFileSync(path.join(rd, "run-ledger.json"), "utf8"));
     assert.equal(persisted.outcomes["FAFF-9"], "shipped", "the forged outcome survived into the new baseline — this is the laundering DONE-6 exists to prevent");
   } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+// --- DONE 7/8/9: the SKILL.md prose regression guards -------------------------------
+// Precedent: test/merge-gate.test.mjs readFileSync's SKILL.md files and asserts against
+// their text, rather than only against CLI behaviour — the same shape used here, because
+// the FAFF-679 bug WAS a plausible-sounding false premise in prose ("this executor writes
+// nothing between snapshot and verify … zero re-baselining") that no test caught.
+
+test("DONE-7: gateway obligation 5 states the mid-bracket write rule, one-chain-per-orchestrator, and the Class-B composition requirement", () => {
+  const obligation5 = gatewaySkill.match(/^5\. \*\*Bracket every graft dispatch.*$/m);
+  assert.ok(obligation5, "obligation 5 must exist in the gateway, still numbered 5");
+  const text = obligation5[0];
+  assert.match(text, /one continuous run-grain chain per orchestrator|one \*\*chain\*\* per orchestrator|one continuous.*chain/i,
+    "must state one chain per orchestrator, not per-dispatch");
+  assert.match(text, /never.*per-dispatch baseline|never a per-dispatch baseline/i,
+    "must reject a per-dispatch baseline over the shared mutable set");
+  assert.match(text, /verify.*perform the write.*post-write check.*snapshot.*intended-content check/i,
+    "must state the five-step mid-bracket write sequence in order");
+  assert.match(text, /permitted, never forbidden/i, "must permit trusted mid-bracket writes rather than forbid them");
+  assert.match(text, /Class A/, "must name Class A (CLI-mediated writes)");
+  assert.match(text, /Class B/, "must name Class B (the orchestrator's own direct session edit)");
+  assert.match(text, /composed from the baseline-verified copy already held in context, never from a fresh disk read/,
+    "Class B must be required to compose from the held baseline, never a fresh disk read — the exact hole the FAFF-679 spec's first review pass missed");
+});
+
+test("DONE-8: the sequential executor no longer claims it writes nothing between snapshot and verify, or zero re-baselining", () => {
+  assert.doesNotMatch(sequentialSkill, /writes nothing between snapshot and verify/i);
+  assert.doesNotMatch(sequentialSkill, /zero re-baselining/i);
+  assert.doesNotMatch(sequentialSkill, /disjoint,? per-dispatch/i);
+  // Positive: it must still name obligation 5 and describe its own placement (at most one
+  // bracket open at a time), not silently drop the section.
+  assert.match(sequentialSkill, /obligation 5/);
+  assert.match(sequentialSkill, /at most one\*\* bracket/i);
+});
+
+test("DONE-9: both executors reference obligation 5 for the shared chain/sequence/Class A-B rules, and carry only placement prose", () => {
+  for (const [name, text] of [["sequential", sequentialSkill], ["parallel", parallelSkill]]) {
+    assert.match(text, /obligation 5/, `${name} executor must reference obligation 5`);
+  }
+  // The full five-step sequence text must NOT be duplicated verbatim in either executor —
+  // it now lives once, in the gateway (validate-adapters' duplicated-block lint is the
+  // mechanical form of this; this is the semantic form: neither executor restates the
+  // step list inline any more).
+  for (const [name, text] of [["sequential", sequentialSkill], ["parallel", parallelSkill]]) {
+    assert.doesNotMatch(text, /always in this order.*perform the write.*post-write check.*intended-content check/is,
+      `${name} executor must not restate the five-step sequence's own ordering clause — refer back to the gateway instead`);
+  }
+});
+
+test("DONE-9 (mechanical): faff validate-adapters reports no duplicated block and no dangling reference across the two executors", () => {
+  const r = runCli(["validate-adapters"]);
+  assert.equal(r.code, 0, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stdout, /duplicat/i);
+  assert.doesNotMatch(r.stdout, /dangling/i);
+});
+
+test("ADR-0078 states the chain's actual promise ('no unobserved window'), not the stronger, false 'frozen for the dispatch' property", () => {
+  const adr = readFileSync(join(repoRoot, "docs", "adr", "0078-digest-custody-bracket-as-concurrency-contract-obligation-5.md"), "utf8");
+  assert.match(adr, /no unobserved window/i);
+  assert.match(adr, /not\*\*[\s\S]{0,40}frozen for the dispatch/i);
 });

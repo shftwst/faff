@@ -66,14 +66,29 @@ test("reconcile: a stdin `level` contradicting --level → exit 2 fail-loud (no 
 });
 
 test("reconcile: a stdin `level` AGREEING with --level → accepted", () => {
-  const input = JSON.stringify({ level: "L4", shipped: [] });
+  const input = JSON.stringify({ level: "L4", shipped: [], sibling_baseline: { captured: true, entry_count: 0 } });
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 0);
   assert.equal(JSON.parse(stdout).consistent, true);
 });
 
-test("reconcile: empty input → consistent, exit 0, disposition pass", () => {
+// FAFF-680: an empty input is no longer vacuously consistent — the sibling half's absence is
+// indistinguishable from an empty sibling set unless the caller attests capture. Only the
+// attested-empty shape is a genuine clean pass; bare `{}` reads as "the check did not run".
+test("reconcile: empty input, NO sibling_baseline attestation → sibling-check-unproven divergence, exit 1, needs-human at L4", () => {
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input: "{}" });
+  assert.equal(code, 1);
+  const result = JSON.parse(stdout);
+  assert.equal(result.consistent, false);
+  assert.equal(result.disposition, "needs-human");
+  assert.equal(result.divergences.length, 1);
+  assert.equal(result.divergences[0].class, "sibling-check-unproven");
+  assert.equal(result.divergences[0].issue, null);
+});
+
+test("reconcile: empty input WITH sibling_baseline attestation → consistent, exit 0, disposition pass", () => {
+  const input = JSON.stringify({ sibling_baseline: { captured: true, entry_count: 0 } });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 0);
   const result = JSON.parse(stdout);
   assert.equal(result.consistent, true);
@@ -84,6 +99,7 @@ test("reconcile: empty input → consistent, exit 0, disposition pass", () => {
 test("reconcile: shipped with no merge-record → claimed-shipped-unmerged divergence, exit 1, needs-human at L4", () => {
   const input = JSON.stringify({
     shipped: [{ issue: "FAFF-A", recorded: null, observed: { pr_merged: false, merged_head_sha: null } }],
+    sibling_baseline: { captured: true, entry_count: 0 },
   });
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 1);
@@ -117,6 +133,7 @@ test("reconcile: shipped matches recorded+observed → consistent, exit 0", () =
       recorded: { pr: 1, head_sha: "abc123", merged: true, merged_at: "2026-07-11T00:00:00Z" },
       observed: { pr_merged: true, merged_head_sha: "abc123" },
     }],
+    sibling_baseline: { captured: true, entry_count: 0 },
   });
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 0);
@@ -137,6 +154,7 @@ test("reconcile: non-admitted sibling flips terminal → unowned-sibling-mutatio
 test("reconcile: sibling admitted later (chain-unlock) is excluded even if terminal", () => {
   const input = JSON.stringify({
     siblings: [{ issue: "FAFF-B", start_state_terminal: false, end_state_terminal: true, admitted: true }],
+    sibling_baseline: { captured: true, entry_count: 1 },
   });
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 0);
@@ -169,12 +187,18 @@ test("integration smoke test: matching merge-record.json + observed head sha →
     issue: "FAFF-A",
     recorded: { pr: 1, head_sha: "X", merged: true, merged_at: "2026-07-11T00:00:00Z" },
   };
-  const consistentInput = JSON.stringify({ shipped: [{ ...baseShipped, observed: { pr_merged: true, merged_head_sha: "X" } }] });
+  const consistentInput = JSON.stringify({
+    shipped: [{ ...baseShipped, observed: { pr_merged: true, merged_head_sha: "X" } }],
+    sibling_baseline: { captured: true, entry_count: 0 },
+  });
   const { code: okCode, stdout: okOut } = runCli(["reconcile", "--run-dir", "/tmp/fixture-run", "--level", "L4", "--json"], { input: consistentInput });
   assert.equal(okCode, 0);
   assert.equal(JSON.parse(okOut).consistent, true);
 
-  const flippedInput = JSON.stringify({ shipped: [{ ...baseShipped, observed: { pr_merged: true, merged_head_sha: "Y" } }] });
+  const flippedInput = JSON.stringify({
+    shipped: [{ ...baseShipped, observed: { pr_merged: true, merged_head_sha: "Y" } }],
+    sibling_baseline: { captured: true, entry_count: 0 },
+  });
   const { code: badCode, stdout: badOut } = runCli(["reconcile", "--run-dir", "/tmp/fixture-run", "--level", "L4", "--json"], { input: flippedInput });
   assert.equal(badCode, 1);
   const badResult = JSON.parse(badOut);
@@ -194,6 +218,7 @@ test("FAFF-571 smoke test: superseded with valid evidence + observed delivery �
       },
       observed: { all_delivered: true },
     }],
+    sibling_baseline: { captured: true, entry_count: 0 },
   });
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 0);
@@ -203,7 +228,10 @@ test("FAFF-571 smoke test: superseded with valid evidence + observed delivery �
 });
 
 test("FAFF-571 smoke test: superseded with recorded:null → superseded-unproven divergence, needs-human at L4", () => {
-  const input = JSON.stringify({ superseded: [{ issue: "FAFF-551", recorded: null }] });
+  const input = JSON.stringify({
+    superseded: [{ issue: "FAFF-551", recorded: null }],
+    sibling_baseline: { captured: true, entry_count: 0 },
+  });
   const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
   assert.equal(code, 1);
   const result = JSON.parse(stdout);
@@ -211,4 +239,47 @@ test("FAFF-571 smoke test: superseded with recorded:null → superseded-unproven
   assert.equal(result.disposition, "needs-human");
   assert.equal(result.divergences[0].class, "superseded-unproven");
   assert.equal(result.divergences[0].issue, "FAFF-551");
+});
+
+// --- FAFF-680: the sibling_baseline attestation itself ---
+test("reconcile: sibling_baseline captured:true with a populated siblings[] and one flipped terminal → exactly one unowned-sibling-mutation, no sibling-check-unproven", () => {
+  const input = JSON.stringify({
+    siblings: [{ issue: "FAFF-B", start_state_terminal: false, end_state_terminal: true, admitted: false }],
+    sibling_baseline: { captured: true, entry_count: 1 },
+  });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
+  assert.equal(code, 1);
+  const result = JSON.parse(stdout);
+  assert.equal(result.divergences.length, 1);
+  assert.equal(result.divergences[0].class, "unowned-sibling-mutation");
+});
+
+test("reconcile: sibling_baseline.captured as the string \"true\" → not-captured (strict boolean only)", () => {
+  const input = JSON.stringify({ sibling_baseline: { captured: "true", entry_count: 0 } });
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4", "--json"], { input });
+  assert.equal(code, 1);
+  assert.equal(JSON.parse(stdout).divergences[0].class, "sibling-check-unproven");
+});
+
+test("reconcile: sibling_baseline captured:true with entry_count below siblings.length → exit 2 malformed input", () => {
+  const input = JSON.stringify({
+    siblings: [{ issue: "FAFF-A" }, { issue: "FAFF-B" }],
+    sibling_baseline: { captured: true, entry_count: 0 },
+  });
+  const { code, stderr } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4"], { input });
+  assert.equal(code, 2);
+  assert.match(stderr, /sibling_baseline\.entry_count/);
+});
+
+test("reconcile: sibling_baseline captured:true with a negative entry_count → exit 2 malformed input", () => {
+  const input = JSON.stringify({ sibling_baseline: { captured: true, entry_count: -1 } });
+  const { code, stderr } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L4"], { input });
+  assert.equal(code, 2);
+  assert.match(stderr, /sibling_baseline\.entry_count/);
+});
+
+test("reconcile: non-json output renders the run-level sibling-check-unproven line as 'run:', not literal 'null'", () => {
+  const { code, stdout } = runCli(["reconcile", "--run-dir", "/tmp/x", "--level", "L3"], { input: "{}" });
+  assert.equal(code, 1);
+  assert.match(stdout, /✗ \[sibling-check-unproven\] run:/);
 });

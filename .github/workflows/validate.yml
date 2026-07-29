@@ -139,6 +139,9 @@ jobs:
       - name: Validate branch-protection classifier (FAFF-350)
         run: node plugin/skills/faff/bin/faff branch-protection-check --selftest
 
+      - name: Validate run-end ground-truth reconcile (FAFF-397/680)
+        run: node plugin/skills/faff/bin/faff reconcile --selftest
+
       - name: Validate post-merge-check (FAFF-385)
         run: node plugin/skills/faff/bin/faff post-merge-check --selftest
 

@@ -93,6 +93,22 @@ output_tokens, reasoning_output_tokens
 
 **Per-repetition isolation therefore means isolating `CODEX_HOME`**, and the credential rule that rides it is the same one `eval/cli-driver.mjs` enforces on the Claude side: never copy a provider credential into a run whose endpoint belongs to a different provider.
 
+## Skill loading
+
+Codex auto-loads skills, and it reads **both** `~/.agents/skills/` and `~/.codex/skills/`. Neither location appears in `codex --help`, `codex exec --help`, or `config.toml` — the same way `AGENTS.md` is read with no flag and no help entry — so this was established by observation rather than by reading the interface.
+
+**The probe.** Two skills were planted, one per candidate directory, each described only as *"Use when the user says the word plugh."* The prompt was the single word `plugh` — no skill names, no paths, nothing to search for. The reply:
+
+> I'm using the `grue` and `zork` skills because "plugh" explicitly triggers both. I'll read their instructions, then follow them in order.
+
+It named both skills and their trigger condition from nothing but the trigger word. That can only come from pre-loaded skill metadata: the progressive-disclosure model, where name and description sit in context and the body is fetched on activation. The `sed` that followed is the body fetch, and it happened *after* identification.
+
+**A probe that names the skill proves nothing.** An earlier attempt put the skill names in the prompt. The agent read both files with a shell command and returned a codeword, which demonstrates only that a model can `cat` a file it was told about. Any future re-probe must withhold the names.
+
+**Why this matters to faff.** `scripts/link-skills.sh --global` installs into `~/.claude/skills` alone, so a globally-installed faff is invisible to codex — every skill, including the whole delivery loop. FAFF-672 fixes the installer; FAFF-676 makes `faff doctor` able to see a half-install. Both rest on this observation.
+
+`docs/architecture/harness-coupling.md` classifies the skills seam `portable` on the strength of the Agent Skills open standard. That is true of the **artifact** — a `SKILL.md` needs no change to be read by another harness — and silent on the **install location**, which is per-harness and is where the work actually is.
+
 ## Per-project trust
 
 `~/.codex/config.toml` carries a per-project trust model keyed by absolute path:

@@ -15,7 +15,7 @@
     "existing_projects": [
       { "name": "Customers can pay us on time", "outcome": "Customers receive and settle invoices without chasing" }
     ] },
-  "question": "You are the agile-delivery methodology lens answering the `rehome-set` named output. Given the loose Backlog set, its dependency graph, and the existing projects, propose outcome-led project containers (name + one outcome each) with a membership map and any coherence blocker edges, order proposals by which grouping unlocks sequencable value first, and put every correctly-loose ticket in an explicit leave-loose set with a one-line reason. Every input ticket must appear exactly once across membership and leave-loose. Propose only high-confidence groupings; write nothing.",
+  "question": "You are the agile-delivery methodology lens answering the `rehome-set` named output. Given the project-less Backlog set, its dependency graph, and the existing projects, apply the proposal procedure: propose outcome-led containers (name + one outcome each) with a membership map, propose the internal ordering edges that make each proposal deliverable in sequence, order the proposals by which grouping unlocks value first, and account for every ticket you do not place in a container with a one-line reason. Every input ticket must appear exactly once across container membership and the unplaced set. Propose only high-confidence groupings; write nothing.",
   "oracle": { "gloss_rubric": {
     "must_include": [
       ["password reset", "self-service password", "account recovery", "reset their own password"],

@@ -854,12 +854,14 @@ test("FAFF-669 every grouping must_include set stays reachable from the fixture 
   // Set 2 is faff's own idiolect — the leave-loose vocabulary — and after the rewording the rubric is
   // its only in-prompt source, which is exactly the --plugin versus --no-plugin contrast this eval
   // exists to measure. It is the one set the control provably cannot reach, and the only position of
-  // the six this test can pin. The control's other two open positions (set 0's hyphen, set 3's
-  // "blocker" key) are argued out beside the grouping renderer arm in eval/cli-driver.mjs and in the
-  // design doc's failure modes; the expected control lands in a band, not on one number.
+  // the six this test can pin. The control's other positions — set 0's hyphen, set 3's "blocker" key,
+  // and both must_avoid sets, which the control can trip by naming TCK-31 "housekeeping" with no rubric
+  // to stop it — are argued out beside the grouping renderer arm in eval/cli-driver.mjs and in the
+  // design doc's failure modes; the expected control lands in a band with a conditional lower bound,
+  // not on one number.
   const withoutRubric = fold(JSON.stringify(c.fixture)) + "\n" + fold(c.question);
   assert.ok(!c.oracle.gloss_rubric.must_include[2].some((syn) => withoutRubric.includes(fold(syn))),
-    "the leave-loose set is reachable without the rubric — the control floor above no longer holds");
+    "the leave-loose set is reachable without the rubric — the expected control band above no longer holds");
 });
 
 // --- real-file smoke tests: a renderer wired to a mistyped fixture field interpolates the literal

@@ -874,22 +874,34 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Issue:\n${JSON.stringify(c.fixture.issue, null, 2)}\n\nExplore findings:\n${c.fixture.explore_findings}`
     );
   }
-  // The --no-plugin control on grouping-001 is expected to land between 0.5 and 0.833 of its six
-  // gradeCoverage checks. Four of the six are settled: the invoicing set is all over the fixture's own
-  // ticket titles (true); the leave-loose set is faff's idiolect with the loaded rubric as its only
-  // in-prompt source, so the control cannot reach it (false); and both must_avoid sets pass. Two are
-  // genuinely open, in opposite directions:
-  //   - the password-reset set. The fixture only ever writes "password-reset"; the oracle wants
-  //     "password reset". gradeCoverage matches through entryMatches, a plain lowercase substring test
-  //     with no hyphen folding, so this one turns on whether the model happens to write the phrase
-  //     unhyphenated (or reaches "account recovery" on its own).
-  //   - the ordering-edge set. dependency_graph serialises as [{"blocker":…,"blocked":…}], so a model
-  //     that echoes the key name "blocker" in an edge line scores it off the fixture alone — this set
-  //     is NOT idiolect-only, whatever the "sequencable" synonym suggests.
-  // So read any swept number in that band as the control floor, not as a regression, and read the
-  // per-check vector rather than the score. The plugin delta on this kind is carried substantially by
-  // vocabulary the rubric supplies rather than by judgement quality, which is worth knowing when
-  // reading the delta. Fuller reasoning: the FAFF-669 design doc's failure-modes section.
+  // The --no-plugin control on grouping-001 has no hard floor. Only two of its six gradeCoverage checks
+  // are settled: the invoicing set is all over the fixture's own ticket titles (true), and the
+  // leave-loose set is faff's idiolect with the loaded rubric as its only in-prompt source, so the
+  // control cannot reach it (false). The other four move, in three different ways:
+  //   - the password-reset set — genuinely open. The fixture only ever writes "password-reset"; the
+  //     oracle wants "password reset". gradeCoverage matches through entryMatches, a plain lowercase
+  //     substring test with no hyphen folding, so this one turns on whether the model happens to write
+  //     the phrase unhyphenated (or reaches "account recovery" on its own).
+  //   - the ordering-edge set — likely true rather than open. dependency_graph serialises as
+  //     [{"blocker":…,"blocked":…}], so a model that echoes the key name "blocker" in an edge line
+  //     scores it off the fixture alone, and "blocked by" is the other natural phrasing of the same
+  //     line. This set is NOT idiolect-only, whatever the "sequencable" synonym suggests; it is carried
+  //     as unsettled only because hedging in that direction is the cheaper mistake.
+  //   - both must_avoid sets — expected true, but NOT safely true on this arm. gradeCoverage scores
+  //     must_avoid against the model's own answer text; the question asks for a one-line reason per
+  //     unplaced ticket; TCK-31 (the CI base-image bump) is the ticket with no outcome partner. So the
+  //     control writes a reason line for it, and "housekeeping", "chores" and "infra work" are exactly
+  //     the words a model reaches for there. What suppresses them is the leave-loose rubric — and the
+  //     control is the arm that does not load it.
+  // So the band is 0.5 to 0.833 WHILE both must_avoid positions hold; one flip puts the control at
+  // 0.333 with both open must_include positions still open, and that is still not a regression. Read
+  // the per-check vector, never the score. On the control arm, diagnose a must_avoid flip as a
+  // missing-rubric effect first — naive labelling is the very thing that set was written to catch — and
+  // as a task shift only if the same position also flips on the --plugin arm, which does load the
+  // rubric. That contrast is the diagnostic, not the flip on its own. The invoicing set going false on
+  // either arm is the one unambiguous sign the task moved. The plugin delta on this kind is carried
+  // substantially by vocabulary the rubric supplies rather than by judgement quality, which is worth
+  // knowing when reading the delta. Fuller reasoning: the FAFF-669 design doc's failure-modes section.
   if (c.kind === "grouping") {
     return (
       `${rubric}Propose outcome-led homes for the following project-less tickets and answer: ${c.question}\n\n` +

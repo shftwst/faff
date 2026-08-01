@@ -2,12 +2,14 @@
 #
 # link-skills.sh
 #
-# Symlink every skill in skills/ into a .claude/skills/ directory so
-# Claude Code can discover them. The source of truth stays in this repo.
+# Symlink every skill in skills/ into the directories a harness scans for skills,
+# so Claude Code and Codex can discover them. The source of truth stays in this repo.
 #
-# By default targets the repo-local .claude/skills/ dir. Pass --global to
-# target ~/.claude/skills/ instead (makes the skills available in every
-# project on this machine).
+# By default targets the repo-local .claude/skills/ dir. Pass --global to target the
+# machine-wide skill directories instead: ~/.claude/skills/ (Claude Code) and
+# ~/.agents/skills/ (Codex and any other Agent Skills tool — the cross-tool
+# convention rather than one vendor's home). One symlink per skill in each; the
+# directories themselves are never symlinked, so other tools' skills are untouched.
 #
 # Discovery rule: any top-level dir in plugin/skills/ that contains a SKILL.md.
 #
@@ -19,17 +21,18 @@
 #
 # Flags:
 #   (default)         link into <repo>/.claude/skills
-#   --global          link into ~/.claude/skills
+#   --global          link into ~/.claude/skills and ~/.agents/skills
 #   --dry|--dry-run   show what would happen, no writes
 #   --replace         replace real dirs at the target whose names match a
 #                     discovered skill (destructive — only use on first-time
-#                     bootstrap when ~/.claude/skills has pre-existing copies)
+#                     bootstrap when a target holds pre-existing copies). Only
+#                     entries named after a discovered faff skill are touched.
 #   --unlink|--remove remove only the symlinks this script owns (that point
 #                     into this repo's skills/); leaves foreign entries
 #                     alone. Useful before removing a worktree so the global
-#                     dir doesn't dangle.
+#                     dirs don't dangle.
 #   --prune           remove dead symlinks that point into skills/
-#   --status          report current link state at the target, make no changes
+#   --status          report current link state at each target, make no changes
 #
 # Usage:
 #   bash scripts/link-skills.sh
@@ -62,7 +65,7 @@ for arg in "$@"; do
     --unlink|--remove) UNLINK=1 ;;
     --status) STATUS=1 ;;
     -h|--help)
-      sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -72,11 +75,54 @@ for arg in "$@"; do
   esac
 done
 
+# FAFF-672: --global installs the same per-skill symlink into every directory a harness
+# scans, so the install targets are PLURAL. They live in one ordered list, built once here;
+# document order is output order. Every operational block below iterates this list and no
+# block reconstructs a target path from $HOME/$REPO_ROOT independently — that single-source
+# rule is what keeps the four blocks from drifting as a target is added or removed. The
+# SOURCE stays singular (SRC_ROOT/SKILLS_ROOT/SRC_DIR, resolved below); only the target is plural.
+
+# Resolve a directory through symlinks. Uses a cd/pwd -P subshell rather than `realpath`,
+# which is not present on every macOS the installer runs on. A path that does not exist (or
+# that cd cannot enter) resolves to itself — it aliases nothing.
+resolve_path() {
+  local p="$1"
+  if [ -d "$p" ]; then
+    ( cd "$p" 2>/dev/null && pwd -P ) || printf '%s' "$p"
+  else
+    printf '%s' "$p"
+  fi
+}
+
+# De-duplicate TARGET_DIRS by RESOLVED path, keeping the first occurrence in list order.
+# A user who hand-fixed this bug with `ln -s ~/.claude/skills ~/.agents/skills` has one
+# directory reachable by two literal paths; treating them as two would double-count status,
+# re-run the destructive --replace pass over the same inode, and make cross-target checks
+# compare a directory against itself. Collapsing keeps a working install working. Rewrites
+# TARGET_DIRS in place. (Parallel accumulators, not an associative array — macOS ships bash 3.2.)
+dedupe_by_resolved_path() {
+  local -a kept=()
+  local seen=""            # newline-delimited "<resolved>\t<literal>" records
+  local d resolved match
+  for d in "${TARGET_DIRS[@]}"; do
+    resolved="$(resolve_path "$d")"
+    match="$(printf '%s' "$seen" | awk -F '\t' -v r="$resolved" '$1==r {print $2; exit}')"
+    if [ -n "$match" ]; then
+      echo "⚠  $d resolves to $match — treating them as one target"
+      continue
+    fi
+    seen="${seen}${resolved}"$'\t'"${d}"$'\n'
+    kept+=("$d")
+  done
+  TARGET_DIRS=("${kept[@]}")
+}
+
 if [ "$GLOBAL" -eq 1 ]; then
-  TARGET_DIR="${HOME}/.claude/skills"
+  TARGET_DIRS=("${HOME}/.claude/skills" "${HOME}/.agents/skills")
 else
-  TARGET_DIR="${REPO_ROOT}/.claude/skills"
+  TARGET_DIRS=("${REPO_ROOT}/.claude/skills")
 fi
+dedupe_by_resolved_path
 
 # FAFF-443: a --global install is machine-wide and long-lived, so it must be sourced from
 # the stable main checkout, never an ephemeral linked worktree — otherwise the global links
@@ -132,17 +178,13 @@ if [ ${#SKILL_DIRS[@]} -eq 0 ]; then
   exit 1
 fi
 
-# --status: report and exit without changes.
+# --status: report and exit without changes. Source header + counters are single-run; the
+# per-target block loops. A missing target prints a per-target note and CONTINUES — it must
+# never `exit 0` before every target has been visited (else it reproduces the half-install).
 if [ "$STATUS" -eq 1 ]; then
   echo "Source: $SRC_DIR"
-  echo "Target: $TARGET_DIR"
   [ "$GLOBAL" -eq 1 ] && echo "(global mode)"
   echo
-
-  if [ ! -d "$TARGET_DIR" ]; then
-    echo "Target dir does not exist — nothing linked."
-    exit 0
-  fi
 
   linked_ct=0
   foreign_ct=0
@@ -150,37 +192,46 @@ if [ "$STATUS" -eq 1 ]; then
   real_ct=0
   missing_ct=0
 
-  for src in "${SKILL_DIRS[@]}"; do
-    name="$(basename "$src")"
-    dst="$TARGET_DIR/$name"
-    if [ -L "$dst" ]; then
-      current="$(readlink "$dst")"
-      if [ "$current" = "$src" ]; then
-        if [ -e "$dst" ]; then
-          printf "  ✓ %-30s → this repo\n" "$name"
-          linked_ct=$((linked_ct + 1))
-        else
-          printf "  ⚠ %-30s → dangling (%s)\n" "$name" "$current"
-          dangling_ct=$((dangling_ct + 1))
-        fi
-      else
-        printf "  ⚠ %-30s → foreign symlink (%s)\n" "$name" "$current"
-        foreign_ct=$((foreign_ct + 1))
-      fi
-    elif [ -d "$dst" ]; then
-      printf "  ✗ %-30s real dir at target (blocks link)\n" "$name"
-      real_ct=$((real_ct + 1))
-    elif [ -e "$dst" ]; then
-      printf "  ✗ %-30s non-dir file at target\n" "$name"
-      real_ct=$((real_ct + 1))
-    else
-      printf "  · %-30s not linked\n" "$name"
-      missing_ct=$((missing_ct + 1))
+  for TARGET_DIR in "${TARGET_DIRS[@]}"; do
+    echo "Target: $TARGET_DIR"
+    if [ ! -d "$TARGET_DIR" ]; then
+      echo "  nothing linked here — target dir does not exist"
+      echo
+      continue
     fi
+
+    for src in "${SKILL_DIRS[@]}"; do
+      name="$(basename "$src")"
+      dst="$TARGET_DIR/$name"
+      if [ -L "$dst" ]; then
+        current="$(readlink "$dst")"
+        if [ "$current" = "$src" ]; then
+          if [ -e "$dst" ]; then
+            printf "  ✓ %-30s → this repo\n" "$name"
+            linked_ct=$((linked_ct + 1))
+          else
+            printf "  ⚠ %-30s → dangling (%s)\n" "$name" "$current"
+            dangling_ct=$((dangling_ct + 1))
+          fi
+        else
+          printf "  ⚠ %-30s → foreign symlink (%s)\n" "$name" "$current"
+          foreign_ct=$((foreign_ct + 1))
+        fi
+      elif [ -d "$dst" ]; then
+        printf "  ✗ %-30s real dir at target (blocks link)\n" "$name"
+        real_ct=$((real_ct + 1))
+      elif [ -e "$dst" ]; then
+        printf "  ✗ %-30s non-dir file at target\n" "$name"
+        real_ct=$((real_ct + 1))
+      else
+        printf "  · %-30s not linked\n" "$name"
+        missing_ct=$((missing_ct + 1))
+      fi
+    done
+    echo
   done
 
-  echo
-  echo "Summary:"
+  echo "Summary (totals across targets):"
   printf "  linked (this repo): %d\n" "$linked_ct"
   printf "  not linked:         %d\n" "$missing_ct"
   printf "  foreign symlinks:   %d\n" "$foreign_ct"
@@ -195,43 +246,57 @@ if [ "$STATUS" -eq 1 ]; then
   exit 0
 fi
 
-# --unlink: remove only symlinks pointing into THIS repo's skills/.
+# --unlink: remove only symlinks pointing into THIS repo's skills/, from EVERY target.
+# Best-effort per target — a missing or unwritable target is recorded and skipped, never a
+# reason to leave the other target uncleaned (the pre-worktree-remove cleanup FAFF-443 needs).
 if [ "$UNLINK" -eq 1 ]; then
   echo "Source: $SRC_DIR"
-  echo "Target: $TARGET_DIR"
   [ "$GLOBAL" -eq 1 ] && echo "(global mode)"
   [ "$DRY_RUN" -eq 1 ] && echo "(dry run — no changes will be made)"
   echo "Unlinking symlinks that point into $SRC_DIR"
   echo
 
-  if [ ! -d "$TARGET_DIR" ]; then
-    echo "Target dir does not exist — nothing to unlink."
-    exit 0
-  fi
-
   unlinked=0
   left_alone=0
-  shopt -s nullglob
-  for entry in "$TARGET_DIR"/*; do
-    [ -L "$entry" ] || continue
-    name="$(basename "$entry")"
-    target="$(readlink "$entry")"
-    case "$target" in
-      "$SRC_DIR"/*)
-        printf "  - %-30s (unlinking → %s)\n" "$name" "$target"
-        if [ "$DRY_RUN" -eq 0 ]; then
-          rm "$entry"
-        fi
-        unlinked=$((unlinked + 1))
-        ;;
-      *)
-        left_alone=$((left_alone + 1))
-        ;;
-    esac
-  done
-  shopt -u nullglob
+  failed_targets=""
 
-  # also remove the ~/.local/bin/faff symlink if it points into this repo
+  for TARGET_DIR in "${TARGET_DIRS[@]}"; do
+    echo "Target: $TARGET_DIR"
+    if [ ! -d "$TARGET_DIR" ]; then
+      echo "  nothing to unlink here — target dir does not exist"
+      echo
+      continue
+    fi
+
+    target_failed=0
+    shopt -s nullglob
+    for entry in "$TARGET_DIR"/*; do
+      [ -L "$entry" ] || continue
+      name="$(basename "$entry")"
+      target="$(readlink "$entry")"
+      case "$target" in
+        "$SRC_DIR"/*)
+          printf "  - %-30s (unlinking → %s)\n" "$name" "$target"
+          if [ "$DRY_RUN" -eq 0 ]; then
+            if ! rm "$entry" 2>/dev/null; then
+              printf "  ✗ %-30s (could not remove)\n" "$name"
+              target_failed=1
+              continue
+            fi
+          fi
+          unlinked=$((unlinked + 1))
+          ;;
+        *)
+          left_alone=$((left_alone + 1))
+          ;;
+      esac
+    done
+    shopt -u nullglob
+    [ "$target_failed" -eq 1 ] && failed_targets="${failed_targets}${TARGET_DIR} "
+    echo
+  done
+
+  # also remove the ~/.local/bin/faff symlink if it points into this repo — ONCE, after the loop
   if [ -L "$BIN_DST" ] && [ "$(readlink "$BIN_DST")" = "$BIN_SRC" ]; then
     printf "  - %-30s (unlinking → %s)\n" "faff (CLI)" "$BIN_SRC"
     [ "$DRY_RUN" -eq 0 ] && rm "$BIN_DST"
@@ -242,13 +307,19 @@ if [ "$UNLINK" -eq 1 ]; then
   echo "Summary:"
   printf "  unlinked:    %d\n" "$unlinked"
   printf "  left alone:  %d (foreign symlinks / real dirs)\n" "$left_alone"
+  if [ -n "$failed_targets" ]; then
+    echo
+    echo "⚠  could not fully clean these target(s): $failed_targets"
+    exit 1
+  fi
   exit 0
 fi
 
-mkdir -p "$TARGET_DIR"
-
+# Create path: link each skill into EVERY target. Header + counters are single-run and above
+# the target loop, so counts accumulate across targets; the per-skill work loops per target.
 echo "Source: $SRC_DIR"
-echo "Target: $TARGET_DIR"
+echo "Targets:"
+for TARGET_DIR in "${TARGET_DIRS[@]}"; do echo "  - $TARGET_DIR"; done
 [ "$GLOBAL" -eq 1 ] && echo "(global mode — linking into \$HOME)"
 [ "$DRY_RUN" -eq 1 ] && echo "(dry run — no changes will be made)"
 [ "$REPLACE" -eq 1 ] && echo "(replace mode — real dirs at target will be removed)"
@@ -259,78 +330,96 @@ refreshed=0
 replaced=0
 skipped=0
 errors=0
+failed_targets=""
 
-for src in "${SKILL_DIRS[@]}"; do
-  name="$(basename "$src")"
-  dst="$TARGET_DIR/$name"
-
-  if [ -L "$dst" ]; then
-    current="$(readlink "$dst")"
-    if [ "$current" = "$src" ]; then
-      printf "  ✓ %-30s (already linked)\n" "$name"
-      linked=$((linked + 1))
-      continue
-    else
-      printf "  ↻ %-30s (relinking: %s → %s)\n" "$name" "$current" "$src"
-      if [ "$DRY_RUN" -eq 0 ]; then
-        ln -sfn "$src" "$dst"
-      fi
-      refreshed=$((refreshed + 1))
-      continue
-    fi
-  fi
-
-  if [ -e "$dst" ]; then
-    if [ "$REPLACE" -eq 1 ]; then
-      printf "  ⟳ %-30s (replacing real entry → %s)\n" "$name" "$src"
-      if [ "$DRY_RUN" -eq 0 ]; then
-        rm -rf "$dst"
-        ln -s "$src" "$dst"
-      fi
-      replaced=$((replaced + 1))
-      continue
-    fi
-    printf "  ⚠  %-30s COPY install — NOT dev-linked; shipped repo changes won't go live. Re-run with --replace (or run 'faff doctor').\n" "$name"
-    skipped=$((skipped + 1))
+for TARGET_DIR in "${TARGET_DIRS[@]}"; do
+  echo "Target: $TARGET_DIR"
+  if ! mkdir -p "$TARGET_DIR" 2>/dev/null; then
+    echo "  ✗ could not create/access $TARGET_DIR — skipping this target"
     errors=$((errors + 1))
+    failed_targets="${failed_targets}${TARGET_DIR} "
+    echo
     continue
   fi
 
-  printf "  + %-30s (new link → %s)\n" "$name" "$src"
-  if [ "$DRY_RUN" -eq 0 ]; then
-    ln -s "$src" "$dst"
-  fi
-  linked=$((linked + 1))
+  for src in "${SKILL_DIRS[@]}"; do
+    name="$(basename "$src")"
+    dst="$TARGET_DIR/$name"
+
+    if [ -L "$dst" ]; then
+      current="$(readlink "$dst")"
+      if [ "$current" = "$src" ]; then
+        printf "  ✓ %-30s (already linked)\n" "$name"
+        linked=$((linked + 1))
+        continue
+      else
+        printf "  ↻ %-30s (relinking: %s → %s)\n" "$name" "$current" "$src"
+        if [ "$DRY_RUN" -eq 0 ]; then
+          ln -sfn "$src" "$dst"
+        fi
+        refreshed=$((refreshed + 1))
+        continue
+      fi
+    fi
+
+    if [ -e "$dst" ]; then
+      if [ "$REPLACE" -eq 1 ]; then
+        printf "  ⟳ %-30s (replacing real entry → %s)\n" "$name" "$src"
+        if [ "$DRY_RUN" -eq 0 ]; then
+          rm -rf "$dst"
+          ln -s "$src" "$dst"
+        fi
+        replaced=$((replaced + 1))
+        continue
+      fi
+      printf "  ⚠  %-30s COPY install — NOT dev-linked; shipped repo changes won't go live. Re-run with --replace (or run 'faff doctor').\n" "$name"
+      skipped=$((skipped + 1))
+      errors=$((errors + 1))
+      continue
+    fi
+
+    printf "  + %-30s (new link → %s)\n" "$name" "$src"
+    if [ "$DRY_RUN" -eq 0 ]; then
+      ln -s "$src" "$dst"
+    fi
+    linked=$((linked + 1))
+  done
+  echo
 done
 
-# Prune dead symlinks
+# Prune dead symlinks from every target. `pruned` is single-run (outside the flag block).
 pruned=0
 if [ "$PRUNE" -eq 1 ]; then
-  echo
-  echo "Pruning dead symlinks in $TARGET_DIR"
-  shopt -s nullglob
-  for entry in "$TARGET_DIR"/*; do
-    [ -L "$entry" ] || continue
-    name="$(basename "$entry")"
-    target="$(readlink "$entry")"
-    case "$target" in
-      "$SRC_DIR"/*) ;;
-      *) continue ;;
-    esac
-    if [ ! -e "$target" ]; then
-      printf "  - %-30s (pruning dead link → %s)\n" "$name" "$target"
-      if [ "$DRY_RUN" -eq 0 ]; then
-        rm "$entry"
-      fi
-      pruned=$((pruned + 1))
+  for TARGET_DIR in "${TARGET_DIRS[@]}"; do
+    echo "Pruning dead symlinks in $TARGET_DIR"
+    if [ ! -d "$TARGET_DIR" ]; then
+      echo "  (target dir does not exist)"
+      continue
     fi
+    shopt -s nullglob
+    for entry in "$TARGET_DIR"/*; do
+      [ -L "$entry" ] || continue
+      name="$(basename "$entry")"
+      target="$(readlink "$entry")"
+      case "$target" in
+        "$SRC_DIR"/*) ;;
+        *) continue ;;
+      esac
+      if [ ! -e "$target" ]; then
+        printf "  - %-30s (pruning dead link → %s)\n" "$name" "$target"
+        if [ "$DRY_RUN" -eq 0 ]; then
+          rm "$entry"
+        fi
+        pruned=$((pruned + 1))
+      fi
+    done
+    shopt -u nullglob
   done
-  shopt -u nullglob
+  echo
 fi
 
-# Symlink the bundled faff CLI onto PATH so `faff …` works bare.
+# Symlink the bundled faff CLI onto PATH so `faff …` works bare. Single-location, once.
 if [ -f "$BIN_SRC" ]; then
-  echo
   if [ "$DRY_RUN" -eq 0 ]; then
     mkdir -p "$(dirname "$BIN_DST")"
     ln -sfn "$BIN_SRC" "$BIN_DST"
@@ -355,10 +444,11 @@ printf "  skipped:   %d\n" "$skipped"
 
 if [ "$errors" -gt 0 ]; then
   echo
-  echo "⚠  $errors target(s) existed as real files/dirs and were not touched."
-  echo "   Re-run with --replace to overwrite them, or move them out manually."
+  echo "⚠  $errors entr(y/ies) at a target existed as real files/dirs (or a target was unwritable) and were not touched."
+  [ -n "$failed_targets" ] && echo "   unwritable target(s): $failed_targets"
+  echo "   Re-run with --replace to overwrite real entries, or move them out manually."
   exit 1
 fi
 
 echo
-echo "Done. Skills are now discoverable by Claude Code at $TARGET_DIR"
+echo "Done. Skills are now discoverable at: ${TARGET_DIRS[*]}"

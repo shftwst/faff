@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, realpathSync, existsSync, statSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, realpathSync, existsSync, statSync, lstatSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,6 +110,8 @@ test("FAFF-443: --global from a linked worktree whose main lacks plugin/skills R
     assert.equal(r.code, 1, "must refuse rather than dangle");
     assert.match(r.err, /main checkout has no plugin\/skills/);
     assert.equal(existsSync(join(home, ".claude", "skills")), false, "no links created on refuse");
+    // FAFF-672: a refusal that populated ONE target would itself be a half-install — neither may exist
+    assert.equal(existsSync(join(home, ".agents", "skills")), false, "no ~/.agents/skills created on refuse either");
   } finally { clean([main, wt, home]); }
 });
 
@@ -153,6 +155,88 @@ test("FAFF-443: --global --unlink from a worktree does NOT retarget (documented 
     assert.equal(existsSync(join(home, ".claude", "skills", "demo-skill")), false,
       "the worktree-sourced link should have been unlinked");
   } finally { clean([main, wt, home]); }
+});
+
+// ---- FAFF-672: --global installs into TWO targets (~/.claude/skills + ~/.agents/skills) ----
+
+test("FAFF-672: --global installs each skill into BOTH ~/.claude/skills and ~/.agents/skills, resolving to MAIN", () => {
+  const main = mkMainRepo();
+  const wt = addWorktree(main);
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    const r = linkSh(wt, home, "--global");
+    assert.equal(r.code, 0, r.err);
+    for (const t of [".claude", ".agents"]) {
+      const link = join(home, t, "skills", "demo-skill");
+      assert.ok(existsSync(link), `${t}/skills/demo-skill should exist`);
+      assert.equal(realpathSync(link), realpathSync(join(main, "plugin", "skills", "demo-skill")),
+        `${t} link must resolve under MAIN's plugin/skills`);
+    }
+    // both point at the repo, not at each other
+    assert.equal(realpathSync(join(home, ".claude", "skills", "demo-skill")),
+      realpathSync(join(home, ".agents", "skills", "demo-skill")),
+      "both targets resolve to the same source");
+    // neither target directory is itself a symlink — other tools' entries stay put
+    assert.equal(lstatSync(join(home, ".claude", "skills")).isSymbolicLink(), false, "~/.claude/skills is a real dir");
+    assert.equal(lstatSync(join(home, ".agents", "skills")).isSymbolicLink(), false, "~/.agents/skills is a real dir");
+  } finally { clean([main, wt, home]); }
+});
+
+test("FAFF-672: --global --unlink from a worktree cleans worktree-sourced links from BOTH targets", () => {
+  const main = mkMainRepo();
+  const wt = addWorktree(main);
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    // a pre-fix worktree-SOURCED global install present in both targets
+    for (const t of [".claude", ".agents"]) {
+      mkdirSync(join(home, t, "skills"), { recursive: true });
+      execFileSync("ln", ["-s", join(wt, "plugin", "skills", "demo-skill"), join(home, t, "skills", "demo-skill")]);
+    }
+    const r = linkSh(wt, home, "--global", "--unlink");
+    assert.equal(r.code, 0, r.err);
+    assert.equal(existsSync(join(home, ".claude", "skills", "demo-skill")), false, "the ~/.claude worktree-sourced link is cleaned");
+    assert.equal(existsSync(join(home, ".agents", "skills", "demo-skill")), false, "the ~/.agents worktree-sourced link is cleaned too");
+  } finally { clean([main, wt, home]); }
+});
+
+test("FAFF-672: --global --replace replaces a faff-named copy in ~/.agents/skills but leaves a non-faff entry beside it untouched", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    // a non-faff entry and a faff-named COPY install, side by side in ~/.agents/skills
+    mkdirSync(join(home, ".agents", "skills", "other-tool-skill"), { recursive: true });
+    writeFileSync(join(home, ".agents", "skills", "other-tool-skill", "keep"), "x\n");
+    mkdirSync(join(home, ".agents", "skills", "demo-skill"), { recursive: true });
+    writeFileSync(join(home, ".agents", "skills", "demo-skill", "SKILL.md"), "# copy\n");
+    const r = linkSh(main, home, "--global", "--replace");
+    assert.equal(r.code, 0, r.err);
+    // the bound that is the whole safety argument: a name no faff skill owns is never touched
+    assert.ok(existsSync(join(home, ".agents", "skills", "other-tool-skill", "keep")),
+      "a non-faff entry must survive --replace");
+    // the faff-named copy is now a repo symlink
+    assert.equal(lstatSync(join(home, ".agents", "skills", "demo-skill")).isSymbolicLink(), true,
+      "the faff-named copy was replaced by a symlink");
+    assert.equal(realpathSync(join(home, ".agents", "skills", "demo-skill")),
+      realpathSync(join(main, "plugin", "skills", "demo-skill")), "and it points into the repo");
+  } finally { clean([main, home]); }
+});
+
+test("FAFF-672: with ~/.agents/skills symlinked to ~/.claude/skills, --status reports one target and counts each skill once", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    linkSh(main, home, "--global"); // populate both targets as real dirs
+    // the user hand-fixed the bug with a directory symlink — collapse must kick in
+    rmSync(join(home, ".agents", "skills"), { recursive: true, force: true });
+    execFileSync("ln", ["-s", join(home, ".claude", "skills"), join(home, ".agents", "skills")]);
+    const r = linkSh(main, home, "--global", "--status");
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /resolves to .*\.claude\/skills — treating them as one target/);
+    const targetLines = (r.out.match(/^Target: /gm) || []).length;
+    assert.equal(targetLines, 1, "a collapsed setup reports exactly one target");
+    // two skills (faff, demo-skill), each counted once — not doubled
+    assert.match(r.out, /linked \(this repo\): 2/);
+  } finally { clean([main, home]); }
 });
 
 test("FAFF-443: doctor flags a live global symlink resolving INTO a worktree (⚠ intoWorktree, exit 1)", () => {

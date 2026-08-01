@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -524,10 +524,12 @@ test("FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the indepen
 
 test("FAFF-669 extractSectionToEnd fails loud, naming its loader, when the start anchor is absent", () => {
   const dir = mkdtempSync(join(tmpdir(), "faff-669-"));
-  mkdirSync(join(dir, "skills", "faffter-dark-adversarial-review"), { recursive: true });
-  writeFileSync(join(dir, "skills", "faffter-dark-adversarial-review", "SKILL.md"), "# Something else\n\nNo anchor here.\n");
-  assert.throws(() => loadAdrDriftProse(dir), /loadAdrDriftProse: START anchor not found/);
-  assert.throws(() => loadAdrDriftProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+  try {
+    mkdirSync(join(dir, "skills", "faffter-dark-adversarial-review"), { recursive: true });
+    writeFileSync(join(dir, "skills", "faffter-dark-adversarial-review", "SKILL.md"), "# Something else\n\nNo anchor here.\n");
+    assert.throws(() => loadAdrDriftProse(dir), /loadAdrDriftProse: START anchor not found/);
+    assert.throws(() => loadAdrDriftProse("/no/such/plugin"), /cannot read|SKILL\.md/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin", () => {
@@ -657,12 +659,22 @@ test("FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through", 
     // (3) Deliberately drives the assembled prompt — this is an assertion about composition, not about
     //     one constant's contents. Compared against the exported constant rather than a hand-typed tidy
     //     phrase, so an armed kind whose framing happens to mention faff-tidy cannot be failed by it.
-    const prompt = buildEvalPrompt({ id, kind: k, question: "guard probe", fixture: {} },
-      criteriaFor(k, DEFAULT_PLUGIN_DIR));
+    const probe = { id, kind: k, question: "guard probe", fixture: {} };
+    const criteria = criteriaFor(k, DEFAULT_PLUGIN_DIR);
+    const prompt = buildEvalPrompt(probe, criteria);
     assert.ok(!prompt.endsWith(EVAL_MODE_INSTRUCTION.replace("<ID>", id)),
       `kind ${k}: prompt ends with the tidy fall-through envelope`);
-    assert.notEqual(criteriaFor(k, DEFAULT_PLUGIN_DIR), tidyCriteria,
+    assert.notEqual(criteria, tidyCriteria,
       `kind ${k}: criteria fall through to tidy's combined rubric`);
+    // (3b) The renderer ladder, mechanised the same way. Instruction and criteria were covered; a
+    //     fifth kind arriving with both of those and NO renderFixturePrompt arm would pass everything
+    //     above — the same silent gap in a third position. Rather than hand-type the tidy framing
+    //     phrase, render the SAME probe under a kind name that is registered nowhere: whatever comes
+    //     back IS the default arm's output, by construction and whatever it is worded as. A kind
+    //     missing its arm produces that byte-for-byte, so the prompt starts with it.
+    const tidyRender = renderFixturePrompt({ ...probe, kind: "__no-such-kind__" }, criteria);
+    assert.ok(!prompt.startsWith(tidyRender),
+      `kind ${k}: renderFixturePrompt falls through to tidy's backlog framing`);
   }
 });
 
@@ -820,8 +832,17 @@ test("FAFF-669 grouping-001's question no longer leaks the oracle, and the oracl
 });
 
 // Removing the leak must not make a set unreachable by construction: under --plugin, every must_include
-// set needs at least one member the model could plausibly produce from what it was shown. Matched with
-// hyphens folded to spaces, the way a model writing prose would render "password-reset".
+// set needs at least one member the model could plausibly produce from what it was shown.
+//
+// The [-_/]+ → space fold below is a property of the question THIS TEST asks — "could the text the model
+// was shown plausibly supply this set" — not a mirror of how the answer will be graded. It is load-
+// bearing: without it set 0 fails, because the fixture only ever writes "password-reset" while the
+// oracle wants "password reset". Grading is stricter than that. gradeCoverage matches through
+// entryMatches, a plain lowercase substring test with no folding of any kind (the grader's normLabel,
+// which does fold, serves gradeSplittable and never touches grouping). Being more generous than the
+// grader is the right direction here: this test is an unreachable-by-construction alarm, and a false
+// alarm on a set the model could reach by writing the phrase in ordinary prose would be a worse failure
+// than a missed one.
 test("FAFF-669 every grouping must_include set stays reachable from the fixture or the loaded rubric", () => {
   const c = readCase("grouping-001.json");
   const fold = (s) => s.toLowerCase().replace(/[-_/]+/g, " ");
@@ -832,10 +853,10 @@ test("FAFF-669 every grouping must_include set stays reachable from the fixture 
   });
   // Set 2 is faff's own idiolect — the leave-loose vocabulary — and after the rewording the rubric is
   // its only in-prompt source, which is exactly the --plugin versus --no-plugin contrast this eval
-  // exists to measure. So the expected control vector for grouping-001 is
-  // [true, true, false, false, true, true]: four of six checks, a score of 0.667. That is the
-  // pre-recorded consequence of a deliberate choice, not a regression — and the plugin delta on this
-  // kind is carried substantially by vocabulary the rubric supplies rather than by judgement quality.
+  // exists to measure. It is the one set the control provably cannot reach, and the only position of
+  // the six this test can pin. The control's other two open positions (set 0's hyphen, set 3's
+  // "blocker" key) are argued out beside the grouping renderer arm in eval/cli-driver.mjs and in the
+  // design doc's failure modes; the expected control lands in a band, not on one number.
   const withoutRubric = fold(JSON.stringify(c.fixture)) + "\n" + fold(c.question);
   assert.ok(!c.oracle.gloss_rubric.must_include[2].some((syn) => withoutRubric.includes(fold(syn))),
     "the leave-loose set is reachable without the rubric — the control floor above no longer holds");

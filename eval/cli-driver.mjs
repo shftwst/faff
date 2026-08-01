@@ -643,8 +643,8 @@ export const PREP_ARCHITECTURE_TRIGGER_INSTRUCTION =
   "Output NOTHING except that single block: no reasoning, no preamble, no prose, nothing before or after it.";
 
 // grouping is a coverage kind: gradeCoverage reads a flat array OR a {id: text} map, so ask for the
-// flat array. The control (--no-plugin) is expected to land on four of six coverage checks — see the
-// interpretation note beside the grouping renderer arm.
+// flat array. The control (--no-plugin) is expected to land in a band rather than on a single number
+// — see the interpretation note beside the grouping renderer arm.
 export const GROUPING_MODE_INSTRUCTION =
   "Produce the rehome-set proposal for the tickets above by the procedure in the criteria, then OUTPUT " +
   "ONLY one fenced code block tagged exactly `faff-eval:judgement` (that tag, NOT ```json) containing " +
@@ -874,11 +874,22 @@ export function renderFixturePrompt(c, judgementProse = null) {
       `Issue:\n${JSON.stringify(c.fixture.issue, null, 2)}\n\nExplore findings:\n${c.fixture.explore_findings}`
     );
   }
-  // The expected --no-plugin control vector for grouping-001 is [true, true, false, false, true, true]
-  // — a score of 0.667, not a regression. Two of its four must_include sets are faff's own idiolect
-  // (the leave-loose set, the coherence/sequencable edge vocabulary), which the control has no in-prompt
-  // source for now that the case question no longer leaks them. The plugin arm reaches them through the
-  // rubric, which is the contrast this eval exists to measure.
+  // The --no-plugin control on grouping-001 is expected to land between 0.5 and 0.833 of its six
+  // gradeCoverage checks. Four of the six are settled: the invoicing set is all over the fixture's own
+  // ticket titles (true); the leave-loose set is faff's idiolect with the loaded rubric as its only
+  // in-prompt source, so the control cannot reach it (false); and both must_avoid sets pass. Two are
+  // genuinely open, in opposite directions:
+  //   - the password-reset set. The fixture only ever writes "password-reset"; the oracle wants
+  //     "password reset". gradeCoverage matches through entryMatches, a plain lowercase substring test
+  //     with no hyphen folding, so this one turns on whether the model happens to write the phrase
+  //     unhyphenated (or reaches "account recovery" on its own).
+  //   - the ordering-edge set. dependency_graph serialises as [{"blocker":…,"blocked":…}], so a model
+  //     that echoes the key name "blocker" in an edge line scores it off the fixture alone — this set
+  //     is NOT idiolect-only, whatever the "sequencable" synonym suggests.
+  // So read any swept number in that band as the control floor, not as a regression, and read the
+  // per-check vector rather than the score. The plugin delta on this kind is carried substantially by
+  // vocabulary the rubric supplies rather than by judgement quality, which is worth knowing when
+  // reading the delta. Fuller reasoning: the FAFF-669 design doc's failure-modes section.
   if (c.kind === "grouping") {
     return (
       `${rubric}Propose outcome-led homes for the following project-less tickets and answer: ${c.question}\n\n` +

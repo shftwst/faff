@@ -32,15 +32,13 @@
     "follow_ups": {
       "operator_sweep": "FAFF-614 (operator-owned, not automation-eligible — the eval/README.md runbook is its instructions)",
       "resolve_undecided": "FAFF-615 (blockedBy FAFF-614 — resolves the 1 needs-evidence + 3 suspected-genuine-miss entries from the sweep captures)",
-      "calibrated_registry_tier": "FAFF-616 (covered != calibrated — its own design conversation)"
+      "calibrated_registry_tier": "FAFF-616 (covered != calibrated — its own design conversation)",
+      "empty_case_set_guard": "FAFF-691 (guard eval/run-evals.mjs against a zero-case frontier sweep — resolve the driver after the --only filter and refuse a zero-case run, so a stale --only can never silently sweep nothing and exit 0)",
+      "chain_gap_resolved_elsewhere_tolerance": "FAFF-692 (chain-gap and resolved-elsewhere grade binary via set-equality yet sit outside CLOSED_SET_KINDS and get the 0.03 free-text tolerance — reconcile the incoherent fractional tolerance on a binary grade)",
+      "fixture_widening": "FAFF-693 (widen the single- and two-case fixtures for grouping, resolved-elsewhere and holdout-exercise; also removes holdout-exercise from policy.warn_kinds once the row is wide enough and retires TARGET_KINDS after FAFF-614 re-baselines)"
     },
     "remaining_kinds": [],
     "paid_model_reps": 0,
-    "follow_ups_pending": {
-      "empty_case_set_guard": "eval/run-evals.mjs lines 689-692 — resolve the driver AFTER the --only filter and refuse a zero-case frontier run, so a stale --only can never silently sweep nothing and exit 0. Out of scope here (the sweep's paid path must not change the week before FAFF-614). NOT YET FILED — tracker untouched this pass; to be filed by the operator.",
-      "chain_gap_resolved_elsewhere_tolerance": "eval/run-evals.mjs toleranceFor() line 240 — chain-gap and resolved-elsewhere sit outside CLOSED_SET_KINDS so they get the 0.03 free-text tolerance, yet both grade by binary set-equality (gradeChainGap / gradeSplittable). A fractional tolerance on a binary grade is incoherent. Out of scope (grader-policy change on the eve of a baseline sweep). NOT YET FILED — to be filed by the operator.",
-      "fixture_widening": "Author real fixtures for single-case grouping, single-case resolved-elsewhere and two-case holdout-exercise (eval/cases/ + the kind lists in test/eval-grader.test.mjs). This is also the follow-up that removes 'holdout-exercise' from policy.warn_kinds once the row is wide enough and retires TARGET_KINDS after FAFF-614 re-baselines. NOT YET FILED — to be filed by the operator."
-    },
     "extensions": [
       {
         "ticket": "FAFF-670",

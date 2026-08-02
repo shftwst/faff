@@ -218,6 +218,28 @@ export function summarize(caseResults, incomplete = false) {
   };
 }
 
+// FAFF-691 — the zero-case guard. A run that resolves to zero cases grades nothing, yet summarize([])
+// reports status:"complete" and every entry point maps complete → exit 0 — a hollow green. emptyCaseReason
+// is PURE: it returns null when there is something to run, else a message naming the narrowing that
+// actually emptied the set. loadedCount is cases.length BEFORE the --only filter, so an empty load
+// (empty --cases-dir / a --kind with no fixtures) is told apart from an --only that matched nothing —
+// the message must name the real cause, not whichever filter ran last. assertNonEmptyCases is the
+// throwing form the paid and gate lanes ride to each file's top-level catch; the always-advisory soft
+// gate calls emptyCaseReason directly and warns, so it never throws.
+export function emptyCaseReason(cases, { entry, only, casesDir, kind, loadedCount } = {}) {
+  if (cases.length > 0) return null; // something to run — no refusal
+  const loadedEmpty = loadedCount === 0;
+  if (only && !loadedEmpty) return `${entry}: --only '${only}' matched none of the ${loadedCount} loaded case(s)`;
+  if (casesDir && loadedEmpty) return `${entry}: --cases-dir '${casesDir}' contains no eval cases`;
+  if (kind && loadedEmpty) return `${entry}: --kind '${kind}' has no live fixtures (its adapter loader returned nothing)`;
+  return `${entry}: the eval corpus is empty — nothing to run`;
+}
+
+export function assertNonEmptyCases(cases, ctx) {
+  const reason = emptyCaseReason(cases, ctx);
+  if (reason) throw new Error(reason);
+}
+
 function argFlag(argv, name) {
   const i = argv.indexOf(name);
   return i !== -1 ? argv[i + 1] : null;
@@ -314,7 +336,12 @@ async function gateAgainst(argv, presets, baselinePath) {
   const repsArg = argFlag(argv, "--reps");
   const driver = resolveDriver(argv, presets);
   let cases = loadCases();
+  const loadedCount = cases.length; // FAFF-691 — pre-filter count distinguishes an empty load from an --only no-match
   if (only) cases = cases.filter((c) => c.id === only);
+  // ctx carries only entry/only/loadedCount here: the dir- and kind-cause keys do not apply to this gate
+  // lane (emptyCaseReason treats them as absent → null), and the FAFF-625 source guard also asserts this
+  // function never names the plain-sweep-only flag.
+  assertNonEmptyCases(cases, { entry: "--against gate", only, loadedCount });
   const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
   const reportDir = join(HERE, "report");
   mkdirSync(reportDir, { recursive: true });
@@ -341,7 +368,15 @@ export async function updateBaseline(argv, presets, baselinePath) {
   const model = driverName === "frontier" ? resolveEvalModel(argv) : (argFlag(argv, "--model") ?? null);
 
   let cases = loadCases();
+  const loadedCount = cases.length; // FAFF-691 — pre-filter count (the default corpus is always non-empty)
   if (only) cases = cases.filter((c) => c.id === only);
+  // FAFF-691 — refuse on the --only/full corpus, BEFORE --resume narrows it: a legitimate complete
+  // --resume run reaches here with the (non-empty) full corpus, so it is never false-refused. Placed
+  // before foldInAndWriteBaseline so a zero-case run cannot corrupt the baseline's meta.source/captured_at.
+  // ctx carries only entry/only/loadedCount: the dir- and kind-cause keys do not apply here (absent →
+  // null), which also satisfies the FAFF-625 source guard that this function never names the
+  // plain-sweep-only flag.
+  assertNonEmptyCases(cases, { entry: "--update-baseline", only, loadedCount });
   const expectedKinds = new Set(cases.map((c) => c.kind)); // BEFORE the resume filter narrows cases
   const stamp = { driver: driverName, model, base_reps: baseReps, started_at: new Date().toISOString() };
 
@@ -534,7 +569,12 @@ async function compare(argv, presets) {
   const pluginDir = resolvePluginDir(argv);
   const { baseUrl, model } = resolveLocalParams(argv); // fail-loud before any rep
   let cases = loadCases();
+  const loadedCount = cases.length; // FAFF-691 — pre-filter count distinguishes an empty load from an --only no-match
   if (only) cases = cases.filter((c) => c.id === only);
+  // ctx carries only entry/only/loadedCount: the dir- and kind-cause keys do not apply to --compare
+  // (absent → null), which also satisfies the FAFF-625 source guard that this function never names the
+  // plain-sweep-only flag.
+  assertNonEmptyCases(cases, { entry: "--compare", only, loadedCount });
   const fr = await runEvals({ cases, driver: presets.frontierDriver({ bin, pluginDir }), baseReps });
   const lo = await runEvals({ cases, driver: presets.localDriver({ baseUrl, model, bin, pluginDir }), baseReps });
   const reportDir = join(HERE, "report");
@@ -623,7 +663,15 @@ async function softLocalGate(argv, presets, baselinePath, { probe, runEvalsFn = 
     baseUrl: pf.baseUrl, model: pf.model, bin: argFlag(argv, "--bin") ?? "claude", pluginDir: resolvePluginDir(argv),
   });
   let cases = loadCases().filter((c) => SMOKE_KINDS.has(c.kind));
+  const loadedCount = cases.length; // FAFF-691 — smoke-set count BEFORE --only
   if (only) cases = cases.filter((c) => c.id === only);
+  // FAFF-691 — the one warn-only site: its contract is always-advisory, always-exit-0, so a zero-case
+  // smoke set downgrades the refusal to a warning and never throws.
+  const emptyReason = emptyCaseReason(cases, { entry: "--gate soft smoke", only, casesDir: null, kind: null, loadedCount });
+  if (emptyReason) {
+    console.warn(`[gate] ${emptyReason} — soft smoke not run (advisory; exit 0)`);
+    return 0;
+  }
   const summary = await runEvalsFn({ cases, driver, baseReps: repsArg ? Number(repsArg) : SMOKE_REPS });
   const report = diffAgainstBaseline(summary, baseline);
   printGateTable(report, baselinePath);
@@ -689,7 +737,11 @@ async function main(argv) {
   const casesDir = argFlag(argv, "--cases-dir");
   const driver = resolveDriver(argv, presets); // fail-loud before loadCases/runEvals if local underspecified
   let cases = loadCases(casesDir || undefined);
+  const loadedCount = cases.length; // FAFF-691 — pre-filter count: empty --cases-dir load vs --only no-match
   if (only) cases = cases.filter((c) => c.id === only);
+  // FAFF-691 — refuse before minting a capture path / writing report/latest.json, so a zero-case sweep
+  // never leaves a report claiming a "complete" run behind.
+  assertNonEmptyCases(cases, { entry: "plain sweep", only, casesDir, kind: null, loadedCount });
   const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for the full sweep
   console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
   const summary = await runEvals({ cases, driver, baseReps: repsArg ? Number(repsArg) : BASE_REPS, judgementsPath });

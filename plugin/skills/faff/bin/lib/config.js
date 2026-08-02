@@ -300,6 +300,10 @@ function resolveEngineForLane(cfg, lane) {
     host: family === "codex" ? null : String(entry.host),
     binPath: family === "codex" ? ((entry.bin_path === null || entry.bin_path === undefined || entry.bin_path === "") ? "codex" : String(entry.bin_path)) : null,
     apiKeyEnv: (entry.api_key_env === null || entry.api_key_env === undefined || entry.api_key_env === "") ? null : String(entry.api_key_env),
+    // FAFF-481: carry the resolved auth mode + optional headless seat handle so the
+    // engine-call transport resolves a subscription-seat token (backends.js resolveTokenSource).
+    auth: entry.auth,
+    seatTokenEnv: (entry.seat_token_env === null || entry.seat_token_env === undefined || entry.seat_token_env === "") ? null : String(entry.seat_token_env),
     reasoningOff: entry.reasoning_off === true,
     timeoutMs: (entry.timeout !== null && entry.timeout !== undefined && entry.timeout !== "") ? Number(entry.timeout) * 1000 : 120000,
   };

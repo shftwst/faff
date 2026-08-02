@@ -10,8 +10,14 @@
 // `engines:` entries fold into this namespace at load (collision = hard
 // error); `engine:<name>` keeps resolving against the MERGED namespace
 // (config.js's resolveEngineForLane/validateEngineRef call into here).
-// No `seat_ref` field — `auth: subscription-seat` binds to the ambient
-// interactive session (2026-07-16 operator resolution; see the ADR).
+// FAFF-481 (ADR-0092): `auth: subscription-seat` MAY carry an optional
+// `seat_token_env` handle — the env var naming a HEADLESS seat token (the
+// claude-box long-lived token / an openai-compatible seat). Absent, the seat
+// still binds to the ambient interactive session (codex login / the Claude
+// Code session — the 2026-07-16 ADR-0076 default). The handle is what lets a
+// non-codex seat admit off the interactive harness; codex needs none (its
+// login travels with the CLI). The value is an env var NAME, never the secret
+// (ADR-0067).
 // ===========================================================================
 
 const { dig } = require("./shared-infra");
@@ -20,7 +26,7 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 
 // The full Backend field set a normalized entry carries (beyond `name`).
 const BACKEND_RECORD_KEYS = [
-  "provider", "model", "host", "bin_path", "auth", "api_key_env", "egress", "reasoning_off", "timeout",
+  "provider", "model", "host", "bin_path", "auth", "api_key_env", "seat_token_env", "egress", "reasoning_off", "timeout",
   "telemetry",
 ];
 
@@ -98,11 +104,22 @@ function validateBackendConstraints(name, b) {
   if (b.auth === "api-key" && !present(b.api_key_env)) {
     return `backends.${name}: auth: api-key requires api_key_env`;
   }
+  if (b.auth === "api-key" && present(b.seat_token_env)) {
+    return `backends.${name}: auth: api-key must not carry seat_token_env (a metered key uses api_key_env; the seat handle is for auth: subscription-seat only, FAFF-481)`;
+  }
+  // FAFF-481 (ADR-0092): api_key_env stays the api-key mode's handle and is
+  // never valid on a seat; seat_token_env is the subscription-seat's OPTIONAL
+  // headless handle (absent ⇒ ambient session — codex login / the Claude Code
+  // session). This reopens FAFF-523's "no handle field" deferral: a seat may
+  // now carry a token handle, but only via seat_token_env, never api_key_env.
   if (b.auth === "subscription-seat" && present(b.api_key_env)) {
-    return `backends.${name}: auth: subscription-seat must not carry api_key_env (it binds to the ambient interactive session — no handle field, FAFF-523)`;
+    return `backends.${name}: auth: subscription-seat must not carry api_key_env (a seat is not a metered key; use seat_token_env for a headless seat handle, FAFF-481)`;
   }
   if (b.auth === "none" && present(b.api_key_env)) {
     return `backends.${name}: auth: none must not carry api_key_env`;
+  }
+  if (b.auth === "none" && present(b.seat_token_env)) {
+    return `backends.${name}: auth: none must not carry seat_token_env`;
   }
   // FAFF-604: telemetry is a CLOSED enum with family-capability constraints — a
   // backend may not CLAIM a spend source its family cannot physically serve
@@ -139,6 +156,7 @@ function normalizeBackend(name, raw) {
   b.host = present(raw.host) ? String(raw.host) : undefined;
   b.bin_path = present(raw.bin_path) ? String(raw.bin_path) : undefined;
   b.api_key_env = present(raw.api_key_env) ? String(raw.api_key_env) : undefined;
+  b.seat_token_env = present(raw.seat_token_env) ? String(raw.seat_token_env) : undefined;
   b.reasoning_off = raw.reasoning_off === true ? true : undefined;
   b.timeout = present(raw.timeout) ? Number(raw.timeout) : undefined;
   b.auth = present(raw.auth) ? String(raw.auth) : deriveAuth(b);
@@ -257,9 +275,14 @@ const CURRENT_HARNESS = "claude-code";
 // ($CODEX_HOME/auth.json), independent of the harness faff runs on, so it
 // admits everywhere (FAFF-593). api-key and none are harness-agnostic
 // direct-transport auth modes.
-function portableMatrixAdmits(harness, provider, auth) {
+function portableMatrixAdmits(harness, provider, auth, seatTokenEnv) {
   if (auth === "subscription-seat") {
     if (String(provider || "").toLowerCase() === "codex") return true;
+    // FAFF-481 (ADR-0092): a seat carrying a HEADLESS handle (seat_token_env)
+    // authenticates from an env token, so it admits on ANY harness — the
+    // amendment to ADR-0076's ambient-session-only binding. A handle-less seat
+    // still binds to the interactive session (the ambient session IS the seat).
+    if (present(seatTokenEnv)) return true;
     return harness === CURRENT_HARNESS;
   }
   if (auth === "api-key" || auth === "none") return true;
@@ -319,7 +342,7 @@ function checkRealizable(cfg, consumer, harness) {
     // is a dispatch-time fact, not a config-time one, so realizability for
     // codex is matrix admission alone.
     if (String(b.provider || "").toLowerCase() !== "codex" && !present(b.host)) continue;
-    if (!portableMatrixAdmits(h, b.provider, b.auth)) continue;
+    if (!portableMatrixAdmits(h, b.provider, b.auth, b.seat_token_env)) continue;
     realizableCount++;
   }
   if (realizableCount === 0) return { refuse: true, reason: "chain-unrealizable" };
@@ -331,7 +354,15 @@ function checkRealizable(cfg, consumer, harness) {
 // resolves to the ambient interactive session (no handle)" behaviour.
 function resolveTokenSource(b) {
   if (b.auth === "api-key") return { source: "env", env: b.api_key_env || null };
-  if (b.auth === "subscription-seat") return { source: "ambient-session" };
+  if (b.auth === "subscription-seat") {
+    // FAFF-481 (ADR-0092): a seat with a headless handle resolves to that env
+    // var (the claude-box token / an openai-compatible seat token); a
+    // handle-less seat is the ambient session (codex login / the Claude Code
+    // session), unchanged. Same {source:"env", env} shape as api-key so a
+    // consumer reads one field regardless of which auth mode named the token.
+    if (present(b.seat_token_env)) return { source: "env", env: b.seat_token_env };
+    return { source: "ambient-session" };
+  }
   return { source: "none" };
 }
 
@@ -619,6 +650,29 @@ function backendsSelftest() {
     && resolveTokenSource({ auth: "api-key", api_key_env: "NVIDIA_API_KEY" }).env === "NVIDIA_API_KEY");
   ok("resolveTokenSource: subscription-seat -> ambient session, no handle", resolveTokenSource({ auth: "subscription-seat" }).source === "ambient-session");
   ok("resolveTokenSource: none -> no source", resolveTokenSource({ auth: "none" }).source === "none");
+  // --- FAFF-481: headless seat handle (seat_token_env) ---
+  ok("resolveTokenSource: subscription-seat WITH seat_token_env -> env",
+    resolveTokenSource({ auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" }).source === "env"
+    && resolveTokenSource({ auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" }).env === "CLAUDE_SEAT_TOKEN");
+  ok("constraints: subscription-seat WITH seat_token_env -> ok (the headless handle)",
+    validateBackendConstraints("x", { auth: "subscription-seat", seat_token_env: "T", egress: "local", telemetry: "none" }) === null);
+  ok("constraints: api-key WITH seat_token_env -> error (seat handle is seat-only)",
+    /seat_token_env/.test(validateBackendConstraints("x", { auth: "api-key", api_key_env: "K", seat_token_env: "T", egress: "local", telemetry: "none" }) || ""));
+  ok("constraints: none WITH seat_token_env -> error",
+    /seat_token_env/.test(validateBackendConstraints("x", { auth: "none", seat_token_env: "T", egress: "local", telemetry: "none" }) || ""));
+  ok("constraints: subscription-seat still rejects api_key_env (never a seat handle)",
+    /must not carry api_key_env/.test(validateBackendConstraints("x", { auth: "subscription-seat", api_key_env: "K", egress: "local", telemetry: "none" }) || ""));
+  ok("normalizeBackend: seat_token_env carried onto the record",
+    normalizeBackend("s", { provider: "anthropic", model: "claude", auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" }).backend.seat_token_env === "CLAUDE_SEAT_TOKEN");
+  ok("BACKEND_RECORD_KEYS carries seat_token_env (so resolve prints it)", BACKEND_RECORD_KEYS.includes("seat_token_env"));
+  // --- FAFF-481: portable matrix — a handle-carrying seat admits headlessly ---
+  ok("matrix: handle-less anthropic seat admits ONLY on the interactive harness",
+    portableMatrixAdmits("claude-code", "anthropic", "subscription-seat", undefined) === true
+    && portableMatrixAdmits("ci-runner", "anthropic", "subscription-seat", undefined) === false);
+  ok("matrix: handle-carrying anthropic seat admits on a non-interactive harness (ADR-0092)",
+    portableMatrixAdmits("ci-runner", "anthropic", "subscription-seat", "CLAUDE_SEAT_TOKEN") === true);
+  ok("matrix: codex seat still admits on any harness, handle or not",
+    portableMatrixAdmits("ci-runner", "codex", "subscription-seat", undefined) === true);
 
   // --- backendsConfigCheckFindings (derived-egress guard) ------------------------------------------------------------
   {

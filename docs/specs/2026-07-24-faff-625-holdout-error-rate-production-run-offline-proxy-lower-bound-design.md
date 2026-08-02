@@ -24,7 +24,7 @@ This is a design spec for the first production-scale error-rate measurement of t
 | System | Language | Relevance |
 |---|---|---|
 | `eval/score-error-rates.mjs` | JS | The FAFF-563 scorer this run feeds — joins judgements to labels by `case_id`, re-derives aggregates, emits `ErrorRateReport`; already supports `--cases-dir`; exports `OFFLINE_CAVEAT` |
-| `eval/cases/holdout-seed-*.json` (5) | JSON | The pilot SeededDefectCases — the authoring template for the production corpus (shape, naming, oracle style) |
+| `eval/cases-pilot/holdout-seed-*.json` (5) | JSON | The pilot SeededDefectCases — the authoring template for the production corpus (shape, naming, oracle style). Relocated out of `eval/cases/` by FAFF-670 so the sweep's flat per-kind mean is not shaped by a labelled corpus. |
 | `eval/run-evals.mjs` | JS | The orchestrator that drives the judge and streams `.faff/eval-runs/<run-id>/judgements.jsonl` (FAFF-320); `loadCases(dir)` is already parameterised but the CLI exposes no dir flag. **FAFF-318 (#468) reworked this file** — it added per-kind checkpointing + a `--resume` continuation and a `eval/report/frontier-sweep-progress.json` progress file, **all scoped to the `--update-baseline` re-baseline path**; the plain sweep (`main`'s fall-through) and `loadCases`'s signature are unchanged, so this ticket's additive `--cases-dir` hook still slots in cleanly (re-verified at HEAD `0ccd321`) |
 | `eval/cli-driver.mjs` | JS | The frontier `claude -p` driver; model pinned via `models.eval` (FAFF-315) |
 | `test/score-error-rates.test.mjs` | JS | The FAFF-563 scorer unit tests + the rendered-prompt leakage assertion this ticket extends |
@@ -180,7 +180,7 @@ Then the ErrorRateReport has n_negative and n_positive equal to the corpus's lab
 
 **Assumptions.**
 
-- **Assumes:** the FAFF-563 substrate is on main as landed — `eval/score-error-rates.mjs` (with `--cases-dir`, `OFFLINE_CAVEAT`, `loadSeededCases`), the five pilot cases, and the FAFF-320 judgements capture. *Validation:* confirmed on `main` HEAD `0ccd321` at refresh time; re-verify at build start with a smoke `node eval/run-evals.mjs --only holdout-seed-clean-001 --reps 1 --driver frontier` (or the mock-driver test path) producing a scorable judgements.jsonl.
+- **Assumes:** the FAFF-563 substrate is on main as landed — `eval/score-error-rates.mjs` (with `--cases-dir`, `OFFLINE_CAVEAT`, `loadSeededCases`), the five pilot cases, and the FAFF-320 judgements capture. *Validation:* confirmed on `main` HEAD `0ccd321` at refresh time; re-verify at build start with the mock-driver test path (`node --test test/score-error-rates.test.mjs`, which drives run-evals → judgements.jsonl → the scorer over the pilot corpus) producing a scorable judgements.jsonl — no frontier rep, no paid sweep. (FAFF-670 relocated the pilot to `eval/cases-pilot/`.)
 - **Assumes:** frontier access and budget are available at build time for ~360 judgement calls on the resolved `models.eval` lane. *Validation:* the smoke run above; on sustained frontier unavailability the run parks rather than substituting an unpinned model.
 - **Assumes:** `loadCases(dir)`'s validation accepts SeededDefectCase label fields (the pilot cases already ride full sweeps unrejected). *Validation:* the corpus-lint test loads the corpus through the same path.
 

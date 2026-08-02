@@ -23,7 +23,7 @@
     "confidence":     { "accuracy": 0.93, "stability": 0.93, "format_adherence": 1.00 }
   },
   "policy": {
-    "warn_kinds": ["confidence"],
+    "warn_kinds": ["confidence", "holdout-exercise"],
     "tolerances": { "closed_set": 0.0, "ordering": 0.0, "free_text": 0.03, "format": 0.0 }
   }
 }

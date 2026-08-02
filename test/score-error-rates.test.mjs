@@ -28,7 +28,7 @@ import {
 import { renderFixturePrompt, criteriaFor } from "../eval/cli-driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CASES_DIR = join(HERE, "..", "eval", "cases");
+const CASES_DIR = join(HERE, "..", "eval", "cases-pilot");
 const SCORER = join(HERE, "..", "eval", "score-error-rates.mjs");
 
 // The shared born-verifiable + prose spec_dod shape the synthetic cases use.

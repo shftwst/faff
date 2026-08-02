@@ -18,7 +18,7 @@ import { loadSeededCases, validateSeededCase, rederiveAggregate, DEFECT_CLASSES 
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SEEDED_DIR = join(HERE, "..", "eval", "cases-seeded");
-const PILOT_DIR = join(HERE, "..", "eval", "cases");
+const PILOT_DIR = join(HERE, "..", "eval", "cases-pilot");
 
 // Floors from the spec (§3 "Chosen:" — inherited-punt settlement, ADR-0029 residual (4)).
 const FLOOR_NEGATIVE = 300;

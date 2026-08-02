@@ -1,6 +1,6 @@
 # ADR 0092 — Subscription-seat programmatic use is sanctioned; per-provider headless seat auth mechanics
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-02
 - **Issue:** FAFF-478

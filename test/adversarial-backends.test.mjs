@@ -228,7 +228,8 @@ test("CLI: --selftest passes", () => {
 test("round-trip: emitted keys are a subset of the fields review-call.mjs's mapper reads", () => {
   // The mapper (review-call.mjs, --backends-json handling) reads exactly:
   //   b.provider, b.model, b.host, b.api_key_env (|| b.apiKeyEnv), b.reasoning_off (?? b.reasoningOff ?? false), b.timeout
-  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "reasoning_off", "timeout"]);
+  //   plus (FAFF-481) b.auth + b.seat_token_env — the subscription-seat identity it resolves the seat token from.
+  const MAPPER_ACCEPTED_KEYS = new Set(["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "timeout"]);
   assert.deepEqual(new Set(BACKEND_KEYS), MAPPER_ACCEPTED_KEYS);
 
   const cfg = { faffter_dark: { adversarial: {

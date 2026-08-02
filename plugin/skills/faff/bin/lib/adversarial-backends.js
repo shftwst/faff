@@ -43,7 +43,17 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 function pickBackendKeys(obj) {
   const out = {};
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return out;
-  for (const k of BACKEND_KEYS) if (present(obj[k])) out[k] = obj[k];
+  for (const k of BACKEND_KEYS) {
+    if (!present(obj[k])) continue;
+    // FAFF-696: `auth` is carried ONLY for a subscription-seat — that's the value
+    // review-call.mjs keys on to resolve the seat token. A derived `api-key`/`none`
+    // auth is redundant with api_key_env (review-call's absent-auth fallback maps to
+    // it), and emitting it on a refs-resolved metered backend would break the
+    // FAFF-523 refs↔legacy byte-equivalence. `seat_token_env` is only ever present
+    // on a seat, so it needs no such guard.
+    if (k === "auth" && obj[k] !== "subscription-seat") continue;
+    out[k] = obj[k];
+  }
   return out;
 }
 

@@ -171,13 +171,14 @@ may run it. Follow these six points exactly.
 
    The model resolves `--model` flag **>** `faff config get models.eval` **>** the baked-in
    `claude-sonnet-4-6`. In this repo `models.eval` is set (`.faffrc.yaml`) and currently returns
-   `claude-opus-5`, so that is what a plain run gets — the `claude-sonnet-4-6` fallback is a safety net
+   `claude-opus-4-8`, so that is what a plain run gets — the `claude-sonnet-4-6` fallback is a safety net
    for a repo with no `models.eval` configured, not the expected outcome here. The run prints the
    resolved model at start (`[run-evals] frontier model: …`); confirm it matches what you intended
    before letting it spend. Note the committed `eval/baselines/frontier.json`'s `meta` block predates
-   the FAFF-315 pinning and carries no `model` key, and ADR-0089's recorded production sweep ran on
-   `claude-opus-4-8` — a re-baseline on a different model breaks that comparison, and nothing in the
-   harness warns you when it does.
+   the FAFF-315 pinning and carries no `model` key. `models.eval` was pinned back to `claude-opus-4-8`
+   (PR #509) so this sweep matches ADR-0089's recorded production sweep, which also ran on
+   `claude-opus-4-8`; keep it there unless you deliberately want a different lineage, because nothing in
+   the harness warns you when the model changes between sweeps.
 
 3. **Never pass `--only` with `--update-baseline`.** The advice is unchanged; the reason below replaces
    an older one that FAFF-318 fixed. `--only` narrows the run to a subset of kinds, which does two things

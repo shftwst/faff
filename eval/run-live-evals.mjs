@@ -32,7 +32,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { grade, aggregateCase, hasDisagreement, erroredRep } from "./grader.mjs";
-import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize } from "./run-evals.mjs";
+import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize, assertNonEmptyCases } from "./run-evals.mjs";
 import { driveReconciliationCase, driveRoutingCase, driveVerdictBuildCase, makeLiveModel } from "./live-driver.mjs";
 import { frontierOpts } from "./cli-driver.mjs";
 
@@ -152,7 +152,12 @@ export async function runLiveEvals({ kind, ctx, only = null, baseReps = BASE_REP
   if (typeof ctx?.runSkill !== "function") throw new Error("runLiveEvals requires ctx.runSkill (the FAFF-93 harness)");
   if (typeof ctx?.model !== "function") throw new Error("runLiveEvals requires ctx.model (a mock in CI; makeLiveModel for real)");
   let cases = adapter.loader();
+  const loadedCount = cases.length; // FAFF-691 — pre-filter count: a --kind with no fixtures vs an --only no-match
   if (only) cases = cases.filter((c) => c.id === only);
+  // FAFF-691 — this is the second paid frontier runner; a zero-case run is the identical hollow green.
+  // Refuse BEFORE the runLiveCase rep loop so the injected model is never called (zero spend). The throw
+  // rides main's finally { repo.teardown() } and the top-level catch → [run-live-evals] … + exit 1.
+  assertNonEmptyCases(cases, { entry: `--kind ${kind}`, only, casesDir: null, kind, loadedCount });
   const results = [];
   for (const c of cases) results.push(await runLiveCase(c, adapter, ctx, { baseReps, maxReps }));
   return summarize(results);

@@ -1,0 +1,6 @@
+precheckout_shape: hosted-container
+precheckout_command: ls -1An "$RUNNER_WORKSPACE"
+precheckout_captured_at: 2026-08-02T21:42:54Z
+precheckout_euid: 0
+total 4
+drwxr-xr-x 2 1001 1001 4096 Aug  2 21:42 faff

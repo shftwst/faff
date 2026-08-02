@@ -1,0 +1,98 @@
+probe_version: 1
+probe_cksum: 1312413922 26164
+probe_sha256: 40166f33ba093cf0f1d95a3d4ca311a7435f46647d3827e807eaeac7bbb052b7
+probe_bytes: 26164
+shape: hosted-direct
+source_repository: shftwst/faff
+probe_euid: 1001
+captured_at: 2026-08-02T21:51:12Z
+runner_os: Linux
+runner_arch: x86_64
+container_image: none
+environ_keys_mode: names
+probe_dd: present
+notes: 
+mounts.table: present(24 lines)
+  | /dev/root / ext4 rw,relatime,discard,errors=remount-ro,commit=30 0 0
+  | devtmpfs /dev devtmpfs rw,nosuid,noexec,relatime,size=8181664k,nr_inodes=2045416,mode=755,inode64 0 0
+  | proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+  | sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
+  | securityfs /sys/kernel/security securityfs rw,nosuid,nodev,noexec,relatime 0 0
+  | tmpfs /dev/shm tmpfs rw,nosuid,nodev,inode64 0 0
+  | devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000 0 0
+  | tmpfs /run tmpfs rw,nosuid,nodev,size=3274692k,nr_inodes=819200,mode=755,inode64 0 0
+  | tmpfs /run/lock tmpfs rw,nosuid,nodev,noexec,relatime,size=5120k,inode64 0 0
+  | cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot 0 0
+  | none /sys/fs/pstore pstore rw,nosuid,nodev,noexec,relatime 0 0
+  | efivarfs /sys/firmware/efi/efivars efivarfs rw,nosuid,nodev,noexec,relatime 0 0
+  | bpf /sys/fs/bpf bpf rw,nosuid,nodev,noexec,relatime,mode=700 0 0
+  | systemd-1 /proc/sys/fs/binfmt_misc autofs rw,relatime,fd=32,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=3179 0 0
+  | hugetlbfs /dev/hugepages hugetlbfs rw,nosuid,nodev,relatime,pagesize=2M 0 0
+  | mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0
+  | debugfs /sys/kernel/debug debugfs rw,nosuid,nodev,noexec,relatime 0 0
+  | tracefs /sys/kernel/tracing tracefs rw,nosuid,nodev,noexec,relatime 0 0
+  | fusectl /sys/fs/fuse/connections fusectl rw,nosuid,nodev,noexec,relatime 0 0
+  | configfs /sys/kernel/config configfs rw,nosuid,nodev,noexec,relatime 0 0
+  | /dev/sda16 /boot ext4 rw,relatime,discard 0 0
+  | /dev/sda15 /boot/efi vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+  | binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc rw,nosuid,nodev,noexec,relatime 0 0
+  | tmpfs /run/user/1001 tmpfs rw,nosuid,nodev,relatime,size=1637344k,nr_inodes=409336,mode=700,uid=1001,gid=1001,inode64 0 0
+socket.canonical./var/run/docker.sock: unreadable(open-failed)
+socket.canonical./var/run/docker.sock.is_socket: yes
+socket.canonical./var/run/docker.sock._dangling_symlink: no
+socket.canonical./var/run/docker.sock.readable: yes
+socket.canonical./var/run/docker.sock.writable: yes
+socket.canonical./run/docker.sock: unreadable(open-failed)
+socket.canonical./run/docker.sock.is_socket: yes
+socket.canonical./run/docker.sock._dangling_symlink: no
+socket.canonical./run/docker.sock.readable: yes
+socket.canonical./run/docker.sock.writable: yes
+socket.rootless.docker: absent
+socket.rootless.podman: absent
+env.DOCKER_HOST: absent
+attest.canonical_socket_present: yes
+attest.canonical_socket_writable_by_euid: yes
+attest.writable_is_a_proxy: connecting to a unix socket requires write permission, so the writable test is a necessary-condition proxy for connectability, never proof
+attest.rootless_socket_present: no
+containment.env.KUBERNETES_SERVICE_HOST: absent
+containment./.dockerenv: absent
+containment./run/.containerenv: absent
+containment.proc1.environ: unreadable(not-readable-by-euid)
+containment.proc1.environ_keys: unreadable(not-readable-by-euid)
+containment.proc1.container_value: unreadable(not-readable-by-euid)
+containment.env.container: absent
+containment.proc1.cgroup: present(read-ok)
+containment.proc1.cgroup.decisiveness: non-decisive
+  | 0::/init.scope
+containment.proc1.comm: present(read-ok)
+  | systemd
+workdir.path: present(/home/runner/work/faff)
+workdir.parent: present(drwxr-xr-x 6 1001 1001 4096 Aug  2 21:51 /home/runner/work)
+workdir.checkout: present(/home/runner/work/faff/faff)
+workdir.listing: present(2 entries, one level)
+  | total 4
+  | drwxr-xr-x 12 1001 1001 4096 Aug  2 21:51 faff
+home.path: present(drwxr-x--- 11 1001 1001 4096 Aug  2 21:51 /home/runner)
+home.entries: present(15 entries, one level)
+  | total 52
+  | -rw-r--r-- 1 1001 1001  220 Mar 31  2024 .bash_logout
+  | -rw-r--r-- 1 1001 1001   67 Jul 20 08:35 .bash_profile
+  | -rw-r--r-- 1 1001 1001 3771 Mar 31  2024 .bashrc
+  | drwxr-xr-x 3 1001 1001 4096 Jul 20 08:38 .cargo
+  | drwxr-xr-x 2 1001 1001 4096 Jul 20 08:37 .composer
+  | drwxr-xr-x 3 1001 1001 4096 Jul 20 08:16 .config
+  | drwxr-xr-x 2 1001  118 4096 Jul 20 09:21 .docker
+  | drwxr-xr-x 3 1001 1001 4096 Jul 20 08:26 .dotnet
+  | lrwxrwxrwx 1 1001 1001   17 Jul 20 08:32 .ghcup -> /usr/local/.ghcup
+  | drwxr-xr-x 6 1001 1001 4096 Jul 20 08:35 .nvm
+  | -rw-r--r-- 1 1001 1001  807 Mar 31  2024 .profile
+  | drwxr-xr-x 6 1001 1001 4096 Jul 20 08:38 .rustup
+  | drwxrwxr-x 3 1001 1001 4096 Aug  2 21:50 actions-runner
+  | drwxr-xr-x 6 1001 1001 4096 Aug  2 21:51 work
+socket_removal.performed: unmeasurable_here(hosted runner: the VM is created per job, so no earlier step and no earlier job can act on the host before this one starts)
+socket_removal.kind: unmeasurable_here(hosted runner: no host-side hook before the job)
+socket_removal./var/run/docker.sock.after: unmeasurable_here(no removal was performed on this shape)
+socket_removal./run/docker.sock.after: unmeasurable_here(no removal was performed on this shape)
+crosscheck.container_check_json: impossible_on_shape(no faff binary on PATH)
+crosscheck.container_check_exit: impossible_on_shape(no faff binary on PATH)
+crosscheck.container_check_plain: impossible_on_shape(no faff binary on PATH)

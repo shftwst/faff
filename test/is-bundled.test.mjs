@@ -49,10 +49,12 @@ test("blank occupant name → exit 2 (usage)", () => {
   assert.equal(r.status, 2);
 });
 
-test("missing occupant name (flag consumes --slot as its value, slot then unknown) → exit 2", () => {
-  // `--is-bundled --slot` with no name: the parser takes "--slot" as the name and no slot remains.
+test("no --slot flag at all → exit 2 (usage — slot is required)", () => {
+  // A valid occupant name but the --slot flag omitted entirely: the predicate cannot classify
+  // without a slot, so it is a usage error, distinct from an unknown slot *value* (test below).
   const r = spawnSync(process.execPath, [BIN, "validate-adapters", "--is-bundled", "faffter-dark-nlspec"], { encoding: "utf8" });
   assert.equal(r.status, 2);
+  assert.match(r.stderr, /missing\/unknown --slot/);
 });
 
 test("unknown slot → exit 2 (usage)", () => {

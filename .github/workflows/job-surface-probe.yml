@@ -116,6 +116,19 @@ jobs:
             > "$RUNNER_TEMP/hosted-direct-after-removal.txt"
           cat "$RUNNER_TEMP/hosted-direct-after-removal.txt"
 
+      # FAFF-664: fail-closed on an incomplete bundle. `if-no-files-found: error` is a
+      # ZERO-check (it fires only when NOTHING matched), so a partial upload goes green.
+      # Assert all four declared outputs exist before upload; a short bundle fails the job.
+      - name: Assert bundle completeness
+        if: always()
+        run: |
+          set -u
+          missing=0
+          for f in precheckout-hosted-direct.txt selftest-hosted-direct.txt hosted-direct.txt hosted-direct-after-removal.txt; do
+            [ -f "$RUNNER_TEMP/$f" ] || { echo "MISSING: $RUNNER_TEMP/$f"; missing=1; }
+          done
+          [ "$missing" -eq 0 ] || { echo "FAIL: incomplete probe bundle (hosted-direct)"; exit 1; }
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -158,10 +171,15 @@ jobs:
           # one step later. sh is listed because these steps invoke the probe
           # with it: the run: block may be served by bash, so a container with
           # bash and no sh would pass the block and fail the invocation.
+          missing=0
           for t in sh ls id cksum dd mktemp wc tr cut sed sort head grep date uname dirname cat chmod mkdir ln rm git tar; do
             printf '%-8s ' "$t"
-            command -v "$t" || printf '(absent)\n'
+            if command -v "$t"; then :; else printf '(absent)\n'; missing=1; fi
           done
+          # FAFF-664: a missing tool must FAIL the job, not print (absent) and pass — a
+          # hand-picked minimal base image is exactly what this step exists to catch, and
+          # it must catch it loudly, before checkout.
+          [ "$missing" -eq 0 ] || { echo "FAIL: required tool(s) absent (see above)"; exit 1; }
 
       - name: Pre-checkout work-directory listing
         run: |
@@ -208,12 +226,38 @@ jobs:
             > "$RUNNER_TEMP/hosted-container.txt"
           cat "$RUNNER_TEMP/hosted-container.txt"
 
+      # FAFF-664: the steps above write to $RUNNER_TEMP INSIDE the container, whose
+      # filesystem is not host-shaped — so the host-run upload-artifact action, given a
+      # ${{ runner.temp }} (host) path, matched only a coincidental 1 of 3 files and the job
+      # went green. Stage the three outputs into $GITHUB_WORKSPACE — the one path
+      # bind-mounted host<->container, so a container-side write is visible to the host-run
+      # action — then upload workspace-relative. The copy runs IN the container, where
+      # $RUNNER_TEMP is readable. [Best-effort expression per the spec Punt: confirmed by
+      # the FAFF-664 live hosted-container dispatch. The completeness assert below fails the
+      # job loudly if it is wrong, so a wrong path can never regress to today's silent green.]
+      - name: Stage probe outputs into the workspace + assert completeness
+        if: always()
+        run: |
+          set -u
+          stage="$GITHUB_WORKSPACE/probe-out"
+          mkdir -p "$stage"
+          missing=0
+          for f in precheckout-hosted-container.txt selftest-hosted-container.txt hosted-container.txt; do
+            if [ -f "$RUNNER_TEMP/$f" ]; then
+              cp "$RUNNER_TEMP/$f" "$stage/$f"
+            else
+              echo "MISSING: $RUNNER_TEMP/$f did not exist at stage time"; missing=1
+            fi
+          done
+          count=$(ls -1 "$stage" | wc -l | tr -d ' ')
+          echo "staged $count/3 probe outputs into $stage"
+          [ "$missing" -eq 0 ] && [ "$count" -eq 3 ] || { echo "FAIL: incomplete probe bundle ($count/3)"; exit 1; }
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: probe-hosted-container
-          path: |
-            ${{ runner.temp }}/precheckout-hosted-container.txt
-            ${{ runner.temp }}/selftest-hosted-container.txt
-            ${{ runner.temp }}/hosted-container.txt
+          # Workspace-relative (the staged, host-visible copies), NOT ${{ runner.temp }}
+          # (the host temp, which the container's writes never reach). FAFF-664.
+          path: probe-out/
           if-no-files-found: error

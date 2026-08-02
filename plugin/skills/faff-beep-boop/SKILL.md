@@ -13,6 +13,8 @@ Unattended end-to-end runs of the faff suite. Drives the other faff skills in **
 
 **Load the gateway first.** Beep-boop is the autonomous entry point; if `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. It gates the queue on the **fixed automation-routing admission rule**; every skill it delegates to (tidy, prep, graft + their slots) inherits the gateway ambiently.
 
+**Tracker availability is resolved once per run (gateway → Tracker availability resolution).** The whole-lifecycle structural git-only signal this run asserts once and never re-sniffs per wave (FAFF-559, step 8.5) **is** the tracker side of that shared rule: honour a `tracking.tracker` pin, discover the connector before concluding git-only (never infer absence from an immediately-invisible tool list under a deferred-tool harness), and hold that one resolved answer for the run's lifecycle — every delegated skill (tidy/prep/graft) consumes it rather than re-inferring.
+
 Beep-boop uses these `slots` from `.faffrc` when set:
 
 - `concurrency` — the build-pass executor. Default `faffter-noon-concurrency-sequential` (one build at a time); swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge.

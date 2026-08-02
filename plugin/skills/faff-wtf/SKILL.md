@@ -11,7 +11,7 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 ## Configuration
 
-**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. wtf displays the **fixed automation-routing + spec-readiness contracts**; it falls back to git-only mode if no tracker MCP is available.
+**Load the gateway first.** If `faff/SKILL.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. wtf displays the **fixed automation-routing + spec-readiness contracts**; it falls back to git-only mode only when no tracker connector resolves **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin, discover before concluding absence — never infer git-only from an immediately-invisible tool list).
 
 **Ordering is delegated.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), it renders the order the configured `methodology` slot's `pick-ordering` returns (gateway → **Ordering & judgement delegation**). `/faff-wtf` states no ordering of its own; the thematic default supplies priority + chainable unlock value when no methodology is set.
 

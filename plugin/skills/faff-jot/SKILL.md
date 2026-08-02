@@ -140,7 +140,7 @@ Same add/remove of the `faff-automate` label, both human-gated, no canonical-own
 
 ## Tracker-less (git-only) mode
 
-When no tracker MCP is available (gateway → Configuration), there are no tickets to create. `/faff-jot` still runs discovery and shaping, then writes the shaped set to `.faff/intake/<date>-<slug>.md` as a checklist the human can act on, and notes that ticket creation was skipped (no tracker). The discovery brief and shaped structure are never lost.
+When no tracker connector resolves — concluded **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin, discover before concluding absence; never from an immediately-invisible tool list) — there are no tickets to create. `/faff-jot` still runs discovery and shaping, then writes the shaped set to `.faff/intake/<date>-<slug>.md` as a checklist the human can act on, and notes that ticket creation was skipped (no tracker). The discovery brief and shaped structure are never lost.
 
 **Stable item-keys.** For each shaped-ticket line, mint a gitkey via `faff queue-state new-key` and append it as a trailing marker: `- [ ] <ticket title> <!-- gitkey:K -->`. This is the durable id `faff queue-state derive` diffs against the run-ledger to derive `queue_empty`/`all_parked` in git-only mode (gateway → Spec discovery location 4) — reference the CLI, never restate the key format here.
 

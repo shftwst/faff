@@ -178,6 +178,9 @@ jobs:
       - name: Validate queue-state gitkey mint + differ table (FAFF-556)
         run: node plugin/skills/faff/bin/faff queue-state --selftest
 
+      - name: Validate tracker-pin classifier table (FAFF-695)
+        run: node plugin/skills/faff/bin/faff tracker --selftest
+
       - name: Validate prepcheck attach-state audit table
         run: node plugin/skills/faff/bin/faff prepcheck --selftest
 

@@ -15,7 +15,7 @@ both import `eval/` modules but spawn **zero** processes.
 
 ## Proportionate gate — `--gate` (FAFF-180)
 
-The full frontier reverify is a ~1,680–4,200-run, multi-hour sweep — right for a substantive change, disproportionate for a small prose diff (so it gets waived). `--gate` makes the gate **proportionate** and **safe to run anywhere** via a selectable driver:
+The full frontier reverify is a ~1,580–3,950-run, multi-hour sweep — right for a substantive change, disproportionate for a small prose diff (so it gets waived). `--gate` makes the gate **proportionate** and **safe to run anywhere** via a selectable driver:
 
 ```
 node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
@@ -36,7 +36,7 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
 ## Pieces
 | File | Role |
 |---|---|
-| `cases/*.json` | `EvalCase` fixtures + human oracles (84 files across 29 kinds) |
+| `cases/*.json` | `EvalCase` fixtures + human oracles (79 files across 29 kinds) |
 | `envelope.mjs` | parse the `faff-eval:judgement` block (fail-loud) — judgement capture stays out of the seam harness |
 | `grader.mjs` | two-tier **deterministic** grader: closed-set set-equality, ordering rank-correlation, gloss rubric pass-rate (LLM-judge advisory only) + per-case stability/accuracy aggregation |
 | `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; both load the real skills via `--plugin-dir <repo>/plugin` (FAFF-133); frontier forwards OAuth creds + drops `--bare` (FAFF-138), local keeps `--bare` + env-token auth. Pure `buildInvocation` / `*Opts` / `forwardCredentials` for the tests |
@@ -100,7 +100,7 @@ Smoke (frontier, `dupe-001`, 1 rep): `accuracy 1.00 · stability 1.00 · format 
 **FAFF-140 — also inject the synthesis-gloss contract.** FAFF-134 carried only the *classification* section, so a `gloss` case had no criteria and the model improvised a health-summary (scored 0.00). `loadSynthesisGlossProse` now extracts the **synthesis-gloss contract** verbatim from `faffidavit-rendering/SKILL.md` (`## Synthesis — the issue-gloss contract`), and `loadJudgementCriteria` combines classification + synthesis into the prompt — so the model writes a real one-line synthesis (gloss smoke went 0.00→0.80; the residual is the keyword-brittle oracle). Also re-authored `stale-001`, which was a *premise-wrong* case (= superseded) mislabeled `stale` — now a genuine refresh-not-cancel stale case (0.00→1.00).
 
 ## Running it (FAFF-131, human-supervised)
-> ⚠ Needs a real `claude -p` + (for frontier) a budget. 84 cases × K=20 base ≈ 1,680 reps, escalating toward 4,200 on wobbly cases.
+> ⚠ Needs a real `claude -p` + (for frontier) a budget. 79 cases × K=20 base ≈ 1,580 reps, escalating toward 3,950 on wobbly cases.
 ```sh
 # frontier (Anthropic API)
 node eval/run-evals.mjs --only dupe-001 --reps 2          # smoke: validate CLAUDE_CONFIG_DIR isolation first
@@ -187,9 +187,9 @@ may run it. Follow these six points exactly.
    never checkpoints, so a `--only` run can't be resumed with point 5's `--resume`. Re-baseline is always
    the full suite. (Use `--only`/`--reps` for read-only smoke probes, never with `--update-baseline`.)
 
-4. **What it costs (derived, not guessed).** At the current **84** live case files × **20** base reps
-   ≈ **1,680** frontier reps; wobbly cases escalate toward **50** reps each, so the worst case is
-   ≈ **4,200** reps — a **multi-hour**, real-dollars sweep. Budget for it; don't start it on a laptop
+4. **What it costs (derived, not guessed).** At the current **79** live case files × **20** base reps
+   ≈ **1,580** frontier reps; wobbly cases escalate toward **50** reps each, so the worst case is
+   ≈ **3,950** reps — a **multi-hour**, real-dollars sweep. Budget for it; don't start it on a laptop
    about to sleep. If `test/eval-readme-freshness.test.mjs` is failing, the corpus has changed since
    this was written — trust the test's numbers over this paragraph and update it.
 

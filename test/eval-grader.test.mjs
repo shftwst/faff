@@ -706,12 +706,14 @@ test("all eval/cases load and validate", () => {
   // that should be overturned).
   // FAFF-569: +1 resolved-elsewhere (tidy's symptom-similarity layer — match a finding-ticket's
   // symptom to the one merged fix with the same defect mechanism, skipping same-topic distractors).
-  // FAFF-563: +5 holdout-exercise seeded-defect pilot fixtures (holdout-seed-*): 1 clean + 1 defective
-  // per stratum (missed-criterion / subtly-wrong / working-but-off-spec / spec-satisfying-but-broken-
-  // elsewhere) — the offline-proxy pilot corpus the error-rate scorer measures. They carry the additive
-  // label / defect_class / expected_aggregate fields (ignored by the set-equality grader) and grade as
-  // ordinary holdout-exercise cases here.
-  assert.equal(cases.length, 84);
+  // FAFF-563: the +5 holdout-exercise seeded-defect pilot fixtures (holdout-seed-*) — 1 clean + 1
+  // defective per stratum (missed-criterion / subtly-wrong / working-but-off-spec / spec-satisfying-but-
+  // broken-elsewhere) — no longer sit in eval/cases/. FAFF-670 relocated them to eval/cases-pilot/ so the
+  // sweep's flat per-kind mean is not shaped by a labelled corpus authored to probe the judge's false-pass
+  // rate rather than the skill's judgement; the scorer still reads them from the pilot dir. holdout-exercise
+  // here is FAFF-317's two real exercises (holdout-exercise-001/002), which is why the count drops 84 -> 79
+  // and the kind is unaffected.
+  assert.equal(cases.length, 79);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger", "grouping"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);

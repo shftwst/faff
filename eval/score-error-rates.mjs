@@ -89,7 +89,7 @@ export function validateSeededCase(c) {
 // Load the SeededDefectCase fixtures from a cases directory: every *.json case carrying a `label` field
 // (an ordinary EvalCase without one is skipped — it is not part of the corpus). Returns a
 // `case_id -> SeededDefectCase` map. Each is validated; a constraint violation is fail-loud.
-export function loadSeededCases(dir = join(HERE, "cases")) {
+export function loadSeededCases(dir = join(HERE, "cases-pilot")) {
   const map = new Map();
   for (const f of readdirSync(dir)) {
     if (!f.endsWith(".json")) continue;
@@ -234,7 +234,7 @@ export function main(argv = process.argv.slice(2)) {
     );
     process.exit(2);
   }
-  const casesDir = argVal(argv, "--cases-dir") || join(HERE, "cases");
+  const casesDir = argVal(argv, "--cases-dir") || join(HERE, "cases-pilot");
   const driver = argVal(argv, "--driver") || "unknown";
   const model = argVal(argv, "--model");
 

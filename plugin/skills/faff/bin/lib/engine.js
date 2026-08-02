@@ -241,13 +241,19 @@ function cmdEngine(args) {
     const { runCodexCall } = require("./engine-codex");
     return runCodexCall({ engine: res, system, user, spendSink: resolveSpendSink(get("--run-dir"), root) });
   }
-  // api_key_env indirection: config carries the env var NAME, never the key. A declared
-  // name whose env is unset is auth-failed BEFORE any network call — named, never a 401 later.
+  // Token indirection: config carries the env var NAME, never the key. A declared
+  // handle whose env is unset is auth-failed BEFORE any network call — named, never a 401 later.
+  // FAFF-481: which env var holds the token follows backends.js resolveTokenSource —
+  // auth: api-key → api_key_env; auth: subscription-seat → seat_token_env (the headless seat
+  // handle; a spawned engine-call has no ambient session, so a handle-less HTTP seat has no
+  // token to send). A legacy/unspecified auth resolves api_key_env, byte-for-byte today.
+  const tokenEnv = (res.auth === "subscription-seat") ? res.seatTokenEnv : res.apiKeyEnv;
   let apiKey = null;
-  if (res.apiKeyEnv) {
-    apiKey = process.env[res.apiKeyEnv];
+  if (tokenEnv) {
+    apiKey = process.env[tokenEnv];
     if (!apiKey) {
-      process.stderr.write(`faff engine call: auth-failed — engines.${res.name} declares api_key_env "${res.apiKeyEnv}" but that env var is unset\n`);
+      const handleField = res.auth === "subscription-seat" ? "seat_token_env" : "api_key_env";
+      process.stderr.write(`faff engine call: auth-failed — engines.${res.name} declares ${handleField} "${tokenEnv}" but that env var is unset\n`);
       return ENGINE_EXIT.AUTH;
     }
   }
@@ -383,6 +389,13 @@ async function engineSelftest() {
   {
     const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", api_key_env: "K", timeout: 30, reasoning_off: true } }, models: { intake: "engine:s" } }, "intake");
     ok("resolve: openai-compatible family + options", !r.error && r.family === "openai" && r.apiKeyEnv === "K" && r.timeoutMs === 30000 && r.reasoningOff === true);
+    ok("resolve: api-key backend carries auth + null seat handle", r.auth === "api-key" && r.seatTokenEnv === null);
+  }
+  {
+    // FAFF-481: an openai-compatible subscription-seat with a headless handle resolves seatTokenEnv,
+    // so the engine-call transport reads the seat token from that env var (not api_key_env).
+    const r = resolveEngineForLane({ backends: { seat: { provider: "nvidia", model: "m", host: "https://x/v1", auth: "subscription-seat", seat_token_env: "OPENAI_SEAT_TOKEN" } }, models: { intake: "engine:seat" } }, "intake");
+    ok("resolve: subscription-seat backend carries the seat handle", !r.error && r.auth === "subscription-seat" && r.seatTokenEnv === "OPENAI_SEAT_TOKEN" && r.apiKeyEnv === null);
   }
 
   // FAFF-593: fold the codex spawn family's table in — `faff engine --selftest`

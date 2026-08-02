@@ -1082,6 +1082,8 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
                               // never 6). The unconfigured-localhost-default (6) only arises in the legacy
                               // single-backend path below, never inside an explicit chain.
       apiKeyEnv: b.api_key_env || b.apiKeyEnv,
+      auth: b.auth,                                   // FAFF-481: carried so a subscription-seat resolves its handle
+      seatTokenEnv: b.seat_token_env || b.seatTokenEnv,
       reasoningOff: b.reasoning_off ?? b.reasoningOff ?? false,
       timeoutMs: (b.timeout != null) ? Number(b.timeout) * 1000 : a.timeoutMs,
     }));
@@ -1096,12 +1098,22 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
     }];
   }
 
-  // Resolve each backend's API key from its NAMED env var (never the key on the command line / in config).
-  // An unset env for a declared key is flagged per-backend (a class-7 fault that ADVANCES) rather than a
-  // whole-run abort — so a misconfigured primary key falls through to a healthy fallback.
+  // Resolve each backend's token from its NAMED env var (never the key on the command line / in config).
+  // An unset env for a declared handle is flagged per-backend (a class-7 fault that ADVANCES) rather than a
+  // whole-run abort — so a misconfigured primary falls through to a healthy fallback.
+  //
+  // FAFF-481: which env var holds the token follows backends.js `resolveTokenSource` (mirrored here — this
+  // is a standalone .mjs with no faff CommonJS imports): auth: api-key → api_key_env; auth: subscription-seat
+  // → seat_token_env (the headless seat handle — a spawned review subprocess has no ambient session, so a
+  // handle-LESS seat resolves no token and fails auth-failed, correctly). The resolved token is sent as
+  // Bearer (openai) or x-api-key (the FAFF-210 anthropic adaptor) downstream — one field, either header shape.
+  // A legacy chain entry with no `auth` field falls back to api_key_env — byte-for-byte today.
   for (const b of chain) {
-    if (b.apiKeyEnv) {
-      b.apiKey = process.env[b.apiKeyEnv];
+    const tokenEnv = (b.auth === "subscription-seat") ? b.seatTokenEnv
+      : (b.auth === "api-key") ? b.apiKeyEnv
+      : (b.apiKeyEnv || null);   // legacy / unspecified auth → api_key_env, unchanged
+    if (tokenEnv) {
+      b.apiKey = process.env[tokenEnv];
       if (!b.apiKey) b.apiKeyMissing = true;
     }
   }

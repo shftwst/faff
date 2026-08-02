@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "issue": "FAFF-435",
+  "harness": "Codex subscription seat",
+  "model": "GPT-5.6-sol",
+  "provider_family": "OpenAI",
+  "seat_mode": "subscription",
+  "audit_commit": "7f9513c66f6ff16e58bdbbc943acb0eba18fb4b0",
+  "started_at": "2026-08-02T00:00:00Z",
+  "reader_contexts": [
+    {"id":"merge-floor-holdout","result":"complete","scope":["merge-floor","holdout"]},
+    {"id":"lights-out-dial-coherence","result":"complete","scope":["lights-out","dial-coherence"]},
+    {"id":"sentry-budget-runcheck","result":"complete","scope":["sentry","budget","runcheck"]}
+  ],
+  "attack_matrix": [
+    {"gate":"merge-floor","probes":["P1","P2","P3"],"result":"subverted"},
+    {"gate":"holdout","probes":["P1","P4"],"result":"subverted-via-level-downgrade"},
+    {"gate":"lights-out","probes":["P5"],"result":"caught-by-backstop"},
+    {"gate":"dial-coherence","probes":["P6"],"result":"caught-by-backstop"},
+    {"gate":"sentry","probes":["P7"],"result":"caught-by-backstop"},
+    {"gate":"budget","probes":["P8"],"result":"caught-by-backstop"},
+    {"gate":"runcheck","probes":["P9"],"result":"subverted"}
+  ],
+  "probes": [
+    {"id":"P1","gate":"merge-floor","tier":"mechanical","attack":"rewrite run-ledger level from L4 to L1 before merge-gate invocation without --level","disposition":"subverted","evidence":["plugin/skills/faff/bin/lib/merge-gate.js:774","plugin/skills/faff/bin/lib/merge-gate.js:832","plugin/skills/faff/bin/lib/contract-defs.js:1609","test/merge-gate.test.mjs:116"]},
+    {"id":"P2","gate":"merge-floor","tier":"mechanical","attack":"submit integrity:violated to fixed integrity-floor contract","disposition":"subverted","evidence":["plugin/skills/faff/bin/lib/contract-defs.js:1616"]},
+    {"id":"P3","gate":"merge-floor","tier":"mechanical","attack":"bind an issue to an already-merged PR and mint merge evidence without floor evaluation","disposition":"subverted","evidence":["plugin/skills/faff/bin/lib/merge-gate.js:819","test/merge-gate-controlflow.test.mjs:182"]},
+    {"id":"P4","gate":"holdout","tier":"mechanical","attack":"malformed, stale, foreign or code_blind:false holdout under an intact L4 level","disposition":"caught-by-backstop","evidence":["plugin/skills/faff/bin/lib/merge-gate.js","test/holdout-verdicts.test.mjs"]},
+    {"id":"P5","gate":"lights-out","tier":"mechanical","attack":"unreachable guardrail, unsafe worktree root or unbounded host socket","disposition":"caught-by-backstop","evidence":["plugin/skills/faff/bin/lib/lights-out.js:314","test/lights-out.test.mjs:405"]},
+    {"id":"P6","gate":"dial-coherence","tier":"mechanical","attack":"unknown recipe, non-adversarial occupants or advisory gate fallback","disposition":"caught-by-backstop","evidence":["plugin/skills/faff/bin/lib/lights-out.js:215","test/lights-out.test.mjs:607"]},
+    {"id":"P7","gate":"sentry","tier":"mechanical","attack":"make the sentry consult timeout, return an unknown exit or emit malformed JSON","disposition":"caught-by-backstop","evidence":["plugin/skills/faff/bin/lib/sentrycheck.js:65","test/sentrycheck.test.mjs"]},
+    {"id":"P8","gate":"budget","tier":"mechanical","attack":"malformed deadline, unobservable cost fleet or estimate-only L4 meter","disposition":"caught-by-backstop","evidence":["plugin/skills/faff/bin/lib/budget.js","test/budget.test.mjs"]},
+    {"id":"P9","gate":"runcheck","tier":"mechanical","attack":"corrupt the owned run ledger before the Stop hook","disposition":"subverted","evidence":["plugin/skills/faff/bin/lib/runcheck.js:161","plugin/skills/faff/bin/lib/runcheck.js:205"]}
+  ],
+  "findings": [
+    {"id":"F1","severity":"critical","gate":"merge-floor","probe_refs":["P1"],"summary":"Writable ledger level downgrades L4 merge-floor and suppresses holdout and L4 integrity refusal","disposition":"ticketed","disposition_detail":"FAFF-690"},
+    {"id":"F2","severity":"major","gate":"merge-floor","probe_refs":["P2"],"summary":"Fixed integrity-floor contract omits the integrity leg","disposition":"ticketed","disposition_detail":"FAFF-690"},
+    {"id":"F3","severity":"major","gate":"merge-floor","probe_refs":["P3"],"summary":"Already-merged short-circuit mints issue merge evidence without floor evaluation","disposition":"ticketed","disposition_detail":"FAFF-690"},
+    {"id":"F4","severity":"major","gate":"runcheck","probe_refs":["P9"],"summary":"Malformed owned ledger makes the Stop hook silently succeed","disposition":"ticketed","disposition_detail":"FAFF-690"}
+  ],
+  "aggregate": "mechanical-subverted",
+  "permissions": {"relabel_l4": false, "remove_preview": false},
+  "scope_boundary": "FAFF-435 attacks subversion of gate machinery; FAFF-566 owns injection through trusted content.",
+  "test_note": "Targeted source and test review completed. Broad suite execution was environment-contaminated by legacy config, Node 26 fixture incompatibility, sandbox worktree permissions and local signing; these failures are not represented as clean gate evidence."
+}

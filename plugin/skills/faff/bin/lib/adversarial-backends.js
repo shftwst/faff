@@ -27,7 +27,12 @@ const { resolveBackendRefs } = require("./backends");
 // b.reasoningOff ?? false, b.timeout != null — see review-call.mjs's
 // --backends-json mapper). provider/model/host are required by the mapper's
 // own usage contract; the rest are optional.
-const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "reasoning_off", "timeout"];
+// FAFF-696: `auth` + `seat_token_env` carry a subscription-seat's identity through to
+// review-call.mjs's mapper (which resolves the seat token as Bearer/x-api-key, FAFF-481).
+// Without them a seat backend referenced via `refs:` (FAFF-523) arrives stripped of its
+// seat identity and falls back to the absent api_key_env path. Absent on every metered
+// backend, so those emit byte-identically (present() gates the copy).
+const BACKEND_KEYS = ["provider", "model", "host", "api_key_env", "seat_token_env", "auth", "reasoning_off", "timeout"];
 
 function present(v) { return v !== null && v !== undefined && v !== ""; }
 
@@ -38,7 +43,17 @@ function present(v) { return v !== null && v !== undefined && v !== ""; }
 function pickBackendKeys(obj) {
   const out = {};
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return out;
-  for (const k of BACKEND_KEYS) if (present(obj[k])) out[k] = obj[k];
+  for (const k of BACKEND_KEYS) {
+    if (!present(obj[k])) continue;
+    // FAFF-696: `auth` is carried ONLY for a subscription-seat — that's the value
+    // review-call.mjs keys on to resolve the seat token. A derived `api-key`/`none`
+    // auth is redundant with api_key_env (review-call's absent-auth fallback maps to
+    // it), and emitting it on a refs-resolved metered backend would break the
+    // FAFF-523 refs↔legacy byte-equivalence. `seat_token_env` is only ever present
+    // on a seat, so it needs no such guard.
+    if (k === "auth" && obj[k] !== "subscription-seat") continue;
+    out[k] = obj[k];
+  }
   return out;
 }
 
@@ -255,6 +270,33 @@ function adversarialBackendsSelftest() {
     const allowed = new Set(BACKEND_KEYS);
     ok("emitted keys ⊆ the mapper's accepted key set", keys.every((k) => allowed.has(k)));
     ok("unrelated config keys never leak into the emitted backend", !("some_other_key" in res.chain[0]));
+  }
+
+  // FAFF-696: a refs: chain into a subscription-seat backend carries auth + seat_token_env
+  // through to review-call.mjs (which resolves the seat token, FAFF-481). Without them the
+  // seat arrives stripped and can't authenticate.
+  {
+    const cfg = {
+      backends: { seat: { provider: "anthropic", model: "claude-opus-4-8", auth: "subscription-seat", seat_token_env: "CLAUDE_SEAT_TOKEN" } },
+      faffter_dark: { adversarial: { refs: ["seat"] } },
+    };
+    const res = assembleAdversarialBackends(cfg);
+    ok("refs→seat: chain assembled", !!res.chain && res.chain.length === 1);
+    ok("refs→seat: auth carried", res.chain[0].auth === "subscription-seat");
+    ok("refs→seat: seat_token_env carried", res.chain[0].seat_token_env === "CLAUDE_SEAT_TOKEN");
+    ok("refs→seat: no stray api_key_env", !("api_key_env" in res.chain[0]));
+  }
+
+  // FAFF-696: a legacy metered backend (no auth/seat handle) emits byte-identically —
+  // the two new keys are simply absent (present() gates the copy).
+  {
+    const cfg = { faffter_dark: { adversarial: {
+      provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K", timeout: 480,
+    } } };
+    const res = assembleAdversarialBackends(cfg);
+    ok("legacy metered: no auth key leaked", !("auth" in res.chain[0]));
+    ok("legacy metered: no seat_token_env key leaked", !("seat_token_env" in res.chain[0]));
+    ok("legacy metered: api_key_env still carried", res.chain[0].api_key_env === "K");
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (adversarial-backends, ${fail} failed)`);

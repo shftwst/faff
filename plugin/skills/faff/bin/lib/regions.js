@@ -130,6 +130,9 @@ const REGION_MAP = {
   "next": "factory",
   "project-next": "factory",
   "state": "factory",
+  // tracker — FAFF-695: the tracker-pin classifier. Requires config (loadConfig) +
+  // shared-infra (findRoot/dig) — a pure computation command, sibling of state → factory.
+  "tracker": "factory",
   // queue-state — FAFF-556: the git-only queue_empty/all_parked differ. Requires
   // shared-infra (findRoot/readLedger/latestRunDir) and governance-profile
   // (activeProfile) — a pure computation command, sibling of run-done/next → factory.
@@ -255,6 +258,7 @@ const REGION_SELFTEST_ARGV = {
   "next": ["next", "--selftest"],
   "project-next": ["project-next", "--selftest"],
   "state": null,
+  "tracker": ["tracker", "--selftest"],
   "queue-state": ["queue-state", "--selftest"],
   "findings-reconcile": ["findings-reconcile", "--selftest"],
   "park-history": ["park-history", "--selftest"],

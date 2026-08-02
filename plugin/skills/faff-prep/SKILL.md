@@ -213,7 +213,7 @@ Do **not** include an acceptance-criteria count here — fresh prep hasn't explo
 
 **Automation eligibility (interactive).** If the issue is **not automation-eligible** (gateway → **Automation eligibility**) — it lacks `faff-automate` under the opt-in default, or carries `faff-automation-hold` — warn — "this ticket isn't automation-eligible; proceeding interactively, eligibility is unchanged until you set it" — then continue normally. Interactive prep is never *blocked* by eligibility (only autonomous prep skips not-eligible issues). Prep never **auto**-changes eligibility labels; in interactive mode it **offers to crank it up on explicit confirm** once the spec is attached — see Step 3's *Held-ticket lift gate*. (Autonomous prep never cranks up: a not-eligible issue returns `ineligible` and is skipped.)
 
-Apply the shared **Spec discovery** rule first (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
+Resolve tracker availability first **per gateway → Tracker availability resolution** (honour a `tracking.tracker` pin via `faff tracker probe`, discover the connector before concluding git-only, resolve the mode once for this prep) — so a deferred-tool harness doesn't read a connected tracker as absent and mis-route discovery to the git-only store. Then apply the shared **Spec discovery** rule (the sibling `faff/SKILL.md`) — check tracker comments, the main description, committed `docs/` paths, and (git-only mode) the `.faff/specs/` store. Only if **all** come up empty, run the full prep workflow:
 
 **Step 1: Explore (subagent)**
 

@@ -80,6 +80,7 @@ const { cmdSentryPoller } = require("./lib/sentry-poller");
 const { cmdSentrycheck } = require("./lib/sentrycheck");
 const { cmdStageGuard } = require("./lib/stage");
 const { cmdState } = require("./lib/state");
+const { cmdTracker } = require("./lib/tracker");
 const { cmdValidateAdapters } = require("./lib/validate-adapters");
 const { cmdWorktreePrune } = require("./lib/worktree-prune");
 
@@ -139,6 +140,7 @@ const COMMANDS = {
   "next": cmdNext,
   "project-next": cmdProjectNext,
   "state": cmdState,
+  "tracker": cmdTracker,
   "queue-state": cmdQueueState,
   "findings-reconcile": cmdFindingsReconcile,
   "park-history": cmdParkHistory,

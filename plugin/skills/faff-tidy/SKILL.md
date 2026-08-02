@@ -25,6 +25,8 @@ Tidy the backlog. Looks both ways in one pass:
 
 **Description ≠ spec** (gateway → **Spec discovery**). A populated description is not a spec; never promote an issue to Todo on the strength of one. That's a `/faff-prep` candidate, not a ready issue.
 
+**Resolve tracker availability first (gateway → Tracker availability resolution).** Before any discovery, resolve tracker-vs-git-only per the shared rule — honour a `tracking.tracker` pin (`faff tracker probe`), discover the connector before concluding absence, and resolve the mode **once** for this tidy pass — so a deferred-tool harness doesn't read a connected tracker as absent and skip comment-fetching wholesale.
+
 **Comments are mandatory in spec discovery.** Per the shared rule (gateway → **Spec discovery**, "Comments are not optional"), you **must** fetch each issue's comments via the configured tracker MCP before bucketing it for spec health or readiness. Descriptions-only classification is a **broken run** that mis-classifies the common case as "needs prep". If there are too many issues to comment-fetch individually, batch-fetch or scope the run smaller; never substitute description-only sampling, and never hedge with "comments not checked": complete the discovery and re-classify before reporting.
 
 **Methodology lens.** When a `methodology` slot is configured, tidy adds **bucket 7 (Methodology findings)** — surface-only, no auto-actions (display convention: gateway → **The `methodology` slot**).

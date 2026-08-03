@@ -6,9 +6,15 @@
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {
-    "closed_set": [
-      "architectural"
-    ]
+    "lens_bounds": {
+      "must_object": [
+        "architectural"
+      ],
+      "may_object": [
+        "infosec",
+        "QA"
+      ]
+    }
   },
   "_comment": "LEGIT CATCH: a separate microservice + Redis cluster + gRPC for per-route rate limiting on a monolith is grossly over-engineered (a simple in-process middleware limiter fits), AND it puts a synchronous network hop + new failure mode on the auth hot path. A competent architectural lens must raise a blocker → reject-approach. Not infosec/QA/methodology-primary."
 }

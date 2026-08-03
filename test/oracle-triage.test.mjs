@@ -242,3 +242,28 @@ test("FAFF-319/670 follow-ups name tickets", () => {
 test("FAFF-319 meta names the superseded FAFF-321 artifact", () => {
   assert.ok(/triage-results\.json/.test(meta.supersedes || ""), "meta.supersedes must name the superseded root artifact");
 });
+
+// FAFF-615 — the entries resolved against the operator's sweep carry a `resolved_by` field, while
+// `triage_ticket` stays at first-author provenance (Decision C). The guard is BIDIRECTIONAL and pinned
+// to the FAFF-615 extension record's explicit case list, so it can't be built toothless: the class
+// alone can't say which entries may carry the field (the flips land on both `oracle-defect` and
+// `sound`, and 31 other `sound` entries carry none). The extension list is the concrete anchor.
+test("FAFF-615 resolved_by is the literal ticket, cites the run, and matches the extension case list exactly", () => {
+  const rec = (meta.extensions || []).find((r) => r.ticket === "FAFF-615");
+  assert.ok(rec, "meta.extensions must hold a FAFF-615 record");
+  const listed = new Set(rec.resolved_case_ids || []);
+  assert.ok(listed.size > 0, "the FAFF-615 record must list a non-empty resolved_case_ids");
+
+  const carrying = new Set();
+  for (const e of entries) {
+    if (e.resolved_by == null) continue;
+    carrying.add(e.case_id);
+    assert.equal(e.resolved_by, "FAFF-615", `entry ${e.case_id}: resolved_by must be the literal "FAFF-615"`);
+    assert.ok(/20260803-012238/.test(e.rationale || ""), `entry ${e.case_id}: a resolved_by entry must cite run 20260803-012238 in its rationale`);
+  }
+  assert.ok(
+    setEq(carrying, listed),
+    `entries carrying resolved_by must equal the FAFF-615 extension list exactly; ` +
+      `carrying {${[...carrying].join(", ")}}, listed {${[...listed].join(", ")}}`,
+  );
+});

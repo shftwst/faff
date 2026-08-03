@@ -6,9 +6,14 @@
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {
-    "closed_set": [
-      "infosec"
-    ]
+    "lens_bounds": {
+      "must_object": [
+        "infosec"
+      ],
+      "may_object": [
+        "architectural"
+      ]
+    }
   },
   "_comment": "LEGIT CATCH: secrets stored in the tracker (readable by anyone with issue access, not a secret store) AND a token echoed into logs. Clear infosec blocker → needs-human. Design is otherwise fine, so architectural should stay quiet."
 }

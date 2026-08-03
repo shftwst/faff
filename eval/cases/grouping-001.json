@@ -18,10 +18,10 @@
   "question": "You are the agile-delivery methodology lens answering the `rehome-set` named output. Given the project-less Backlog set, its dependency graph, and the existing projects, apply the proposal procedure: propose outcome-led containers (name + one outcome each) with a membership map, propose the internal ordering edges that make each proposal deliverable in sequence, order the proposals by which grouping unlocks value first, and account for every ticket you do not place in a container with a one-line reason. Every input ticket must appear exactly once across container membership and the unplaced set. Propose only high-confidence groupings; write nothing.",
   "oracle": { "gloss_rubric": {
     "must_include": [
-      ["password reset", "self-service password", "account recovery", "reset their own password"],
+      ["password reset", "self-service password", "account recovery", "reset their own password", "reset", "recover"],
       ["invoice", "invoicing", "billing"],
       ["leave loose", "stays loose", "remains loose", "deliberately loose", "leave-loose"],
-      ["coherence edge", "blocked by", "blocker", "sequencable", "sequenceable"]
+      ["coherence edge", "blocked by", "blocker", "sequencable", "sequenceable", "blockedby", "blocks"]
     ],
     "must_avoid": [
       ["tech debt", "chores", "miscellaneous", "housekeeping", "grab bag"],

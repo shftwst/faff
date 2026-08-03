@@ -6,9 +6,15 @@
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {
-    "closed_set": [
-      "infosec"
-    ]
+    "lens_bounds": {
+      "must_object": [
+        "infosec"
+      ],
+      "may_object": [
+        "architectural",
+        "QA"
+      ]
+    }
   },
   "_comment": "FAFF-SPECIFIC CATCH (ADR-0039 forge finding). The corrective-note is a new on-disk orchestrator INPUT written by the build lane. Inside the container the build subagent shares uid+filesystem with the orchestrator's on-disk artifacts, so it can FORGE this file — the very lane the correction is meant to constrain authors its own corrective input, and the orchestrator applies it verbatim. The shipped terminal-token guard is context isolation and does not cover a new on-disk file; this needs a read-only mount or orchestrator-verified signatures (the FAFF-325 integrity mechanism) before consumption. A GENERIC checklist reads this as a low-blast-radius internal file write and likely approves; a faff-threat-primed infosec lens knows the shared-uid+fs forge surface and raises a critical/major → the trust boundary is violated by construction. Not architectural/QA-primary (the design is otherwise coherent and testable)."
 }

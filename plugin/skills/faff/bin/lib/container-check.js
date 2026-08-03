@@ -86,16 +86,57 @@ function hostSocketProbe(fsq) {
 }
 
 const { parseArgs, usageError } = require("./argv");
-const CONTAINER_CHECK_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
+// FAFF-655 — `--gate` joins the surface flags: the binding admission verdict a
+// workflow gates on, additive to the default reading (which is untouched).
+const CONTAINER_CHECK_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--gate": { arity: 0 } } };
 
-function cmdContainerCheck(args) {
+// FAFF-655 — the injection seam is a defaulted `deps` param: production supplies
+// nothing (defaults are the real adapters), the selftest passes synthetic
+// { env, fsq } to drive the command over fabricated state and read the exit code.
+// Mirrors the (env, fsq) seam containerCheck/hostSocketProbe already have, lifted
+// to the command entry point — no global state, no process.env monkey-patching.
+function cmdContainerCheck(args, { env = process.env, fsq = realFsq() } = {}) {
   if (args.includes("--selftest")) return containerCheckSelftest();
   const { values, errors } = parseArgs(args, CONTAINER_CHECK_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff container-check [--json]");
+  if (errors.length) return usageError(errors, "usage: faff container-check [--json] [--gate]");
   const json = !!values["--json"];
-  const fsq = realFsq();
-  const { result, basis } = containerCheck(process.env, fsq);
+  const gate = !!values["--gate"];
+  const { result, basis } = containerCheck(env, fsq);
   const hostSocket = hostSocketProbe(fsq);
+
+  if (gate) {
+    // FAFF-655 — the composite admission verdict. ADR-0095's two criteria, ANDed:
+    // the run is `contained` AND no canonical host engine socket is reachable. The
+    // load-bearing case is contained-WITH-host-socket → refuse: a contained job
+    // that still reaches the host socket is root-equivalent host control (ADR-0041
+    // decision 3) and is not admissible — which the default reading only WARNS
+    // about. Pure (env, fsq); deliberately does NOT read autonomous.engine_bounded
+    // (that downgrade is lights-out.js's, the L4 path) — `--gate` is the strict
+    // floor a CI workflow gates on. "Work scoped to this checkout" is not a
+    // criterion (ADR-0095 excluded it as not faff-checkable) — two criteria, not three.
+    const containedOk = result === "contained";
+    const noHostSocket = !hostSocket.present;
+    const pass = containedOk && noHostSocket;
+    const reasons = [];
+    if (!containedOk) reasons.push(`containment not confirmed (${basis})`);
+    if (!noHostSocket) reasons.push(`host docker socket present at ${hostSocket.path}`);
+    if (json) {
+      console.log(JSON.stringify({
+        verdict: pass ? "pass" : "fail",
+        contained: containedOk,
+        basis,
+        host_socket: hostSocket,
+        criteria: { contained: containedOk, no_host_socket: noHostSocket },
+      }));
+    } else {
+      console.log(pass ? "pass" : `fail — ${reasons.join("; ")}`);
+    }
+    return pass ? 0 : 1;
+  }
+
+  // Default surface reading — UNCHANGED exit-code contract (FAFF-333): containment
+  // decides the exit code, a present host socket only WARNS. Existing callers keep
+  // their contract; the binding semantics live only behind the opt-in `--gate`.
   if (json) {
     console.log(JSON.stringify({ result, basis, host_socket: hostSocket }));
   } else {
@@ -171,7 +212,48 @@ function containerCheckSelftest() {
     }
   } catch { console.log("FAIL hostSocketProbe(realFsq()) threw"); fail++; }
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length + HS_CASES.length} cases + never-throws x2, ${fail} failed)`);
+  // FAFF-655 — COMMAND-LEVEL exit-code assertions. The cases above exercise the pure
+  // functions; these drive cmdContainerCheck itself over the injection seam and assert
+  // the RETURNED exit code (a gate whose exit code is untested is decoration). `capture`
+  // swaps console.log for a collector so the driven command's output doesn't pollute the
+  // selftest log and can be asserted (the --json shape row).
+  const capture = (args, env, present) => {
+    const log = console.log; const lines = [];
+    console.log = (...a) => lines.push(a.join(" "));
+    let code;
+    try { code = cmdContainerCheck(args, { env, fsq: mkFsq(new Set(present), "") }); }
+    finally { console.log = log; }
+    return { code, out: lines.join("\n") };
+  };
+  const GATE_CASES = [
+    // [args, env, present-paths, want-code, label]
+    [["--gate"], {}, ["/.dockerenv"], 0, "gate: contained + no socket → admit (0)"],
+    [["--gate"], {}, ["/.dockerenv", "/var/run/docker.sock"], 1, "gate: contained + HOST SOCKET → refuse (1) [the load-bearing row]"],
+    [["--gate"], {}, [], 1, "gate: not_confirmed + no socket → refuse (1)"],
+    [["--gate"], {}, ["/run/docker.sock"], 1, "gate: not_confirmed + host socket → refuse (1)"],
+    [["--gate"], { KUBERNETES_SERVICE_HOST: "10.0.0.1" }, [], 0, "gate: k8s contained + no socket → admit (0)"],
+    // legacy contract unchanged: bare command still ADMITS contained-with-socket (warn only)
+    [[], {}, ["/.dockerenv", "/var/run/docker.sock"], 0, "bare: contained + socket → 0 (unchanged FAFF-333 contract)"],
+    [[], {}, [], 1, "bare: not_confirmed → 1 (unchanged contract)"],
+  ];
+  for (const [args, env, present, wantCode, label] of GATE_CASES) {
+    const { code } = capture(args, env, present);
+    const ok = code === wantCode;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} ${label} → exit ${code} (want ${wantCode})`);
+  }
+  // the composite --json shape names both criteria (so a reader sees WHY it refused).
+  {
+    const { code, out } = capture(["--gate", "--json"], {}, ["/.dockerenv", "/var/run/docker.sock"]);
+    let j = null; try { j = JSON.parse(out); } catch { /* j stays null → FAIL below */ }
+    const ok = code === 1 && j && j.verdict === "fail" && j.contained === true
+      && j.criteria && j.criteria.contained === true && j.criteria.no_host_socket === false
+      && j.host_socket && j.host_socket.present === true && typeof j.basis === "string";
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} gate --json composite shape (verdict=fail, contained=true, no_host_socket=false) → ${out}`);
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length + HS_CASES.length + GATE_CASES.length + 1} cases + never-throws x2, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 

@@ -1,0 +1,18 @@
+probe selftest — probe_version 1, euid 0
+
+a readable-with-bytes              expected=present(read-ok)                         observed=present(read-ok)                               PASS
+b missing-leaf                     expected=absent                                   observed=absent                                         PASS
+c unsearchable-ancestor            expected=undecidable(ancestor-not-searchable      observed=unmeasurable_here(euid 0: access(2) grants search and read regardless) SKIPPED-EUID-0
+d dangling-symlink                 expected=absent                                   observed=absent                                         PASS
+d dangling-sibling-key             expected=yes                                      observed=yes                                            PASS
+e unreadable-leaf                  expected=unreadable(not-readable-by-euid)         observed=unmeasurable_here(euid 0: access(2) grants search and read regardless) SKIPPED-EUID-0
+f ancestor-not-a-directory         expected=undecidable(ancestor-not-a-directory     observed=undecidable(ancestor-not-a-directory:/tmp/tmp.NqLMoBc8b9/f_afile) PASS
+g unconstructible-path             expected=unmeasurable_here(PROBE_SELFTEST_UNSET unset observed=unmeasurable_here(PROBE_SELFTEST_UNSET unset: path not constructible) PASS
+h empty-file                       expected=present("empty")                         observed=present("empty")                               PASS
+i missing-ancestor                 expected=absent                                   observed=absent                                         PASS
+j directory                        expected=present(                                 observed=present(directory)                             PASS
+
+unreadable(open-failed)            no fixture — POSIX sh cannot create a socket; a FIFO blocks on open
+unreadable(read-failed)            no fixture — no portable way to fail a read after a successful open
+
+selftest: 9 passed, 2 skipped (euid 0), 0 failed

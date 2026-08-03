@@ -231,7 +231,7 @@ PROCEDURE classify(path_template):
 
 **Chosen:** the scratch file rather than a pipe, and it is not stylistic. The pipeline reports its last command's status, and POSIX `sh` has no portable way to reach further back — so the failing case reads as success. That is the exact silent-wrong-answer this classifier exists to prevent.
 
-**The no-content property is preserved.** The character counter emits a count and never the byte; the scratch file is removed before the function returns and is never printed. The five-exception guarantee below needs no sixth entry.
+**The no-content property is preserved.** The character counter emits a count and never the byte; the scratch file is removed before the function returns and is never printed. The seven-exception guarantee below needs no further entry for this.
 
 **Chosen:** `present("empty")` means *the read succeeded and obtained no bytes* — not *the file is empty*. Where a kernel refuses at read time with an error, step 7a catches it and the key reads `unreadable(read-failed)`. Where one instead returns success with zero bytes, `present("empty")` is the honest reading, and the token's stated meaning is what stops it being read as content. `RESULTS.md` states this definition once, in provenance.
 
@@ -375,15 +375,17 @@ followed by the listing verbatim.
 
 ### Keeping credentials out of the committed transcripts
 
-**The primary defence is structural: the probe has no code path that prints the bytes of a file it classified.** Every file-facing key emits a token, a long-listing line, or a name. That guarantee has exactly five exceptions, and they are the complete list:
+**The primary defence is structural: the probe has no code path that prints the bytes of a file it classified.** Every file-facing key emits a token, a long-listing line, or a name. That guarantee has exactly seven exceptions, and they are the complete list:
 
 1. the mount table, printed verbatim;
 2. the `/proc/1/environ` key *names* (never values), under the names mode;
 3. the value of the `container` key from `/proc/1/environ`, printed in full;
 4. long-listing lines, which carry mode, numeric uid and gid, size and name;
-5. `faff container-check` stdout, both JSON and plain.
+5. `faff container-check` stdout, both JSON and plain;
+6. the `/proc/1/cgroup` continuation block, printed verbatim (world-readable, so on every run; under cgroup v2 normally the single line `0::/`);
+7. the `/proc/1/comm` continuation block, printed verbatim (the name of pid 1's executable, world-readable, so on every run).
 
-Nothing else in the probe writes bytes obtained from a measured file. The scan below is a backstop on that guarantee, not the guarantee itself.
+Nothing else in the probe writes bytes obtained from a measured file. The set is derived from the instrument, not this list — enumerate `probe.sh`'s continuation-block emit sites (every pipe into `emit_block`, plus every inline `while … printf '  | %s'` loop): the seven sites `:334`, `:403`, `:420`, `:424`, `:453`, `:467`, `:519`. Check against those emit sites, not by counting list entries — they do not map one-to-one (entry 4 covers `:453` and `:467`; entry 3 is a single-value emit, not a continuation block). Checking the list against itself is how an earlier count of five survived twelve review passes. The scan below is a backstop on that guarantee, not the guarantee itself.
 
 ```
 PROCEDURE commit_scan(files):
@@ -408,7 +410,7 @@ PROCEDURE commit_scan(files):
 - A prefix-less credential under a key name outside the credential key-name gate, or one containing a dot, colon or slash, which the generic value pattern excludes by design.
 - **Essentially anything in this record's own format.** The generic-high-entropy branch — the one branch that can fire on a credential with no recognisable prefix — is close to inert here, for two independent reasons. Every value line in a transcript is a grammar token, and every token but `absent` carries parentheses, which fall outside the generic value pattern's permitted characters. And the verbatim blocks that could carry raw material — mount lines, long-listing lines, the pre-checkout listing — have no key-value separator to split on, so branch (c) never reaches its value test at all. The prefix branches do work on this format, because they match anywhere in the line.
 
-So the honest position is: the prefix branches are a real backstop on this record, the generic branch is carried for FAFF-656 rather than earning its place here, and the structural guarantee above with its five named exceptions is what actually keeps credentials out. Calling the scan the guarantee would be an overclaim.
+So the honest position is: the prefix branches are a real backstop on this record, the generic branch is carried for FAFF-656 rather than earning its place here, and the structural guarantee above with its seven named exceptions is what actually keeps credentials out. Calling the scan the guarantee would be an overclaim.
 
 **Anti-pattern:** calling `secretScanLeaf` per line and treating a null return as clean. Why: it anchors at character zero of the value, so it gives a false all-clear on exactly the file it was added to protect.
 
@@ -587,7 +589,7 @@ Two records give FAFF-646 two tables to reconcile. One table with per-column sta
 - [ ] The containerised transcript reports the socket-removal keys as `unmeasurable_here` with the no-host-side-hook reason.
 - [ ] The `hosted-direct` same-job removal reading is labelled in `RESULTS.md` as a same-job removal.
 - [ ] `RESULTS.md` states the euid caveat once, in provenance, before the table.
-- [ ] `RESULTS.md` states the structural no-byte-emitting guarantee together with its five named exceptions, and states the ported scan's coverage gap including that the generic branch is close to inert against this record's format.
+- [ ] `RESULTS.md` states the structural no-byte-emitting guarantee together with its seven named exceptions, and states the ported scan's coverage gap including that the generic branch is close to inert against this record's format.
 - [ ] Every line of `RESULTS.md` other than the `notes` field's content is a provenance field, a table row, a caption matching the fixed template, a column-status line, or a heading; every table cell matches the value grammar, a signal name, a shape name, or `non-decisive`. `RESULTS.md` states that `notes` is the one line class reviewed by eye.
 - [ ] `RESULTS.md` has no `Headline` section and no Decision section.
 - [ ] `RESULTS.md` names the actions-runner-controller shape as unmeasured and cites the ticket filed for it.
@@ -619,7 +621,7 @@ PROCEDURE smoke:
      unmeasurable_here naming the variable, and that no key reads absent for it.
   6. Assert the work-directory listing contains no line with a path separator in an
      entry name.
-  7. Assert that the only file-derived content in stdout is the five named exceptions.
+  7. Assert that the only file-derived content in stdout is the seven named exceptions.
      Assert no other line contains bytes from any file the probe classified.
   8. Assert the exit code is 0.
 ```

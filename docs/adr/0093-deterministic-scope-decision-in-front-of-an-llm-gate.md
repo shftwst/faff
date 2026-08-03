@@ -1,6 +1,6 @@
 # ADR 0093 — Deterministic scope decision in front of an LLM gate
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-02
 - **Issue:** FAFF-710

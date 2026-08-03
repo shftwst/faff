@@ -23,7 +23,7 @@ A slot skill that omits the refer-back prose is a latent bug: it works as a dele
 ## Two faces
 
 - **Author** (scaffold): given a target slot and a description, produce the skeleton of a conformant slot skill — with the refer-back prose, the two-face structure, and the map-onto-fixed-contract section already in place. The author fills in the dialect. Write the prose **to the skill-authoring charter** (`docs/skill-authoring.md`) — lean, deduplicated, skimmable — whose lintable subset `faff validate-adapters` enforces.
-- **Validate** (audit): given an existing slot skill (by name or path), check it against the conformance checklist below and return `pass` / `fail` + specific violations. Run it before adopting a third-party slot skill, in CI over the shipped ones, or **at runtime** — the pipeline **always** invokes this face on a configured non-default occupant before first use and parks/surfaces on `fail` (gateway → _Slot conformance validation_).
+- **Validate** (audit): given an existing slot skill (by name or path), check it against the conformance checklist below and return `pass` / `fail` + specific violations. Run it before adopting a third-party slot skill, in CI over the shipped ones, or **at runtime** — the pipeline **always** invokes this face on a configured **foreign** occupant (one not in `REGISTRY`; a bundled `faffter-*` occupant is exempt by the `--is-bundled` predicate) before first use and parks/surfaces on `fail` (gateway → _Slot conformance validation_).
 
 ## The fixed contract each slot maps onto
 
@@ -92,5 +92,5 @@ signal: pass | fail
 ## Rules
 
 - This skill authors and audits; it never edits the gateway contract. If a slot genuinely needs a new fixed state/class/verdict, that is a change to faff-core in the gateway — proposed there first, never bolted onto an adaptor.
-- Both a development-time tool and a runtime gate. At authoring time it scaffolds/audits; at runtime the pipeline **always** invokes this skill's Validate face on a configured non-default occupant before first use (gateway → _Slot conformance validation_) — a default occupant is never validated, so the zero-config path is untouched. The contract binding itself is the consumer-load + standalone-read mechanism in the gateway; this Validate gate is what catches a non-conformant *swap*.
+- Both a development-time tool and a runtime gate. At authoring time it scaffolds/audits; at runtime the pipeline **always** invokes this skill's Validate face on a configured **foreign** occupant before first use (gateway → _Slot conformance validation_) — a **bundled first-party** occupant (the shipped default *or* a non-default `faffter-*` alternative) is never validated, so both the zero-config path and the bundled-alternative path are untouched. The contract binding itself is the consumer-load + standalone-read mechanism in the gateway; this Validate gate is what catches a non-conformant *swap*.
 - The output envelope mirrors the faffidavit validate face on purpose — a slot author already fluent in one knows this one.

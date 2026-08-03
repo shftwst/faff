@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { HERE } = require("./shared-infra");
 const { parseArgs, usageError } = require("./argv");
-const VALIDATE_ADAPTERS_SPEC = { flags: { "--configured": { arity: 0 }, "--root": { arity: 1 }, "--skills-dir": { arity: 1 } } };
+const VALIDATE_ADAPTERS_SPEC = { flags: { "--configured": { arity: 0 }, "--root": { arity: 1 }, "--skills-dir": { arity: 1 }, "--is-bundled": { arity: 1 }, "--slot": { arity: 1 } } };
 const { loadConfig, DEFAULTS } = require("./config");
 const { CANONICAL_CONFIG, findRoot } = require("./shared-infra");
 const { CONTRACT_DESCRIBES } = require("./contract-defs");
@@ -484,9 +484,49 @@ function validateConfigured(args, skillsDir) {
   return failed ? 1 : 0;
 }
 
+// FAFF-710: the deterministic bundled-membership predicate the runtime slot-conformance gate
+// consults BEFORE deciding whether to run the LLM semantic Validate. It is a pure function of the
+// occupant name + slot against REGISTRY/SLOT_TYPES — no .faffrc read, no filesystem probe — so it
+// returns the same verdict under every harness. That is the whole point: the scope decision in
+// front of the non-deterministic semantic gate is itself deterministic, so a bundled first-party
+// occupant is exempted by mechanical lookup rather than an LLM reading of its identity.
+//   exit 0 → name ∈ REGISTRY AND REGISTRY[name].type === SLOT_TYPES[slot].type (bundled, right slot)
+//   exit 1 → foreign (not in REGISTRY) OR wrong-slot (in REGISTRY, type ≠ this slot's type) — validate
+//   exit 2 → usage (missing/blank name, or missing/unknown slot)
+// The --slot guard mirrors validateConfigured()'s own SLOT_TYPES[slot] lookup, so the predicate and
+// the --configured lint agree on what "the right skill for this slot" means, and the exemption never
+// widens to bare name-membership across every REGISTRY key.
+function cmdIsBundled(args) {
+  const { values, errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff validate-adapters --is-bundled <occupant> --slot <slot>");
+  const name = typeof values["--is-bundled"] === "string" ? values["--is-bundled"].trim() : "";
+  const slot = typeof values["--slot"] === "string" ? values["--slot"].trim() : "";
+  if (!name) {
+    process.stderr.write("validate-adapters --is-bundled: missing/blank occupant name\n");
+    return 2;
+  }
+  const slotMeta = SLOT_TYPES[slot];
+  if (!slotMeta) {
+    process.stderr.write(`validate-adapters --is-bundled: missing/unknown --slot (got "${slot || "<none>"}"; known: ${Object.keys(SLOT_TYPES).join(", ")})\n`);
+    return 2;
+  }
+  const reg = REGISTRY[name];
+  if (!reg) {
+    console.log(`${name}: foreign (not in REGISTRY) — semantic Validate applies`);
+    return 1;
+  }
+  if (reg.type !== slotMeta.type) {
+    console.log(`${name}: bundled but wrong slot (registered ${reg.type}, occupies ${slot}:${slotMeta.type}) — semantic Validate applies`);
+    return 1;
+  }
+  console.log(`${name}: bundled first-party for slot ${slot} — conformant by construction`);
+  return 0;
+}
+
 function cmdValidateAdapters(args) {
+  if (args.includes("--is-bundled")) return cmdIsBundled(args);
   const { errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff validate-adapters [--configured] [--skills-dir DIR] [--root DIR]");
+  if (errors.length) return usageError(errors, "usage: faff validate-adapters [--configured] [--skills-dir DIR] [--root DIR] | --is-bundled <occupant> --slot <slot>");
   const skillsDir = resolveSkillsDir(args);
   if (!fs.existsSync(skillsDir) || !fs.statSync(skillsDir).isDirectory()) {
     process.stderr.write(`validate-adapters: skills dir not found: ${skillsDir}\n`);
@@ -817,4 +857,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_CAP_OVERRIDE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, checksFor, cmdIsBundled, cmdValidateAdapters, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

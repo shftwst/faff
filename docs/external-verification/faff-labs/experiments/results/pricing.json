@@ -1,0 +1,32 @@
+{
+  "_comment": "Advertised-API rate card for the faff-L4-vs-one-shot cost axis (design §5.A.4). Rates are USD per MILLION tokens, per token type, per model. LEAVE null UNTIL FILLED from the live published rate card — the calculator reports 'unpriced' rather than inventing a number. Set 'dated' when you fill it so the comparison re-computes identically later.",
+  "_fill": "FILL FROM LIVE ADVERTISED API RATE CARD, dated",
+  "dated": null,
+  "unit": "USD per 1,000,000 tokens",
+  "token_types": {
+    "input": "prompt/input tokens",
+    "output": "generated/output tokens",
+    "cache_write": "cache-creation input tokens (a.k.a. cache_creation_input_tokens)",
+    "cache_read": "cache-read input tokens (a.k.a. cache_read_input_tokens)"
+  },
+  "models": {
+    "claude-fable-5": {
+      "input": null,
+      "output": null,
+      "cache_write": null,
+      "cache_read": null
+    },
+    "claude-opus-4-8": {
+      "input": null,
+      "output": null,
+      "cache_write": null,
+      "cache_read": null
+    },
+    "claude-opus-5": {
+      "input": null,
+      "output": null,
+      "cache_write": null,
+      "cache_read": null
+    }
+  }
+}

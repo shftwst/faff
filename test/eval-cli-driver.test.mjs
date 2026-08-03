@@ -810,16 +810,20 @@ test("FAFF-669 no instruction and no renderer framing line carries the oracle's 
 // own idiolect, which the --no-plugin control had no other in-prompt source for. Left alone, the
 // contrast this eval exists to measure would have collapsed and the first-ever baseline would have been
 // inflated with no later reader able to detect it. The question was reworded; the oracle is pinned.
-test("FAFF-669 grouping-001's question no longer leaks the oracle, and the oracle itself has not moved", () => {
+test("FAFF-669 grouping-001's question no longer leaks the oracle; the oracle is at its FAFF-615-widened value", () => {
   const c = readCase("grouping-001.json");
   for (const phrase of FORBIDDEN.grouping) {
     assert.ok(!c.question.toLowerCase().includes(phrase.toLowerCase()), `grouping-001 question leaks "${phrase}"`);
   }
+  // FAFF-615 widened sets 0 and 3 to the phrasings real answers actually use — the 20260803-012238
+  // sweep showed correct proposals writing "recover a locked-out account" / "request a reset" (set 0)
+  // and camelCase "blockedBy" / "blocks" (set 3), which the original literal substrings missed. Sets 1
+  // and 2 are unchanged (2, the "loose" vocabulary, was confirmed sound at 44/50).
   assert.deepEqual(c.oracle.gloss_rubric.must_include, [
-    ["password reset", "self-service password", "account recovery", "reset their own password"],
+    ["password reset", "self-service password", "account recovery", "reset their own password", "reset", "recover"],
     ["invoice", "invoicing", "billing"],
     ["leave loose", "stays loose", "remains loose", "deliberately loose", "leave-loose"],
-    ["coherence edge", "blocked by", "blocker", "sequencable", "sequenceable"],
+    ["coherence edge", "blocked by", "blocker", "sequencable", "sequenceable", "blockedby", "blocks"],
   ]);
   assert.deepEqual(c.oracle.gloss_rubric.must_avoid, [
     ["tech debt", "chores", "miscellaneous", "housekeeping", "grab bag"],

@@ -6,9 +6,15 @@
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {
-    "closed_set": [
-      "infosec"
-    ]
+    "lens_bounds": {
+      "must_object": [
+        "infosec"
+      ],
+      "may_object": [
+        "architectural",
+        "QA"
+      ]
+    }
   },
   "_comment": "FAFF-SPECIFIC CATCH (the FAFF-378 stale-ledger escalation). The spec grants elevated agency from a persisted ledger FIELD without gating on run LIVENESS. In faff, `$FAFF_RUN_DIR` persists in shell profiles across sessions, so a completed/dead L4 run's ledger grants `appetite: full` to a later, unrelated session — privilege escalation via a stale artifact. The correct design gates on `runIsHeld` (the run must be live) before honouring the level. A GENERIC checklist reads 'reads a config file for a level flag, fail-closed default present' and approves; a faff-threat-primed infosec lens knows the stale-ledger authority-escalation pattern and raises a major → needs-human. Design intent is otherwise fine (architectural/QA quiet)."
 }

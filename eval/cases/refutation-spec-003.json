@@ -6,9 +6,15 @@
   },
   "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
   "oracle": {
-    "closed_set": [
-      "methodology"
-    ]
+    "lens_bounds": {
+      "must_object": [
+        "methodology"
+      ],
+      "may_object": [
+        "architectural",
+        "QA"
+      ]
+    }
   },
   "_comment": "LEGIT CATCH: the attached Methodology critique flags a too-large, non-incremental slice; the methodology lens must translate that into a blocker → reject-approach (plot re-slices). NOTE this fixture INCLUDES the ## Methodology critique block, because the methodology lens consumes it and degrades to no-signal without it."
 }

@@ -2,7 +2,7 @@
   "meta": {
     "ticket": "FAFF-319",
     "produced": "2026-07-23",
-    "method": "static prose triage — each oracle judged against its own fixture and the grader arm that reads it (eval/grader.mjs); zero paid model reps (ADR-0004)",
+    "method": "static prose triage — each oracle judged against its own fixture and the grader arm that reads it (eval/grader.mjs); zero paid model reps (ADR-0004); the resolved_by:\"FAFF-615\" entries were settled against the operator's 20260803-012238 sweep captures (still zero reps run BY this artifact — it read the captures, it did not sweep).",
     "supersedes": "triage-results.json (repo root, FAFF-321) — that artifact triaged the alphabetically-first 24 case files instead of the 8 target kinds, left 5 kinds untriaged, proposed one never-applied fix, and is deleted in this PR",
     "scope_kinds": [
       "architecture",
@@ -24,14 +24,14 @@
     "case_count": 41,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 34,
-      "oracle-defect": 2,
-      "needs-evidence": 2,
-      "suspected-genuine-miss": 3
+      "sound": 32,
+      "oracle-defect": 9,
+      "needs-evidence": 0,
+      "suspected-genuine-miss": 0
     },
     "follow_ups": {
       "operator_sweep": "FAFF-614 (operator-owned, not automation-eligible — the eval/README.md runbook is its instructions)",
-      "resolve_undecided": "FAFF-615 (blockedBy FAFF-614 — resolves the 1 needs-evidence + 3 suspected-genuine-miss entries from the sweep captures)",
+      "resolve_undecided": "FAFF-615 (RESOLVED 2026-08-03 against the 20260803-012238 sweep — the 1 needs-evidence + 3 suspected-genuine-miss entries adjudicated; see meta.extensions FAFF-615). The post-fix re-baseline is FAFF-711.",
       "calibrated_registry_tier": "FAFF-616 (covered != calibrated — its own design conversation)",
       "empty_case_set_guard": "FAFF-691 (guard eval/run-evals.mjs against a zero-case frontier sweep — resolve the driver after the --only filter and refuse a zero-case run, so a stale --only can never silently sweep nothing and exit 0)",
       "chain_gap_resolved_elsewhere_tolerance": "FAFF-692 (chain-gap and resolved-elsewhere grade binary via set-equality yet sit outside CLOSED_SET_KINDS and get the 0.03 free-text tolerance — reconcile the incoherent fractional tolerance on a binary grade)",
@@ -76,6 +76,22 @@
         ],
         "origin_commit": "d8edd792df0f86f24ae5a6966268e8ae1ba0a967",
         "note": "Relocated the five holdout-seed-* pilot fixtures out of eval/cases/ so the sweep's flat per-kind mean measures the two real holdout-exercise exercises, not a labelled false-pass-rate corpus, and triaged the seven never-reviewed oracles (all found sound bar grouping-001, held as needs-evidence)."
+      },
+      {
+        "ticket": "FAFF-615",
+        "date": "2026-08-03",
+        "run_id": "20260803-012238",
+        "resolved_case_ids": [
+          "refutation-spec-001",
+          "refutation-spec-002",
+          "refutation-spec-003",
+          "refutation-spec-007",
+          "refutation-spec-008",
+          "refutation-spec-009",
+          "grouping-001",
+          "specqual-003"
+        ],
+        "note": "Resolved the FAFF-319/FAFF-670 needs-evidence + suspected-genuine-miss entries against the operator's re-baseline sweep. The three suspected-genuine-miss cases (007/008/009) were REFUTED — the shipped infosec lens catches all three faff-specific threats; their FAILs, and 001/002/003's, were an over-narrow single-lens closed_set oracle, fixed by the new lens_bounds shape (ADR 0094). grouping-001's brittle gloss buckets were widened; specqual-003 was confirmed sound. triage_ticket stays at first-author provenance; resolved_by carries the resolution."
       }
     ],
     "assumption_checks": [
@@ -134,10 +150,10 @@
       "case_id": "specqual-003",
       "kind": "specqual",
       "grader_shape": "gloss-coverage (env.specqual)",
-      "class": "needs-evidence",
-      "rationale": "The question asks the model to WRITE a `## Scenarios` section that APPLIES the holdout-selection rules (mark a minority holdout; each holdout verifies already-stated behaviour). But must_include [minority|one-in-three|a subset|never more than half] and [generalisation|generalise|already requires|not the sole statement] demand rule-NARRATION vocabulary that a correct Scenarios section — structured Given/When/Then blocks with `holdout` fence markers — embodies structurally without necessarily naming. Whether a competent model's emitted section also carries an explanatory framing sentence (which would satisfy the vocabulary) cannot be decided by static inspection; it depends on real model output. must_include [holdout] and both must_avoid sets are sound.",
-      "discriminating_question": "In the first correctly-driven sweep's judgements.jsonl for specqual-003: does the emitted env.specqual section carry explicit minority/subset AND generalisation framing text? If yes across reps -> oracle sound (no change). If the section correctly marks a minority holdout and ties each holdout to a body requirement but omits the meta-vocabulary -> oracle-defect: must_include[1] and [2] demand narration the artifact-type does not require; relax them to accept the structural application (or move them to a must_avoid on the over-holdout anti-patterns already present).",
-      "triage_ticket": "FAFF-319"
+      "class": "sound",
+      "rationale": "The discriminating_question asked whether a correct ## Scenarios section names the minority / generalisation idea or only embodies it. Sweep 20260803-012238 answers it: 43/50 reps hit the generalisation-vocabulary bucket, so the oracle is not demanding language a correct answer omits. The 7 partials are ordinary model variance. Sound — no oracle change.",
+      "triage_ticket": "FAFF-319",
+      "resolved_by": "FAFF-615"
     },
     {
       "case_id": "holdout-001",
@@ -216,25 +232,31 @@
       "case_id": "refutation-spec-001",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "sound",
-      "rationale": "A standalone token-bucket microservice with its own Redis cluster and a synchronous gRPC hop on the auth hot path, for per-route rate limiting on a monolith, is grossly over-engineered and adds a new failure mode to login — a clear architectural blocker. The oracle [architectural] is the single correct objecting lens; infosec/QA/methodology should stay quiet. Generic catch, low miss risk.",
-      "triage_ticket": "FAFF-319"
+      "class": "oracle-defect",
+      "rationale": "Sweep 20260803-012238 scored this 0/20 FAIL — but the reviewer was right. The spec is over-engineered (architectural blocker) AND carries a real fail-open / spoofable-IP surface (infosec) AND a thin, unverifiable DONE (QA); a correct multi-lens refuter objects on all three, and a reasoning-on rerun confirmed the infosec and QA objections are grounded. The single-lens closed_set marked that thoroughness as failure — the oracle was too narrow, not the lens wrong.",
+      "triage_ticket": "FAFF-319",
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen to lens_bounds { must_object: [architectural], may_object: [infosec, QA] } — architectural mandatory, the two grounded extras tolerated, any other lens still FAILs (ADR 0094)."
     },
     {
       "case_id": "refutation-spec-002",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "sound",
-      "rationale": "Storing a Slack webhook URL and bot token in the tracker issue description (readable by anyone with issue access, not a secret store) and echoing the token into logs is a clear-cut secrets-handling blocker. Oracle [infosec] is the correct single lens; the design is otherwise fine so architectural should not fire. Generic catch.",
-      "triage_ticket": "FAFF-319"
+      "class": "oracle-defect",
+      "rationale": "Sweep 20260803-012238 scored 0/50: every rep emitted infosec:blocker (the correct primary — a Slack token in the tracker description) plus a grounded architectural:major. The single-lens [infosec] oracle rejected the superset and marked a correct catch as FAIL.",
+      "triage_ticket": "FAFF-319",
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen to lens_bounds { must_object: [infosec], may_object: [architectural] } — QA deliberately NOT tolerated, so the 9 stray-QA reps stay FAIL (the over-fire guard)."
     },
     {
       "case_id": "refutation-spec-003",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "sound",
-      "rationale": "The slice (extract a generic tracker interface, port Linear+Jira+GitHub, add caching, backfill all history — in one ticket) is a too-large non-incremental unit; with the fixture's attached ## Methodology critique block feeding it, the methodology lens must translate that into a reject-approach-grade objection. Oracle [methodology] is correct. Build note: the refutation-spec driver arm must render fixture.spec verbatim so the embedded methodology block reaches the refuter (without it the methodology lens degrades to no-signal and the case would spuriously score clean).",
-      "triage_ticket": "FAFF-319"
+      "class": "oracle-defect",
+      "rationale": "Sweep 20260803-012238 scored 0/50: every rep emitted methodology:blocker (the correct primary) plus grounded architectural:major and QA:major on this multiply-defective spec. The single-lens [methodology] oracle marked the thoroughness as FAIL.",
+      "triage_ticket": "FAFF-319",
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen to lens_bounds { must_object: [methodology], may_object: [architectural, QA] } — infosec NOT tolerated, so the 22 stray-infosec reps stay FAIL."
     },
     {
       "case_id": "refutation-spec-004",
@@ -264,28 +286,31 @@
       "case_id": "refutation-spec-007",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "suspected-genuine-miss",
-      "rationale": "The corrective-note is a new on-disk orchestrator INPUT written by the build lane; inside the container the build subagent shares uid+filesystem with the orchestrator's artifacts, so it can forge the very correction meant to constrain it (the ADR-0039 forge surface). This is a real infosec defect and oracle [infosec] is defensible — but the catch requires faff-specific threat priming (shared-uid/fs forge), which a generic infosec checklist reads as a low-blast-radius internal file write and approves. I actively suspect the shipped faffter-dark-spec-review infosec lens may miss it; a consistent approve on a correctly-driven sweep means the skill misses, not that the oracle is wrong. Flagged so the operator watches this case; if missed, the remedy is priming the lens (a skill-surface follow-up), never relaxing the oracle.",
+      "class": "oracle-defect",
+      "rationale": "The FAFF-319 triage SUSPECTED the generic infosec lens would stay silent on the ADR-0039 worktree-forge threat. Sweep 20260803-012238 REFUTES that: infosec objected in 42/50 reps, and a reasoning-on rerun confirmed it catches the exact forge mechanism at critical. The FAILs are the same over-narrow-oracle problem — infosec present PLUS grounded architectural/QA extras — not a miss. No skill priming needed.",
       "triage_ticket": "FAFF-319",
-      "expected_signal": "On the correctly-driven sweep, env.objections lands [] (approve) across reps where the oracle wants [infosec]. If that holds, the miss is the generic infosec lens reading the corrective-note write as a low-blast internal file op rather than the ADR-0039 shared-uid/fs forge — a lens-priming gap, not a wrong oracle. A run that objects [infosec] instead shows the shipped lens already catches it."
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen to lens_bounds { must_object: [infosec], may_object: [architectural, QA] } — the 8 reps that dropped the primary infosec still FAIL, so a real missed catch stays caught."
     },
     {
       "case_id": "refutation-spec-008",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "suspected-genuine-miss",
-      "rationale": "The spec grants elevated autonomy (appetite: full) from a persisted ledger `owner.level` field without gating on run LIVENESS, and $FAFF_RUN_DIR persists across sessions — so a completed/dead L4 run's ledger escalates a later unrelated session (the FAFF-378 stale-ledger authority-escalation pattern). Real infosec defect, oracle [infosec] defensible. A generic checklist sees 'reads a config file, fail-closed default present' and approves; catching it needs the stale-artifact priming. Suspected miss for the same reason as refutation-spec-007 — watch it; remedy is lens priming, not an oracle change.",
+      "class": "oracle-defect",
+      "rationale": "Suspected a stale-ledger authority-escalation (FAFF-378) infosec miss; sweep 20260803-012238 refutes it — infosec objected in 48/50 reps and a reasoning-on rerun caught the $FAFF_RUN_DIR / owner.level escalation at major. The FAILs are the +QA extra against a single-lens [infosec] oracle, not a miss.",
       "triage_ticket": "FAFF-319",
-      "expected_signal": "The sweep captures show env.objections == [] (approve) consistently while the oracle holds [infosec]. That pattern is the lens treating a config read with a fail-closed default as benign and missing the $FAFF_RUN_DIR stale-ledger authority escalation — a priming gap, not oracle relaxation. Objections carrying [infosec] would show the shipped lens does not in fact miss it."
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen to lens_bounds { must_object: [infosec], may_object: [architectural, QA] }."
     },
     {
       "case_id": "refutation-spec-009",
       "kind": "refutation-spec",
       "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
-      "class": "suspected-genuine-miss",
-      "rationale": "The judged party sets its OWN `code_blind` attestation, so the trust claim rests on the very actor it bounds — the contract can reject a declared false but cannot detect a producer that read the codebase and set true anyway (the FAFF-276 self-attestation / oblivious-actor lesson). Since this gates a merge to main, the whole L4 trust claim collapses to caller honesty — a genuine critical infosec defect, oracle [infosec] defensible. A generic checklist sees 'a boolean-gated attestation, fail-closed on false' and approves; the circular-self-attestation catch needs faff-specific priming. Suspected miss; watch, remedy by priming not oracle relaxation.",
+      "class": "oracle-defect",
+      "rationale": "Suspected a self-attestation (FAFF-276) infosec miss; sweep 20260803-012238 refutes it — infosec:blocker in 20/20 reps, and a reasoning-on rerun caught the circular code_blind self-attestation collapse at critical. The FAILs are the grounded architectural/QA extras against a single-lens [infosec] oracle.",
       "triage_ticket": "FAFF-319",
-      "expected_signal": "Expect a steady approve (env.objections == []) against an oracle of [infosec] across the sweep's reps. If so, the lens is accepting a boolean-gated code_blind attestation as fail-closed and missing the circular self-attestation collapse — a priming gap for FAFF-615 to confirm, never an oracle to soften. An [infosec] result on the sweep would instead clear the suspicion."
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen to lens_bounds { must_object: [infosec], may_object: [architectural, QA] }."
     },
     {
       "case_id": "refutation-spec-010",
@@ -427,10 +452,11 @@
       "case_id": "grouping-001",
       "kind": "grouping",
       "grader_shape": "gloss-coverage (env.grouping, gradeCoverage)",
-      "class": "needs-evidence",
+      "class": "oracle-defect",
       "triage_ticket": "FAFF-670",
-      "rationale": "must_include[0] (password-reset) and [1] (invoicing) are satisfied by the natural container outcomes and the ticket text, and [3] (coherence edges — blocked by / blocker / sequenceable) by the ordering the question asks for. The doubt is must_include[2], the 'leave loose' synonym set: the correct move is to leave TCK-31 (the CI base-image bump) unplaced with a one-line reason, but a competent agile-lens answer written after FAFF-669 de-leaked the question is likely to say 'unplaced' / 'no high-confidence container' / 'stays in the backlog' and never reach for the internal 'loose' vocabulary. Whether the emitted proposal actually carries a 'loose' token cannot be decided statically — it depends on real model output — so this is needs-evidence, not a call to relax the oracle now.",
-      "discriminating_question": "In the first correctly-driven sweep's judgements.jsonl for grouping-001: does a proposal that correctly leaves TCK-31 unplaced contain any must_include[2] token (leave/stays/remains/deliberately loose)? If yes across reps, the oracle is sound. If the proposal accounts for TCK-31 with 'unplaced' / 'no shared outcome' / 'stays in backlog' but no 'loose' word, must_include[2] is an oracle-defect demanding faff-internal vocabulary — relax it to accept the unplaced-with-reason phrasing, and check the must_avoid chores/housekeeping set is not tripping a correct one-line reason for the CI bump."
+      "rationale": "The FAFF-670 discriminating_question guessed the failing bucket was must_include[2] (the 'loose' vocabulary). Sweep 20260803-012238 shows otherwise: 44/50 reps carry a 'loose' token, so [2] is sound. The 0.02 accuracy traces to two OTHER buckets being brittle to casing and paraphrase — must_include[0] (models write 'recover a locked-out account' / 'request a reset' where the rubric wanted 'account recovery' / 'password reset') and must_include[3] (models write 'blockedBy' camelCase where the rubric wanted 'blocked by'). Structurally-correct answers were marked absent.",
+      "resolved_by": "FAFF-615",
+      "proposed_fix": "Widen the gloss_rubric synonym sets to the phrasings real answers use — append 'reset'/'recover' to must_include[0] and 'blockedby'/'blocks' to must_include[3]. No grader change; the substring scorer already lowercases."
     }
   ]
 }

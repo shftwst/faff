@@ -307,6 +307,65 @@ test("refutation-spec: an out-of-enum lens rides through verbatim (distinct sign
   assert.equal(bad.signature, JSON.stringify(["vibes"])); // observed, not coerced/dropped
 });
 
+// --- FAFF-615: refutation-spec on the bounded lens_bounds oracle (ADR 0094) ---
+test("lens_bounds: the primary must-lens plus tolerated extras → PASS, but a lens outside the bounds → FAIL", () => {
+  const c = { id: "rs", kind: "refutation-spec",
+    oracle: { lens_bounds: { must_object: ["architectural"], may_object: ["infosec", "QA"] } } };
+  // primary + both tolerated extras → PASS (the multiply-defective-spec case the shape exists for)
+  assert.equal(grade(c, { objections: [
+    { lens: "architectural", severity: "blocker" },
+    { lens: "infosec", severity: "major" },
+    { lens: "QA", severity: "major" }] }).graded, "PASS");
+  // primary alone (a subset of the allowed set) → PASS — extras are tolerated, not required
+  assert.equal(grade(c, { objections: [{ lens: "architectural", severity: "blocker" }] }).graded, "PASS");
+  // a lens NEITHER required nor tolerated (methodology) → FAIL — the bounded over-fire guard still bites
+  assert.equal(grade(c, { objections: [
+    { lens: "architectural", severity: "blocker" },
+    { lens: "methodology", severity: "major" }] }).graded, "FAIL");
+  // a minor-only extra does not contribute its lens, so it does not break the upper bound → PASS
+  assert.equal(grade(c, { objections: [
+    { lens: "architectural", severity: "blocker" },
+    { lens: "methodology", severity: "minor" }] }).graded, "PASS");
+});
+test("lens_bounds: a missing required lens is a missed catch → FAIL (not tolerated by the upper bound)", () => {
+  const c = { id: "rs", kind: "refutation-spec",
+    oracle: { lens_bounds: { must_object: ["infosec"], may_object: ["architectural", "QA"] } } };
+  // the tolerated lenses object but the mandatory infosec is silent → FAIL (the real threat was missed)
+  assert.equal(grade(c, { objections: [
+    { lens: "architectural", severity: "major" },
+    { lens: "QA", severity: "major" }] }).graded, "FAIL");
+  // infosec present (with tolerated extras) → PASS
+  assert.equal(grade(c, { objections: [
+    { lens: "infosec", severity: "blocker" },
+    { lens: "architectural", severity: "major" }] }).graded, "PASS");
+});
+test("lens_bounds: a missing/garbage objections field is a clean FAIL, never a throw", () => {
+  const c = { id: "rs", kind: "refutation-spec",
+    oracle: { lens_bounds: { must_object: ["infosec"], may_object: [] } } };
+  assert.equal(grade(c, {}).graded, "FAIL");                 // absent field → [] → must_object unmet
+  assert.doesNotThrow(() => grade(c, { objections: "garbage" }));
+  assert.equal(grade(c, { objections: null }).graded, "FAIL");
+  // signature stays the sorted predicted set, identical to the closed_set path
+  assert.equal(grade(c, { objections: [{ lens: "infosec", severity: "major" }] }).signature, JSON.stringify(["infosec"]));
+});
+test("validateCase: refutation-spec accepts lens_bounds, rejects an empty must_object, rejects both/neither", () => {
+  // accepts a well-formed lens_bounds (with a `spec` fixture)
+  assert.doesNotThrow(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: { lens_bounds: { must_object: ["infosec"], may_object: ["QA"] } } }));
+  // may_object may be absent
+  assert.doesNotThrow(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: { lens_bounds: { must_object: ["infosec"] } } }));
+  // empty must_object is rejected (would silently degrade to "tolerate everything")
+  assert.throws(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: { lens_bounds: { must_object: [], may_object: ["QA"] } } }), CaseError);
+  // both closed_set and lens_bounds → rejected (exactly one)
+  assert.throws(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: { closed_set: ["infosec"], lens_bounds: { must_object: ["infosec"] } } }), CaseError);
+  // neither → rejected
+  assert.throws(() => validateCase({ id: "rs", kind: "refutation-spec",
+    fixture: { spec: "..." }, oracle: {} }), CaseError);
+});
+
 // --- FAFF-283: refutation-code — the binary flagged/[] closed-set over the adversarial code review ---
 test("refutation-code: flags iff a finding is above minor severity (binary, set-equality)", () => {
   const flag = { id: "rc", kind: "refutation-code", oracle: { closed_set: ["flagged"] } };

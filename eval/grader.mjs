@@ -356,12 +356,37 @@ export function validateCase(c) {
   // FAFF-285 — architecture joins the gloss_rubric arm (collection-level coverage, gradeCoverage).
   // FAFF-241 — specqual joins the same gloss_rubric arm (collection-level coverage over the spec body).
   // FAFF-240 — roadmap joins the same gloss_rubric arm (collection-level coverage over the synthesis).
-  const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
-    : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap" || c.kind === "adr-gloss" || c.kind === "grouping") ? "gloss_rubric"
-    : "closed_set";
-  const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
-  if (populated.length !== 1 || populated[0] !== want) {
-    throw new CaseError(`case ${c.id}: oracle must populate exactly \`${want}\` for kind \`${c.kind}\``);
+  // FAFF-615 — refutation-spec may carry EITHER the strict `closed_set` (single exact objecting-lens
+  // set) OR the bounded `lens_bounds` { must_object, may_object } (a mandatory lower bound + a tolerated
+  // upper bound, for specs that are legitimately defective on more than one axis). Exactly one, never
+  // both, and never any other oracle field. A `lens_bounds` with an empty/absent `must_object` is
+  // rejected — that would silently degrade to "tolerate everything" and kill the over-firing guard (ADR
+  // 0094).
+  if (c.kind === "refutation-spec") {
+    const oracle = c.oracle || {};
+    const hasClosed = oracle.closed_set != null;
+    const hasBounds = oracle.lens_bounds != null;
+    const strays = ["ordering", "gloss_rubric"].filter((k) => oracle[k] != null);
+    if (strays.length > 0 || hasClosed === hasBounds) {
+      throw new CaseError(`case ${c.id}: refutation-spec oracle must populate exactly one of \`closed_set\` or \`lens_bounds\``);
+    }
+    if (hasBounds) {
+      const lb = oracle.lens_bounds;
+      if (!Array.isArray(lb.must_object) || lb.must_object.length === 0) {
+        throw new CaseError(`case ${c.id}: lens_bounds.must_object must be a non-empty array`);
+      }
+      if (lb.may_object != null && !Array.isArray(lb.may_object)) {
+        throw new CaseError(`case ${c.id}: lens_bounds.may_object must be an array when present`);
+      }
+    }
+  } else {
+    const want = (c.kind === "ordering" || c.kind === "explanatory-order") ? "ordering"
+      : (c.kind === "gloss" || c.kind === "shaping" || c.kind === "decomposition" || c.kind === "architecture" || c.kind === "specqual" || c.kind === "roadmap" || c.kind === "adr-gloss" || c.kind === "grouping") ? "gloss_rubric"
+      : "closed_set";
+    const populated = ["closed_set", "ordering", "gloss_rubric"].filter((k) => (c.oracle || {})[k] != null);
+    if (populated.length !== 1 || populated[0] !== want) {
+      throw new CaseError(`case ${c.id}: oracle must populate exactly \`${want}\` for kind \`${c.kind}\``);
+    }
   }
   const shape = FIXTURE_SHAPE[c.kind];
   if (shape) {
@@ -767,6 +792,20 @@ function verdictRevertPredicted(env) {
 
 export function grade(c, env) {
   const tokens = (env && env.tokens) || 0;
+  // FAFF-615 — refutation-spec on the bounded `lens_bounds` oracle (ADR 0094). PASS iff every
+  // must_object lens objected (the mandatory catch) AND every objecting lens is within
+  // must_object ∪ may_object (the bounded over-fire guard). Reuses predictedSet's above-minor arm, so
+  // the predicted set + signature are byte-identical to the closed_set path; only the comparison
+  // differs, and only for a case carrying lens_bounds — closed_set refutation-spec cases fall through
+  // to setEqual unchanged.
+  if (c.kind === "refutation-spec" && c.oracle && c.oracle.lens_bounds) {
+    const predicted = predictedSet(c, env);
+    const { must_object = [], may_object = [] } = c.oracle.lens_bounds;
+    const pset = new Set(predicted);
+    const allowed = new Set([...must_object, ...may_object]);
+    const ok = must_object.every((l) => pset.has(l)) && predicted.every((l) => allowed.has(l));
+    return { graded: ok ? "PASS" : "FAIL", score: ok ? 1 : 0, tokens, signature: JSON.stringify([...predicted].sort()) };
+  }
   if (CLOSED_SET_KINDS.has(c.kind)) {
     // verdict-revert carries env.verdicts ({key: verdict}); confidence/marker/reconciliation + the tidy
     // closed-set kinds go through predictedSet. Both reduce to a flat predicted set for setEqual.

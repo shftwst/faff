@@ -1,0 +1,98 @@
+probe_version: 1
+probe_cksum: 1312413922 26164
+probe_sha256: 40166f33ba093cf0f1d95a3d4ca311a7435f46647d3827e807eaeac7bbb052b7
+probe_bytes: 26164
+shape: selfhosted-direct
+source_repository: shftwst/fly-ci-runner-probe
+probe_euid: 1001
+captured_at: 2026-08-03T19:43:37Z
+runner_os: Linux
+runner_arch: x86_64
+container_image: none
+environ_keys_mode: count
+probe_dd: present
+notes: 
+mounts.table: present(23 lines)
+  | devtmpfs /dev devtmpfs rw,nosuid,relatime,size=993380k,nr_inodes=248345,mode=755 0 0
+  | none / overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | /dev/vdb /.fly-upper-layer ext4 rw,noatime,nobarrier,nombcache,stripe=64 0 0
+  | devpts /dev/pts devpts rw,nosuid,noexec,noatime,gid=5,mode=620,ptmxmode=666 0 0
+  | mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0
+  | shm /dev/shm tmpfs rw,nosuid,nodev,relatime 0 0
+  | hugetlbfs /dev/hugepages hugetlbfs rw,relatime,pagesize=2M 0 0
+  | proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+  | binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc rw,nosuid,nodev,noexec,relatime 0 0
+  | sys /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
+  | tmpfs /sys/fs/cgroup tmpfs rw,nosuid,nodev,noexec,relatime,mode=755 0 0
+  | cgroup2 /sys/fs/cgroup/unified cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0
+  | cgroup /sys/fs/cgroup/net_cls,net_prio cgroup rw,nosuid,nodev,noexec,relatime,net_cls,net_prio 0 0
+  | cgroup /sys/fs/cgroup/hugetlb cgroup rw,nosuid,nodev,noexec,relatime,hugetlb 0 0
+  | cgroup /sys/fs/cgroup/pids cgroup rw,nosuid,nodev,noexec,relatime,pids 0 0
+  | cgroup /sys/fs/cgroup/freezer cgroup rw,nosuid,nodev,noexec,relatime,freezer 0 0
+  | cgroup /sys/fs/cgroup/cpu,cpuacct cgroup rw,nosuid,nodev,noexec,relatime,cpu,cpuacct 0 0
+  | cgroup /sys/fs/cgroup/devices cgroup rw,nosuid,nodev,noexec,relatime,devices 0 0
+  | cgroup /sys/fs/cgroup/blkio cgroup rw,nosuid,nodev,noexec,relatime,blkio 0 0
+  | cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory 0 0
+  | cgroup /sys/fs/cgroup/perf_event cgroup rw,nosuid,nodev,noexec,relatime,perf_event 0 0
+  | cgroup /sys/fs/cgroup/cpuset cgroup rw,nosuid,nodev,noexec,relatime,cpuset 0 0
+  | none /var/lib/docker overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+socket.canonical./var/run/docker.sock: absent
+socket.canonical./var/run/docker.sock.is_socket: no
+socket.canonical./var/run/docker.sock._dangling_symlink: no
+socket.canonical./var/run/docker.sock.readable: no
+socket.canonical./var/run/docker.sock.writable: no
+socket.canonical./run/docker.sock: absent
+socket.canonical./run/docker.sock.is_socket: no
+socket.canonical./run/docker.sock._dangling_symlink: no
+socket.canonical./run/docker.sock.readable: no
+socket.canonical./run/docker.sock.writable: no
+socket.rootless.docker: absent
+socket.rootless.podman: unmeasurable_here(XDG_RUNTIME_DIR unset: path not constructible)
+env.DOCKER_HOST: absent
+attest.canonical_socket_present: no
+attest.canonical_socket_writable_by_euid: no
+attest.writable_is_a_proxy: connecting to a unix socket requires write permission, so the writable test is a necessary-condition proxy for connectability, never proof
+attest.rootless_socket_present: no
+containment.env.KUBERNETES_SERVICE_HOST: absent
+containment./.dockerenv: absent
+containment./run/.containerenv: absent
+containment.proc1.environ: unreadable(not-readable-by-euid)
+containment.proc1.environ_keys: unreadable(not-readable-by-euid)
+containment.proc1.container_value: unreadable(not-readable-by-euid)
+containment.env.container: absent
+containment.proc1.cgroup: present(read-ok)
+containment.proc1.cgroup.decisiveness: non-decisive
+  | 10:cpuset:/
+  | 9:perf_event:/
+  | 8:memory:/
+  | 7:blkio:/
+  | 6:devices:/
+  | 5:cpu,cpuacct:/
+  | 4:freezer:/
+  | 3:pids:/
+  | 2:hugetlb:/
+  | 1:net_cls,net_prio:/
+  | 0::/
+containment.proc1.comm: present(read-ok)
+  | init
+workdir.path: present(/home/runner/actions-runner/_work/fly-ci-runner-probe)
+workdir.parent: present(drwxrwxr-x 7 1001 1001 4096 Aug  3 19:43 /home/runner/actions-runner/_work)
+workdir.checkout: present(/home/runner/actions-runner/_work/fly-ci-runner-probe/fly-ci-runner-probe)
+workdir.listing: present(2 entries, one level)
+  | total 4
+  | drwxrwxr-x 4 1001 1001 4096 Aug  3 19:43 fly-ci-runner-probe
+home.path: present(drwxr-x--- 1 1001 1001 4096 Aug  3 19:43 /home/runner)
+home.entries: present(6 entries, one level)
+  | total 16
+  | -rw-r--r-- 1 1001 1001  220 Mar 31  2024 .bash_logout
+  | -rw-r--r-- 1 1001 1001 3771 Mar 31  2024 .bashrc
+  | -rw-r--r-- 1 1001 1001  807 Mar 31  2024 .profile
+  | -rw-r--r-- 1 1001 1001    0 Aug  3 19:43 .sudo_as_admin_successful
+  | drwxr-xr-x 1 1001 1001 4096 Aug  3 19:39 actions-runner
+socket_removal.performed: unmeasurable_here(no removal was performed, and this methodology cannot say what host-side hook this shape has)
+socket_removal.kind: unmeasurable_here(shape not known to this instrument: no claim made about its host-side hooks)
+socket_removal./var/run/docker.sock.after: unmeasurable_here(no removal was performed on this shape)
+socket_removal./run/docker.sock.after: unmeasurable_here(no removal was performed on this shape)
+crosscheck.container_check_json: impossible_on_shape(no faff binary on PATH)
+crosscheck.container_check_exit: impossible_on_shape(no faff binary on PATH)
+crosscheck.container_check_plain: impossible_on_shape(no faff binary on PATH)

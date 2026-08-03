@@ -360,8 +360,17 @@ async function gateAgainst(argv, presets, baselinePath) {
 // folds them in). A plain --update-baseline (no --resume) truncates any prior progress → clean sweep.
 export async function updateBaseline(argv, presets, baselinePath) {
   const only = argFlag(argv, "--only");
+  // FAFF-712 — --kind <comma-separated kinds>: a SCOPED re-baseline. Runs only the named kinds and
+  // folds their rows into the existing baseline, retaining every un-named kind. The point is an
+  // oracle-only change (e.g. FAFF-615) that moves a couple of kinds' scores without touching any case
+  // id — which --resume's case-id-staleness check can't detect, and which a full sweep re-measures 27
+  // unchanged kinds to fix. --kind is standalone: mutually exclusive with --only (both narrow), and it
+  // never checkpoints/resumes (a short scoped run folds from the summary, like --only).
+  const kindArg = argFlag(argv, "--kind");
   const repsArg = argFlag(argv, "--reps");
   const resume = argv.includes("--resume");
+  if (only && kindArg) throw new Error("--only and --kind are mutually exclusive (both narrow the sweep)");
+  if (kindArg && resume) throw new Error("--kind is a self-contained scoped sweep and does not checkpoint; drop --resume");
   const driver = resolveDriver(argv, presets);
   const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
   const driverName = argFlag(argv, "--driver") ?? "frontier";
@@ -378,11 +387,27 @@ export async function updateBaseline(argv, presets, baselinePath) {
   // plain-sweep-only flag.
   assertNonEmptyCases(cases, { entry: "--update-baseline", only, loadedCount });
   const expectedKinds = new Set(cases.map((c) => c.kind)); // BEFORE the resume filter narrows cases
+  // FAFF-712 — narrow to --kind AFTER expectedKinds is fixed from the full corpus. This is the
+  // load-bearing ordering: foldInAndWriteBaseline's `complete` flag is `expected.every(k in swept)`, so
+  // a full expectedKinds against a narrowed swept set is never complete → the OVERLAY branch fires and
+  // every un-named kind is retained. Deriving expectedKinds from the narrowed set would flip it to
+  // complete and WIPE the other kinds.
+  let scopedKinds = null;
+  if (kindArg) {
+    const wanted = kindArg.split(",").map((s) => s.trim()).filter(Boolean);
+    const unknown = wanted.filter((k) => !expectedKinds.has(k));
+    if (unknown.length) throw new Error(`--kind: unknown kind(s) ${unknown.join(", ")}; corpus kinds are ${[...expectedKinds].sort().join(", ")}`);
+    scopedKinds = wanted;
+    const wantedSet = new Set(wanted);
+    cases = cases.filter((c) => wantedSet.has(c.kind));
+    assertNonEmptyCases(cases, { entry: "--update-baseline --kind", kind: kindArg, loadedCount });
+  }
   const stamp = { driver: driverName, model, base_reps: baseReps, started_at: new Date().toISOString() };
 
   const reportDir = join(HERE, "report");
   let progressPath = join(reportDir, "frontier-sweep-progress.json");
   if (only) progressPath = null; // --only never checkpoints/resumes (a single case can't complete its kind)
+  if (scopedKinds) progressPath = null; // FAFF-712 — --kind folds from the summary; a short scoped sweep needs no checkpoint (and would clobber a full sweep's progress file)
 
   if (progressPath != null) {
     mkdirSync(reportDir, { recursive: true });
@@ -413,7 +438,7 @@ export async function updateBaseline(argv, presets, baselinePath) {
   const judgementsPath = mintCapturePath(); // FAFF-320 — durable per-rep capture for this multi-hour sweep
   console.log(`[run-evals] capturing raw judgements → ${judgementsPath} (FAFF-320)`);
   const summary = await runEvals({ cases, driver, baseReps, judgementsPath, progressPath });
-  foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only });
+  foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only, scopedKinds });
   printHeadline(summary);
   return summary.status === "complete" ? 0 : 1;
 }
@@ -422,7 +447,7 @@ export async function updateBaseline(argv, presets, baselinePath) {
 // semantics, incl. ghost-kind pruning); a partial/resumed/`--only` run overlays swept kinds onto the
 // existing baseline so no prior kind is lost (a dropped baseline kind is an unconditional --against
 // FAIL). Numbers come from the progress file's per-kind aggregate (or, on the --only path, summary).
-export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only } = {}) {
+export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only, scopedKinds = null } = {}) {
   const progress = progressPath ? readProgress(progressPath) : null;
   const sweptKinds = progress ? Object.keys(progress.kinds) : Object.keys(summary.per_kind); // --only uses summary
   const three = (m) => ({ accuracy: m.accuracy, stability: m.stability, format_adherence: m.format_adherence });
@@ -443,7 +468,10 @@ export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds
     source = "real run via --update-baseline";
   } else {
     per_kind = { ...(prevBaseline?.per_kind ?? {}), ...sweptPerKind }; // overlay — retains un-swept kinds
-    source = `partial/resumed --update-baseline — ${sweptKinds.length}/${expected.length} kinds swept this cycle; rest retained`;
+    const retained = Object.keys(prevBaseline?.per_kind ?? {}).filter((k) => !sweptKinds.includes(k)).length;
+    source = scopedKinds
+      ? `scoped --update-baseline --kind — refreshed ${sweptKinds.join(", ")}; ${retained} prior kind(s) retained`
+      : `partial/resumed --update-baseline — ${sweptKinds.length}/${expected.length} kinds swept this cycle; rest retained`;
   }
 
   const out = {
@@ -456,10 +484,15 @@ export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds
   console.log(`\n=== baseline written to ${baselinePath} (${Object.keys(per_kind).length} kinds) ===`);
 
   if (!complete && !only) {
-    const remaining = expected.filter((k) => !sweptKinds.includes(k));
-    console.warn(`[run-evals] ⚠ PARTIAL baseline — kinds still missing this cycle: ${remaining.join(", ") || "(none — some prior kinds retained)"}. Re-run with --resume to complete.`);
+    if (scopedKinds) {
+      const retained = Object.keys(prevBaseline?.per_kind ?? {}).filter((k) => !sweptKinds.includes(k)).length;
+      console.log(`[run-evals] scoped re-baseline (--kind): refreshed ${sweptKinds.join(", ")}; ${retained} prior kind(s) retained unchanged.`);
+    } else {
+      const remaining = expected.filter((k) => !sweptKinds.includes(k));
+      console.warn(`[run-evals] ⚠ PARTIAL baseline — kinds still missing this cycle: ${remaining.join(", ") || "(none — some prior kinds retained)"}. Re-run with --resume to complete.`);
+    }
     if (!prevBaseline) {
-      console.warn(`[run-evals] ⚠ FIRST baseline written from a PARTIAL/incomplete sweep — a first baseline SHOULD be a complete sweep; it holds ONLY the completed kinds (${sweptKinds.join(", ")}).`);
+      console.warn(`[run-evals] ⚠ FIRST baseline written from a ${scopedKinds ? "SCOPED --kind" : "PARTIAL/incomplete"} sweep — a first baseline SHOULD be a complete sweep; it holds ONLY the ${scopedKinds ? "named" : "completed"} kinds (${sweptKinds.join(", ")}).`);
     }
   }
 }
@@ -703,6 +736,7 @@ export async function gate(argv, presets, baselinePath, opts = {}) {
 // `node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]`   (FAFF-180: proportionate gate — smart default; local/smart soft+exit-0, frontier hard)
 // `node eval/run-evals.mjs --driver frontier --against eval/baselines/frontier.json`   (FAFF-169: regression gate — exit non-zero on a per-kind drop)
 // `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json [--resume]`   (FAFF-169: deliberate re-baseline; FAFF-318: --resume continues a crashed sweep from its per-kind checkpoint)
+// `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json --kind K1,K2`  (FAFF-712: SCOPED re-baseline — runs only the named kinds and folds their rows into the existing baseline, retaining every un-named kind; for an oracle-only change that --resume's case-id staleness can't detect. Standalone: not with --only/--resume.)
 // frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
 // Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less baseline.
 // FAFF-320 — a full sweep (`main`, `--update-baseline`) streams every rep's raw judgement to

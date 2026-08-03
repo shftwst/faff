@@ -1,6 +1,6 @@
 # ADR 0095 — What bounds a faff run on a CI runner — admission criteria, not a mechanism
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-03
 - **Issue:** FAFF-646

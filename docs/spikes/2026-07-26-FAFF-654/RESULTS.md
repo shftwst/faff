@@ -6,7 +6,8 @@ record_for: FAFF-654
 consumed_by: FAFF-646
 instrument: probe.sh
 instrument_version: 1
-observation_table: two shapes obtained — hosted-direct and hosted-container; the Signal roster below carries a value column per shape, each cell taken verbatim from that shape's transcript. Every classification is relative to that transcript's probe_euid (see euid_caveat)
+observation_table: four shapes obtained — hosted-direct, hosted-container, selfhosted-direct and selfhosted-container; the Signal roster below carries a value column per shape, each cell taken verbatim from that shape's transcript. Every classification is relative to that transcript's probe_euid (see euid_caveat)
+selfhosted_substrate: fly.io Machine (Firecracker microVM) — evidenced in both self-hosted transcripts by the fly overlay rootfs (none / overlay lowerdir=/lower/dev/vda:/lower/dev/vdc) and, on the direct shape, the /dev/vdb /.fly-upper-layer ext4 mount. The Machine is built from ubuntu:24.04 plus actions-runner 2.336.0 plus dockerd on the vfs storage driver; size shared-cpu-2x / 2gb, region lhr. Its image lives in a private registry (registry.fly.io/fly-ci-runner-probe), so the image digest is not publicly re-pullable and is not recorded here; the reading is reproducible-in-kind from those build inputs rather than by digest. The self-hosted shapes were probed with --environ-keys count where the hosted shapes used names — a deliberate per-shape difference: only the environ_keys reading's presentation changes (a count with names withheld rather than the key names), the key set pid 1 carries is otherwise the same
 euid_caveat: the search and read tests call access(2), which grants both to uid 0 almost everywhere, so undecidable(ancestor-not-searchable) and unreadable(not-readable-by-euid) may be structurally unreachable on a shape whose job runs as root; every classification in a transcript is relative to that transcript's probe_euid
 empty_definition: present("empty") means the read succeeded and obtained no bytes; it is not a claim that the file is empty
 cgroup_decisiveness: non-decisive — container-check.js:9-10 records that the detector never parses /proc/1/cgroup because it is empty under cgroup v2 and carries no container hint
@@ -17,14 +18,18 @@ canonical_vs_rootless: the canonical and rootless socket paths are two separatel
 
 hosted-direct: obtained — Actions run 30768797917, container_image none, probe_euid 1001, captured_at 2026-08-02T21:51:12Z; validate.yml's env-rootless job is this same shape and independently corroborates part of this column (see the env-rootless note below)
 hosted-container: obtained — Actions run 30768490911, container_image buildpack-deps@sha256:877e9e4d949edfbcbedabc3a2d7ab593955fee5d6d0777adf3a991eb30c750d8, probe_euid 0, captured_at 2026-08-02T21:42:55Z; the shape carrying the new information. This column has no independent corroboration
-selfhosted-direct: owned_by FAFF-656
-selfhosted-container: owned_by FAFF-656
+selfhosted-direct: obtained — self-hosted job on shftwst/fly-ci-runner-probe, container_image none, probe_euid 1001, captured_at 2026-08-03T19:43:37Z, on a fly.io Machine (Firecracker microVM; see selfhosted_substrate). This column has no independent corroboration
+selfhosted-container: obtained — self-hosted job on shftwst/fly-ci-runner-probe, container_image buildpack-deps@sha256:877e9e4d949edfbcbedabc3a2d7ab593955fee5d6d0777adf3a991eb30c750d8, probe_euid 0, captured_at 2026-08-03T19:42:24Z, on a fly.io Machine (Firecracker microVM; see selfhosted_substrate). This column has no independent corroboration
 hosted-direct-after-removal: obtained — a second reading on the hosted-direct shape (probe_euid 1001, captured_at 2026-08-02T21:51:13Z, same Actions run 30768797917 as the hosted-direct column) after a same-job removal of the canonical sockets, not a fifth shape; socket_removal.performed reads present(same-job removal, performed before this probe run), socket_removal.kind reads same-job, both socket.canonical entries read absent with is_socket/readable/writable no, and attest.canonical_socket_present reads no
+selfhosted-direct-after-removal: obtained — a second reading on the selfhosted-direct shape (probe_euid 1001, captured_at 2026-08-03T19:43:37Z, same self-hosted job on shftwst/fly-ci-runner-probe) after the canonical sockets were removed, not a fifth shape; both socket.canonical entries read absent with is_socket/readable/writable no, and attest.canonical_socket_present reads no. socket_removal.performed and socket_removal.kind read unmeasurable_here on this shape — the frozen instrument (probe_version 1) carries no self-hosted removal branch — so the removal is evidenced by the change in the socket.canonical.* readings between this reading and the selfhosted-direct column, not by the socket_removal.* metadata
 columns_identical: no — the two columns differ. euid-driven (probe_euid 0 in hosted-container, 1001 in hosted-direct): containment.proc1.environ and containment.proc1.environ_keys read present under euid 0 and unreadable(not-readable-by-euid) under euid 1001; containment.proc1.container_value reads absent under euid 0 (the environ was read and carried no container key) and unreadable(not-readable-by-euid) under euid 1001. Independent of euid: mounts.table line count (24 vs 32), socket.rootless.podman (absent vs unmeasurable_here on the unset XDG_RUNTIME_DIR), containment./.dockerenv (absent vs present("empty")), containment.proc1.comm (systemd vs tail), workdir.path, workdir.parent, workdir.checkout, home.path, home.entries, and the explanatory text on socket_removal.performed and socket_removal.kind. containment.proc1.cgroup.decisiveness reads non-decisive on both, though the verbatim cgroup line differs (0::/init.scope vs 0::/)
+columns_identical.selfhosted: no — the two self-hosted columns differ. euid-driven (probe_euid 1001 in selfhosted-direct, 0 in selfhosted-container): the three containment.proc1.* readings read unreadable(not-readable-by-euid) under euid 1001 and readable under euid 0 — environ present(read-ok), environ_keys present(5 keys, names withheld), container_value absent. Substrate-driven: the container shape carries container markers the direct shape does not — containment./.dockerenv present("empty") vs absent, containment.proc1.cgroup 0::/docker/<id> vs 0::/, containment.proc1.comm tail vs init, and mounts.table 40 lines (including the bind-mounted /run/docker.sock) vs 23. workdir and home paths also differ (/__w and /github/home on the container shape, /home/runner/actions-runner/_work and /home/runner on the direct shape). The socket.canonical.* readings, the attest.* group and socket.rootless.podman read the same on both
 worktree_changed_by_checkout.hosted-direct: no — one level deep the pre-checkout listing names {faff} and the transcript's workdir.listing names {faff}; the two name sets are equal
 worktree_changed_by_checkout.hosted-container: no — one level deep the pre-checkout listing names {faff} and the transcript's workdir.listing names {faff}; the two name sets are equal
+worktree_changed_by_checkout.selfhosted-direct: no — one level deep the pre-checkout listing names {fly-ci-runner-probe} and the transcript's workdir.listing names {fly-ci-runner-probe}; the two name sets are equal
+worktree_changed_by_checkout.selfhosted-container: no — one level deep the pre-checkout listing names {fly-ci-runner-probe} and the transcript's workdir.listing names {fly-ci-runner-probe}; the two name sets are equal
 worktree_changed_by_checkout.derivation: yes when the set of entry names one level deep differs between the pre-checkout file and the transcript's work-directory listing; no when those two sets are equal; names only, not byte equality and not owner or mode
-actions_runner_controller: unmeasured — needs a cluster and a controller install, outside this timebox; not derivable from this repository; carried as the open punt on FAFF-654 and to be filed as its own ticket
+actions_runner_controller: unmeasured — needs a cluster and a controller install, outside this timebox; not derivable from this repository; carried as the open punt on FAFF-654 and to be filed as its own ticket. The two self-hosted shapes here run on a fly.io Machine, where containment.env.KUBERNETES_SERVICE_HOST reads absent; the Kubernetes/ARC shape is a different substrate and stays unmeasured, not a gap in this record
 
 ## Token coverage
 
@@ -68,53 +73,53 @@ scan_gap_2: the generic high-entropy branch is close to inert against this recor
 
 ## Signal roster
 
-Table: signal-roster — 41 signals — shapes: hosted-direct, hosted-container
+Table: signal-roster — 41 signals — shapes: hosted-direct, hosted-container, selfhosted-direct, selfhosted-container
 
-Each cell is the value or token that signal carries in that shape's transcript, verbatim. hosted-direct ran at probe_euid 1001, hosted-container at probe_euid 0; every classification is relative to that column's probe_euid (see euid_caveat).
+Each cell is the value or token that signal carries in that shape's transcript, verbatim. hosted-direct ran at probe_euid 1001, hosted-container at probe_euid 0, selfhosted-direct at probe_euid 1001, selfhosted-container at probe_euid 0; every classification is relative to that column's probe_euid (see euid_caveat).
 
-| signal | hosted-direct | hosted-container |
-|---|---|---|
-| mounts.table | present(24 lines) | present(32 lines) |
-| socket.canonical./var/run/docker.sock | unreadable(open-failed) | unreadable(open-failed) |
-| socket.canonical./var/run/docker.sock.is_socket | yes | yes |
-| socket.canonical./var/run/docker.sock._dangling_symlink | no | no |
-| socket.canonical./var/run/docker.sock.readable | yes | yes |
-| socket.canonical./var/run/docker.sock.writable | yes | yes |
-| socket.canonical./run/docker.sock | unreadable(open-failed) | unreadable(open-failed) |
-| socket.canonical./run/docker.sock.is_socket | yes | yes |
-| socket.canonical./run/docker.sock._dangling_symlink | no | no |
-| socket.canonical./run/docker.sock.readable | yes | yes |
-| socket.canonical./run/docker.sock.writable | yes | yes |
-| socket.rootless.docker | absent | absent |
-| socket.rootless.podman | absent | unmeasurable_here(XDG_RUNTIME_DIR unset: path not constructible) |
-| env.DOCKER_HOST | absent | absent |
-| attest.canonical_socket_present | yes | yes |
-| attest.canonical_socket_writable_by_euid | yes | yes |
-| attest.writable_is_a_proxy | writable is a necessary-condition proxy for connectability, never proof | writable is a necessary-condition proxy for connectability, never proof |
-| attest.rootless_socket_present | no | no |
-| containment.env.KUBERNETES_SERVICE_HOST | absent | absent |
-| containment./.dockerenv | absent | present("empty") |
-| containment./run/.containerenv | absent | absent |
-| containment.proc1.environ | unreadable(not-readable-by-euid) | present(read-ok) |
-| containment.proc1.environ_keys | unreadable(not-readable-by-euid) | present(5 keys) |
-| containment.proc1.container_value | unreadable(not-readable-by-euid) | absent |
-| containment.env.container | absent | absent |
-| containment.proc1.cgroup | present(read-ok): 0::/init.scope | present(read-ok): 0::/ |
-| containment.proc1.cgroup.decisiveness | non-decisive | non-decisive |
-| containment.proc1.comm | present(read-ok): systemd | present(read-ok): tail |
-| workdir.path | present(/home/runner/work/faff) | present(/__w/faff) |
-| workdir.parent | present(drwxr-xr-x 6 1001 1001 4096 Aug  2 21:51 /home/runner/work) | present(drwxr-xr-x 6 1001 1001 4096 Aug  2 21:42 /__w) |
-| workdir.checkout | present(/home/runner/work/faff/faff) | present(/__w/faff/faff) |
-| workdir.listing | present(2 entries, one level) | present(2 entries, one level) |
-| home.path | present(drwxr-x--- 11 1001 1001 4096 Aug  2 21:51 /home/runner) | present(drwxr-xr-x 2 1001 1001 4096 Aug  2 21:42 /github/home) |
-| home.entries | present(15 entries, one level) | present(1 entries, one level) |
-| socket_removal.performed | unmeasurable_here(hosted runner: the VM is created per job, so no earlier step and no earlier job can act on the host before this one starts) | unmeasurable_here(hosted runner: the job container is started before any step runs, so no step can act on the host before it exists) |
-| socket_removal.kind | unmeasurable_here(hosted runner: no host-side hook before the job) | unmeasurable_here(hosted runner: no host-side hook before the job container starts) |
-| socket_removal./var/run/docker.sock.after | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) |
-| socket_removal./run/docker.sock.after | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) |
-| crosscheck.container_check_json | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) |
-| crosscheck.container_check_exit | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) |
-| crosscheck.container_check_plain | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) |
+| signal | hosted-direct | hosted-container | selfhosted-direct | selfhosted-container |
+|---|---|---|---|---|
+| mounts.table | present(24 lines) | present(32 lines) | present(23 lines) | present(40 lines) |
+| socket.canonical./var/run/docker.sock | unreadable(open-failed) | unreadable(open-failed) | unreadable(open-failed) | unreadable(open-failed) |
+| socket.canonical./var/run/docker.sock.is_socket | yes | yes | yes | yes |
+| socket.canonical./var/run/docker.sock._dangling_symlink | no | no | no | no |
+| socket.canonical./var/run/docker.sock.readable | yes | yes | yes | yes |
+| socket.canonical./var/run/docker.sock.writable | yes | yes | yes | yes |
+| socket.canonical./run/docker.sock | unreadable(open-failed) | unreadable(open-failed) | unreadable(open-failed) | unreadable(open-failed) |
+| socket.canonical./run/docker.sock.is_socket | yes | yes | yes | yes |
+| socket.canonical./run/docker.sock._dangling_symlink | no | no | no | no |
+| socket.canonical./run/docker.sock.readable | yes | yes | yes | yes |
+| socket.canonical./run/docker.sock.writable | yes | yes | yes | yes |
+| socket.rootless.docker | absent | absent | absent | absent |
+| socket.rootless.podman | absent | unmeasurable_here(XDG_RUNTIME_DIR unset: path not constructible) | unmeasurable_here(XDG_RUNTIME_DIR unset: path not constructible) | unmeasurable_here(XDG_RUNTIME_DIR unset: path not constructible) |
+| env.DOCKER_HOST | absent | absent | absent | absent |
+| attest.canonical_socket_present | yes | yes | yes | yes |
+| attest.canonical_socket_writable_by_euid | yes | yes | yes | yes |
+| attest.writable_is_a_proxy | writable is a necessary-condition proxy for connectability, never proof | writable is a necessary-condition proxy for connectability, never proof | connecting to a unix socket requires write permission, so the writable test is a necessary-condition proxy for connectability, never proof | connecting to a unix socket requires write permission, so the writable test is a necessary-condition proxy for connectability, never proof |
+| attest.rootless_socket_present | no | no | no | no |
+| containment.env.KUBERNETES_SERVICE_HOST | absent | absent | absent | absent |
+| containment./.dockerenv | absent | present("empty") | absent | present("empty") |
+| containment./run/.containerenv | absent | absent | absent | absent |
+| containment.proc1.environ | unreadable(not-readable-by-euid) | present(read-ok) | unreadable(not-readable-by-euid) | present(read-ok) |
+| containment.proc1.environ_keys | unreadable(not-readable-by-euid) | present(5 keys) | unreadable(not-readable-by-euid) | present(5 keys, names withheld) |
+| containment.proc1.container_value | unreadable(not-readable-by-euid) | absent | unreadable(not-readable-by-euid) | absent |
+| containment.env.container | absent | absent | absent | absent |
+| containment.proc1.cgroup | present(read-ok): 0::/init.scope | present(read-ok): 0::/ | present(read-ok): 0::/ | present(read-ok): 0::/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631 |
+| containment.proc1.cgroup.decisiveness | non-decisive | non-decisive | non-decisive | non-decisive |
+| containment.proc1.comm | present(read-ok): systemd | present(read-ok): tail | present(read-ok): init | present(read-ok): tail |
+| workdir.path | present(/home/runner/work/faff) | present(/__w/faff) | present(/home/runner/actions-runner/_work/fly-ci-runner-probe) | present(/__w/fly-ci-runner-probe) |
+| workdir.parent | present(drwxr-xr-x 6 1001 1001 4096 Aug  2 21:51 /home/runner/work) | present(drwxr-xr-x 6 1001 1001 4096 Aug  2 21:42 /__w) | present(drwxrwxr-x 7 1001 1001 4096 Aug  3 19:43 /home/runner/actions-runner/_work) | present(drwxrwxr-x 7 1001 1001 4096 Aug  3 19:39 /__w) |
+| workdir.checkout | present(/home/runner/work/faff/faff) | present(/__w/faff/faff) | present(/home/runner/actions-runner/_work/fly-ci-runner-probe/fly-ci-runner-probe) | present(/__w/fly-ci-runner-probe/fly-ci-runner-probe) |
+| workdir.listing | present(2 entries, one level) | present(2 entries, one level) | present(2 entries, one level) | present(2 entries, one level) |
+| home.path | present(drwxr-x--- 11 1001 1001 4096 Aug  2 21:51 /home/runner) | present(drwxr-xr-x 2 1001 1001 4096 Aug  2 21:42 /github/home) | present(drwxr-x--- 1 1001 1001 4096 Aug  3 16:10 /home/runner) | present(drwxrwxr-x 2 1001 1001 4096 Aug  3 19:40 /github/home) |
+| home.entries | present(15 entries, one level) | present(1 entries, one level) | present(5 entries, one level) | present(1 entries, one level) |
+| socket_removal.performed | unmeasurable_here(hosted runner: the VM is created per job, so no earlier step and no earlier job can act on the host before this one starts) | unmeasurable_here(hosted runner: the job container is started before any step runs, so no step can act on the host before it exists) | unmeasurable_here(no removal was performed, and this methodology cannot say what host-side hook this shape has) | unmeasurable_here(no removal was performed, and this methodology cannot say what host-side hook this shape has) |
+| socket_removal.kind | unmeasurable_here(hosted runner: no host-side hook before the job) | unmeasurable_here(hosted runner: no host-side hook before the job container starts) | unmeasurable_here(shape not known to this instrument: no claim made about its host-side hooks) | unmeasurable_here(shape not known to this instrument: no claim made about its host-side hooks) |
+| socket_removal./var/run/docker.sock.after | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) |
+| socket_removal./run/docker.sock.after | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) | unmeasurable_here(no removal was performed on this shape) |
+| crosscheck.container_check_json | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) |
+| crosscheck.container_check_exit | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) |
+| crosscheck.container_check_plain | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) | impossible_on_shape(no faff binary on PATH) |
 
 ## Notes
 
@@ -132,4 +137,26 @@ notes: Operator attestation, pid-1 environ key block — SATISFIED (operator-con
 
 notes: Operator attestation, this notes section — SATISFIED (operator-confirmed 2026-08-02). All seven committed transcripts were read for findings language and carry probe grammar output only — value-grammar tokens, signal and shape names, mount-table and long-listing lines — with no findings or recommendation language. It is likewise satisfied for this file as it stands: the content above was read for findings language. The advisory word-list check returns one hit, on the canonical_vs_rootless provenance field. It is left in: the word there reports what ADR-0041 already says about the rootless posture, which is why HOST_SOCKET_PATHS excludes those paths, and it asserts nothing about what faff or FAFF-646 ought to do. This is the over-flagging the word list was expected to produce, which is why it is advisory rather than gating.
 
+notes: Self-hosted probe digest — SATISFIED, self-proving. The probe hashes its own file ($0) and emits probe_sha256; all three self-hosted transcripts (selfhosted-direct, selfhosted-direct-after-removal, selfhosted-container) carry probe_sha256 40166f33ba093cf0f1d95a3d4ca311a7435f46647d3827e807eaeac7bbb052b7, which equals the sha256 of probe.sh in this directory. So each transcript proves the instrument that ran was byte-identical to the committed probe, re-checkable from the committed files with no separate before-teardown step required.
+
+notes: Operator attestation, self-hosted pid-1 environ — SATISFIED by construction. The self-hosted shapes were probed with --environ-keys count, so no pid-1 key names were emitted on either shape (environ_keys reads a count with names withheld under euid 0, and unreadable(not-readable-by-euid) under euid 1001). There is no name block to read, so the name-disclosure concern the mode flag guards does not arise on these shapes.
+
+notes: Operator attestation, self-hosted runner teardown — SATISFIED (operator-confirmed 2026-08-03). The disposable fly.io Machine (id 2870903c4e2478) was destroyed, the fly app fly-ci-runner-probe was destroyed with it (so the runner process and its private image no longer exist), and the runner registration was removed from the scratch repository shftwst/fly-ci-runner-probe. No self-hosted runner remains — live or registered — on any repository. This is an operator attestation, not a checkable artifact.
+
+notes: Self-hosted rig byproduct (for FAFF-609). The rig is a fly.io Machine built from ubuntu:24.04 with docker and actions-runner 2.336.0, registered to a scratch repository, never shftwst/faff. It is run with fly machine run as a standalone Machine, not fly deploy — the deploy release-health wait recreates a slow-booting runner in a loop. The runner is configured --disableupdate (a forced in-place self-update breaks the binary in the immutable image) and runs as a non-root user with HOME=/home/runner. dockerd runs on the vfs storage driver because the Firecracker microVM has no kernel overlay for the container shape to mount. The container shape is dispatched before the direct shape, whose socket-removal step removes the daemon socket. Recorded so FAFF-609 does not re-derive it.
+
 notes: A self-test was run during the build on the author's machine at euid 501, reporting 11 assertions across 10 fixture cases, zero skipped and zero failed. That run is not committed here because local-dev is not one of the four shapes. Two dispatched self-test outputs are now committed: the hosted-direct job ran at euid 1001 and reports 11 passed, 0 skipped, 0 failed, which supplies the committed non-root run the demonstration criterion turns on; the hosted-container job ran at euid 0 and reports 9 passed, 2 skipped, 0 failed, skipping the two permission cases (c and e) because access(2) grants search and read to uid 0. The portability guarantee this instrument offers FAFF-656 now rests on a committed non-root run rather than an uncommitted local one.
+
+notes: Self-hosted substrate, container markers on the direct shape — the disposable fly microVM shows no container markers: containment./.dockerenv absent, containment.env.container absent, containment.proc1.cgroup all controllers at / (0::/), and containment.proc1.comm init. A marker-based container check reads this shape as not-contained.
+
+notes: Self-hosted substrate, host engine socket on both shapes — attest.canonical_socket_present reads yes and attest.canonical_socket_writable_by_euid reads yes on both selfhosted-direct and selfhosted-container; on the container shape the socket is the bind-mounted /run/docker.sock, which also appears as an entry in that shape's 40-line mounts.table. "Contained" and "host-socket-reachable" are independent readings here: the direct shape reads not-contained yet reaches the socket, and the container shape reads contained yet also reaches it.
+
+notes: Self-hosted substrate, socket removal — selfhosted-direct-after-removal reads socket.canonical./var/run/docker.sock and socket.canonical./run/docker.sock as absent (is_socket/readable/writable no) and attest.canonical_socket_present as no, where the selfhosted-direct column reads them present and reachable. socket_removal.performed and socket_removal.kind read unmeasurable_here on a self-hosted shape because the frozen instrument (probe_version 1) has no self-hosted removal branch, so the change is recorded as the difference in the socket.canonical.* readings between the two transcripts rather than in the socket_removal.* metadata.
+
+notes: Self-hosted substrate, _work occupancy — on selfhosted-direct workdir.listing names one entry, this checkout (fly-ci-runner-probe), so _work holds a single tenant in this reading. A shared, long-lived runner would carry the neighbour-checkout question by construction; that is a property of such a runner, inferred and not observed on this single-repo throwaway Machine.
+
+notes: Self-hosted substrate, cgroup version — the fly Machine mounts cgroup v1 hierarchies (net_cls, hugetlb, pids, freezer, cpu,cpuacct, devices, blkio, memory, perf_event, cpuset) alongside a cgroup2 unified mount on the direct shape, where the hosted runners read cgroup v2. This is recorded as a substrate difference.
+
+notes: Self-hosted substrate, crosscheck parity — crosscheck.container_check_json, .container_check_exit and .container_check_plain read impossible_on_shape(no faff binary on PATH) on both self-hosted shapes, matching the two hosted columns; faff is deliberately not installed on any shape, so the crosscheck rows stay comparable across all four.
+
+notes: Self-hosted environ handling — the self-hosted shapes were probed with --environ-keys count, so containment.proc1.environ_keys on selfhosted-container reads present(5 keys, names withheld) and emits no key names. No name or value material from pid 1's environ is present in either self-hosted transcript; on selfhosted-direct the environ reads unreadable(not-readable-by-euid) at euid 1001 and emits nothing.

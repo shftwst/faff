@@ -1,0 +1,18 @@
+probe selftest — probe_version 1, euid 1001
+
+a readable-with-bytes              expected=present(read-ok)                         observed=present(read-ok)                               PASS
+b missing-leaf                     expected=absent                                   observed=absent                                         PASS
+c unsearchable-ancestor            expected=undecidable(ancestor-not-searchable      observed=undecidable(ancestor-not-searchable:/tmp/tmp.d2csnzlQmk/c_dir) PASS
+d dangling-symlink                 expected=absent                                   observed=absent                                         PASS
+d dangling-sibling-key             expected=yes                                      observed=yes                                            PASS
+e unreadable-leaf                  expected=unreadable(not-readable-by-euid)         observed=unreadable(not-readable-by-euid)               PASS
+f ancestor-not-a-directory         expected=undecidable(ancestor-not-a-directory     observed=undecidable(ancestor-not-a-directory:/tmp/tmp.d2csnzlQmk/f_afile) PASS
+g unconstructible-path             expected=unmeasurable_here(PROBE_SELFTEST_UNSET unset observed=unmeasurable_here(PROBE_SELFTEST_UNSET unset: path not constructible) PASS
+h empty-file                       expected=present("empty")                         observed=present("empty")                               PASS
+i missing-ancestor                 expected=absent                                   observed=absent                                         PASS
+j directory                        expected=present(                                 observed=present(directory)                             PASS
+
+unreadable(open-failed)            no fixture — POSIX sh cannot create a socket; a FIFO blocks on open
+unreadable(read-failed)            no fixture — no portable way to fail a read after a successful open
+
+selftest: 11 passed, 0 skipped (euid 1001), 0 failed

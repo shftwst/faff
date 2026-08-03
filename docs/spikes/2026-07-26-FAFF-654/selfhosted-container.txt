@@ -1,0 +1,110 @@
+probe_version: 1
+probe_cksum: 1312413922 26164
+probe_sha256: 40166f33ba093cf0f1d95a3d4ca311a7435f46647d3827e807eaeac7bbb052b7
+probe_bytes: 26164
+shape: selfhosted-container
+source_repository: shftwst/fly-ci-runner-probe
+probe_euid: 0
+captured_at: 2026-08-03T19:42:24Z
+runner_os: Linux
+runner_arch: x86_64
+container_image: buildpack-deps@sha256:877e9e4d949edfbcbedabc3a2d7ab593955fee5d6d0777adf3a991eb30c750d8
+environ_keys_mode: count
+probe_dd: present
+notes: 
+mounts.table: present(40 lines)
+  | none / overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+  | tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0
+  | devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0
+  | sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0
+  | tmpfs /sys/fs/cgroup tmpfs rw,nosuid,nodev,noexec,relatime,mode=755 0 0
+  | cgroup /sys/fs/cgroup/net_cls,net_prio cgroup ro,nosuid,nodev,noexec,relatime,net_cls,net_prio 0 0
+  | cgroup /sys/fs/cgroup/hugetlb cgroup ro,nosuid,nodev,noexec,relatime,hugetlb 0 0
+  | cgroup /sys/fs/cgroup/pids cgroup ro,nosuid,nodev,noexec,relatime,pids 0 0
+  | cgroup /sys/fs/cgroup/freezer cgroup ro,nosuid,nodev,noexec,relatime,freezer 0 0
+  | cgroup /sys/fs/cgroup/cpu,cpuacct cgroup ro,nosuid,nodev,noexec,relatime,cpu,cpuacct 0 0
+  | cgroup /sys/fs/cgroup/devices cgroup ro,nosuid,nodev,noexec,relatime,devices 0 0
+  | cgroup /sys/fs/cgroup/blkio cgroup ro,nosuid,nodev,noexec,relatime,blkio 0 0
+  | cgroup /sys/fs/cgroup/memory cgroup ro,nosuid,nodev,noexec,relatime,memory 0 0
+  | cgroup /sys/fs/cgroup/perf_event cgroup ro,nosuid,nodev,noexec,relatime,perf_event 0 0
+  | cgroup /sys/fs/cgroup/cpuset cgroup ro,nosuid,nodev,noexec,relatime,cpuset 0 0
+  | mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0
+  | shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=65536k 0 0
+  | none /__e overlay ro,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /__w overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /__w/_temp overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /__w/_actions overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /__w/_tool overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /github/home overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /github/workflow overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /etc/resolv.conf overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /etc/hostname overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /etc/hosts overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | none /run/docker.sock overlay rw,relatime,lowerdir=/lower/dev/vda:/lower/dev/vdc,upperdir=/upper/upper,workdir=/upper/workdir,uuid=on 0 0
+  | proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0
+  | proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0
+  | proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0
+  | proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0
+  | proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0
+  | tmpfs /proc/interrupts tmpfs rw,nosuid,size=65536k,mode=755 0 0
+  | tmpfs /proc/kcore tmpfs rw,nosuid,size=65536k,mode=755 0 0
+  | tmpfs /proc/keys tmpfs rw,nosuid,size=65536k,mode=755 0 0
+  | tmpfs /proc/scsi tmpfs ro,relatime,size=4k,nr_inodes=1 0 0
+  | tmpfs /proc/timer_list tmpfs rw,nosuid,size=65536k,mode=755 0 0
+  | tmpfs /sys/firmware tmpfs ro,relatime,size=4k,nr_inodes=1 0 0
+socket.canonical./var/run/docker.sock: unreadable(open-failed)
+socket.canonical./var/run/docker.sock.is_socket: yes
+socket.canonical./var/run/docker.sock._dangling_symlink: no
+socket.canonical./var/run/docker.sock.readable: yes
+socket.canonical./var/run/docker.sock.writable: yes
+socket.canonical./run/docker.sock: unreadable(open-failed)
+socket.canonical./run/docker.sock.is_socket: yes
+socket.canonical./run/docker.sock._dangling_symlink: no
+socket.canonical./run/docker.sock.readable: yes
+socket.canonical./run/docker.sock.writable: yes
+socket.rootless.docker: absent
+socket.rootless.podman: unmeasurable_here(XDG_RUNTIME_DIR unset: path not constructible)
+env.DOCKER_HOST: absent
+attest.canonical_socket_present: yes
+attest.canonical_socket_writable_by_euid: yes
+attest.writable_is_a_proxy: connecting to a unix socket requires write permission, so the writable test is a necessary-condition proxy for connectability, never proof
+attest.rootless_socket_present: no
+containment.env.KUBERNETES_SERVICE_HOST: absent
+containment./.dockerenv: present("empty")
+containment./run/.containerenv: absent
+containment.proc1.environ: present(read-ok)
+containment.proc1.environ_keys: present(5 keys, names withheld)
+containment.proc1.container_value: absent
+containment.env.container: absent
+containment.proc1.cgroup: present(read-ok)
+containment.proc1.cgroup.decisiveness: non-decisive
+  | 10:cpuset:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 9:perf_event:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 8:memory:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 7:blkio:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 6:devices:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 5:cpu,cpuacct:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 4:freezer:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 3:pids:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 2:hugetlb:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 1:net_cls,net_prio:/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+  | 0::/docker/6bc988d4174b6bcd0f5ba7b9acd0788efca3d35949a8e9422defc285ffd2f631
+containment.proc1.comm: present(read-ok)
+  | tail
+workdir.path: present(/__w/fly-ci-runner-probe)
+workdir.parent: present(drwxrwxr-x 7 1001 1001 4096 Aug  3 19:39 /__w)
+workdir.checkout: present(/__w/fly-ci-runner-probe/fly-ci-runner-probe)
+workdir.listing: present(2 entries, one level)
+  | total 4
+  | drwxrwxr-x 4 1001 1001 4096 Aug  3 19:42 fly-ci-runner-probe
+home.path: present(drwxrwxr-x 2 1001 1001 4096 Aug  3 19:40 /github/home)
+home.entries: present(1 entries, one level)
+  | total 0
+socket_removal.performed: unmeasurable_here(no removal was performed, and this methodology cannot say what host-side hook this shape has)
+socket_removal.kind: unmeasurable_here(shape not known to this instrument: no claim made about its host-side hooks)
+socket_removal./var/run/docker.sock.after: unmeasurable_here(no removal was performed on this shape)
+socket_removal./run/docker.sock.after: unmeasurable_here(no removal was performed on this shape)
+crosscheck.container_check_json: impossible_on_shape(no faff binary on PATH)
+crosscheck.container_check_exit: impossible_on_shape(no faff binary on PATH)
+crosscheck.container_check_plain: impossible_on_shape(no faff binary on PATH)

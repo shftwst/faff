@@ -184,6 +184,63 @@ test("--only reads/writes no progress file and its fold-in overlays (retains oth
   assert.equal(result, 0);
 });
 
+// ── 8b. FAFF-712: --kind scopes the sweep to named kinds and folds them in, retaining the rest ─────
+test("--kind dispatches only the named kind(s) and overlays their rows, leaving other rows byte-identical", async () => {
+  cleanReal();
+  const cases = loadCases();
+  const byKind = {};
+  for (const c of cases) (byKind[c.kind] ??= []).push(c.id);
+  // a real MULTI-case kind — the thing --only cannot re-baseline (a kind's row is an aggregate). Use a
+  // smoke kind (2 cases, graded via env.classifications) so the mock okDriver deterministically PASSes
+  // every case → the refreshed row is a clean accuracy 1, distinct from the seeded 0.
+  const target = "dupe";
+  assert.ok(byKind[target].length >= 2, "the target must be a multi-case kind to exercise the aggregate");
+  const dir = tmp();
+  const baselinePath = join(dir, "frontier.json");
+  const priorGhostA = { accuracy: 0.71, stability: 0.72, format_adherence: 1 };
+  const priorGhostB = { accuracy: 0.61, stability: 0.62, format_adherence: 1 };
+  writeFileSync(baselinePath, JSON.stringify({
+    meta: { source: "prior" }, policy: DEFAULT_POLICY,
+    per_kind: { [target]: { accuracy: 0, stability: 0, format_adherence: 1 }, ghostA: priorGhostA, ghostB: priorGhostB },
+  }, null, 2) + "\n");
+  const spy = [];
+  const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
+  const argv = ["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", baselinePath, "--kind", target];
+  const { result } = await capture(() => updateBaseline(argv, presets, baselinePath));
+
+  assert.equal(result, 0);
+  assert.equal(existsSync(REAL_PROGRESS), false, "--kind never touches the progress file");
+  assert.ok(spy.length > 0 && spy.every((id) => byKind[target].includes(id)), "ONLY the named kind's cases were dispatched");
+  const written = JSON.parse(readFileSync(baselinePath, "utf8"));
+  // the named kind's row is refreshed (okDriver → PASS → accuracy 1, up from the seeded 0)
+  assert.equal(written.per_kind[target].accuracy, 1, "the named kind's row was re-measured");
+  // every un-named kind is retained byte-identically
+  assert.deepEqual(written.per_kind.ghostA, priorGhostA, "ghostA retained unchanged");
+  assert.deepEqual(written.per_kind.ghostB, priorGhostB, "ghostB retained unchanged");
+  assert.ok(/scoped --update-baseline --kind/.test(written.meta.source), "source reads as a scoped re-baseline");
+  assert.equal(diffAgainstBaseline(written, written).failed, false, "the written baseline gates clean against itself");
+});
+
+test("--kind fails loud on an unknown kind, and is rejected alongside --only or --resume", async () => {
+  const dir = tmp();
+  const baselinePath = join(dir, "frontier.json");
+  const presets = { frontierDriver: () => async (c) => jEnv(c, true) };
+  // unknown kind → fail loud, names the corpus (never a silent empty sweep — composes with FAFF-691)
+  await assert.rejects(
+    () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--update-baseline", baselinePath, "--kind", "not-a-kind"], presets, baselinePath)),
+    /unknown kind\(s\) not-a-kind/,
+  );
+  // both narrowings at once → rejected (thrown before any driver/corpus work, so {} presets suffice)
+  await assert.rejects(
+    () => updateBaseline(["--update-baseline", baselinePath, "--only", "x", "--kind", "y"], {}, baselinePath),
+    /--only and --kind are mutually exclusive/,
+  );
+  await assert.rejects(
+    () => updateBaseline(["--update-baseline", baselinePath, "--kind", "y", "--resume"], {}, baselinePath),
+    /--kind is a self-contained scoped sweep/,
+  );
+});
+
 // ── 9. --resume runs only the missing kind and writes a complete baseline (exit 0) ────────────────
 test("--resume dispatches only missing kinds and writes a complete baseline", async () => {
   cleanReal();

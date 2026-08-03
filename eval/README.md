@@ -185,8 +185,20 @@ may run it. Follow these six points exactly.
    you don't want for a re-baseline: it produces a **partial** baseline (kinds outside the subset are
    carried over from the prior baseline rather than dropped — `foldInAndWriteBaseline` overlays swept
    kinds onto what's there and prints a `⚠ PARTIAL baseline` warning naming what's still missing), and it
-   never checkpoints, so a `--only` run can't be resumed with point 5's `--resume`. Re-baseline is always
-   the full suite. (Use `--only`/`--reps` for read-only smoke probes, never with `--update-baseline`.)
+   never checkpoints, so a `--only` run can't be resumed with point 5's `--resume`. A full re-baseline is
+   the default. (Use `--only`/`--reps` for read-only smoke probes, never with `--update-baseline`.)
+
+   **The one sanctioned narrowing is `--kind` (FAFF-712), for an oracle-only change.** When a change
+   moves the *scoring* of a couple of kinds without touching any case id (correcting an oracle, like
+   FAFF-615), `--resume` can't help — it decides staleness by case-id changes and would skip exactly the
+   kinds you want re-run — and a full sweep re-measures ~27 unchanged kinds to fix two rows. Instead
+   scope the sweep to the affected kinds; it folds their fresh rows into the existing baseline and leaves
+   every other row byte-identical:
+   ```sh
+   node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json --kind refutation-spec,grouping
+   ```
+   `--kind` is standalone (rejected with `--only` or `--resume`), fails loud on an unknown kind, and
+   never checkpoints — it's a short, self-contained scoped sweep, ~11 cases rather than the full ~79.
 
 4. **What it costs (derived, not guessed).** At the current **79** live case files × **20** base reps
    ≈ **1,580** frontier reps; wobbly cases escalate toward **50** reps each, so the worst case is

@@ -713,23 +713,52 @@ test("FAFF-669 instructionFor mirrors buildEvalPrompt's verdict-revert branch", 
 // silently takes the first match, which is the quieter and much worse failure. Uniqueness is the
 // property that makes an anchor correct. Values are parsed out of the module source rather than
 // exported, so the assertion is made on the exact string the loader passes, in the form it passes it.
+//
+// FAFF-687 — the rows evolved from a bare `START -> skill` string into `{ skill, end, endCount }` so
+// the END-anchor uniqueness check (below) can ride the SAME registry instead of a second parallel
+// list — the start and end anchor of any one pair live in the same file, so one `skill` field serves
+// both checks in a row. `end` is the paired `*_END` const name, or `null` for the sole
+// extractSectionToEnd loader (loadAdrDriftProse — no end anchor to guard). `endCount` is the expected
+// number of times `end`'s value occurs in the after-start window; omitted rows default to 1.
 const DRIVER_SRC = readFileSync(new URL("cli-driver.mjs", EVAL_DIR), "utf8");
 const ANCHOR_REGISTRY = {
-  TIDY_RUBRIC_START: "faff-tidy", SYNTH_GLOSS_START: "faffidavit-rendering",
-  SPLITTABLE_START: "faff-tidy", CHAIN_GAP_START: "faff-tidy",
-  CONFIDENCE_RUBRIC_START: "faffter-dark-nlspec", MARKER_DIALECT_START: "faff",
-  RECONCILIATION_RUBRIC_START: "faff-prep", REVIEW_VERDICT_START: "faffter-noon-review",
-  GATEWAY_VERDICT_START: "faff", GATEWAY_ROUTING_START: "faff",
-  ADAPTOR_ROUTING_START: "faffidavit-routing", JOT_MODE_START: "faff-jot",
-  INTAKE_MODE_START: "faffter-noon-intake", SHAPING_START: "faff-jot",
-  DECOMP_START: "faff-plot", LEAD_WITH_MODEL_START: "faffidavit-rendering",
-  HOLDOUT_JUDGEMENT_START: "faffter-noon-evaluate", ARCHITECTURE_PROSE_START: "faffter-noon-architecture",
-  SPECQUAL_PROSE_START: "faffter-noon-spec", ROADMAP_PROSE_START: "faff-map",
-  ADR_GLOSS_PROSE_START: "faffter-noon-adr", SPEC_VERDICT_PROSE_START: "faffter-noon-spec-review",
-  REFUTATION_SPEC_PROSE_START: "faffter-dark-spec-review", REFUTATION_CODE_PROSE_START: "faffter-dark-adversarial-review",
+  TIDY_RUBRIC_START: { skill: "faff-tidy", end: "TIDY_RUBRIC_END" },
+  SYNTH_GLOSS_START: { skill: "faffidavit-rendering", end: "SYNTH_GLOSS_END" },
+  // SPLITTABLE_END ("#### Chain gaps") legitimately occurs twice in faff-tidy/SKILL.md after
+  // SPLITTABLE_START: the real heading at :166 (the correct boundary, taken by first-match) and a
+  // harmless prose cross-reference at :178 ("the `#### Chain gaps` heading") that sits AFTER the
+  // section's true end, so it never truncates it. endCount:2 keeps a live count guard on this anchor
+  // too — a third occurrence (a genuine future duplicate) still fires — rather than exempting it.
+  SPLITTABLE_START: { skill: "faff-tidy", end: "SPLITTABLE_END", endCount: 2 },
+  CHAIN_GAP_START: { skill: "faff-tidy", end: "CHAIN_GAP_END" },
+  CONFIDENCE_RUBRIC_START: { skill: "faffter-dark-nlspec", end: "CONFIDENCE_RUBRIC_END" },
+  MARKER_DIALECT_START: { skill: "faff", end: "MARKER_DIALECT_END" },
+  RECONCILIATION_RUBRIC_START: { skill: "faff-prep", end: "RECONCILIATION_RUBRIC_END" },
+  REVIEW_VERDICT_START: { skill: "faffter-noon-review", end: "REVIEW_VERDICT_END" },
+  GATEWAY_VERDICT_START: { skill: "faff", end: "GATEWAY_VERDICT_END" },
+  GATEWAY_ROUTING_START: { skill: "faff", end: "GATEWAY_ROUTING_END" },
+  ADAPTOR_ROUTING_START: { skill: "faffidavit-routing", end: "ADAPTOR_ROUTING_END" },
+  JOT_MODE_START: { skill: "faff-jot", end: "JOT_MODE_END" },
+  INTAKE_MODE_START: { skill: "faffter-noon-intake", end: "INTAKE_MODE_END" },
+  SHAPING_START: { skill: "faff-jot", end: "SHAPING_END" },
+  DECOMP_START: { skill: "faff-plot", end: "DECOMP_END" },
+  LEAD_WITH_MODEL_START: { skill: "faffidavit-rendering", end: "LEAD_WITH_MODEL_END" },
+  HOLDOUT_JUDGEMENT_START: { skill: "faffter-noon-evaluate", end: "HOLDOUT_JUDGEMENT_END" },
+  ARCHITECTURE_PROSE_START: { skill: "faffter-noon-architecture", end: "ARCHITECTURE_PROSE_END" },
+  SPECQUAL_PROSE_START: { skill: "faffter-noon-spec", end: "SPECQUAL_PROSE_END" },
+  ROADMAP_PROSE_START: { skill: "faff-map", end: "ROADMAP_PROSE_END" },
+  ADR_GLOSS_PROSE_START: { skill: "faffter-noon-adr", end: "ADR_GLOSS_PROSE_END" },
+  SPEC_VERDICT_PROSE_START: { skill: "faffter-noon-spec-review", end: "SPEC_VERDICT_PROSE_END" },
+  REFUTATION_SPEC_PROSE_START: { skill: "faffter-dark-spec-review", end: "REFUTATION_SPEC_PROSE_END" },
+  REFUTATION_CODE_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "REFUTATION_CODE_PROSE_END" },
   // FAFF-669
-  PREP_ARCH_TRIGGER_PROSE_START: "faff-prep", GROUPING_PROSE_START: "faffter-dark-methodology-agile-delivery",
-  RESOLVED_ELSEWHERE_PROSE_START: "faff-tidy", ADR_DRIFT_PROSE_START: "faffter-dark-adversarial-review",
+  PREP_ARCH_TRIGGER_PROSE_START: { skill: "faff-prep", end: "PREP_ARCH_TRIGGER_PROSE_END" },
+  GROUPING_PROSE_START: { skill: "faffter-dark-methodology-agile-delivery", end: "GROUPING_PROSE_END" },
+  RESOLVED_ELSEWHERE_PROSE_START: { skill: "faff-tidy", end: "RESOLVED_ELSEWHERE_PROSE_END" },
+  // The sole extractSectionToEnd loader — its section is the last in its file, so it deliberately has
+  // no end anchor. `end: null` is asserted-not-implicit: the null-end forcing-function below fails if
+  // a future loader tries to hide a forgotten end anchor in the same gap.
+  ADR_DRIFT_PROSE_START: { skill: "faffter-dark-adversarial-review", end: null },
 };
 const anchorValue = (name) => {
   const m = DRIVER_SRC.match(new RegExp(`const ${name} = ("(?:[^"\\\\]|\\\\.)*");`));
@@ -739,10 +768,10 @@ const anchorValue = (name) => {
 const occurrences = (haystack, needle) => haystack.split(needle).length - 1;
 
 test("FAFF-669 every registered start anchor occurs exactly once in the file its loader reads", () => {
-  for (const [name, skill] of Object.entries(ANCHOR_REGISTRY)) {
-    const md = readFileSync(join(DEFAULT_PLUGIN_DIR, "skills", skill, "SKILL.md"), "utf8");
+  for (const [name, row] of Object.entries(ANCHOR_REGISTRY)) {
+    const md = readFileSync(join(DEFAULT_PLUGIN_DIR, "skills", row.skill, "SKILL.md"), "utf8");
     assert.equal(occurrences(md, anchorValue(name)), 1,
-      `${name} is not unique in ${skill}/SKILL.md — extractSection would silently take the first match`);
+      `${name} is not unique in ${row.skill}/SKILL.md — extractSection would silently take the first match`);
   }
 });
 
@@ -753,6 +782,75 @@ test("FAFF-669 the anchor registry covers every start-anchor constant declared i
   for (const name of declared) {
     assert.ok(name in ANCHOR_REGISTRY, `${name} is declared in the driver but missing from the anchor registry`);
   }
+});
+
+// --- FAFF-687 — the end-anchor mirror: extractSection resolves the end boundary as
+//     `md.indexOf(endAnchor, startPos)` — the FIRST end-anchor occurrence after the start. A future
+//     duplicate of an end-anchor string inserted between a section's start and its true end would
+//     silently truncate that section, with nothing thrown and no red test — same blast radius as the
+//     start-anchor bug FAFF-669 guarded. This rides the SAME ANCHOR_REGISTRY (never a second list),
+//     so a loader added later is covered by both checks or by neither.
+//
+// The "after-start window" — start position to end of file — is exactly the region indexOf searches.
+// Counting occurrences there against a known-good expected count (default 1, per-row override) is the
+// mirror of the start check counting occurrences in [0, EOF] against 1. Within [start, firstEnd] the
+// end anchor always appears exactly once by construction, so THAT narrower window could never reveal
+// an inserted duplicate — only the after-start-to-EOF window can.
+test("FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window", () => {
+  for (const [name, row] of Object.entries(ANCHOR_REGISTRY)) {
+    if (row.end === null) continue; // extractSectionToEnd — no end anchor to guard
+    const md = readFileSync(join(DEFAULT_PLUGIN_DIR, "skills", row.skill, "SKILL.md"), "utf8");
+    const startVal = anchorValue(name);
+    const startPos = md.indexOf(startVal);
+    assert.ok(startPos >= 0, `${name} not found in ${row.skill}/SKILL.md`);
+    const window = md.slice(startPos + startVal.length);
+    const expected = row.endCount ?? 1;
+    assert.equal(occurrences(window, anchorValue(row.end)), expected,
+      `${row.end} does not occur ${expected}x after ${name} in ${row.skill}/SKILL.md — extractSection would silently truncate`);
+  }
+});
+
+// Demonstrated red: a duplicate end-anchor string spliced into a section between its start and true
+// end must make the check fire, naming the loader/anchor. Injected into an in-memory copy of the file
+// text — never a real SKILL.md on disk, which would dirty the tree and race other tests reading it.
+test("FAFF-687 a duplicate end-anchor spliced inside a section is caught (demonstrated red)", () => {
+  const row = ANCHOR_REGISTRY.TIDY_RUBRIC_START;
+  const md = readFileSync(join(DEFAULT_PLUGIN_DIR, "skills", row.skill, "SKILL.md"), "utf8");
+  const startVal = anchorValue("TIDY_RUBRIC_START");
+  const endVal = anchorValue(row.end);
+  const startPos = md.indexOf(startVal);
+  assert.ok(startPos >= 0, "TIDY_RUBRIC_START not found — fixture assumption broken");
+  const trueEnd = md.indexOf(endVal, startPos + startVal.length);
+  assert.ok(trueEnd >= 0, "TIDY_RUBRIC_END not found after TIDY_RUBRIC_START — fixture assumption broken");
+  // Splice a second copy of the end anchor midway between start and the true end — squarely inside
+  // the section, so a real occurrence there would silently truncate it via extractSection's first-match.
+  const midpoint = startPos + startVal.length + Math.floor((trueEnd - (startPos + startVal.length)) / 2);
+  const corrupted = md.slice(0, midpoint) + endVal + md.slice(midpoint);
+  const window = corrupted.slice(startPos + startVal.length);
+  const expected = row.endCount ?? 1;
+  const observed = occurrences(window, endVal);
+  assert.notEqual(observed, expected,
+    "fixture did not actually inject a mismatch — test is not exercising the guard");
+  assert.equal(observed, expected + 1, "expected exactly one extra occurrence from the injected duplicate");
+});
+
+// A hand-maintained registry with no forcing function is a list that goes stale on the next commit —
+// the end-anchor mirror of the start-anchor coverage test above.
+test("FAFF-687 the anchor registry covers every end-anchor constant declared in the driver", () => {
+  const declaredEnds = [...DRIVER_SRC.matchAll(/const (\w+_END) = /g)].map((m) => m[1]);
+  assert.equal(declaredEnds.length, 27, "one END const per START const, minus the sole extractSectionToEnd loader");
+  const registered = Object.values(ANCHOR_REGISTRY).map((row) => row.end).filter((end) => end !== null);
+  assert.deepEqual(new Set(registered), new Set(declaredEnds),
+    "every *_END const declared in the driver must be on exactly one registry row, and vice versa");
+});
+
+// The extractSectionToEnd asymmetry (28 START consts, 27 END consts) is asserted, not left implicit —
+// a future loader that forgets its end anchor must not be able to hide in the same null-end gap.
+test("FAFF-687 exactly one registry row has a null end, and it is ADR_DRIFT_PROSE_START", () => {
+  const nullEndRows = Object.entries(ANCHOR_REGISTRY).filter(([, row]) => row.end === null);
+  assert.equal(nullEndRows.length, 1, "exactly one loader may use extractSectionToEnd (no end anchor)");
+  assert.equal(nullEndRows[0][0], "ADR_DRIFT_PROSE_START",
+    "the sole null-end row must be the known extractSectionToEnd loader, not a different or new one");
 });
 
 // Hardening is CONDITIONAL, not blanket: an anchor moves to the newline-delimited form only where that

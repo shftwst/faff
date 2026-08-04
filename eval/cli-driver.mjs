@@ -1085,11 +1085,12 @@ export function buildEvalPrompt(evalCase, criteria = null) {
 // PURE: resolve the exact { bin, args, env } to spawn. No spawn, no fs, no clock — so a test can
 // import this and assert preset wiring (--model / --bare / --plugin-dir / ollama env) with zero I/O.
 export function buildInvocation(opts, prompt, cfgDir) {
-  const { bin = "claude", model = null, env = {}, bare = false, pluginDir = null } = opts ?? {};
+  const { bin = "claude", model = null, effort = null, env = {}, bare = false, pluginDir = null } = opts ?? {};
   const args = [
     "-p",
     prompt,
     ...(model ? ["--model", model] : []),
+    ...(effort ? ["--effort", effort] : []), // FAFF-722 — omitted when null → byte-for-byte today's argv
     ...(bare ? ["--bare"] : []),
     ...(pluginDir ? ["--plugin-dir", pluginDir] : []),
   ];
@@ -1137,8 +1138,8 @@ export function makeCliDriver(opts = {}) {
 // (project hooks/CLAUDE.md aren't pulled in). `--plugin-dir` alone still loads the skills.
 // FAFF-315: `model` is threaded through so the frontier lane can be PINNED (never the account
 // default — the eval-bulk budget guard). buildInvocation already emits `--model` when set.
-export function frontierOpts({ bin = "claude", model = null, bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
-  return { bin, model, bare, pluginDir, forwardCreds };
+export function frontierOpts({ bin = "claude", model = null, effort = null, bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
+  return { bin, model, effort, bare, pluginDir, forwardCreds }; // FAFF-722 — effort is frontier-only (localOpts has none)
 }
 export function frontierDriver(args = {}) {
   return makeCliDriver(frontierOpts(args));

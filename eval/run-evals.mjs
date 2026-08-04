@@ -375,6 +375,7 @@ export async function updateBaseline(argv, presets, baselinePath) {
   const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
   const driverName = argFlag(argv, "--driver") ?? "frontier";
   const model = driverName === "frontier" ? resolveEvalModel(argv) : (argFlag(argv, "--model") ?? null);
+  const effort = driverName === "frontier" ? resolveEffort(argv) : null; // FAFF-722 — recorded for the frontier lane only
 
   let cases = loadCases();
   const loadedCount = cases.length; // FAFF-691 — pre-filter count (the default corpus is always non-empty)
@@ -403,6 +404,7 @@ export async function updateBaseline(argv, presets, baselinePath) {
     assertNonEmptyCases(cases, { entry: "--update-baseline --kind", kind: kindArg, loadedCount });
   }
   const stamp = { driver: driverName, model, base_reps: baseReps, started_at: new Date().toISOString() };
+  if (effort) stamp.effort = effort; // FAFF-722 — appended only when set → byte-for-byte today's stamp/progress when unset
 
   const reportDir = join(HERE, "report");
   let progressPath = join(reportDir, "frontier-sweep-progress.json");
@@ -418,8 +420,9 @@ export async function updateBaseline(argv, presets, baselinePath) {
       try { prior = readProgress(progressPath); }
       catch (e) { throw new Error(`--resume: progress file ${progressPath} is corrupt/unparseable (${e.message}); delete it and start fresh`); }
       const ps = prior.stamp ?? {};
-      if (ps.driver !== stamp.driver || ps.model !== stamp.model || ps.base_reps !== stamp.base_reps) {
-        throw new Error(`--resume: progress stamp ${JSON.stringify({ driver: ps.driver, model: ps.model, base_reps: ps.base_reps })} does not match this run ${JSON.stringify({ driver: stamp.driver, model: stamp.model, base_reps: stamp.base_reps })}; refusing to blend`);
+      // FAFF-722 — effort joins the stamp-guard (frontier + scoped --kind share this path); `?? null` so a both-absent (no-effort) comparison still resumes.
+      if (ps.driver !== stamp.driver || ps.model !== stamp.model || ps.base_reps !== stamp.base_reps || (ps.effort ?? null) !== (stamp.effort ?? null)) {
+        throw new Error(`--resume: progress stamp ${JSON.stringify({ driver: ps.driver, model: ps.model, base_reps: ps.base_reps, effort: ps.effort ?? null })} does not match this run ${JSON.stringify({ driver: stamp.driver, model: stamp.model, base_reps: stamp.base_reps, effort: stamp.effort ?? null })}; refusing to blend`);
       }
       const expectedIds = {};
       for (const c of cases) (expectedIds[c.kind] ??= []).push(c.id);
@@ -480,7 +483,7 @@ export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds
   }
 
   const out = {
-    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: stamp.driver, model: stamp.model, base_reps: stamp.base_reps, source },
+    meta: { captured_at: new Date().toISOString().slice(0, 10), driver: stamp.driver, model: stamp.model, base_reps: stamp.base_reps, ...(stamp.effort ? { effort: stamp.effort } : {}), source }, // FAFF-722 — effort only when set → byte-for-byte meta when unset
     per_kind,
     policy: prevPolicy,
   };
@@ -561,21 +564,36 @@ export function resolveEvalModel(argv, { run } = {}) {
   return EVAL_MODEL_FALLBACK;
 }
 
+// FAFF-722 — the accepted reasoning-effort levels for the frontier `claude -p --effort` flag. Matches
+// faff's `.faffrc` effort: vocabulary; an off-vocabulary value fails LOUD (never forwarded to claude -p).
+export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"];
+export function resolveEffort(argv) {
+  const flag = argFlag(argv, "--effort");
+  if (flag == null) return null;
+  if (!EFFORT_LEVELS.includes(flag)) {
+    throw new Error(`--effort: unknown level ${JSON.stringify(flag)}; expected one of ${EFFORT_LEVELS.join("|")}`);
+  }
+  return flag;
+}
+
 export function resolveDriver(argv, presets) {
   const which = argFlag(argv, "--driver") ?? "frontier";
   const bin = argFlag(argv, "--bin") ?? "claude";
   const pluginDir = resolvePluginDir(argv);
+  const effort = resolveEffort(argv); // FAFF-722 — validate once; an off-vocab value fails loud whatever the driver
   if (which === "frontier") {
     if (argFlag(argv, "--base-url")) console.warn("[run-evals] WARN: --base-url is ignored for --driver frontier");
     const model = resolveEvalModel(argv);
-    console.log(`[run-evals] frontier model: ${model} (--model flag > models.eval config > pinned default; never the account default — FAFF-315)`);
-    return presets.frontierDriver({ bin, pluginDir, model });
+    console.log(`[run-evals] frontier model: ${model}${effort ? ` · effort: ${effort}` : ""} (--model flag > models.eval config > pinned default; never the account default — FAFF-315)`);
+    return presets.frontierDriver({ bin, pluginDir, model, effort });
   }
   if (which === "local") {
+    if (effort) console.warn("[run-evals] WARN: --effort is ignored for --driver local (no reasoning-effort knob on the ollama lane)"); // FAFF-722
     const { baseUrl, model } = resolveLocalParams(argv);
     return presets.localDriver({ baseUrl, model, bin, pluginDir });
   }
   if (which === "ollama-direct") {
+    if (effort) console.warn("[run-evals] WARN: --effort is ignored for --driver ollama-direct (no reasoning-effort knob on the ollama lane)"); // FAFF-722
     // FAFF-144: direct /api/chat (no agent loop). think defaults OFF (the local-speed lever); --think to enable.
     const { baseUrl, model } = resolveLocalParams(argv);
     return presets.makeDirectOllamaDriver({ baseUrl, model, pluginDir, think: argv.includes("--think") });

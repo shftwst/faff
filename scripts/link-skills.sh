@@ -11,6 +11,11 @@
 # convention rather than one vendor's home). One symlink per skill in each; the
 # directories themselves are never symlinked, so other tools' skills are untouched.
 #
+# --global targets come from the install.skill_targets config key when it's set (a YAML
+# sequence of absolute or "~"-relative paths in .faffrc.yaml), defaulting to the pair above
+# when it's unset or unreadable. Local (non-`--global`) mode never consults the key. See
+# FAFF-684 and plugin/skills/faff/SKILL.md's .faffrc.yaml schema block.
+#
 # Discovery rule: any top-level dir in plugin/skills/ that contains a SKILL.md.
 #
 # Also symlinks the bundled faff CLI (plugin/skills/faff/bin/faff) into ~/.local/bin/faff
@@ -117,12 +122,66 @@ dedupe_by_resolved_path() {
   TARGET_DIRS=("${kept[@]}")
 }
 
-if [ "$GLOBAL" -eq 1 ]; then
-  TARGET_DIRS=("${HOME}/.claude/skills" "${HOME}/.agents/skills")
-else
-  TARGET_DIRS=("${REPO_ROOT}/.claude/skills")
-fi
-dedupe_by_resolved_path
+# FAFF-684: expand a single install.skill_targets entry to an absolute path. A bare "~"
+# expands to $HOME, a "~/…" entry drops the "~" and keeps $HOME + the rest, an absolute
+# path passes through unchanged. Anything else (relative, empty, a literal "$HOME" that
+# YAML never shell-expands) is unusable — the caller skips it with a notice. Prints the
+# expanded path and returns 0 on success; returns 1 with nothing printed when unusable.
+expand_target() {
+  local entry="$1"
+  case "$entry" in
+    "~") printf '%s' "$HOME" ;;
+    "~/"*) printf '%s' "${HOME}${entry#\~}" ;;
+    /*) printf '%s' "$entry" ;;
+    *) return 1 ;;
+  esac
+}
+
+# FAFF-684: best-effort read of the configured install target list, via the already-resolved
+# bundled CLI (BIN_SRC) rather than a hand grep/sed of .faffrc.yaml — the resolver alone
+# handles overlay merge and the malformed-base loud-exit. Every failure mode (node absent,
+# BIN_SRC unreadable, a non-zero exit other than "key absent", an empty result, every entry
+# unusable) appends nothing to CONFIGURED_TARGETS — the caller falls back to the hardcoded
+# pair. Exit 3 (key absent) is the normal "unset" case and stays silent, matching the design
+# promise that an unset key changes nothing, including stdout; any other non-zero warns to
+# stderr so a genuinely broken key is never masked without a trace. Appends to the global
+# CONFIGURED_TARGETS array (declared by the caller) rather than returning a value, since bash
+# 3.2 (macOS) has no clean way to return an array from a function.
+read_configured_targets() {
+  if ! command -v node >/dev/null 2>&1 || [ ! -f "$BIN_SRC" ]; then
+    return 0
+  fi
+  local out status
+  # `set -e` treats `var=$(failing-cmd)` as a failing command in its own right (it is not
+  # inside an if/while/&&/|| context), so a plain assignment here would abort the whole
+  # installer the instant the key is unset (exit 3) — exactly the anti-pattern this function
+  # exists to avoid. Disable errexit for just this one capture, then restore it.
+  set +e
+  out="$(cd "$SRC_ROOT" && node "$BIN_SRC" config get install.skill_targets 2>/dev/null)"
+  status=$?
+  set -e
+  if [ "$status" -eq 3 ]; then
+    return 0   # key absent — silent, this is the normal default
+  fi
+  if [ "$status" -ne 0 ]; then
+    echo "⚠  could not read install.skill_targets from config (exit $status) — using default install targets" >&2
+    return 0
+  fi
+  if [ -z "$(printf '%s' "$out" | tr -d '[:space:]')" ]; then
+    return 0
+  fi
+  local -a raw=()
+  IFS=',' read -ra raw <<< "$out"
+  local e trimmed expanded
+  for e in "${raw[@]}"; do
+    trimmed="$(printf '%s' "$e" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    if expanded="$(expand_target "$trimmed")"; then
+      CONFIGURED_TARGETS+=("$expanded")
+    else
+      echo "⚠  ignoring install target '$trimmed' — not absolute or ~-relative" >&2
+    fi
+  done
+}
 
 # FAFF-443: a --global install is machine-wide and long-lived, so it must be sourced from
 # the stable main checkout, never an ephemeral linked worktree — otherwise the global links
@@ -162,6 +221,24 @@ fi
 SKILLS_ROOT="$SRC_ROOT/plugin/skills"
 SRC_DIR="$SKILLS_ROOT"
 BIN_SRC="$SRC_DIR/faff/bin/faff"     # the bundled faff CLI executable (re-derived post-retarget)
+
+# FAFF-684: build TARGET_DIRS here, now that BIN_SRC/SRC_ROOT are resolved — the config read
+# needs BIN_SRC to shell the bundled CLI, and for a worktree --global install SRC_ROOT must
+# already be retargeted to the main checkout or the read would run the wrong CLI. Nothing
+# between the old (pre-retarget) and this site reads TARGET_DIRS, so the move is safe. Local
+# (non-`--global`) mode never consults the config key — it stays exactly [<repo>/.claude/skills].
+if [ "$GLOBAL" -eq 1 ]; then
+  CONFIGURED_TARGETS=()
+  read_configured_targets
+  if [ ${#CONFIGURED_TARGETS[@]} -gt 0 ]; then
+    TARGET_DIRS=("${CONFIGURED_TARGETS[@]}")
+  else
+    TARGET_DIRS=("${HOME}/.claude/skills" "${HOME}/.agents/skills")
+  fi
+else
+  TARGET_DIRS=("${REPO_ROOT}/.claude/skills")
+fi
+dedupe_by_resolved_path
 
 # Discover skills by SKILL.md presence, excluding the scripts dir.
 shopt -s nullglob

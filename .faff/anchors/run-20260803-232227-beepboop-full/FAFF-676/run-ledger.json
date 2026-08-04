@@ -1,0 +1,152 @@
+{
+  "run_id": "run-20260803-232227-beepboop-full",
+  "admitted": [
+    "FAFF-620",
+    "FAFF-619",
+    "FAFF-687",
+    "FAFF-686",
+    "FAFF-635",
+    "FAFF-582",
+    "FAFF-667"
+  ],
+  "outcomes": {
+    "FAFF-666": "parked",
+    "FAFF-709": "parked",
+    "FAFF-681": "parked",
+    "FAFF-490": "parked",
+    "FAFF-620": "shipped",
+    "FAFF-687": "shipped",
+    "FAFF-686": "shipped",
+    "FAFF-619": "shipped",
+    "FAFF-621": "parked",
+    "FAFF-639": "parked",
+    "FAFF-582": "shipped",
+    "FAFF-635": "shipped",
+    "FAFF-647": "parked",
+    "FAFF-684": "parked",
+    "FAFF-675": "parked",
+    "FAFF-667": "shipped",
+    "FAFF-692": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "integrity_tampered": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 500,
+        "tokens": 10000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "measure_session_id": "814827ff-b99b-4fe6-a01c-71a8e040c7e4",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 27,
+        "output": 12935,
+        "cache_write": 569673,
+        "cache_read": 1830524
+      }
+    },
+    "tokens_at_start": 2413159,
+    "tokens_at_last_event": {
+      "input": 2041,
+      "output": 448353,
+      "cache_write": 2186082,
+      "cache_read": 35534446
+    }
+  },
+  "owner": {
+    "status": "done",
+    "pid": 88433,
+    "session_id": "run-20260803-232227-beepboop-full",
+    "started_at": "2026-08-03T23:22:57Z",
+    "last_heartbeat": "2026-08-04T07:53:40Z"
+  },
+  "outcome_details": {
+    "FAFF-681": {
+      "park_class": "spec-review-backend-outage",
+      "note": "high-confidence spec attached; adversarial lenses hit gemini 429 + unparseable backends; re-run when backend recovers"
+    },
+    "FAFF-709": {
+      "park_class": "duplicate",
+      "note": "dup of FAFF-635 (same test sentry-poller.test.mjs:174); 635 is survivor"
+    },
+    "FAFF-490": {
+      "park_class": "not-build-work",
+      "note": "tracker-description edit of FAFF-12; routed to tidy, no repo diff"
+    },
+    "FAFF-620": {
+      "pr": 537,
+      "merge_sha": "82c5898"
+    },
+    "FAFF-687": {
+      "pr": 536,
+      "merge_sha": "1bb5d2f0"
+    },
+    "FAFF-686": {
+      "pr": 535,
+      "merge_sha": "ee17141",
+      "note": "fixes the checkpoint-race flake"
+    },
+    "FAFF-619": {
+      "pr": 534,
+      "merge_sha": "84f8216",
+      "note": "rebased on main after 635 fixed the blocking sentry-poller flake"
+    },
+    "FAFF-621": {
+      "park_class": "reject-approach-multilens",
+      "note": "batch-lock design drew infosec/arch/QA/methodology objections; needs /faff-plot re-slice"
+    },
+    "FAFF-639": {
+      "park_class": "revise-split",
+      "note": "scope majors + methodology split 639a/639b; also formalized a previously-unlabelled stranded park"
+    },
+    "FAFF-582": {
+      "pr": 542,
+      "merge_sha": "50bccc0"
+    },
+    "FAFF-635": {
+      "pr": 545,
+      "merge_sha": "bbe5a55e",
+      "note": "resumed after backend recovered; fixes sentry-poller deadline flake"
+    },
+    "FAFF-647": {
+      "resolved": "promoted",
+      "resolved_at": "2026-08-04T08:47Z",
+      "prior_park_class": "spec-review-reject+deadlock",
+      "note": "human-directed unpark 2026-08-04: registry-refactor scope approved; spec-review re-run once, synchronously, backend recovered → approve/zero-objections/high; v3 spec attached, faff-parked cleared, moved to Todo. Chain-gaps (claude -p transport ticket + claude-box mount check) returned to coordinator to file.",
+      "reconcile": "closed-run terminal was parked (spec-review deadlock); interactive unblock later promoted+built it — tracked outside this closed ledger"
+    },
+    "FAFF-684": {
+      "park_class": "reject+overlap",
+      "note": "overlaps/blockedBy FAFF-676; scope Punt for /faff-plot"
+    },
+    "FAFF-675": {
+      "park_class": "premise-stale+blocked",
+      "note": "blocked on unbuilt FAFF-676; overlaps FAFF-685; human re-sequence"
+    },
+    "FAFF-667": {
+      "pr": 547,
+      "merge_sha": "7e7e55f",
+      "note": "faff config set writer + array-key corruption guard"
+    },
+    "FAFF-692": {
+      "park_class": "spec-review-transport-deadlock",
+      "note": "high-conf spec attached; review-call.mjs chain produced zero output; resumable; also no-op until FAFF-614 baseline"
+    }
+  },
+  "abort": {
+    "status": "aborted-resumable",
+    "at": "2026-08-04T01:37:45.375Z"
+  },
+  "notes": [
+    "L3 sentry-poller spuriously wrote owner.status=aborted-resumable during build wave (stale main-heartbeat + poller acting on L3, which is advisory-only). Build evidence verified intact, 3 merges real. Poller stopped; owner re-asserted. Finding surfaced."
+  ],
+  "stop_reason": "consolidated-session-boundary(build-queue-drained; prep-queue-partial ~28 resumable)"
+}

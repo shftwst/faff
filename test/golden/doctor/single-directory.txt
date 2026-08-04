@@ -1,0 +1,9 @@
+faff doctor — install health (<TARGET>)
+  ✓ faff-graft  symlink (live → repo)
+  ✗ faff-prep  COPY — not dev-linked; shipped changes won't go live
+  ✗ faffter-noon-review  symlink-dangling (target gone — stale orphan)
+  ✓ bin/faff  symlink (live)
+  ✓ merge-fence PreToolUse fence present
+
+RESULT: 1 copy / 1 dangling skill link(s) — install is not clean.
+Fix: bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)

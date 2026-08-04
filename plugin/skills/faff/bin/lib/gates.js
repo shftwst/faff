@@ -500,28 +500,106 @@ function classifyGlobalLink(full) {
   return path.resolve(mainRoot) !== path.resolve(top.stdout.trim()) ? "intoWorktree" : "live";
 }
 
-function cmdDoctor(args) {
-  const { values, errors } = parseArgs(args, DOCTOR_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff doctor [--target live|intoWorktree] [--root DIR]");
-  let target = values["--target"] === undefined ? null : values["--target"];
-  let root = values["--root"] === undefined ? null : values["--root"];
-  if (!target) {
-    const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
-    target = pluginRoot ? path.join(pluginRoot, "skills") : path.join(homeDir(), ".claude", "skills");
-  }
-  root = root || findRoot();
-  const isFaffSkill = (n) => n === "faff" || n.startsWith("faff-") || n.startsWith("faffter-") || n.startsWith("faffidavit-");
-  let entries;
-  try { entries = fs.readdirSync(target).filter(isFaffSkill).sort(); }
-  catch (e) { process.stderr.write(`faff doctor: cannot read install target ${target}: ${e.message}\n`); return 2; }
-  if (entries.length === 0) { process.stderr.write(`faff doctor: no faff skills found under ${target}\n`); return 2; }
+// FAFF-684: mirrors expand_target() in scripts/link-skills.sh (same rule, kept honest by
+// the agreement test rather than shared code). A bare "~" expands to $HOME, a "~/…" entry
+// drops the "~" and keeps $HOME + the rest, an absolute path passes through unchanged.
+// Anything else (relative, empty, a literal "$HOME" YAML never shell-expands) is unusable —
+// the caller skips it and returns null rather than joining it against a working directory.
+function expandInstallTarget(entry, home) {
+  if (entry === "~") return home;
+  if (entry.startsWith("~/")) return path.join(home, entry.slice(2));
+  if (path.isAbsolute(entry)) return entry;
+  return null;
+}
 
-  console.log(`faff doctor — install health (${target})`);
+// FAFF-684: read `install.skill_targets` from config via the existing loadConfig + dig idiom
+// (as gates.fallback does) — no new parser. Returns the expanded, still-unduped candidate
+// list, or an empty array on anything short of a genuinely usable non-empty list (absent key,
+// read error, wrong type, empty array, every entry unusable) — the caller falls back to the
+// hardcoded default pair on empty, exactly as the bash installer does.
+function readConfiguredInstallTargets(root, home) {
+  try {
+    const [data] = loadConfig(root);
+    const raw = dig(data, "install.skill_targets");
+    if (!Array.isArray(raw)) return [];
+    const out = [];
+    for (const entry of raw) {
+      if (typeof entry !== "string") continue;
+      const expanded = expandInstallTarget(entry.trim(), home);
+      if (expanded) out.push(expanded);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+// FAFF-676: doctor's default scan set must match the installer's global target list
+// (scripts/link-skills.sh), or doctor is lying about what it looked at. `--target` and
+// `$CLAUDE_PLUGIN_ROOT` each still resolve to exactly one directory — unchanged in effect,
+// only rewrapped to return a one-element list. Only the home-directory default branch grows,
+// to the SAME two directories the installer writes to in global mode, in the SAME order.
+// This is the ONLY place in gates.js naming .claude / .agents as skills directories — see
+// the installer-and-doctor agreement test in test/link-skills-worktree.test.mjs, which is
+// what keeps this list honest against scripts/link-skills.sh's TARGET_DIRS rather than a
+// promise that the two never drift apart.
+//
+// FAFF-684: the home-directory default branch is now sourced from the install.skill_targets
+// config key when it resolves to a non-empty, usable list; `root` is threaded in only for
+// that read (cmdDoctor already resolves it via findRoot()). Unset/unusable falls back to
+// exactly the hardcoded pair below — unchanged from FAFF-676.
+function resolveDoctorScanSet(targetFlag, pluginRootEnv, home, root) {
+  if (targetFlag) return { scanSet: [targetFlag], collapseNotices: [] };
+  if (pluginRootEnv) return { scanSet: [path.join(pluginRootEnv, "skills")], collapseNotices: [] };
+  const configured = root ? readConfiguredInstallTargets(root, home) : [];
+  const candidates = configured.length > 0
+    ? configured
+    : [path.join(home, ".claude", "skills"), path.join(home, ".agents", "skills")];
+  return dedupeByResolvedPath(candidates);
+}
+
+// Mirrors dedupe_by_resolved_path in scripts/link-skills.sh (same rule, kept honest by the
+// agreement test rather than shared code — one's bash, one's Node). A path that does not
+// exist can alias nothing, so it resolves to itself rather than throwing.
+function dedupeByResolvedPath(candidates) {
+  const kept = [];
+  const seen = new Map(); // resolved path -> first literal path that produced it
+  const collapseNotices = [];
+  for (const p of candidates) {
+    let resolved;
+    try { resolved = fs.realpathSync(p); } catch { resolved = p; }
+    if (seen.has(resolved)) {
+      collapseNotices.push(`${p} resolves to ${seen.get(resolved)} — treating them as one target`);
+      continue;
+    }
+    seen.set(resolved, p);
+    kept.push(p);
+  }
+  return { scanSet: kept, collapseNotices };
+}
+
+const isFaffSkillName = (n) => n === "faff" || n.startsWith("faff-") || n.startsWith("faffter-") || n.startsWith("faffidavit-");
+
+// Scans ONE directory and classifies every faff-owned entry — exactly today's per-skill
+// logic (live / intoWorktree / dangling / copy), unchanged. Never throws: an unreadable or
+// absent directory is recorded as such and returned, not an early exit — the caller decides
+// what an all-unreadable scan set means (FAFF-676's whole point: a single bad directory must
+// not go silent while another scanned directory is healthy).
+function scanDoctorDirectory(directory) {
+  let entries;
+  try { entries = fs.readdirSync(directory).filter(isFaffSkillName).sort(); }
+  catch (e) {
+    const reason = e.code === "ENOENT" ? "not present" : `unreadable: ${e.message}`;
+    return { directory, readable: false, reason, namesFound: new Set(), copies: 0, dangling: 0, intoWorktree: 0, findings: [] };
+  }
   let copies = 0;
   let dangling = 0;
   let intoWorktree = 0;
+  const findings = [];
+  const namesFound = new Set();
   for (const name of entries) {
-    const full = path.join(target, name);
+    namesFound.add(name);
+    const full = path.join(directory, name);
     let st;
     try { st = fs.lstatSync(full); } catch { continue; }
     if (st.isSymbolicLink()) {
@@ -531,56 +609,135 @@ function cmdDoctor(args) {
       // FAFF-443: a live link may still be FRAGILE if it resolves into a linked worktree.
       const state = classifyGlobalLink(full);
       if (state === "live") {
-        console.log(`  ✓ ${name}  symlink (live → repo)`);
+        findings.push(`✓ ${name}  symlink (live → repo)`);
       } else if (state === "intoWorktree") {
         intoWorktree++;
-        console.log(`  ⚠ ${name}  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
+        findings.push(`⚠ ${name}  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
       } else {
         dangling++;
-        console.log(`  ✗ ${name}  symlink-dangling (target gone — stale orphan)`);
+        findings.push(`✗ ${name}  symlink-dangling (target gone — stale orphan)`);
       }
     } else {
       copies++;
-      console.log(`  ✗ ${name}  COPY — not dev-linked; shipped changes won't go live`);
+      findings.push(`✗ ${name}  COPY — not dev-linked; shipped changes won't go live`);
     }
   }
+  return { directory, readable: true, reason: entries.length === 0 ? "no faff skills here" : null, namesFound, copies, dangling, intoWorktree, findings };
+}
+
+// render_missing (spec HOW → "How much an empty directory prints"): a directory that found
+// NOTHING is one fact, stated once — never one MISSING line per skill, which would turn the
+// most-seen post-FAFF-672 report (a healthy ~/.claude/skills beside an absent
+// ~/.agents/skills) into thirty near-identical lines burying the RESULT line. A directory
+// missing only a SUBSET gets one line per missing skill, uncapped — that is the genuinely
+// per-skill fact worth naming.
+function renderDoctorScanBody(scan, unionSize) {
+  if (scan.namesFound.size === 0) {
+    return [`✗ ${scan.reason} — all ${unionSize} faff skill(s) found elsewhere are MISSING here`];
+  }
+  const lines = [...scan.findings];
+  for (const name of scan.missingHere) lines.push(`✗ ${name}  MISSING here — this harness cannot see it`);
+  return lines;
+}
+
+function cmdDoctor(args) {
+  const { values, errors } = parseArgs(args, DOCTOR_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff doctor [--target live|intoWorktree] [--root DIR]");
+  const targetFlag = values["--target"] === undefined ? null : values["--target"];
+  let root = values["--root"] === undefined ? null : values["--root"];
+  root = root || findRoot();
+
+  const { scanSet, collapseNotices } = resolveDoctorScanSet(targetFlag, process.env.CLAUDE_PLUGIN_ROOT, homeDir(), root);
+  const scans = scanSet.map(scanDoctorDirectory);
+
+  // FAFF-676: exit 2 ("nothing installed anywhere") is now evaluated ACROSS every scanned
+  // directory rather than the first one — the old behaviour returned early the instant any
+  // one directory was unreadable or empty, which is exactly the state ~/.agents/skills is in
+  // on every pre-FAFF-672 machine even though ~/.claude/skills is perfectly healthy. That
+  // early return is the bug this ticket exists to fix: it must never come back as a
+  // per-directory early exit inside the loop above.
+  const union = new Set();
+  for (const s of scans) for (const n of s.namesFound) union.add(n);
+  if (union.size === 0) {
+    process.stderr.write(`faff doctor: no faff skills found under any of: ${scanSet.join(", ")}\n`);
+    return 2;
+  }
+
+  for (const s of scans) {
+    s.missingHere = s.namesFound.size === 0
+      ? [...union].sort()
+      : [...union].filter((n) => !s.namesFound.has(n)).sort();
+  }
+
+  const multi = scans.length > 1;
+  const out = [];
+  out.push(multi
+    ? `faff doctor — install health (${scans.length} directories scanned)`
+    : `faff doctor — install health (${scans[0].directory})`);
+  for (const notice of collapseNotices) out.push(`  ${notice}`);
+  if (multi) {
+    for (const s of scans) {
+      out.push("");
+      out.push(`  ${s.directory}`);
+      for (const line of renderDoctorScanBody(s, union.size)) out.push(`    ${line}`);
+    }
+    out.push("");
+  } else {
+    for (const line of renderDoctorScanBody(scans[0], union.size)) out.push(`  ${line}`);
+  }
+
+  let copies = 0;
+  let dangling = 0;
+  let intoWorktree = 0;
+  for (const s of scans) { copies += s.copies; dangling += s.dangling; intoWorktree += s.intoWorktree; }
+
   const bin = path.join(homeDir(), ".local", "bin", "faff");
   try {
     const bst = fs.lstatSync(bin);
     if (bst.isSymbolicLink()) {
       // FAFF-443: same fragility check for the CLI link — a worktree-sourced bin/faff dangles too.
+      // Machine-wide: this runs exactly once per invocation, independent of the scan set size.
       if (classifyGlobalLink(bin) === "intoWorktree") {
         intoWorktree++;
-        console.log(`  ⚠ bin/faff  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
+        out.push(`  ⚠ bin/faff  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
       } else {
-        console.log(`  ✓ bin/faff  symlink (live)`);
+        out.push(`  ✓ bin/faff  symlink (live)`);
       }
     } else {
-      console.log(`  • bin/faff  real file (copy)`);
+      out.push(`  • bin/faff  real file (copy)`);
     }
   } catch { /* bin link optional */ }
 
   // FAFF-434: the merge-fence PreToolUse registration — a distinct install-health axis
-  // from the skill-link scan above (reads <root>/.claude/settings.json, not the --target
-  // skills dir), reported alongside it and folded into the same non-clean exit.
+  // from the skill-link scan above (reads <root>/.claude/settings.json, not a scanned skills
+  // dir), reported alongside it and folded into the same non-clean exit. Machine-wide: runs
+  // exactly once per invocation regardless of how many directories were scanned.
   const fenceOk = mergeFencePresentAt(root);
-  console.log(fenceOk
+  out.push(fenceOk
     ? `  ✓ merge-fence PreToolUse fence present`
     : `  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
 
-  if (copies > 0 || dangling > 0 || intoWorktree > 0 || !fenceOk) {
+  const anyMissingHere = scans.some((s) => s.missingHere.length > 0);
+  if (copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk) {
     const problems = [];
     if (copies > 0 || dangling > 0) problems.push(`${copies} copy / ${dangling} dangling skill link(s)`);
     if (intoWorktree > 0) problems.push(`${intoWorktree} worktree-sourced link(s) (fragile — will dangle on worktree removal)`);
+    for (const s of scans) {
+      if (s.missingHere.length > 0) problems.push(`${s.missingHere.length} skill(s) missing from ${s.directory}`);
+    }
     if (!fenceOk) problems.push("merge-fence PreToolUse fence missing");
-    console.log(`\nRESULT: ${problems.join(" + ")} — install is not clean.`);
+    out.push("");
+    out.push(`RESULT: ${problems.join(" + ")} — install is not clean.`);
     const fixes = [];
-    if (copies > 0 || dangling > 0 || intoWorktree > 0) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
+    if (copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
     if (!fenceOk) fixes.push("faff hooks-ensure");
-    console.log(`Fix: ${fixes.join(" && ")}`);
+    out.push(`Fix: ${fixes.join(" && ")}`);
+    console.log(out.join("\n"));
     return 1;
   }
-  console.log(`\nRESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
+  out.push("");
+  out.push(`RESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
+  console.log(out.join("\n"));
   return 0;
 }
 

@@ -87,10 +87,10 @@ The same single gateway-load preamble — **after** the `.faffrc` check above �
 
 Resolve the binary via **Resolving the `faff` executable** (never hardcode `~/.claude/skills/faff/bin/faff`), run `"$faff" doctor`, and branch on its exit code:
 
-- **exit 0** (every faff skill is a live symlink) → silent, continue.
-- **exit 2** (no faff skills under the target / unreadable) → silent, continue — not worth a prompt.
-- **exit 1** (one or more **COPY** installs — stale risk) → act by mode:
-  - **Interactive** — a one-time **soft-offer** (mirrors the First-run offer; never a gate): `faff skills look stale (copy-installs, not symlinks) — repo changes won't be live. Re-link now? (y/n)`. On **accept** → run **`"$faff" sync`** (the skill-owned repair — re-links the skill dirs + the CLI via `scripts/link-skills.sh --global --replace`), then continue the original command. On **decline** → continue on the stale install; do **not** nag again this turn.
+- **exit 0** (every faff skill is a live symlink in every scanned directory) → silent, continue.
+- **exit 2** (no faff skills found in *any* scanned directory) → silent, continue — not worth a prompt.
+- **exit 1** (any copy install, dangling link, worktree-sourced link, skill missing from a scanned directory — a **half-install**, FAFF-676 — or a missing merge fence) → act by mode:
+  - **Interactive** — a one-time **soft-offer** (mirrors the First-run offer; never a gate): `faff skills look out of date on this machine — some harnesses may not see them. Re-link now? (y/n)`. On **accept** → run **`"$faff" sync`** (the skill-owned repair — re-links the skill dirs + the CLI via `scripts/link-skills.sh --global --replace`), then continue the original command. On **decline** → continue on the stale install; do **not** nag again this turn.
   - **Autonomous/beep-boop** — **never prompt, never run `faff sync`, never mutate `~/.claude`.** Re-linking deletes real dirs in the user's global skills dir — a **side-effect outside the PR flow** (gateway → **Autonomous Mode Contract**), which the autonomous lane never performs unattended. Log the stale-install finding to `.faff/logs/…` and surface it for `/faff-wtf`, then continue.
 
 `faff sync` is a **CLI subcommand** (a thin wrapper over the tested `link-skills.sh`), so it is invoked directly via the resolved binary — **not** through the Skill tool (unlike `faff-onboard`). The same preamble also runs **`faff config check`** (read-only) and treats its findings as **advisory** — never a block/gate/prompt: interactive surfaces **one** line when findings exist (never nagging twice a turn), autonomous/beep-boop **logs** them for `/faff-wtf` and continues (the container/branch-protection `warn` default). A config finding is never a run-stopper.

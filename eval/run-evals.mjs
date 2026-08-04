@@ -370,7 +370,7 @@ export async function updateBaseline(argv, presets, baselinePath) {
   const repsArg = argFlag(argv, "--reps");
   const resume = argv.includes("--resume");
   if (only && kindArg) throw new Error("--only and --kind are mutually exclusive (both narrow the sweep)");
-  if (kindArg && resume) throw new Error("--kind is a self-contained scoped sweep and does not checkpoint; drop --resume");
+  // FAFF-714 — --kind now checkpoints + resumes (to its own progress file), so --kind --resume is valid.
   const driver = resolveDriver(argv, presets);
   const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
   const driverName = argFlag(argv, "--driver") ?? "frontier";
@@ -406,8 +406,10 @@ export async function updateBaseline(argv, presets, baselinePath) {
 
   const reportDir = join(HERE, "report");
   let progressPath = join(reportDir, "frontier-sweep-progress.json");
+  // FAFF-714 — a scoped --kind run checkpoints to its OWN file, distinct from the full-sweep file, so a
+  // scoped run never truncates/misreads a paused full sweep's progress and can itself be --resume'd.
+  if (scopedKinds) progressPath = join(reportDir, "frontier-scoped-progress.json");
   if (only) progressPath = null; // --only never checkpoints/resumes (a single case can't complete its kind)
-  if (scopedKinds) progressPath = null; // FAFF-712 — --kind folds from the summary; a short scoped sweep needs no checkpoint (and would clobber a full sweep's progress file)
 
   if (progressPath != null) {
     mkdirSync(reportDir, { recursive: true });
@@ -449,7 +451,10 @@ export async function updateBaseline(argv, presets, baselinePath) {
 // FAIL). Numbers come from the progress file's per-kind aggregate (or, on the --only path, summary).
 export function foldInAndWriteBaseline(baselinePath, progressPath, expectedKinds, stamp, summary, { only, scopedKinds = null } = {}) {
   const progress = progressPath ? readProgress(progressPath) : null;
-  const sweptKinds = progress ? Object.keys(progress.kinds) : Object.keys(summary.per_kind); // --only uses summary
+  const sweptKindsAll = progress ? Object.keys(progress.kinds) : Object.keys(summary.per_kind); // --only uses summary
+  // FAFF-714 — a resumed scoped run's progress file can hold a leftover kind-set from an earlier --kind run
+  // (--resume doesn't truncate). Fold ONLY the kinds this run named, so a stale set can't overwrite its rows.
+  const sweptKinds = scopedKinds ? sweptKindsAll.filter((k) => scopedKinds.includes(k)) : sweptKindsAll;
   const three = (m) => ({ accuracy: m.accuracy, stability: m.stability, format_adherence: m.format_adherence });
   const sweptPerKind = {};
   for (const k of sweptKinds) sweptPerKind[k] = three(progress ? progress.kinds[k] : summary.per_kind[k]);

@@ -12,8 +12,17 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
+
+// FAFF-620: the resolveSentryRunDir helper's fault path is unit-tested directly
+// (a real deleted cwd can't be staged portably) via the same createRequire
+// pattern used in test/argv.test.mjs.
+const require = createRequire(import.meta.url);
+const { resolveSentryRunDir } = require(join(
+  dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "lib", "sentrycheck.js",
+));
 
 function run(args, env) {
   const r = spawnSync("node", [CLI, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
@@ -145,6 +154,30 @@ test("no run dir resolvable -> silent exit 0", () => {
     assert.equal(r.out.trim(), "");
     assert.equal(r.err.trim(), "");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-620 Unit 1: resolveSentryRunDir swallows an ENOENT-coded findRoot throw (deleted cwd) -> null", () => {
+  const deps = {
+    findRoot: () => { const e = new Error("ENOENT: cwd deleted"); e.code = "ENOENT"; throw e; },
+    latestRunDir: () => { throw new Error("should not be reached — findRoot threw first"); },
+  };
+  assert.equal(resolveSentryRunDir({}, deps), null);
+});
+
+test("FAFF-620 Unit 2: the catch wraps the whole try, not just findRoot — an ENOENT from latestRunDir also -> null", () => {
+  const deps = {
+    findRoot: () => { throw new Error("should not be reached — --root is set"); },
+    latestRunDir: () => { const e = new Error("ENOENT: run dir deleted mid-scan"); e.code = "ENOENT"; throw e; },
+  };
+  assert.equal(resolveSentryRunDir({ "--root": "/some/root" }, deps), null);
+});
+
+test("FAFF-620 Unit 3: a non-ENOENT fault (e.g. EACCES) stays loud — re-thrown, not swallowed", () => {
+  const deps = {
+    findRoot: () => { const e = new Error("EACCES: permission denied"); e.code = "EACCES"; throw e; },
+    latestRunDir: () => { throw new Error("should not be reached — findRoot threw first"); },
+  };
+  assert.throws(() => resolveSentryRunDir({}, deps), (e) => e.code === "EACCES");
 });
 
 test("unreadable (malformed) ledger -> silent exit 0 (D8: runcheck --hook parity, never nags on a corrupt artifact)", () => {

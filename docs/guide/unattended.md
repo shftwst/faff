@@ -95,6 +95,44 @@ It reads that one run dir's end state and **exits non-zero when anything needs a
 
 **Interactive runs are unchanged.** No interactive skill calls the verb; the default surfacing stays the run-ledger → `/faff-wtf` morning view. The disposition sink is purely the *headless override* — the command your CI/cron wrapper runs last so a needs-attention run turns the build red instead of passing quietly.
 
+## An L3 watcher in CI
+
+The headless contract above is what a scheduled CI watcher runs on. `docs/ci/l3-watcher.yml` is a **reference workflow** that puts it together end to end: a cron trigger wakes a self-hosted runner, an admission gate refuses a rig that isn't caged, `/faff-beep-boop` drains the automation-eligible queue at L3, and `faff disposition` propagates the exit. It is the configuration most solo adopters want — a watcher that chews through newly-cranked-up tickets with the **tracker as the control plane**.
+
+It is a **reference under `docs/ci/`, not a live job** — its `runs-on:` names a self-hosted rig that has to exist first, and the repo's own convention is that a committed job whose label matches nothing is a small lie (see `.github/workflows/job-surface-probe.yml`). To run it for real, copy it into your repo's `.github/workflows/`, once you have:
+
+- a registered self-hosted runner — the "your laptop is the factory" solo-dev rig;
+- a **subscription-seat secret** — a long-lived token in the environment (the CI path, per the subscription-seat ADR in `docs/adr/`), held as a repository secret, never a committed rc;
+- an **admitted cage** — a run environment that passes `faff container-check --gate` (see below).
+
+**The admission gate is the first step, and it fails the job before any agent starts.** `faff container-check --gate` exits non-zero unless the run is contained *and* no host engine socket is reachable (the two admission criteria the CI-runner ADR in `docs/adr/` settles). So a firing on a bare, uncaged host stops there — no ticket is claimed, no ledger is minted — rather than draining a queue unattended behind a warning nobody reads. **Any** cage that passes works: claude-box, a devcontainer, a Kubernetes runner pod, an Actions `container:` with the host socket dealt with. The rig the reference names is an example; the gate is the requirement.
+
+**Segment-per-firing.** L3 has no run-level resume (`lights-out --resume` is L4-only), so each firing is its own short run: it drains what it can, its ledger closes, and the next firing re-queries the tracker. No committed work is lost — graft pushes each feature branch at build-complete, and claim-before-admit stops overlapping firings from double-draining. A build cut short before its branch is pushed just rebuilds next time. The one edge worth knowing: an issue cut short *at the review step* after its branch was pushed is left `In Progress` and is skipped as claimed-by-peer on the next firing until you pick it up in the morning park-review — nothing is lost, but it does not auto-resume.
+
+For an **outward product repo** the L4 sibling (`faff lights-out`, cron-resumed) is the shape to reach for instead — see the next section.
+
+### A cage that passes the gate
+
+The admission gate is easy to state and easy to get wrong, so here is a cage that actually passes, and the trap that catches most first attempts.
+
+**What passing looks like.** A cage that passes is *contained* and reaches *no host engine socket*. Run `faff container-check --gate` inside it and you get:
+
+```
+$ faff container-check --gate
+pass
+
+$ faff container-check --gate --json
+{"verdict":"pass","contained":true,"basis":"dockerenv","host_socket":{"present":false,"path":null},"criteria":{"contained":true,"no_host_socket":true}}
+```
+
+That reading is from this repo's own dev container — an interactive cage, not a live CI job — a contained cage (a container, so `/.dockerenv` is present) that never mounts the host docker socket. It stands in for the CI cage by construction: what the gate checks is the same wherever it runs, and a live self-hosted reading is the runner-rig doc's to take. **claude-box** is the same shape and the concrete example an adopter can reach for: it reads contained and its entrypoint refuses to mount the host socket, so it passes by construction. It is an *example*, not a requirement — the gate is the requirement. Any of these pass equally: claude-box or another cage the job runs inside, a Kubernetes/ARC runner pod (contained via the Kubernetes service-host marker), a devcontainer, a sysbox runtime, or an Actions `container:` job **on a runner host that exposes no docker socket**. Swap one for another and nothing about the requirement changes.
+
+**The socket trap — the naive `container:` job.** The obvious move on Actions is to add a job `container:` and assume that is your cage. It is not, on the usual runner. When the runner host has a docker socket, the runner bind-mounts `/var/run/docker.sock` into every Linux job container (this is `actions/runner`'s `ContainerInfo.cs`, and the CI-runner ADR in `docs/adr/` records it) — so the job reads *contained-with-a-host-socket*, which is a full escape and the gate refuses it. The tempting fix does not work either: an `rm -f /var/run/docker.sock` step *inside the job* runs after the runner has already established the mount, and inside the container that path is a live bind mount `rm` cannot unmount. What actually clears it is dealing with the socket at the **runner-host level** — no host docker daemon, or a rootless-only one, so there is nothing to bind-mount (the `env-rootless` job in `.github/workflows/validate.yml` is exactly that posture). So: a job `container:` is admissible only once its *host* exposes no socket; that is a property of the runner host, not something you can fix from inside the workflow.
+
+**`faff env` without a host socket.** If a job needs a container engine — `faff env` runs `docker compose up` to stand the app tier up — it gets a **bounded nested engine** (rootless dind, podman-in-podman, or a sysbox-class runtime), which is the contract the cage-engine acceptance doc (`docs/cage-engine-acceptance.md`) already sets for claude-box. That does not trip the gate: the socket probe checks only the canonical host paths and deliberately ignores rootless paths, so a bounded rootless engine is invisible to it. The host socket is a dead end here by design — the lights-out preflight refuses it at L4 regardless of containment. Reach for the nested engine, never the host socket.
+
+**Where the cage stops and the runner host begins.** Passing the gate means *contained + no host socket* — that is what the cage owns. It does **not** by itself bound everything the job can touch: a self-hosted runner maps its whole work directory into the job, and within the job's life the agent holds the runner's registration token and credentials. Narrowing what the runner's own account can reach is a property of how you *register and scope the runner host*, which belongs to the self-hosted-runner rig doc, not to the cage. Keep the two separate in your head: the cage makes the run contained; the runner-host setup bounds the runner's own credential surface.
+
 ## Going lights-out (L4) — `faff lights-out`
 
 L3 keeps you *on* the loop: you walk away, but you're the one who reviews the morning's parks. **L4 is *out* of the loop** — correctness is held up by adversarial machinery (a second model trying to break the change, a code-blind holdout marking the work against a spec it never saw) rather than by you reading anything in the morning. `faff lights-out` is the single entry point that turns L3 into L4: it composes the shipped L4 guardrails into **one enforced launch** instead of a hand-assembly of `/faff-beep-boop` flags a forgotten one of which would silently degrade the run.
@@ -123,6 +161,19 @@ slots:
 The dial-coherence probe reads the merged (base ⊕ overlay) config, so the overlay value satisfies the gate. Each refusal's message names its own fix (`— fix <key> in .faffrc.local.yaml (set: <value>)`); if a repo has explicitly set `gates.fallback: advisory`, that override still refuses `dial-coherence:gates-fallback` and needs the same overlay treatment (`fallback: fail-closed`).
 
 Use `faff lights-out --check` to dry-run the preflight (it mints nothing) — handy for confirming the cage and the slots are wired before you actually leave.
+
+### An L4 watcher on an outward repo
+
+The L3 watcher above chews faff's own queue on the loop. Its L4 sibling, `docs/ci/l4-watcher.yml`, is the out-of-the-loop version for an **outward product repo**: a cron firing mints (or resumes) an L4 run, drains a segment under a budget cap, and the next firing continues the *same run* until it is done — correctness held up by adversarial review and the code-blind holdout, not by your morning read.
+
+It targets an **outward** repo, never faff itself: L4 refuses a self-directed run (building faff with faff), so the reference points `tracking.repo` / `tracking.container` at your product. Like the L3 reference it lives under `docs/ci/`, not `.github/workflows/` — copy it into the product repo once the rig exists.
+
+Two things are worth understanding before you run it:
+
+- **Segmentation is by escalation, not by a graceful exit.** `faff lights-out --resume <run-id>` re-enters a run only if it stopped in a re-enterable state (escalated, or a timed-out `dead-running`). A *clean* exit marks the run done, and resume declines it — so a segment boundary is a deliberate **budget/window escalation** (a per-segment `--until` / `--max`). If you rely instead on the job's hard time-cap, the cron interval must be longer than the runner's heartbeat-stale window (~15 min), or the next firing sees a still-live run and declines to resume.
+- **The mandate is fixed at mint.** The PRD/target decision (what the run is for) is made once, when the run is minted; a resume trusts it. So editing the PRD between firings does not silently re-scope work already in flight — the change is picked up by the next *fresh* run, not mid-run.
+
+The workflow's final step tells a mid-run segment boundary (exit green — more to come) apart from a finished-or-stuck run (handed to `faff disposition`, which turns a genuinely stuck run red). It needs a **persistent single-runner workspace** (the run's ledger lives under `.faff/runs/` between firings), a **sequential** dispatch slot, and the same adversarial `spec_review` overlay the section above describes. The auth matrix is in the workflow's own comments: a solo self-hosted seat, or a team hosted runner with an API key — never a pooled seat.
 
 ## Running over SSH
 

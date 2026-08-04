@@ -114,6 +114,28 @@ function trippedNotice(runId, runDir, payload) {
 const { parseArgs, usageError } = require("./argv");
 const SENTRYCHECK_SPEC = { flags: { "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--root": { arity: 1 } } };
 
+// FAFF-620: resolve the run dir behind a discriminated catch. `findRoot()`'s
+// default arg is `process.cwd()` — the sole live throw in this resolution — and
+// it surfaces `ENOENT` when the cwd has been deleted out from under the process.
+// `latestRunDir` is already hardened (FAFF-578, shared-infra.js) and never
+// throws, so this is the only fault seam left at this call site. Swallow
+// exactly that fault to a silent no-op; re-throw everything else so an
+// unrelated bug never vanishes into an every-turn-hook's exit-0 silence.
+//
+// `deps` is a TEST-ONLY injection seam — production has exactly one caller
+// (cmdSentrycheck below) and it always passes a single argument, so the
+// defaults bind the real findRoot/latestRunDir imports. No production path
+// ever threads `deps`.
+function resolveSentryRunDir(values, deps = { findRoot, latestRunDir }) {
+  try {
+    const root = values["--root"] || deps.findRoot();
+    return deps.latestRunDir(root);
+  } catch (e) {
+    if (e && e.code === "ENOENT") return null; // deleted cwd / mid-scan-deleted run dir → silent no-op
+    throw e; // every other fault stays loud — no fail-open masking
+  }
+}
+
 function cmdSentrycheck(args) {
   if (args.includes("--selftest")) return sentrycheckSelftest();
   const { values, errors } = parseArgs(args, SENTRYCHECK_SPEC);
@@ -122,9 +144,8 @@ function cmdSentrycheck(args) {
     process.stderr.write("faff sentrycheck: expected --hook [--root DIR] (or --selftest)\n");
     return 2;
   }
-  const root = values["--root"] || findRoot();
-  const runDir = latestRunDir(root);
-  if (!runDir) return 0; // skip-no-run
+  const runDir = resolveSentryRunDir(values);
+  if (!runDir) return 0; // skip-no-run, OR resolution no-opped on a deleted cwd (ENOENT)
 
   let ledger;
   try { ledger = readLedger(runDir); }
@@ -227,6 +248,6 @@ function sentrycheckSelftest() {
 
 module.exports = {
   SENTRYCHECK_CONSULT_TIMEOUT_MS, SENTRYCHECK_NOW, SENTRYCHECK_RUN_DIR, SENTRYCHECK_SELFTEST_CASES,
-  classifySentryConsult, cmdSentrycheck, consultFailureNotice, hbAgo,
+  classifySentryConsult, cmdSentrycheck, consultFailureNotice, hbAgo, resolveSentryRunDir,
   sentrycheckGateDecision, sentrycheckSelftest, trippedNotice,
 };

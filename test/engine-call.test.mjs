@@ -552,3 +552,20 @@ test("FAFF-666: an incoherent stream where cache_write_input_tokens alone exceed
   assert.equal(weird.input, 0);
   assert.equal(weird.cache_write, 9, "cache_write is still recorded even when the input clamp fires");
 });
+
+test("FAFF-666: an incoherent stream where cached + cache_write TOGETHER exceed input_tokens clamps at 0 (the actual widened guard)", () => {
+  // The single-term `weird` cases above each exercise one subtracted term alone.
+  // This is the case the widened subtraction (input - cached - cache_write) actually
+  // guards: 4 + 4 = 8 > 5, so neither term alone overflows but their sum does.
+  const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 4, cache_write_input_tokens: 4 } }]);
+  assert.equal(weird.input, 0, "the combined subtraction clamps at 0, not a negative number");
+  // cache_read and cache_write are still recorded at their full reported values —
+  // per spec §4 "Edge cases", only `input` is floored; the other three classes are
+  // direct sums of n()-guarded values. An incoherent stream (raw fields whose
+  // subsets exceed the base) is out of contract for a real codex payload — every
+  // class comes off the same turn.completed.usage object — so this is the existing
+  // undercount-on-`input`-only posture (unchanged since the pre-FAFF-666 `cached`-only
+  // clamp), not a new double-count introduced here.
+  assert.equal(weird.cache_read, 4);
+  assert.equal(weird.cache_write, 4);
+});

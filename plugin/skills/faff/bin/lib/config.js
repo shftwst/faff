@@ -34,8 +34,15 @@ const CONFIG_SURFACE = {
     dump: { required_flags: [] },
     init: { required_flags: [] },
     resolved: { required_flags: [] },
+    set: { required_flags: [] },
   },
 };
+// FAFF-667: both usage strings (the flag-gate failure and the unknown/missing-subcommand
+// message) derive their verb list from here, sorted, so they can never diverge from the
+// dispatcher or from each other.
+function configVerbList() {
+  return Object.keys(CONFIG_SURFACE.subcommands).sort().join("|");
+}
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
@@ -676,6 +683,371 @@ function cmdConfigInit(args, root) {
   return 0;
 }
 
+// ---------------------------------------------------------------------------
+// config set — FAFF-667: the general scalar-leaf writer. `config init` bootstraps the 7 flat
+// tracking.* keys; every OTHER behaviour key (backends.*, models.*, slots.*, appetite, ...) had
+// no sanctioned write path at all. `set` fixes that: writes a scalar leaf at ANY nesting depth
+// via the same surgical raw-text discipline as mergeTrackingBlock (never parse-then-reserialise),
+// round-trips through the real reader before committing, and reuses config-get's own validators
+// so a value that would fail loud at read is refused at write.
+// ---------------------------------------------------------------------------
+
+// The array-valued config keys a `key value` grammar cannot express. Refused BY IDENTITY,
+// before the file is even read: the documented JSON-string default form of these keys
+// (e.g. `fallbacks: '[{"provider":...}]'`) reads back as a plain scalar via scalar() (no JSON
+// parse on quoted values), so a value-SHAPE guard alone cannot tell it apart from a legitimate
+// string — a `--force` write would silently flatten the whole fallback chain. Bound to the
+// schema by configSetSelftest's drift check (mirrors the WRITABLE_NAMESPACES drift check below).
+const SEQUENCE_VALUED_KEYS = new Set([
+  "faffter_dark.adversarial.refs",
+  "faffter_dark.adversarial.fallbacks",
+  "faffter_dark.adversarial.backends",
+]);
+
+// Recognised top-level config namespaces `config set` may write into — a cheap typo guard at
+// the root. Low-churn: a new LEAF under an existing namespace needs no edit here; only a
+// brand-new top-level namespace does (a deliberate schema addition). Every top-level key
+// documented in .faffrc.example.yaml must be a member — asserted by configSetSelftest.
+const WRITABLE_NAMESPACES = new Set([
+  "tracking", "slots", "models", "effort", "backends", "engines", "appetite",
+  "concurrency_max", "worktree_root", "logging", "automation_default",
+  "intake_gate", "gates", "convergence", "budget", "sentry", "adr", "prdr",
+  "faffter_dark", "autonomous", "containment", "post_merge", "graft",
+]);
+
+// Emit a brand-new nested chain (create-from-scratch path — no existing .faffrc.yaml). Each
+// segment but the last becomes a bare map-header line at escalating 2-space indent; the leaf
+// carries the value.
+function emitChainBlock(segments, value) {
+  const lines = [];
+  for (let i = 0; i < segments.length - 1; i++) lines.push(" ".repeat(i * 2) + segments[i] + ":");
+  lines.push(" ".repeat((segments.length - 1) * 2) + segments[segments.length - 1] + ": " + emitScalar(value));
+  return lines.join("\n") + "\n";
+}
+
+// Splice `chainLines` (already indented) either as a brand-new top-level block (mirrors
+// mergeTrackingBlock's block-absent branch: trim trailing blank lines, one blank-line
+// separator, preserve the file's trailing-newline state) or into an existing window's body
+// (trim trailing blanks within the window first, so the insert lands before them).
+function spliceOrAppendChain(lines, rawText, chainLines, windowStart, windowEnd, isTopLevel) {
+  if (isTopLevel) {
+    const hadTrailingNewline = rawText.endsWith("\n");
+    let text = rawText;
+    if (text.length > 0) {
+      text = text.replace(/\n+$/, "");
+      if (text.length > 0) text += "\n\n";
+    }
+    text += chainLines.join("\n") + "\n";
+    if (!hadTrailingNewline) text = text.replace(/\n$/, "");
+    return text;
+  }
+  let insertAt = windowEnd;
+  while (insertAt > windowStart && lines[insertAt - 1].trim() === "") insertAt--;
+  lines.splice(insertAt, 0, ...chainLines);
+  return lines.join("\n");
+}
+
+// General nested-path surgical writer — the arbitrary-depth extension of mergeTrackingBlock's
+// proven discipline. Given the raw file text, a dotted key's segments, and a scalar value,
+// changes only the line(s) needed to set that leaf; creates any missing intermediate maps at
+// the correct sibling-matching indent (never a hardcoded 2 — FAFF-531); leaves every other byte
+// alone. Returns { text, conflict, changed, typeError }.
+function mergeConfigPath(rawText, segments, rawValue, force) {
+  const indentOf = (line) => line.length - line.replace(/^ +/, "").length;
+  const isBlankOrComment = (line) => line.trim() === "" || line.trim().startsWith("#");
+  const keyOf = (line) => {
+    const content = stripInlineComment(line.trim());
+    const ci = content.indexOf(":");
+    return (ci === -1 ? content : content.slice(0, ci)).trim();
+  };
+  const lines = rawText.split("\n");
+
+  let windowStart = 0, windowEnd = lines.length, expectedIndent = 0;
+
+  // Descend through every segment but the last, narrowing the search window to that key's body.
+  for (let s = 0; s < segments.length - 1; s++) {
+    const seg = segments[s];
+    let foundIdx = -1;
+    for (let i = windowStart; i < windowEnd; i++) {
+      const line = lines[i];
+      if (isBlankOrComment(line)) continue;
+      if (indentOf(line) !== expectedIndent) continue;
+      if (keyOf(line) === seg) { foundIdx = i; break; }
+    }
+    if (foundIdx === -1) {
+      // `seg` (and everything below it) is absent — emit the remaining chain from here.
+      const remaining = segments.slice(s);
+      const chainLines = [];
+      for (let k = 0; k < remaining.length - 1; k++) chainLines.push(" ".repeat(expectedIndent + k * 2) + remaining[k] + ":");
+      chainLines.push(" ".repeat(expectedIndent + (remaining.length - 1) * 2) + remaining[remaining.length - 1] + ": " + emitScalar(rawValue));
+      const isTopLevel = windowStart === 0 && windowEnd === lines.length && expectedIndent === 0;
+      const text = spliceOrAppendChain(lines, rawText, chainLines, windowStart, windowEnd, isTopLevel);
+      return { text, conflict: null, changed: true, typeError: null };
+    }
+    const line = lines[foundIdx];
+    const colon = line.indexOf(":");
+    const after = stripInlineComment(line.slice(colon + 1)).trim();
+    if (after !== "") {
+      return { text: rawText, conflict: null, changed: false,
+        typeError: `config set: '${segments.slice(0, s + 1).join(".")}' is a scalar; can't descend into it` };
+    }
+    // Descend: body = the run of lines after `line` at indent > line's own indent.
+    const parentIndent = indentOf(line);
+    let bodyStart = foundIdx + 1, bodyEnd = bodyStart;
+    while (bodyEnd < windowEnd) {
+      const l = lines[bodyEnd];
+      if (l.trim() === "") { bodyEnd++; continue; }
+      if (indentOf(l) > parentIndent) { bodyEnd++; continue; }
+      break;
+    }
+    // Sample the body's own child indent so an inserted key lands at the same column as its
+    // siblings (FAFF-531) — fall back to parentIndent+2 for an empty body.
+    let childIndent = null;
+    for (let i = bodyStart; i < bodyEnd; i++) {
+      if (lines[i].trim() !== "" && indentOf(lines[i]) > parentIndent) { childIndent = indentOf(lines[i]); break; }
+    }
+    windowStart = bodyStart; windowEnd = bodyEnd; expectedIndent = childIndent === null ? parentIndent + 2 : childIndent;
+  }
+
+  // All ancestors resolved (or there was only one segment) — locate the leaf in this window.
+  const leaf = segments[segments.length - 1];
+  let leafIdx = -1;
+  for (let i = windowStart; i < windowEnd; i++) {
+    const line = lines[i];
+    if (isBlankOrComment(line)) continue;
+    if (indentOf(line) !== expectedIndent) continue;
+    if (keyOf(line) === leaf) { leafIdx = i; break; }
+  }
+
+  if (leafIdx === -1) {
+    const chainLines = [" ".repeat(expectedIndent) + leaf + ": " + emitScalar(rawValue)];
+    const isTopLevel = windowStart === 0 && windowEnd === lines.length && expectedIndent === 0;
+    const text = spliceOrAppendChain(lines, rawText, chainLines, windowStart, windowEnd, isTopLevel);
+    return { text, conflict: null, changed: true, typeError: null };
+  }
+
+  const line = lines[leafIdx];
+  const colon = line.indexOf(":");
+  const after = stripInlineComment(line.slice(colon + 1)).trim();
+  const parentIndent = indentOf(line);
+  // A block-sequence / nested-map target: children at indent > parentIndent immediately below.
+  let hasChildren = false;
+  for (let i = leafIdx + 1; i < windowEnd; i++) {
+    const l = lines[i];
+    if (l.trim() === "") continue;
+    hasChildren = indentOf(l) > parentIndent;
+    break;
+  }
+  const existingVal = after === "" ? null : scalar(after);
+  // Inline-flow ([a,b] / {...}) also reads as a structured (non-string, non-scalar) value.
+  const isArrayOrObject = existingVal !== null && typeof existingVal === "object";
+  if (hasChildren || isArrayOrObject) {
+    return { text: rawText, conflict: null, changed: false,
+      typeError: `config set: '${segments.join(".")}' holds a list/map; scalar set can't target it — hand-edit the committed base` };
+  }
+  const desiredVal = rawValue;
+  if (existingVal === desiredVal) return { text: rawText, conflict: null, changed: false, typeError: null };
+  if (!force) return { text: rawText, conflict: { key: segments.join("."), existing: existingVal, desired: desiredVal }, changed: false, typeError: null };
+  const indent = line.slice(0, parentIndent);
+  lines[leafIdx] = indent + leaf + ": " + emitScalar(rawValue);
+  return { text: lines.join("\n"), conflict: null, changed: true, typeError: null };
+}
+
+function cmdConfigSet(args, root) {
+  const force = args.includes("--force");
+  const dryRun = args.includes("--dry-run");
+  const positionals = args.filter((a) => !a.startsWith("--"));
+  const key = positionals[0];
+  const value = positionals[1];
+  if (key === undefined || value === undefined) {
+    process.stderr.write("faff config set: requires <dotted.key> <value>\n");
+    return 2;
+  }
+  const segments = key.split(".");
+  if (!WRITABLE_NAMESPACES.has(segments[0])) {
+    process.stderr.write(`faff config set: unknown config namespace '${segments[0]}' — writable namespaces: ${[...WRITABLE_NAMESPACES].sort().join(", ")}\n`);
+    return 2;
+  }
+  // By NAME, before touching the file: the JSON-string form of these keys reads back as a
+  // plain scalar, so a value-shape guard alone cannot catch it (see SEQUENCE_VALUED_KEYS above).
+  if (SEQUENCE_VALUED_KEYS.has(key)) {
+    process.stderr.write(`faff config set: '${key}' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)\n`);
+    return 2;
+  }
+  // Reuse the SAME shape/vocab validators `config get` runs for this key — a value that would
+  // fail loud at read is refused at write. Engine EXISTENCE (validateEngineRef) is deliberately
+  // not run here: it needs a complete engine (provider+model+host) a first `set` hasn't written
+  // yet; existence is already checked at read/resolution.
+  const writeErr = validateModelLane(key, value) || validateEffortLane(key, value);
+  if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
+
+  const canonicalPath = path.join(root, CANONICAL_CONFIG);
+  const existingPath = findConfig(root);   // may throw legacy-config-name etc.; propagate to cmdConfig's catch
+  let newText;
+  if (existingPath === null) {
+    newText = INIT_HEADER + emitChainBlock(segments, value);
+  } else {
+    const rawText = fs.readFileSync(existingPath, "utf8");
+    const { text, conflict, changed, typeError } = mergeConfigPath(rawText, segments, value, force);
+    if (typeError) { process.stderr.write(typeError + "\n"); return 2; }
+    if (conflict && !force) {
+      process.stderr.write(`faff config set: refusing to overwrite ${conflict.key} ('${fmt(conflict.existing)}' -> '${fmt(conflict.desired)}') without --force\n`);
+      return 2;
+    }
+    if (!changed) {
+      console.log(`config set: no change (${key} already '${value}')`);
+      return 0;
+    }
+    newText = text;
+  }
+
+  // Round-trip self-verify against the real reader BEFORE writing — a wrong-indent bug in the
+  // nested-path logic must fail loud (exit 2, no write), never persist a corrupt file. The
+  // key-identity + value-shape guards above already refused a sequence/map target, so a
+  // passing round-trip here means a genuine scalar leaf.
+  const parsed = parseYamlSubset(newText);
+  const got = dig(parsed, key);
+  if (got !== value) {
+    process.stderr.write(`faff config set: internal error — written text does not round-trip (${key}: got ${JSON.stringify(got)}, want ${JSON.stringify(value)}); aborting to avoid a corrupt config.\n`);
+    return 2;
+  }
+
+  if (dryRun) {
+    process.stdout.write(newText.endsWith("\n") ? newText : newText + "\n");
+    return 0;
+  }
+  fs.writeFileSync(canonicalPath, newText);
+  console.log(`config set: wrote ${key}=${value} to ${CANONICAL_CONFIG}.`);
+  return 0;
+}
+
+// In-memory self-test for cmdConfigSet's pure helpers + the round-trip contract. Mirrors
+// configInitSelftest's shape: per-case ok/FAIL + a RESULT line, non-zero on any fail.
+function configSetSelftest() {
+  let fail = 0;
+  const check = (label, cond) => {
+    if (!cond) fail++;
+    console.log(`${cond ? "ok  " : "FAIL"} ${label}`);
+  };
+
+  // create-fresh, two-level nested: backends.cx.provider then backends.cx.model land as one map.
+  {
+    let text = mergeConfigPath("", ["backends", "cx", "provider"], "codex", false).text;
+    // mergeConfigPath on an empty string is only exercised via the ancestor-loop root-append
+    // path (windowStart===0, windowEnd===0, expectedIndent===0); assert the produced shape.
+    check("nested-create: backends header emitted", text.includes("backends:"));
+    check("nested-create: cx header emitted", text.includes("  cx:"));
+    check("nested-create: provider leaf round-trips", dig(parseYamlSubset(text), "backends.cx.provider") === "codex");
+    const r2 = mergeConfigPath(text, ["backends", "cx", "model"], "o4-mini", false);
+    check("nested-create: second key nests under same map", r2.changed === true);
+    check("nested-create: both leaves present, unflattened",
+      dig(parseYamlSubset(r2.text), "backends.cx.provider") === "codex" &&
+      dig(parseYamlSubset(r2.text), "backends.cx.model") === "o4-mini");
+  }
+
+  // top-level scalar leaf into an existing file, other blocks + comments untouched.
+  {
+    const orig = "slots:\n  spec: gstack:autoplan  # custom\nappetite: full\n";
+    const { text, changed } = mergeConfigPath(orig, ["models", "build"], "sonnet", false);
+    check("top-level-leaf: changed", changed === true);
+    check("top-level-leaf: slots block byte-intact", text.includes("slots:\n  spec: gstack:autoplan  # custom"));
+    check("top-level-leaf: appetite intact", text.includes("appetite: full"));
+    check("top-level-leaf: new key round-trips", dig(parseYamlSubset(text), "models.build") === "sonnet");
+  }
+
+  // idempotent set: identical value, changed=false, no conflict.
+  {
+    const orig = "appetite: high\n";
+    const { changed, conflict } = mergeConfigPath(orig, ["appetite"], "high", false);
+    check("idempotent: no change", changed === false && conflict === null);
+  }
+
+  // conflict without --force refuses; --force overwrites in place, sibling untouched.
+  {
+    const orig = "appetite: high\nlogging: full\n";
+    const r1 = mergeConfigPath(orig, ["appetite"], "low", false);
+    check("conflict-refused: reported, not written", r1.changed === false && r1.conflict && r1.conflict.existing === "high" && r1.conflict.desired === "low");
+    const r2 = mergeConfigPath(orig, ["appetite"], "low", true);
+    check("conflict-forced: overwrote", r2.changed === true && dig(parseYamlSubset(r2.text), "appetite") === "low");
+    check("conflict-forced: sibling untouched", r2.text.includes("logging: full"));
+  }
+
+  // FAFF-531 generalised: a new key inside an existing 4-space-indented map lands at that
+  // map's own child indent, not a hardcoded 2.
+  {
+    const orig = "backends:\n    cx:\n        provider: codex\n";
+    const { text, changed } = mergeConfigPath(orig, ["backends", "cx", "model"], "o4-mini", false);
+    check("4-space-nested-insert: changed", changed === true);
+    check("4-space-nested-insert: lands at sibling indent (8)", text.split("\n").some((l) => l === "        model: o4-mini"));
+    check("4-space-nested-insert: round-trips", dig(parseYamlSubset(text), "backends.cx.model") === "o4-mini");
+  }
+
+  // scalar-where-map-expected refuses with a typeError, file unchanged.
+  {
+    const orig = "backends: nope\n";
+    const r = mergeConfigPath(orig, ["backends", "cx", "provider"], "codex", false);
+    check("scalar-blocks-descent: typeError, unchanged", r.typeError !== null && r.text === orig);
+  }
+
+  // Carve-out representation 1: block-sequence — refused, file byte-unchanged.
+  {
+    const orig = "faffter_dark:\n  adversarial:\n    refs:\n      - nvidia-glm\n      - studio-ollama\n";
+    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "refs"], "foo", true);
+    check("carve-out/block-sequence: value-shape belt refuses", r.typeError !== null && r.text === orig);
+  }
+
+  // Carve-out representation 2: inline-flow `[a, b]` with BARE (unquoted) items — the
+  // documented form. scalar()'s JSON.parse fails on bareword items ("a" is not valid JSON),
+  // so it falls through to a plain STRING, not an Array — the value-shape belt does NOT
+  // catch this any more than it catches the JSON-string form. Only the key-identity denylist
+  // (cmdConfigSet step 2b, asserted below) closes it — same corruption risk class as
+  // representation 3.
+  {
+    const orig = "faffter_dark:\n  adversarial:\n    refs: [nvidia-glm, studio-ollama]\n";
+    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "refs"], "foo", true);
+    check("carve-out/inline-flow-bare: mergeConfigPath alone would NOT catch this (documents the risk)",
+      r.typeError === null && r.changed === true);
+    check("carve-out/inline-flow-bare: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("faffter_dark.adversarial.refs"));
+  }
+  // A QUOTED inline-flow (`["a", "b"]`) IS valid JSON, so scalar() does return an Array here —
+  // the value-shape belt catches this representation even without the denylist. Documents the
+  // one shape the belt alone protects.
+  {
+    const orig = 'faffter_dark:\n  adversarial:\n    refs: ["nvidia-glm", "studio-ollama"]\n';
+    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "refs"], "foo", true);
+    check("carve-out/inline-flow-quoted: value-shape belt refuses", r.typeError !== null && r.text === orig);
+  }
+
+  // Carve-out representation 3: the DOCUMENTED DEFAULT JSON-string scalar form — this is the
+  // one the value-shape belt CANNOT catch (scalar() returns a plain string for a quoted value,
+  // no JSON parse). Only the key-identity denylist (cmdConfigSet step 2b, exercised via
+  // SEQUENCE_VALUED_KEYS membership here) closes it — asserted at the set() level below.
+  {
+    const orig = 'faffter_dark:\n  adversarial:\n    fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b"}]\'\n';
+    const r = mergeConfigPath(orig, ["faffter_dark", "adversarial", "fallbacks"], "foo", true);
+    check("carve-out/json-string: mergeConfigPath alone would NOT catch this (documents the risk)",
+      r.typeError === null && r.changed === true);
+    check("carve-out/json-string: is denylisted by key identity", SEQUENCE_VALUED_KEYS.has("faffter_dark.adversarial.fallbacks"));
+  }
+
+  // WRITABLE_NAMESPACES drift check: every top-level key documented in .faffrc.example.yaml
+  // must be a member (or the guard silently refuses a legitimate future key).
+  {
+    try {
+      const examplePath = path.join(__dirname, "..", "..", "..", "..", "..", ".faffrc.example.yaml");
+      const exampleText = fs.readFileSync(examplePath, "utf8");
+      const topKeys = Object.keys(parseYamlSubset(exampleText));
+      const missing = topKeys.filter((k) => !WRITABLE_NAMESPACES.has(k));
+      check(`namespace-drift: .faffrc.example.yaml top-level keys ⊆ WRITABLE_NAMESPACES (missing: ${missing.join(", ") || "none"})`, missing.length === 0);
+    } catch (e) {
+      check(`namespace-drift: could not read .faffrc.example.yaml (${e.message})`, false);
+    }
+  }
+
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config set, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 // In-memory self-test for cmdConfigInit's pure helpers + the round-trip contract.
 // Mirrors `next --selftest`: per-case ok/FAIL + a RESULT line, non-zero on any fail.
 function configInitSelftest() {
@@ -1203,7 +1575,7 @@ function cmdConfig(args) {
   // FAFF-576: fail-closed flag gate across all sub-verbs — an unknown flag / missing value exits 2
   // here; each sub-verb's body below reads validated flags via its own (positional-aware) scan.
   const gate = parseArgs(args, CONFIG_SPEC);
-  if (gate.errors.length) return usageError(gate.errors, "usage: faff config <path|get|set|check|init|spec-docs-path> [KEY [VALUE]] [-d DEFAULT] [--json] [--set K=V] [--force] [--dry-run] [--root DIR]");
+  if (gate.errors.length) return usageError(gate.errors, `usage: faff config <${configVerbList()}> [KEY [VALUE]] [-d DEFAULT] [--json] [--set K=V] [--force] [--dry-run] [--root DIR]`);
   let root = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
@@ -1367,6 +1739,10 @@ function cmdConfig(args) {
       if (rest.includes("--selftest")) return configInitSelftest();
       return cmdConfigInit(rest.slice(1), root);
     }
+    if (cmd === "set") {
+      if (rest.includes("--selftest")) return configSetSelftest();
+      return cmdConfigSet(rest.slice(1), root);
+    }
     if (cmd === "resolved") {
       // FAFF-50: loud, human-readable echo of the resolved NON-default config — what a run
       // actually uses that overrides a built-in default. Print it in run banners so a dropped
@@ -1456,7 +1832,7 @@ function cmdConfig(args) {
     }
     throw e;
   }
-  process.stderr.write("faff config: expected one of path|get|spec-docs-path|dump|resolved|init|check\n");
+  process.stderr.write(`faff config: expected one of ${configVerbList()}\n`);
   return 2;
 }
 
@@ -1557,4 +1933,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, TRACKING_KEYS, VALID_APPETITES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };

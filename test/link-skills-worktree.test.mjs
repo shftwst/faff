@@ -28,7 +28,13 @@ function git(cwd, ...args) {
 
 // A MAIN git checkout carrying scripts/link-skills.sh + a couple of skills, committed. When
 // withSkills=false, plugin/skills is absent (exercises the refuse-when-bare guard).
-function mkMainRepo({ withSkills = true } = {}) {
+//
+// `realCli: true` (FAFF-684) copies the ACTUAL plugin/skills/faff bin+lib tree from this repo
+// rather than the plain-shebang stub every other test in this file uses — the installer's
+// `install.skill_targets` read shells `node "$BIN_SRC" config get …`, and a stub with no body
+// always returns empty/exit-0, which is indistinguishable from "config genuinely has nothing
+// configured". Only tests that need the config read to actually resolve pass this.
+function mkMainRepo({ withSkills = true, realCli = false } = {}) {
   const main = mkdtempSync(join(tmpdir(), "ls-main-"));
   git(main, "init", "-q", "-b", "main");
   git(main, "config", "user.email", "t@t.t");
@@ -36,9 +42,13 @@ function mkMainRepo({ withSkills = true } = {}) {
   mkdirSync(join(main, "scripts"), { recursive: true });
   cpSync(LINK_SH, join(main, "scripts", "link-skills.sh"));
   if (withSkills) {
-    mkdirSync(join(main, "plugin", "skills", "faff", "bin"), { recursive: true });
-    writeFileSync(join(main, "plugin", "skills", "faff", "SKILL.md"), "# faff\n");
-    writeFileSync(join(main, "plugin", "skills", "faff", "bin", "faff"), "#!/usr/bin/env node\n");
+    if (realCli) {
+      cpSync(join(REPO, "plugin", "skills", "faff"), join(main, "plugin", "skills", "faff"), { recursive: true });
+    } else {
+      mkdirSync(join(main, "plugin", "skills", "faff", "bin"), { recursive: true });
+      writeFileSync(join(main, "plugin", "skills", "faff", "SKILL.md"), "# faff\n");
+      writeFileSync(join(main, "plugin", "skills", "faff", "bin", "faff"), "#!/usr/bin/env node\n");
+    }
     mkdirSync(join(main, "plugin", "skills", "demo-skill"), { recursive: true });
     writeFileSync(join(main, "plugin", "skills", "demo-skill", "SKILL.md"), "# demo\n");
   } else {
@@ -98,6 +108,16 @@ function mkFencedRoot() {
 }
 
 const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true }); };
+
+// FAFF-684: write a committed-base .faffrc.yaml carrying `install.skill_targets` at `dir`
+// (the SRC_ROOT the installer's config read runs against — the main checkout, never the
+// worktree, since --global always retargets there first). `entries` are pre-quoted YAML
+// scalars so a caller can exercise both the normal `~/...` shape and a deliberately
+// malformed one in the same helper.
+function writeSkillTargetsConfig(dir, entries) {
+  const body = "install:\n  skill_targets:\n" + entries.map((e) => `    - ${e}\n`).join("");
+  writeFileSync(join(dir, ".faffrc.yaml"), body);
+}
 
 test("FAFF-443: --global from a linked worktree sources the MAIN checkout (not the worktree)", () => {
   const main = mkMainRepo();
@@ -339,5 +359,143 @@ test("FAFF-676: with ~/.agents/skills removed after a --global install, doctor n
     assert.match(r.out, /\.agents\/skills/);
     assert.match(r.out, /MISSING here|not present/);
     assert.match(r.out, /link-skills\.sh --global --replace/);
+  } finally { clean([main, home, fence]); }
+});
+
+// ---- FAFF-684: config-driven install-target list ----
+//
+// The installer reads `install.skill_targets` from the SRC_ROOT's .faffrc.yaml — the main
+// checkout, always, since --global retargets there before the read ever runs (mkMainRepo IS
+// that checkout in every test below; there's no separate worktree in play here).
+
+test("FAFF-684: key unset — TARGET_DIRS is exactly the default pair, no config-read warning on stderr", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    const r = linkSh(main, home, "--global");
+    assert.equal(r.code, 0, r.err);
+    assert.equal(r.err, "", "no config-read warning when the key is simply unset");
+    for (const t of [".claude", ".agents"]) {
+      assert.ok(existsSync(join(home, t, "skills", "demo-skill")), `${t}/skills/demo-skill should exist`);
+    }
+  } finally { clean([main, home]); }
+});
+
+test("FAFF-684: a set install.skill_targets drives --global into every configured directory", () => {
+  const main = mkMainRepo({ realCli: true });
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    writeSkillTargetsConfig(main, ["~/.claude/skills", "~/.agents/skills", "~/.h3/skills"]);
+    const r = linkSh(main, home, "--global");
+    assert.equal(r.code, 0, r.err);
+    for (const t of [".claude", ".agents", ".h3"]) {
+      const link = join(home, t, "skills", "demo-skill");
+      assert.ok(existsSync(link), `${t}/skills/demo-skill should exist`);
+      assert.equal(realpathSync(link), realpathSync(join(main, "plugin", "skills", "demo-skill")),
+        `${t} link must resolve under the source checkout`);
+    }
+    assert.match(r.out, /Targets:\n(.|\n)*\.h3\/skills/, "the Targets: header names the configured directory");
+  } finally { clean([main, home]); }
+});
+
+test("FAFF-684: a malformed (non-list) install.skill_targets falls back to the default pair, warns on stderr, and the install COMPLETES", () => {
+  const main = mkMainRepo({ realCli: true });
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    writeFileSync(join(main, ".faffrc.yaml"), "install:\n  skill_targets: not_a_list\n");
+    const r = linkSh(main, home, "--global");
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /ignoring install target/, "a non-usable entry warns rather than silently vanishing");
+    for (const t of [".claude", ".agents"]) {
+      assert.ok(existsSync(join(home, t, "skills", "demo-skill")), `${t}/skills/demo-skill should exist — the install completed into the default pair`);
+    }
+  } finally { clean([main, home]); }
+});
+
+test("FAFF-684: a non-absolute, non-~ entry is skipped with a notice; the remaining usable entries are used", () => {
+  const main = mkMainRepo({ realCli: true });
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    writeSkillTargetsConfig(main, ["relative/path", "~/.h3/skills"]);
+    const r = linkSh(main, home, "--global");
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.err, /ignoring install target 'relative\/path'/);
+    assert.ok(existsSync(join(home, ".h3", "skills", "demo-skill")), "the usable entry is still installed");
+    assert.equal(existsSync(join(home, ".claude", "skills")), false, "the default pair is NOT also installed — a usable configured entry replaces it, not augments it");
+  } finally { clean([main, home]); }
+});
+
+test("FAFF-684: two configured entries resolving to the same directory collapse to one target with one notice", () => {
+  const main = mkMainRepo({ realCli: true });
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    mkdirSync(join(home, ".h3", "skills"), { recursive: true });
+    execFileSync("ln", ["-s", join(home, ".h3"), join(home, ".h3alias")]);
+    writeSkillTargetsConfig(main, ["~/.h3/skills", "~/.h3alias/skills"]);
+    const r = linkSh(main, home, "--global", "--status");
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /resolves to .*\.h3\/skills — treating them as one target/);
+    const targetLines = (r.out.match(/^Target: /gm) || []).length;
+    assert.equal(targetLines, 1, "a collapsed configured pair reports exactly one target");
+  } finally { clean([main, home]); }
+});
+
+test("FAFF-684: local (non --global) mode never consults install.skill_targets", () => {
+  const main = mkMainRepo();
+  const wt = addWorktree(main);
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    writeSkillTargetsConfig(main, ["~/.h3/skills"]);
+    const r = linkSh(wt, home); // no --global
+    assert.equal(r.code, 0, r.err);
+    assert.equal(realpathSync(join(wt, ".claude", "skills", "demo-skill")),
+      realpathSync(join(wt, "plugin", "skills", "demo-skill")),
+      "local mode still links the worktree's own skills, ignoring the configured global targets");
+  } finally { clean([main, wt, home]); }
+});
+
+test("FAFF-684: node absent from PATH — the config read is skipped, and the install still COMPLETES into the default pair", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  try {
+    writeSkillTargetsConfig(main, ["~/.h3/skills"]); // would matter if read — it must not be
+    const r = spawnSync("bash", [join(main, "scripts", "link-skills.sh"), "--global"],
+      { env: { HOME: home, PATH: "/usr/bin:/bin" }, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    for (const t of [".claude", ".agents"]) {
+      assert.ok(existsSync(join(home, t, "skills", "demo-skill")), `${t}/skills/demo-skill should exist — fallback, not abort`);
+    }
+  } finally { clean([main, home]); }
+});
+
+// ---- FAFF-684: doctor's default scan set is also config-sourced ----
+
+test("FAFF-684: doctor scans a configured third directory and flags a copy install there (exit 1)", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  const fence = mkFencedRoot();
+  try {
+    writeSkillTargetsConfig(fence, ["~/.claude/skills", "~/.h3/skills"]);
+    mkdirSync(join(home, ".claude", "skills", "faff-graft"), { recursive: true });
+    mkdirSync(join(home, ".h3", "skills", "faff-graft"), { recursive: true }); // a real dir, not a symlink — a COPY install
+    writeFileSync(join(home, ".h3", "skills", "faff-graft", "SKILL.md"), "# copy\n");
+    const r = doctorDefault(fence, home);
+    assert.equal(r.code, 1, "a copy install in the configured third directory is not clean");
+    assert.match(r.out, /\.h3\/skills/, "the configured directory is named in the report");
+    assert.doesNotMatch(r.out, /\.agents\/skills/, "the un-configured default's second member is not scanned once a config list is set");
+  } finally { clean([main, home, fence]); }
+});
+
+test("FAFF-684: doctor --target DIR scans exactly that directory and does not read install.skill_targets", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  const fence = mkFencedRoot();
+  try {
+    writeSkillTargetsConfig(fence, ["~/.h3/skills"]); // must be ignored — --target pins the scan
+    mkdirSync(join(home, ".claude", "skills"), { recursive: true });
+    execFileSync("ln", ["-s", join(main, "plugin", "skills", "demo-skill"), join(home, ".claude", "skills", "faff-graft")]);
+    const r = doctor(join(home, ".claude", "skills"), fence, home);
+    assert.equal(r.code, 0, "the pinned target is healthy, and the (unconfigured/unscanned) .h3/skills must not affect the verdict");
+    assert.doesNotMatch(r.out, /\.h3\/skills/, "--target never reads install.skill_targets");
   } finally { clean([main, home, fence]); }
 });

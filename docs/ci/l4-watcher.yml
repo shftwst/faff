@@ -44,6 +44,9 @@
 #   - `slots.concurrency` sequential/unset (resume is sequential-executor only — a
 #     DIFFERENT axis from the workflow `concurrency:` block below);
 #   - a subscription-seat/API-key secret (auth matrix on the drain step);
+#   - a budget ceiling — `budget.until`/`budget.max`/`budget.tokens`/`budget.cost` in
+#     `.faffrc` (the preflight and the mint both refuse without one; the `--max` on the
+#     drain caps the segment, but a run-level ceiling is still required);
 #   - `jq` on the runner (used to parse `faff … --json`).
 #
 # =============================================================================
@@ -113,51 +116,58 @@ jobs:
         run: |
           set -eu
 
-          # (a) Resolve the newest run dir on this persistent workspace and ask whether
-          #     it is re-enterable. We do NOT use `faff run-done` here — that verb
-          #     composes signals from flags and never reads a ledger, so it cannot
-          #     answer "is this run done?". `lights-out --resume <id> --check`
-          #     self-classifies: exit 0 = re-enterable, nonzero = not.
+          # (a) Resolve the newest run dir on this persistent workspace and classify it.
+          #     We do NOT use `faff run-done` here — that verb composes signals from flags
+          #     and never reads a ledger, so it cannot answer "is this run done?".
+          #     `lights-out --resume <id> --check` self-classifies, with THREE exit codes:
+          #       0 → re-enterable            → RESUME the same run-id
+          #       1 → recoverable/needs-config (still-over-budget / preflight / lock) →
+          #           an open run that can't resume right now: surface it, do NOT mint a
+          #           parallel run
+          #       2 → terminal (done/unparseable/missing) → MINT a fresh run
           latest=$(ls -1dt .faff/runs/*/ 2>/dev/null | head -1 | sed 's:/*$::' || true)
           run_dir=""
-          if [ -n "${latest:-}" ] && faff lights-out --resume "$(basename "$latest")" --check >/dev/null 2>&1; then
-            # (b) RESUME an open run — re-enter the SAME ledger (same run-id). §0a is
-            #     NOT re-run: the PRD/target mandate is fixed at the original mint, so a
-            #     PRD edited mid-run cannot silently re-scope work already in flight.
-            run_dir="$latest"
-            faff lights-out --resume "$(basename "$run_dir")"
-          else
-            # (c) MINT — no re-enterable run. Run the cheap pure-CLI pre-gate first so a
-            #     refuse/plan firing spends no LLM. This mirrors beep-boop §0a's non-LLM
-            #     steps; prd_admissible is passed optimistically true (the pre-gate can
-            #     only be MORE permissive than the real §0a, so it rules firings out,
-            #     never in). A missing expected-open ledger surfaces here as a fresh mint
-            #     — if you expected a resume, that means the workspace was wiped:
-            if [ -n "${latest:-}" ]; then
-              echo "WARNING: newest run $latest is not re-enterable — minting a NEW run. If you expected a resume, the persistent workspace may have been cleaned."
-            fi
-            target_repo=$(faff config get tracking.repo || true)
-            target_container=$(faff config get tracking.container || true)
-            outward=$(faff run-outward \
-              --target "{\"repo\":\"$target_repo\",\"container\":\"$target_container\"}" \
-              --self "{\"repo\":\"$target_repo\",\"is_self\":false}" --json | jq -r .outward)
-            verdict=$(faff run-start --signals \
-              "{\"target_resolved\":true,\"outward\":$outward,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true}" \
-              --json | jq -r .verdict)
-            if [ "$verdict" != "drain" ]; then
-              echo "pre-gate verdict=$verdict — nothing to mint this firing (no LLM spend)"; exit 0
-            fi
-            # Mint. Capture the run dir from --json (.run_dir) — the plain-text banner
-            # is "Preflight PASS — L4 run minted: <dir>", so the older
+          if [ -n "${latest:-}" ]; then
+            id=$(basename "$latest")
+            rc=0
+            faff lights-out --resume "$id" --check >/dev/null 2>&1 || rc=$?
+            case "$rc" in
+              0)  # RESUME — re-enter the SAME ledger (same run-id). §0a is NOT re-run:
+                  # the PRD/target mandate is fixed at the original mint, so a PRD edited
+                  # mid-run cannot silently re-scope work already in flight.
+                  run_dir="$latest"
+                  faff lights-out --resume "$id" ;;
+              1)  # An open run that needs attention (not a fresh mint). Surface it and
+                  # let the reconcile step below score it — never start a parallel run.
+                  echo "open run $id is not currently resumable (exit 1: over-budget / preflight / lock) — not minting a parallel run"
+                  echo "FAFF_RUN_DIR=$latest" >> "$GITHUB_ENV"
+                  exit 1 ;;
+              *)  # exit 2 → the newest run is terminal; fall through to mint.
+                  run_dir="" ;;
+            esac
+          fi
+
+          if [ -z "$run_dir" ]; then
+            # MINT a fresh run. §0a (the outward/PRD mandate — the self-directed refusal
+            # that keeps faff from building faff) runs authoritatively INSIDE
+            # /faff-beep-boop; this reference deliberately does NOT re-implement it. An
+            # adopter who wants to skip the agent spawn on a refuse firing can add the
+            # cheap pure-CLI pre-gate from beep-boop §0a here (prd list + run-outward +
+            # run-start), following that skill's exact SelfRef resolution — do not
+            # hand-roll the outward/self oracle, it is subtle and easy to get wrong.
+            # Capture the run dir from --json (.run_dir): the plain-text banner is
+            # "Preflight PASS — L4 run minted: <dir>", so the older
             # `sed -n 's/^run dir: //p'` idiom in the guide is a mismatch; use --json.
             run_dir=$(faff lights-out --json | jq -r .run_dir)
           fi
 
           echo "FAFF_RUN_DIR=$run_dir" >> "$GITHUB_ENV"
-          # Drain the segment. The per-segment budget ceiling (--until / --max, or
-          # budget.until/max in .faffrc) is what makes the boundary an ESCALATION the
-          # next firing can resume — set it to a fraction of the cron interval.
-          FAFF_APPETITE=full FAFF_RUN_DIR="$run_dir" claude -p "/faff-beep-boop --until 00:25"
+          # Drain the segment. `--max N` caps the segment at N builds; at L4 the
+          # at-ceiling default is `escalate`, so hitting the cap ends the segment in the
+          # `escalated` state the NEXT firing can resume. (Prefer `--max` over `--until`
+          # here: `--until HH:MM` is an absolute wall-clock time, not a fixed-size cap, so
+          # it cannot express "this segment lasts N units" independent of time-of-day.)
+          FAFF_APPETITE=full FAFF_RUN_DIR="$run_dir" claude -p "/faff-beep-boop --max 5"
 
       # 4. RECONCILE — a segment boundary is green ("more to come"), a terminal run is
       #    scored by disposition. `lights-out --resume <id> --check` has THREE exit

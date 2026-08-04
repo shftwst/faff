@@ -95,6 +95,22 @@ It reads that one run dir's end state and **exits non-zero when anything needs a
 
 **Interactive runs are unchanged.** No interactive skill calls the verb; the default surfacing stays the run-ledger → `/faff-wtf` morning view. The disposition sink is purely the *headless override* — the command your CI/cron wrapper runs last so a needs-attention run turns the build red instead of passing quietly.
 
+## An L3 watcher in CI
+
+The headless contract above is what a scheduled CI watcher runs on. `docs/ci/l3-watcher.yml` is a **reference workflow** that puts it together end to end: a cron trigger wakes a self-hosted runner, an admission gate refuses a rig that isn't caged, `/faff-beep-boop` drains the automation-eligible queue at L3, and `faff disposition` propagates the exit. It is the configuration most solo adopters want — a watcher that chews through newly-cranked-up tickets with the **tracker as the control plane**.
+
+It is a **reference under `docs/ci/`, not a live job** — its `runs-on:` names a self-hosted rig that has to exist first, and the repo's own convention is that a committed job whose label matches nothing is a small lie (see `.github/workflows/job-surface-probe.yml`). To run it for real, copy it into your repo's `.github/workflows/`, once you have:
+
+- a registered self-hosted runner — the "your laptop is the factory" solo-dev rig;
+- a **subscription-seat secret** — a long-lived token in the environment (the CI path, per the subscription-seat ADR in `docs/adr/`), held as a repository secret, never a committed rc;
+- an **admitted cage** — a run environment that passes `faff container-check --gate` (see below).
+
+**The admission gate is the first step, and it fails the job before any agent starts.** `faff container-check --gate` exits non-zero unless the run is contained *and* no host engine socket is reachable (the two admission criteria the CI-runner ADR in `docs/adr/` settles). So a firing on a bare, uncaged host stops there — no ticket is claimed, no ledger is minted — rather than draining a queue unattended behind a warning nobody reads. **Any** cage that passes works: claude-box, a devcontainer, a Kubernetes runner pod, an Actions `container:` with the host socket dealt with. The rig the reference names is an example; the gate is the requirement.
+
+**Segment-per-firing.** L3 has no run-level resume (`lights-out --resume` is L4-only), so each firing is its own short run: it drains what it can, its ledger closes, and the next firing re-queries the tracker. No committed work is lost — graft pushes each feature branch at build-complete, and claim-before-admit stops overlapping firings from double-draining. A build cut short before its branch is pushed just rebuilds next time. The one edge worth knowing: an issue cut short *at the review step* after its branch was pushed is left `In Progress` and is skipped as claimed-by-peer on the next firing until you pick it up in the morning park-review — nothing is lost, but it does not auto-resume.
+
+For an **outward product repo** the L4 sibling (`faff lights-out`, cron-resumed) is the shape to reach for instead — see the next section.
+
 ## Going lights-out (L4) — `faff lights-out`
 
 L3 keeps you *on* the loop: you walk away, but you're the one who reviews the morning's parks. **L4 is *out* of the loop** — correctness is held up by adversarial machinery (a second model trying to break the change, a code-blind holdout marking the work against a spec it never saw) rather than by you reading anything in the morning. `faff lights-out` is the single entry point that turns L3 into L4: it composes the shipped L4 guardrails into **one enforced launch** instead of a hand-assembly of `/faff-beep-boop` flags a forgotten one of which would silently degrade the run.

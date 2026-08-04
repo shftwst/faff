@@ -18,7 +18,10 @@
 #     timer's environment (the CI path) — never committed;
 #   - a cage that passes `faff container-check --gate` (see the rig doc);
 #   - run from the TARGET repo's checkout (its committed .faffrc self-targets);
-#   - `flock` available (util-linux) for the concurrency guard.
+#   - `flock` and `timeout` available (util-linux / coreutils) — the concurrency
+#     guard and the wall-clock cap;
+#   - the lock file's directory must exist (default /tmp; if you set
+#     FAFF_CRON_LOCK, point it at a directory that exists).
 #
 # Example crontab line (hourly), token from the operator's secret store:
 #   0 * * * * CLAUDE_CODE_OAUTH_TOKEN="$(pass faff/seat)" FAFF_REPO_DIR=/srv/app /srv/app/docs/ci/faff-cron.sh >> /var/log/faff-cron.log 2>&1
@@ -51,15 +54,26 @@ faff container-check --gate
 #    state. AUTH: the harness reads its seat token from the environment (exported by
 #    the timer, e.g. CLAUDE_CODE_OAUTH_TOKEN for `claude -p`; a Codex harness reads
 #    its own) — never written to disk here. Swap `claude -p` for your harness.
-#    `|| true` so a drain failure does not skip the disposition gate below; a crashed
-#    drain leaves an incomplete ledger that disposition scores non-zero anyway.
+#
+#    `timeout 300m` is the wall-clock ceiling — the l3-watcher.yml `timeout-minutes:
+#    300` equivalent. It matters MORE here than in Actions: without it a wedged drain
+#    (a hung network read, a stuck harness that never reaches a budget checkpoint)
+#    would hold the flock forever, and every later tick would skip green — the factory
+#    silently stalls. The timeout kills a hang, releases the lock, and the drain's exit
+#    (a `timeout` kill is 124) is funnelled below. `|| true` so ANY drain failure does
+#    not skip the disposition gate: a drain that crashed BEFORE writing a ledger leaves
+#    no run-ledger.json (disposition exits 3), and one that wrote a partial ledger then
+#    died is scored incomplete (non-zero) — either way disposition catches it.
 FAFF_RUN_DIR=".faff/runs/run-$(date -u +%Y%m%d-%H%M%S)-l3-cron"
 export FAFF_RUN_DIR
-claude -p "/faff-beep-boop" || true
+timeout 300m claude -p "/faff-beep-boop" || true
 
 # 3. DISPOSITION — the final, exit-propagating step: non-zero iff anything parked /
 #    errored / needs attention (parked-window included). It is the authoritative
-#    red/green exit. Guard against an unset run dir so a wiped workspace fails loudly
-#    rather than silently scoring the latest ledger.
+#    red/green exit. The guard below is defensive hygiene (FAFF_RUN_DIR is set just
+#    above, so it never fires here) — it exists so this stays correct if someone
+#    reorders the steps; a genuinely wiped workspace is caught by disposition itself,
+#    which exits 3 on a missing run-ledger.json (an explicit --run-dir is never
+#    redirected to the latest ledger).
 [ -n "${FAFF_RUN_DIR:-}" ] || { echo "faff-cron: no run dir for this firing — failing"; exit 1; }
 exec faff disposition --run-dir "$FAFF_RUN_DIR"

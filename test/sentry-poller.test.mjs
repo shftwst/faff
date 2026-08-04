@@ -256,6 +256,70 @@ test("non-L4 (L3) + the SAME stale heartbeat → NO abort: the ledger is byte-id
   }
 });
 
+test("L3 + autonomous.sentry_acting:true + the SAME stale heartbeat → the poller ACTS: aborted-resumable, exactly as an L4 run (FAFF-717 — the abort kill-switch decoupled from the mint)", async () => {
+  const { root, runDir, read, log } = rootWith({
+    run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  // The opt-in lives in the repo-root config the detached poller resolves via findRoot(runDir).
+  writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  sentry_acting: true\n");
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    const aborted = await waitUntil(() => {
+      try { return JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).owner.status === "aborted-resumable"; }
+      catch { return false; }
+    }, { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(aborted, "an L3 run with the knob reached aborted-resumable — the kill-switch fired on a non-L4 run");
+
+    const led = read();
+    assert.equal(led.owner.status, "aborted-resumable");
+    assert.ok(led.abort, "an abort entry exists");
+
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
+    assert.ok(settled, "poller reached abort-actioned");
+    assert.doesNotMatch(log(), /advisory-trip/); // the knob makes it act, not merely log
+
+    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
+    assert.ok(diedOrGone, "the poller exited after actioning the abort");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("L3 + a MALFORMED .faffrc + the SAME stale heartbeat → NO abort, advisory-trip, poller keeps polling (FAFF-717 — the guarded config read fails safe to OFF, never a coerced abort)", async () => {
+  const { root, runDir, read } = rootWith({
+    run_id: "RUN-POLL", level: "L3", admitted: [], outcomes: {},
+    owner: { status: "running", started_at: isoAgo(2000), last_heartbeat: isoAgo(2000) },
+  });
+  // A top-level sequence is meaningful-but-non-map content: readGovernanceConfig
+  // throws base-parse-error, which gatherFacts must catch and fail safe to OFF —
+  // a config fault must never wedge the watchdog nor coerce an abort on an L3 run.
+  writeFileSync(join(root, ".faffrc.yaml"), "- not\n- a\n- map\n");
+  const before = readFileSync(join(runDir, "run-ledger.json"), "utf8");
+  try {
+    const started = JSON.parse(run(["sentry-poller", "start", "--run-dir", runDir, "--interval-secs", "1", "--json"]).out);
+    assert.equal(started.spawned, true);
+
+    // Let several ticks elapse well past the staleness window — nothing should abort.
+    await waitUntil(() => false, { timeoutMs: 3000, intervalMs: 3000 });
+
+    assert.equal(readFileSync(join(runDir, "run-ledger.json"), "utf8"), before, "run-ledger.json is byte-identical — a config fault never coerces an abort");
+    assert.equal(read().owner.status, "running");
+    const logText = existsSync(join(runDir, "sentry-poller.log")) ? readFileSync(join(runDir, "sentry-poller.log"), "utf8") : "";
+    assert.match(logText, /advisory-trip/);
+    assert.doesNotMatch(logText, /abort-actioned/);
+    assert.ok(pidAliveProbe(started.pid), "the watchdog survives a config fault — it never fault-caps on a malformed .faffrc");
+  } finally {
+    run(["sentry-poller", "stop", "--run-dir", runDir]);
+    await waitUntil(() => true, { timeoutMs: 1500 });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a malformed run-ledger.json is an own-fault: `indeterminate` (never an abort), and self-heals once the ledger becomes readable again", async () => {
   const { root, runDir, log } = rootWith({
     run_id: "RUN-POLL", level: "L4", admitted: [], outcomes: {},

@@ -143,6 +143,33 @@ const SIGNAL_TRIP_INTERVENTION = {
 // The one signal Channel A may upgrade to `correct`, and only when authority is
 // available (ADR-0039: thrash-only at v1 — precisely the stop-and-redispatch shape).
 const CORRECTABLE_SIGNAL = "fix-review-thrash";
+
+// FAFF-717 — resolve the operator's Sentry-abort opt-in from config, FAIL-CLOSED:
+// only an explicit affirmative enables the abort kill-switch on a non-L4 (L3) run;
+// every other value (false, "false", "yes", "1", a typo, unset) leaves the L3
+// advisory default in force. Mirrors lights-out.js's engineBoundedFromConfig
+// exactly, and for the same reason — the hand-rolled YAML parser returns the STRING
+// "true" for a quoted scalar, so `"true" === true` is false; accept the string
+// spelling too (trimmed, case-insensitive) while staying strict on everything
+// unrecognised. The safe direction is OFF: the un-fired state is the documented L3
+// advisory posture and an abort is a resumable ledger-mark, so a typo must never
+// silently make L3 runs abortable.
+function sentryActingFromConfig(cfg) {
+  const raw = dig(cfg, "autonomous.sentry_acting");
+  return raw === true || String(raw).trim().toLowerCase() === "true";
+}
+
+// FAFF-717 — the SINGLE resolver for "does Sentry's ABORT act on this run?". An
+// L4-minted ledger always acts (unchanged); a non-L4 run acts iff the operator set
+// autonomous.sentry_acting. The `||` is LAZY BY DESIGN: an L4 ledger short-circuits
+// and never reads config, so a config fault can never regress the L4 kill-switch.
+// Scope is the abort row ONLY — pause/correct stay L4-only-acts (the poller only
+// ever dispatches on abort; the cooperative handling table keeps pause/correct
+// advisory for an L3+knob run). The CONSULT is never forked on level — only the
+// abort HANDLING consults this.
+function actsOnSentryAbort(ledger, cfg) {
+  return (!!ledger && ledger.level === "L4") || sentryActingFromConfig(cfg);
+}
 // FAFF-362: v1 default thresholds — now DERIVED from the active-by-default
 // delivery profile (governance-profile.js's DELIVERY_PROFILE.sentry.thresholds)
 // rather than an independent literal object; same 4 keys, same values,
@@ -1312,4 +1339,4 @@ function sentrySelftest() {
 }
 
 
-module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, applySentryAbort, cmdSentry, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };
+module.exports = { CORRECTABLE_SIGNAL, DERAILMENT_SIGNALS, SENTRY_INTERVENTIONS, SENTRY_SPEC, SENTRY_SURFACE, SENTRY_THRESHOLD_DEFAULTS, SIGNAL_TRIP_INTERVENTION, actsOnSentryAbort, applySentryAbort, cmdSentry, sentryActingFromConfig, evalBudgetBreach, evalBudgetMeteringDegraded, evalForbiddenSideEffect, evalMemberStall, evalRepeatedFailure, evalScopeDrift, evalThrash, evalWallClock, evaluateDerailment, normalizeSentrySignals, resolveSentryNow, sentryFailureFingerprint, sentryHeartbeatAgeSecs, sentryIndeterminate, sentryInflightMembers, sentryReadBudget, sentryReadCorrectiveAuthority, sentryReadDetectionIntegrity, sentryReadEvents, sentryRunElapsedSecs, sentrySelftest, sentryThresholds };

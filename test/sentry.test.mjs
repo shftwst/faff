@@ -10,6 +10,8 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, readdirSyn
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { actsOnSentryAbort, sentryActingFromConfig } from "../plugin/skills/faff/bin/lib/sentry.js";
+import { parseYamlSubset } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 // FAFF-441: the sentry implementation now lives in its own module; source-structure
@@ -1147,4 +1149,46 @@ test("FAFF-327/FAFF-553 integration smoke test: mint, tick one member, park the 
     assert.equal(readFileSync(join(rd, "run-ledger.json"), "utf8"), ledgerSnapshot, "ledger unchanged after the checks");
     assert.deepEqual(readdirSync(rd).sort(), ["events.jsonl", "heartbeat", "heartbeat.X", "heartbeat.Y", "run-ledger.json"]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// FAFF-717 — sentryActingFromConfig resolves the L3 Sentry-abort opt-in FAIL-CLOSED
+// from a REALLY-parsed config (the same parseYamlSubset the runtime uses), and
+// actsOnSentryAbort is the single abort-acting resolver: L4 always acts (LAZILY,
+// without reading config), a non-L4 run acts iff the knob is a literal `true`.
+const rc = (s) => parseYamlSubset(s);
+
+test("sentryActingFromConfig: bare `true` enables (boolean, the documented form)", () => {
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: true\n")), true);
+});
+test("sentryActingFromConfig: QUOTED `\"true\"` enables too (the YAML-quoting trap)", () => {
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: \"true\"\n")), true);
+});
+test("sentryActingFromConfig: `True` (case variant) enables", () => {
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: True\n")), true);
+});
+test("sentryActingFromConfig is FAIL-CLOSED on every non-affirmative (false/\"false\"/yes/1/typo/unset)", () => {
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: false\n")), false);
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: \"false\"\n")), false);
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: yes\n")), false);
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: 1\n")), false);
+  assert.equal(sentryActingFromConfig(rc("autonomous:\n  sentry_acting: ture\n")), false); // a typo must never enable
+  assert.equal(sentryActingFromConfig(rc("autonomous: {}\n")), false); // key unset
+  assert.equal(sentryActingFromConfig({}), false); // empty config (a fault fails safe here)
+});
+
+test("actsOnSentryAbort: an L4 ledger always acts, and does so LAZILY — a config fault can't regress it", () => {
+  // A config that would THROW if dug into still leaves L4 acting, because the `||`
+  // short-circuits on level before sentryActingFromConfig is consulted.
+  assert.equal(actsOnSentryAbort({ level: "L4" }, {}), true);
+  assert.equal(actsOnSentryAbort({ level: "L4" }, rc("autonomous:\n  sentry_acting: false\n")), true);
+});
+test("actsOnSentryAbort: a non-L4 (L3) run acts IFF the knob is set — the FAFF-717 opt-in", () => {
+  assert.equal(actsOnSentryAbort({ level: "L3" }, rc("autonomous:\n  sentry_acting: true\n")), true);
+  assert.equal(actsOnSentryAbort({ level: "L3" }, rc("autonomous:\n  sentry_acting: false\n")), false);
+  assert.equal(actsOnSentryAbort({ level: "L3" }, {}), false); // L3, no knob → advisory (unchanged default)
+});
+test("actsOnSentryAbort: a null/level-less ledger falls back to the config knob (never throws)", () => {
+  assert.equal(actsOnSentryAbort(null, rc("autonomous:\n  sentry_acting: true\n")), true);
+  assert.equal(actsOnSentryAbort(null, {}), false);
+  assert.equal(actsOnSentryAbort({}, {}), false); // absent level ⇒ non-acting unless the knob is set
 });

@@ -1,5 +1,5 @@
 // ===========================================================================
-// === region:governance — sentry-poller — FAFF-470: the mint-scoped detached watchdog poller ===
+// === region:governance — sentry-poller — FAFF-470: the detached watchdog poller (acts on abort for an L4-minted run, or an L3 that set autonomous.sentry_acting — FAFF-717) ===
 // (ADR-0065's PRIMARY invocation locus). Every sentry consult faff has today is
 // COOPERATIVE — `sentry check` only runs when the supervised orchestrator volunteers
 // control at a between-units checkpoint (FAFF-352). This module is the invocation
@@ -45,6 +45,11 @@ const crypto = require("node:crypto");
 const { spawn, spawnSync } = require("node:child_process");
 const { ENTRYPOINT, findRoot, latestRunDir, readLedger } = require("./shared-infra");
 const { appendEventRecord } = require("./events");
+// FAFF-717: the single abort-acting resolver + the same guarded governance-config
+// loader `sentry check` uses. No import cycle — sentry.js/budget.js never require
+// this poller (only cli-surface does).
+const { actsOnSentryAbort } = require("./sentry");
+const { readGovernanceConfig } = require("./budget");
 
 // Default poll interval (seconds) — inside ADR-0065's proposed 60-120s band; ~1/10
 // of the 900s staleness default, so the poller adds at most ~10% latency to
@@ -120,7 +125,13 @@ function appendLog(runDir, token, detail) {
 //   runDirExists      bool
 //   ledgerFault       string|null   — set iff the ledger was unreadable/malformed
 //   ownerStatus       string|null   — ledger.owner.status (absent ⇒ null)
-//   isL4              bool          — ledger.level === "L4"
+//   actsOnSentryAbort bool          — FAFF-717: does the ABORT kill-switch act on
+//                                     this run? level==="L4" OR autonomous.sentry_acting.
+//                                     The abort GATE keys on this, not the raw level —
+//                                     an unattended L3 run opts in via the config knob.
+//                                     Only pause/correct stay L4-only (never gated here,
+//                                     they're advisory at every level). Resolved in the
+//                                     impure gatherFacts so decideTick stays pure.
 //   checkFault        string|null   — set iff the `sentry check` child faulted
 //                                     (exit 3 / unparseable stdout / spawn error)
 //   checkPayload      object|null   — the parsed `sentry check --json` payload
@@ -151,10 +162,13 @@ function decideTick(facts) {
   }
   const payload = facts.checkPayload || {};
   if (payload.tripped && payload.intervention === "abort") {
-    // Mint-scoped action (ADR-0044 / the existing beep-boop handling table): acting
-    // is conditional on level, the CONSULT never is. A non-L4 run gets the same
-    // advisory telemetry every other trip gets — never a forked consult.
-    if (facts.isL4) return { action: "abort", terminal: null, consecutiveFaults: 0, payload };
+    // Acting is conditional on the abort-acting resolver (ADR-0044 / the beep-boop
+    // handling table), the CONSULT never is. An L4 ledger always acts; an unattended
+    // L3 run acts iff autonomous.sentry_acting is set (FAFF-717) — resolved in
+    // gatherFacts as facts.actsOnSentryAbort so this core stays pure. A run that does
+    // NOT act gets the same advisory telemetry every other trip gets — never a forked
+    // consult.
+    if (facts.actsOnSentryAbort) return { action: "abort", terminal: null, consecutiveFaults: 0, payload };
     return { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload };
   }
   if (payload.tripped && (payload.intervention === "pause" || payload.intervention === "correct")) {
@@ -195,7 +209,7 @@ function parseIntervalSecs(raw) {
 function gatherFacts(runDir, consecutiveFaults) {
   const facts = {
     consecutiveFaults, sentinelExists: false, runDirExists: false, ledgerFault: null,
-    ownerStatus: null, isL4: false, checkFault: null, checkPayload: null,
+    ownerStatus: null, actsOnSentryAbort: false, checkFault: null, checkPayload: null,
   };
   facts.sentinelExists = fs.existsSync(stopSentinelPath(runDir));
   if (facts.sentinelExists) return facts;
@@ -206,8 +220,20 @@ function gatherFacts(runDir, consecutiveFaults) {
   try { ledger = readLedger(runDir); }
   catch (e) { facts.ledgerFault = e.message; return facts; }
   facts.ownerStatus = (ledger.owner && ledger.owner.status) ?? null;
-  facts.isL4 = ledger.level === "L4";
   if (facts.ownerStatus !== "running") return facts;
+
+  // FAFF-717 — resolve the abort-acting decision on a LIVE tick only (same frequency
+  // as the `sentry check` child below). The config read is GUARDED: a malformed
+  // .faffrc must never throw mid-tick and wedge the watchdog, so any fault fails safe
+  // to cfg={} → sentryActingFromConfig false → OFF for L3 (unchanged L3 advisory
+  // default), and never a coerced abort. An L4 ledger short-circuits inside
+  // actsOnSentryAbort before the config is even consulted, so a config fault can
+  // never regress the L4 kill-switch. Root resolves from the run dir — the detached
+  // process only receives --run-dir, and findRoot walks up to the repo's .faff/.git.
+  let cfg = {};
+  try { cfg = readGovernanceConfig(findRoot(runDir)); }
+  catch { cfg = {}; /* base-parse-error / legacy-name / any fault → fail-safe OFF */ }
+  facts.actsOnSentryAbort = actsOnSentryAbort(ledger, cfg);
 
   const r = spawnSync(process.execPath, [ENTRYPOINT, "sentry", "check", "--json", "--run-dir", runDir], { encoding: "utf8" });
   if (r.error) { facts.checkFault = `spawn error: ${r.error.message}`; return facts; }
@@ -435,8 +461,9 @@ function cmdSentryPoller(args) {
 // -----------------------------------------------------------------------------
 // --selftest: a pure fixture table over decideTick — every dispatch row the spec's
 // DoD names (sentinel / dir-gone / ledger-fault / owner-status / L4-abort /
-// non-L4-advisory / pause / correct / indeterminate / fault-cap), plus
-// parseIntervalSecs's validation table. No filesystem, no child process.
+// L3+knob-abort / non-acting-advisory / pause / correct / indeterminate / fault-cap),
+// plus parseIntervalSecs's validation table. No filesystem, no child process. The
+// abort gate keys on facts.actsOnSentryAbort (FAFF-717), not the raw level.
 // -----------------------------------------------------------------------------
 const TRIP_ABORT = { tripped: true, intervention: "abort", verdicts: [{ signal: "wall-clock-runaway", severity: "trip" }] };
 const TRIP_PAUSE = { tripped: true, intervention: "pause", verdicts: [{ signal: "fix-review-thrash", severity: "warn" }] };
@@ -454,28 +481,31 @@ const SENTRY_POLLER_SELFTEST_CASES = [
     { sentinelExists: false, runDirExists: true, ledgerFault: "ENOENT", consecutiveFaults: 0 },
     { action: "indeterminate", terminal: false, consecutiveFaults: 1 }],
   ["owner.status not running -> self-stop-owner-status, terminal",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "done", isL4: true, consecutiveFaults: 0 },
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "done", actsOnSentryAbort: true, consecutiveFaults: 0 },
     { action: "self-stop-owner-status", terminal: true, consecutiveFaults: 0, status: "done" }],
   ["owner absent (null status) -> self-stop-owner-status",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: null, isL4: false, consecutiveFaults: 0 },
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: null, actsOnSentryAbort: false, consecutiveFaults: 0 },
     { action: "self-stop-owner-status", terminal: true, consecutiveFaults: 0, status: null }],
   ["sentry check exit 3 -> indeterminate, fault streak +1",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", isL4: true, checkFault: "sentry check exit 3", consecutiveFaults: 3 },
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: "sentry check exit 3", consecutiveFaults: 3 },
     { action: "indeterminate", terminal: false, consecutiveFaults: 4 }],
-  ["L4 + tripped abort -> abort, fault streak reset",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", isL4: true, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 2 },
+  ["L4 + tripped abort -> abort, fault streak reset (actsOnSentryAbort via level)",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 2 },
     { action: "abort", terminal: null, consecutiveFaults: 0, payload: TRIP_ABORT }],
-  ["non-L4 + tripped abort -> advisory-trip, never touches the ledger",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", isL4: false, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 0 },
+  ["L3 + autonomous.sentry_acting + tripped abort -> abort (FAFF-717: the knob acts on a non-L4 run)",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 0 },
+    { action: "abort", terminal: null, consecutiveFaults: 0, payload: TRIP_ABORT }],
+  ["non-acting (L3, no knob) + tripped abort -> advisory-trip, never touches the ledger",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: false, checkFault: null, checkPayload: TRIP_ABORT, consecutiveFaults: 0 },
     { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_ABORT }],
-  ["L4 + pause intervention -> advisory-trip, never dispatches (anti-pattern guard)",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", isL4: true, checkFault: null, checkPayload: TRIP_PAUSE, consecutiveFaults: 0 },
+  ["acting run + pause intervention -> advisory-trip, never dispatches (pause stays L4-only-acts; the knob is abort-only)",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: TRIP_PAUSE, consecutiveFaults: 0 },
     { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_PAUSE }],
-  ["non-L4 + correct intervention -> advisory-trip",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", isL4: false, checkFault: null, checkPayload: TRIP_CORRECT, consecutiveFaults: 0 },
+  ["non-acting + correct intervention -> advisory-trip",
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: false, checkFault: null, checkPayload: TRIP_CORRECT, consecutiveFaults: 0 },
     { action: "advisory-trip", terminal: false, consecutiveFaults: 0, payload: TRIP_CORRECT }],
   ["no trip -> poll-ok, fault streak reset",
-    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", isL4: true, checkFault: null, checkPayload: NO_TRIP, consecutiveFaults: 5 },
+    { sentinelExists: false, runDirExists: true, ledgerFault: null, ownerStatus: "running", actsOnSentryAbort: true, checkFault: null, checkPayload: NO_TRIP, consecutiveFaults: 5 },
     { action: "poll-ok", terminal: false, consecutiveFaults: 0, payload: NO_TRIP }],
   ["19th consecutive fault -> still indeterminate (cap is 20)",
     { sentinelExists: false, runDirExists: true, ledgerFault: "still broken", consecutiveFaults: 18 },

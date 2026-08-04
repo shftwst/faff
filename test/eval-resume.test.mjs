@@ -221,7 +221,7 @@ test("--kind dispatches only the named kind(s) and overlays their rows, leaving 
   assert.equal(diffAgainstBaseline(written, written).failed, false, "the written baseline gates clean against itself");
 });
 
-test("--kind fails loud on an unknown kind, and is rejected alongside --only or --resume", async () => {
+test("--kind fails loud on an unknown kind, and is rejected alongside --only (but NOT --resume — FAFF-714)", async () => {
   const dir = tmp();
   const baselinePath = join(dir, "frontier.json");
   const presets = { frontierDriver: () => async (c) => jEnv(c, true) };
@@ -230,15 +230,66 @@ test("--kind fails loud on an unknown kind, and is rejected alongside --only or 
     () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--update-baseline", baselinePath, "--kind", "not-a-kind"], presets, baselinePath)),
     /unknown kind\(s\) not-a-kind/,
   );
-  // both narrowings at once → rejected (thrown before any driver/corpus work, so {} presets suffice)
+  // --only + --kind → still rejected (thrown before any driver/corpus work, so {} presets suffice)
   await assert.rejects(
     () => updateBaseline(["--update-baseline", baselinePath, "--only", "x", "--kind", "y"], {}, baselinePath),
     /--only and --kind are mutually exclusive/,
   );
+  // FAFF-714 — --kind + --resume is now VALID (no longer throws); covered by the scoped-resume tests below.
+});
+
+// ── 8c. FAFF-714: a scoped --kind run checkpoints + resumes to its OWN progress file ───────────────
+const REAL_SCOPED = join(EVAL_DIR, "report", "frontier-scoped-progress.json");
+const cleanScoped = () => { rmSync(REAL_SCOPED, { force: true }); rmSync(REAL_SCOPED + ".tmp", { force: true }); };
+
+test("--kind --resume skips a checkpointed named kind, uses the scoped file, and never touches the full-sweep file", async () => {
+  cleanReal(); cleanScoped();
+  const cases = loadCases();
+  const byKind = {};
+  for (const c of cases) (byKind[c.kind] ??= []).push(c.id);
+  // two mock-gradeable smoke kinds: `dupe` is seeded complete, `vague` must still run.
+  const done = "dupe", todo = "vague";
+  seedProgressAt(REAL_SCOPED, { driver: "frontier", model: "M", base_reps: 1, started_at: "z" }, {
+    [done]: { accuracy: 1, stability: 1, format_adherence: 1, case_ids: [...byKind[done]].sort(), captured_at: "z" },
+  });
+  // a prior baseline carrying an un-named ghost kind that must survive byte-identical
+  const dir = tmp();
+  const baselinePath = join(dir, "frontier.json");
+  const priorGhost = { accuracy: 0.71, stability: 0.72, format_adherence: 1 };
+  writeFileSync(baselinePath, JSON.stringify({ meta: { source: "prior" }, policy: DEFAULT_POLICY,
+    per_kind: { [done]: { accuracy: 0, stability: 0, format_adherence: 1 }, [todo]: { accuracy: 0, stability: 0, format_adherence: 1 }, ghost: priorGhost } }, null, 2) + "\n");
+
+  const spy = [];
+  const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
+  const argv = ["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", baselinePath, "--kind", `${done},${todo}`, "--resume"];
+  const { result } = await capture(() => updateBaseline(argv, presets, baselinePath));
+
+  assert.equal(result, 0);
+  assert.ok(spy.length > 0 && spy.every((id) => byKind[todo].includes(id)), "ONLY the un-checkpointed named kind's cases dispatched (the done kind was skipped)");
+  assert.equal(existsSync(REAL_PROGRESS), false, "the full-sweep progress file was never touched by a scoped run");
+  const written = JSON.parse(readFileSync(baselinePath, "utf8"));
+  assert.ok(done in written.per_kind && todo in written.per_kind, "both named kinds are in the folded baseline (incl. the one restored from checkpoint)");
+  assert.deepEqual(written.per_kind.ghost, priorGhost, "the un-named ghost kind is byte-identical");
+  cleanReal(); cleanScoped();
+});
+
+test("--kind --resume refuses to blend on a stamp mismatch, before any rep", async () => {
+  cleanReal(); cleanScoped();
+  const cases = loadCases();
+  const byKind = {};
+  for (const c of cases) (byKind[c.kind] ??= []).push(c.id);
+  seedProgressAt(REAL_SCOPED, { driver: "frontier", model: "DIFFERENT", base_reps: 1, started_at: "z" }, {
+    dupe: { accuracy: 1, stability: 1, format_adherence: 1, case_ids: [...byKind.dupe].sort(), captured_at: "z" },
+  });
+  const spy = [];
+  const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
+  const dir = tmp();
   await assert.rejects(
-    () => updateBaseline(["--update-baseline", baselinePath, "--kind", "y", "--resume"], {}, baselinePath),
-    /--kind is a self-contained scoped sweep/,
+    () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", join(dir, "frontier.json"), "--kind", "dupe,vague", "--resume"], presets, join(dir, "frontier.json"))),
+    /refusing to blend/,
   );
+  assert.equal(spy.length, 0, "no rep dispatched before the stamp guard threw");
+  cleanScoped();
 });
 
 // ── 9. --resume runs only the missing kind and writes a complete baseline (exit 0) ────────────────

@@ -197,8 +197,15 @@ may run it. Follow these six points exactly.
    ```sh
    node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json --kind refutation-spec,grouping
    ```
-   `--kind` is standalone (rejected with `--only` or `--resume`), fails loud on an unknown kind, and
-   never checkpoints — it's a short, self-contained scoped sweep, ~11 cases rather than the full ~79.
+   `--kind` is rejected with `--only` (both narrow), fails loud on an unknown kind, and — since FAFF-714 —
+   **checkpoints per kind to its own `eval/report/frontier-scoped-progress.json`** (distinct from the
+   full-sweep file, so the two never clobber each other). So if a scoped sweep dies partway, re-run it
+   with `--resume` and it skips the kinds that already finished:
+   ```sh
+   node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json --kind refutation-spec,grouping --resume
+   ```
+   Resume granularity is per-kind (a kind checkpoints only when all its cases finish), same as the full
+   sweep — a mid-kind interruption re-runs that whole kind.
 
 4. **What it costs (derived, not guessed).** At the current **79** live case files × **20** base reps
    ≈ **1,580** frontier reps; wobbly cases escalate toward **50** reps each, so the worst case is

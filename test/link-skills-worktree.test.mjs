@@ -69,6 +69,23 @@ function doctor(target, root, home) {
   catch (e) { return { code: e.status ?? 1, out: (e.stdout ?? "").toString() }; }
 }
 
+// FAFF-676: a sibling of `doctor` above that passes NO --target at all, so it actually
+// reaches the default scan-set branch of resolve_doctor_scan_set — the existing helper
+// hardcodes --target and can therefore never exercise it. Deletes CLAUDE_PLUGIN_ROOT from
+// the child environment rather than merely overriding HOME: that variable is live in this
+// repo's world (test/setup-worktree-direct.test.mjs and test/setup-worktree-clobber.test.mjs
+// both set it deliberately, and any agent session running faff as an installed plugin has it
+// set in the parent environment that runs this suite), and step 2 of resolve_doctor_scan_set
+// short-circuits to the plugin's own skills directory the moment it survives into the child —
+// which would let the installer-and-doctor agreement test below pass while exercising a code
+// path this ticket does not touch, proving nothing about the claim it exists to check.
+function doctorDefault(root, home) {
+  const env = { ...process.env, HOME: home };
+  delete env.CLAUDE_PLUGIN_ROOT;
+  try { return { code: 0, out: execFileSync("node", [CLI, "doctor", "--root", root], { encoding: "utf8", env }) }; }
+  catch (e) { return { code: e.status ?? 1, out: (e.stdout ?? "").toString() }; }
+}
+
 // A --root fixture with the merge-fence PreToolUse hook registered, so doctor's fence axis is
 // held at "present" and the exit code reflects only the skill-link scan (mirrors doctor.test.mjs).
 function mkFencedRoot() {
@@ -268,4 +285,59 @@ test("FAFF-443: doctor no false positive — a healthy global link (→ main che
     assert.match(r.out, /faff-graft\s+symlink \(live → repo\)/);
     assert.doesNotMatch(r.out, /intoWorktree|live → WORKTREE/);
   } finally { clean([main, target, fence, home]); }
+});
+
+// ---- FAFF-676: doctor's default scan set must agree with the installer's target list ----
+//
+// Doctor restates the installer's target-directory derivation in Node rather than shelling
+// out to the bash script (resolve_doctor_scan_set in gates.js) — the cost of restating is
+// drift, and this is the test that pays for it: run the REAL installer, then the REAL
+// doctor, under one faked $HOME, and assert they agree about which directories exist. If the
+// two lists ever diverge, this fails — doctor would otherwise report confidently about a
+// directory nothing writes to, which the spec calls worse than the silent doctor it replaces.
+test("FAFF-676: faff doctor's default scan set agrees with scripts/link-skills.sh --global's target list", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  const fence = mkFencedRoot();
+  try {
+    const installed = linkSh(main, home, "--global");
+    assert.equal(installed.code, 0, installed.err);
+
+    // The agreement claim only holds if this call actually reached the default branch of
+    // resolve_doctor_scan_set. If CLAUDE_PLUGIN_ROOT leaked into the child, step 2 would
+    // short-circuit to the plugin's own skills directory and this test would pass while
+    // proving nothing about the claim it exists to check — so assert the environment it
+    // built, not only doctor's output.
+    const env = { ...process.env, HOME: home };
+    delete env.CLAUDE_PLUGIN_ROOT;
+    assert.equal(env.CLAUDE_PLUGIN_ROOT, undefined, "the child environment must not carry CLAUDE_PLUGIN_ROOT");
+
+    const r = doctorDefault(fence, home);
+    assert.equal(r.code, 0, "both installer-created directories are healthy, so the verdict must be clean");
+    // every directory the installer created appears as a section in doctor's report —
+    // under the faked $HOME, never a plugin-root path.
+    assert.match(r.out, new RegExp(`${home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\.claude/skills`));
+    assert.match(r.out, new RegExp(`${home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\.agents/skills`));
+    assert.doesNotMatch(r.out, /MISSING here/);
+  } finally { clean([main, home, fence]); }
+});
+
+// The same agreement test's negative half: a REMOVED ~/.agents/skills (the state every
+// pre-FAFF-672 machine is in immediately after that ticket ships) must turn doctor loud —
+// this is the half-install detector actually firing on the population it exists to reach.
+test("FAFF-676: with ~/.agents/skills removed after a --global install, doctor names it MISSING (exit 1)", () => {
+  const main = mkMainRepo();
+  const home = mkdtempSync(join(tmpdir(), "ls-home-"));
+  const fence = mkFencedRoot();
+  try {
+    const installed = linkSh(main, home, "--global");
+    assert.equal(installed.code, 0, installed.err);
+    rmSync(join(home, ".agents", "skills"), { recursive: true, force: true });
+
+    const r = doctorDefault(fence, home);
+    assert.equal(r.code, 1, "a half-install must not report clean");
+    assert.match(r.out, /\.agents\/skills/);
+    assert.match(r.out, /MISSING here|not present/);
+    assert.match(r.out, /link-skills\.sh --global --replace/);
+  } finally { clean([main, home, fence]); }
 });

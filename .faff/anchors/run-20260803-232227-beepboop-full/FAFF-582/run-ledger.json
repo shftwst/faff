@@ -1,0 +1,109 @@
+{
+  "run_id": "run-20260803-232227-beepboop-full",
+  "admitted": [
+    "FAFF-620",
+    "FAFF-619",
+    "FAFF-687",
+    "FAFF-686",
+    "FAFF-635",
+    "FAFF-582"
+  ],
+  "outcomes": {
+    "FAFF-666": "parked",
+    "FAFF-709": "parked",
+    "FAFF-681": "parked",
+    "FAFF-490": "parked",
+    "FAFF-620": "shipped",
+    "FAFF-687": "shipped",
+    "FAFF-686": "shipped",
+    "FAFF-619": "pr-open",
+    "FAFF-621": "parked",
+    "FAFF-639": "parked"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "integrity_tampered": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 500,
+        "tokens": 10000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "measure_session_id": "814827ff-b99b-4fe6-a01c-71a8e040c7e4",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 27,
+        "output": 12935,
+        "cache_write": 569673,
+        "cache_read": 1830524
+      }
+    },
+    "tokens_at_start": 2413159,
+    "tokens_at_last_event": {
+      "input": 2027,
+      "output": 432980,
+      "cache_write": 2164034,
+      "cache_read": 32965891
+    }
+  },
+  "owner": {
+    "status": "running",
+    "pid": 88433,
+    "session_id": "run-20260803-232227-beepboop-full",
+    "started_at": "2026-08-03T23:22:57Z",
+    "last_heartbeat": "2026-08-04T05:35:13Z"
+  },
+  "outcome_details": {
+    "FAFF-681": {
+      "park_class": "spec-review-backend-outage",
+      "note": "high-confidence spec attached; adversarial lenses hit gemini 429 + unparseable backends; re-run when backend recovers"
+    },
+    "FAFF-709": {
+      "park_class": "duplicate",
+      "note": "dup of FAFF-635 (same test sentry-poller.test.mjs:174); 635 is survivor"
+    },
+    "FAFF-490": {
+      "park_class": "not-build-work",
+      "note": "tracker-description edit of FAFF-12; routed to tidy, no repo diff"
+    },
+    "FAFF-620": {
+      "pr": 537,
+      "merge_sha": "82c5898"
+    },
+    "FAFF-687": {
+      "pr": 536,
+      "merge_sha": "1bb5d2f0"
+    },
+    "FAFF-686": {
+      "pr": 535,
+      "merge_sha": "ee17141",
+      "note": "fixes the checkpoint-race flake"
+    },
+    "FAFF-619": {
+      "pr": 534,
+      "note": "AC+review pass; CI red on unrelated sentry-poller flake (now fixed by 686 on main) — rebase likely turns green"
+    },
+    "FAFF-621": {
+      "park_class": "reject-approach-multilens",
+      "note": "batch-lock design drew infosec/arch/QA/methodology objections; needs /faff-plot re-slice"
+    },
+    "FAFF-639": {
+      "park_class": "revise-split",
+      "note": "scope majors + methodology split 639a/639b; also formalized a previously-unlabelled stranded park"
+    }
+  },
+  "abort": {
+    "status": "aborted-resumable",
+    "at": "2026-08-04T01:37:45.375Z"
+  },
+  "notes": [
+    "L3 sentry-poller spuriously wrote owner.status=aborted-resumable during build wave (stale main-heartbeat + poller acting on L3, which is advisory-only). Build evidence verified intact, 3 merges real. Poller stopped; owner re-asserted. Finding surfaced."
+  ]
+}

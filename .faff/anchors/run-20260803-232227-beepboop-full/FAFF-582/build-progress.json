@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-582",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6a2228814c45962168699b974d214fae17f4de4ebb7031546922a3c68cc9c818",
+    "branch": "faff-582-faffter-noon-review-teaches-a-three-verdict-contract-the",
+    "pushed_at": "2026-08-04T05:49:48.521Z"
+  },
+  "updated_at": "2026-08-04T05:49:48.521Z"
+}

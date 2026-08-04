@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-635",
+  "build": {
+    "status": "complete",
+    "diff_hash": "dafbbd47a5872c7f5f1180c08039bf31e5704d0003466a255bc98520bfa8fbf4",
+    "branch": "faff-635-flaky-sentry-poller-l4-stale-heartbeat-abort-integration",
+    "pushed_at": "2026-08-04T05:54:07.643Z"
+  },
+  "updated_at": "2026-08-04T05:54:07.643Z"
+}

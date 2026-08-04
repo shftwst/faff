@@ -488,18 +488,31 @@ async function engineSelftest() {
       }
 
       // (B) CLAUDE_CONFIG_DIR isolation — config-dir-bearing families only.
+      // Drives the assertion THROUGH runnerFn itself (never withIsolatedClaudeConfig
+      // directly) — the spec's point is to catch a runner whose spawn path SKIPS
+      // isolation entirely, which a direct helper-only call could never detect. The
+      // registry's calling convention for a config-dir-bearing runner (declared
+      // here, since none is registered yet to declare it independently): it accepts
+      // the SAME { ambientDir, ambientEnv, apiKeyEnv, baseDir, seams } shape
+      // withIsolatedClaudeConfig itself takes, plus a `spawnFn` it threads straight
+      // through to its own withIsolatedClaudeConfig call. A runner that ignores
+      // `seams`/`baseDir` and isolates some other way still satisfies (B) as long as
+      // the child it hands `spawnFn` is genuinely isolated; a runner that skips
+      // isolation and calls `spawnFn` with the ambient env/cwd fails it.
       if (SPAWN_FAMILY_CONFIG_DIR_BEARING[family]) {
         const ambientDir = "/selftest-ambient-not-a-real-path";
         const baseDir = "/selftest-base-not-a-real-path";
         const touched = [];
         let capturedEnv = null;
-        const { withIsolatedClaudeConfig } = require("./claude-config-isolation");
         const mockSpawnFn = async ({ env }) => { capturedEnv = env; return { stdout: "ok" }; };
-        await withIsolatedClaudeConfig(mockSpawnFn, {
+        await runnerFn({
+          engine: { name: `selftest-${family}`, provider: family, family, model: "m" },
+          system: "S", user: "U",
           authMode: "subscription-seat",
           ambientDir,
           ambientEnv: { HOME: "/h" },
           baseDir,
+          spawnFn: mockSpawnFn,
           seams: {
             mkdtempFn: (p) => { const d = `${p}mockdir`; touched.push({ op: "mkdtemp", path: d }); return d; },
             chmodFn: (p) => { touched.push({ op: "chmod", path: p }); },

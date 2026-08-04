@@ -10,7 +10,7 @@
 #
 # Self-sequencing: waits for any in-flight sweep (e.g. FAFF-711) to finish first — one claude -p lane at
 # a time (the ~/.claude.json race). Launch it now and leave it:
-#   nohup bash docs/spikes/2026-08-03-opus-5/characterise-opus5.sh > .faff/report-opus5.log 2>&1 &
+#   nohup bash .faff/characterise-opus5.sh > .faff/report-opus5.log 2>&1 &
 set -uo pipefail
 cd /Users/shftwst/workspace/shftwst/faff
 mkdir -p eval/report

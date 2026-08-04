@@ -196,6 +196,16 @@ test("config set: creates .faffrc.yaml with the header when absent", () => {
   assert.equal(run(dir, "config", "get", "appetite").out, "high");
 });
 
+test("config set --root writes under the named directory regardless of cwd (the FAFF-665 --root /tmp/... case)", () => {
+  const targetDir = tmpDir();
+  const cwdDir = tmpDir(); // a DIFFERENT directory — proves --root, not cwd, decides the target
+  const r = run(cwdDir, "config", "set", "backends.cx.provider", "codex", "--root", targetDir);
+  assert.equal(r.code, 0);
+  assert.equal(run(cwdDir, "config", "get", "backends.cx.provider", "--root", targetDir).out, "codex");
+  // nothing written under cwdDir itself
+  assert.equal(run(cwdDir, "config", "path").code, 3);
+});
+
 // ---------------------------------------------------------------------------
 // The writer's pure-helper self-test (mirrors configInitSelftest, run via the CLI).
 // ---------------------------------------------------------------------------

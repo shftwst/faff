@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-667",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0f2798dd586ebad2b972ed38ca7b7136d323f9fd415168c44e1ca5c29126597b",
+    "branch": "faff-667-faff-has-no-sanctioned-way-to-write-most-of-its-own-config",
+    "pushed_at": "2026-08-04T07:20:18.197Z"
+  },
+  "updated_at": "2026-08-04T07:20:18.197Z"
+}

@@ -11,7 +11,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
-import { frontierOpts, buildInvocation } from "../eval/cli-driver.mjs";
+import { frontierOpts, buildInvocation, DEFAULT_PLUGIN_DIR } from "../eval/cli-driver.mjs";
 import { resolveEvalModel, EVAL_MODEL_FALLBACK } from "../eval/run-evals.mjs";
 
 function fixtureDir(faffrcBody) {
@@ -107,6 +107,17 @@ test("frontierOpts threads model → buildInvocation emits --model; null omits i
   assert.ok(withModel.args.includes("claude-sonnet-4-6"));
   const without = buildInvocation(frontierOpts({}), "p", "/tmp/cfg");
   assert.ok(!without.args.includes("--model"), "no model ⇒ no --model arg (unchanged call)");
+});
+
+test("frontierOpts threads effort → buildInvocation emits --effort next to --model; null omits it byte-for-byte (FAFF-722)", () => {
+  const withEffort = buildInvocation(frontierOpts({ model: "claude-opus-4-8", effort: "high" }), "p", "/tmp/cfg");
+  const ei = withEffort.args.indexOf("--effort");
+  assert.ok(ei !== -1 && withEffort.args[ei + 1] === "high", "effort set ⇒ --effort high present");
+  assert.ok(withEffort.args.indexOf("--model") < ei, "--effort sits after --model");
+  // no effort ⇒ argv is byte-identical to the pre-FAFF-722 call (the whole "unset changes nothing" guarantee)
+  const without = buildInvocation(frontierOpts({ model: "claude-opus-4-8" }), "p", "/tmp/cfg");
+  assert.ok(!without.args.includes("--effort"), "no effort ⇒ no --effort arg");
+  assert.deepEqual(without.args, ["-p", "p", "--model", "claude-opus-4-8", "--plugin-dir", DEFAULT_PLUGIN_DIR]);
 });
 
 test("resolveEvalModel precedence: flag > config CLI > pinned fallback (never the account default)", () => {

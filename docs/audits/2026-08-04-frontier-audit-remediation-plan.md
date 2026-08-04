@@ -116,6 +116,17 @@ These are cage-side and out of faff's assert-don't-implement remit — the trans
 
 ---
 
+## §6 — Axis-3 tracker hygiene (deps-in-prose sweep) — direct Linear edits, not code tickets
+
+A full sweep of all **163 open issues** found the deps-in-prose discipline **holding** — no `faff-automate` ticket carries an unedged live dependency (so the autonomous pipeline is not acting on a false "ready"). These are small **tracker edits** to make while you're in Linear ticketing the above — not new issues to file, not code work.
+
+- **FAFF-74 — the one genuine missing edge (do this one).** Prose: "sweep the new vocabulary … *once the model (FAFF-70 / FAFF-71 / FAFF-72 / FAFF-75) is settled*"; `blockedBy` is **empty** (70/71/72 are only `relatedTo`, **75 is unlinked entirely**), all four open. It is a breaking rename that genuinely can't proceed until the config model exists, so **add `blockedBy` FAFF-70, FAFF-71, FAFF-72, FAFF-75** — or, if it's meant to stay schedulable, soften the "once … is settled" line to a non-blocking note. Do one or the other; today a graph-reader sees FAFF-74 as ready. (Not `faff-automate`, so low urgency — but it's the only real edge gap in 163.)
+- **Stale-prose-blockers — refresh the description line, do NOT add an edge** (the named blocker has shipped Done): **FAFF-711** (FAFF-615 Done; and 711 is *In Progress* while its prose still claims the block), **FAFF-612** (FAFF-606 Done), **FAFF-239** (FAFF-238 Done), **FAFF-119** (FAFF-115 Done). Two more are *graph-healthy — only the prose lags* and the edge is correctly pointed at the live successor: **FAFF-611** (edge → FAFF-610 open, real blocker; prose still names shipped FAFF-601) and **FAFF-597** (edge → FAFF-623, real; prose still names FAFF-596, now a Duplicate). Cosmetic; drop/refresh the "Blocked by …" text so a prose-reader isn't misled.
+- **FAFF-472 — rationale-less edge (verify or annotate).** Carries `blockedBy` FAFF-426 whose only prose mention is provenance ("Per ADR-0065 (FAFF-426)"). Confirm the edge is intended (426 likely Done → satisfied anyway) or annotate the rationale. Low priority.
+- **FAFF-454 — soft/uncertain (confirm at prep).** Prose "gated on E2 (calibration) + E5 (routing)"; the E2 arm is edged, the **E5/"routing" arm has no clear edge**. Confirm whether a routing prerequisite needs an edge when the issue is prepped.
+
+*Coverage: 163 open (Backlog 131 / Todo 25 / In Progress 6 / In Review 1), full pull no cutoff, 31 targeted relation/status fetches, zero approval failures. Honest caveat: candidate detection ran on `list_issues`-truncated descriptions (full prose fetched per candidate), so a dependency phrased only deep in an un-fetched description could be missed.*
+
 ## Labels & eligibility guidance (faff's own model)
 
 - **Safe to `faff-automate` (mechanical, spec-derivable):** T1.1, T1.2, T1.5, T2, T3, T4.1-docs, T5-hygiene.

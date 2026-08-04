@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-620",
+  "build": {
+    "status": "complete",
+    "diff_hash": "5836939c2434fdba72ac6d32a5ada61b69a8ce6a2d3355195613d0e8cc8a3304",
+    "branch": "faff-620-sentrycheck-hook-path-add-a-defensive-catch-around",
+    "pushed_at": "2026-08-04T01:47:51.453Z"
+  },
+  "updated_at": "2026-08-04T01:47:51.453Z"
+}

@@ -101,7 +101,7 @@ The headless contract above is what a scheduled CI watcher runs on. `docs/ci/l3-
 
 It is a **reference under `docs/ci/`, not a live job** — its `runs-on:` names a self-hosted rig that has to exist first, and the repo's own convention is that a committed job whose label matches nothing is a small lie (see `.github/workflows/job-surface-probe.yml`). To run it for real, copy it into your repo's `.github/workflows/`, once you have:
 
-- a registered self-hosted runner — the "your laptop is the factory" solo-dev rig;
+- a registered self-hosted runner — the "your laptop is the factory" solo-dev rig ([self-hosted-rig.md](self-hosted-rig.md) is the runbook);
 - a **subscription-seat secret** — a long-lived token in the environment (the CI path, per the subscription-seat ADR in `docs/adr/`), held as a repository secret, never a committed rc;
 - an **admitted cage** — a run environment that passes `faff container-check --gate` (see below).
 
@@ -131,7 +131,7 @@ That reading is from this repo's own dev container — an interactive cage, not 
 
 **`faff env` without a host socket.** If a job needs a container engine — `faff env` runs `docker compose up` to stand the app tier up — it gets a **bounded nested engine** (rootless dind, podman-in-podman, or a sysbox-class runtime), which is the contract the cage-engine acceptance doc (`docs/cage-engine-acceptance.md`) already sets for claude-box. That does not trip the gate: the socket probe checks only the canonical host paths and deliberately ignores rootless paths, so a bounded rootless engine is invisible to it. The host socket is a dead end here by design — the lights-out preflight refuses it at L4 regardless of containment. Reach for the nested engine, never the host socket.
 
-**Where the cage stops and the runner host begins.** Passing the gate means *contained + no host socket* — that is what the cage owns. It does **not** by itself bound everything the job can touch: a self-hosted runner maps its whole work directory into the job, and within the job's life the agent holds the runner's registration token and credentials. Narrowing what the runner's own account can reach is a property of how you *register and scope the runner host*, which belongs to the self-hosted-runner rig doc, not to the cage. Keep the two separate in your head: the cage makes the run contained; the runner-host setup bounds the runner's own credential surface.
+**Where the cage stops and the runner host begins.** Passing the gate means *contained + no host socket* — that is what the cage owns. It does **not** by itself bound everything the job can touch: a self-hosted runner maps its whole work directory into the job, and within the job's life the agent holds the runner's registration token and credentials. Narrowing what the runner's own account can reach is a property of how you *register and scope the runner host*, which belongs to the self-hosted-runner rig doc ([self-hosted-rig.md](self-hosted-rig.md)), not to the cage. Keep the two separate in your head: the cage makes the run contained; the runner-host setup bounds the runner's own credential surface.
 
 ## Going lights-out (L4) — `faff lights-out`
 

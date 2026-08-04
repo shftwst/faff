@@ -206,6 +206,8 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
     assert.equal(checkpoints.length, 1, "more than one sentry-checkpoint event — the per-tick guard regressed");
     assert.equal(checkpoints[0].data.tripped, true);
 
+    // Redundant with the settling wait above (which already confirmed this token is
+    // present) — kept to document intent at its original spot, per FAFF-686's spec.
     assert.match(log(), /abort-actioned/);
 
     const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: 5000 });

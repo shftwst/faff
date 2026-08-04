@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-619",
+  "build": {
+    "status": "complete",
+    "diff_hash": "40875a4b11cbd5457e893a8444c3c8c7f09248d3ddb614d3fb69160ad07dc3bd",
+    "branch": "faff-619-genericise-the-private-tailnet-host-in-deriveegress-test",
+    "pushed_at": "2026-08-04T01:42:18.774Z"
+  },
+  "updated_at": "2026-08-04T01:42:18.774Z"
+}

@@ -63,29 +63,43 @@ test("container-check --json: well-formed shape, exit code agrees with result", 
 // FAFF-333 — hostSocketProbe: pure, injected-fsq fixtures over the two canonical
 // HOST docker socket paths. A DIFFERENT axis from containment (containerCheck above) —
 // boundedness (ADR-0041 decision 3), never folded into containerCheck's own contract.
-test("hostSocketProbe: absent → {present:false, path:null}", () => {
-  const fsq = { exists: () => false };
-  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: null });
+// FAFF-713 — hostSocketProbe now reads `fsq.probePath` (tri-state) and returns
+// `{ present, path, state }`; `present` stays true only on a confirmed-present socket.
+test("hostSocketProbe: absent → {present:false, path:null, state:absent}", () => {
+  const fsq = { probePath: () => "absent" };
+  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: null, state: "absent" });
 });
 
 test("hostSocketProbe: /var/run/docker.sock present → flagged with that path", () => {
-  const fsq = { exists: (p) => p === "/var/run/docker.sock" };
-  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: "/var/run/docker.sock" });
+  const fsq = { probePath: (p) => (p === "/var/run/docker.sock" ? "present" : "absent") };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: "/var/run/docker.sock", state: "present" });
 });
 
 test("hostSocketProbe: /run/docker.sock present → flagged with that path", () => {
-  const fsq = { exists: (p) => p === "/run/docker.sock" };
-  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: "/run/docker.sock" });
+  const fsq = { probePath: (p) => (p === "/run/docker.sock" ? "present" : "absent") };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: "/run/docker.sock", state: "present" });
 });
 
 test("hostSocketProbe: both present → the first checked path wins", () => {
-  const fsq = { exists: () => true };
-  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: HOST_SOCKET_PATHS[0] });
+  const fsq = { probePath: () => "present" };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: HOST_SOCKET_PATHS[0], state: "present" });
 });
 
 test("hostSocketProbe: rootless paths are deliberately excluded (never false-positive the recommended posture)", () => {
-  const fsq = { exists: (p) => p === "/run/user/1000/docker.sock" || p === "/run/user/1000/podman/podman.sock" };
-  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: null });
+  const fsq = { probePath: (p) => ((p === "/run/user/1000/docker.sock" || p === "/run/user/1000/podman/podman.sock") ? "present" : "absent") };
+  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: null, state: "absent" });
+});
+
+test("hostSocketProbe: probe error on a canonical path → {present:false, state:error} (FAFF-713)", () => {
+  const fsq = { probePath: (p) => (p === "/var/run/docker.sock" ? "error" : "absent") };
+  assert.deepEqual(hostSocketProbe(fsq), { present: false, path: "/var/run/docker.sock", state: "error" });
+});
+
+test("hostSocketProbe: a present path wins over an EARLIER error path — present is never masked (FAFF-713)", () => {
+  // path[0] errors, path[1] is present → must return present (not error). Pins the
+  // loop's present-wins-immediately invariant against future refactors.
+  const fsq = { probePath: (p) => (p === HOST_SOCKET_PATHS[0] ? "error" : "present") };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: HOST_SOCKET_PATHS[1], state: "present" });
 });
 
 // `container-check --json` surfaces host_socket as an ADDITIONAL field — exit code stays

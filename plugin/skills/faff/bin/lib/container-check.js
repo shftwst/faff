@@ -59,6 +59,14 @@ function realFsq() {
   return {
     exists: (p) => { try { return fs.existsSync(p); } catch { return false; } },
     readEnviron: (p) => { try { return fs.readFileSync(p, "utf8"); } catch { return ""; } },
+    // FAFF-713: tri-state path probe — distinguishes "confirmed absent" from "could
+    // not determine". `exists` (fs.existsSync) collapses EACCES to false; a strict
+    // floor must not read can't-determine as absent. statSync FOLLOWS symlinks (we
+    // want the reachable socket; a broken symlink yields ENOENT → absent). ENOENT is
+    // confirmed absent; any other errno (EACCES on a non-searchable parent, ENOTDIR,
+    // ELOOP) is `error` (conservative fail-safe — never re-bucket these to absent).
+    // Never throws.
+    probePath: (p) => { try { fs.statSync(p); return "present"; } catch (e) { return (e && e.code === "ENOENT") ? "absent" : "error"; } },
     // FAFF-379: additive wrappers the worktree-isolation floor probe reuses — a
     // failed stat/access becomes a no-signal (false), never an exception. Harmless
     // to existing callers (containerCheck reads only exists/readEnviron).
@@ -78,11 +86,21 @@ const HOST_SOCKET_PATHS = ["/var/run/docker.sock", "/run/docker.sock"];
 // the canonical paths only — it does not consult DOCKER_HOST and does not chase a
 // socket mounted at a non-canonical path (out of faff's threat model; the cage
 // itself, not this probe, is the real boundary — see the region banner above).
+// FAFF-713 — tri-state result `{ present, path, state }`. `state` is the honest
+// `present | absent | error`; `present` stays a boolean that is true ONLY on a
+// confirmed-present socket (both `absent` and `error` keep present:false), so every
+// existing `.present` consumer (the bare warning, lights-out.js) is unchanged unless
+// it opts into `state`. A present path wins immediately; else the first error path
+// (if any) makes the result `error`; else `absent`.
 function hostSocketProbe(fsq) {
+  let errorPath = null;
   for (const p of HOST_SOCKET_PATHS) {
-    if (fsq.exists(p)) return { present: true, path: p };
+    const s = fsq.probePath(p);
+    if (s === "present") return { present: true, path: p, state: "present" };
+    if (s === "error" && errorPath === null) errorPath = p;
   }
-  return { present: false, path: null };
+  if (errorPath !== null) return { present: false, path: errorPath, state: "error" };
+  return { present: false, path: null, state: "absent" };
 }
 
 const { parseArgs, usageError } = require("./argv");
@@ -114,12 +132,16 @@ function cmdContainerCheck(args, { env = process.env, fsq = realFsq() } = {}) {
     // (that downgrade is lights-out.js's, the L4 path) — `--gate` is the strict
     // floor a CI workflow gates on. "Work scoped to this checkout" is not a
     // criterion (ADR-0095 excluded it as not faff-checkable) — two criteria, not three.
+    // FAFF-713 — admit ONLY on a confirmed-absent socket: `state === "absent"`. A
+    // `present` OR an `error` (can't-determine) state refuses — fail-safe for a strict
+    // floor. The refuse-reason branches on state so an error is not mislabelled present.
     const containedOk = result === "contained";
-    const noHostSocket = !hostSocket.present;
+    const noHostSocket = hostSocket.state === "absent";
     const pass = containedOk && noHostSocket;
     const reasons = [];
     if (!containedOk) reasons.push(`containment not confirmed (${basis})`);
-    if (!noHostSocket) reasons.push(`host docker socket present at ${hostSocket.path}`);
+    if (hostSocket.state === "present") reasons.push(`host docker socket present at ${hostSocket.path}`);
+    else if (hostSocket.state === "error") reasons.push(`host docker socket present-or-unreadable at ${hostSocket.path}`);
     if (json) {
       console.log(JSON.stringify({
         verdict: pass ? "pass" : "fail",
@@ -154,9 +176,12 @@ function cmdContainerCheck(args, { env = process.env, fsq = realFsq() } = {}) {
 // In-memory selftest over synthetic (env, fsq) fixtures — mirrors the eligible /
 // next selftest shape (per-case ok/FAIL + a RESULT line, non-zero on any fail).
 function containerCheckSelftest() {
-  const mkFsq = (present, environ) => ({
+  // FAFF-713: `errorSet` (defaulted empty) lets a fixture mark a path as "can't
+  // determine" so probePath can return `error`; existing 2-arg call sites are unaffected.
+  const mkFsq = (present, environ, errorSet) => ({
     exists: (p) => present.has(p),
     readEnviron: () => environ || "",
+    probePath: (p) => ((errorSet && errorSet.has(p)) ? "error" : (present.has(p) ? "present" : "absent")),
   });
   const CASES = [
     // [env, present-paths, environ, want-result, want-basis, label]
@@ -188,56 +213,66 @@ function containerCheckSelftest() {
   // FAFF-333 — hostSocketProbe fixture table: bare / var-run / run / both-present
   // (first path wins when both exist).
   const HS_CASES = [
-    // [present-paths, want-present, want-path, label]
-    [[], false, null, "bare (no socket)"],
-    [["/var/run/docker.sock"], true, "/var/run/docker.sock", "var-run socket present"],
-    [["/run/docker.sock"], true, "/run/docker.sock", "run socket present"],
-    [["/var/run/docker.sock", "/run/docker.sock"], true, "/var/run/docker.sock", "both present → first path wins"],
+    // [present-paths, error-paths, want-present, want-path, want-state, label]
+    [[], [], false, null, "absent", "bare (no socket)"],
+    [["/var/run/docker.sock"], [], true, "/var/run/docker.sock", "present", "var-run socket present"],
+    [["/run/docker.sock"], [], true, "/run/docker.sock", "present", "run socket present"],
+    [["/var/run/docker.sock", "/run/docker.sock"], [], true, "/var/run/docker.sock", "present", "both present → first path wins"],
+    // FAFF-713 — a canonical socket that can't be stat'd (probe error) → state error,
+    // present stays false, path names the indeterminate path.
+    [[], ["/var/run/docker.sock"], false, "/var/run/docker.sock", "error", "socket unreadable (probe error) → error, not absent"],
   ];
-  for (const [present, wantPresent, wantPath, label] of HS_CASES) {
-    const { present: p, path: pth } = hostSocketProbe(mkFsq(new Set(present)));
-    const ok = p === wantPresent && pth === wantPath;
+  for (const [present, errs, wantPresent, wantPath, wantState, label] of HS_CASES) {
+    const { present: p, path: pth, state: st } = hostSocketProbe(mkFsq(new Set(present), "", new Set(errs)));
+    const ok = p === wantPresent && pth === wantPath && st === wantState;
     if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} host-socket: ${label} → present=${p}/path=${pth} (want ${wantPresent}/${wantPath})`);
+    console.log(`${ok ? "ok  " : "FAIL"} host-socket: ${label} → present=${p}/path=${pth}/state=${st} (want ${wantPresent}/${wantPath}/${wantState})`);
   }
   // never-throws (real adapter), same guarantee as containerCheck above.
   try {
     const hs = hostSocketProbe(realFsq());
-    if (hs.present !== false || hs.path !== null) {
-      // Not a failure per se (a real host socket may genuinely be present on this
-      // machine) — only assert it didn't throw and returned the well-formed shape.
-      if (typeof hs.present !== "boolean" || (hs.path !== null && typeof hs.path !== "string")) {
-        console.log("FAIL hostSocketProbe(realFsq()) returned a malformed shape"); fail++;
-      }
+    // Not a failure per se (a real host socket may genuinely be present on this
+    // machine) — only assert it didn't throw and returned the well-formed shape.
+    if (typeof hs.present !== "boolean" || (hs.path !== null && typeof hs.path !== "string") || !["present", "absent", "error"].includes(hs.state)) {
+      console.log("FAIL hostSocketProbe(realFsq()) returned a malformed shape"); fail++;
     }
   } catch { console.log("FAIL hostSocketProbe(realFsq()) threw"); fail++; }
+  // FAFF-713 — probePath never throws on an absent path (mirrors exists/readEnviron).
+  try {
+    if (realFsq().probePath("/no/such/socket/xyz") !== "absent") { console.log("FAIL real probePath(absent) ≠ \"absent\""); fail++; }
+  } catch { console.log("FAIL real probePath threw on an absent path"); fail++; }
 
   // FAFF-655 — COMMAND-LEVEL exit-code assertions. The cases above exercise the pure
   // functions; these drive cmdContainerCheck itself over the injection seam and assert
   // the RETURNED exit code (a gate whose exit code is untested is decoration). `capture`
   // swaps console.log for a collector so the driven command's output doesn't pollute the
   // selftest log and can be asserted (the --json shape row).
-  const capture = (args, env, present) => {
+  const capture = (args, env, present, errorSet) => {
     const log = console.log; const lines = [];
     console.log = (...a) => lines.push(a.join(" "));
     let code;
-    try { code = cmdContainerCheck(args, { env, fsq: mkFsq(new Set(present), "") }); }
+    try { code = cmdContainerCheck(args, { env, fsq: mkFsq(new Set(present), "", new Set(errorSet || [])) }); }
     finally { console.log = log; }
     return { code, out: lines.join("\n") };
   };
   const GATE_CASES = [
-    // [args, env, present-paths, want-code, label]
-    [["--gate"], {}, ["/.dockerenv"], 0, "gate: contained + no socket → admit (0)"],
-    [["--gate"], {}, ["/.dockerenv", "/var/run/docker.sock"], 1, "gate: contained + HOST SOCKET → refuse (1) [the load-bearing row]"],
-    [["--gate"], {}, [], 1, "gate: not_confirmed + no socket → refuse (1)"],
-    [["--gate"], {}, ["/run/docker.sock"], 1, "gate: not_confirmed + host socket → refuse (1)"],
-    [["--gate"], { KUBERNETES_SERVICE_HOST: "10.0.0.1" }, [], 0, "gate: k8s contained + no socket → admit (0)"],
+    // [args, env, present-paths, error-paths, want-code, label]
+    [["--gate"], {}, ["/.dockerenv"], [], 0, "gate: contained + no socket → admit (0)"],
+    [["--gate"], {}, ["/.dockerenv", "/var/run/docker.sock"], [], 1, "gate: contained + HOST SOCKET → refuse (1) [the load-bearing row]"],
+    [["--gate"], {}, [], [], 1, "gate: not_confirmed + no socket → refuse (1)"],
+    [["--gate"], {}, ["/run/docker.sock"], [], 1, "gate: not_confirmed + host socket → refuse (1)"],
+    [["--gate"], { KUBERNETES_SERVICE_HOST: "10.0.0.1" }, [], [], 0, "gate: k8s contained + no socket → admit (0)"],
+    // FAFF-713 — contained + socket-ERROR (can't determine) → refuse (the tri-state fix).
+    [["--gate"], {}, ["/.dockerenv"], ["/var/run/docker.sock"], 1, "gate: contained + socket-ERROR (unreadable) → refuse (1) [tri-state fail-safe]"],
     // legacy contract unchanged: bare command still ADMITS contained-with-socket (warn only)
-    [[], {}, ["/.dockerenv", "/var/run/docker.sock"], 0, "bare: contained + socket → 0 (unchanged FAFF-333 contract)"],
-    [[], {}, [], 1, "bare: not_confirmed → 1 (unchanged contract)"],
+    [[], {}, ["/.dockerenv", "/var/run/docker.sock"], [], 0, "bare: contained + socket → 0 (unchanged FAFF-333 contract)"],
+    [[], {}, [], [], 1, "bare: not_confirmed → 1 (unchanged contract)"],
+    // FAFF-713 — bare command with a socket-error is ALSO unchanged: an error is not a
+    // confirmed-present socket, so the default reading exits on containment (0), no warn.
+    [[], {}, ["/.dockerenv"], ["/var/run/docker.sock"], 0, "bare: contained + socket-error → 0 (unchanged; error not present)"],
   ];
-  for (const [args, env, present, wantCode, label] of GATE_CASES) {
-    const { code } = capture(args, env, present);
+  for (const [args, env, present, errs, wantCode, label] of GATE_CASES) {
+    const { code } = capture(args, env, present, errs);
     const ok = code === wantCode;
     if (!ok) fail++;
     console.log(`${ok ? "ok  " : "FAIL"} ${label} → exit ${code} (want ${wantCode})`);
@@ -248,12 +283,22 @@ function containerCheckSelftest() {
     let j = null; try { j = JSON.parse(out); } catch { /* j stays null → FAIL below */ }
     const ok = code === 1 && j && j.verdict === "fail" && j.contained === true
       && j.criteria && j.criteria.contained === true && j.criteria.no_host_socket === false
-      && j.host_socket && j.host_socket.present === true && typeof j.basis === "string";
+      && j.host_socket && j.host_socket.present === true && j.host_socket.state === "present" && typeof j.basis === "string";
     if (!ok) fail++;
-    console.log(`${ok ? "ok  " : "FAIL"} gate --json composite shape (verdict=fail, contained=true, no_host_socket=false) → ${out}`);
+    console.log(`${ok ? "ok  " : "FAIL"} gate --json composite shape (verdict=fail, present, state=present) → ${out}`);
+  }
+  // FAFF-713 — the composite --json carries the tri-state `error` and refuses on it.
+  {
+    const { code, out } = capture(["--gate", "--json"], {}, ["/.dockerenv"], ["/var/run/docker.sock"]);
+    let j = null; try { j = JSON.parse(out); } catch { /* j stays null → FAIL below */ }
+    const ok = code === 1 && j && j.verdict === "fail" && j.contained === true
+      && j.host_socket && j.host_socket.present === false && j.host_socket.state === "error"
+      && j.criteria && j.criteria.no_host_socket === false;
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} gate --json socket-error (verdict=fail, present=false, state=error, no_host_socket=false) → ${out}`);
   }
 
-  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length + HS_CASES.length + GATE_CASES.length + 1} cases + never-throws x2, ${fail} failed)`);
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${CASES.length + HS_CASES.length + GATE_CASES.length + 2} cases + never-throws x3, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 

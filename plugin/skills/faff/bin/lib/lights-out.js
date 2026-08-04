@@ -343,15 +343,21 @@ function lightsOutPreflight(probes) {
   // the same-path socket is actually a BOUNDED nested engine (autonomous.engine_bounded:
   // true), which downgrades this refusal to a warn WITHOUT waiving the containment
   // requirement above.
-  if (probes.hostSocketPresent && probes.engineBounded !== true) {
+  // FAFF-713 — a probe that cannot DETERMINE the socket's state (hostSocketState:
+  // "error", e.g. a permission-denied path component) is treated the same as a present
+  // socket here: the L4 preflight is stricter than `--gate`, so it must not be laxer on
+  // this axis. `socketConcern` = present-or-indeterminate; engine_bounded still downgrades.
+  const socketConcern = probes.hostSocketPresent || probes.hostSocketState === "error";
+  const socketWhat = probes.hostSocketState === "error" ? "present-or-unreadable" : "present";
+  if (socketConcern && probes.engineBounded !== true) {
     refusals.push({
       gate: "host-socket",
-      detail: `host docker socket ${probes.hostSocketPath || "docker.sock"} voids ADR-0010 host isolation (ADR-0041 decision 3) — move to a bounded nested engine (rootless dind/podman/sysbox), or set autonomous.engine_bounded:true to attest a bounded engine at this path`,
+      detail: `host docker socket ${probes.hostSocketPath || "docker.sock"} ${socketWhat} — voids ADR-0010 host isolation (ADR-0041 decision 3); move to a bounded nested engine (rootless dind/podman/sysbox), or set autonomous.engine_bounded:true to attest a bounded engine at this path`,
     });
-  } else if (probes.hostSocketPresent && probes.engineBounded === true) {
+  } else if (socketConcern && probes.engineBounded === true) {
     degrades.push({
       gate: "host-socket",
-      detail: `host docker socket ${probes.hostSocketPath || "docker.sock"} present but attested bounded (autonomous.engine_bounded:true) — proceeding on the operator's word; the containment requirement above is unaffected`,
+      detail: `host docker socket ${probes.hostSocketPath || "docker.sock"} ${socketWhat} but attested bounded (autonomous.engine_bounded:true) — proceeding on the operator's word; the containment requirement above is unaffected`,
     });
   }
   // Basic preconditions (NOT rich dial-coherence — reckless level+appetite+slots+gates
@@ -862,7 +868,7 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable) {
     correctiveIntegrityBasis: correctiveProbe.basis,
     // FAFF-333 — reuse the ONE hostSocketProbe call above; never a second, possibly-
     // divergent read. engineBounded is the operator's own attestation (default false).
-    hostSocketPresent: hostSocket.present, hostSocketPath: hostSocket.path, engineBounded,
+    hostSocketPresent: hostSocket.present, hostSocketPath: hostSocket.path, hostSocketState: hostSocket.state, engineBounded,
   };
   const pf = lightsOutPreflight(probes);
 
@@ -1401,6 +1407,17 @@ function lightsOutSelftest() {
     hostSocketAttested.degrades.some((d) => d.gate === "host-socket"));
   check("host socket present + engine_bounded:true never carries a host-socket refusal",
     !hostSocketAttested.refusals.some((r) => r.gate === "host-socket"));
+  // FAFF-713 — a probe that CAN'T DETERMINE the socket (hostSocketState:"error") is
+  // fail-safe: refuse when unattested, degrade when engine_bounded:true (same as present).
+  const hostSocketErrRefuse = lightsOutPreflight(armedProbes({ hostSocketState: "error", hostSocketPath: "/var/run/docker.sock" }));
+  check("host socket state:error (unattested) refuses", hostSocketErrRefuse.proceed === false);
+  check("host-socket error refusal names the indeterminate case + the path",
+    (() => { const r = hostSocketErrRefuse.refusals.find((r) => r.gate === "host-socket");
+      return !!r && r.detail.includes("/var/run/docker.sock") && /present-or-unreadable/.test(r.detail); })());
+  const hostSocketErrAttested = lightsOutPreflight(armedProbes({ hostSocketState: "error", hostSocketPath: "/var/run/docker.sock", engineBounded: true }));
+  check("host socket state:error + engine_bounded:true degrades (proceeds)", hostSocketErrAttested.proceed === true);
+  check("host socket state:error + engine_bounded:true carries a host-socket degrade, no refusal",
+    hostSocketErrAttested.degrades.some((d) => d.gate === "host-socket") && !hostSocketErrAttested.refusals.some((r) => r.gate === "host-socket"));
   // Socket absent (the byte-for-byte-unchanged default, since armedProbes() supplies no
   // hostSocketPresent key at all) → the happy path above already proves this: `happy`
   // has proceed:true and zero refusals with hostSocketPresent left unset entirely.

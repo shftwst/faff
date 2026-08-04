@@ -190,9 +190,20 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
     assert.equal(led.owner.status, "aborted-resumable");
     assert.ok(led.abort, "an abort entry exists");
 
+    // The abort child writes the ledger; the poller parent appends the checkpoint
+    // event and THEN the abort-actioned log line, in that fixed synchronous order
+    // (FAFF-686). Waiting on the ledger above is not enough to observe the
+    // checkpoint — the parent's append can still be in flight. Wait on the
+    // abort-actioned line (a strict happens-after of the checkpoint append) before
+    // reading events(), so a full-suite run under load can't read events.jsonl
+    // before the checkpoint has landed.
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: 10000 });
+    assert.ok(settled, "poller reached abort-actioned (checkpoint append has run)");
+
     const evs = events();
     const checkpoints = evs.filter((e) => e.type === "sentry-checkpoint");
-    assert.equal(checkpoints.length, 1, "exactly one sentry-checkpoint event — not one per tick");
+    assert.ok(checkpoints.length >= 1, "no sentry-checkpoint event appended after abort-actioned");
+    assert.equal(checkpoints.length, 1, "more than one sentry-checkpoint event — the per-tick guard regressed");
     assert.equal(checkpoints[0].data.tripped, true);
 
     assert.match(log(), /abort-actioned/);

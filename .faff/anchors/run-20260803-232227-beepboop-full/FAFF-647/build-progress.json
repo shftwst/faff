@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-647",
+  "build": {
+    "status": "complete",
+    "diff_hash": "0323835a6f523df25ddb1bcf9e4b60edbbcfd1dd311e8603ec3a10770e502eb9",
+    "branch": "faff-647-a-nested-claude-p-spawn-gets-its-own-claude_config_dir-not",
+    "pushed_at": "2026-08-04T09:13:19.816Z"
+  },
+  "updated_at": "2026-08-04T09:13:19.816Z"
+}

@@ -273,6 +273,37 @@ test("--kind --resume skips a checkpointed named kind, uses the scoped file, and
   cleanReal(); cleanScoped();
 });
 
+test("--kind --resume does NOT refold a leftover un-named kind from the shared scoped file (the fold filter)", async () => {
+  // The scoped file is shared across --kind sets and --resume doesn't truncate it, so an earlier
+  // `--kind dupe` can leave `dupe` sitting in the file. A later `--kind vague --resume` must fold in
+  // ONLY vague — the leftover dupe checkpoint must not refold over the baseline's dupe row.
+  cleanReal(); cleanScoped();
+  const cases = loadCases();
+  const byKind = {};
+  for (const c of cases) (byKind[c.kind] ??= []).push(c.id);
+  const leftover = "dupe", named = "vague";
+  // the leftover carries a DELIBERATELY WRONG accuracy; if it refolds, the baseline's dupe row changes
+  seedProgressAt(REAL_SCOPED, { driver: "frontier", model: "M", base_reps: 1, started_at: "z" }, {
+    [leftover]: { accuracy: 0.123, stability: 0.123, format_adherence: 1, case_ids: [...byKind[leftover]].sort(), captured_at: "z" },
+  });
+  const dir = tmp();
+  const baselinePath = join(dir, "frontier.json");
+  const priorDupe = { accuracy: 0.9, stability: 0.9, format_adherence: 1 };
+  writeFileSync(baselinePath, JSON.stringify({ meta: { source: "prior" }, policy: DEFAULT_POLICY,
+    per_kind: { [leftover]: priorDupe, [named]: { accuracy: 0, stability: 0, format_adherence: 1 } } }, null, 2) + "\n");
+
+  const spy = [];
+  const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
+  const { result } = await capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", baselinePath, "--kind", named, "--resume"], presets, baselinePath));
+
+  assert.equal(result, 0);
+  assert.ok(spy.every((id) => byKind[named].includes(id)), "only the named kind's cases dispatched (leftover not run)");
+  const written = JSON.parse(readFileSync(baselinePath, "utf8"));
+  assert.deepEqual(written.per_kind[leftover], priorDupe, "the leftover kind's baseline row is byte-identical — the fold filter kept the stale 0.123 checkpoint out");
+  assert.ok(!written.meta.source.includes(leftover), `the source string names only the refreshed kind, not the leftover: ${written.meta.source}`);
+  cleanReal(); cleanScoped();
+});
+
 test("--kind --resume refuses to blend on a stamp mismatch, before any rep", async () => {
   cleanReal(); cleanScoped();
   const cases = loadCases();

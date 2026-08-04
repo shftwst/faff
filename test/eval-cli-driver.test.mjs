@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 
 // --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
 test("local invocation appends --model and injects the ollama redirect env", () => {
-  const baseUrl = "http://studio.longhair-escalator.ts.net:11434";
+  const baseUrl = "http://studio.x.ts.net:11434";
   const inv = buildInvocation(
     { bin: "claude", model: "qwen3.6:27b-mlx", baseUrl,
       env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: "ollama", ANTHROPIC_API_KEY: "" } },
@@ -92,8 +92,8 @@ test("resolveDriver rejects an unknown --driver", () => {
 // --- resolveLocalParams: flag beats env; both missing is fatal ---
 test("resolveLocalParams resolves --base-url and --model from flags", () => {
   const { baseUrl, model } = resolveLocalParams(
-    ["--base-url", "http://studio.longhair-escalator.ts.net:11434", "--model", "qwen3.6:27b-mlx"]);
-  assert.equal(baseUrl, "http://studio.longhair-escalator.ts.net:11434");
+    ["--base-url", "http://studio.x.ts.net:11434", "--model", "qwen3.6:27b-mlx"]);
+  assert.equal(baseUrl, "http://studio.x.ts.net:11434");
   assert.equal(model, "qwen3.6:27b-mlx");
 });
 

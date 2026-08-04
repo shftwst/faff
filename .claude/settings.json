@@ -1,0 +1,56 @@
+{
+  "hooks": {
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"/Users/shftwst/.claude/plugins/cache/faff/faff/0.11.0/skills/faff-graft/setup-worktree.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/shftwst/.local/bin/faff runcheck --hook"
+          },
+          {
+            "type": "command",
+            "command": "/Users/shftwst/.local/bin/faff prepcheck --hook"
+          },
+          {
+            "type": "command",
+            "command": "/Users/shftwst/.local/bin/faff sentrycheck --hook"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/shftwst/.local/bin/faff merge-fence --hook"
+          },
+          {
+            "type": "command",
+            "command": "/Users/shftwst/.local/bin/faff background-fence --hook"
+          }
+        ]
+      },
+      {
+        "matcher": "Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/shftwst/.local/bin/faff background-fence --hook"
+          }
+        ]
+      }
+    ]
+  }
+}

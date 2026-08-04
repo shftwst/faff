@@ -17,20 +17,43 @@ Two rules make that safe:
 
 ## Stand up the runner
 
-The steps below get you a runner registered to one repository, running as its own user, that survives between scheduled firings. They are the recipe the self-hosted measurement work established — the runner substrate here is what was actually stood up and run; only the full seat-driven end-to-end is assembled from those proven pieces rather than run as one.
+These steps register a runner to one repository, running as its own user, that stays up between scheduled firings. `config.sh`, `run.sh`, and `svc.sh` below are GitHub's own runner scripts, not files in this repo. You get them by unpacking the runner package in step 3.
 
-1. **Pick the target repository.** Register the runner against the single repo whose queue it will drain — for the L4 watcher, your outward product repo; to rehearse, a throwaway scratch repo. Never register a runner against a repo whose posture the run is meant to protect.
-2. **Create a dedicated non-root user** for the runner (e.g. a `runner` account). Do not run it as your login user or as root — the runner process gets whatever that account can reach (see the posture section).
-3. **Download the runner package** the repo's *Settings → Actions → Runners → New self-hosted runner* page names — it gives you the current version and the registration token. Do not hardcode an old version.
-4. **Register with self-update disabled.** As the runner user:
+1. **Pick the target repository.** Register the runner against the single repo whose queue it will drain. For the L4 watcher that is your outward product repo; to rehearse, use a throwaway scratch repo. Never register a runner against a repo whose posture the run is meant to protect.
+2. **Create a dedicated non-root user** for the runner. The runner process gets whatever this account can reach (see the posture section), so give it its own home and nothing more. Do not run it as your login user or as root:
    ```sh
-   ./config.sh --url https://github.com/<you>/<repo> --token <REG_TOKEN> --unattended --disableupdate
+   sudo useradd -m -s /bin/bash runner
    ```
-   `--disableupdate` matters: a forced in-place self-update breaks the pinned binary and leaves the runner in a restart loop. Pin the version, update it deliberately.
-5. **Keep the workspace persistent.** Run the runner as a long-lived service on one machine, with its work directory **not** wiped between jobs. This is not optional for the L4 watcher: `faff lights-out --resume` reads the run ledger under `.faff/runs/` between firings, and that state is not tracked in git — a cleaned workspace loses it and the next firing mints a fresh run instead of continuing.
-6. **Run the job inside a cage that passes the admission check.** The runner itself is not the boundary. The workflow's first step is `faff container-check --gate`, and the job must execute inside a cage that passes it — contained, with no host engine socket reachable. See [unattended.md → "A cage that passes the gate"](unattended.md#a-cage-that-passes-the-gate) for a worked example (and the socket trap that catches the naive `container:` job); this page does not repeat it.
+3. **Download and unpack the runner package.** This is the step that produces `config.sh`, `run.sh`, and `svc.sh`. The repo's Settings > Actions > Runners > New self-hosted runner page names the current version and provides a one-time registration token. Use the version it names, and do not hardcode an old one. As the runner user:
+   ```sh
+   # RUNNER_VERSION comes from the New-runner page, e.g. 2.336.0
+   sudo -u runner -H bash -c '
+     mkdir -p ~/actions-runner && cd ~/actions-runner
+     curl -fsSL -o runner.tar.gz \
+       "https://github.com/actions/runner/releases/download/v'"$RUNNER_VERSION"'/actions-runner-linux-x64-'"$RUNNER_VERSION"'.tar.gz"
+     tar xzf runner.tar.gz && rm runner.tar.gz
+     ./bin/installdependencies.sh'
+   ```
+   After `tar xzf`, `~runner/actions-runner/` holds `config.sh`, `run.sh`, and `svc.sh`.
+4. **Register, with self-update disabled.** As the runner user, from `~runner/actions-runner`:
+   ```sh
+   sudo -u runner -H ./config.sh \
+     --url https://github.com/<you>/<repo> --token <REG_TOKEN> \
+     --unattended --disableupdate
+   ```
+   `--disableupdate` matters: a forced in-place self-update breaks the pinned binary and leaves the runner in a restart loop. Pin the version and update it deliberately. The registration token is single-use and short-lived, so get a fresh one from the New-runner page each time.
+5. **Install it as a long-lived service** so it survives reboots and logout and keeps servicing jobs between firings:
+   ```sh
+   cd ~runner/actions-runner
+   sudo ./svc.sh install runner   # register the systemd service, owned by the runner user
+   sudo ./svc.sh start
+   sudo ./svc.sh status           # confirm it is listening
+   ```
+   For a throwaway rehearsal you can foreground it instead with `sudo -u runner -H ./run.sh`, but that dies when the shell closes. Use `svc.sh` for a real rig.
+6. **Keep the workspace persistent.** Do not wipe the runner's work directory between jobs. This is not optional for the L4 watcher: `faff lights-out --resume` reads the run ledger under `.faff/runs/` between firings, and that state is not tracked in git. A cleaned workspace loses it, and the next firing starts a fresh run instead of continuing. The step-5 service leaves `_work` in place by default, so just do not add a cleanup step.
+7. **Run the job inside a cage that passes the admission check.** The runner itself is not the boundary. The workflow's first step is `faff container-check --gate`, and the job must execute inside a cage that passes it: contained, with no host engine socket reachable. See the "A cage that passes the gate" section in [unattended.md](unattended.md#a-cage-that-passes-the-gate) for a worked example, including the socket trap that catches the naive `container:` job. This page does not repeat it.
 
-With that in place, the runner picks up whichever reference workflow you copied into the repo's `.github/workflows/` — `l3-watcher.yml` for an on-the-loop watcher of your own repo, `l4-watcher.yml` for an out-of-the-loop factory on an outward product repo.
+With that in place, the runner picks up whichever reference workflow you copied into the repo's `.github/workflows/`: `l3-watcher.yml` for an on-the-loop watcher of your own repo, or `l4-watcher.yml` for an out-of-the-loop factory on an outward product repo.
 
 ## Runner-host posture
 

@@ -500,6 +500,40 @@ function classifyGlobalLink(full) {
   return path.resolve(mainRoot) !== path.resolve(top.stdout.trim()) ? "intoWorktree" : "live";
 }
 
+// FAFF-684: mirrors expand_target() in scripts/link-skills.sh (same rule, kept honest by
+// the agreement test rather than shared code). A bare "~" expands to $HOME, a "~/…" entry
+// drops the "~" and keeps $HOME + the rest, an absolute path passes through unchanged.
+// Anything else (relative, empty, a literal "$HOME" YAML never shell-expands) is unusable —
+// the caller skips it and returns null rather than joining it against a working directory.
+function expandInstallTarget(entry, home) {
+  if (entry === "~") return home;
+  if (entry.startsWith("~/")) return path.join(home, entry.slice(2));
+  if (path.isAbsolute(entry)) return entry;
+  return null;
+}
+
+// FAFF-684: read `install.skill_targets` from config via the existing loadConfig + dig idiom
+// (as gates.fallback does) — no new parser. Returns the expanded, still-unduped candidate
+// list, or an empty array on anything short of a genuinely usable non-empty list (absent key,
+// read error, wrong type, empty array, every entry unusable) — the caller falls back to the
+// hardcoded default pair on empty, exactly as the bash installer does.
+function readConfiguredInstallTargets(root, home) {
+  try {
+    const [data] = loadConfig(root);
+    const raw = dig(data, "install.skill_targets");
+    if (!Array.isArray(raw)) return [];
+    const out = [];
+    for (const entry of raw) {
+      if (typeof entry !== "string") continue;
+      const expanded = expandInstallTarget(entry.trim(), home);
+      if (expanded) out.push(expanded);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 // FAFF-676: doctor's default scan set must match the installer's global target list
 // (scripts/link-skills.sh), or doctor is lying about what it looked at. `--target` and
 // `$CLAUDE_PLUGIN_ROOT` each still resolve to exactly one directory — unchanged in effect,
@@ -509,10 +543,18 @@ function classifyGlobalLink(full) {
 // the installer-and-doctor agreement test in test/link-skills-worktree.test.mjs, which is
 // what keeps this list honest against scripts/link-skills.sh's TARGET_DIRS rather than a
 // promise that the two never drift apart.
-function resolveDoctorScanSet(targetFlag, pluginRootEnv, home) {
+//
+// FAFF-684: the home-directory default branch is now sourced from the install.skill_targets
+// config key when it resolves to a non-empty, usable list; `root` is threaded in only for
+// that read (cmdDoctor already resolves it via findRoot()). Unset/unusable falls back to
+// exactly the hardcoded pair below — unchanged from FAFF-676.
+function resolveDoctorScanSet(targetFlag, pluginRootEnv, home, root) {
   if (targetFlag) return { scanSet: [targetFlag], collapseNotices: [] };
   if (pluginRootEnv) return { scanSet: [path.join(pluginRootEnv, "skills")], collapseNotices: [] };
-  const candidates = [path.join(home, ".claude", "skills"), path.join(home, ".agents", "skills")];
+  const configured = root ? readConfiguredInstallTargets(root, home) : [];
+  const candidates = configured.length > 0
+    ? configured
+    : [path.join(home, ".claude", "skills"), path.join(home, ".agents", "skills")];
   return dedupeByResolvedPath(candidates);
 }
 
@@ -605,7 +647,7 @@ function cmdDoctor(args) {
   let root = values["--root"] === undefined ? null : values["--root"];
   root = root || findRoot();
 
-  const { scanSet, collapseNotices } = resolveDoctorScanSet(targetFlag, process.env.CLAUDE_PLUGIN_ROOT, homeDir());
+  const { scanSet, collapseNotices } = resolveDoctorScanSet(targetFlag, process.env.CLAUDE_PLUGIN_ROOT, homeDir(), root);
   const scans = scanSet.map(scanDoctorDirectory);
 
   // FAFF-676: exit 2 ("nothing installed anywhere") is now evaluated ACROSS every scanned

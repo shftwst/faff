@@ -142,6 +142,9 @@ tracking:
   git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
   spec_docs_path: docs/specs/                                   # where faff-graft commits specs (see Spec docs location)
 
+install:
+  skill_targets:   # optional block-sequence (FAFF-684, see docs/guide/cli.md); unset ⇒ ~/.claude+.agents/skills
+
 slots:             # optional delegation slots; each has a faff default when unset
   intake: superpowers:brainstorming                  # used by faff-jot for new-work discovery
   spec: gstack:autoplan                              # spec producer used by faff-prep (default faffter-noon-spec)

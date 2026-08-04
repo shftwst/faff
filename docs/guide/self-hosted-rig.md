@@ -47,6 +47,23 @@ None of these is left as an open worry: for each, either you narrow it here, or 
 
 An overnight run should stop at a ceiling, not drain until it runs out of something. Pair the rig with a `budget.window` (the 5-hour window governor): a night run that reaches the window ceiling **parks** rather than running unbounded, and the park surfaces — the disposition step the reference workflows end on exits non-zero on a parked-window run, so a stopped-at-ceiling night turns the job amber in the morning rather than passing silently. This composes with the L4 watcher's per-segment build cap: the cap bounds each firing, the window bounds the whole night. The mechanics live in [unattended.md](unattended.md); here it is enough to know to set the window.
 
+## Watching a run live
+
+The rig gives you two ways to know what a run is doing, and they are complementary. The **durable** view is the record you read afterwards — the run-ledger, the events log, and `faff disposition`'s exit code and `--json` report; that is what a morning review reads, and it is what turns a needs-attention night red. The **live** view is watching the run as it happens — the "check it from your phone while you're out" case — and that is a **harness** capability, not a faff one: `claude -p` streams the run turn-by-turn with `--output-format stream-json --verbose`, and faff runs *inside* the harness, so whatever the harness emits is what you stream. (Swap `claude -p` for your own harness — a Codex run streams its own way; faff adds nothing here beyond running inside it.)
+
+Where you watch depends on the trigger:
+
+- **On GitHub Actions**, the Actions UI already tails the drain step's output live — there is nothing extra to wire, and the step log is captured durably too.
+- **On the Actions-free path** (a bare Machine on a timer, no Actions UI) you expose the stream yourself: add the streaming flags to the drain and tee the output somewhere you can reach — a file the machine serves, a socket, or a small viewer. That self-exposed stream is ephemeral (it is gone once you close it), so treat it as the live view only — the ledger and the `faff disposition` exit remain the record of what actually happened.
+
+Concretely, the drain step's harness call gains the streaming flags:
+
+```sh
+claude -p "/faff-beep-boop" --output-format stream-json --verbose | your-viewer-or-tee
+```
+
+Reach for it when you want eyes on a run in flight; reach for `faff disposition` and the ledger when you want to know, durably, how it ended.
+
 ## The disposable-microVM alternative
 
 Your laptop is the primary rig, but a disposable Linux microVM works too, and the self-hosted measurement work stood one up end to end — a small cloud Machine from an `ubuntu:24.04` base plus the Actions runner and a container engine. The operational gotchas it hit, so you do not have to:

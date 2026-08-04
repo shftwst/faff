@@ -162,6 +162,19 @@ The dial-coherence probe reads the merged (base ⊕ overlay) config, so the over
 
 Use `faff lights-out --check` to dry-run the preflight (it mints nothing) — handy for confirming the cage and the slots are wired before you actually leave.
 
+### An L4 watcher on an outward repo
+
+The L3 watcher above chews faff's own queue on the loop. Its L4 sibling, `docs/ci/l4-watcher.yml`, is the out-of-the-loop version for an **outward product repo**: a cron firing mints (or resumes) an L4 run, drains a segment under a budget cap, and the next firing continues the *same run* until it is done — correctness held up by adversarial review and the code-blind holdout, not by your morning read.
+
+It targets an **outward** repo, never faff itself: L4 refuses a self-directed run (building faff with faff), so the reference points `tracking.repo` / `tracking.container` at your product. Like the L3 reference it lives under `docs/ci/`, not `.github/workflows/` — copy it into the product repo once the rig exists.
+
+Two things are worth understanding before you run it:
+
+- **Segmentation is by escalation, not by a graceful exit.** `faff lights-out --resume <run-id>` re-enters a run only if it stopped in a re-enterable state (escalated, or a timed-out `dead-running`). A *clean* exit marks the run done, and resume declines it — so a segment boundary is a deliberate **budget/window escalation** (a per-segment `--until` / `--max`). If you rely instead on the job's hard time-cap, the cron interval must be longer than the runner's heartbeat-stale window (~15 min), or the next firing sees a still-live run and declines to resume.
+- **The mandate is fixed at mint.** The PRD/target decision (what the run is for) is made once, when the run is minted; a resume trusts it. So editing the PRD between firings does not silently re-scope work already in flight — the change is picked up by the next *fresh* run, not mid-run.
+
+The workflow's final step tells a mid-run segment boundary (exit green — more to come) apart from a finished-or-stuck run (handed to `faff disposition`, which turns a genuinely stuck run red). It needs a **persistent single-runner workspace** (the run's ledger lives under `.faff/runs/` between firings), a **sequential** dispatch slot, and the same adversarial `spec_review` overlay the section above describes. The auth matrix is in the workflow's own comments: a solo self-hosted seat, or a team hosted runner with an API key — never a pooled seat.
+
 ## Running over SSH
 
 If you run `claude` over a plain SSH session — laptop on the sofa, server in the cupboard — the `claude` process is a *child of that SSH connection*. Close the lid, switch networks, or drop Wi-Fi for a moment and the connection dies, taking the run with it. `/faff-beep-boop` is built for exactly the away-from-keyboard case (overnight, fire-and-forget), so it's exactly where a dropped link bites.

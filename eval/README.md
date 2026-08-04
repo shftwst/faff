@@ -180,6 +180,16 @@ may run it. Follow these six points exactly.
    `claude-opus-4-8`; keep it there unless you deliberately want a different lineage, because nothing in
    the harness warns you when the model changes between sweeps.
 
+   **Reasoning effort — `--effort <level>` (FAFF-722, frontier lane only).** By default no `--effort` is
+   passed, so a sweep runs at `claude -p`'s built-in default effort (both a model comparison and a
+   re-baseline stay at that same unstated default — fair, but not pinned). Pass `--effort low|medium|high|xhigh|max`
+   to pin the reasoning effort for the run; an off-vocabulary value fails loud (it is never forwarded to
+   `claude -p`). When set, the effort is printed at start (`… · effort: <level>`) and recorded in the
+   baseline `meta` and the resume stamp — so it joins the `--resume` stamp-guard (a resume at a different
+   effort refuses to blend, exactly as a different `--model` does). `--effort` is ignored (with a warning)
+   on the `local`/`ollama-direct` lanes — reasoning effort is a frontier `claude -p` knob. There is
+   deliberately **no** `.faffrc` `effort.eval` config lane (FAFF-416 excludes eval); effort is per-run only.
+
 3. **Never pass `--only` with `--update-baseline`.** The advice is unchanged; the reason below replaces
    an older one that FAFF-318 fixed. `--only` narrows the run to a subset of kinds, which does two things
    you don't want for a re-baseline: it produces a **partial** baseline (kinds outside the subset are

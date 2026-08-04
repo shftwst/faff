@@ -98,9 +98,11 @@ jobs:
       #    concrete example docs/guide/unattended.md uses; swap it for your own.
       - name: Drain the automation-eligible queue (L3)
         env:
-          # The seat token your harness reads (e.g. CLAUDE_CODE_OAUTH_TOKEN). Held as a
+          # The env var name must be the one YOUR harness reads. `claude -p` (the example
+          # below) reads CLAUDE_CODE_OAUTH_TOKEN, so that is the key here; a Codex harness
+          # would read its own var instead — rename this key to match. Held as a
           # repository/environment secret, injected here, never written to disk.
-          FAFF_CI_SEAT_TOKEN: ${{ secrets.FAFF_CI_SEAT_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.FAFF_CI_SEAT_TOKEN }}
         run: |
           set -eu
           # Mint the run dir ourselves and export it so the final disposition step reads
@@ -121,4 +123,11 @@ jobs:
       #    (See docs/guide/unattended.md → "the disposition exit contract".)
       - name: Disposition (fail the firing if anything needs a human)
         if: always()
-        run: faff disposition --run-dir "$FAFF_RUN_DIR"
+        run: |
+          set -u
+          # Guard against an unset run dir. If the drain step failed before it wrote
+          # $GITHUB_ENV, the job is already red — but never let disposition fall back to
+          # the LATEST ledger (an empty --run-dir would), which on a persistent rig could
+          # print a stale "clean" verdict for a prior firing. Fail loudly instead.
+          [ -n "${FAFF_RUN_DIR:-}" ] || { echo "no run dir for this firing — failing"; exit 1; }
+          faff disposition --run-dir "$FAFF_RUN_DIR"

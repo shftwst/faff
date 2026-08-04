@@ -95,6 +95,13 @@ test("hostSocketProbe: probe error on a canonical path → {present:false, state
   assert.deepEqual(hostSocketProbe(fsq), { present: false, path: "/var/run/docker.sock", state: "error" });
 });
 
+test("hostSocketProbe: a present path wins over an EARLIER error path — present is never masked (FAFF-713)", () => {
+  // path[0] errors, path[1] is present → must return present (not error). Pins the
+  // loop's present-wins-immediately invariant against future refactors.
+  const fsq = { probePath: (p) => (p === HOST_SOCKET_PATHS[0] ? "error" : "present") };
+  assert.deepEqual(hostSocketProbe(fsq), { present: true, path: HOST_SOCKET_PATHS[1], state: "present" });
+});
+
 // `container-check --json` surfaces host_socket as an ADDITIONAL field — exit code stays
 // governed by `result` (containment) alone, never by host_socket presence.
 test("container-check --json: host_socket field is well-formed and exit is unaffected by it", () => {

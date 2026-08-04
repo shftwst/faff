@@ -1,0 +1,37 @@
+[run-evals] frontier model: claude-opus-5 (--model flag > models.eval config > pinned default; never the account default — FAFF-315)
+[run-evals] capturing raw judgements → /Users/shftwst/workspace/shftwst/faff/.faff/eval-runs/20260804-031054/judgements.jsonl (FAFF-320)
+
+=== baseline written to eval/baselines/frontier-opus5.json (29 kinds) ===
+
+=== judgement-eval headline (complete) ===
+  adr-drift   accuracy 1.00  stability 1.00  format 1.00
+  adr-gloss   accuracy 0.99  stability 0.99  format 1.00
+  architecture accuracy 0.72  stability 0.72  format 1.00
+  chain-gap   accuracy 1.00  stability 1.00  format 1.00
+  confidence  accuracy 0.90  stability 0.93  format 1.00
+  decomposition accuracy 0.99  stability 0.99  format 1.00
+  dupe        accuracy 0.14  stability 0.86  format 1.00
+  explanatory-order accuracy 1.00  stability 1.00  format 1.00
+  gloss       accuracy 0.97  stability 0.97  format 1.00
+  grouping    accuracy 0.54  stability 0.54  format 1.00
+  holdout     accuracy 1.00  stability 1.00  format 1.00
+  holdout-exercise accuracy 1.00  stability 1.00  format 1.00
+  marker      accuracy 1.00  stability 1.00  format 1.00
+  modedetect  accuracy 1.00  stability 1.00  format 1.00
+  ordering    accuracy 1.00  stability 1.00  format 1.00
+  prep-architecture-trigger accuracy 1.00  stability 1.00  format 1.00
+  refutation-code accuracy 0.80  stability 1.00  format 1.00
+  refutation-spec accuracy 0.54  stability 0.81  format 1.00
+  resolved-elsewhere accuracy 1.00  stability 1.00  format 1.00
+  roadmap     accuracy 1.00  stability 1.00  format 1.00
+  routing     accuracy 1.00  stability 1.00  format 1.00
+  shaping     accuracy 1.00  stability 1.00  format 1.00
+  spec-verdict accuracy 0.85  stability 0.85  format 1.00
+  specqual    accuracy 0.98  stability 0.98  format 1.00
+  splittable  accuracy 1.00  stability 1.00  format 1.00
+  stale       accuracy 1.00  stability 1.00  format 1.00
+  superseded  accuracy 1.00  stability 1.00  format 1.00
+  vague       accuracy 1.00  stability 1.00  format 1.00
+  verdict-revert accuracy 1.00  stability 1.00  format 1.00
+  escalated: adr-gloss-002, architecture-001, confidence-003, decomposition-001, dupe-002, gloss-002, grouping-001, refutation-spec-002, refutation-spec-004, refutation-spec-005, refutation-spec-006, refutation-spec-007, refutation-spec-008, refutation-spec-010, spec-verdict-001, specqual-002
+  total tokens (est): 673770

@@ -1,0 +1,124 @@
+# =============================================================================
+# l3-watcher.yml — REFERENCE workflow (an example to copy, not a live faff CI job)
+# =============================================================================
+#
+# This file lives under docs/ci/ ON PURPOSE. It is a template an adopter copies
+# into their own repo's .github/workflows/, and the reference an operator uses to
+# stand faff's own L3 watcher up once the rig exists. It is deliberately NOT in
+# .github/workflows/ here: its `runs-on:` names a self-hosted rig that is not yet
+# registered, and "a committed job whose label matches nothing is a small lie in
+# the repository" (see .github/workflows/job-surface-probe.yml). Promoting it to a
+# live job is a one-line move once the FAFF-609 runner rig and its auth secret exist
+# — see docs/guide/unattended.md → "An L3 watcher in CI".
+#
+# WHAT IT IS
+#   A tracker-driven autonomous watcher: it wakes on a schedule and runs
+#   /faff-beep-boop at L3 (on the loop), draining the automation-eligible ticket
+#   queue. The tracker is the control plane — crank `faff-automate` up on a ticket
+#   and the next firing picks it up; there is nothing to redeploy.
+#
+# WHY L3 (not L4) FOR FAFF-ON-FAFF
+#   An L4 `faff lights-out` run refuses on faff's own repo (beep-boop §0a returns
+#   refuse/self-directed — building faff with faff is the self-directed case). An
+#   ordinary L3 run skips §0a entirely (ADR-0069), which is exactly what lets the
+#   nightly self-drain work. For an OUTWARD product repo, the L4 shape is the
+#   sibling reference (FAFF-606) — a different file, a different set of guarantees.
+#
+# SEGMENT-PER-FIRING
+#   L3 has no run-level `lights-out --resume` (that verb is L4-only), so each firing
+#   is its own short, complete run: it drains what it can, its ledger closes, and the
+#   next firing re-queries the tracker fresh. No work is lost — graft pushes the
+#   feature branch to origin at build-complete, and claim-before-admit (below) stops
+#   a re-queue from colliding. A build killed mid-firing (before its branch is pushed)
+#   simply rebuilds next time. One edge to know: an issue killed AT THE REVIEW STEP
+#   after its branch was pushed is left `In Progress` and is skipped as claimed-by-peer
+#   on the next firing until you pick it up in the morning park-review — no committed
+#   work is lost, but it does not auto-resume.
+#
+# =============================================================================
+
+name: l3-watcher (reference)
+
+on:
+  # Hourly is a conservative default. Tune to taste — overlap is safe (see concurrency).
+  schedule:
+    - cron: "0 * * * *"
+  # Manual firing, for a first run or an ad-hoc drain.
+  workflow_dispatch: {}
+
+# Serialise firings. `cancel-in-progress: false` means a firing already draining is
+# never killed mid-build — the next simply waits. This is the EFFICIENCY guard; the
+# CORRECTNESS guard is beep-boop's claim-before-admit (FAFF-82), which re-reads each
+# ticket's live tracker status before admitting it, so even overlapping firings never
+# double-drain the same ticket.
+concurrency:
+  group: l3-watcher-${{ github.repository }}
+  cancel-in-progress: false
+
+# A watcher reads the repo and drives the tracker/forge through faff; it needs no
+# broad write scope from the workflow token itself. Matches the repo's other jobs.
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    # EXAMPLE label. This reference targets the FAFF-609 self-hosted rig ("your laptop
+    # is the factory"). Swap it for whatever ADMITTED cage you run — the admission gate
+    # below, not this label, is what actually decides whether the run may proceed.
+    runs-on: [self-hosted, faff-l3]
+
+    # A hard wall-clock cap for the firing. The FAFF-594 window governor bounds spend
+    # WITHIN the run (beep-boop consults `faff budget check` at each checkpoint and parks
+    # with `parked-window` on a breach); this is the belt-and-braces job-level ceiling.
+    timeout-minutes: 300
+
+    steps:
+      # 1. ADMISSION GATE — MUST be the first step, before any agent, tracker claim, or
+      #    ledger mint. `faff container-check --gate` exits 0 iff the run is CONTAINED
+      #    AND NO host engine socket is reachable (ADR-0095's two admission criteria;
+      #    the check is FAFF-655). Exit 1 fails the job right here, so nothing is claimed
+      #    and no ledger is minted on a rig that is not admitted.
+      #
+      #    ANY cage that passes this gate is acceptable — claude-box, a devcontainer, a
+      #    Kubernetes runner pod, an Actions `container:` with the host socket dealt with,
+      #    or something you wrote. The rig named in `runs-on:` above is an EXAMPLE; this
+      #    check is the requirement. One worked, passing rig is documented in FAFF-651.
+      - name: Admission gate (contained + no host engine socket reachable)
+        run: faff container-check --gate
+
+      - uses: actions/checkout@v4
+
+      # 2. THE L3 DRAIN. A plain /faff-beep-boop — no `faff lights-out`, so the run is L3.
+      #
+      #    AUTH: a subscription seat via a long-lived token in the environment (the CI
+      #    path, ADR-0092), sourced from a repository secret — NEVER a committed rc
+      #    (ADR-0067). Claude Max reads a token env var; Codex uses a `codex login` seat.
+      #    faff consumes the seat the cage provides; it never implements login. The exact
+      #    seat-handle config wiring is FAFF-481. The harness (`claude -p` here) is the
+      #    concrete example docs/guide/unattended.md uses; swap it for your own.
+      - name: Drain the automation-eligible queue (L3)
+        env:
+          # The seat token your harness reads (e.g. CLAUDE_CODE_OAUTH_TOKEN). Held as a
+          # repository/environment secret, injected here, never written to disk.
+          FAFF_CI_SEAT_TOKEN: ${{ secrets.FAFF_CI_SEAT_TOKEN }}
+        run: |
+          set -eu
+          # Mint the run dir ourselves and export it so the final disposition step reads
+          # the SAME run's end state. (An L4 wrapper would capture it from `faff lights-out`;
+          # at L3 we name it up front — see docs/guide/unattended.md.) new Date() is fine
+          # here: this is a shell wrapper, not a faff-internal path.
+          FAFF_RUN_DIR=".faff/runs/run-$(date -u +%Y%m%d-%H%M%S)-l3-ci"
+          echo "FAFF_RUN_DIR=$FAFF_RUN_DIR" >> "$GITHUB_ENV"
+          export FAFF_RUN_DIR
+          claude -p "/faff-beep-boop"
+
+      # 3. DISPOSITION — the final, EXIT-PROPAGATING step. It reads the run's end state
+      #    and exits non-zero when anything needs a human: a parked / errored issue, a
+      #    budget or window ceiling (`parked-window`), a PR left open for review, a run
+      #    escalation, or an incomplete ledger. This is what turns a needs-attention
+      #    firing RED instead of passing green-by-silence. `if: always()` so it is the
+      #    authoritative exit even if the drain step itself failed.
+      #    (See docs/guide/unattended.md → "the disposition exit contract".)
+      - name: Disposition (fail the firing if anything needs a human)
+        if: always()
+        run: faff disposition --run-dir "$FAFF_RUN_DIR"

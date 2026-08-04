@@ -83,6 +83,15 @@ jobs:
       #    Kubernetes runner pod, an Actions `container:` with the host socket dealt with,
       #    or something you wrote. The rig named in `runs-on:` above is an EXAMPLE; this
       #    check is the requirement. One worked, passing rig is documented in FAFF-651.
+      #
+      #    THE SOCKET TRAP — do NOT reach for a plain job `container:` as your cage. On a
+      #    runner host with a docker socket, the runner bind-mounts /var/run/docker.sock
+      #    into every job container (actions/runner ContainerInfo.cs), so the job reads
+      #    contained-WITH-a-host-socket → the gate REFUSES it. An `rm -f` step inside the
+      #    job does not help: the mount is already live and `rm` cannot unmount it. The fix
+      #    is at the RUNNER-HOST level (no host daemon / rootless-only, the env-rootless
+      #    posture in .github/workflows/validate.yml), or a cage the job runs inside that
+      #    never had the socket. See docs/guide/unattended.md → "A cage that passes the gate".
       - name: Admission gate (contained + no host engine socket reachable)
         run: faff container-check --gate
 

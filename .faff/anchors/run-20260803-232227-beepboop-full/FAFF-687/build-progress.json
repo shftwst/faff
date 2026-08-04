@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-687",
+  "build": {
+    "status": "complete",
+    "diff_hash": "bd246c8b6e289f79be20b42596e251b16e5a51082e2cfaafb5816f13d501fae9",
+    "branch": "faff-687-give-evalcli-drivermjs-end-anchors-the-uniqueness-check",
+    "pushed_at": "2026-08-04T01:47:50.961Z"
+  },
+  "updated_at": "2026-08-04T01:47:50.961Z"
+}

@@ -2,7 +2,7 @@
 
 The two reference workflows under `docs/ci/` (`l3-watcher.yml`, `l4-watcher.yml`) both need a self-hosted runner to run on. This is the runbook for standing one up. The model is deliberately small: **one machine, one runner, the seat already logged in.** Your own laptop or desktop is the factory — it is simultaneously the substrate the run executes on and the thing that holds the subscription seat, so no API key is involved on the solo path.
 
-This page owns the runner-*host* half of the safety story. The cage (see [unattended.md → "A cage that passes the gate"](unattended.md)) bounds what the *agent* inside a job can reach; nothing about the cage bounds the runner *process* that hosts the job, and on this rig that process lives on your own machine. The [runner-host posture](#runner-host-posture) section below states what to do about that.
+This page owns the runner-*host* half of the safety story. The cage (see [unattended.md → "A cage that passes the gate"](unattended.md#a-cage-that-passes-the-gate)) bounds what the *agent* inside a job can reach; nothing about the cage bounds the runner *process* that hosts the job, and on this rig that process lives on your own machine. The [runner-host posture](#runner-host-posture) section below states what to do about that.
 
 ## Auth: a subscription seat, and no API keys
 
@@ -28,7 +28,7 @@ The steps below get you a runner registered to one repository, running as its ow
    ```
    `--disableupdate` matters: a forced in-place self-update breaks the pinned binary and leaves the runner in a restart loop. Pin the version, update it deliberately.
 5. **Keep the workspace persistent.** Run the runner as a long-lived service on one machine, with its work directory **not** wiped between jobs. This is not optional for the L4 watcher: `faff lights-out --resume` reads the run ledger under `.faff/runs/` between firings, and that state is not tracked in git — a cleaned workspace loses it and the next firing mints a fresh run instead of continuing.
-6. **Run the job inside a cage that passes the admission check.** The runner itself is not the boundary. The workflow's first step is `faff container-check --gate`, and the job must execute inside a cage that passes it — contained, with no host engine socket reachable. See [unattended.md → "A cage that passes the gate"](unattended.md) for a worked example (and the socket trap that catches the naive `container:` job); this page does not repeat it.
+6. **Run the job inside a cage that passes the admission check.** The runner itself is not the boundary. The workflow's first step is `faff container-check --gate`, and the job must execute inside a cage that passes it — contained, with no host engine socket reachable. See [unattended.md → "A cage that passes the gate"](unattended.md#a-cage-that-passes-the-gate) for a worked example (and the socket trap that catches the naive `container:` job); this page does not repeat it.
 
 With that in place, the runner picks up whichever reference workflow you copied into the repo's `.github/workflows/` — `l3-watcher.yml` for an on-the-loop watcher of your own repo, `l4-watcher.yml` for an out-of-the-loop factory on an outward product repo.
 

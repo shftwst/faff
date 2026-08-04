@@ -111,6 +111,28 @@ It is a **reference under `docs/ci/`, not a live job** — its `runs-on:` names 
 
 For an **outward product repo** the L4 sibling (`faff lights-out`, cron-resumed) is the shape to reach for instead — see the next section.
 
+### A cage that passes the gate
+
+The admission gate is easy to state and easy to get wrong, so here is a cage that actually passes, and the trap that catches most first attempts.
+
+**What passing looks like.** A cage that passes is *contained* and reaches *no host engine socket*. Run `faff container-check --gate` inside it and you get:
+
+```
+$ faff container-check --gate
+pass
+
+$ faff container-check --gate --json
+{"verdict":"pass","contained":true,"basis":"dockerenv","host_socket":{"present":false,"path":null},"criteria":{"contained":true,"no_host_socket":true}}
+```
+
+That reading is from this repo's own dev container — an interactive cage, not a live CI job — a contained cage (a container, so `/.dockerenv` is present) that never mounts the host docker socket. It stands in for the CI cage by construction: what the gate checks is the same wherever it runs, and a live self-hosted reading is the runner-rig doc's to take. **claude-box** is the same shape and the concrete example an adopter can reach for: it reads contained and its entrypoint refuses to mount the host socket, so it passes by construction. It is an *example*, not a requirement — the gate is the requirement. Any of these pass equally: claude-box or another cage the job runs inside, a Kubernetes/ARC runner pod (contained via the Kubernetes service-host marker), a devcontainer, a sysbox runtime, or an Actions `container:` job **on a runner host that exposes no docker socket**. Swap one for another and nothing about the requirement changes.
+
+**The socket trap — the naive `container:` job.** The obvious move on Actions is to add a job `container:` and assume that is your cage. It is not, on the usual runner. When the runner host has a docker socket, the runner bind-mounts `/var/run/docker.sock` into every Linux job container (this is `actions/runner`'s `ContainerInfo.cs`, and the CI-runner ADR in `docs/adr/` records it) — so the job reads *contained-with-a-host-socket*, which is a full escape and the gate refuses it. The tempting fix does not work either: an `rm -f /var/run/docker.sock` step *inside the job* runs after the runner has already established the mount, and inside the container that path is a live bind mount `rm` cannot unmount. What actually clears it is dealing with the socket at the **runner-host level** — no host docker daemon, or a rootless-only one, so there is nothing to bind-mount (the `env-rootless` job in `.github/workflows/validate.yml` is exactly that posture). So: a job `container:` is admissible only once its *host* exposes no socket; that is a property of the runner host, not something you can fix from inside the workflow.
+
+**`faff env` without a host socket.** If a job needs a container engine — `faff env` runs `docker compose up` to stand the app tier up — it gets a **bounded nested engine** (rootless dind, podman-in-podman, or a sysbox-class runtime), which is the contract the cage-engine acceptance doc (`docs/cage-engine-acceptance.md`) already sets for claude-box. That does not trip the gate: the socket probe checks only the canonical host paths and deliberately ignores rootless paths, so a bounded rootless engine is invisible to it. The host socket is a dead end here by design — the lights-out preflight refuses it at L4 regardless of containment. Reach for the nested engine, never the host socket.
+
+**Where the cage stops and the runner host begins.** Passing the gate means *contained + no host socket* — that is what the cage owns. It does **not** by itself bound everything the job can touch: a self-hosted runner maps its whole work directory into the job, and within the job's life the agent holds the runner's registration token and credentials. Narrowing what the runner's own account can reach is a property of how you *register and scope the runner host*, which belongs to the self-hosted-runner rig doc, not to the cage. Keep the two separate in your head: the cage makes the run contained; the runner-host setup bounds the runner's own credential surface.
+
 ## Going lights-out (L4) — `faff lights-out`
 
 L3 keeps you *on* the loop: you walk away, but you're the one who reviews the morning's parks. **L4 is *out* of the loop** — correctness is held up by adversarial machinery (a second model trying to break the change, a code-blind holdout marking the work against a spec it never saw) rather than by you reading anything in the morning. `faff lights-out` is the single entry point that turns L3 into L4: it composes the shipped L4 guardrails into **one enforced launch** instead of a hand-assembly of `/faff-beep-boop` flags a forgotten one of which would silently degrade the run.

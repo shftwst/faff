@@ -16,9 +16,9 @@ const ollamaReply = (content) => JSON.stringify({ message: { content } });
 
 // --- buildOllamaRequest: POST /api/chat, non-streaming, model + prompt in the body ---
 test("buildOllamaRequest targets /api/chat with a non-streaming chat body", () => {
-  const req = buildOllamaRequest({ baseUrl: "http://studio.longhair-escalator.ts.net:11434", model: "qwen3.6:27b-mlx" }, "PROMPT");
+  const req = buildOllamaRequest({ baseUrl: "http://studio.x.ts.net:11434", model: "qwen3.6:27b-mlx" }, "PROMPT");
   assert.equal(req.method, "POST");
-  assert.equal(req.url, "http://studio.longhair-escalator.ts.net:11434/api/chat");
+  assert.equal(req.url, "http://studio.x.ts.net:11434/api/chat");
   const body = JSON.parse(req.body);
   assert.equal(body.model, "qwen3.6:27b-mlx");
   assert.equal(body.stream, false);

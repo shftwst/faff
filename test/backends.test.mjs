@@ -39,7 +39,7 @@ test("deriveAuth: keyless non-anthropic -> none", () => {
   assert.equal(deriveAuth({ provider: "ollama" }), "none");
 });
 test("deriveEgress: tailscale (*.ts.net) host -> local", () => {
-  assert.equal(deriveEgress({ host: "http://studio.longhair-escalator.ts.net:11434" }), "local");
+  assert.equal(deriveEgress({ host: "http://studio.x.ts.net:11434" }), "local");
 });
 test("deriveEgress: a public host -> external", () => {
   assert.equal(deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }), "external");
@@ -128,7 +128,7 @@ test("checkRealizable: requires:local + an egress:external ref -> refuse residen
 });
 
 test("checkRealizable: egress derivation for a requires:local check (studio-ollama local, nvidia-glm external)", () => {
-  assert.equal(deriveEgress({ host: "http://studio.longhair-escalator.ts.net:11434" }), "local");
+  assert.equal(deriveEgress({ host: "http://studio.x.ts.net:11434" }), "local");
   assert.equal(deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }), "external");
 });
 

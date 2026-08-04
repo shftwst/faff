@@ -485,7 +485,7 @@ function backendsSelftest() {
   ok("deriveAuth: api_key_env wins over anthropic", deriveAuth({ provider: "anthropic", api_key_env: "K" }) === "api-key");
 
   // --- deriveEgress ------------------------------------------------------------
-  ok("deriveEgress: tailscale host -> local", deriveEgress({ host: "http://studio.longhair-escalator.ts.net:11434" }) === "local");
+  ok("deriveEgress: tailscale host -> local", deriveEgress({ host: "http://studio.x.ts.net:11434" }) === "local");
   ok("deriveEgress: public host -> external", deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }) === "external");
   ok("deriveEgress: localhost -> local", deriveEgress({ host: "http://localhost:11434" }) === "local");
   ok("deriveEgress: 127.0.0.1 -> local", deriveEgress({ host: "http://127.0.0.1:11434" }) === "local");

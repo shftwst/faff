@@ -54,6 +54,16 @@ function pidAliveProbe(pid) {
   try { process.kill(pid, 0); return true; } catch { return false; }
 }
 
+// FAFF-635 — the L4 abort-landing/poller-exit deadlines below are sized for a
+// CPU-contended CI runner, not an idle box. The detached poller does two blocking
+// spawnSync children per tick (`sentry check`, `sentry abort`) plus an events/log
+// append; under N-way CI parallelism each child spawn can stretch to several
+// seconds. Both waits are predicate-polled (waitUntil returns the instant the
+// predicate is true), so a generous ceiling costs nothing on a healthy run and
+// only ever spends time when the runner is genuinely starved.
+const ABORT_LANDING_BUDGET_MS = 30000; // ~5-6x the two-child-spawn worst case under CI contention
+const POLLER_EXIT_BUDGET_MS = 20000; // covers detached-process teardown under the same contention
+
 test("sentry-poller --selftest passes (the pure tick-decision core + parseIntervalSecs table)", () => {
   const r = run(["sentry-poller", "--selftest"]);
   assert.equal(r.code, 0);
@@ -183,7 +193,7 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
     const aborted = await waitUntil(() => {
       try { return JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).owner.status === "aborted-resumable"; }
       catch { return false; }
-    }, { timeoutMs: 10000 });
+    }, { timeoutMs: ABORT_LANDING_BUDGET_MS });
     assert.ok(aborted, "the ledger reached aborted-resumable within the deadline");
 
     const led = read();
@@ -197,7 +207,7 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
     // abort-actioned line (a strict happens-after of the checkpoint append) before
     // reading events(), so a full-suite run under load can't read events.jsonl
     // before the checkpoint has landed.
-    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: 10000 });
+    const settled = await waitUntil(() => log().includes("abort-actioned"), { timeoutMs: ABORT_LANDING_BUDGET_MS });
     assert.ok(settled, "poller reached abort-actioned (checkpoint append has run)");
 
     const evs = events();
@@ -210,7 +220,7 @@ test("L4 + stale heartbeat → the poller actions faff sentry abort: aborted-res
     // present) — kept to document intent at its original spot, per FAFF-686's spec.
     assert.match(log(), /abort-actioned/);
 
-    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: 5000 });
+    const diedOrGone = await waitUntil(() => !pidAliveProbe(started.pid), { timeoutMs: POLLER_EXIT_BUDGET_MS });
     assert.ok(diedOrGone, "the poller process exited after actioning the abort");
     // The handle still names the pid it spawned (it is not removed) — status now
     // reads it as not-running via the liveness probe.

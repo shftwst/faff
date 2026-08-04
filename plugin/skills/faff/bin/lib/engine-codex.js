@@ -74,8 +74,11 @@ function parseCodexEvents(raw) {
   return { events, finalMessage };
 }
 
-// PURE (FAFF-604): total the usage carried on the stream's `turn.completed`
-// events into the four token classes budget/economics bucket by.
+// PURE (FAFF-604, extended FAFF-666): total the usage carried on the stream's
+// `turn.completed` events into the four token classes budget/economics bucket
+// by. `turn.completed.usage` reports FIVE fields (codex-cli 0.145.0,
+// docs/architecture/codex-cli-observed.md); every one is either summed into a
+// class below or dispositioned in this comment — none is silently dropped.
 //
 // The class model comes from the Anthropic transcript, where the classes are
 // DISJOINT (`input_tokens` excludes the two cache classes). The codex/OpenAI
@@ -84,14 +87,34 @@ function parseCodexEvents(raw) {
 // portion is SUBTRACTED out of the input class rather than added alongside it;
 // adding both would count those tokens twice and, once codex models reach the
 // price map, bill them twice (at the full input rate AND the cache-read rate).
-// Floored at 0: a stream reporting more cached than input is incoherent, and
-// clamping keeps the class non-negative rather than propagating the nonsense.
 //
-// codex reports no cache-write class, so it is always 0 — the field is kept for
-// shape parity with the transcript source, so the two union without a special
-// case. Missing or non-finite fields contribute nothing (an under-count, the
-// safe direction — the same posture the transcript loop takes on a malformed
-// record).
+// `cache_write_input_tokens` → `cache_write` (FAFF-666): read so the class is
+// no longer structurally dead for codex (it was declared, returned, and never
+// written). Its relationship to `input_tokens` is UNPROVEN — both live
+// captures to date show it `0` — but it carries codex's `_input_tokens`
+// suffix, the one such field with a proven relationship (`cached_input_tokens`)
+// is nested inside `input_tokens`, and subtracting is the undercount-safe
+// default (if actually disjoint, subtracting only undercounts `input`; NOT
+// subtracting a truly-nested field would double-count it). So it is treated as
+// a SUBSET here too, alongside `cached`. This also gives true class parity
+// with the Anthropic reader, whose `input` class already excludes both cache
+// classes (see TOKEN_CLASS_FROM_USAGE in budget.js). FAFF-666 filed a
+// follow-up verification ticket ("Confirm codex cache_write/reasoning token
+// relationships on a live cold-cache call") to settle this on a live non-zero
+// call; if it proves disjoint, drop the `- cacheWrite` term below (one line).
+//
+// `reasoning_output_tokens` is READ (named here) but NOT added to `output` —
+// treated as already inside `output_tokens`, mirroring the Anthropic
+// transcript, which folds thinking into `output_tokens` with no separate key.
+// Same unproven/zero/undercount-safe posture as cache_write above, same
+// follow-up ticket; if a live call proves it disjoint, add
+// `+ n(u.reasoning_output_tokens)` to the output line below (one line).
+//
+// Floored at 0: a stream reporting more cached+cache_write than input is
+// incoherent, and clamping keeps the class non-negative rather than
+// propagating the nonsense. Missing or non-finite fields contribute nothing
+// (an under-count, the safe direction — the same posture the transcript loop
+// takes on a malformed record).
 function sumCodexUsage(events) {
   const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
   const n = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -100,8 +123,10 @@ function sumCodexUsage(events) {
     const u = ev.usage;
     if (!u || typeof u !== "object") continue;
     const cached = n(u.cached_input_tokens);
-    totals.input += Math.max(0, n(u.input_tokens) - cached);
+    const cacheWrite = n(u.cache_write_input_tokens);
+    totals.input += Math.max(0, n(u.input_tokens) - cached - cacheWrite);
     totals.output += n(u.output_tokens);
+    totals.cache_write += cacheWrite;
     totals.cache_read += cached;
   }
   return totals;

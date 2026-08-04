@@ -166,6 +166,32 @@ async function runEngineCall({ engine, apiKey = null, system, user, getFn = defa
   catch (e) { return { status: "malformed-response", note: e.message }; }
 }
 
+// FAFF-647: the spawn-family runner registry — the ONE source of truth both
+// cmdEngine dispatch (below) and the conformance selftest read. This REPLACES
+// the earlier hardcoded `if (res.family === "codex")` fork with a lookup over
+// the same two-family dispatch (behaviour unchanged for codex); adding a family
+// is one registry entry, not a new fork. Distinct from config.js's
+// ENGINE_PROVIDER_FAMILY, which maps provider name to a family-name STRING and
+// holds no runner functions.
+//
+// Lazily requires engine-codex.js (which itself requires this module's
+// ENGINE_EXIT) to preserve the pre-existing circular-require-safe lazy-load
+// shape — engine-codex.js is still only ever loaded once both modules have
+// finished their own top-level evaluation.
+function spawnFamilyRunners() {
+  const { runCodexCall } = require("./engine-codex");
+  return { codex: runCodexCall };
+}
+
+// Which families are config-dir-bearing (have a CLAUDE_CONFIG_DIR to isolate) —
+// a DECLARED property of the family, not a name guess. codex declares itself
+// config-dir-free (nothing to isolate: `--sandbox read-only`, `--ephemeral`, a
+// throwaway temp cwd already cover it); a future `claude` family declares
+// itself config-dir-bearing, which is what makes the conformance selftest's
+// CLAUDE_CONFIG_DIR isolation assertion (B, below) bind against it the moment
+// it registers, with no selftest edit required.
+const SPAWN_FAMILY_CONFIG_DIR_BEARING = { codex: false };
+
 const ENGINE_USAGE = "usage: faff engine call --lane methodology|intake --system FILE --user FILE [--root DIR] [--run-dir DIR]\n";
 
 // `faff engine call` — stdout is the engine's completion text (the producer output).
@@ -229,17 +255,20 @@ function cmdEngine(args) {
   }
   const res = resolveEngineForLane(cfg, lane);
   if (res.error) { process.stderr.write(`faff engine call: ${res.error}\n`); return ENGINE_EXIT.CONFIG; }
-  // FAFF-593: the codex family is a SPAWN transport, not HTTP — fork after config
-  // resolution to engine-codex.js, which owns its whole procedure (api-key guard,
-  // seat probe, exec spawn, parse, classify) and its own failure tags (a codex
-  // record has no host, so the HTTP `@ host` tag would be a lie). Synchronous int
-  // return — bin/faff's dispatcher accepts int-or-Promise.
-  if (res.family === "codex") {
+  // FAFF-593/FAFF-647: a SPAWN transport family (codex today) is not HTTP — fork
+  // after config resolution to the registered runner, which owns its whole
+  // procedure (api-key guard, seat probe, exec spawn, parse, classify) and its
+  // own failure tags (a spawn record has no host, so the HTTP `@ host` tag would
+  // be a lie). Looked up through SPAWN_FAMILY_RUNNERS (above) rather than a
+  // hardcoded per-family `if` — this IS the registry lookup the conformance
+  // selftest also drives, from the same map. Synchronous int (or Promise) return
+  // — bin/faff's dispatcher accepts either.
+  const spawnRunner = spawnFamilyRunners()[res.family];
+  if (spawnRunner) {
     let system, user;
     try { system = fs.readFileSync(systemFile, "utf8"); user = fs.readFileSync(userFile, "utf8"); }
     catch (e) { process.stderr.write(`faff engine call: cannot read prompt file — ${e.message}\n`); return ENGINE_EXIT.CONFIG; }
-    const { runCodexCall } = require("./engine-codex");
-    return runCodexCall({ engine: res, system, user, spendSink: resolveSpendSink(get("--run-dir"), root) });
+    return spawnRunner({ engine: res, system, user, spendSink: resolveSpendSink(get("--run-dir"), root) });
   }
   // Token indirection: config carries the env var NAME, never the key. A declared
   // handle whose env is unset is auth-failed BEFORE any network call — named, never a 401 later.
@@ -403,8 +432,93 @@ async function engineSelftest() {
   const { codexSelftest } = require("./engine-codex");
   fail += codexSelftest();
 
+  // FAFF-647: fold in the CLAUDE_CONFIG_DIR isolation helper's own selftest
+  // (withIsolatedClaudeConfig end-to-end, real fs seams) — same "one entry
+  // point" posture as codexSelftest above.
+  const { claudeConfigIsolationSelftest } = require("./claude-config-isolation");
+  fail += await claudeConfigIsolationSelftest();
+
+  // FAFF-647: the registry-driven conformance selftest — reads SPAWN_FAMILY_RUNNERS
+  // (the SAME map cmdEngine dispatches through, above) and, for EVERY registered
+  // runner, drives two assertions with injected seams:
+  //
+  //   (A) REDACTION, asserted for every registered runner: drive the runner down
+  //       its spawn-FAILURE path with an injected sentinel token in the child's
+  //       auth env and a logger seam that captures the failure-path log payload;
+  //       assert the sentinel never appears in it. A runner that dumps its child
+  //       env verbatim on failure fails this assertion.
+  //
+  //   (B) CLAUDE_CONFIG_DIR ISOLATION, asserted only for families
+  //       SPAWN_FAMILY_CONFIG_DIR_BEARING declares true: drive the runner through
+  //       withIsolatedClaudeConfig with a mock spawnFn that captures {env, cwd}
+  //       and spy copy/chmod/mkdtemp seams that record every path touched;
+  //       assert the child's CLAUDE_CONFIG_DIR is isolated (under baseDir,
+  //       distinct from ambientDir) and no seam wrote into the ambient dir.
+  //
+  // Today SPAWN_FAMILY_RUNNERS holds only { codex }, and codex declares itself
+  // config-dir-free — so (A) executes for real against codex (a live binding,
+  // not a placeholder: codex logs stderr excerpts, never `env`, so it passes)
+  // and (B) drives zero rows (dormant, per spec, until a config-dir-bearing
+  // runner registers — never a registry-shape check).
+  {
+    const SENTINEL = "faff647-selftest-sentinel-3f7a9c1e-never-log-verbatim";
+    const runners = spawnFamilyRunners();
+    for (const [family, runnerFn] of Object.entries(runners)) {
+      // (A) redaction — spawn-failure path, sentinel injected via a declared
+      // api_key_env-shaped handle (the runner's own auth-token injection path),
+      // captured through the runner's own logger seam (stderrWrite for codex —
+      // the shared spawn-runner calling convention every registered runner uses).
+      {
+        let captured = "";
+        const failEngine = { name: `selftest-${family}`, provider: family, family, model: "m", binPath: "codex", apiKeyEnv: "FAFF647_SELFTEST_SENTINEL_ENV", timeoutMs: 1000 };
+        const failSpawn = (cmd, args) => (args && args[0] === "login"
+          ? { status: 0, stdout: "Logged in", stderr: "", error: null, signal: null }
+          : { status: 1, stdout: "", stderr: "boom", error: null, signal: null });
+        let runnerResult;
+        try {
+          runnerResult = runnerFn({
+            engine: failEngine, system: "S", user: "U",
+            spawnFn: failSpawn,
+            env: { FAFF647_SELFTEST_SENTINEL_ENV: SENTINEL },
+            stdoutWrite: () => {}, stderrWrite: (s) => { captured += s; },
+          });
+        } catch (e) { captured += String((e && e.message) || e); }
+        if (runnerResult && typeof runnerResult.then === "function") { await runnerResult.catch((e) => { captured += String((e && e.message) || e); }); }
+        ok(`conformance[${family}]: redaction — the injected sentinel token never appears in the spawn-failure log`, !captured.includes(SENTINEL));
+      }
+
+      // (B) CLAUDE_CONFIG_DIR isolation — config-dir-bearing families only.
+      if (SPAWN_FAMILY_CONFIG_DIR_BEARING[family]) {
+        const ambientDir = "/selftest-ambient-not-a-real-path";
+        const baseDir = "/selftest-base-not-a-real-path";
+        const touched = [];
+        let capturedEnv = null;
+        const { withIsolatedClaudeConfig } = require("./claude-config-isolation");
+        const mockSpawnFn = async ({ env }) => { capturedEnv = env; return { stdout: "ok" }; };
+        await withIsolatedClaudeConfig(mockSpawnFn, {
+          authMode: "subscription-seat",
+          ambientDir,
+          ambientEnv: { HOME: "/h" },
+          baseDir,
+          seams: {
+            mkdtempFn: (p) => { const d = `${p}mockdir`; touched.push({ op: "mkdtemp", path: d }); return d; },
+            chmodFn: (p) => { touched.push({ op: "chmod", path: p }); },
+            copyFn: (src, dst) => { touched.push({ op: "copy-src", path: src }); touched.push({ op: "copy-dst", path: dst }); },
+            rmFn: () => { touched.push({ op: "rm" }); },
+            writeFileFn: () => {},
+            warnFn: () => {},
+          },
+        });
+        ok(`conformance[${family}]: CLAUDE_CONFIG_DIR isolated — set, under baseDir, distinct from ambientDir`, !!capturedEnv && capturedEnv.CLAUDE_CONFIG_DIR && capturedEnv.CLAUDE_CONFIG_DIR.startsWith(baseDir) && capturedEnv.CLAUDE_CONFIG_DIR !== ambientDir);
+        ok(`conformance[${family}]: no WRITE seam call targeted a path inside the ambient dir`, !touched.some((t) => t.op !== "copy-src" && t.path && t.path.startsWith(ambientDir)));
+      }
+    }
+    ok("conformance: SPAWN_FAMILY_RUNNERS has a real occupant today (codex) — not a dormant registry", Object.keys(runners).includes("codex"));
+    ok("conformance: codex declares itself config-dir-free — isolation half (B) correctly skipped for it", SPAWN_FAMILY_CONFIG_DIR_BEARING.codex === false);
+  }
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (engine call, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
-module.exports = { ENGINE_EXIT, buildEngineRequest, cmdEngine, defaultGet, defaultPost, engineSelftest, isAuthError, joinUrl, modelServedOllama, modelServedOpenAi, parseEngineResponse, preflightEngine, runEngineCall };
+module.exports = { ENGINE_EXIT, SPAWN_FAMILY_CONFIG_DIR_BEARING, buildEngineRequest, cmdEngine, defaultGet, defaultPost, engineSelftest, isAuthError, joinUrl, modelServedOllama, modelServedOpenAi, parseEngineResponse, preflightEngine, runEngineCall, spawnFamilyRunners };

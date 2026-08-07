@@ -150,9 +150,9 @@ jq -c 'select(.case_id=="confidence-001") | {rep, predicted: .envelope, graded, 
 
 ## Re-baseline runbook (FAFF-319) — the operator sweep
 
-After a calibration pass edits oracles (see `eval/calibration/oracle-triage.json`), 15 of the 29 kinds in
+After a calibration pass edits oracles (see `eval/calibration/oracle-triage.json`), 13 of the 29 kinds in
 `eval/cases/` still contribute **nothing** to the regression gate — `eval/baselines/frontier.json`'s
-`per_kind` block only holds rows for 14 — until a real sweep writes the rest in. That sweep is
+`per_kind` block only holds rows for 16 — until a real sweep writes the rest in. That sweep is
 **operator-owned, run by hand in a plain terminal** — it is not automation-eligible and no agent session
 may run it. Follow these six points exactly.
 

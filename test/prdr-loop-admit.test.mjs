@@ -63,24 +63,34 @@ const yagni = (root, { proposal = "admit", serves = true, within = true, challen
   assert.equal(r.status, 0, `yagni exited non-zero: ${r.stderr}`);
   return JSON.parse(r.stdout);
 };
-const admit = (root, upper) => {
+const admit = (root, upper, lower = { covered: true, uncovered_goals: [] }) => {
   const r = prdr(["admit", "--actor", "loop", "--supersedes-provenance", "none",
     "--upper", JSON.stringify({ admit: upper.admit, reason: upper.reason || "" }),
-    "--lower", JSON.stringify({ covered: true, uncovered_goals: [] }), "--root", root], root);
+    "--lower", JSON.stringify(lower), "--root", root], root);
   assert.equal(r.status, 0, `admit exited non-zero: ${r.stderr}`);
   return JSON.parse(r.stdout);
 };
 
-test("admit path: yagni survived → admit → accept --actor loop lands Accepted (FAFF-495)", () => {
+test("admit path: yagni survived → admit → accept --actor loop lands on a prdr/ branch, Accepted (FAFF-495)", () => {
   const { root, file } = tmpRepoWithLoopPrdr();
   const up = yagni(root, { proposal: "admit", challenge: "survived" });
   assert.equal(up.admit, true, "yagni must admit on serves+within+survived+trace");
   const adm = admit(root, up);
   assert.equal(adm.disposition, "admit", "two-gate admit must yield the admit disposition");
-  // Land it — the loop's sole writer, gated on the admit verdict. --no-branch keeps the test hermetic.
-  const acc = prdr(["accept", "1", "--actor", "loop", "--admit-verdict", JSON.stringify(adm), "--no-branch", "--root", root], root);
+  // Land it EXACTLY as Step 5c does — no --no-branch, so the real FAFF-463 branch-creation path
+  // runs (resolveDefaultBase → git switch -c prdr/…). Hermetic: no gh/origin → base falls back to
+  // the fixture's own `main`. This is the "lands via faff prdr accept --actor loop" AC end-to-end.
+  const acc = prdr(["accept", "1", "--actor", "loop", "--admit-verdict", JSON.stringify(adm), "--root", root], root);
   assert.equal(acc.status, 0, `accept exited non-zero: ${acc.stderr}`);
-  assert.match(statusOf(file), /^Accepted/, "the landed PRDR must be Accepted");
+  const landed = JSON.parse(acc.stdout);
+  assert.match(landed.branch, /^prdr\//, "accept must create a prdr/ landing branch");
+  assert.equal(landed.base, "main", "hermetic base resolves to the fixture's main");
+  assert.equal(git(root, "branch", "--list", landed.branch).trim().replace(/^\*\s*/, ""), landed.branch, "the landing branch must exist");
+  // FAFF-463 lands the Accepted flip as a commit on the prdr/ branch and restores the working branch
+  // (atomic-or-clean) — so the working tree stays Proposed and the Accepted record lives on the branch.
+  const rel = file.slice(root.length + 1);
+  assert.match(git(root, "show", `${landed.branch}:${rel}`), /- \*\*Status:\*\* *Accepted/, "the landing branch's record must be Accepted");
+  assert.match(statusOf(file), /^Proposed/, "the working branch is left clean (Proposed) — accept lands on the prdr/ branch, no smuggled working-tree change");
 });
 
 test("park path: Phase-2 overturned → admit reject → accept REFUSES, PRDR stays Proposed (never dropped) (FAFF-495)", () => {
@@ -114,6 +124,18 @@ test("park path: Phase-1 reject → admit reject → not landed (FAFF-495)", () 
   const adm = admit(root, up);
   assert.equal(adm.disposition, "reject", "Phase-1 reject → non-admit disposition");
   assert.match(statusOf(file), /^Proposed/, "unlanded PRDR stays Proposed");
+});
+
+test("park path: yagni admits but the FAFF-257 lower/coverage gate fails → admit reject → accept REFUSES (admit-refused) (FAFF-495)", () => {
+  const { root, file } = tmpRepoWithLoopPrdr();
+  const up = yagni(root, { proposal: "admit", challenge: "survived" });
+  assert.equal(up.admit, true, "upper (YAGNI) admits");
+  // Distinct refusal source from a yagni reject: the lower coverage gate is not covered.
+  const adm = admit(root, up, { covered: false, uncovered_goals: ["ship booking"] });
+  assert.equal(adm.disposition, "reject", "an uncovered lower gate must block the admit disposition");
+  const acc = prdr(["accept", "1", "--actor", "loop", "--admit-verdict", JSON.stringify(adm), "--no-branch", "--root", root], root);
+  assert.notEqual(acc.status, 0, "accept must refuse a coverage-failed (admit-refused) verdict");
+  assert.match(statusOf(file), /^Proposed/, "the coverage-parked PRDR stays Proposed — recoverable, never dropped");
 });
 
 test("the gate CLIs are unchanged — `faff prdr --selftest` still passes (FAFF-495 wires, never edits, the gates)", () => {

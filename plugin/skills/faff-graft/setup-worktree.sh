@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve this script's own directory (absolute) BEFORE any `cd`, so the shared FAFF-708
+# remote-diff-base.sh resolver (bundled beside this file) is locatable after we cd into the repo.
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+
 # Build-worktree provisioning script (ships with the faff skill). Two input modes, one shared body:
 #   Direct:  setup-worktree.sh <name> [<repo-root>]   — name from $1, repo root from $2 (else pwd).
 #            No stdin is read; jq is never invoked. This is how the faff-graft skill step calls it.
@@ -52,8 +56,28 @@ echo "$(date '+%H:%M:%S') [worktree] Creating ${WT_ROOT}/${SAFE_NAME}" >&2
 
 cd "$CWD" || exit 1
 
-# Create the worktree on a new branch based on HEAD
-git worktree add -b "${SAFE_NAME}" "$WORKTREE_PATH" HEAD >&2 2>&1
+# Resolve the branch base (FAFF-708). `faff merge-gate --execute` merges remotely and never advances
+# the operator's LOCAL default-branch checkout, so branching a new worktree off local HEAD can
+# silently omit a just-merged sibling. Delegate to the shared remote-diff-base.sh resolver (bundled
+# beside this script) so the provisioner and graft's diff identities never drift — one network-posture
+# + default-branch implementation. When `origin` exists it prints the fetched `origin/<default>` and
+# is fail-loud: any resolve/fetch/verify failure is a terminal provisioning error BEFORE
+# `git worktree add`, never a silent fall-back to stale HEAD. With no `origin` we keep the git-only
+# HEAD base here (a fresh branch off the invoking checkout) — remote-diff-base.sh's git-only
+# local-default output is for graft's diffs, not provisioning, so it is intentionally not used here.
+if git remote get-url origin >/dev/null 2>&1; then
+  BASE_REF=$(bash "$SCRIPT_DIR/remote-diff-base.sh") || {
+    echo "$(date '+%H:%M:%S') [worktree] FATAL: could not resolve the fetched remote default base (see remote-diff-base.sh error above) — refusing to branch off stale HEAD" >&2
+    exit 1
+  }
+  echo "$(date '+%H:%M:%S') [worktree] basing new branch on ${BASE_REF} (fetched remote default)" >&2
+else
+  BASE_REF="HEAD"
+  echo "$(date '+%H:%M:%S') [worktree] no origin remote — git-only mode, basing new branch on local HEAD" >&2
+fi
+
+# Create the worktree on a new branch based on the resolved base ref.
+git worktree add -b "${SAFE_NAME}" "$WORKTREE_PATH" "$BASE_REF" >&2 2>&1
 cd "$WORKTREE_PATH"
 
 # Copy common gitignored config files from main worktree. .faffrc.yaml is per-repo faff config

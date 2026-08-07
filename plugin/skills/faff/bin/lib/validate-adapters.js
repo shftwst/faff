@@ -39,7 +39,7 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1130, "faff-beep-boop": 705 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
+const SKILL_LINE_CAP_OVERRIDE = { faff: 1130, "faff-beep-boop": 705, "faff-graft": 620 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows
                                                   // FAFF-695 added the "Tracker availability resolution" shared rule to the gateway (+ a beep-boop pointer to it).
                                                   // structurally with each new slot/contract — FAFF-335's spec_review/grounding slot rows + the
                                                   // "Spec-review verdict (fixed)" contract section pushed it past 1100. faff-beep-boop is the L4
@@ -48,6 +48,9 @@ const SKILL_LINE_CAP_OVERRIDE = { faff: 1130, "faff-beep-boop": 705 };   // the 
                                                   // step + ledger annotations pushed it past 650; FAFF-475's install-health preflight surfacing pushed
                                                   // it past 660; FAFF-536's orchestrator-lane capture + self-intake chokepoint delta pushed it past 690)
                                                   // — both caps are calibrated to the hub's real size while still forcing leanness per addition.
+                                                  // faff-graft: FAFF-708 added the three coupled remote-backed diff blocks (review / resume / build-progress),
+                                                  // already minimised — the base-resolution itself lives in the bundled remote-diff-base.sh, not the prose —
+                                                  // pushing a file already at the 595/600 ceiling to 615; capped snug at 620, same leanness-per-addition rule.
 const PARA_WORD_CAP = 200;                         // longest single prose line (≈ one paragraph) — nudge bullets over walls of prose
 const DUP_BLOCK_WINDOW = 6;                         // identical run of significant lines across 2+ skills = copied prose; single-source it
 const DUP_SIG_MINLEN = 25;                          // a "significant" line for dedup/paragraph purposes is non-trivial prose this long

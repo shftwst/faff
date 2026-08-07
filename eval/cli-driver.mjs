@@ -997,10 +997,10 @@ export function loadRefutationSpecLensProse(pluginDir = DEFAULT_PLUGIN_DIR) {
     return `- **${label}:** ${clause}`;
   });
   return [
-    "Per-lens restraint — each lens raises nothing when the spec is sound from its angle; an empty",
-    "objection set (approve) is a valid, expected outcome, not a failure to find something. Hold QA and",
-    "infosec especially to this bar: ground every objection in the spec text, and never invent a missing",
-    "test or a threat for behaviour that is out of scope.",
+    "Per-lens restraint — each lens raises an objection only where the spec is genuinely flawed from",
+    "its angle, and raises nothing when it is sound; an empty objection set (approve) is a valid,",
+    "expected outcome. This reins in spurious objections; it does not discourage a genuine one. Apply",
+    "each lens's own bar below:",
     "",
     ...clauses,
   ].join("\n");

@@ -509,7 +509,7 @@ test("FAFF-730 refutation-spec criteria inject each lens's restraint clause (the
   assert.ok(criteria.includes("do not invent missing tests for behaviour that is out of scope"), "QA restraint clause");
   assert.ok(criteria.includes("If the slice is well-shaped,\nsay so and raise nothing") || criteria.includes("well-shaped, say so and raise nothing"), "methodology restraint clause");
   // the "approve is a valid outcome" framing is present (the both-directional precision bar)
-  assert.ok(criteria.includes("empty") && criteria.includes("approve") && criteria.includes("valid, expected outcome"), "states approve is a valid outcome");
+  assert.ok(criteria.includes("empty objection set (approve)") && criteria.includes("valid") && criteria.includes("expected outcome"), "states approve is a valid outcome");
   // it did NOT smuggle in the adversarial "break the proposed approach" body — restraint clause only
   assert.ok(!criteria.includes("break the proposed approach"), "injects the restraint clause, not the whole adversarial body");
   // control: --no-plugin baseline still improvises (lens prose rides the plugin path only)

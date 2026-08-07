@@ -4,7 +4,7 @@
 // here — eval/ stays out of the real-call path (FAFF-131 runs that).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse } from "../eval/cli-driver.mjs";
+import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse, loadRefutationSpecLensProse } from "../eval/cli-driver.mjs";
 import { resolveDriver, resolveLocalParams, resolvePluginDir, resolveEffort, EFFORT_LEVELS } from "../eval/run-evals.mjs";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -493,6 +493,34 @@ test("FAFF-319 buildEvalPrompt(refutation-spec) frames the refute task + emits e
   assert.ok(p.includes('"objections"'), "asks for the objections envelope field");
   assert.ok(p.includes("architectural|infosec|methodology|QA"), "states the lens vocabulary");
   assert.ok(!p.includes("Run faff-tidy's judgement pass") && !p.includes('"classifications"'), "no tidy fall-through");
+});
+
+// FAFF-730 — the refutation-spec prompt must carry the REAL per-lens restraint prose production uses
+// (the refute-<lens>.md "if the approach is sound, raise nothing" clauses), not just the orchestration
+// section. This is the content assertion that buys back the anchor-registry guard for the four
+// refute-<lens>.md anchors (which read those files, not a SKILL.md, so they are outside the registry).
+test("FAFF-730 refutation-spec criteria inject each lens's restraint clause (the fidelity fix)", () => {
+  const criteria = criteriaFor("refutation-spec", DEFAULT_PLUGIN_DIR);
+  // the orchestration section is still first (loadRefutationSpecProse unchanged)
+  assert.ok(criteria.startsWith("## The lenses as independent refuters"), "orchestration section still leads");
+  // each lens's restraint clause is present — the sentence unique to that refute-<lens>.md
+  assert.ok(criteria.includes("architecturally sound, say so plainly and raise nothing"), "architectural restraint clause");
+  assert.ok(criteria.includes("say so and raise nothing — do not invent threats"), "infosec restraint clause");
+  assert.ok(criteria.includes("do not invent missing tests for behaviour that is out of scope"), "QA restraint clause");
+  assert.ok(criteria.includes("If the slice is well-shaped,\nsay so and raise nothing") || criteria.includes("well-shaped, say so and raise nothing"), "methodology restraint clause");
+  // the "approve is a valid outcome" framing is present (the both-directional precision bar)
+  assert.ok(criteria.includes("empty") && criteria.includes("approve") && criteria.includes("valid, expected outcome"), "states approve is a valid outcome");
+  // it did NOT smuggle in the adversarial "break the proposed approach" body — restraint clause only
+  assert.ok(!criteria.includes("break the proposed approach"), "injects the restraint clause, not the whole adversarial body");
+  // control: --no-plugin baseline still improvises (lens prose rides the plugin path only)
+  assert.equal(criteriaFor("refutation-spec", null), null);
+});
+
+// FAFF-730 — the loader fails loud on a missing refute-<lens>.md rather than silently emitting an
+// empty block that would quietly restore the prose-starved thin-rubric behaviour.
+test("FAFF-730 loadRefutationSpecLensProse fails loud on an unreadable plugin dir", () => {
+  assert.throws(() => loadRefutationSpecLensProse("/no/such/plugin/dir"),
+    /loadRefutationSpecLensProse\(architectural\): cannot read/);
 });
 
 test("FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings", () => {

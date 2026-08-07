@@ -976,6 +976,35 @@ export function loadRefutationSpecProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faffter-dark-spec-review", "SKILL.md");
   return extractSection(p, REFUTATION_SPEC_PROSE_START, REFUTATION_SPEC_PROSE_END, "loadRefutationSpecProse");
 }
+// FAFF-730 — loadRefutationSpecProse above loads ONLY the orchestration section (which names the four
+// lenses but carries none of the per-lens RESTRAINT language). Production hands each independent refuter
+// that restraint via its own refute-<lens>.md system prompt; the eval never loaded them, so the judge
+// over-objected on clean/near-miss specs — raising spurious QA/infosec objections whose correct answer
+// was approve. This loader injects each lens's restraint CLAUSE (the "if the approach is sound, raise
+// nothing" paragraph + its evidentiary bar), NOT the whole adversarial refute-<lens>.md body: four
+// stacked "break this" mandates in one prompt exist in neither production (four isolated passes) nor the
+// eval-before, and would themselves inflate objections.
+//
+// The anchors here read the refute-<lens>.md files, not a SKILL.md, so they are deliberately NOT
+// `*_START`/`*_END` module consts — the anchor-registry driver tests bind each such const to one
+// SKILL.md per skill (and hard-count them). The extraction is guarded instead by a dedicated content
+// assertion in the driver tests, the same buy-back the sole extractSectionToEnd loader uses.
+const REFUTE_LENS_FILES = [["architectural", "architectural"], ["infosec", "infosec"], ["QA", "qa"], ["methodology", "methodology"]];
+export function loadRefutationSpecLensProse(pluginDir = DEFAULT_PLUGIN_DIR) {
+  const clauses = REFUTE_LENS_FILES.map(([label, stem]) => {
+    const p = join(pluginDir, "skills", "faffter-dark-spec-review", `refute-${stem}.md`);
+    const clause = extractSection(p, "\nOnly raise objections", "\n\nOutput format", `loadRefutationSpecLensProse(${stem})`);
+    return `- **${label}:** ${clause}`;
+  });
+  return [
+    "Per-lens restraint — each lens raises nothing when the spec is sound from its angle; an empty",
+    "objection set (approve) is a valid, expected outcome, not a failure to find something. Hold QA and",
+    "infosec especially to this bar: ground every objection in the spec text, and never invent a missing",
+    "test or a threat for behaviour that is out of scope.",
+    "",
+    ...clauses,
+  ].join("\n");
+}
 const REFUTATION_CODE_PROSE_START = "\n## Review lens\n";
 const REFUTATION_CODE_PROSE_END = "## LLM provider integration";
 export function loadRefutationCodeProse(pluginDir = DEFAULT_PLUGIN_DIR) {
@@ -1044,7 +1073,7 @@ export function criteriaFor(kind, pluginDir = DEFAULT_PLUGIN_DIR) {
   if (kind === "roadmap") return loadRoadmapProse(pluginDir);
   if (kind === "adr-gloss") return loadAdrGlossProse(pluginDir);
   if (kind === "spec-verdict") return loadSpecVerdictProse(pluginDir);
-  if (kind === "refutation-spec") return loadRefutationSpecProse(pluginDir);
+  if (kind === "refutation-spec") return `${loadRefutationSpecProse(pluginDir)}\n\n${loadRefutationSpecLensProse(pluginDir)}`;
   if (kind === "refutation-code") return loadRefutationCodeProse(pluginDir);
   // FAFF-669 — the last four kinds each load their own surface's rubric (never tidy's default).
   if (kind === "prep-architecture-trigger") return loadPrepArchitectureTriggerProse(pluginDir);

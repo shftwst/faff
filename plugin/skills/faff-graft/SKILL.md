@@ -164,7 +164,7 @@ If no worktree exists:
 
 **Resume-at-review check (FAFF-402 — autonomous L3/L4 only; interactive skips this, like the FAFF-329 review checkpoint).** Before creating a fresh worktree, read the build-complete checkpoint — `faff build-progress read "$run_dir" <ISSUE>`. On **exit 3** (no checkpoint) see the **resume-store fallback** immediately below before creating a fresh worktree. On **exit 0**, recompute `cur` with the **Remote-backed resume diff** block below — against the fetched remote default branch, never a hardcoded default-branch ref (FAFF-708) — then:
 
-**Remote-backed resume diff.** With `$branch` the feature branch, hash the durable remote three-dot diff against the base `remote-diff-base.sh` prints (fetched `origin/<default>`; git-only: local default) — the fail-loud, never-stale base shared with the review and build-progress diffs.
+**Remote-backed resume diff.** With `$branch` the feature branch, hash the durable remote three-dot diff against the base the bundled `remote-diff-base.sh` prints (fetched `origin/<default>`; git-only: local default) — the fail-loud, never-stale base shared with the review and build-progress diffs. `$graft_skill_dir` is this skill's own directory — the one holding `setup-worktree.sh` and `remote-diff-base.sh` (`graft_skill_dir=$(dirname "$script")`, resolving `$script` as the provisioning step below does).
 
 ```bash
 base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1
@@ -346,7 +346,7 @@ The build is complete (gates + AC passed). Make it durable on `origin` **now** �
 2. Compute `diff_hash` with the **Remote-backed build-progress diff** block below — the remote three-dot diff against the fetched remote default branch (never a hardcoded default-branch ref, FAFF-708), reproducible from remote refs alone at resume (no worktree needed). Computed here in prose, never inside the CLI (which stays pure — no git/network).
 3. `faff build-progress write "$run_dir" <ISSUE> --build-complete --diff-hash <diff_hash> --branch <branch>` — push precedes the write, so a checkpoint always implies a pushed, gated branch.
 
-**Remote-backed build-progress diff.** With `$branch` the feature branch, hash the durable remote three-dot diff against the base `remote-diff-base.sh` prints — same fail-loud, never-stale base as the resume and review diffs.
+**Remote-backed build-progress diff.** With `$branch` the feature branch, hash the durable remote three-dot diff against the base `remote-diff-base.sh` prints (in `$graft_skill_dir`, this skill's own directory — see the resume/review-diff blocks) — same fail-loud, never-stale base as the resume and review diffs.
 
 ```bash
 base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1
@@ -367,7 +367,7 @@ Invoke the `review` slot via the Skill tool (resolve `faff config get slots.revi
 
 Forward both as prose context in the Skill-tool invocation (alongside the diff/spec/Phase-1 result), not CLI flags. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-graft's. faff-graft owns only the sequencing around the result.
 
-**Remote-backed review diff.** Capture the review diff **once** against the fetched remote default branch (never local `main`, FAFF-708) into one file: the review slot consumes that exact file and the review-progress `cur_hash` is the digest of those same bytes — one `git diff`, so the checkpoint can never approve a different diff from the one reviewed. The `remote-diff-base.sh` helper (bundled beside `setup-worktree.sh`; `$graft_skill_dir` = the faff-graft skill dir, resolved as in Step 3) prints the fetched `origin/<default>` (git-only: the local default) and is **fail-loud** — a remote whose default can't be resolved/fetched exits non-zero, never a stale-base fall-back. Set `$diff_file` to a fresh temp path first.
+**Remote-backed review diff.** Capture the review diff **once** against the fetched remote default branch (never local `main`, FAFF-708) into one file: the review slot consumes that exact file and the review-progress `cur_hash` is the digest of those same bytes — one `git diff`, so the checkpoint can never approve a different diff from the one reviewed. The `remote-diff-base.sh` helper (bundled beside `setup-worktree.sh` in `$graft_skill_dir` — this skill's own directory, `graft_skill_dir=$(dirname "$script")` with `$script` the provisioner path Step 3 resolves) prints the fetched `origin/<default>` (git-only: the local default) and is **fail-loud** — a remote whose default can't be resolved/fetched exits non-zero, never a stale-base fall-back. Set `$diff_file` to a fresh temp path first.
 
 ```bash
 base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1   # fetched remote default (git-only: local); fail-loud

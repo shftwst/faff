@@ -1,29 +1,103 @@
 {
   "meta": {
-    "captured_at": "2026-06-16",
-    "commit": "8905b7e",
+    "captured_at": "2026-08-07",
     "driver": "frontier",
+    "model": "claude-opus-4-8",
     "base_reps": 20,
-    "source": "Seeded from the ADR-0004 recorded frontier baseline (addendum 2026-06-16) + FAFF-166 carved new-kind baselines. PROVISIONAL: re-seed from a real `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json` run before relying on the gate for a release. The gate mechanism (diffAgainstBaseline) is correct independent of these exact numbers."
+    "source": "scoped --update-baseline --kind — refreshed grouping; 15 prior kind(s) retained"
   },
   "per_kind": {
-    "dupe":           { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "vague":          { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "stale":          { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "superseded":     { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "ordering":       { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "marker":         { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "modedetect":     { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "routing":        { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "splittable":     { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "verdict-revert": { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "shaping":        { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "decomposition":  { "accuracy": 1.00, "stability": 1.00, "format_adherence": 1.00 },
-    "gloss":          { "accuracy": 0.99, "stability": 0.99, "format_adherence": 1.00 },
-    "confidence":     { "accuracy": 0.93, "stability": 0.93, "format_adherence": 1.00 }
+    "dupe": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "vague": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "stale": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "superseded": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "ordering": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "marker": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "modedetect": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "routing": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "splittable": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "verdict-revert": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "shaping": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "decomposition": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1
+    },
+    "gloss": {
+      "accuracy": 0.99,
+      "stability": 0.99,
+      "format_adherence": 1
+    },
+    "confidence": {
+      "accuracy": 0.93,
+      "stability": 0.93,
+      "format_adherence": 1
+    },
+    "grouping": {
+      "accuracy": 0.86,
+      "stability": 0.86,
+      "format_adherence": 1
+    },
+    "refutation-spec": {
+      "accuracy": 0.7339999999999999,
+      "stability": 0.748,
+      "format_adherence": 1
+    }
   },
   "policy": {
-    "warn_kinds": ["confidence", "holdout-exercise"],
-    "tolerances": { "closed_set": 0.0, "ordering": 0.0, "free_text": 0.03, "format": 0.0 }
+    "warn_kinds": [
+      "confidence",
+      "holdout-exercise"
+    ],
+    "tolerances": {
+      "closed_set": 0,
+      "ordering": 0,
+      "free_text": 0.03,
+      "format": 0
+    }
   }
 }

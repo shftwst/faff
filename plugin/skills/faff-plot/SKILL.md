@@ -237,13 +237,30 @@ Two triggers stop descent while the pass **finishes forward** on its siblings (n
 - **Reversibility (structural)** — every created node is stamped `initiated: autonomous` (the marker a human greps to undo the pass, one query); the envelope `reject`s `cancel`/`delete`, so the harness *cannot* take an irreversible answer. Idempotent create reuses the single-homed MCP-write seam (`faff-jot` → **Idempotent create + link authoring**) — re-query before retry; create only the gap on re-slice.
 - **Parking** — any `propose-only` / `reject` / fail-loud parks via the shared **Park protocol** (gateway); the pass finishes forward and surfaces the park set for `/faff-wtf`.
 
-### Step 5b — defer, never admit
+### Step 5b — author the Proposed PRDR
 
-For each created project: request the methodology's `prdr-author` DoD, then `faff prdr new --provenance loop --status Proposed` — and **stop**. Do **not** admit. Admission (the two-gate `faff prdr admit` → `prdr accept --actor loop`) is **FAFF-495**; the `Proposed` record is the handoff point it picks up. This keeps the 494/495 boundary crisp.
+For each created project: request the methodology's `prdr-author` DoD, then `faff prdr new --provenance loop --status Proposed`. This writes the loop-authored `Proposed` PRDR; **Step 5c** is what admits-or-parks it. (Interactive plot is unchanged — L3 surfaces the `Proposed` PRDR for a human `faff prdr accept`; only the `--autonomous` L4 harness runs 5c.)
+
+### Step 5c — admit or park the loop-PRDR (FAFF-495)
+
+The `--autonomous` harness self-mints an L4 run-ledger (Ignition, above), so it **is** an L4 runner — and the gateway already documents what an L4 runner does with a `Proposed` loop-PRDR (gateway → **Authored-PRDR level-scaling**, the L4 bullet, + **Upper-gate (YAGNI) two-phase arbitration**). 5c **composes that existing gateway contract** for each Step-5b PRDR — it introduces **no parallel admission path** and changes only the *actor* (per ADR-0071 / ADR-0072); every gate CLI (`faff prdr yagni` / `admit` / `accept`) is invoked byte-unchanged. Per project's `Proposed` loop-PRDR `authored`:
+
+1. **Upper-gate two-phase arbitration** (gateway → **Upper-gate (YAGNI) two-phase arbitration**): (1) deterministic **trace-to-goal** — `authored.prd_goal` must be a real PRD goal (`faff prdr yagni --prd-goal <g> --prd-goals <PRD goals JSON>`), else reject at the door before any model spend; (2) **Phase 1** — the `methodology` slot's `yagni-judge` proposes `{serves_goal, within_scope, verdict, reason}`; (3) **Phase 2** — the adversarial `review` slot challenges it with a *different* model → `survived` | `overturned` (an inconclusive Phase 2 — provider down after its fallback chain — is **not** a survival: omit `--challenge`). Then `faff prdr yagni --proposal <admit|reject> [--serves-goal] [--within-scope] [--challenge survived|overturned] --prd-goal … --prd-goals …` arbitrates → the `{admit, reason}` upper verdict.
+2. **Admit** (FAFF-255 content authority): feed the upper verdict (and FAFF-257 `--lower` coverage verdict, when in scope) to `faff prdr admit --actor loop --upper '<json>' [--lower '<json>'] --supersedes-provenance none` → the closed disposition (`faff contract prdr-admission --describe`). This composes **with**, not through, the L4 topology envelope — the container's create was already admitted at Step 4 (`container-create`); this is the DoD-content gate, no double-gate (ADR-0072).
+3. **On the admitting disposition** → land via `faff prdr accept --actor loop --admit-verdict '<the admit verdict JSON>'` (FAFF-463 sole-writer; loop may only accept an `admit`-disposition verdict) — commits the record to a `prdr/…` branch and opens its small PR. `Accepted ⟺ committed`, no drift.
+4. **On any refusal → PARK, never drop** (the load-bearing invariant — lost scope is forbidden at every appetite). Park via the shared **Park protocol** (gateway), the park comment carrying the **refusing phase's reason**:
+   - yagni trace-reject or Phase-1 `reject` → `yagni-reject`
+   - Phase-2 `overturned` → `yagni-overturned`
+   - Phase-2 inconclusive (challenge omitted; skeptic unreachable) → `phase2-inconclusive`
+   - `faff prdr admit` returns a non-admitting disposition (anything but the admit disposition — `faff contract prdr-admission --describe`) → `admit-refused`
+   - any gate fail-loud (malformed verdict / contract mismatch) → park, never an implicit admit
+   The `Proposed` PRDR is left in place (not superseded, not deleted) so the parked scope is recoverable; the pass finishes forward and surfaces the park set for `/faff-wtf`.
+
+**Every 5c PRDR terminates in exactly one of: admit-and-land, or a labelled park — no PRDR is silently dropped.**
 
 ### Integration smoke (acceptance)
 
-Ignite one `--autonomous` pass over a two-node brief (child container `C` under an admitted root PRD `R`, one epic `E` under `C`) and assert: `container-create` for `C` → admit → `C` created + stamped `initiated: autonomous`; `epic-create` for `E` (`parent_confirmed=true`) → admit → `E` created + stamped; exactly one `Proposed` PRDR authored for `C`'s project tier, none admitted; one log entry per gate; zero cancel/delete ops; `faff audit` clean (no `containment_mismatches`, no unrecorded creates).
+Ignite one `--autonomous` pass over a two-node brief (child container `C` under an admitted root PRD `R`, one epic `E` under `C`) and assert: `container-create` for `C` → admit → `C` created + stamped `initiated: autonomous`; `epic-create` for `E` (`parent_confirmed=true`) → admit → `E` created + stamped; exactly one `Proposed` PRDR authored for `C`'s project tier (Step 5b), then **Step 5c admits-and-lands it** (yagni survived + admit → `faff prdr accept --actor loop` → `Accepted`) **or parks it with the refusing phase's reason** — never left silently unadmitted; one log entry per gate; zero cancel/delete ops; `faff audit` clean (no `containment_mismatches`, no unrecorded creates). The mechanical legs (yagni arbitration, admit verdict, accept landing, the park-on-refusal branch) are covered by `test/prdr-loop-admit.test.mjs`; the real end-to-end loop-authored admit is a human-supervised holdout-shaped criterion (out of this ticket's DoD, per the FAFF-317 / FAFF-474 eval-coverage decomposition).
 
 ## Appetite
 

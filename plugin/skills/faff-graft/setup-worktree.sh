@@ -52,8 +52,61 @@ echo "$(date '+%H:%M:%S') [worktree] Creating ${WT_ROOT}/${SAFE_NAME}" >&2
 
 cd "$CWD" || exit 1
 
-# Create the worktree on a new branch based on HEAD
-git worktree add -b "${SAFE_NAME}" "$WORKTREE_PATH" HEAD >&2 2>&1
+# Resolve the branch base (FAFF-708). `faff merge-gate --execute` merges remotely and never
+# advances the operator's LOCAL default-branch checkout, so branching a new worktree off local
+# HEAD can silently omit a just-merged sibling. When an `origin` remote exists, treat the fetched
+# remote default branch as repository truth: resolve its name from the remote's own advertised
+# symbolic HEAD, fetch it, and branch off refs/remotes/origin/<name>. A repository with no `origin`
+# keeps branching off local HEAD (the git-only path) and performs no network command.
+#
+# Remote truth is REQUIRED when a remote exists: any resolution/fetch/verification failure is a
+# terminal provisioning error BEFORE `git worktree add` — never a silent fall-back to stale HEAD,
+# which would preserve the bug this fixes.
+#
+# Network posture: both network commands run non-interactively (GIT_TERMINAL_PROMPT=0, so a
+# missing/expired credential fails fast instead of hanging on a TTY prompt) and under a bounded
+# wall-clock `timeout`. The bound is FAFF_GIT_NET_TIMEOUT when a positive integer, else 30s;
+# resolved once and reused for both commands. A timeout (exit 124), credential failure, or any
+# other non-zero exit is terminal.
+export GIT_TERMINAL_PROMPT=0
+NET_TIMEOUT="${FAFF_GIT_NET_TIMEOUT:-}"
+case "$NET_TIMEOUT" in
+  ''|*[!0-9]*) NET_TIMEOUT=30 ;;   # unset or non-numeric -> default
+  0) NET_TIMEOUT=30 ;;             # 0 is not a positive integer -> default
+esac
+
+BASE_REF="HEAD"   # git-only default; overridden below when origin exists
+if git remote get-url origin >/dev/null 2>&1; then
+  # Remote-backed: resolve the default branch from the remote's advertised symbolic HEAD.
+  # Do NOT guess `main`, do NOT write local git config, do NOT call a forge API — the remote
+  # being fetched is the authority for its own default branch.
+  SYMREF=$(timeout "$NET_TIMEOUT" git ls-remote --symref origin HEAD) || {
+    echo "$(date '+%H:%M:%S') [worktree] FATAL: could not resolve origin's default branch (ls-remote --symref failed, timed out, or credential failure) — refusing to branch off stale HEAD" >&2
+    exit 1
+  }
+  # Parse the `ref: refs/heads/<branch>\tHEAD` advertisement; accept only a valid refs/heads/ target.
+  DEFAULT_BRANCH=$(printf '%s\n' "$SYMREF" | sed -n 's#^ref: refs/heads/\(.*\)[[:space:]]HEAD$#\1#p' | head -1)
+  if [ -z "$DEFAULT_BRANCH" ]; then
+    echo "$(date '+%H:%M:%S') [worktree] FATAL: origin advertises no symbolic HEAD — cannot resolve a default branch, and no local or hardcoded branch is an honest substitute" >&2
+    exit 1
+  fi
+  # Fetch only the resolved branch, then verify its remote-tracking ref resolves to a commit.
+  timeout "$NET_TIMEOUT" git fetch origin "$DEFAULT_BRANCH" >&2 2>&1 || {
+    echo "$(date '+%H:%M:%S') [worktree] FATAL: could not fetch origin/${DEFAULT_BRANCH} (fetch failed, timed out, or credential failure) — refusing to branch off stale HEAD" >&2
+    exit 1
+  }
+  if ! git rev-parse --verify --quiet "refs/remotes/origin/${DEFAULT_BRANCH}^{commit}" >/dev/null; then
+    echo "$(date '+%H:%M:%S') [worktree] FATAL: refs/remotes/origin/${DEFAULT_BRANCH} does not resolve to a commit after fetch — refusing to branch off stale HEAD" >&2
+    exit 1
+  fi
+  BASE_REF="refs/remotes/origin/${DEFAULT_BRANCH}"
+  echo "$(date '+%H:%M:%S') [worktree] basing new branch on ${BASE_REF} (fetched remote default)" >&2
+else
+  echo "$(date '+%H:%M:%S') [worktree] no origin remote — git-only mode, basing new branch on local HEAD" >&2
+fi
+
+# Create the worktree on a new branch based on the resolved base ref.
+git worktree add -b "${SAFE_NAME}" "$WORKTREE_PATH" "$BASE_REF" >&2 2>&1
 cd "$WORKTREE_PATH"
 
 # Copy common gitignored config files from main worktree. .faffrc.yaml is per-repo faff config

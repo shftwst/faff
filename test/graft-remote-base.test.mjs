@@ -215,6 +215,24 @@ test("remote-diff-base.sh falls back to the locally-resolved default in a no-ori
   }
 });
 
+test("remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)", () => {
+  // Mirrors merge-gate.js resolveLocalBase: check main then master, refuse if neither exists.
+  const parent = mkdtempSync(path.join(tmpdir(), "faff708-helper-neither-"));
+  const repo = path.join(parent, "repo");
+  mkdirSync(repo);
+  try {
+    git(repo, "init", "-q", "-b", "trunk");
+    git(repo, "config", "user.email", "t@t.test");
+    git(repo, "config", "user.name", "t");
+    commitFile(repo, "A.txt", "A\n", "A"); // only `trunk` exists — no main, no master
+    const r = runHelper(repo);
+    assert.notEqual(r.status, 0, "helper must refuse when neither local main nor master exists (no bogus master)");
+    assert.equal(r.stdout.trim(), "", "helper must print no base when it cannot resolve one");
+  } finally {
+    rmParent(parent);
+  }
+});
+
 test("no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)", () => {
   for (const [name, block] of [
     ["Remote-backed review diff", REVIEW_BLOCK],

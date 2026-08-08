@@ -16,6 +16,7 @@ import https from "node:https";
 import { readFileSync } from "node:fs";
 import { join as pathJoin } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 // Exit codes the skill maps to a verdict: 0 ok · 4 model-not-served (→ needs-human) ·
 // 5 provider-unreachable, explicitly-configured host (→ pass+skip) ·
@@ -186,6 +187,32 @@ export function validateFindingsShape(content) {
     return { ok: false, reason: "no recognised finding section (### <severity>: ...)" };
   }
   return { ok: true };
+}
+
+// PURE (FAFF-746): the spec-refuter prompts define four exact no-objection responses. Accept only
+// that closed grammar and mechanically translate it to the existing findings-shaped no-findings
+// token. Matching is provider-neutral and deliberately strict: line endings, outer whitespace, and
+// blank separator lines are formatting; every substantive byte remains case- and punctuation-sensitive.
+export const CANONICAL_NO_FINDINGS = "### observation: no findings";
+export const CLEAN_REFUTATIONS = Object.freeze([
+  Object.freeze({ lens: "architectural", heading: "## Refutation — architectural", sentence: "No architectural objection." }),
+  Object.freeze({ lens: "infosec", heading: "## Refutation — infosec", sentence: "No infosec objection." }),
+  Object.freeze({ lens: "methodology", heading: "## Refutation — methodology", sentence: "No methodology objection." }),
+  Object.freeze({ lens: "QA", heading: "## Refutation — QA", sentence: "No QA objection." }),
+]);
+
+export function normaliseCleanRefutation(content) {
+  const original = String(content == null ? "" : content);
+  const lines = original.replace(/\r\n?/g, "\n").trim().split("\n").filter((line) => line.trim() !== "");
+  for (const entry of CLEAN_REFUTATIONS) {
+    if (lines.length === 1 && lines[0] === entry.sentence) {
+      return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "bare" };
+    }
+    if (lines.length === 2 && lines[0] === entry.heading && lines[1] === entry.sentence) {
+      return { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed" };
+    }
+  }
+  return { content: original, normalised: false, lens: null, form: null };
 }
 
 // PURE (FAFF-361): the canonical, harness-authored findings header — provenance is harness data,
@@ -1031,7 +1058,9 @@ export async function runReviewChain(chain = [], shared = {}) {
       // FAFF-194: per-backend shape validation — a malformed OK result (empty, or no recognised
       // `### <severity>:` section) advances to the next backend rather than short-circuiting the whole
       // chain, so a healthy fallback still gets a chance (mirrors every other per-backend fault class).
-      const shape = validateFindingsShape(result.content || "");
+      const originalContent = result.content || "";
+      const normalisation = normaliseCleanRefutation(originalContent);
+      const shape = validateFindingsShape(normalisation.content);
       if (!shape.ok) {
         failureClasses.push(EXIT.MALFORMED);
         log(verb === "advancing"
@@ -1039,8 +1068,12 @@ export async function runReviewChain(chain = [], shared = {}) {
           : `${verb}: ${tag} produced non-findings output (${shape.reason}) (exit ${EXIT.MALFORMED})`);
         continue;
       }
+      if (normalisation.normalised) {
+        const responseSha256 = createHash("sha256").update(originalContent, "utf8").digest("hex");
+        log(`normalized: clean refutation backend=${tag} lens=${normalisation.lens} form=${normalisation.form} response_sha256=${responseSha256}`);
+      }
       if (i > 0) log(`backend ${i + 1}/${n} ${tag} produced findings (after ${i} skipped)`);
-      return { exit: EXIT.OK, content: result.content || "", truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses };
+      return { exit: EXIT.OK, content: normalisation.content, truncated: !!result.truncated, winner: b, winnerIndex: i, failureClasses };
     }
     failureClasses.push(exit);
     const detail = (result && result.note) || (result && result.names ? `available: ${result.names.join(", ")}` : "");
@@ -1121,6 +1154,10 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
   const system = readFileSync(a.system, "utf8");
   const diff = readFileSync(a.diff, "utf8");
   const contextFiles = a.context.map((p) => ({ path: p, text: readFileSync(p, "utf8") }));
+  if (!system.trim() || !diff.trim()) {
+    process.stderr.write("review inputs must contain a non-empty system prompt and diff\n");
+    return EXIT.USAGE;
+  }
   const user = assembleUserMessage({ contextFiles, diff });
 
   // FAFF-445: oversized-diff preflight — size-check the assembled payload BEFORE any chain element is

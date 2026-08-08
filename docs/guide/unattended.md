@@ -1,6 +1,13 @@
-# Unattended runs (L3)
+# Unattended runs at L3
 
-`/faff-beep-boop` runs the whole pipeline without a human in the loop — the *on the loop* level. Good for overnight, meetings, or anything you want off your plate. This page is the deep-dive on how it stays safe to walk away from.
+This page is for teams that have completed a supervised run and chosen a narrow
+class of eligible work. Read [Adopt by change class](adopting-by-change-class.md)
+and [Configuration](configuration.md) first. Continue with
+[Run unattended work on your own machine](self-hosted-rig.md) when the run needs
+a persistent host.
+
+`/faff-beep-boop` processes the eligible queue without scheduled human attention.
+It parks ambiguity and records the outcome for later review.
 
 ## Before your first unattended run
 

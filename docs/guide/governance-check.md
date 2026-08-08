@@ -1,5 +1,10 @@
 # Add governance-check to GitHub
 
+This page is for repository administrators making run-evidence checks part of
+the merge path. Read [Commissaire](/concept/execution-and-governance) first if
+the responsibility boundary is unfamiliar. Continue with
+[Agent lanes](architecture.md) for the execution model behind the evidence.
+
 `faff governance-check` rechecks run evidence in GitHub Actions. When branch
 protection requires that status, an agent cannot omit its own checks and merge
 through the normal path.

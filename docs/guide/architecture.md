@@ -1,4 +1,9 @@
-# Architecture: agent lanes
+# Agent lanes
+
+This page is for integrators and advanced adopters examining execution visibility.
+Read [Commissaire](/concept/execution-and-governance) first for the broader
+responsibility boundary. Use the [CLI reference](cli.md) to inspect the commands
+that enforce individual checks.
 
 `faff` operates across three executor lanes with controlled visibility:
 

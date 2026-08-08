@@ -1,6 +1,8 @@
-# Skills & slots
+# Skills and slots
 
-The full skill catalogue, the slot model, and how to swap in your own or a third-party doing-skill. Skip this unless you want to customise what runs at a stage or plug in another tool.
+This page is for teams replacing a worker or adding a third-party skill. Read
+[Configuration](configuration.md) first. Use the [CLI reference](cli.md) for the
+contract and validation commands mentioned here. New adopters can skip this page.
 
 ## The four tiers
 

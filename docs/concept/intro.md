@@ -20,5 +20,5 @@ needs. The [governing principles](./governing-principles.md) explain the design
 choices behind the system. [Evidence](./evidence.md) records which claims are
 supported today and which remain open.
 
-For practical use, start with the [walkthroughs](/guide/walkthroughs) and then
-read [adopting by change class](/guide/adopting-by-change-class).
+For practical use, start with the [guide](/guide/intro). It routes new adopters,
+operators, integrators, and maintainers to the pages they need.

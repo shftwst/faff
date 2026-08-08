@@ -48,9 +48,9 @@ backends:
         host: https://openrouter.ai/api/v1
         api_key_env: OPENROUTER_API_KEY
         #timeout: 480
-    gemini-gemma-paid:
+    gemini-paid:
         provider: gemini
-        model: models/gemma-4-31b-it # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
+        model: models/gemini-3.5-flash-lite # /v1beta/openai lists ids models/-prefixed; the served-check is exact-match
         host: https://generativelanguage.googleapis.com/v1beta/openai
         api_key_env: GEMINI_API_KEY_FAFF_PAID
         #timeout: 480
@@ -60,9 +60,9 @@ faffter_dark:
         deadline: 1920
         refs:
             - nvidia-glm
-            - openrouter
+            # - openrouter
             - gemini-gemma
-            - gemini-gemma-paid
+            - gemini-paid
 
 models:
     build_by_confidence:

@@ -12,7 +12,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Run unattended',
-      items: ['unattended', 'self-hosted-rig'],
+      items: ['unattended', 'run-outcomes', 'self-hosted-rig'],
     },
     {
       type: 'category',

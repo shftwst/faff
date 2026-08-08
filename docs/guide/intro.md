@@ -16,8 +16,9 @@ before making any work eligible for unattended delivery.
 ### Run work unattended
 
 Read [Adopt by change class](adopting-by-change-class.md), then
-[Unattended runs at L3](unattended.md). If the run needs to survive a closed
-laptop or disconnected terminal, continue with
+[Unattended runs at L3](unattended.md). See
+[Why one run continued and another stopped](run-outcomes.md) for a paired real
+run. If the run needs to survive a closed laptop or disconnected terminal, continue with
 [Run unattended work on your own machine](self-hosted-rig.md).
 
 ### Add governance to a repository
@@ -40,7 +41,8 @@ the contract. Use the [CLI reference](cli.md) when you need a specific command.
 | [Your first runs](walkthroughs.md) | New adopters | [Adopt by change class](adopting-by-change-class.md) |
 | [Adopt by change class](adopting-by-change-class.md) | Teams deciding what agents may run | [Unattended runs at L3](unattended.md) |
 | [Configuration](configuration.md) | Repository owners setting up or tuning the plugin | [Skills and slots](skills.md) or [Unattended runs at L3](unattended.md) |
-| [Unattended runs at L3](unattended.md) | Teams ready to drain eligible work without scheduled supervision | [Run unattended work on your own machine](self-hosted-rig.md) |
+| [Unattended runs at L3](unattended.md) | Teams ready to drain eligible work without scheduled supervision | [Why one run continued and another stopped](run-outcomes.md) |
+| [Why one run continued and another stopped](run-outcomes.md) | Teams checking how an unattended run handles its gates | [Run unattended work on your own machine](self-hosted-rig.md) |
 | [Run unattended work on your own machine](self-hosted-rig.md) | Operators providing a persistent self-hosted runner | [Add governance-check to GitHub](governance-check.md) |
 | [Add governance-check to GitHub](governance-check.md) | Repository administrators making run checks binding | [Agent lanes](architecture.md) |
 | [Skills and slots](skills.md) | Teams replacing or adding workers | [CLI reference](cli.md) |

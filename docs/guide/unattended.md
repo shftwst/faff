@@ -3,8 +3,9 @@
 This page is for teams that have completed a supervised run and chosen a narrow
 class of eligible work. Read [Adopt by change class](adopting-by-change-class.md)
 and [Configuration](configuration.md) first. Continue with
-[Run unattended work on your own machine](self-hosted-rig.md) when the run needs
-a persistent host.
+[Why one run continued and another stopped](run-outcomes.md) for a paired real
+run, then [Run unattended work on your own machine](self-hosted-rig.md) when the
+run needs a persistent host.
 
 `/faff-beep-boop` processes the eligible queue without scheduled human attention.
 It parks ambiguity and records the outcome for later review.

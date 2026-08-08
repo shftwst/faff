@@ -2,6 +2,8 @@
 
 Two reference diagrams for how faff's autonomy levels actually run. Rendered SVGs live beside this file.
 
+For the responsibility split beneath these levels, see [Execution and governance](../concept/execution-and-governance.md). It distinguishes probabilistic execution, objective conformance, subjective judgement, retained human authority, and the current factory-to-governance dependency direction.
+
 > These are **design references**, not runtime prose — they cite tickets/ADRs for provenance (allowed under `docs/` outside `docs/guide/`).
 
 ## 1. `l3-l4-architecture.svg` — the loop at L3 and L4

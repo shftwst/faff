@@ -18,6 +18,8 @@ runs without you.
 Start with [what faff is](./what-is-faff.md) for the current harness and
 tracker control plane. Then read [positioning and language](./positioning-and-language.md)
 for the SuperDomestique direction, the Commissaire responsibility, and the
-terms used to describe governed autonomy. [The levels](./levels.md) explain
+terms used to describe governed autonomy. [Execution and governance](./execution-and-governance.md)
+shows where model work, deterministic controls, engineering judgement, and
+human authority sit today. [The levels](./levels.md) explain
 how far you have handed off, and [the governing principles](./governing-principles.md)
 state the tenets behind each design decision.

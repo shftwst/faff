@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-732",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6e078c8676a9985082d38e9032cf2179867bc6de80600c237ebe00b85fe8d751",
+    "branch": "faff-732-audit-and-publish-the-status-of-public-trust-claims",
+    "pushed_at": "2026-08-08T02:47:00.000Z"
+  },
+  "updated_at": "2026-08-08T02:47:00.000Z"
+}

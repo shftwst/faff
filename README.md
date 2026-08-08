@@ -1,110 +1,93 @@
-# SuperDomestique
+# SuperDomestique (formerly known as `faff`)
 
-SuperDomestique, currently shipped as `faff`, is an engineering system for progressively autonomous AI software delivery governed by deterministic evidence.
+SuperDomestique lets software agents carry more of the delivery loop while
+keeping authority, evidence, and failure visible.
 
-Governed autonomy reduces scheduled human attention only when named controls, evidence and failure paths earn trust for a workload. Model capability alone does not justify unattended authority. The system must be able to refuse a transition, preserve the reason and return an unresolved decision to a person.
+It works from a tracker, moves work through specification, implementation,
+review, and delivery, and returns unresolved decisions to a person. The aim is
+simple: make a workload safe to stop watching, one step at a time.
 
-## How responsibility is divided
+The project was previously presented as faff. The plugin, CLI, repository, and
+configuration still use the `faff` name, so existing links and commands remain
+valid.
 
-Three responsibilities meet in the delivery loop:
+## Two parts, one delivery loop
 
-- **Humans** set intent, policy and automation eligibility, and decide questions that the available evidence cannot settle.
-- **SuperDomestique** is the target product identity for the delivery responsibility that turns tracker work into specifications, builds, reviews and delivery outcomes.
-- **Commissaire** is the target name for the governance responsibility that checks evidence and applies deterministic gates at trusted checkpoints.
+**The delivery system** turns intent into shipped work. It helps order a
+backlog, prepare specifications, build changes, review them, and deliver the
+result. The tracker remains the place where people set direction and see what
+happened.
 
-Today both product responsibilities live inside the `faff` repository. Commissaire is not a separately shipped component, process, service or security boundary. Commands, configuration, package names, paths, URLs and source identifiers remain `faff`.
+**Commissaire** is the governance system. It checks the evidence produced by a
+run, applies deterministic rules at named gates, and stops or parks work when
+the available evidence is not enough to continue.
 
-The tracker is the human-legible control plane. It records intent, status, specifications, parked work and outcomes. Run artefacts provide the forensic record behind that view.
+Both are part of the current `faff` repository and distribution. Commissaire
+is a logical code boundary today, not a separate service or security boundary.
 
-## Evidence and current limits
+## How far can you step away?
 
-The [positioning and language guide](docs/concept/positioning-and-language.md) owns the product language. The [public trust-claim audit dated 2026-08-07](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md) owns the current evidence status of public claims.
+Autonomy is assigned per workload. A team can keep sensitive work at L1 while
+letting routine, well-covered work run at L3 on the same board.
 
-| Status | Current claim | Evidence boundary |
+| Level | Working relationship | Current position |
 |---|---|---|
-| **Attested** | `faff` can make a workload safe to stop watching one rung at a time. | This is a governance posture backed by named mechanisms, not a guarantee of defect-free delivery or suitability for every repository. |
-| **Attested** | The tracker is the control plane and outcome surface. | Run artefacts remain the forensic substrate. |
-| **Enforced** | At L3, ambiguous work is parked and admitted work cannot finish cleanly without a terminal ledger outcome. | The audit links the runcheck and Stop-hook enforcement paths. |
-| **Unsupported as a complete claim** | L4 is complete and independently proven. | L4 mechanisms exist, but external verification and governed programme closure remain incomplete. |
+| **L1** | You do the engineering; SuperDomestique helps plan and specify it. | Available |
+| **L2** | An agent builds one change and waits for approval at the major gates. | Available |
+| **L3** | An agent drains eligible work unattended; ambiguity is parked for a person. | Current unattended path |
+| **L4** | A run is intended to proceed without scheduled supervision. | Preview; mechanisms exist, external proof is incomplete |
 
-"Safe to stop watching" is always scoped to a workload and a trust rung. It does not mean full autonomy or permission to remove human judgement where the evidence is insufficient.
-
-Harness support is also evidence-bounded. The repository records observed Claude Code and Codex paths, but the detailed public support matrix remains pending in [FAFF-735](https://linear.app/shftwst/issue/FAFF-735/publish-the-harness-support-status). No cross-harness parity claim is made here.
-
-## Trust rungs
-
-A rung applies to a workload, not permanently to a team. One board can carry L1 and L3 work at the same time because automation eligibility is set per ticket. See [Adopting by change-class](docs/guide/adopting-by-change-class.md).
-
-| Rung | Human attention | Current control boundary | Entry point |
-|---|---|---|---|
-| **L1** | The engineer runs the work. | `faff` helps shape and sequence it. | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
-| **L2** | The engineer approves each major transition. | A single build moves through specification, review and merge gates. | `/faff-graft` |
-| **L3** | The agent drains eligible work unattended. | Ambiguity parks for a human; the run ledger must account for admitted work. | `/faff-beep-boop` |
-| **L4** | The run is intended to operate without scheduled supervision. | Lights-out preflight, adversarial review and code-blind holdout mechanisms exist, but the external evidence needed for an unqualified L4-complete claim remains incomplete. | `faff lights-out` |
-
-L3 is the current unattended centre of gravity. The [unattended-run guide](docs/guide/unattended.md) explains eligibility, parking and the run ledger. L4 remains an evidence-constrained programme rather than a completed public guarantee.
+The [levels guide](docs/concept/levels.md) explains the controls and evidence
+behind each level. The [public trust-claim audit](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md)
+records what is enforced, what has been observed, and what remains unproven.
 
 ## Install
 
-```
+```text
 /plugin marketplace add shftwst/faff
 /plugin install faff@faff
 ```
 
-## Requirements
+SuperDomestique currently supports macOS and Linux with Node 20 or later.
+Native Windows is not supported; use WSL2.
 
-macOS and Linux with Node 20 or later. `faff` is dependency-free at runtime.
+## Start with one piece of work
 
-Native Windows is not supported. The CLI refuses to run on `win32` and directs users to WSL2 rather than continuing with unsupported path semantics.
+1. Run `/faff-onboard` to connect the repository and tracker.
+2. Run `/faff-jot` to capture new work, or start from an existing ticket.
+3. Run `/faff-wtf` to see what is ready and what is stuck.
+4. Run `/faff-prep ISSUE-XX` to prepare a specification.
+5. Run `/faff-graft ISSUE-XX` to build the change with approval gates.
 
-## Your first five minutes
+When the team is ready to try unattended work, mark a narrow, low-risk set of
+tickets as eligible and run `/faff-beep-boop`. Anything the system cannot call
+is parked for review.
 
-1. Run `/faff-onboard` to create a `.faffrc.yaml` for the repository.
-2. Run `/faff-jot` to capture a new idea, feature or bug as tracker work. Skip this step when the backlog already exists.
-3. Run `/faff-wtf` to see what shipped, what is stuck and what is ready.
-4. Run `/faff-prep ISSUE-XX`, then `/faff-graft ISSUE-XX`, to specify and build one issue.
-5. Run `/faff-beep-boop` to drain eligible work unattended and inspect parked decisions afterwards.
+## Read next
 
-Each stage can offer the next transition. The gate at that transition determines whether work proceeds, stops or returns for a decision. See the [walkthroughs](docs/guide/walkthroughs.md) for worked examples.
+- [The delivery system](docs/concept/what-is-faff.md) explains the tracker-led
+  path from intent to delivery.
+- [Commissaire](docs/concept/execution-and-governance.md) explains the
+  governance boundary and what its checks can prove.
+- [Walkthroughs](docs/guide/walkthroughs.md) show the first interactive flows.
+- [Adopting by change class](docs/guide/adopting-by-change-class.md) explains
+  how to hand off low-risk work before widening the scope.
+- [Evidence](docs/concept/evidence.md) points to current audits, run records,
+  and known gaps.
+- [CLI reference](docs/guide/cli.md) documents the `faff` commands.
 
-## Commands
+## Names
 
-| Command | What it does |
-|---|---|
-| `/faff` | Show what to focus on. |
-| `/faff-onboard` | Detect repository settings and write `.faffrc.yaml`. |
-| `/faff-jot` | Capture an idea, feature or bug and turn it into tracker work. |
-| `/faff-plot` | Decompose an application-scale idea into a roadmap. |
-| `/faff-wtf` | Report what shipped, what is stuck and what comes next. |
-| `/faff-map` | Show outcomes, workstreams and dependency chains. |
-| `/faff-tidy` | Diagnose and groom the backlog. |
-| `/faff-prep ISSUE-XX` | Turn a ticket into a buildable specification. |
-| `/faff-graft ISSUE-XX` | Build one specified issue in an isolated worktree. |
-| `/faff-beep-boop` | Run the eligible queue unattended and park ambiguity. |
-
-## Naming status
-
-SuperDomestique and Commissaire are target public names adopted through [ADR 0096](docs/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md). The technical rename and any separate Commissaire distribution remain unsettled. Until separate migration work ships, use `faff` literally for every technical identifier.
-
-## Documentation
-
-- [Positioning and language](docs/concept/positioning-and-language.md) defines the canonical product story, names and maturity rules.
-- [Glossary](docs/GLOSSARY.md) defines the repository's delivery and governance terms.
-- [Walkthroughs](docs/guide/walkthroughs.md) cover idea capture and a first build.
-- [Unattended runs](docs/guide/unattended.md) covers L3 eligibility, parking, ledgers and remote operation.
-- [Adopting by change-class](docs/guide/adopting-by-change-class.md) explains per-workload trust.
-- [Configuration](docs/guide/configuration.md) documents `.faffrc.yaml`, appetite and slots.
-- [Skills and slots](docs/guide/skills.md) lists the skill surface and extension model.
-- [CLI guide](docs/guide/cli.md) documents the bundled command-line tool.
-- [Governance check](docs/guide/governance-check.md) explains the harness-independent required-check binding.
-- [Public trust-claim audit](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md) records dated evidence statuses and gaps.
-- [Evidence formats](docs/evidence/README.md) describes the run artefacts external consumers can inspect.
-- [Architecture](docs/guide/architecture.md) describes the orchestrator, implementor and evaluator lanes.
-- [Adopter cost report](docs/reports/adopter-cost-2026-07.md) records first-party cost observations.
+SuperDomestique is the product. Commissaire is its governance system. `faff`
+remains the plugin, CLI, repository, configuration prefix, and source-level
+name. The [language guide](docs/concept/positioning-and-language.md) records the
+rule for contributors.
 
 ## Credits
 
-The nlspec format used by `faffter-dark-nlspec` draws on [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie, licensed under Apache 2.0. See `NOTICE`.
+The nlspec format used by `faffter-dark-nlspec` draws on
+[NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie, licensed
+under Apache 2.0. See `NOTICE`.
 
 ## Licence
 

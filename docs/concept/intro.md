@@ -2,21 +2,23 @@
 sidebar_position: 1
 ---
 
-# Concept
+# How SuperDomestique works
 
-This section explains SuperDomestique, currently shipped as `faff`: the
-governed-autonomy model, its levels, and the principles that steer its design. If the
-[guide](/guide/adopting-by-change-class) is the how, this is the why.
+SuperDomestique is a delivery system for teams that want software agents to do
+more work without giving them unchecked authority. It was previously presented
+as faff; the current plugin and CLI still use the `faff` name.
 
-The product progressively delegates software-delivery work while keeping
-authority, evidence, and failure paths explicit. Scheduled human attention
-decreases only when the controls named for a workload have earned that trust.
+The system has two parts:
 
-Start with [what SuperDomestique is](./what-is-faff.md) for the product and
-the current `faff` implementation. Then read [positioning and language](./positioning-and-language.md)
-for the staged names, the Commissaire responsibility, and the
-terms used to describe governed autonomy. [Execution and governance](./execution-and-governance.md)
-shows where model work, deterministic controls, engineering judgement, and
-human authority sit today. [The levels](./levels.md) explain
-how far you have handed off, and [the governing principles](./governing-principles.md)
-state the tenets behind each design decision.
+- [The delivery system](./what-is-faff.md) moves work from intent to a reviewed
+  change.
+- [Commissaire](./execution-and-governance.md) checks the evidence and controls
+  whether work may advance.
+
+The [levels](./levels.md) describe how much scheduled attention a workload
+needs. The [governing principles](./governing-principles.md) explain the design
+choices behind the system. [Evidence](./evidence.md) records which claims are
+supported today and which remain open.
+
+For practical use, start with the [walkthroughs](/guide/walkthroughs) and then
+read [adopting by change class](/guide/adopting-by-change-class).

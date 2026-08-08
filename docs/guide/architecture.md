@@ -1,6 +1,6 @@
 # Architecture: agent lanes
 
-SuperDomestique, currently shipped as `faff`, operates across three executor lanes with controlled visibility:
+`faff` operates across three executor lanes with controlled visibility:
 
 | Lane | Role | Sees | Doesn't see |
 |---|---|---|---|

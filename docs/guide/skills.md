@@ -27,7 +27,7 @@ The faff-* skills are pure orchestrators — they define the sequence, then dele
 
 ### faffidavit-* (adaptors)
 
-The `faff` core fixes the **internal contracts** the pipeline branches on, including verdict states, vocabularies, and classifications. They live in the gateway, where they never move. The `spec` / `review` / `ship` contracts are **producer-emitted**: the producer self-declares its contract data as a `faff-contract:<name>` block, and the consumer (faff-prep, faff-graft) parses it and calls `faff contract <name>` directly. Two adaptor skills remain: `faffidavit-routing` sits in front of the fixed automation-routing verdict (a computed verdict, no producer authors it), and `faffidavit-rendering` is a pure adaptor with no internal contract (rendering is human-facing only), swappable end to end. Both are usable standalone, not just inside the pipeline.
+Faff-core fixes the **internal contracts** the pipeline branches on — verdict states, vocabularies, classifications — in the gateway, where they never move. The `spec` / `review` / `ship` contracts are **producer-emitted**: the producer self-declares its contract data as a `faff-contract:<name>` block, and the consumer (faff-prep, faff-graft) parses it and calls `faff contract <name>` directly. Two adaptor skills remain: `faffidavit-routing` sits in front of the fixed automation-routing verdict (a computed verdict, no producer authors it), and `faffidavit-rendering` is a pure adaptor with no internal contract (rendering is human-facing only), swappable end to end. Both are usable standalone, not just inside the pipeline.
 
 | Skill | Slot | What it does |
 |---|---|---|

@@ -1,19 +1,15 @@
-# governance-check: the harness-independent enforcement binding
+# Add governance-check to GitHub
 
-Every faff governance check (ledger completeness, budget, merge-floor conditions) ships
-as a CLI verb — but a verb only holds if something *invokes* it. Run entirely inside the
-Claude Code harness, an agent that never calls `runcheck`/`budget check`/`merge-gate` is
-simply ungoverned. `faff governance-check` — wired as a GitHub Actions **required status
-check** — moves the enforcement to a chokepoint the emitter does not control: the backend
-emits the artifact format, and git refuses an unearned merge regardless of which harness
-(or none) produced the PR.
+`faff governance-check` rechecks run evidence in GitHub Actions. When branch
+protection requires that status, an agent cannot omit its own checks and merge
+through the normal path.
 
-**Read this if you're wiring the check into your own repo.** If you're looking for the
-verb's flags, see the [`governance-check` row in the CLI reference](cli.md). For the
-schemas and conformance statement behind the legs this check runs, see
-[the Agent Delivery Evidence spec](../evidence/v0.2/conformance.md).
+This guide explains how to add the check to a repository. For command flags,
+see the [`governance-check` row in the CLI reference](cli.md). For the schemas
+behind the check, see the
+[Agent Delivery Evidence specification](https://github.com/shftwst/faff/blob/main/docs/evidence/v0.2/conformance.md).
 
-## Two warnings, stated plainly
+## What the check can prove
 
 - **Emitting the format ≠ being governed — until the check is *required*.** Adding the
   workflow only makes the check *runnable*. A PR still merges around a failing (or
@@ -59,7 +55,7 @@ jobs:
 ```
 
 Consuming faff as a dependency (not faff's own repo)? Use the subpath `uses:` form above,
-pinned to a **commit sha** (§4). The `faff` repository's dogfood workflow uses the local form
+pinned to a **commit sha** (§4). Faff's own dogfood workflow uses the local form
 (`uses: ./.github/actions/governance-check`) since the Action lives in the same repo.
 
 ## 2. Mark the check required

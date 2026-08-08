@@ -6,7 +6,7 @@ const { themes: prismThemes } = require('prism-react-renderer');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'SuperDomestique',
-  tagline: 'Governed autonomous delivery, currently shipped as faff.',
+  tagline: 'Governed software delivery for increasingly independent agents.',
 
   // Set the production url of your site here
   url: 'https://shftwst.github.io',
@@ -114,16 +114,30 @@ const config = {
         items: [
           {
             type: 'doc',
-            docsPluginId: 'guide',
-            docId: 'adopting-by-change-class',
-            label: 'Guide',
+            docsPluginId: 'concept',
+            docId: 'what-is-faff',
+            label: 'Delivery',
             position: 'left',
           },
           {
             type: 'doc',
             docsPluginId: 'concept',
-            docId: 'positioning-and-language',
-            label: 'Positioning',
+            docId: 'execution-and-governance',
+            label: 'Governance',
+            position: 'left',
+          },
+          {
+            type: 'doc',
+            docsPluginId: 'guide',
+            docId: 'walkthroughs',
+            label: 'Get started',
+            position: 'left',
+          },
+          {
+            type: 'doc',
+            docsPluginId: 'concept',
+            docId: 'evidence',
+            label: 'Evidence',
             position: 'left',
           },
           {
@@ -139,8 +153,10 @@ const config = {
           {
             title: 'Docs',
             items: [
-              { label: 'Guide', to: '/guide/adopting-by-change-class' },
-              { label: 'Positioning', to: '/concept/positioning-and-language' },
+              { label: 'Delivery', to: '/concept/what-is-faff' },
+              { label: 'Governance', to: '/concept/execution-and-governance' },
+              { label: 'Get started', to: '/guide/walkthroughs' },
+              { label: 'Evidence', to: '/concept/evidence' },
             ],
           },
           {
@@ -150,7 +166,7 @@ const config = {
             ],
           },
         ],
-        copyright: `SuperDomestique, currently shipped as faff. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} SuperDomestique. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,

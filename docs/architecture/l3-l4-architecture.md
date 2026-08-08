@@ -1,6 +1,6 @@
 # L3 vs L4 — architecture, control flow, and isolation
 
-Two reference diagrams for how SuperDomestique, currently shipped as `faff`, runs its autonomy levels. Rendered SVGs live beside this file.
+Two reference diagrams for how the current `faff` implementation runs L3 and L4. Rendered SVGs live beside this file.
 
 For the responsibility split beneath these levels, see [Execution and governance](../concept/execution-and-governance.md). It distinguishes probabilistic execution, objective conformance, subjective judgement, retained human authority, and the current factory-to-governance dependency direction.
 

@@ -2,44 +2,55 @@
 sidebar_position: 2
 ---
 
-# What SuperDomestique is
+# The delivery system
 
-SuperDomestique, currently shipped as `faff`, is an engineering system for
-progressively autonomous software delivery. The current implementation combines
-agent skills, a dependency-free CLI, tracker and git workflows, and fixed
-contracts and gates around the delivery loop from issue to shipment.
+SuperDomestique turns tracker work into reviewed software changes. The current
+distribution is the `faff` plugin and CLI.
 
-It does not make a model a better engineer, remove subjective judgement, or
-promise defect-free output. It reduces scheduled human attention only where
-the named controls and evidence support that workload. The levels are trust
-earned per rung, and the Commissaire governance responsibility is part of the
-product rather than an appendix to a build tool.
+The delivery path is:
 
-Commands and every other current technical identifier remain `faff`. See
-[positioning and language](./positioning-and-language.md) for the staged naming
-decision and evidence-bounded writing rules, and [execution and governance](./execution-and-governance.md)
-for the current responsibility boundary.
+```text
+intent -> tracker work -> specification -> build -> review -> delivery
+```
 
-## The tracker as the control plane
+Agents handle the work inside that path. Fixed contracts define the records
+each stage must produce and the outcomes the next stage may accept. A person
+sets the objective, decides which work is eligible for automation, and resolves
+questions the available evidence cannot settle.
 
-The core idea underneath the whole harness is **the tracker as the control
-plane**. Your issue tracker drives two halves of automation:
+## The tracker is the control plane
 
-- **Deliver the *right* things** — tracker-driven methodology automation:
-  value/risk sequencing, what to focus on next, grooming the backlog.
-- **Deliver them *right*** — automated spec-driven development: issue → spec
-  → build → review → ship, each stage behind a fixed contract.
+The tracker carries the plan and the current state. SuperDomestique uses it to:
 
-In both, the tracker stays the human-legible record, control plane, and
-observability surface. That's exactly what makes it safe to step back and
-let the loop run — there's nowhere else the state secretly lives, and
-nothing the current `faff` implementation does is invisible from the board.
+- capture ideas and break them into buildable work;
+- order work by outcomes and dependencies;
+- attach specifications and product decisions;
+- record progress, parked questions, and delivery outcomes.
 
-## Deterministic tools over prose
+Run records provide more detailed evidence, but people should not need to read
+raw logs to find out what happened. The tracker remains the normal place to
+inspect or redirect the work.
 
-A tenet worth calling out on its own: mechanical and contractual work belongs
-in testable, reproducible tools, and the model is reserved for discovery,
-judgement, and insight — not for re-running a contract the same way every
-time. If the same input should always give the same output, that's a tool's
-job, not a prompt's. See [Governing principles](./governing-principles.md)
-for the full set this comes from.
+## Judgement stays judgement
+
+Models are used for discovery, planning, implementation, review, and other work
+that needs interpretation. Deterministic tools handle repeatable checks such as
+schema validation, budgets, run state, and allowed contract outcomes.
+
+This division does not make model decisions objectively correct. It makes the
+decision, its evidence, and its failure path visible to the next gate. See
+[Commissaire](./execution-and-governance.md) for the full responsibility
+boundary.
+
+## Start supervised
+
+The first useful path is interactive:
+
+1. `/faff-jot` captures work.
+2. `/faff-prep ISSUE-XX` prepares a specification.
+3. `/faff-graft ISSUE-XX` builds one issue and pauses at its approval gates.
+
+Once a team trusts that path for a narrow class of work, `/faff-beep-boop` can
+process eligible tickets unattended. The [levels](./levels.md) and
+[adoption guide](/guide/adopting-by-change-class) explain how to widen that
+scope without changing the posture of the whole team.

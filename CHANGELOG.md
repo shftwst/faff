@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.13.0](https://github.com/shftwst/faff/compare/faff--v0.12.0...faff--v0.13.0) (2026-08-08)
+
+
+### Features
+
+* **FAFF-615:** correct the six eval oracles the re-baseline proved wrong ([#523](https://github.com/shftwst/faff/issues/523)) ([58777c2](https://github.com/shftwst/faff/commit/58777c2e69f19216d5762467cdf41b284ec92e4e))
+* **FAFF-712:** --kind filter for --update-baseline (scoped re-baseline) ([#525](https://github.com/shftwst/faff/issues/525)) ([836430a](https://github.com/shftwst/faff/commit/836430a48eededaf59dfc40963ede39f06a938e4))
+* **FAFF-714:** scoped --kind re-baseline checkpoints + resumes ([#531](https://github.com/shftwst/faff/issues/531)) ([62ffffa](https://github.com/shftwst/faff/commit/62ffffa9882eeb9586facbca317f0f6516793788))
+* **FAFF-722:** thread --effort through the eval driver (frontier lane) ([#553](https://github.com/shftwst/faff/issues/553)) ([cf94a2b](https://github.com/shftwst/faff/commit/cf94a2b05f530e3b3be5339f2dd30c0b20a6c2b9))
+
+
+### Bug Fixes
+
+* **FAFF-635:** raise sentry-poller L4 abort-landing/poller-exit deadlines to a CI-tolerant budget ([#545](https://github.com/shftwst/faff/issues/545)) ([bbe5a55](https://github.com/shftwst/faff/commit/bbe5a55ecaa2afe4be95d0ffd3100411237e1a4e))
+
 ## [0.12.0](https://github.com/shftwst/faff/compare/faff--v0.11.0...faff--v0.12.0) (2026-08-02)
 
 

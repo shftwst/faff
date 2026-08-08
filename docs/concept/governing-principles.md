@@ -4,8 +4,8 @@ sidebar_position: 4
 
 # Governing principles
 
-Four tenets steer every design call in faff. Each is a tension — *X, not
-Y* — and the named mechanism is where it already lives, not an aspiration.
+Four tenets steer every design call in SuperDomestique, currently shipped as `faff`.
+Each is a tension: *X, not Y*. The named mechanism is where it already lives, not an aspiration.
 When a spec or a build needs a tie-breaker, these are what it reaches for.
 
 ## Deterministic tools over prose
@@ -21,14 +21,14 @@ the rest of the config-and-contract surface).
 
 ## Configurable, not opinionated
 
-Every behaviour is a swappable slot over a fixed contract — faff ships
+Every behaviour is a swappable slot over a fixed contract. The current `faff` implementation ships
 sensible defaults you can override, not opinions you must accept.
 
 *Embodied by:* the slots/adaptor model, `.faffrc`, and the appetite dial.
 
 ## Adoptable, not all-encompassing
 
-faff integrates rather than owns — it works with your tracker (any MCP),
+SuperDomestique integrates rather than owns. The current implementation works with your tracker (any MCP),
 your agents, and a git-only mode, and you adopt as much of the L1→L4 ladder
 as you want.
 
@@ -38,7 +38,7 @@ slot delegation to third-party skills.
 ## Understandable, not unapproachable
 
 Output and behaviour are skimmable and low-cognitive-load, so the human can
-always follow what faff did and why — and trust it.
+always follow what the system did and why, and calibrate trust accordingly.
 
 *Embodied by:* the rendering/synthesis pass every human-facing output goes
 through, and the human-readable run logs.

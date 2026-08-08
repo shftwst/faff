@@ -20,6 +20,15 @@ This page is the canonical source for product positioning, target names, transit
 
 At first public mention, write "SuperDomestique, currently shipped as `faff`". After that, use SuperDomestique for the target product story and `faff` for literal current identifiers. Historical records keep the names under which they were written.
 
+### Where each name belongs
+
+- **Current narrative surfaces** such as the README, website landing page, concept introductions, and high-level architecture or adoption pages use SuperDomestique for the product and introduce the `faff` implementation explicitly.
+- **Operational and contributor documentation** uses `faff` for the CLI, plugin, skills, configuration, files, commands, artifacts, source modules, and repository-specific procedures.
+- **Historical and dated records** such as ADRs, specifications, audits, reports, captured output, and past evidence retain the terminology under which they were produced. Add a supersession note when a past decision could otherwise be mistaken for current policy; do not rewrite the record.
+- **Commissaire** names the target governance responsibility. Current source remains the governance region unless a later decision ships a separate component.
+
+A repository text search is audit input, not a mechanical naming gate. The same `faff` string can be required in a command and misleading in product prose, so review must classify the document and the use before changing it. Do not add a blanket string test that would force technical identifiers or historical records to adopt target names.
+
 The [July 2026 positioning brief](https://github.com/shftwst/faff/blob/main/docs/superpowers/specs/2026-07-20-docs-positioning-design.md) remains a historical record. [ADR 0096](https://github.com/shftwst/faff/blob/main/docs/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md) supersedes its rejection of a separate brand and its no-renaming non-goal. The brief's evidence-first policy, trust-per-rung model, and treatment of governance as a product remain current.
 
 ## What Commissaire means today

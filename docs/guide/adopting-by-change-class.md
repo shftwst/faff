@@ -1,8 +1,8 @@
 # Adopting by change-class
 
-The obvious question when you meet the levels is *"which level are we at?"* — as if a team picks a rung on the L1→L4 ladder and stands on it. That's the wrong question, and it undersells what faff already does.
+SuperDomestique, currently shipped as `faff`, assigns autonomy per workload. The obvious question when you meet the levels is *"which level are we at?"*, as if a team picks a rung on the L1→L4 ladder and stands on it. That's the wrong question.
 
-A level isn't a property of your **team**. It's a property of a **piece of work**. faff decides autonomy one ticket at a time, so on a single board, on a single night, some tickets build themselves unattended while the ones next to them wait for you — *at the same time*. The right question is **"which change-classes have I cranked up?"**
+A level isn't a property of your **team**. It's a property of a **piece of work**. The current `faff` implementation admits autonomy one ticket at a time, so on a single board, on a single night, some tickets can run unattended while adjacent tickets wait for you. The right question is **"which change-classes have I cranked up?"**
 
 This page is the adoption pattern that follows from that: not "flip the whole team to L3", but **risk-tiered delegation** — hand off the low-risk, well-tested change-classes first, keep the scary ones by hand, and widen the circle as your confidence earns it.
 

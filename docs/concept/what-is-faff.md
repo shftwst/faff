@@ -2,24 +2,23 @@
 sidebar_position: 2
 ---
 
-# What faff is
+# What SuperDomestique is
 
-Under the hood, faff is a **harness**: a set of Claude Code skills wrapping
-the delivery loop — issue → spec → build → review → ship — in fixed
-contracts and gates. It won't make the model a better engineer. It makes it
-**safe to stop watching**, one step at a time.
+SuperDomestique, currently shipped as `faff`, is an engineering system for
+progressively autonomous software delivery. The current implementation combines
+agent skills, a dependency-free CLI, tracker and git workflows, and fixed
+contracts and gates around the delivery loop from issue to shipment.
 
-That's the whole pitch, and it's worth being precise about what it isn't: not
-a shortcut, not a convenience layer, not a way to skip the parts of
-engineering that matter. The levels below are trust earned per rung, not
-convenience gained per rung — and the governance machinery that earns that
-trust (the park protocol, the run-ledger, the review gates) is a product in
-its own right, not an appendix bolted onto a build tool.
+It does not make a model a better engineer, remove subjective judgement, or
+promise defect-free output. It reduces scheduled human attention only where
+the named controls and evidence support that workload. The levels are trust
+earned per rung, and the Commissaire governance responsibility is part of the
+product rather than an appendix to a build tool.
 
-The product story is moving toward SuperDomestique, while current commands
-and technical identifiers remain `faff`. See [positioning and language](./positioning-and-language.md)
-for the staged naming decision, the Commissaire responsibility, and the
-evidence-bounded writing rules.
+Commands and every other current technical identifier remain `faff`. See
+[positioning and language](./positioning-and-language.md) for the staged naming
+decision and evidence-bounded writing rules, and [execution and governance](./execution-and-governance.md)
+for the current responsibility boundary.
 
 ## The tracker as the control plane
 
@@ -34,7 +33,7 @@ plane**. Your issue tracker drives two halves of automation:
 In both, the tracker stays the human-legible record, control plane, and
 observability surface. That's exactly what makes it safe to step back and
 let the loop run — there's nowhere else the state secretly lives, and
-nothing faff does is invisible from the board.
+nothing the current `faff` implementation does is invisible from the board.
 
 ## Deterministic tools over prose
 

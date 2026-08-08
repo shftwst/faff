@@ -59,7 +59,7 @@ jobs:
 ```
 
 Consuming faff as a dependency (not faff's own repo)? Use the subpath `uses:` form above,
-pinned to a **commit sha** (§4). Faff's own dogfood workflow uses the local form
+pinned to a **commit sha** (§4). The `faff` repository's dogfood workflow uses the local form
 (`uses: ./.github/actions/governance-check`) since the Action lives in the same repo.
 
 ## 2. Mark the check required

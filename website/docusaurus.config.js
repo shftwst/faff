@@ -150,7 +150,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} faff. Built with Docusaurus.`,
+        copyright: `SuperDomestique, currently shipped as faff. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,

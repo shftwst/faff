@@ -4,7 +4,9 @@ sidebar_position: 3
 
 # The levels
 
-The levels aren't a faff feature. They're *how far you've wandered off from
+SuperDomestique, currently shipped as `faff`, assigns an autonomy level per workload.
+The level describes how much you have handed off, not a team-wide product setting.
+The practical question is *how far you've wandered off from
 the loop*. One question sorts them: who's running it, and what's keeping it
 from spontaneous robot combustion while your back's turned? A level is set
 per **workload**, not per team — eligibility is per ticket, so a team
@@ -18,8 +20,8 @@ legitimately runs L1 and L3 on the same board the same night.
 | **L4 · out** of the loop *(preview)* | off down the pub | the agent | adversarial review + isolated holdout *(preview)* | `faff lights-out` |
 
 - **L1 · as the loop.** You write the code, your usual IDE agents along for
-  the ride. faff plays planning exoskeleton: it tells you what's worth
-  building, hands you a spec worth building from, then gets out of the way.
+  the ride. The `faff` skills provide planning support: they help identify what's worth
+  building, hand you a spec worth building from, then get out of the way.
 - **L2 · in the loop.** `/faff-graft` drives the build for one issue but
   stops at every gate — spec, build, review, PR — for your say-so. Nothing
   ships behind your back.

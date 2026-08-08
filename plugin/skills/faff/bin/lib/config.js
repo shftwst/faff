@@ -151,6 +151,15 @@ const DEFAULTS = {
   // sibling require_container/require_branch_protection warn|block enums (resolved by SKILL.md
   // prose), this is a boolean.
   "autonomous.engine_bounded": "false",
+  // FAFF-717: decouple the Sentry ABORT kill-switch from the L4 mint. Default false —
+  // only a literal `true` lets an UNATTENDED L3 run's Sentry act (abort) on a trip;
+  // pause/correct stay L4-only. Fail-safe direction is OFF: the un-fired state is the
+  // documented L3 advisory posture and the abort is a resumable ledger-mark, so a
+  // typo/unset must leave acting off (a typo silently making runs abortable is the
+  // hazard). Resolved fail-closed by sentry.js's sentryActingFromConfig (mirrors
+  // engine_bounded above); this registry entry drives `config get`'s DISPLAY value
+  // (returns "false" instead of exit-3, shows in `config defaults`), never the gate.
+  "autonomous.sentry_acting": "false",
   // FAFF-624: the code-side default for the convergence brace (resolveConvergence below) —
   // matches the FAFF-534-flipped `.faffrc.example.yaml` default, so a config-less repo's
   // `faff config get convergence.enabled` answers "true"/exit 0 rather than exit 3.
@@ -1674,6 +1683,8 @@ function cmdConfig(args) {
           "graft.review_outage_retry_limit",
           // FAFF-333: the lights-out host-socket boundedness attestation (default false).
           "autonomous.engine_bounded",
+          // FAFF-717: the L3 Sentry-abort opt-in (default false).
+          "autonomous.sentry_acting",
           // FAFF-624: the convergence brace's code-side default.
           "convergence.enabled",
         ];
@@ -1762,10 +1773,11 @@ function cmdConfig(args) {
       // value is visible in the run banner, not silently coerced behind the user's back.
       const gate = dig(data, "intake_gate");
       if (gate !== null && gate !== undefined && gate !== "") console.log(`intake_gate: ${gate}`);
-      // FAFF-42/350/333: surface a non-default autonomous-entry preflight knob (require_container /
-      // require_branch_protection / engine_bounded) so an opt-in `block` — or the engine_bounded
-      // attestation — is visible in the run banner, never silent.
-      for (const knob of ["require_container", "require_branch_protection", "engine_bounded"]) {
+      // FAFF-42/350/333/717: surface a non-default autonomous-entry preflight knob (require_container /
+      // require_branch_protection / engine_bounded / sentry_acting) so an opt-in `block` — or the
+      // engine_bounded attestation, or the L3 Sentry-abort opt-in — is visible in the run banner,
+      // never silent (the operator's typo-detection surface for sentry_acting).
+      for (const knob of ["require_container", "require_branch_protection", "engine_bounded", "sentry_acting"]) {
         const v = dig(data, `autonomous.${knob}`);
         if (v !== null && v !== undefined && v !== "") console.log(`autonomous.${knob}: ${v}`);
       }

@@ -19,7 +19,7 @@ const config = {
   projectName: 'faff',
 
   // First slice: rewrite the two known out-of-tree links to absolute GitHub URLs
-  // (see docs/guide/governance-check.md, docs/guide/releasing.md) and warn on
+  // (see docs/guide/governance-check.md) and warn on
   // anything unforeseen rather than hard-failing the build (FAFF-508).
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
@@ -65,7 +65,7 @@ const config = {
         id: 'guide',
         path: '../docs/guide',
         routeBasePath: 'guide',
-        sidebarPath: require.resolve('./sidebars.js'),
+        sidebarPath: require.resolve('./sidebars-guide.js'),
         editUrl: 'https://github.com/shftwst/faff/edit/main/docs/guide/',
       }),
     ],
@@ -99,7 +99,7 @@ const config = {
       /** @type {import('@docusaurus/plugin-client-redirects').Options} */
       ({
         redirects: [
-          { to: '/guide/adopting-by-change-class', from: '/guide' },
+          { to: '/guide/intro', from: '/guide' },
           { to: '/concept/intro', from: '/concept' },
         ],
       }),
@@ -129,7 +129,7 @@ const config = {
           {
             type: 'doc',
             docsPluginId: 'guide',
-            docId: 'walkthroughs',
+            docId: 'intro',
             label: 'Get started',
             position: 'left',
           },
@@ -155,7 +155,7 @@ const config = {
             items: [
               { label: 'Delivery', to: '/concept/what-is-faff' },
               { label: 'Governance', to: '/concept/execution-and-governance' },
-              { label: 'Get started', to: '/guide/walkthroughs' },
+              { label: 'Get started', to: '/guide/intro' },
               { label: 'Evidence', to: '/concept/evidence' },
             ],
           },

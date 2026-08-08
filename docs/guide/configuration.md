@@ -1,6 +1,12 @@
 # Configuration
 
-How to point faff at your tracker and tune its two cross-cutting knobs — **appetite** and **slots**. The minimum is three lines; everything else has a sensible default.
+This page is for repository owners connecting the `faff` plugin to a tracker or
+tuning appetite and slots. New adopters should complete
+[Your first runs](walkthroughs.md) first. Continue with [Skills and slots](skills.md)
+to replace a worker, or [Unattended runs at L3](unattended.md) to prepare an
+unattended workload.
+
+The minimum configuration is three lines. Other settings have defaults.
 
 ## Setup
 

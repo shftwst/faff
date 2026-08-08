@@ -1,5 +1,9 @@
 # Adopting by change class
 
+This page is for teams deciding which work agents may run with less supervision.
+Complete [Your first runs](walkthroughs.md) before changing eligibility. Continue
+with [Unattended runs at L3](unattended.md) when one narrow class is ready.
+
 Choose an autonomy level for a kind of work, not for the whole team. A repository
 can run documentation changes unattended while keeping authentication or schema
 changes under direct supervision.

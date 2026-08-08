@@ -16,7 +16,7 @@ const paths = [
   {
     title: 'Get started',
     body: 'Install the faff plugin and take one piece of work through the supervised delivery path.',
-    to: '/guide/walkthroughs',
+    to: '/guide/intro',
   },
   {
     title: 'Evidence',

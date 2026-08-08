@@ -1,6 +1,14 @@
-# Your laptop is the factory — the self-hosted-runner rig
+# Run unattended work on your own machine
 
-The two reference workflows under `docs/ci/` (`l3-watcher.yml`, `l4-watcher.yml`) both need a self-hosted runner to run on. This is the runbook for standing one up. The model is deliberately small: **one machine, one runner, the seat already logged in.** Your own laptop or desktop is the factory — it is simultaneously the substrate the run executes on and the thing that holds the subscription seat, so no API key is involved on the solo path.
+This runbook is for operators providing a persistent host for the L3 or L4
+reference workflows. Read [Unattended runs at L3](unattended.md) first. Continue
+with [Add governance-check to GitHub](governance-check.md) before relying on
+merge-side enforcement.
+
+The reference workflows under `docs/ci/` (`l3-watcher.yml` and
+`l4-watcher.yml`) need a self-hosted runner. The smallest setup is one machine,
+one runner, and the operator's existing subscription seat. On this path the
+machine runs the job and holds the harness login, so no API key is required.
 
 This page owns the runner-*host* half of the safety story. The cage (see [unattended.md → "A cage that passes the gate"](unattended.md#a-cage-that-passes-the-gate)) bounds what the *agent* inside a job can reach; nothing about the cage bounds the runner *process* that hosts the job, and on this rig that process lives on your own machine. The [runner-host posture](#runner-host-posture) section below states what to do about that.
 

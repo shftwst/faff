@@ -1,6 +1,12 @@
-# Walkthroughs
+# Your first runs
 
-Two guided runs end to end: starting from nothing, and a first build once you have tickets. Output is illustrative — yours will name your own issues.
+This page is for new adopters taking a supervised path through the product.
+Read the [guide overview](intro.md) first and keep [Configuration](configuration.md)
+nearby. The examples cover starting from nothing and building one existing
+ticket. Continue with [Adopt by change class](adopting-by-change-class.md) before
+making work eligible for an unattended run.
+
+The output is illustrative; your run will use its own issue identifiers.
 
 ## Starting from nothing: idea → tickets
 

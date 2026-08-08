@@ -1,10 +1,17 @@
-# The `faff` CLI
+# CLI reference
 
-A small command-line tool ships **inside the faff plugin** — `faff`, a dependency-free Node CLI: a thin entrypoint (`bin/faff`) plus modules under `bin/lib/` (no `npm install`, no `node_modules`, no build — just `node`). It's the **deterministic-tools-over-prose** half of the suite: every mechanical, contractual, reproducible operation lives here so the skills don't hand-parse YAML, eyeball ledgers, or re-derive transition rules. Same input → same output, every run.
+This page is a command reference for operators and integrators. New adopters
+should start with [Your first runs](walkthroughs.md). Return to the task guide
+that linked here once you have the command details you need.
 
-The skills and hooks invoke it for themselves — each resolves it as `command -v faff` if it's on `PATH`, otherwise from its own install location (`${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff` when running as a plugin, or the sibling `faff/bin/faff` when dev-linked) — so **normal use needs no setup**.
+The `faff` plugin includes a dependency-free Node CLI. Skills and hooks locate
+and invoke it automatically, so normal plugin use needs no separate CLI setup.
+It owns the repeatable checks and transitions that should not be reinterpreted
+by a model.
 
-Most subcommands also accept `--selftest` (runs an in-memory test table) and `--json` (structured output). The pure functions (`eligible`, `admissible`, `next`, `project-next`, `state`, `contain`, `intakecheck`, `container-check`) make **no** tracker or network calls — the agent maps live state into the flags.
+Most subcommands accept `--selftest` for their in-memory checks and `--json` for
+structured output. Pure commands make no tracker or network calls; the caller
+maps live state into their flags.
 
 ## Config & install health
 

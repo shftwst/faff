@@ -1,6 +1,6 @@
 # ADR 0096 — Adopt SuperDomestique and Commissaire through staged naming
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-08-08
 - **Issue:** FAFF-733

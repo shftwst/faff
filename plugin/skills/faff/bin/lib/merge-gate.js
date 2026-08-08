@@ -33,7 +33,6 @@ const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
 const { appendEffectEntries, buildProgressPath, effectTargetMatches } = require("./effects");
 const { runLadder } = require("./gates");
-const { tryReadLedger } = require("./prepcheck");
 const { parseWorktreeEntries } = require("./worktree-prune");
 
 // The closed `gh pr merge` flag vocabulary. `--merge-args` is validated against this so no
@@ -246,6 +245,99 @@ function ghRepoSlug(explicit) {
   if (explicit) return explicit;
   const r = ghJson(["repo", "view", "--json", "nameWithOwner"]);
   return r.ok && r.data ? r.data.nameWithOwner : null;
+}
+
+// FAFF-690 (F1): resolve the governing autonomy level from the HEAD-SHA-PINNED committed anchor
+// (`.faff/anchors/<basename(run-dir)>/<issue>/run-ledger.json`, byte-copied + committed + pushed at
+// graft Step 9b), NOT from the live-writable run-ledger.json the build lane it polices can rewrite.
+// The committed blob is git content-addressed and immutable at `headSha`; changing it forces a new
+// head sha → a re-run of the required branch-protection-gated `governance-check` → a visible PR diff.
+// So a live rewrite of run-ledger.json — even with a coordinated valid events-chain append — cannot
+// move the level. PRIMARY read: local git object store (`git show`, covers the graft/checkout case
+// where the pushed head sha's object is present). FALLBACK (PR path only, `repo` non-null): the
+// Contents API `?ref=<headSha>` for a pure-remote invocation with no local object. `--local` passes
+// `repo === null` and gets NO API fallback (there is no forge to consult). Returns { level, status,
+// source }; status ∈ ok | anchor-missing (404/empty/no object) | anchor-malformed (bad JSON or a
+// level outside FLOOR_LEVELS) | anchor-unreadable (403 / a narrow forge token lacking contents:read
+// — distinct from -missing because the operator remedy differs). Fail-closed everywhere: the caller
+// REFUSES (exit 2) on any non-ok status; it NEVER falls back to the live ledger for level.
+function resolveAnchorLevel(cwd, repo, runDir, issue, headSha) {
+  const anchorPath = `.faff/anchors/${path.basename(runDir)}/${issue}/run-ledger.json`;
+  let parsed, source;
+  const r = gitRun(cwd, ["show", `${headSha}:${anchorPath}`]);
+  if (r.ok) {
+    source = "git-show";
+    try { parsed = JSON.parse(r.stdout); } catch { parsed = null; }
+  } else if (repo) {
+    // NB: do NOT use `--jq .content` here. `gh api --jq` runs jq in RAW-OUTPUT mode, so a top-level
+    // scalar STRING (`.content` is a base64 string) prints WITHOUT enclosing JSON quotes — and with
+    // embedded newlines — which ghJson's unconditional JSON.parse then rejects (→ ok:false), silently
+    // collapsing every correctly-anchored pure-remote PR to anchor-missing. Fetch the FULL contents
+    // object and extract `.content` in JS.
+    const api = ghJson(["api", `repos/${repo}/contents/${anchorPath}?ref=${headSha}`]);
+    if (!api.ok) {
+      // Distinguish HTTP 403 (read DENIED — a narrow token) from 404 / not-found (genuinely absent):
+      // both fail closed, but the operator remedy differs, so the status must not conflate them.
+      const s = String(api.stderr || "");
+      if (api.status === 403 || /\b403\b|forbidden|not accessible|permission|must have|not authoriz/i.test(s)) {
+        return { level: null, status: "anchor-unreadable", source: "contents-api" };
+      }
+      return { level: null, status: "anchor-missing", source: null };
+    }
+    source = "contents-api";
+    // A file response carries a base64 `content` field; a directory response is an array (no `content`),
+    // and an OK-but-contentless body → anchor-missing (fail-closed, never a silent pass).
+    const b64 = api.data && typeof api.data.content === "string" ? api.data.content : null;
+    if (b64 === null) return { level: null, status: "anchor-missing", source: null };
+    try { parsed = JSON.parse(Buffer.from(b64.replace(/\n/g, ""), "base64").toString("utf8")); }
+    catch { parsed = null; }
+  } else {
+    // --local: local object store only, no forge to fall back to → git-show failure is terminal.
+    return { level: null, status: "anchor-missing", source: null };
+  }
+  if (!parsed || typeof parsed !== "object") return { level: null, status: "anchor-malformed", source };
+  if (!FLOOR_LEVELS.includes(parsed.level)) return { level: null, status: "anchor-malformed", source };
+  return { level: parsed.level, status: "ok", source };
+}
+
+// FAFF-690 (F1): the fail-closed refusal message when no trusted committed anchor level resolves.
+// The remedy differs by status: anchor-unreadable is a token-scope problem on the pure-remote path;
+// everything else is a re-anchor (re-run graft Step 9b) or a merge-at-the-forge remedy. NEVER a
+// live-ledger fallback — that is the exact hole F1 closes.
+function anchorRefusal(runDir, issue, headSha, status) {
+  const remedy = status === "anchor-unreadable"
+    ? "the forge token cannot read .faff/anchors/…/run-ledger.json (grant contents:read, or invoke from a checkout with the head-sha object)"
+    : "re-anchor (graft Step 9b) so the PR carries .faff/anchors/…/run-ledger.json, or merge at the forge";
+  return `faff merge-gate: no trusted committed anchor level for run ${path.basename(runDir)} issue ${issue} at head ${headSha} (${status}) — ${remedy}\n`;
+}
+
+// FAFF-690 (F3): an already-MERGED PR re-derives the RETROSPECTIVE run-substrate floor (AC + review +
+// at-L4 holdout + integrity) from the SAME persisted artifacts + the SAME readers merge-gate itself
+// uses (no forked rule, and — critically — no `require("./governance-check")`, which would cycle:
+// governance-check.js already requires this module). Live CI is deliberately NOT re-observed: it is
+// unobservable on a merged PR, and the forge's branch protection already required CI-green to permit
+// the merge (a documented limitation: on a repo with NO branch protection the forge did not gate CI
+// at merge time, so this leg cannot assume CI was green — it still enforces AC/review/holdout/
+// integrity). The skip is made OBSERVABLY DISTINCT from a stale-CI bug via the display-only sentinel
+// `ci_state:"not-observed-already-merged"` (NEVER fed to decideFloor). Success evidence
+// (merge-record.json) is written ONLY when the retrospective floor passes; a failing floor returns
+// refuse (exit 1) with the failing legs and writes NOTHING. It never spawns `gh pr merge`.
+function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity) {
+  const reasons = [];
+  if (!readAcComplete(runDir, issue)) reasons.push("ACs not all verified");
+  const rv = readReviewVerdict(runDir, issue);
+  if (rv !== "pass") reasons.push(`review verdict is ${rv}`);
+  if (level === "L4") {
+    const h = readHoldout(runDir, issue);
+    if (h !== "meets-spec") reasons.push(`L4 holdout: ${h}`);
+  }
+  if (integrity.state === "violated") reasons.push("corrective-artifact integrity violated");
+  if (integrity.state === "unasserted-refuse") reasons.push("corrective-artifact integrity unasserted at L4");
+  if (reasons.length === 0) {
+    writeMergeRecord(runDir, issue, pr, headSha, integrity.display);
+    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, note: "already merged" }, 0);
+  }
+  return emit({ verdict: "refuse", merged: true, blockers: reasons, ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, note: "already merged but merge-floor not satisfied — no success evidence written" }, 1);
 }
 
 // Observe CI for the head sha authoritatively (head-sha check-runs + legacy status). A zero head-sha
@@ -577,25 +669,31 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   const fence = fenceHumanFlags({ human_override: humanOverride, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
   if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
 
-  const ledger = tryReadLedger(runDir);
-  const ledgerLevel = (ledger && FLOOR_LEVELS.includes(ledger.level)) ? ledger.level : null;
-  const { level, mismatch } = resolveGateLevel(ledgerLevel, flagLevel);
-  if (mismatch) {
-    process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} contradicts run-ledger level ${JSON.stringify(ledgerLevel)} (${path.join(runDir, "run-ledger.json")}); the ledger level governs — drop --level or pass --level ${ledgerLevel}\n`);
-    return 2;
-  }
-
+  // FAFF-690 (F1): resolve the branch BEFORE the level — the anchor is pinned to the branch head sha.
   const branch = branchFlag || (() => { const r = gitRun(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]); return r.ok ? r.stdout : null; })();
   if (!branch || branch === "HEAD") { process.stderr.write("faff merge-gate --local: cannot resolve the current branch (detached HEAD?) — pass --branch explicitly\n"); return 2; }
   const base = resolveLocalBase(cwd, baseFlag);
   if (!base) { process.stderr.write("faff merge-gate --local: cannot resolve a local base branch (no --base, and neither main nor master exists locally)\n"); return 2; }
   if (base === branch) { process.stderr.write(`faff merge-gate --local: branch and base are the same ref (${branch}) — nothing to merge\n`); return 2; }
 
+  // FAFF-690 (F1): source the governing level from the committed anchor at the branch head sha via
+  // `git show` on the LOCAL object store only (no forge / Contents-API fallback — this is the
+  // no-remote path). Fail closed on a missing/malformed anchor (exit 2); the live run-ledger.json is
+  // no longer a level source here either.
+  const headShaBefore = gitRun(cwd, ["rev-parse", branch]).stdout;
+  const anchor = resolveAnchorLevel(cwd, null, runDir, issue, headShaBefore);
+  if (anchor.status !== "ok") { process.stderr.write(anchorRefusal(runDir, issue, headShaBefore, anchor.status)); return 2; }
+  const ledgerLevel = anchor.level;
+  const { level, mismatch } = resolveGateLevel(ledgerLevel, flagLevel);
+  if (mismatch) {
+    process.stderr.write(`faff merge-gate --local: --level ${JSON.stringify(flagLevel)} contradicts the committed anchor level ${JSON.stringify(ledgerLevel)} at ${branch} head ${headShaBefore}; the anchor governs — drop --level or pass --level ${ledgerLevel}\n`);
+    return 2;
+  }
+
   const integrity = resolveIntegrity(runDir, issue, level);
 
   // Idempotent: a peer/earlier invocation that already landed this branch is a no-op, never a
   // double-merge (gateway → status monotonicity; mirrors the PR path's already-MERGED short-circuit).
-  const headShaBefore = gitRun(cwd, ["rev-parse", branch]).stdout;
   if (gitRun(cwd, ["merge-base", "--is-ancestor", branch, base]).ok) {
     writeMergeRecord(runDir, issue, null, headShaBefore, integrity.display);
     return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headShaBefore, integrity: integrity.display, warnings: [], note: "already merged" }, 0);
@@ -771,16 +869,11 @@ function cmdMergeGate(args) {
   if (!pr || !issue || !runDir) { process.stderr.write("faff merge-gate: --pr, --issue and --run-dir are required\n"); return 2; }
   if (flagLevel != null && !FLOOR_LEVELS.includes(flagLevel)) { process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} not in {${FLOOR_LEVELS.join(",")}}\n`); return 2; }
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
-  // FAFF-424: the run-ledger's `level` (minted by `faff lights-out`) governs when present — an
-  // explicit --level may only agree or trigger a fail-loud mismatch refusal, never silently
-  // downgrade it. Absent/unreadable/out-of-enum ledger level leaves the flag/default path unchanged.
-  const ledger = tryReadLedger(runDir);
-  const ledgerLevel = (ledger && FLOOR_LEVELS.includes(ledger.level)) ? ledger.level : null;
-  const { level, mismatch } = resolveGateLevel(ledgerLevel, flagLevel);
-  if (mismatch) {
-    process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} contradicts run-ledger level ${JSON.stringify(ledgerLevel)} (${path.join(runDir, "run-ledger.json")}); the ledger level governs — drop --level or pass --level ${ledgerLevel}\n`);
-    return 2;
-  }
+  // FAFF-690 (F1): the governing autonomy level is resolved from the committed anchor at the observed
+  // PR head sha — NOT the live run-ledger.json (removed here). The anchor read needs the head sha, so
+  // repo-slug + `gh pr view` are reordered up (below) to resolve BEFORE the level; resolveIntegrity
+  // (keyed on level) is reordered to resolve AFTER it. The FAFF-424 --level mismatch guard is retained
+  // but now guards a flag that contradicts the ANCHOR (not the live ledger).
   // FAFF-537: resolve the merge method from BOTH --merge-args and any bare top-level
   // --squash/--merge/--rebase, so the bare gh-shaped form is honoured rather than silently dropped.
   const resolved = resolveMergeFlags(args, mergeArgsRaw);
@@ -804,10 +897,9 @@ function cmdMergeGate(args) {
     return status;
   };
 
-  // FAFF-325: computed once, reused on EVERY path below (idempotent no-op, refuse, merge-ok) —
-  // "the merge record + ledger banner ALWAYS annotate the integrity basis, on every decision path".
-  const integrity = resolveIntegrity(runDir, issue, level);
-
+  // FAFF-690 (F1): repo slug + `gh pr view` head sha resolve BEFORE the level (the anchor is pinned
+  // to the head sha). Both refuse exit 2 on failure, unchanged.
+  const cwd = process.cwd();
   const repo = ghRepoSlug(repoFlag);
   if (!repo) { process.stderr.write("faff merge-gate: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
   // headRefName (FAFF-383): the branch-delete observe target, derived mechanically alongside the
@@ -816,10 +908,33 @@ function cmdMergeGate(args) {
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
   const headSha = hv.data.headRefOid;
   const headRefName = hv.data.headRefName || null;
-  // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status monotonicity).
+
+  // FAFF-690 (F1): resolve the governing level from the head-sha-pinned committed anchor. A non-ok
+  // status (missing / malformed / unreadable) fails closed (exit 2) — NEVER a live-ledger fallback.
+  const anchor = resolveAnchorLevel(cwd, repo, runDir, issue, headSha);
+  if (anchor.status !== "ok") { process.stderr.write(anchorRefusal(runDir, issue, headSha, anchor.status)); return 2; }
+  const ledgerLevel = anchor.level;
+  // FAFF-424 (re-pointed to the anchor): an explicit --level may only AGREE with the committed anchor
+  // level; a contradiction fails loud (exit 2) — never a silent downgrade, and never an operator
+  // --level downgrade lever (the escape from a wrong anchor is re-anchoring, which produces committed
+  // evidence, not a build-lane-writable flag).
+  const { level, mismatch } = resolveGateLevel(ledgerLevel, flagLevel);
+  if (mismatch) {
+    process.stderr.write(`faff merge-gate: --level ${JSON.stringify(flagLevel)} contradicts the committed anchor level ${JSON.stringify(ledgerLevel)} at head ${headSha}; the anchor governs — drop --level or pass --level ${ledgerLevel}\n`);
+    return 2;
+  }
+
+  // FAFF-325 / FAFF-690: resolveIntegrity is keyed on `level`, so it resolves AFTER the anchor level.
+  // Computed once, reused on EVERY path below (already-merged reconcile, refuse, merge-ok) — the merge
+  // record + ledger banner ALWAYS annotate the integrity basis, on every decision path.
+  const integrity = resolveIntegrity(runDir, issue, level);
+
+  // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status
+  // monotonicity). FAFF-690 (F3): but success evidence is now conditional on the RETROSPECTIVE floor
+  // — an already-merged PR whose AC/review/(at-L4)holdout/integrity cannot be re-proven refuses (exit
+  // 1) and writes no merge-record.json. Never spawns `gh pr merge` either way.
   if (hv.data.state === "MERGED") {
-    writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397: ensure the record exists even on the idempotent no-op path
-    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "n/a", head_sha: headSha, integrity: integrity.display, note: "already merged" }, 0);
+    return alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity);
   }
 
   const ci = observeCi(repo, pr, headSha);
@@ -1174,6 +1289,16 @@ function mergeGateSelftest() {
       fs.writeFileSync(path.join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: acVerified }));
       fs.writeFileSync(path.join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: reviewSignal, findings: [] }));
     };
+    // FAFF-690 (F1): the --local level source is now the committed anchor at the branch head. Commit
+    // .faff/anchors/<basename(runDir)>/<issue>/run-ledger.json onto the branch under merge (makeRepo
+    // leaves the repo on `feature`) so `git show <featureHead>:<anchorPath>` resolves it.
+    const commitAnchor = (repoDir, runDir, issue, level) => {
+      const abs = path.join(repoDir, ".faff", "anchors", path.basename(runDir), issue, "run-ledger.json");
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, JSON.stringify({ run_id: path.basename(runDir), level }));
+      git(repoDir, "add", "-A");
+      git(repoDir, "commit", "-qm", "anchor");
+    };
     const runLocal = (issue, runDir, cwd, overrides) => cmdMergeGateLocal({
       issue, runDir, branchFlag: null, baseFlag: null, flagLevel: null, mode: "execute",
       interactive: false, humanOverride: false, allowNoCi: false, noCiPolicy: "needs-human",
@@ -1183,7 +1308,6 @@ function mergeGateSelftest() {
       // --- repo A: no remote, a passing UNIT rung, a clean feature branch ---
       const repoA = path.join(gitTmp, "repo-a");
       makeRepo(repoA, "true");
-      const featureShaA = git(repoA, "rev-parse", "feature").stdout.trim();
 
       check("gitRemoteEmpty: no remote configured → true", gitRemoteEmpty(repoA) === true);
       check("resolveLocalBase: explicit --base wins", resolveLocalBase(repoA, "custom") === "custom");
@@ -1191,6 +1315,8 @@ function mergeGateSelftest() {
 
       const runDirA = path.join(gitTmp, "run-dir-a");
       writeFloor(runDirA, "FAFF-526A", true, "pass");
+      commitAnchor(repoA, runDirA, "FAFF-526A", "L3");
+      const featureShaA = git(repoA, "rev-parse", "feature").stdout.trim(); // after the anchor commit
       const okRes = runLocal("FAFF-526A", runDirA, repoA);
       check("cmdMergeGateLocal: clean build (AC+review+gates green) → exit 0 merge-ok", okRes === 0);
       check("cmdMergeGateLocal: base ref advanced to the feature tip", git(repoA, "rev-parse", "main").stdout.trim() === featureShaA);
@@ -1204,9 +1330,10 @@ function mergeGateSelftest() {
       // --- repo B: no remote, a FAILING UNIT rung ---
       const repoB = path.join(gitTmp, "repo-b");
       makeRepo(repoB, "false");
-      const baseBeforeB = git(repoB, "rev-parse", "main").stdout.trim();
       const runDirB = path.join(gitTmp, "run-dir-b");
       writeFloor(runDirB, "FAFF-526B", true, "pass");
+      commitAnchor(repoB, runDirB, "FAFF-526B", "L3");
+      const baseBeforeB = git(repoB, "rev-parse", "main").stdout.trim();
       const failRes = runLocal("FAFF-526B", runDirB, repoB);
       check("cmdMergeGateLocal: failing gates run (signal=fail → ci-red) → exit 1 refuse", failRes === 1);
       check("cmdMergeGateLocal: failing gates → base ref NOT advanced", git(repoB, "rev-parse", "main").stdout.trim() === baseBeforeB);
@@ -1217,6 +1344,7 @@ function mergeGateSelftest() {
       makeRepo(repoC, null);
       const runDirC = path.join(gitTmp, "run-dir-c");
       writeFloor(runDirC, "FAFF-526C", true, "pass");
+      commitAnchor(repoC, runDirC, "FAFF-526C", "L3");
       const noGatesRes = runLocal("FAFF-526C", runDirC, repoC);
       check("cmdMergeGateLocal: discovery:none (no declared gates) → refuse fail-closed (no_ci_policy default needs-human)", noGatesRes === 1);
 
@@ -1233,13 +1361,14 @@ function mergeGateSelftest() {
       // --- repo E: base branch moved (not fast-forwardable) after the feature branched ---
       const repoE = path.join(gitTmp, "repo-e");
       makeRepo(repoE, "true");
+      const runDirE = path.join(gitTmp, "run-dir-e");
+      writeFloor(runDirE, "FAFF-526E", true, "pass");
+      commitAnchor(repoE, runDirE, "FAFF-526E", "L3"); // on feature, before main diverges
       git(repoE, "checkout", "-q", "main");
       fs.writeFileSync(path.join(repoE, "main-moved.txt"), "y");
       git(repoE, "add", "-A");
       git(repoE, "commit", "-qm", "main moved on independently");
       git(repoE, "checkout", "-q", "feature");
-      const runDirE = path.join(gitTmp, "run-dir-e");
-      writeFloor(runDirE, "FAFF-526E", true, "pass");
       const notFfRes = runLocal("FAFF-526E", runDirE, repoE);
       check("cmdMergeGateLocal: base moved since branching (non-ff) → refuse 'rebase first' (ff-only)", notFfRes === 1);
 
@@ -1248,6 +1377,7 @@ function mergeGateSelftest() {
       makeRepo(repoF, "true");
       const runDirF = path.join(gitTmp, "run-dir-f");
       writeFloor(runDirF, "FAFF-526F", true, "needs-human");
+      commitAnchor(repoF, runDirF, "FAFF-526F", "L3");
       const nonPassRes = runLocal("FAFF-526F", runDirF, repoF);
       check("cmdMergeGateLocal: review verdict != pass → refuse (identical fail-closed floor as the PR path)", nonPassRes === 1);
 
@@ -1256,6 +1386,7 @@ function mergeGateSelftest() {
       makeRepo(repoG, "true");
       const runDirG = path.join(gitTmp, "run-dir-g");
       writeFloor(runDirG, "FAFF-526G", false, "pass");
+      commitAnchor(repoG, runDirG, "FAFF-526G", "L3");
       const acRes = runLocal("FAFF-526G", runDirG, repoG);
       check("cmdMergeGateLocal: AC not all verified → refuse", acRes === 1);
     } finally {
@@ -1296,4 +1427,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

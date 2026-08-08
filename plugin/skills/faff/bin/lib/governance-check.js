@@ -227,10 +227,21 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3") {
     if (ch && typeof ch.run_id === "string" && ch.run_id) label = ch.run_id + (ch.issue ? `/${ch.issue}` : "");
     if (ch && typeof ch.issue === "string" && ch.issue) issue = ch.issue;
   } catch { /* no chain-head witness — label/issue stay the dir basename */ }
+  // FAFF-690 (F1b): derive the merge-floor level from the anchor's OWN committed run-ledger.json (the
+  // same head-sha-pinned byte-copy `faff events anchor` writes into the dir), so the required
+  // branch-protection-gated CI check and merge-gate consult the same pinned truth and cannot disagree
+  // — an L4-anchored PR then has its holdout leg enforced by CI independently of merge-gate. Only
+  // STRENGTHENS: a non-L4 / legacy / level-less / unreadable anchor keeps today's `--level`-flag
+  // behaviour (fail-closed to the flag, unchanged).
+  let effectiveLevel = level;
+  try {
+    const anchorLedger = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
+    if (anchorLedger && FLOOR_LEVELS.includes(anchorLedger.level)) effectiveLevel = anchorLedger.level;
+  } catch { /* no/unreadable/malformed anchor ledger → keep the --level flag (unchanged) */ }
   // Wrapped in the same `{ pass, issues: [...] }` shape `evaluateRunDir` uses (line ~376) —
   // buildReasons/the text+markdown renderers index `legs.merge_floor.issues`, so the raw
   // per-issue evaluateMergeFloorLeg result (no `issues` array) must never be assigned directly.
-  const floorResult = { ...evaluateMergeFloorLeg(dir, ".", level), issue };
+  const floorResult = { ...evaluateMergeFloorLeg(dir, ".", effectiveLevel), issue };
   const merge_floor = { pass: floorResult.pass, issues: [floorResult] };
   const naDetail = (name) => `n/a — anchor snapshot (${name} runs on live run dirs only)`;
   return {
@@ -999,6 +1010,33 @@ function governanceCheckSelftest() {
       const { result: withProgressRc } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", l4, "--level", "L4"]));
       check("anchor L4: holdout.json + its build-progress.json → exit 0 (meets-spec, not blocked)", withProgressRc === 0);
     } finally { fs.rmSync(l4, { recursive: true, force: true }); }
+  }
+  {
+    // FAFF-690 (F1b): evaluateAnchorDir derives the merge-floor level from the anchor's OWN committed
+    // run-ledger.json, not the --level flag. An L4-anchored dir with a clean AC+review floor but NO
+    // holdout FAILs the required check even with no --level flag (which would default to L3, where the
+    // holdout leg is skipped) — proving the level came from the anchor ledger. No events.jsonl ⇒ the
+    // integrity leg trivially passes, isolating merge_floor as the variable.
+    const anchorDir = mkTmpRunDir("faff-govcheck-anchorlevel-");
+    try {
+      fs.writeFileSync(path.join(anchorDir, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+      fs.writeFileSync(path.join(anchorDir, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+      // L4 in the anchor's own committed ledger — no holdout artifact beside it.
+      writeLedger(anchorDir, { run_id: "anchored", level: "L4" });
+      const { result: derivedL4 } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir])); // no --level → flag default L3
+      check("F1b: L4 anchor-ledger + no holdout → merge-floor FAILS (level derived from the anchor, not the L3 flag default)", derivedL4 === 1);
+
+      // Rewrite the anchor ledger to a non-L4 level (or drop it) → the flag default (L3) governs again,
+      // the holdout leg is skipped, and the same clean floor PASSES — the fallback is unchanged.
+      writeLedger(anchorDir, { run_id: "anchored", level: "L3" });
+      const { result: l3Anchor } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir]));
+      check("F1b: L3 anchor-ledger + clean floor → passes (non-L4 anchor keeps today's flag behaviour)", l3Anchor === 0);
+
+      // A ledger with no usable level → the flag default (L3) governs (fail-closed to the flag), unchanged.
+      writeLedger(anchorDir, { run_id: "anchored" });
+      const { result: noLevel } = captureOutput(() => cmdGovernanceCheck(["--anchor-dir", anchorDir]));
+      check("F1b: level-less anchor-ledger → flag default governs (unchanged), clean floor passes", noLevel === 0);
+    } finally { fs.rmSync(anchorDir, { recursive: true, force: true }); }
   }
   {
     // A run dir carrying a clean chain still passes end-to-end (integrity wired into the full sweep).

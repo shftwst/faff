@@ -17,9 +17,10 @@
 
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, existsSync, readFileSync, utimesSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, chmodSync, rmSync, existsSync, readFileSync, utimesSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, basename, dirname } from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 
 const ISSUE = "FAFF-1";
@@ -34,6 +35,12 @@ after(() => { for (const d of tmpDirs) { try { rmSync(d, { recursive: true, forc
 // A stub `gh`: answers exactly the subcommands the merge-gate shell issues, from env-supplied canned
 // data, and touches STUB_MERGE_SENTINEL on any `pr merge`. An unhandled subcommand exits 3 so a shell
 // change that issues a new gh call fails LOUDLY rather than silently passing.
+// FAFF-690: the stub also answers the Contents-API anchor read (`gh api …/contents/…?ref=<sha>
+// --jq .content`) — resolveAnchorLevel's fallback path. With STUB_SHA a fake 40-hex sha, merge-gate's
+// PRIMARY `git show <sha>:<anchorPath>` in repoRoot fails (no such object) and falls to this API, so
+// every stubbed test resolves its level from STUB_ANCHOR_CONTENT (base64 of the committed ledger) or
+// the fail-closed STUB_ANCHOR_MODE (missing→404 / unreadable→403). The money-fixture + smoke test use
+// a REAL git repo instead, exercising the git-show primary path.
 const STUB_GH = `#!/usr/bin/env bash
 case "$1" in
   repo)
@@ -46,6 +53,12 @@ case "$1" in
     esac ;;
   api)
     case "$*" in
+      *contents*)
+        case "\${STUB_ANCHOR_MODE:-ok}" in
+          missing)    printf 'gh: Not Found (HTTP 404)\\n' >&2; exit 1 ;;
+          unreadable) printf 'gh: Resource not accessible by integration (HTTP 403)\\n' >&2; exit 1 ;;
+          *)          printf '%s' "$STUB_ANCHOR_CONTENT"; exit 0 ;;
+        esac ;;
       *check-runs*) printf '%s' "$STUB_CHECK_RUNS"; exit 0 ;;
       *status*)     printf '%s' "$STUB_STATUS"; exit 0 ;;
     esac ;;
@@ -57,7 +70,24 @@ exit 3
 // Build a doctored env whose PATH shadows the real gh with the stub, plus the canned-response vars.
 // ci:"green" → one completed/success check-run + a legacy success status ⇒ classifyHeadShaChecks → ci-green.
 // headRefName (FAFF-383): the PR-view stub's headRefName field — the branch-delete observe target.
-function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-branch" } = {}) {
+// FAFF-690: `anchorLevel` (default "L3", agreeing with baseArgs' --level L3) is the level the
+// committed anchor reports via the Contents-API fallback. `anchorMode` selects the fail-closed
+// variants: "ok" serves anchorLevel; "missing"/"unreadable" make the API 404/403; "malformed"/
+// "no-level" serve content that decodes to a bad/level-less ledger (→ anchor-malformed).
+// The stub emits the REAL `gh api …/contents/…` response shape (a JSON object with a base64
+// `content` field) — resolveAnchorLevel fetches the full object (no `--jq`) and extracts `.content`
+// in JS. (An earlier version returned a pre-extracted JSON-quoted base64 string, which real
+// `gh api` never produces — that fiction masked the raw-mode `--jq` bug the code now avoids.)
+function anchorContentFor(anchorMode, anchorLevel) {
+  let body = null;
+  if (anchorMode === "malformed") body = "{not valid json";
+  else if (anchorMode === "no-level") body = JSON.stringify({ run_id: "anchored" });
+  else if (anchorMode === "ok" || anchorMode === undefined) body = JSON.stringify({ run_id: "anchored", level: anchorLevel });
+  if (body === null) return "";
+  return JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from(body).toString("base64") });
+}
+
+function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-branch", sha = SHA, anchorLevel = "L3", anchorMode = "ok" } = {}) {
   const stubDir = mkTmp("mg-gh-");
   const ghPath = join(stubDir, "gh");
   writeFileSync(ghPath, STUB_GH);
@@ -65,18 +95,40 @@ function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-br
   const sentinel = join(stubDir, "merge-sentinel");
   const checkRuns = ci === "green" ? '[{"status":"completed","conclusion":"success"}]' : "[]";
   const status = ci === "green" ? '{"state":"success","count":1}' : '{"state":"pending","count":0}';
+  // The API stub only distinguishes missing/unreadable from "serve content"; malformed/no-level ride
+  // the "ok" mode but with content that decodes to a bad ledger.
+  const stubAnchorMode = anchorMode === "missing" || anchorMode === "unreadable" ? anchorMode : "ok";
   const env = {
     ...process.env,
     PATH: `${stubDir}:${process.env.PATH}`,
     STUB_REPO: REPO,
-    STUB_SHA: SHA,
+    STUB_SHA: sha,
     STUB_PR_STATE: prState,
     STUB_HEAD_REF_NAME: headRefName,
     STUB_CHECK_RUNS: checkRuns,
     STUB_STATUS: status,
     STUB_MERGE_SENTINEL: sentinel,
+    STUB_ANCHOR_MODE: stubAnchorMode,
+    STUB_ANCHOR_CONTENT: anchorContentFor(anchorMode, anchorLevel),
   };
   return { env, sentinel };
+}
+
+// FAFF-690: a REAL git repo carrying the committed anchor at .faff/anchors/<basename(runDir)>/<issue>/
+// run-ledger.json on HEAD — for tests that must exercise the PRIMARY `git show` read path (the
+// money-fixture + smoke test). Returns { repoDir, sha }. Pass cwd:repoDir to runCli + sha to stubGhEnv.
+function commitAnchorRepo(runDir, issue, ledgerBody) {
+  const repoDir = mkTmp("mg-anchor-repo-");
+  const g = (...a) => spawnSync("git", ["-C", repoDir, ...a], { encoding: "utf8" });
+  g("init", "-q", "-b", "main");
+  g("config", "user.email", "t@t.t");
+  g("config", "user.name", "t");
+  const abs = join(repoDir, ".faff", "anchors", basename(runDir), issue, "run-ledger.json");
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, JSON.stringify(ledgerBody));
+  g("add", "-A");
+  g("commit", "-qm", "commit anchor");
+  return { repoDir, sha: g("rev-parse", "HEAD").stdout.trim() };
 }
 
 // Seed the run-dir floor artifacts. "merge-ok" → passing AC + a review block computeReviewVerdict
@@ -179,17 +231,68 @@ test("execute on a refuse floor → exit 1, verdict refuse, merge sentinel ABSEN
   assert.equal(existsSync(sentinel), false);
 });
 
-// --- already-MERGED PR: idempotent no-op, never a double-merge (regardless of floor) ---
+// --- FAFF-690 (F3): already-MERGED reconciliation proves the RETROSPECTIVE floor before writing
+// success evidence. The old test asserted an unconditional merge-ok idempotent no-op regardless of
+// floor — that minted `merge-ok` (and a merge-record) for a PR whose floor was never proven. It is
+// SUPERSEDED: success evidence is now conditional on the re-derived AC/review/(at-L4)holdout/
+// integrity floor; a failing floor refuses (exit 1) and writes NO merge-record.json. `gh pr merge`
+// is never spawned either way (idempotency preserved). ---
 
-test("already-MERGED PR → exit 0, merged:true, merge sentinel ABSENT (idempotent no-op)", () => {
-  const runDir = seedRunDir("refuse"); // even on a refuse floor, a merged PR short-circuits before decideFloor
+const mergeRecordPath = (runDir) => join(runDir, ISSUE, "merge-record.json");
+
+test("F3: already-MERGED on an UNSATISFIED retrospective floor → exit 1 refuse, blockers name the legs, ci_state not-observed-already-merged, NO merge-record, no gh pr merge", () => {
+  const runDir = seedRunDir("refuse"); // AC + review absent → the retrospective floor cannot be proven
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
+  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.merged, true, "the PR IS merged — but the floor is unproven");
+  assert.equal(out.ci_state, "not-observed-already-merged", "the display sentinel proves CI was intentionally not observed");
+  assert.ok(out.blockers.some((b) => /ACs not all verified/.test(b)));
+  assert.equal(existsSync(mergeRecordPath(runDir)), false, "no success evidence for an unproven merge");
+  assert.equal(existsSync(sentinel), false, "an already-merged PR must never re-spawn gh pr merge");
+});
+
+test("F3: already-MERGED on a SATISFIED retrospective floor → exit 0 merge-ok (note 'already merged', ci_state not-observed-already-merged), merge-record written, no gh pr merge", () => {
+  const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ prState: "MERGED" });
   const { code, stdout } = runCli(baseArgs(runDir), { env });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
   assert.equal(out.merged, true);
-  assert.equal(existsSync(sentinel), false, "an already-merged PR must not re-spawn gh pr merge");
+  assert.equal(out.note, "already merged");
+  assert.equal(out.ci_state, "not-observed-already-merged");
+  assert.equal(existsSync(mergeRecordPath(runDir)), true, "a proven already-merged floor writes success evidence");
+  assert.equal(existsSync(sentinel), false, "no re-merge");
+});
+
+test("F3: already-MERGED at L4 with no fresh meets-spec holdout → exit 1 refuse (the retrospective floor re-derives the L4 holdout leg), NO merge-record", () => {
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact under the run dir
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED", anchorLevel: "L4" });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.ci_state, "not-observed-already-merged");
+  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "the retrospective floor re-derives the L4 holdout leg");
+  assert.equal(existsSync(mergeRecordPath(runDir)), false);
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("F3: already-MERGED whose live CI would read RED but whose retrospective floor PASSES → still exit 0 (CI deliberately not observed — ci_state not-observed-already-merged, no CI-observation ran)", () => {
+  const runDir = seedRunDir("merge-ok");
+  // ci:"red" makes the stub's check-runs empty / status pending — a live observeCi() would refuse.
+  // F3 must NOT consult CI on a merged PR, so this still merges-ok and the sentinel value proves it.
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED", ci: "red" });
+  const { code, stdout } = runCli(baseArgs(runDir), { env });
+  assert.equal(code, 0, "CI is not re-observed on a merged PR — the forge gated it at merge time");
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "merge-ok");
+  assert.equal(out.ci_state, "not-observed-already-merged", "a real observeCi run would have produced ci-red/indeterminate, never this sentinel");
+  assert.notEqual(out.ci_state, "ci-red");
+  assert.equal(existsSync(sentinel), false);
 });
 
 // --- FAFF-375 human-override TTY fence: non-TTY runCli child → exit 2 BEFORE any gh call ---
@@ -214,42 +317,39 @@ test("--human-override WITHOUT --interactive (non-TTY) → exit 2, NO override f
   assert.equal(existsSync(overrideFile(runDir)), false);
 });
 
-// --- FAFF-424: merge-gate derives its level from the run-ledger, refusing a contradicting --level ---
+// --- FAFF-690 (F1): merge-gate derives the governing level from the HEAD-SHA-PINNED COMMITTED ANCHOR
+// (not the live run-ledger.json), refusing a contradicting --level and failing closed on a missing/
+// malformed anchor. These supersede the FAFF-424 "derive level from the live ledger" tests
+// (writeLedger + expect-level-from-it): a live ledger is no longer a level source, so the fixtures
+// seed the anchor via the Contents-API stub (anchorLevel/anchorMode). The money-fixture below drives
+// the PRIMARY git-show path against a real committed anchor. ---
 
 const argsNoLevel = (runDir, extra = []) =>
   ["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", runDir, "--repo", REPO, "--json", ...extra];
 
-function writeLedger(runDir, level) {
-  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "test-run", level }));
-}
-
-test("L4 ledger + no --level + no holdout artifact → exit 1, refuse names the L4 holdout (level derived, not defaulted)", () => {
-  const runDir = seedRunDir("merge-ok"); // AC + review pass; only the (absent) holdout artifact should block
-  writeLedger(runDir, "L4");
-  const { env, sentinel } = stubGhEnv();
+test("F1: L4 committed anchor + no --level + no holdout artifact → exit 1, refuse names the L4 holdout (level derived from the anchor, not defaulted)", () => {
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; only the (absent) holdout should block
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
   const { code, stdout } = runCli(argsNoLevel(runDir), { env });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "refuse");
   assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "refuse must name the L4 holdout leg");
-  assert.equal(existsSync(sentinel), false, "a derived-L4 refuse must never reach gh pr merge");
+  assert.equal(existsSync(sentinel), false, "an anchor-derived L4 refuse must never reach gh pr merge");
 });
 
-test("L4 ledger + --level L3 → exit 2, mismatch error names both levels and the ledger path, no gh call", () => {
+test("F1: L4 anchor + --level L3 → exit 2, mismatch error names the anchor level L4 (the anchor governs), no gh merge", () => {
   const runDir = seedRunDir("merge-ok");
-  writeLedger(runDir, "L4");
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
   const { code, stderr } = runCli(baseArgs(runDir), { env }); // baseArgs passes --level L3
   assert.equal(code, 2);
-  assert.match(stderr, /--level "L3" contradicts run-ledger level "L4"/);
-  assert.match(stderr, /run-ledger\.json/);
-  assert.equal(existsSync(sentinel), false, "a mismatch must be refused before any gh call");
+  assert.match(stderr, /--level "L3" contradicts the committed anchor level "L4"/);
+  assert.equal(existsSync(sentinel), false, "a mismatch must be refused before any merge");
 });
 
-test("L4 ledger + --level L4 (agreement) → proceeds at L4, refuse still names the L4 holdout (no coercion to L3)", () => {
+test("F1: L4 anchor + --level L4 (agreement) → proceeds at L4, refuse still names the L4 holdout (no coercion to L3)", () => {
   const runDir = seedRunDir("merge-ok");
-  writeLedger(runDir, "L4");
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
   const { code, stdout } = runCli(argsNoLevel(runDir, ["--level", "L4"]), { env });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
@@ -257,36 +357,129 @@ test("L4 ledger + --level L4 (agreement) → proceeds at L4, refuse still names 
   assert.equal(existsSync(sentinel), false);
 });
 
-test("no ledger present + --level L3 → unchanged behaviour (flag/default governs, merge-ok floor merges)", () => {
-  const runDir = seedRunDir("merge-ok"); // no run-ledger.json written
-  const { env, sentinel } = stubGhEnv();
+test("F1: L3 anchor + --level L3 (clean merge-ok floor) → exit 0 merges (no regression on a clean L3-anchored run)", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L3" });
   const { code, stdout } = runCli(baseArgs(runDir), { env });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
   assert.equal(out.merged, true);
-  assert.equal(existsSync(sentinel), true, "no ledger → today's flag-governed path merges exactly as before");
+  assert.equal(existsSync(sentinel), true, "a clean L3-anchored run merges exactly as before");
 });
 
-test("ledger present with no level field + --level L3 → unchanged behaviour (ledgerLevel normalises to null)", () => {
+test("F1: NO committed anchor at the head sha → exit 2 anchor-missing, NO live-ledger fallback, no merge", () => {
   const runDir = seedRunDir("merge-ok");
-  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "test-run" })); // no `level` key
-  const { env, sentinel } = stubGhEnv();
+  // A forged live ledger claiming L1 is present but IGNORED — the trust root is the committed anchor.
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "forged", level: "L1" }));
+  const { env, sentinel } = stubGhEnv({ anchorMode: "missing" });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /no trusted committed anchor level/);
+  assert.match(stderr, /anchor-missing/);
+  assert.equal(existsSync(sentinel), false, "fail-closed: never a live-ledger fallback, never a merge");
+});
+
+test("F1: unreadable anchor blob (Contents-API 403 / narrow token) → exit 2 anchor-unreadable with the token remedy", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({ anchorMode: "unreadable" });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-unreadable/);
+  assert.match(stderr, /contents:read/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("F1: malformed anchor blob (bad JSON / no usable level) → exit 2 anchor-malformed", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({ anchorMode: "malformed" });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-malformed/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("F1: anchor with no `level` field → exit 2 anchor-malformed (level not in FLOOR_LEVELS)", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({ anchorMode: "no-level" });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-malformed/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+// FAFF-690: honest coverage of the Contents-API FALLBACK SUCCESS path. STUB_SHA is a fake 40-hex sha
+// absent from repoRoot's object store, so merge-gate's PRIMARY `git show <sha>:<anchorPath>` MISSES
+// and the fallback is genuinely exercised against the real `gh api …/contents` response shape (a
+// base64 `.content` field, no `--jq`). Reverting the code fix (re-adding `--jq .content`) makes
+// ghJson's JSON.parse throw on the raw-mode bare base64 → anchor-missing → these tests FAIL.
+test("F1 FALLBACK: git-show miss + clean L3 anchor via the Contents-API fallback → exit 0 MERGES (the pre-fix bug wrongly refused this as anchor-missing)", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L3" });
   const { code, stdout } = runCli(baseArgs(runDir), { env });
-  assert.equal(code, 0);
+  assert.equal(code, 0, "a correctly-anchored pure-remote PR must MERGE via the fallback, not refuse anchor-missing");
   assert.equal(JSON.parse(stdout).verdict, "merge-ok");
-  assert.equal(existsSync(sentinel), true);
+  assert.equal(existsSync(sentinel), true, "the fallback resolved a usable L3 level and the merge fired");
 });
 
-// Adversarial review (FAFF-424): the mismatch check must fire even under --check-only — it is
-// malformed input, not a floor verdict the --check-only short-circuit should ever paper over.
-test("L4 ledger + --level L3 + --check-only → still exit 2 mismatch (fires before the check-only short-circuit)", () => {
+test("F1 FALLBACK: git-show miss + L4 anchor via the Contents-API fallback → level resolves L4 (L4 holdout refuse), proving the fallback returns the real level not a default", () => {
+  const runDir = seedRunDir("merge-ok"); // no holdout → the L4 holdout is the sole blocker
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 1);
+  assert.ok(JSON.parse(stdout).blockers.some((b) => /L4 holdout/.test(b)), "the L4 level came THROUGH the fallback (not defaulted, not anchor-missing)");
+  assert.equal(existsSync(sentinel), false);
+});
+
+// Adversarial review (FAFF-424, carried into F1): the mismatch check must fire even under
+// --check-only — it is malformed input, not a floor verdict the short-circuit should paper over.
+test("F1: L4 anchor + --level L3 + --check-only → still exit 2 mismatch (fires before the check-only short-circuit)", () => {
   const runDir = seedRunDir("merge-ok");
-  writeLedger(runDir, "L4");
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" });
   const { code, stderr } = runCli(baseArgs(runDir, ["--check-only"]), { env });
   assert.equal(code, 2);
-  assert.match(stderr, /--level "L3" contradicts run-ledger level "L4"/);
+  assert.match(stderr, /--level "L3" contradicts the committed anchor level "L4"/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+// --- FAFF-690 (F1) MONEY FIXTURE: the coordinated-append attack, driven against the PRIMARY git-show
+// read path (a REAL committed anchor at the observed head sha). The live run-ledger.json is rewritten
+// L4→L1 AND a fresh valid ledger-write is appended to events.jsonl — merge-gate must resolve L4 from
+// the committed anchor (ignoring both) and refuse on the L4 holdout, proving the append is inert. ---
+
+test("F1 MONEY: committed anchor L4 + live ledger rewritten to L1 + a fresh valid chain append → resolves L4 from the anchor (git-show primary), refuses on the L4 holdout; the live tamper is inert", () => {
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact → L4 holdout missing
+  // The coordinated-append attack on the LIVE, build-lane-writable substrate:
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ run_id: "attacked", level: "L1" }));
+  const prevHash = "0".repeat(64);
+  appendFileSync(join(runDir, "events.jsonl"),
+    JSON.stringify({ seq: 1, type: "ledger-write", prev: prevHash, data: { ledger_sha256: "f".repeat(64) } }) + "\n");
+  // The committed anchor at the observed head sha records the TRUE level L4:
+  const { repoDir, sha } = commitAnchorRepo(runDir, ISSUE, { run_id: "attacked", level: "L4" });
+  const { env, sentinel } = stubGhEnv({ sha }); // gh pr view → the real committed sha; git-show resolves the blob
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: repoDir });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.ok(out.blockers.some((b) => /L4 holdout/.test(b)), "the L4 legs fire — the live L4→L1 rewrite + chain append had no effect");
+  assert.equal(existsSync(sentinel), false, "the live tamper cannot downgrade the merge to an ungated L1");
+});
+
+// --- FAFF-690 (F1) SMOKE: the plumbing-connected happy path against the git-show primary — a clean
+// L4-anchored run whose holdout leg is satisfied (the ONLY residual refuse on this host is the
+// FAFF-325 integrity defence-in-depth, unasserted here), proving git-show resolves the committed blob. ---
+
+test("F1 SMOKE: real committed L4 anchor + fresh meets-spec holdout → level resolves L4 via git-show, the holdout leg passes (only the FAFF-325 integrity leg blocks on this host)", () => {
+  const runDir = seedRunDir("merge-ok");
+  writeCheckpoint(runDir, new Date("2026-07-10T12:00:00.000Z").toISOString());
+  writeHoldout(runDir, new Date("2026-07-10T13:00:00.000Z"));
+  const { repoDir, sha } = commitAnchorRepo(runDir, ISSUE, { run_id: "clean", level: "L4" });
+  const { env, sentinel } = stubGhEnv({ sha });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: repoDir });
+  const out = JSON.parse(stdout);
+  assert.ok(!out.blockers.some((b) => /L4 holdout/.test(b)), "git-show resolved L4 and the fresh meets-spec holdout satisfied the leg");
+  assert.equal(code, 1);
+  assert.ok(out.blockers.some((b) => /corrective-artifact integrity unasserted at L4/.test(b)), "only the FAFF-325 defence-in-depth leg remains");
   assert.equal(existsSync(sentinel), false);
 });
 
@@ -321,7 +514,7 @@ function writeHoldout(runDir, mtimeDate) {
 
 test("FAFF-420: no holdout artifact under the run-dir (foreign/absent) → refuse, blocker names L4 holdout missing", () => {
   const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout.json anywhere under this run-dir
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
   const { code, stdout } = runCli(argsL4(runDir), { env });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
@@ -336,7 +529,7 @@ test("FAFF-420: holdout mtime predates the build-complete checkpoint (stale) →
   const staleHoldoutTime = new Date("2026-07-10T11:00:00.000Z"); // before the checkpoint
   writeCheckpoint(runDir, checkpointTime.toISOString());
   writeHoldout(runDir, staleHoldoutTime);
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
   const { code, stdout } = runCli(argsL4(runDir), { env });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);
@@ -360,7 +553,7 @@ test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) �
   const freshHoldoutTime = new Date("2026-07-10T13:00:00.000Z"); // after the checkpoint
   writeCheckpoint(runDir, checkpointTime.toISOString());
   writeHoldout(runDir, freshHoldoutTime);
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
   const { code, stdout } = runCli(argsL4(runDir), { env });
   const out = JSON.parse(stdout);
   assert.ok(!out.blockers.some((b) => /L4 holdout/.test(b)), "the fresh, run-scoped meets-spec verdict must satisfy the holdout leg on its own");
@@ -374,7 +567,7 @@ test("FAFF-420: holdout mtime postdates the build-complete checkpoint (fresh) �
 test("FAFF-420: holdout present but no build-complete checkpoint under the run-dir → refuse, blocked (freshness unprovable)", () => {
   const runDir = seedRunDir("merge-ok"); // no build-progress.json written
   writeHoldout(runDir, new Date("2026-07-10T13:00:00.000Z"));
-  const { env, sentinel } = stubGhEnv();
+  const { env, sentinel } = stubGhEnv({ anchorLevel: "L4" }); // FAFF-690: L4 anchor to agree with --level L4
   const { code, stdout } = runCli(argsL4(runDir), { env });
   assert.equal(code, 1);
   const out = JSON.parse(stdout);

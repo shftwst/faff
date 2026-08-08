@@ -104,6 +104,21 @@ function runIsOwned(ledger, runDir, env) {
   return false;
 }
 
+// FAFF-690 (F4): the CONTENT-INDEPENDENT ownership clause of runIsOwned, extracted so it works with
+// NO ledger object — the only ownership signal available when the ledger fails to PARSE (there is no
+// parsed `owner.session_id` to match). Used at the hook-entry readLedger catch, where a corrupt
+// ledger this session provably owns must fail closed (block) rather than silently return success.
+function ownedByEnvPointer(runDir, env) {
+  const e = env || process.env;
+  return !!(e.FAFF_RUN_DIR && runDir && path.resolve(e.FAFF_RUN_DIR) === path.resolve(runDir));
+}
+
+// FAFF-690 (F4): the hard-block reason when an OWNED run's ledger is malformed/unreadable — the
+// completion backstop cannot confirm the queue drained, so it fails closed instead of exiting silent.
+function malformedOwnedReason(runDir) {
+  return `faff runcheck: the owned run ledger at ${runDir} is malformed/unreadable — the completion backstop cannot confirm the build queue drained; fix or remove the ledger before stopping (owned session, fail-closed).`;
+}
+
 // Is the run still HELD by a live owner? Contract = owner.status "running" + a
 // heartbeat fresher than STALE_SECS. Absent owner / non-running / stale / missing
 // / unparseable heartbeat ⇒ NOT held (fail-safe toward firing). nowMs/env are
@@ -158,7 +173,14 @@ function runcheckHookDecision(ledger, runDir, nowMs, env, opts) {
   const recover = !!(opts && opts.recover);
   let result;
   try { result = auditLedger(ledger, ledger.run_id ?? path.basename(runDir || "")); }
-  catch { return { block: false, warn: false, owned: false, held: false }; } // malformed → silent (unchanged)
+  catch {
+    // FAFF-690 (F4): the object PARSED but auditLedger threw (e.g. outcomes non-object). Both
+    // runIsOwned clauses are usable here (the object is present). An OWNED run whose ledger cannot be
+    // audited fails CLOSED — the backstop cannot confirm the queue drained. A foreign/ownership-
+    // unprovable run stays silent, byte-identical to before (no non-owner can be hard-blocked here).
+    if (runIsOwned(ledger, runDir, env)) return { block: true, warn: false, reason: malformedOwnedReason(runDir), owned: true, held: false };
+    return { block: false, warn: false, owned: false, held: false };
+  }
   const owned = runIsOwned(ledger, runDir, env);
   const held = owned ? false : runIsHeld(ledger, nowMs, env);
   // Foreign AND a live owner is draining it → stay silent (FAFF-205).
@@ -203,7 +225,19 @@ function cmdRuncheck(args) {
   if (hook) {
     if (!runDir) return 0;
     let ledger;
-    try { ledger = readLedger(runDir); } catch { return 0; } // parse error → silent (unchanged)
+    try { ledger = readLedger(runDir); }
+    catch {
+      // FAFF-690 (F4): readLedger does JSON.parse(readFileSync(...)), so BOTH a parse error and an
+      // unreadable file throw here — there is NO ledger object, so ownership can only be established
+      // by the content-independent FAFF_RUN_DIR env pointer. An OWNED corrupt ledger hard-blocks (the
+      // block PAYLOAD on stdout + exit 0 is the Stop-hook block mechanism, parity with the block path
+      // below); a foreign/unprovable one stays silent, byte-identical to before.
+      if (ownedByEnvPointer(runDir, process.env)) {
+        console.log(JSON.stringify({ decision: "block", reason: malformedOwnedReason(runDir) }));
+        return 0;
+      }
+      return 0; // foreign/unprovable (no env pointer) → silent (unchanged)
+    }
     // FAFF-355: overlay the dedicated heartbeat file over owner.last_heartbeat BEFORE
     // the pure decision runs — the decision fn (runcheckHookDecision → runIsHeld)
     // stays filesystem-free; this is the one read of the file for this seam.
@@ -313,6 +347,14 @@ const RUNCHECK_SELFTEST_CASES = [
   ["FAFF-355: not-owned + unparseable file + fresh field + undispatched → held/silent (field fallback)",
     { run_id: "R", admitted: ["X"], outcomes: {}, owner: { status: "running", last_heartbeat: hbAgo(10) } },
     {}, false, false, undefined, "not-a-date"],
+  // FAFF-690 (F4): a MALFORMED ledger (outcomes a non-object → auditLedger throws) this session OWNS
+  // fails CLOSED (block); a foreign malformed ledger stays silent (foreign safety byte-identical).
+  ["FAFF-690: owned (env-pointer) + malformed ledger (outcomes non-object) → block (fail-closed)",
+    { run_id: "R", admitted: ["X"], outcomes: [], owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    { FAFF_RUN_DIR: RUNCHECK_RUN_DIR }, true, false],
+  ["FAFF-690: foreign + malformed ledger (outcomes non-object) → silent (no foreign hard-block)",
+    { run_id: "R", admitted: ["X"], outcomes: [], owner: { status: "running", last_heartbeat: hbAgo(10) } },
+    {}, false, false],
 ];
 
 function runcheckSelftest() {
@@ -332,4 +374,4 @@ function runcheckSelftest() {
 }
 
 
-module.exports = { RUNCHECK_NOW, RUNCHECK_RUN_DIR, RUNCHECK_SELFTEST_CASES, RUN_HEARTBEAT_STALE_SECS_DEFAULT, TERMINAL_STATES, auditLedger, auditRun, cmdRuncheck, hbAgo, heartbeatStaleSecs, resolveRunDir, runIsHeld, runIsOwned, runcheckHookDecision, runcheckReason, runcheckSelftest };
+module.exports = { RUNCHECK_NOW, RUNCHECK_RUN_DIR, RUNCHECK_SELFTEST_CASES, RUN_HEARTBEAT_STALE_SECS_DEFAULT, TERMINAL_STATES, auditLedger, auditRun, cmdRuncheck, hbAgo, heartbeatStaleSecs, malformedOwnedReason, ownedByEnvPointer, resolveRunDir, runIsHeld, runIsOwned, runcheckHookDecision, runcheckReason, runcheckSelftest };

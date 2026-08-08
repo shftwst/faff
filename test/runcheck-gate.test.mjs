@@ -32,6 +32,17 @@ function rootWith(ledger) {
   return { root, runDir };
 }
 
+// FAFF-690 (F4): a fixture whose run-ledger.json is RAW (unparseable) — the parse/read-throw point
+// (runcheck.js hook-entry readLedger catch) the pure selftest cannot reach, because there the object
+// never parses so ownership can only be established by the content-independent FAFF_RUN_DIR pointer.
+function rootWithRaw(raw) {
+  const root = mkdtempSync(join(tmpdir(), "runcheck-"));
+  const runDir = join(root, ".faff", "runs", "RUN-LIVE");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), raw);
+  return { root, runDir };
+}
+
 test("runcheck --selftest passes (the shipped gate table)", () => {
   const r = run(["runcheck", "--selftest"]);
   assert.equal(r.code, 0);
@@ -155,6 +166,32 @@ test("FAFF-233: --hook stays SILENT for a foreign run with a fresh heartbeat but
     const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
     assert.equal(r.out.trim(), "", "a fresh heartbeat is authoritative — a dead/rolled recorded pid must not flip it to abandoned");
     assert.equal(r.err.trim(), "", "held → fully silent");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// FAFF-690 (F4): a malformed OWNED ledger fails closed at the Stop-hook boundary. This covers the
+// parse/read-throw owned-block path the pure selftest cannot reach — it spawns the REAL entrypoint
+// with FAFF_RUN_DIR pointing at a run whose run-ledger.json is unparseable, and asserts a block
+// payload; the foreign variant (no FAFF_RUN_DIR) asserts silent (foreign safety byte-identical).
+test("FAFF-690: --hook BLOCKS the OWNING session on an UNPARSEABLE owned ledger (env-pointer match, fail-closed)", () => {
+  const { root, runDir } = rootWithRaw("{ this is not valid json");
+  try {
+    const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: runDir, FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0, "a Stop hook signals a block via its stdout payload, not a non-zero exit");
+    const payload = JSON.parse(r.out.trim());
+    assert.equal(payload.decision, "block", "an owned, unparseable ledger must hard-block, never silently pass");
+    assert.match(payload.reason, /malformed\/unreadable/);
+    assert.match(payload.reason, /owned session, fail-closed/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-690: --hook stays SILENT on an UNPARSEABLE FOREIGN ledger (no env-pointer → foreign safety untouched)", () => {
+  const { root, runDir } = rootWithRaw("{ this is not valid json");
+  try {
+    const r = run(["runcheck", "--hook", runDir], { FAFF_RUN_DIR: "", FAFF_SESSION_ID: "" });
+    assert.equal(r.code, 0);
+    assert.equal(r.out.trim(), "", "a non-owning session must never be hard-blocked by a corrupt foreign ledger");
+    assert.equal(r.err.trim(), "", "and no warn either — a foreign malformed ledger is silent, exactly as before");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

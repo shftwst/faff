@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { writeFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import {
   buildChatPayload, modelServed, accumulateNdjson, assembleUserMessage,
   preflight, runReview, parseArgs, unreachableExit, EXIT, DEFAULT_NUM_PREDICT,
@@ -14,7 +15,8 @@ import {
   isTransientTransport, TRANSPORT_RETRY, main,
   runReviewChain, chainTerminalExit, mapResultExit, mapThrowStatus, CHAIN_NEEDS_HUMAN, mandatoryRemap,
   ledgerMandatory, budgetWarnings,
-  splitFindings, validateFindingsShape, attributionHeader, ensureHeader, hasHeader,
+  splitFindings, validateFindingsShape, normaliseCleanRefutation, CLEAN_REFUTATIONS, CANONICAL_NO_FINDINGS,
+  attributionHeader, ensureHeader, hasHeader,
   findSyntaxClaims, claimTargets, refuteFindings, realCheck,
   checkPayloadSize, DEFAULT_MAX_PAYLOAD_BYTES,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
@@ -1469,6 +1471,72 @@ test("FAFF-194 validateFindingsShape: >=1 recognised severity section is finding
   assert.equal(validateFindingsShape("## Adversarial findings — ollama/m\n\n### critical: x\nbody").ok, true);
 });
 
+// ── canonical clean refutations (FAFF-746) ──
+
+test("FAFF-746 normaliseCleanRefutation: all four bare and headed prompt forms become the canonical token", () => {
+  for (const entry of CLEAN_REFUTATIONS) {
+    assert.deepEqual(
+      normaliseCleanRefutation(entry.sentence),
+      { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "bare" },
+      `${entry.lens}: bare`,
+    );
+    assert.deepEqual(
+      normaliseCleanRefutation(`${entry.heading}\n${entry.sentence}`),
+      { content: CANONICAL_NO_FINDINGS, normalised: true, lens: entry.lens, form: "headed" },
+      `${entry.lens}: headed`,
+    );
+  }
+});
+
+test("FAFF-746 normaliseCleanRefutation: tolerates outer whitespace, blank separators, and CRLF", () => {
+  assert.deepEqual(
+    normaliseCleanRefutation(" \r\n## Refutation — infosec\r\n\r\nNo infosec objection.\r\n "),
+    { content: CANONICAL_NO_FINDINGS, normalised: true, lens: "infosec", form: "headed" },
+  );
+});
+
+test("FAFF-746 normaliseCleanRefutation: clean-like ambiguity remains byte-identical and unaccepted", () => {
+  const rejected = [
+    "", "## Refutation — architectural\nNo QA objection.",
+    "No architectural objection", "no architectural objection.",
+    "No architectural objections.", "**No architectural objection.**",
+    "No performance objection.", "No architectural objection.\nAdditional prose.",
+    "## Refutation — unknown\nNo architectural objection.",
+  ];
+  for (const content of rejected) {
+    assert.deepEqual(
+      normaliseCleanRefutation(content),
+      { content, normalised: false, lens: null, form: null },
+      JSON.stringify(content),
+    );
+  }
+});
+
+test("FAFF-746 normaliseCleanRefutation: existing severity-shaped output is byte-identical", () => {
+  const content = "## Adversarial findings — ollama/m\r\n\r\n### major: real issue\r\nbody\r\n";
+  const result = normaliseCleanRefutation(content);
+  assert.equal(result.content, content);
+  assert.equal(result.normalised, false);
+});
+
+test("FAFF-746 prompt contract: every allowlisted heading and sentence matches its checked-in refuter prompt byte-for-byte", () => {
+  for (const entry of CLEAN_REFUTATIONS) {
+    const filename = entry.lens === "QA" ? "refute-qa.md" : `refute-${entry.lens}.md`;
+    const prompt = readFileSync(new URL(`../plugin/skills/faffter-dark-spec-review/${filename}`, import.meta.url), "utf8");
+    assert.ok(prompt.includes(entry.heading), `${entry.lens}: heading drifted`);
+    assert.ok(prompt.includes(entry.sentence), `${entry.lens}: sentence drifted`);
+    assert.equal(Buffer.from(entry.heading, "utf8").includes(Buffer.from([0xe2, 0x80, 0x94])), true, `${entry.lens}: heading must contain U+2014`);
+  }
+});
+
+test("FAFF-746 spec-review command contract supplies non-empty system, diff, and context paths", () => {
+  const skill = readFileSync(new URL("../plugin/skills/faffter-dark-spec-review/SKILL.md", import.meta.url), "utf8");
+  const command = skill.match(/node \"\$REVIEW_CALL\"[\s\S]*?\n    ;;/)?.[0] || "";
+  assert.match(command, /--system\s+plugin\/skills\/faffter-dark-spec-review\/refute-<lens>\.md/);
+  assert.match(command, /--diff\s+<spec-file>/);
+  assert.match(command, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
+});
+
 // ── attributionHeader / ensureHeader (FAFF-361: chain[index] + host provenance) ──
 
 test("FAFF-361 attributionHeader: exact provenance format, incl. chain index and host source", () => {
@@ -1704,6 +1772,62 @@ test("FAFF-194 runReviewChain: a fully-exhausted chain containing only a malform
   assert.equal(res.exit, EXIT.MALFORMED);
 });
 
+test("FAFF-746 runReviewChain: an exact clean primary wins with canonical content and one digest-only event", async () => {
+  const content = "No infosec objection.";
+  const trace = [];
+  const res = await runReviewChain(
+    [
+      { provider: "gemini", model: "gemini-2.5-pro", host: "https://gemini.example/v1", hostSource: "config" },
+      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+    ],
+    {
+      system: "S", user: "U", log: (message) => trace.push(message),
+      runReviewFn: async ({ host }) => {
+        assert.equal(host, "https://gemini.example/v1", "fallback is not dispatched after a clean primary");
+        return { status: "ok", content };
+      },
+    },
+  );
+  const digest = createHash("sha256").update(content, "utf8").digest("hex");
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 0);
+  assert.deepEqual(res.failureClasses, []);
+  assert.equal(res.content, CANONICAL_NO_FINDINGS);
+  assert.deepEqual(trace, [
+    `normalized: clean refutation backend=gemini/gemini-2.5-pro lens=infosec form=bare response_sha256=${digest}`,
+  ]);
+  assert.ok(!trace[0].includes(content), "raw response prose is not logged");
+});
+
+test("FAFF-746 runReviewChain: a mismatched clean-like primary records MALFORMED and advances", async () => {
+  const trace = [];
+  const res = await runReviewChain(
+    [
+      { provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" },
+      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+    ],
+    {
+      system: "S", user: "U", log: (message) => trace.push(message),
+      runReviewFn: scriptedRunReview({
+        "https://primary/v1": { status: "ok", content: "## Refutation — architectural\nNo QA objection." },
+        "http://fallback:11434": { status: "ok", content: CANONICAL_NO_FINDINGS },
+      }),
+    },
+  );
+  assert.equal(res.exit, EXIT.OK);
+  assert.equal(res.winnerIndex, 1);
+  assert.deepEqual(res.failureClasses, [EXIT.MALFORMED]);
+  assert.ok(trace.some((line) => /gemini\/primary malformed/.test(line) && /exit 10/.test(line)));
+});
+
+test("FAFF-746 runReviewChain: a single mismatched clean-like backend still terminates with exit 10", async () => {
+  const res = await runReviewChain(
+    [{ provider: "gemini", model: "m", host: "https://primary/v1", hostSource: "config" }],
+    { system: "S", user: "U", log: () => {}, runReviewFn: async () => ({ status: "ok", content: "## Refutation — QA\nNo infosec objection." }) },
+  );
+  assert.equal(res.exit, EXIT.MALFORMED);
+});
+
 test("FAFF-194 runReviewChain: a config fault still DOMINATES a malformed fault in a fully-failed chain (returns the FIRST needs-human class in order)", () => {
   assert.equal(chainTerminalExit([EXIT.MALFORMED, EXIT.AUTH]), EXIT.MALFORMED, "MALFORMED came first in chain order");
   assert.equal(chainTerminalExit([EXIT.AUTH, EXIT.MALFORMED]), EXIT.AUTH, "AUTH came first in chain order");
@@ -1748,6 +1872,44 @@ test("FAFF-194 main(): a winning result missing the header gets it prepended, no
   }
   assert.match(stdout, /^## Adversarial findings — ollama\/m \(chain\[0\], host: config\)\n/);
   assert.match(errOut, /normalized: findings header missing/);
+});
+
+test("FAFF-746 main(): headed clean prose emits canonical attribution and no-findings content", async () => {
+  const { sys, diff } = writeMainFixtures();
+  const content = "## Refutation — infosec\nNo infosec objection.";
+  const digest = createHash("sha256").update(content, "utf8").digest("hex");
+  const origErr = process.stderr.write.bind(process.stderr);
+  let errOut = "";
+  process.stderr.write = (chunk) => { errOut += chunk; return true; };
+  let result;
+  try {
+    result = await captureStdout(() => main(
+      ["--host", "http://h:1", "--model", "m", "--provider", "gemini", "--system", sys, "--diff", diff],
+      { runReviewFn: async () => ({ status: "ok", content }) },
+    ));
+  } finally {
+    process.stderr.write = origErr;
+  }
+  assert.equal(result.result, EXIT.OK);
+  assert.equal(result.stdout, "## Adversarial findings — gemini/m (chain[0], host: config)\n\n### observation: no findings\n");
+  assert.match(errOut, new RegExp(`normalized: clean refutation backend=gemini/m lens=infosec form=headed response_sha256=${digest}`));
+});
+
+test("FAFF-746 main(): whitespace-only system or diff returns USAGE before backend dispatch", async () => {
+  for (const empty of ["system", "diff"]) {
+    const dir = mkdtempSync(join(tmpdir(), "faff746-input-"));
+    const sys = join(dir, "system.txt");
+    const diff = join(dir, "diff.txt");
+    writeFileSync(sys, empty === "system" ? " \n\t" : "SYSTEM");
+    writeFileSync(diff, empty === "diff" ? " \n\t" : "DIFF");
+    let dispatches = 0;
+    const code = await main(
+      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
+      { runReviewFn: async () => { dispatches += 1; return { status: "ok", content: CANONICAL_NO_FINDINGS }; } },
+    );
+    assert.equal(code, EXIT.USAGE, empty);
+    assert.equal(dispatches, 0, `${empty}: backend must not dispatch`);
+  }
 });
 
 test("FAFF-361 main(): single-backend legacy path, provider omitted, --host-source default → header renders ollama/<model> (chain[0], host: default)", async () => {

@@ -16,6 +16,11 @@ convenience gained per rung — and the governance machinery that earns that
 trust (the park protocol, the run-ledger, the review gates) is a product in
 its own right, not an appendix bolted onto a build tool.
 
+The product story is moving toward SuperDomestique, while current commands
+and technical identifiers remain `faff`. See [positioning and language](./positioning-and-language.md)
+for the staged naming decision, the Commissaire responsibility, and the
+evidence-bounded writing rules.
+
 ## The tracker as the control plane
 
 The core idea underneath the whole harness is **the tracker as the control

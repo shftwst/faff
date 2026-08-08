@@ -1,44 +1,31 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Governing principles
 
-Four tenets steer every design call in faff. Each is a tension — *X, not
-Y* — and the named mechanism is where it already lives, not an aspiration.
-When a spec or a build needs a tie-breaker, these are what it reaches for.
+Four rules guide SuperDomestique's design.
 
-## Deterministic tools over prose
+## Use tools for repeatable decisions
 
-Mechanical and contractual work belongs in testable, reproducible tools; the
-model is reserved for discovery, judgement, and insight — not for executing
-a contract run-to-run. Rule of thumb: same input must always give the same
-output, that's a tool's job; it needs taste or understanding, that's the
-model's.
+If the same input must produce the same answer, a deterministic tool should do
+the work. Models are used where interpretation is required. The `faff` CLI
+therefore owns schema checks, run state, budgets, and contract outcomes.
 
-*Embodied by:* the `faff` CLI (`config`, `runcheck`, `validate-adapters`, and
-the rest of the config-and-contract surface).
+## Keep the contracts fixed and the workers replaceable
 
-## Configurable, not opinionated
+Slots choose which skill or service performs a task. Fixed contracts define the
+result that the rest of the system may consume. Teams can replace a spec writer
+or reviewer without teaching every later stage a new vocabulary.
 
-Every behaviour is a swappable slot over a fixed contract — faff ships
-sensible defaults you can override, not opinions you must accept.
+## Adopt one workload at a time
 
-*Embodied by:* the slots/adaptor model, `.faffrc`, and the appetite dial.
+Eligibility belongs to a ticket, not a whole team. A team can hand off routine
+work and retain direct control of changes with wider consequences. Appetite and
+routing rules limit how far eligible work may proceed.
 
-## Adoptable, not all-encompassing
+## Make outcomes easy to inspect
 
-faff integrates rather than owns — it works with your tracker (any MCP),
-your agents, and a git-only mode, and you adopt as much of the L1→L4 ladder
-as you want.
-
-*Embodied by:* the levels model, git-only mode, tracker autodetection, and
-slot delegation to third-party skills.
-
-## Understandable, not unapproachable
-
-Output and behaviour are skimmable and low-cognitive-load, so the human can
-always follow what faff did and why — and trust it.
-
-*Embodied by:* the rendering/synthesis pass every human-facing output goes
-through, and the human-readable run logs.
+The tracker records progress, parked questions, and delivery outcomes. Run
+records retain the supporting evidence. Human-facing output should say what
+happened, why it stopped, and what decision is needed next.

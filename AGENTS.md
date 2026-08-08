@@ -6,6 +6,24 @@ This file is auto-loaded into every coding agent session in this repo, so the pr
 
 Unfamiliar with faff's coined vocabulary (gate, contract, lane, slot, rung, …)? See the **[Glossary](docs/GLOSSARY.md)** — one sentence and the artifact each term names.
 
+## Product names
+
+The public product name is **SuperDomestique (formerly known as `faff`)**.
+**Commissaire** is the governance system within SuperDomestique. The repository,
+plugin, CLI, commands, configuration, source paths, and many existing tickets
+still use the technical name `faff`.
+
+When writing or editing public documentation:
+
+- use SuperDomestique for the product and Commissaire for its governance system;
+- use `faff` literally for current technical identifiers;
+- keep historical records and ticket wording under the names used when they were written;
+- explain the former name at the public front door, then avoid repeating the transition on every page; and
+- read [Names and language](docs/concept/positioning-and-language.md) before changing product copy.
+
+Do not treat an older ticket that says faff as a conflicting product decision. Do
+not reintroduce faff as the public product name in new documentation.
+
 ## Skill-authoring standard
 
 Every skill prompt (`SKILL.md`) is written **lean, deduplicated, skimmable**. The full standard — principles plus the machine-checkable lint rules `faff validate-adapters` enforces — lives in **[`docs/skill-authoring.md`](docs/skill-authoring.md)**. Read it before editing or adding a `SKILL.md`.

@@ -1,6 +1,6 @@
 # Architecture: agent lanes
 
-Faff operates across three segregated executor lanes with controlled visibility:
+`faff` operates across three executor lanes with controlled visibility:
 
 | Lane | Role | Sees | Doesn't see |
 |---|---|---|---|

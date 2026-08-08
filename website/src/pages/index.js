@@ -2,57 +2,80 @@ import React from 'react';
 import Link from '@docusaurus/Link';
 import Layout from '@theme/Layout';
 
+const paths = [
+  {
+    title: 'Delivery',
+    body: 'Move tracker work through planning, specification, implementation, review, and delivery.',
+    to: '/concept/what-is-faff',
+  },
+  {
+    title: 'Governance',
+    body: 'See how Commissaire records evidence, checks boundaries, and returns uncertain work to a person.',
+    to: '/concept/execution-and-governance',
+  },
+  {
+    title: 'Get started',
+    body: 'Install the faff plugin and take one piece of work through the supervised delivery path.',
+    to: '/guide/walkthroughs',
+  },
+  {
+    title: 'Evidence',
+    body: 'Inspect the audits, current support boundaries, and work still needed to prove the strongest claims.',
+    to: '/concept/evidence',
+  },
+];
+
 export default function Home() {
   return (
     <Layout
       title="SuperDomestique"
-      description="SuperDomestique, currently shipped as faff, is governed autonomous delivery backed by deterministic evidence."
+      description="A governed delivery system for handing more software work to agents without losing authority or evidence."
     >
-      <main
-        style={{
-          maxWidth: '46rem',
-          margin: '0 auto',
-          padding: '4rem 1.5rem',
-          textAlign: 'center',
-        }}
-      >
-        <h1>SuperDomestique</h1>
-        <p style={{ fontSize: '1.4rem', fontWeight: 600 }}>
-          Currently shipped as <code>faff</code>.
-        </p>
-        <p style={{ fontSize: '1.2rem' }}>
-          Governed autonomy reduces scheduled human attention only when named
-          controls, evidence and failure paths earn trust for a workload.
-        </p>
-        <p>
-          SuperDomestique names the delivery product. Commissaire names the
-          governance responsibility inside the current <code>faff</code>{' '}
-          repository, not a separately shipped component or security boundary.
-          L3 is the current unattended centre; L4 mechanisms exist, but the
-          evidence for an unqualified L4-complete claim remains incomplete.
-        </p>
-        <div
-          style={{
-            display: 'flex',
-            gap: '1rem',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            marginTop: '2rem',
-          }}
-        >
-          <Link
-            className="button button--primary button--lg"
-            to="/guide/adopting-by-change-class"
-          >
-            Adopt by trust rung
-          </Link>
-          <Link
-            className="button button--secondary button--lg"
-            to="/concept/positioning-and-language"
-          >
-            Positioning and evidence
-          </Link>
-        </div>
+      <main className="home">
+        <section className="homeHero">
+          <p className="homeEyebrow">Governed software delivery</p>
+          <h1>
+            SuperDomestique (formerly known as <code>faff</code>)
+          </h1>
+          <p className="homeStrapline">
+            Give agents more of the work. Keep hold of the decision.
+          </p>
+          <p className="homeLead">
+            SuperDomestique moves work from intent to delivery. Its governance
+            system, Commissaire, checks the evidence at each boundary and sends
+            unresolved decisions back to a person.
+          </p>
+          <p className="homeDistribution">
+            Available today as the <code>faff</code> plugin and CLI.
+          </p>
+          <div className="homeActions">
+            <Link className="button button--primary button--lg" to="/guide/walkthroughs">
+              Take the first run
+            </Link>
+            <Link className="button button--secondary button--lg" to="/concept/levels">
+              See the trust levels
+            </Link>
+          </div>
+        </section>
+
+        <section className="homeStatus" aria-labelledby="current-status">
+          <h2 id="current-status">What works today</h2>
+          <p>
+            L1 and L2 support interactive work. L3 drains eligible work
+            unattended and parks ambiguity. L4 is a preview: its mechanisms
+            exist, but the external evidence needed for a complete claim does not.
+          </p>
+        </section>
+
+        <section className="homePaths" aria-label="Documentation paths">
+          {paths.map((path) => (
+            <Link className="homePath" to={path.to} key={path.title}>
+              <h2>{path.title}</h2>
+              <p>{path.body}</p>
+              <span>Read more</span>
+            </Link>
+          ))}
+        </section>
       </main>
     </Layout>
   );

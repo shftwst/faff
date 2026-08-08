@@ -5,8 +5,8 @@ const { themes: prismThemes } = require('prism-react-renderer');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'faff',
-  tagline: 'Safe to stop watching.',
+  title: 'SuperDomestique',
+  tagline: 'Governed autonomous delivery, currently shipped as faff.',
 
   // Set the production url of your site here
   url: 'https://shftwst.github.io',
@@ -110,7 +110,7 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'faff',
+        title: 'SuperDomestique',
         items: [
           {
             type: 'doc',
@@ -122,8 +122,8 @@ const config = {
           {
             type: 'doc',
             docsPluginId: 'concept',
-            docId: 'intro',
-            label: 'Concept',
+            docId: 'positioning-and-language',
+            label: 'Positioning',
             position: 'left',
           },
           {
@@ -140,7 +140,7 @@ const config = {
             title: 'Docs',
             items: [
               { label: 'Guide', to: '/guide/adopting-by-change-class' },
-              { label: 'Concept', to: '/concept/intro' },
+              { label: 'Positioning', to: '/concept/positioning-and-language' },
             ],
           },
           {

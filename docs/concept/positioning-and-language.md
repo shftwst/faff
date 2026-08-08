@@ -26,6 +26,8 @@ The [July 2026 positioning brief](https://github.com/shftwst/faff/blob/main/docs
 
 Commissaire names a responsibility, not a new deployable component. Today that responsibility lives in the `faff` repository's logical governance region and includes deterministic contract checks, run evidence and liveness records, budget and side-effect controls, termination checks, and the interlocks whose evidence supports their use.
 
+[Execution and governance](./execution-and-governance.md) defines the current boundary among probabilistic execution, objective conformance, subjective engineering judgement, and retained human authority. It also distinguishes reusable governance mechanics from SuperDomestique-specific delivery policy.
+
 [ADR 0042](https://github.com/shftwst/faff/blob/main/docs/adr/0042-three-tier-region-model-shared-infra-governance-factory-with-a-one-way-direction.md) records the current three-region architecture. Its region map and dependency-direction lint establish an in-repository boundary. They do not establish process isolation, an independent security boundary, or a separately distributed product.
 
 Current architecture documentation may therefore use "governance layer" or "governance region" when it refers to shipped code. Use "Commissaire" when discussing the target responsibility and product concept.

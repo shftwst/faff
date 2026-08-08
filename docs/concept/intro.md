@@ -15,7 +15,9 @@ around to. faff does it for you, and then keeps going: stage by stage it
 takes the faff out of the delivery loop until, if you fancy, the whole thing
 runs without you.
 
-Start with [what faff is](./what-is-faff.md) for the harness definition and
-the tracker-as-control-plane idea, then [the levels](./levels.md) for how far
-you've handed off, and [the governing principles](./governing-principles.md)
-for the tenets that steer every design call in the project.
+Start with [what faff is](./what-is-faff.md) for the current harness and
+tracker control plane. Then read [positioning and language](./positioning-and-language.md)
+for the SuperDomestique direction, the Commissaire responsibility, and the
+terms used to describe governed autonomy. [The levels](./levels.md) explain
+how far you have handed off, and [the governing principles](./governing-principles.md)
+state the tenets behind each design decision.

@@ -1,0 +1,853 @@
+# Public trust claims: dated status audit
+
+> FAFF-732 baseline at `5120f5481e64c759769e76b61955550022f12223`, generated 2026-08-07T20:00:00Z.
+
+This is a dated audit, not continuous semantic enforcement. It distinguishes product guarantees from process observations and records the evidence available at the pinned source commit.
+
+## Method
+
+The inventory covers all 715 tracked paths under `README.md`, `docs/**`, and `website/**`. A recall-biased scanner records obvious guarantee, enforcement, autonomy-level, and support-status language. Human review still owns semantic sufficiency and evidence strength.
+
+## Status summary
+
+| Status | Claims |
+|---|---:|
+| enforced | 2 |
+| attested | 3 |
+| demonstrated | 1 |
+| planned | 1 |
+| stale | 1 |
+| unsupported | 1 |
+
+## Claim ledger
+
+**codex-observed-capability: Codex can drive the Faff workflow with documented harness-specific constraints.**
+
+- Kind/status: `process-observation` / `demonstrated`
+- Source: `docs/architecture/codex-cli-observed.md` (Observed behaviour)
+- Current: A Codex path has been observed and documented; the evidence does not imply full harness parity.
+- Evidence (demonstration): Codex CLI observation record — `docs/architecture/codex-cli-observed.md`
+
+**governance-required-check: Governance-check becomes binding only when configured as a required branch-protection status.**
+
+- Kind/status: `product-guarantee` / `attested`
+- Source: `docs/guide/governance-check.md` (Trust boundary)
+- Current: The repository supplies the validator and wiring guidance, but each consuming repository owns its live branch-policy binding.
+- Evidence (attestation): Governance-check guide states the required-check binding — `docs/guide/governance-check.md`
+
+**harness-portability-boundary: A public, evidence-bounded harness support matrix is not yet published.**
+
+- Kind/status: `product-guarantee` / `planned`
+- Source: `docs/architecture/harness-coupling.md` (Portability boundary)
+- Current: Support evidence is distributed across architecture notes and run records.
+- Target: Publish demonstrated Claude Code and Codex capabilities and label pi.dev as planned.
+- Owner: FAFF-735
+- Evidence (status-history): Harness coupling inventory records the current boundary — `docs/architecture/harness-coupling.md`
+
+**l4-completion-claim: The public repository does not yet have enough external evidence for an unqualified L4-complete claim.**
+
+- Kind/status: `product-guarantee` / `unsupported`
+- Source: `README.md` (The levels)
+- Current: L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete.
+- Target: Publish the verification protocol, paired walkthroughs, claim links, and governed close-out.
+- Owner: FAFF-736
+- Evidence (status-history): External-verification evidence index distinguishes conformance from authenticity — `docs/evidence/README.md`
+
+**readme-claude-only-harness-wording: The README describes Faff only as Claude Code skills.**
+
+- Kind/status: `product-guarantee` / `stale`
+- Source: `README.md` (What faff is)
+- Current: Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path.
+- Target: Use harness-neutral positioning and publish an evidence-bounded support matrix.
+- Owner: FAFF-735
+- Evidence (status-history): The repository now records observed Codex CLI operation — `docs/architecture/codex-cli-observed.md`
+
+**readme-l3-park-and-ledger: An unattended L3 run parks ambiguity and cannot finish cleanly with admitted work dangling.**
+
+- Kind/status: `product-guarantee` / `enforced`
+- Source: `README.md` (The levels)
+- Current: The bundled CLI and installed Stop-hook path enforce ledger completeness; ambiguous work is surfaced through the park protocol.
+- Evidence (enforcement-mechanism): runcheck rejects incomplete admitted-minus-outcome ledgers — `plugin/skills/faff/bin/lib/runcheck.js`
+- Evidence (enforcement-activation): hooks-ensure installs runcheck as a Stop hook — `plugin/skills/faff/bin/lib/hooks-ensure.js`
+
+**readme-native-windows-refusal: Native Windows is refused rather than run with unsupported path semantics.**
+
+- Kind/status: `product-guarantee` / `enforced`
+- Source: `README.md` (Requirements)
+- Current: The bundled CLI supports POSIX macOS/Linux and refuses native win32; WSL2 remains the documented route.
+- Evidence (enforcement-mechanism): CLI platform guard rejects win32 — `plugin/skills/faff/bin/faff`
+- Evidence (enforcement-activation): Every bundled CLI invocation enters through the guarded launcher — `plugin/skills/faff/bin/faff`
+
+**readme-safe-to-stop-watching: Faff makes it safe to stop watching one stage at a time.**
+
+- Kind/status: `product-guarantee` / `attested`
+- Source: `README.md` (What faff is)
+- Current: The claim is supported as an attested governance posture, not as proof that every configured repository is safe.
+- Target: Pair the public claim with reproducible pass-and-stop evidence before presenting it as demonstrated across harnesses.
+- Owner: FAFF-741
+- Evidence (attestation): The repository documents the gates and trust boundaries that support this positioning — `docs/guide/governance-check.md`
+
+**readme-tracker-control-plane: The tracker is Faff's human-legible control plane and outcome surface.**
+
+- Kind/status: `process-observation` / `attested`
+- Source: `README.md` (What faff is)
+- Current: Tracker state is the intended control surface, while run artefacts remain the forensic substrate.
+- Evidence (attestation): The unattended-run guide defines tracker-first status, spec, park, and outcome handling — `docs/guide/unattended.md`
+
+## Stale content
+
+- **readme-claude-only-harness-wording**: Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Owner: FAFF-735.
+
+## Terminology map
+
+| Term | Definition | Preferred term | Deprecated aliases |
+|---|---|---|---|
+| Commissaire | Target name for the independent governance role; current identifiers remain unchanged. | Commissaire | — |
+| Faff | The governed delivery harness and workflow in this repository. | Faff | — |
+| safe to stop watching | An evidence-bounded posture earned per autonomy rung, not a universal guarantee. | safe to stop watching | fully autonomous |
+| SuperDomestique | Target name for the execution role; current package and command identifiers remain unchanged. | SuperDomestique | — |
+
+## Current versus target
+
+- **harness-portability-boundary**: Support evidence is distributed across architecture notes and run records. Target: Publish demonstrated Claude Code and Codex capabilities and label pi.dev as planned.
+- **l4-completion-claim**: L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete. Target: Publish the verification protocol, paired walkthroughs, claim links, and governed close-out.
+- **readme-claude-only-harness-wording**: Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Target: Use harness-neutral positioning and publish an evidence-bounded support matrix.
+- **readme-safe-to-stop-watching**: The claim is supported as an attested governance posture, not as proof that every configured repository is safe. Target: Pair the public claim with reproducible pass-and-stop evidence before presenting it as demonstrated across harnesses.
+
+## Evidence gaps
+
+- **harness-portability-boundary** (planned): Support evidence is distributed across architecture notes and run records. Owner: FAFF-735.
+- **l4-completion-claim** (unsupported): L4 mechanisms and audit records exist, but external verification and governed programme closure remain incomplete. Owner: FAFF-736.
+- **readme-claude-only-harness-wording** (stale): Claude Code remains supported, but the Claude-only wording no longer describes the demonstrated Codex path. Owner: FAFF-735.
+
+## File inventory
+
+### current-public
+
+- `docs/architecture/codex-cli-observed.md` — claims: codex-observed-capability
+- `docs/architecture/harness-coupling.md` — claims: harness-portability-boundary
+- `docs/concept/governing-principles.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/concept/intro.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/concept/levels.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/concept/what-is-faff.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/GLOSSARY.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/adopting-by-change-class.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/architecture.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/cli.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/configuration.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/governance-check.md` — claims: governance-required-check
+- `docs/guide/releasing.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/self-hosted-rig.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/skills.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/unattended.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `docs/guide/walkthroughs.md` — Reviewed in the current-public inventory; no separately material claim is recorded for this file.
+- `README.md` — claims: readme-safe-to-stop-watching, readme-l3-park-and-ledger, readme-tracker-control-plane, readme-native-windows-refusal, readme-claude-only-harness-wording, l4-completion-claim
+
+### historical-record
+
+- `docs/adr/0001-contract-as-code-foundations.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0002-skill-test-architecture.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0003-live-driver-spike.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0004-judgement-evals-spike.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0005-contradiction-detection-seam-contract-adr-l3.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0006-autonomous-build-order-dependency-inference-lives-in-conflict-analysis-not-the-m.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0007-run-ledger-liveness-contract-owner-identity-heartbeat.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0008-liveness-is-owner-emitted-on-disk-state-never-inferred-from-artifacts-or-out-of-.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0009-eligibility-label-provenance-by-write-abstention.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0010-autonomous-execution-blast-radius-model-containerised-claude-code-not-a-faff-own.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0011-eligibility-gesture-a-write-abstained-label-admitted-as-a-distinct-intake-proven.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0012-parentid-dominant-cross-project-containment-membership.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0013-infra-profile-storage-split-conflict-authority.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0014-subcommand-registry-as-the-single-source-of-truth-for-the-cli-command-set.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0015-deterministic-faff-heartbeat-cli-primitive-the-single-sanctioned-owner-last-hear.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0016-prd-layer-product-axis-artifact-docs-prd-storage-container-slug-keying.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0017-faff-s-concern-boundary-the-product-and-its-runtime-not-the-development-infrastr.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0018-prd-born-verifiable-form-check-lives-in-the-cli-file-parse-and-reuses-faff-253-s.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0019-born-verifiable-recognition-rule-for-prd-done-criteria-scenario-by-then-assertio.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0020-lights-out-admissibility-is-a-deterministic-structural-check-never-llm-self-judg.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0021-container-status-is-derived-bookkeeping-applied-forward-only-from-the-orchestrat.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0022-prdr-two-gate-admission-authority-loop-proposes-human-ratifies-by-level-immutabi.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0023-level-scaled-prdr-authoring-methodology-authors-the-caller-s-level-admits-via-th.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0024-prd-product-done-is-coverage-and-completion-with-completion-delegated-to-the-eva.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0025-distinct-spec-review-slot-fixed-spec-review-verdict-contract.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0026-spec-review-depth-scales-by-level-l1-l3-single-pass-vs-l4-adversarial.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0027-l4-spec-review-is-adversarial-independent-per-lens-refuters-over-the-shared-tran.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0028-spec-review-lens-skip-is-safe-direction-and-additive-only.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0029-machine-dod-verification-for-l4-is-go-narrow-trusted-for-born-verifiable-scenari.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0030-architecture-proposal-contract-architecture-slot-proposer-critic-boundary.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0031-env-handle-contract-env-slot-provision-box-interface.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0032-holdout-verdict-contract-for-the-evaluator-lane.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0033-evaluator-slot-and-the-mechanical-llm-trust-boundary-for-code-blind-evaluation.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0034-sentry-hard-kill-switch-is-un-subvertable-by-construction-at-the-orchestrator-di.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0035-topology-write-authority-appetite-moves-where-human-control-sits.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0036-l4-lights-out-runner-is-a-distinct-faff-subcommand-composing-the-shipped-guardra.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0037-appetite-is-level-scoped-l4-forces-full.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0038-factory-first-defer-and-extract-the-pipeline-builder.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0039-sentry-2-corrective-authority-is-go-narrow-subtractive-stop-and-redispatch-gated.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0040-grounding-is-an-evidence-only-slot-contract-validated-response-no-op-by-absence-.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0041-multi-cage-l4-is-an-isolation-ladder-one-cage-confirmed-at-v1-per-lane-cages-beh.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0042-three-tier-region-model-shared-infra-governance-factory-with-a-one-way-direction.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0043-the-merge-floor-is-a-mechanical-interlock-faff-merge-gate-is-the-sole-sanctioned.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0044-l4-run-governance-run-done-terminates-sentry-interrupts-budget-backstops-count-c.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0045-producer-dispatch-vs-chaining-handoff-the-slot-invocation-transport-rule.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0046-when-faff-decides-an-architecture.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0047-infosec-threat-prior-is-a-curated-committed-doc-consumed-as-review-context-auton.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0048-per-model-x-per-class-token-pricing-model.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0049-the-effort-economics-axis-reads-events-jsonl-not-the-transcript.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0050-per-lane-effort-routing-mirrors-the-model-lanes-and-stops-at-the-prep-boundary.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0051-quality-telemetry-is-a-separate-command-riding-the-issue-outcome-event.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0052-cli-module-layout-layered-region-aligned-modules-behind-a-thin-entrypoint.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0053-methodology-producer-dispatch-grain-is-per-output-policy-homed-in-the-gateway.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0054-per-lane-engine-mapping-implies-per-lane-transport-selection.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0055-heartbeat-write-locus-moves-to-a-dedicated-single-value-file.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0056-run-end-ground-truth-reconciliation-lives-in-a-new-pure-faff-reconcile-verb-sepa.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0057-scoped-status-monotonicity-carve-out-for-graft-s-retry-later-hold.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0058-run-agnostic-resume-store-for-cross-drain-review-hold-handoff.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0059-budget-cost-prices-per-model-x-per-class-by-default-explicit-flat-scalar-wins-do.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0060-the-l4-spend-governor-must-be-measurable-not-merely-configured.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0061-assert-the-boundary-over-signatures-for-corrective-artifact-integrity.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0062-sentry-2-channel-a-ships-gate-degraded-closed-subtractive-corrective-input-schem.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0063-fleet-authority-state-model-member-scoped-supervision-is-subtractive-and-boundar.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0064-effects-instrumentation-authority-split-declares-from-outside-the-actor-observes.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0065-sentry-watchdog-invocation-locus-mint-scoped-detached-poller-as-primary-stop-hoo.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0066-holdout-visibility-model-one-language-two-visibilities.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0067-committed-config-posture-two-file-model.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0068-dod-release-gate-only-tightens-a-container-s-done.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0069-faff-is-l3-on-itself-no-self-prd-l4-proven-on-greenfield-and-adopters.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0070-faff-lab-tracker-vs-git-only.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0071-l4-topology-write-authority-is-a-referencing-contract-over-the-existing-dial-216.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0072-container-create-follows-the-prdr-lifecycle-supersedes-adr-0071-in-part.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0073-single-session-subscription-economics-defers-process-isolated-lanes-lane-isolati.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0074-faff-owns-the-integrity-boundary-declaration-s-content-amends-adr-0061-s-content.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0075-git-only-local-merge-as-a-sanctioned-branch-of-the-single-merge-locus-mechanical.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0076-the-backends-namespace-as-the-single-named-model-access-substrate.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0077-two-class-write-authority-for-run-artifacts-evidence-writes-cross-to-the-trusted.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0078-digest-custody-bracket-as-concurrency-contract-obligation-5.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0079-self-hosting-core-defect-intake-is-execution-side-bookkeeping-a-sanctioned-outwa.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0080-faff-adr-accept-a-verb-and-merge-confidence-gate-trigger-for-adr-proposed-to-acc.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0081-events-jsonl-appends-serialised-by-an-advisory-lock-file-seq-minted-from-the-log.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0082-strict-base-faffrc-yaml-parsing-with-an-operator-escape-hatch.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0083-run-ledger-mutations-serialised-by-a-per-file-advisory-lock-epoch-fence-checked-.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0084-the-events-jsonl-chain-rule-prev-hashes-the-previous-physical-line-s-raw-bytes-g.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0085-ledger-mutations-join-the-events-chain-via-a-ledger-write-event-at-the-atomicwri.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0086-faff-supports-posix-macos-linux-node-20-native-windows-is-a-separate-future-deci.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0087-the-faff-cli-is-the-single-prose-home-for-fixed-contract-semantics-gateway-and-o.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0088-window-governor-anchors-the-5-hour-window-at-first-draw.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0089-offline-proxy-production-error-rate-machinery-for-the-holdout-judge-faff-625.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0090-engine-transport-gains-a-spawn-family-codex-extending-adr-0054-s-per-lane-transp.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0091-engine-declared-telemetry-source-spend-measurement-is-a-two-source-union-behind-.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0092-subscription-seat-programmatic-use-is-sanctioned-per-provider-headless-seat-auth.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0093-deterministic-scope-decision-in-front-of-an-llm-gate.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0094-lens-bounds-oracle-shape-for-judgement-eval-closed-set-kinds.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/adr/0095-what-bounds-a-faff-run-on-a-ci-runner-admission-criteria-not-a-mechanism.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/2026-07-04-faff-323-whole-system-coherence.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/2026-07-20-l4-capabilities-audit.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/2026-07-22-FAFF-566-injection-to-merge-probe-set.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/2026-08-02-FAFF-435-l4-gate-subversion.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/FAFF-114-skill-prompt-audit.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/adopter-cost-2026-07.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/governance-layer-explainer-2026-07.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/mcp-call-census/report.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/token-usage-breakdown/report.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-03-FAFF-1-adopt-release-please-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-04-FAFF-23-automation-hold-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-05-faff-24-jot-as-ticket-level-interactor-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-05-FAFF-45-gateway-jot-interactor-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-05-FAFF-48-ci-validate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-46-standardize-control-labels-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-47-provision-control-labels-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-5-faff-config-init-deterministic-faffrc-writer-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-50-config-mechanical-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-51-user-invocable-marker-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-52-universal-renderer-contract-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-53-wire-renderer-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-54-ci-check-flag-faff-skills-that-emit-human-facing-output-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-55-governing-principles-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-56-prep-opening-outline-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-57-harden-chain-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-58-first-mention-grounding-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-59-decision-useful-on-hold-section-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-62-prep-lift-hold-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-63-faff-next-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-64-wire-faff-next-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-65-faff-state-ledger-reading-orchestration-read-model-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-66-repo-hygiene-gitignore-claude-faffrc-example-yaml-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-06-FAFF-67-bootstrap-ensures-faffs-local-artifacts-gitignored-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-44-spec-provenance-stamp-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-6-first-run-bootstrap-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-68-untrusted-input-no-execute-floor-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-7-silence-non-essential-logs-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-76-contract-as-code-spike-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-77-spec-contract-vertical-slice-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-78-review-verdict-rollout-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-79-delivery-outcome-rollout-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-80-automation-routing-rollout-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-09-FAFF-81-producer-emitted-artifact-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-14-type-appropriate-issue-templates-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-2-remove-release-as-pin-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-3-merge-gate-ci-green-by-absence-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-4-ship-precondition-preflight-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-61-invert-automation-eligibility-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-82-multi-orchestrator-concurrency-safety-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-83-if-eligible-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-84-bless-set-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-85-render-bless-set-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-86-batch-bless-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-98-jot-promote-demote-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-10-FAFF-99-reconcile-no-execute-floor-trusted-spec-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-108-producer-artifact-adoption-rollout-review-ship-producers-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-109-retire-faffidavit-adaptors-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-110-verdict-gate-live-thread-reconciliation-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-faff-113-ordering-opinion-to-methodology-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-faff-121-scope-marketplace-distribution-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-60-tracker-as-the-lights-out-control-plane-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-88-determinism-seams-test-runner-spike-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-91-cli-test-runner-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-92-cli-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-11-FAFF-96-contract-golden-tests-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-10-bdd-main-objectives-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-118-response-token-discipline-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-122-spike-live-driver-prototype-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-124-readme-l3-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-19-backlog-control-surface-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-89-mock-tracker-fixture-format-loader-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-90-seeded-repo-substrate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-93-skill-run-harness-drive-a-skill-in-test-mode-capture-decisions-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-94-first-end-to-end-behavioural-test-faff-tidy-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-95-decision-assertion-model-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-12-FAFF-97-rendering-adaptor-routing-assertion-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-14-FAFF-130-judgement-eval-harness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-14-FAFF-132-add-a-local-model-ollama-eval-driver-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-FAFF-141-document-running-faff-unattended-over-ssh-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-FAFF-146-faff-prep-judgement-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-FAFF-147-faff-tidy-splittable-spec-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-FAFF-148-review-verdict-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-FAFF-149-beep-boop-routing-six-verdict-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-faff-151-adr-0004-addendum-per-surface-lane-scope-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-15-FAFF-158-routing-six-verdict-judgement-eval-live-input-assembly-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-114-audit-prompt-cruft-cross-skill-duplication-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-129-local-llm-seam-regression-harness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-150-faff-jot-faff-plot-shaping-decomposition-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-152-repeat-park-scripted-driver-test-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-153-chain-gap-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-154-faff-prep-reconciliation-judgement-eval-live-driver-run-oracle-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-155-faff-graft-verdict-build-judgement-eval-whole-change-verdict-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-157-confidence-eval-high-medium-boundary-fuzz-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-160-record-routing-live-driver-frontier-baseline-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-161-implement-the-advisory-rubric-coverage-oracle-gradeshaping-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-162-wire-park-history-seam-into-repeat-park-diagnostic-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-FAFF-163-reconciliation-judgement-eval-frontier-baseline-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-166-record-carved-frontier-baselines-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-169-judgement-eval-baseline-regression-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-16-faff-170-prepost-lean-tokenomics-report-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-17-FAFF-164-cross-skill-delegations-portable-installs-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-115-single-source-shared-prose-gateway-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-116-terseness-orchestration-skills-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-117-terseness-slot-skills-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-171-ci-prompt-token-budget-check-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-172-delegation-conformance-lint-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-179-gateway-body-terseness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-180-driver-smart-soft-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-181-legacy-alias-migration-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-182-config-defaults-registry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-183-adversarial-backend-hardening-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-186-worktree-faffrc-copy-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-189-crank-up-rename-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-19-faff-190-doctor-install-health-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-20-faff-178-prepcheck-same-turn-attach-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-20-faff-192-hooks-ensure-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-120-skill-authoring-charter-claudemd-auto-load-lint-rules-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-16-architecture-decision-records-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-175-log-every-linear-mcp-call-during-normal-development-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-184-define-the-review-comment-policy-for-iterated-reviews-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-185-reconcile-review-timing-vs-pr-creation-canonical-surface-for-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-193-rendering-adaptor-lead-with-the-model-surface-the-concrete-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-195-nlspec-failure-modes-section-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-196-adr-body-producer-slot-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-197-adr-supersession-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-21-FAFF-200-install-health-auto-heal-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-11-engineering-quality-gates-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-125-mechanical-pre-worktree-eligibility-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-faff-126-worktree-prune-mechanical-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-187-faff-label-add-remove-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-188-route-tagging-sites-through-faff-label-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-198-adr-l3-offer-supersession.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-202-comment-identity-contract-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-203-add-an-explanatory-order-eval-kind-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-204-faff-sync-resolve-repo-root-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-205-runcheck-stop-hook-session-agnostic-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-207-harden-comment-identity-match-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-212-intake-provenance-guard-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-213-adversarial-review-fail-loud-unconfigured-localhost-default-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-FAFF-215-autonomous-build-order-dependency-inference-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-22-faff-218-eligibility-label-provenance-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-FAFF-201-enforce-per-issue-context-isolation-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-FAFF-219-faff-contain-subtree-containment-primitive-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-faff-220-provenance-schema-initiated-audit-field-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-faff-221-wire-containment-at-the-autonomous-filing-chokepoints-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-faff-222-container-level-mandates-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-faff-223-human-side-provenance-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-FAFF-227-review-call-transport-retry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-23-FAFF-36-run-cost-compute-budgeting-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-112-validate-adapters-non-conformant-fixture-negative-test-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-228-review-callmjs-map-http-429-rate-limit-to-a-documented-exit-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-faff-229-budget-child-transcript-session-match-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-230-beep-boop-isolation-floor-over-states-no-inline-prep-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-faff-232-adversarial-review-fallback-chain-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-faff-233-235-runcheck-liveness-fix-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-234-runcheck-liveness-emit-heartbeats-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-237-ci-guardrail-docsclimd-must-cover-every-faff-help-subcommand-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-faff-238-self-contained-prose-guard-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-247-map-always-surfaces-cyclic-cross-project-blockers-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-252-prd-artifact-lifecycle-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-faff-26-infra-profile-schema-cli-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-faff-31-mock-synthetic-data-fabric-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-35-run-observability-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-26-FAFF-42-agent-authority-blast-radius-containerisation-preflight-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-224-lights-out-admissibility-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-231-infra-profile-repo-miner-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-245-prdr-record-mechanic-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-246-agile-sequencing-pulls-blocking-work-into-the-value-stream-it-gates-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-248-project-state-follows-its-children-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-251-machine-authored-project-dod-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-253-prd-admissibility-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-254-born-verifiable-prd-stop-conditions-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-255-two-gate-bound-recursive-invariant-enforcement-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-256-prdr-yagni-guard-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-257-per-prdr-dod-prd-termination-roll-up-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-262-native-array-config-in-the-faff-parser-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-265-spec-review-verdict-contract-spec-review-slot-scaffold-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-266-l1-l3-single-pass-spec-reviewer-wired-prep-build-admission-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-267-l4-adversarial-per-lens-spec-refuters-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-FAFF-268-cost-gated-spec-review-lens-selection-by-change-surface-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-27-faff-38-done-terminating-condition-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-faff-250-prepcheck-session-scope-liveness-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-faff-27-generative-architecture-infra-proposal-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-faff-270-harden-live-compose-provisioning-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-FAFF-274-docker-ci-explicit-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-faff-30-digital-twin-environment-provisioning-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-faff-34-evaluator-lane-holdout-harness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-28-faff-87-within-run-convergence-loop-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-225-l4-lights-out-entry-point-runner-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-277-wire-holdout-verdicts-into-the-prd-coverage-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-280-judgement-seam-declaration-shared-seamkind-registry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-faff-289-run-reconstruction-forensics-view-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-290-skills-must-re-ground-on-live-tracker-state-before-gating-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-faff-291-agile-lens-owns-outcome-led-project-formation-scope-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-faff-292-re-home-gating-chains-structurally-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-293-default-landing-pure-backlog-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-faff-294-scope-reduction-in-bounds-when-rehoming-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-295-no-agile-project-may-be-thematic-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-296-disambiguate-structural-rename-default-lens-thematic-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-299-faff-doctor-dangling-symlink-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-300-faff-admissible-numbered-heading-match-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-301-harden-ac5-sentry-test-time-of-day-flake-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-29-FAFF-49-sentry-1-derailment-detection-hard-kill-switch-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-faff-106-escaped-side-effect-detection-declared-effects-ledger-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-faff-302-harden-budget-test-time-of-day-flake-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-faff-303-env-compose-app-tier-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-faff-303-faff-env-db-tier-reconcile-ordering-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-faff-304-zero-punts-defeated-by-prose-done-items-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-FAFF-305-lights-out-banner-reachable-vs-enforced-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-06-30-FAFF-306-dod-classify-scenarios-boundary-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-01-faff-298-l4-dial-coherence-preflight-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-01-faff-308-l4-is-level-scoped-for-appetite-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-01-FAFF-309-wire-holdout-step-into-l4-delivery-path-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-01-FAFF-311-wire-code-blind-holdout-at-per-issue-graft-gate.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-faff-240-faff-map-eval-coverage-roadmap-grader-kind-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-faff-241-faffter-noon-spec-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-FAFF-244-authoring-adaptors-no-eval-declaration.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-faff-271-env-compose-seed-loader-redis-command-replay-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-faff-272-env-compose-seed-loader-mongo-mongoimport-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-FAFF-273-env-compose-s3-object-store-minio-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-FAFF-282-spec-review-verdict-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-faff-285-architecture-proposal-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-02-FAFF-286-adr-env-generative-surface-eval-coverage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-03-FAFF-278-sentry-2-corrective-intervention-authority-model-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-03-FAFF-297-lights-out-adversarial-review-promote-advisory-merge-gating-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-03-FAFF-313-multi-cage-l4-design-settle-spike-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-03-FAFF-315-per-lane-model-selection-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-03-FAFF-321-static-oracle-vs-fixture-triage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-03-FAFF-322-grounding-slot-design-settle-spike-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-04-FAFF-312-l4-governance-run-done-sentry-budget-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-04-faff-323-frontier-whole-system-coherence-audit-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-04-FAFF-334-per-issue-build-model-routing-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-04-faff-350-faff-merge-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-04-faff-357-cost-per-shipped-issue-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-04-faff-359-governance-region-carve-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-260-prd-admissibility-llm-validator-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-faff-269-infosec-threat-prior-spike-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-329-prevent-and-recover-graft-mid-review-stall-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-346-wire-the-architecture-slot-call-site-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-faff-353-adversarial-gate-below-l4-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-356-punt-ownership-decides-tag-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-371-env-slot-bounded-nested-engine-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-faff-372-dispatch-l2-slot-producers-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-373-corrective-integrity-fail-safe-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-376-harden-merge-gate-pin-head-sha-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-faff-378-resolveappetite-l4-liveness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-05-FAFF-379-lights-out-floor-honesty-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-FAFF-275-holdout-scenario-selection-withhold-a-subset-of-the-specs-scenarios-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-FAFF-367-merge-gate-control-flow-tests-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-FAFF-368-adr-renumber-merge-gate-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-FAFF-375-harden-merge-gate-flag-surface-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-FAFF-382-grafts-honour-the-checked-lights-out-worktree-root-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-faff-398-mid-run-fail-closed-on-review-chain-exhaustion-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-07-faff-402-build-complete-checkpoint-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-faff-210-native-gemini-anthropic-adaptors-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-faff-407-token-usage-analysis-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-FAFF-408-telemetry-token-tag-events-jsonl-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-FAFF-409-telemetry-measure-per-tool-mcp-cache-amplification-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-faff-410-economics-breakdown-axes-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-FAFF-415-telemetry-effort-per-dispatch-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-FAFF-416-per-slot-model-effort-routing-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-09-FAFF-418-quality-outcome-telemetry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-365-merge-gate-recheck-pr-state-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-401-deterministic-lights-out-channel-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-411-calibrate-build-model-downgrade-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-420-harden-readholdout-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-424-derive-merge-gate-level-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-faff-439-turn-safe-dispatch-posture-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-440-byte-identical-verification-harness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-441-split-bin-faff-into-modules-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-FAFF-442-worktree-safe-parity-harness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-10-faff-443-global-skill-symlinks-captured-by-a-linked-worktree-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-11-FAFF-355-dedicated-single-value-heartbeat-file-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-11-FAFF-397-blocking-run-end-ground-truth-reconcile-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-11-FAFF-405-add-unavailable-as-a-first-class-review-verdict-signal-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-11-FAFF-421-methodology-producer-dispatch-read-skills-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-11-FAFF-422-local-engine-lane-values-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-194-adversarial-review-deterministic-guards-for-machine-checkable-findings-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-276-sandboxed-code-blind-enforcement-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-317-holdout-evaluator-eval-exercise-against-a-running-feature-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-faff-324-re-examine-adr-0034-detection-un-subvertability-under-the-shared-fs-container-model-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-325-corrective-integrity-activation-half-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-326-build-channel-a-subtractive-corrective-authority-for-sentry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-327-fleet-concurrent-sentry-supervision-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-332-spike-can-a-dispatched-build-subagent-be-resumed-live-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-333-host-socket-detection-probe-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-352-wire-faff-sentry-check-into-beep-boops-between-units-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-354-harden-faff-contain-agent-supplied-ancestry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-361-review-callmjs-prepends-the-model-attribution-header-itself-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-383-instrument-faff-effects-declare-observe-merge-chokepoint-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-403-review-provider-outage-retry-later-disposition-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-414-review-callmjs-advance-the-fallback-chain-on-a-non-transient-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-426-spike-settle-the-sentry-watchdog-invocation-locus-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-427-wire-adr-0048-price-map-budget-cost-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-428-refuse-or-loudly-degrade-l4-budget-metering-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-433-ensure-safety-hooks-survive-the-onboarding-decline-path-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-457-faff-graft-stage-selectively-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-12-FAFF-464-aggregate-mjs-entrypoint-guard-url-safe-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-191-dispatch-default-removal-lint-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-258-prep-return-reconciliation-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-261-mechanical-adversarial-backends-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-279-blocker-edge-status-filter-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-320-stream-raw-eval-judgements-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-faff-336-reconcile-control-label-manifest-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-faff-339-retire-l4-not-built-yet-framing-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-340-thematic-conflict-analysis-refer-back-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-345-terminaltoken-outcome-domain-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-349-docs-tidy-bundle-five-small-stale-prose-fixes-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-faff-351-honest-ladder-labelling-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-358-document-per-change-class-autonomy-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-362-governance-profiles-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-363-governance-check-action-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-384-evaluator-hard-cage-spawner-attested-code-blindness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-387-factory-state-backup-two-file-config-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-396-headless-disposition-sink-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-431-l2-l3-guide-section-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-faff-432-sweep-readme-architecture-l4-staleness-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-436-rehome-set-methodology-named-output-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-437-backlog-rehoming-pass-plot-hosted-apply-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-473-holdout-view-wiring-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-484-constrain-no-issue-set-query-to-workable-states-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-13-FAFF-488-per-subagent-token-capture-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-259-dod-gated-project-done-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-335-gateway-spec-review-slot-contract-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-338-beepboop-prose-cli-semantics-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-341-single-owner-review-iteration-cap-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-343-appetite-l4-pin-doc-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-348-nlspec-quality-bar-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-385-post-merge-verification-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-391-ci-failure-triage-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-444-regions-require-graph-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-445-oversized-diff-preflight-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-446-remove-legacy-price-per-mtok-knob-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-447-sentry-reacts-estimate-only-degrade-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-456-jot-plot-idempotency-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-470-mint-scoped-detached-sentry-poller-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-475-surface-copy-install-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-476-seed-repo-git-identity-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-14-FAFF-504-commit-faff-lab-prd-canonical-setpoint-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-342-adr-status-sweep-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-463-prdr-git-landing-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-faff-466-wire-sentry-check-detection-consumer-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-468-lights-out-dial-coherence-overlay-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-faff-471-extend-hooks-ensurejs-stop-hook-family-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-491-build-subagent-stalls-by-self-backgrounding-its-gate-command-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-493-topology-write-authority-l4-envelope-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-faff-512-refresh-external-verification-sut-scaffolders-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-faff-513-sut-scaffolders-l4-config-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-514-integrity-boundary-emitter-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-15-FAFF-515-container-create-prdr-lifecycle-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-199-adr-l4-loop-authored-adrs-mutable-means-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-494-autonomous-plot-re-entry-harness-core-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-faff-496-when-does-a-run-plan-trigger-semantics-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-faff-498-run-start-trigger-plan-drain-refuse-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-518-integrity-digest-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-faff-521-run-start-outward-only-enforcement-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-522-default-gatesfallback-fail-closed-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-523-shared-modelproviderauth-backend-config-namespace-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-524-sut-scaffolders-align-l4-dial-config-two-file-posture-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-16-FAFF-526-git-only-local-merge-path-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-502-token-metering-dotted-cwd-encoding-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-FAFF-503-branch-protection-check-blind-to-github-rulesets-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-FAFF-519-write-authority-classes-run-artifacts-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-FAFF-520-concurrency-executors-bracket-graft-dispatch-integrity-digest-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-527-l4-run-re-entry-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-FAFF-529-cut-faff-sut-faffrc-configs-over-to-backends-shape-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-530-foreground-to-terminal-dispatched-builds-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-FAFF-531-config-init-insert-indent-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-532-worktree-setup-config-copy-tracked-faffrc-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-FAFF-533-ci-workflow-gate-source-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-535-prd-greedy-sibling-drain-ordering-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-536-self-hosting-core-defect-intake-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-17-faff-537-merge-gate-bare-merge-method-flag-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-18-faff-525-corrective-integrity-advisory-downgrade-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-505-scaffold-faff-lab-sh-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-545-git-only-merge-gate-local-ff-peer-worktree-desync-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-FAFF-546-adr-accept-verb-trigger-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-547-sut-runbooks-leak-test-intent-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-548-gitignore-ensure-overlay-glob-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-549-bare-faff-plot-discover-committed-prd-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-556-git-only-queue-state-stable-item-keys-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-557-prd-checklist-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-558-budget-tokens-at-start-baseline-survives-compaction-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-FAFF-559-git-only-85-run-done-wiring-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-19-faff-560-budget-token-attribution-owning-session-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-20-faff-552-budget-tokens-at-start-baseline-survives-compaction-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-20-faff-554-outcomes-string-only-contract-outcome-details-sidecar-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-20-faff-571-run-ledger-superseded-terminal-outcome-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-20-FAFF-572-l3l4-autonomous-contract-not-forceful-enough-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-FAFF-539-mechanical-same-team-gate-for-outward-self-intake-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-faff-553-heartbeat-silent-no-op-sentry-false-trips-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-FAFF-564-tamper-evident-hash-chain-events-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-faff-565-close-out-finding-tickets-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-faff-566-injection-to-merge-red-team-probe-set-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-faff-569-catch-finding-tickets-resolved-elsewhere-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-FAFF-574-serialise-events-jsonl-appends-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-FAFF-575-run-ledger-lock-serialised-writes-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-FAFF-577-strict-base-faffrc-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-22-FAFF-578-latestrundir-stat-race-runcheck-stop-hook-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-318-resumable-frontier-sweep-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-319-calibrate-judgement-eval-oracles-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-485-trim-mcp-response-payloads-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-534-within-run-convergence-default-posture-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-538-drift-guard-scaffolder-cli-surface-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-540-converge-no-progress-waves-backstop-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-555-delegate-self-contained-heavy-work-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-563-seeded-defect-scaffolding-holdout-error-rates-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-568-anchor-and-verify-events-hash-chain-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-570-docs-enforcement-claims-in-line-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-573-graft-build-time-premise-superseded-close-path-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-576-shared-argv-parser-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-583-gateway-l4-preview-framing-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-587-eval-evidence-hygiene-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-592-commit-the-per-seam-harness-coupling-disposition-table-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-faff-595-dehook-worktree-provisioning-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-23-FAFF-617-adversarial-review-per-backend-budget-slicing-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-FAFF-508-publish-faff-docs-theory-docusaurus-site-github-pages-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-579-cli-hygiene-bundle-dead-exports-entrypoint-docs-price-table-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-580-decide-and-document-the-portability-posture-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-591-run-dir-resolution-worktree-fix-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-594-window-mode-budget-global-5-hour-window-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-598-faff-contract-name-describe-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-599-docs-glossary-md-30-load-bearing-nouns-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-600-publish-the-adopter-cost-one-pager-measured-dollarpr-l3-night-ranges-and-the-two-levers-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-601-agent-delivery-evidence-spec-v0-2-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-FAFF-618-strip-the-private-tailnet-host-from-scaffolders-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-622-sweep-governance-layer-explainer-2026-07md-for-the-same-attested-as-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-623-emitter-side-governance-artifacts-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-624-lights-out-convergence-forcing-guardrail-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-625-holdout-error-rate-production-run-offline-proxy-lower-bound-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-FAFF-626-remove-the-raw-nul-byte-separator-in-binlibeffectsjs-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-FAFF-627-readgovernanceconfig-return-an-error-code-instead-of-process-exit2-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-628-flag-level-validation-for-the-scaffolder-drift-guard-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-630-faff-merge-gate-execute-flag-argv-parser-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-631-de-stale-faff-87-design-log-d4-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-633-integrity-digest-portable-hasher-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-24-faff-634-style-voice-dispatch-threading-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-25-FAFF-562-make-governance-check-required-to-merge-on-main-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-25-FAFF-593-codex-engine-for-faff-engine-call-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-25-FAFF-604-telemetry-adapter-seam-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-26-FAFF-654-the-probe-and-what-a-github-hosted-actions-job-exposes-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-28-FAFF-482-close-the-runtime-seam-gaps-in-the-harness-coupling-inventory-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-29-FAFF-671-correct-the-re-baseline-runbook-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-29-FAFF-672-link-skills-two-target-installer-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-29-faff-678-repoint-voice-clause-agentsmd-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-29-FAFF-679-teach-the-digest-bracket-what-the-trusted-side-may-do-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-07-29-faff-680-reconcile-sibling-baseline-attestation-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-01-faff-435-re-run-frontier-adversarial-audit-hardened-l4-gates-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-01-faff-669-arm-the-four-unarmed-eval-kinds-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-478-subscription-seat-auth-tos-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-481-subscription-seat-auth-handle-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-FAFF-657-take-the-two-github-hosted-readings-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-FAFF-661-correct-exceptions-are-complete-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-664-probe-container-bundle-fail-closed-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-670-oracle-triage-seven-kinds-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-677-freshness-guard-hardening-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-691-zero-case-guard-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-FAFF-695-robust-tracker-connector-detection-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-696-route-review-lane-to-seat-backend-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-02-faff-710-slot-conformance-foreign-scope-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-03-faff-615-correct-eval-oracles-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-03-FAFF-646-adr-ci-runner-admission-criteria-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-03-FAFF-655-container-check-gate-admission-verdict.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-03-FAFF-656-measure-self-hosted-columns-flyio-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-03-faff-714-kind-checkpoint-resume-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-582-faffter-noon-review-teaches-a-three-verdict-contract-the-gateway-fixes-four-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-606-l4-reference-workflow.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-609-self-hosted-rig-doc.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-faff-619-genericise-tailnet-host-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-faff-620-sentrycheck-hook-defensive-catch-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-635-flaky-sentry-poller-l4-stale-heartbeat-abort-integration-smoke-test-times-out-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-643-l3-ci-reference-workflow.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-647-claude-config-dir-isolation-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-651-worked-cage-and-socket-trap.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-666-sumcodexusage-structural-fix-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-667-config-set-writer-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-faff-676-faff-doctor-scans-one-directory-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-faff-681-beep-boop-heartbeat-prose-drift-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-684-config-driven-skill-target-list-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-686-sentry-poller-checkpoint-race-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-faff-687-end-anchor-uniqueness-guard-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-713-tristate-host-socket-probe.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-715-scaffolder-spawn-timeout-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-716-actions-free-cron.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-719-stream-live-view.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-04-FAFF-722-thread-effort-through-eval-driver-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/specs/2026-08-06-faff-708-graft-branches-off-stale-local-main-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+
+### test-or-fixture
+
+
+### generated-or-metadata
+
+- `docs/architecture/l3-l4-architecture.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/cage-engine-acceptance.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/ci/faff-cron.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/README.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/ac-checklist.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/conformance.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/events.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/holdout-verdict.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/merge-record.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/review-verdict.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/run-ledger.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/supersession.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/supporting-artifacts.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.2/anchor-integrity.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.2/conformance.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/authoring-and-admitting-a-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/bookend-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/divvy-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/faff-lab-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/gridlet-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/grocer-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/hard-briefs-rationale.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/keel-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/one-shot-control-runbook.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/plinth-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/poke-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/pumped-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/quorum-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/recall-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/relay-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/sealed-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/showhands-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/stall-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/stash-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/experiments/tandem-prd.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/PRD.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-lab/README.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/l4-experiment-design.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/results/controls-baseline.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/results/README.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/rig/README.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/README.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/scaffold-faff-lab.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/scaffold-p1-link-shortener.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/scaffold-p2-task-api.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/scaffold-p3-landing-page.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/scaffold-p4-stripe-testmode.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/scaffold-p5-brownfield.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/faff-332-live-resume-finding.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/skill-authoring.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-03-FAFF-278-corrective-authority-refutation-log.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-03-FAFF-313-multi-cage-refutation-log.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-03-FAFF-322-grounding-slot-refutation-log.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-05-FAFF-269-infosec-threat-prior-refutation-log.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/RESULTS.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/hosted-container.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/hosted-direct-after-removal.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/hosted-direct.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/precheckout-hosted-container.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/precheckout-hosted-direct.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/precheckout-selfhosted-container.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/precheckout-selfhosted-direct.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/probe.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/RESULTS.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selfhosted-container.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selfhosted-direct-after-removal.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selfhosted-direct.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selftest-hosted-container.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selftest-hosted-direct.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selftest-selfhosted-container.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-26-FAFF-654/selftest-selfhosted-direct.txt` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-08-03-opus-5/characterise-opus5.log` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-08-03-opus-5/characterise-opus5.sh` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-08-03-opus-5/results.md` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/.gitignore` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+
+### non-prose
+
+- `docs/architecture/l3-l4-architecture.svg` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/architecture/l4-container-permission-model.svg` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/2026-08-02-FAFF-435-l4-gate-subversion/audit-report.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/audits/tools/faff-435/validate-report.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/ci/flaky-register.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/ci/l3-watcher.yml` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/ci/l4-watcher.yml` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/ac-checklist.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/build-progress.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/examples/ac-checklist.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/examples/build-progress.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/examples/merge-record.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/examples/run-event.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/examples/run-ledger.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/examples/supersession.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/merge-record.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/run-event.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/run-ledger.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.1/schema/supersession.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.2/schema/chain-head.schema.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/evidence/v0.2/schema/examples/chain-head.example.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/results/controls.manifest.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/results/pricing.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/external-verification/faff-labs/experiments/rig/score.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/mcp-call-census/report.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/token-usage-breakdown/report.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/reports/token-usage-breakdown/snapshot-2026-07-24.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/analyze-output.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/analyze.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/promote_decision.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/promote_decision.test.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/tier.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-07-10-faff-411/tier.test.mjs` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `docs/spikes/2026-08-03-opus-5/frontier-opus5.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/docusaurus.config.js` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/package-lock.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/package.json` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/sidebars.js` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/src/css/custom.css` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.
+- `website/src/pages/index.js` — Inventoried for complete snapshot coverage; this surface is not treated as current public product truth.

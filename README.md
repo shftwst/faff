@@ -82,6 +82,7 @@ Everything past the pitch lives in `docs/`:
 - [Skills & slots](docs/guide/skills.md) — the skill catalogue, the slot model, and swapping in third-party or your own doing-skills.
 - [The `faff` CLI](docs/guide/cli.md) — the bundled command-line tool and its subcommands, grouped by purpose.
 - [governance-check](docs/guide/governance-check.md) — the harness-independent enforcement binding: wiring the GitHub Action as a required status check, the artifact-passing convention per emitter class, and sha-pinning the binary fetch.
+- [Public trust claim audit](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md) — dated, evidence-bounded status for public trust and enforcement claims.
 - [Architecture](docs/guide/architecture.md) — the segregated orchestrator / implementor / evaluator agent lanes.
 - [What faff costs to run](docs/reports/adopter-cost-2026-07.md) — measured $/PR, what an unattended night costs, and the two levers that cut it.
 

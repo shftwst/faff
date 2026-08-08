@@ -1,0 +1,148 @@
+{
+  "run_id": "run-20260807-155342-beepboop-list",
+  "requested": [
+    "FAFF-732",
+    "FAFF-733",
+    "FAFF-734",
+    "FAFF-735",
+    "FAFF-736",
+    "FAFF-737",
+    "FAFF-738",
+    "FAFF-739",
+    "FAFF-740",
+    "FAFF-741",
+    "FAFF-742",
+    "FAFF-743"
+  ],
+  "admitted": [
+    "FAFF-732"
+  ],
+  "outcomes": {
+    "FAFF-733": "parked",
+    "FAFF-734": "parked",
+    "FAFF-735": "routed-out",
+    "FAFF-736": "parked",
+    "FAFF-737": "parked",
+    "FAFF-738": "parked",
+    "FAFF-739": "parked",
+    "FAFF-740": "parked",
+    "FAFF-741": "parked",
+    "FAFF-742": "parked",
+    "FAFF-743": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-733": {
+      "park_class": "spec-review-needs-human",
+      "note": "The bounded second review left a QA evidence-ownership oracle objection; the clean infosec response also failed output-shape validation."
+    },
+    "FAFF-734": {
+      "park_class": "spec-review-needs-human",
+      "note": "The bounded second review left remote-execution/publication scope and deterministic secret-scanner contract objections."
+    },
+    "FAFF-735": {
+      "route_class": "blocked",
+      "note": "Approved spec, but faff next excluded it because FAFF-732 and parked FAFF-733 are live external blockers."
+    },
+    "FAFF-736": {
+      "park_class": "spec-review-needs-human",
+      "note": "Two review iterations left architectural and QA objections; the infosec fallback returned malformed non-findings output."
+    },
+    "FAFF-737": {
+      "park_class": "spec-review-needs-human",
+      "note": "Two review iterations left path-containment and QA oracle objections."
+    },
+    "FAFF-738": {
+      "park_class": "spec-review-needs-human",
+      "note": "Two review iterations left QA diagnostic and build-warning oracle objections."
+    },
+    "FAFF-739": {
+      "park_class": "spec-review-needs-human",
+      "note": "Two review iterations left methodology and QA scope/oracle objections; one infosec fallback returned malformed non-findings output."
+    },
+    "FAFF-740": {
+      "park_class": "spec-review-needs-human",
+      "note": "Two review iterations left an architectural claim-link objection; the clean infosec response failed output-shape validation."
+    },
+    "FAFF-741": {
+      "park_class": "spec-review-reject-approach",
+      "note": "Raw run-artifact publication lacks a deterministic fail-closed secret and private-data boundary."
+    },
+    "FAFF-742": {
+      "park_class": "spec-review-needs-human",
+      "note": "The clean infosec response failed output-shape validation after the bounded retry."
+    },
+    "FAFF-743": {
+      "route_class": "blocked",
+      "note": "Approved spec, but faff next excluded it because parked FAFF-734 is a live external blocker."
+    }
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "integrity_tampered": [],
+  "no_progress_waves": 0,
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "tokens_at_start_by_class": {
+      "input": 0,
+      "output": 0,
+      "cache_write": 0,
+      "cache_read": 0
+    },
+    "measure_session_id": "run-20260807-155342-beepboop-list",
+    "tokens_at_start_by_model_class": {},
+    "tokens_at_start": 0
+  },
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": "run-20260807-155342-beepboop-list",
+    "pid": null,
+    "started_at": "2026-08-08T02:15:00Z",
+    "last_heartbeat": "2026-08-08T02:15:00Z"
+  },
+  "owner_history": [
+    {
+      "status": "aborted-resumable",
+      "session_id": "run-20260807-155342-beepboop-list",
+      "started_at": "2026-08-07T15:53:42Z",
+      "last_heartbeat": "2026-08-07T15:53:42Z"
+    }
+  ],
+  "abort_history": [
+    {
+      "status": "aborted-resumable",
+      "at": "2026-08-08T02:13:20.187Z",
+      "issue": "FAFF-732",
+      "signal": "wall-clock-runaway"
+    }
+  ],
+  "resume": [
+    {
+      "epoch": 1,
+      "resumed_at": "2026-08-08T02:15:00Z",
+      "session_id": "run-20260807-155342-beepboop-list",
+      "prior_state": "aborted-resumable",
+      "plan_summary": {
+        "skipped_shipped": [],
+        "redispatched": [
+          "FAFF-732"
+        ],
+        "rebuilt_coarse": [
+          "FAFF-732"
+        ],
+        "parked_divergent": []
+      }
+    }
+  ]
+}

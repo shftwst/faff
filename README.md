@@ -1,36 +1,48 @@
-# faff
+# SuperDomestique
 
-*Faff* (n.): the tedious palaver around the actual engineering. Writing the tickets, the specs, the test plans, the review write-ups, working out what's even worth doing. The stuff you know you *should* do properly and never get around to. faff does it for you, and then keeps going: stage by stage it takes the faff out of the delivery loop until, if you fancy, the whole thing runs without you.
+SuperDomestique, currently shipped as `faff`, is an engineering system for progressively autonomous AI software delivery governed by deterministic evidence.
 
-## What faff is
+Governed autonomy reduces scheduled human attention only when named controls, evidence and failure paths earn trust for a workload. Model capability alone does not justify unattended authority. The system must be able to refuse a transition, preserve the reason and return an unresolved decision to a person.
 
-Under the hood it's a **harness**: a set of Claude Code skills wrapping the delivery loop (issue → spec → build → review → ship) in fixed contracts and gates. It won't make the model a better engineer. It makes it **safe to stop watching**, one step at a time.
+## How responsibility is divided
 
-The spine of the whole thing is **the tracker as the control plane**. Your tracker drives two halves of automation:
+Three responsibilities meet in the delivery loop:
 
-- **Deliver the *right* things** — tracker-driven *methodology* automation: value/risk sequencing, what to focus on next, grooming the backlog (`/faff-wtf`, `/faff-map`, `/faff-tidy`, via the swappable `methodology` slot).
-- **Deliver them *right*** — automated *spec-driven development*: issue → spec → build → review → ship, each stage behind a fixed contract.
+- **Humans** set intent, policy and automation eligibility, and decide questions that the available evidence cannot settle.
+- **SuperDomestique** is the target product identity for the delivery responsibility that turns tracker work into specifications, builds, reviews and delivery outcomes.
+- **Commissaire** is the target name for the governance responsibility that checks evidence and applies deterministic gates at trusted checkpoints.
 
-In both, the tracker stays the human-legible record, control plane, and observability surface — which is exactly what makes it safe to step back and let the loop run.
+Today both product responsibilities live inside the `faff` repository. Commissaire is not a separately shipped component, process, service or security boundary. Commands, configuration, package names, paths, URLs and source identifiers remain `faff`.
 
-## The levels
+The tracker is the human-legible control plane. It records intent, status, specifications, parked work and outcomes. Run artefacts provide the forensic record behind that view.
 
-The **levels** aren't a faff feature. They're *how far you've wandered off from the loop* — who's running it, and what's keeping it from spontaneous robot combustion while your back's turned. That's the "where do I fit, what do I gain" question, and it's the whole pitch. And a level is per-**workload**, not per-team: eligibility is set per ticket, so a team legitimately runs L1 and L3 on the same board the same night — see [Adopting by change-class](docs/guide/adopting-by-change-class.md).
+## Evidence and current limits
 
-| Level | You're | Loop run by | What keeps it honest | Entry point |
-|---|---|---|---|---|
-| **L1 · as** the loop | the engineer | **you** | well… you | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
-| **L2 · in** the loop | a step inside it | the agent | your nod at every gate | `/faff-graft` |
-| **L3 · on** the loop | watching from the sofa | the agent | park protocol + run-ledger | `/faff-beep-boop` |
-| **L4 · out** of the loop | off down the pub | the agent | adversarial review + isolated holdout | `faff lights-out` |
+The [positioning and language guide](docs/concept/positioning-and-language.md) owns the product language. The [public trust-claim audit dated 2026-08-07](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md) owns the current evidence status of public claims.
 
-**L1/L2 are the on-ramp.** They're the same tracker + methodology tooling — *without* handing off the build. At **L1** you write the code and faff plays planning exoskeleton (what's worth building, a spec worth building from). At **L2**, `/faff-graft` drives one build but stops at every gate for your say-so. Same tracker, same methodology — you just haven't handed the keys over yet.
+| Status | Current claim | Evidence boundary |
+|---|---|---|
+| **Attested** | `faff` can make a workload safe to stop watching one rung at a time. | This is a governance posture backed by named mechanisms, not a guarantee of defect-free delivery or suitability for every repository. |
+| **Attested** | The tracker is the control plane and outcome surface. | Run artefacts remain the forensic substrate. |
+| **Enforced** | At L3, ambiguous work is parked and admitted work cannot finish cleanly without a terminal ledger outcome. | The audit links the runcheck and Stop-hook enforcement paths. |
+| **Unsupported as a complete claim** | L4 is complete and independently proven. | L4 mechanisms exist, but external verification and governed programme closure remain incomplete. |
 
-**L3 · on the loop is the centrepiece.** `/faff-beep-boop` chews through the ready queue unattended and **parks** anything it can't call. The safety net isn't you staying awake — it's mechanical: the **park protocol** never quietly bins a loose end, and the **run-ledger** refuses to call a run "done" if it left admitted work dangling. The tracker reflects every status, spec, park, and outcome, so the morning view is the tracker — not a wall of logs. This is the level you can actually leave the building from. → [Unattended runs](docs/guide/unattended.md), and [what makes work eligible before an unattended run](docs/guide/unattended.md#before-your-first-unattended-run).
+"Safe to stop watching" is always scoped to a workload and a trust rung. It does not mean full autonomy or permission to remove human judgement where the evidence is insufficient.
 
-**L4 · out of the loop** is lights-out. `faff lights-out` is the single self-checking entry point that turns an L3 run into L4 — a fail-closed preflight, an L4 run-ledger, and correctness held up by adversarial review and a code-blind holdout verdict on isolated worktrees. It ships as a v1 basic preflight, with richer dial-coherence and the adversarial-promotion machinery as named follow-ons. → [Going lights-out](docs/guide/unattended.md#going-lights-out-l4--faff-lights-out).
+Harness support is also evidence-bounded. The repository records observed Claude Code and Codex paths, but the detailed public support matrix remains pending in [FAFF-735](https://linear.app/shftwst/issue/FAFF-735/publish-the-harness-support-status). No cross-harness parity claim is made here.
 
-> Two knobs cut across all four levels (they aren't levels themselves): **slots** decide *what* runs at each stage, and **appetite** sets *how much rope* the pipeline gets before checking back. See [Configuration](docs/guide/configuration.md).
+## Trust rungs
+
+A rung applies to a workload, not permanently to a team. One board can carry L1 and L3 work at the same time because automation eligibility is set per ticket. See [Adopting by change-class](docs/guide/adopting-by-change-class.md).
+
+| Rung | Human attention | Current control boundary | Entry point |
+|---|---|---|---|
+| **L1** | The engineer runs the work. | `faff` helps shape and sequence it. | `/faff-wtf`, `/faff-map`, `/faff-tidy`, `/faff-jot`, `/faff-plot`, `/faff-prep` |
+| **L2** | The engineer approves each major transition. | A single build moves through specification, review and merge gates. | `/faff-graft` |
+| **L3** | The agent drains eligible work unattended. | Ambiguity parks for a human; the run ledger must account for admitted work. | `/faff-beep-boop` |
+| **L4** | The run is intended to operate without scheduled supervision. | Lights-out preflight, adversarial review and code-blind holdout mechanisms exist, but the external evidence needed for an unqualified L4-complete claim remains incomplete. | `faff lights-out` |
+
+L3 is the current unattended centre of gravity. The [unattended-run guide](docs/guide/unattended.md) explains eligibility, parking and the run ledger. L4 remains an evidence-constrained programme rather than a completed public guarantee.
 
 ## Install
 
@@ -41,55 +53,59 @@ The **levels** aren't a faff feature. They're *how far you've wandered off from 
 
 ## Requirements
 
-macOS and Linux (POSIX) only, Node ≥ 20. There's no `package.json`/`engines` by design — faff ships dependency-free — so this is the one place the floor is written down.
+macOS and Linux with Node 20 or later. `faff` is dependency-free at runtime.
 
-Native Windows isn't supported: the CLI refuses to run on `win32` with a message pointing you at WSL2, rather than limping through with mis-resolved paths. Full Windows support is a separate, future decision — nothing here implies it's coming.
+Native Windows is not supported. The CLI refuses to run on `win32` and directs users to WSL2 rather than continuing with unsupported path semantics.
 
 ## Your first five minutes
 
-1. **Tell it where your stuff lives.** Run `/faff-onboard` to write a `.faffrc.yaml` at your repo root (or drop in three lines by hand — see [Configuration](docs/guide/configuration.md)).
-2. **Got a new idea or an empty repo?** Run `/faff-jot`. It chats through what you're building and turns it into tickets. Already have a backlog? Skip to step 3.
-3. **Not sure what to do?** Run `/faff-wtf` — it tells you what shipped, what's stuck, and what to pick up.
-4. **Picked something?** Run `/faff-prep ISSUE-XX` to turn it into a spec, then `/faff-graft ISSUE-XX` to build it.
-5. **Want it all done while you sleep?** Run `/faff-beep-boop` and check the results in the morning.
+1. Run `/faff-onboard` to create a `.faffrc.yaml` for the repository.
+2. Run `/faff-jot` to capture a new idea, feature or bug as tracker work. Skip this step when the backlog already exists.
+3. Run `/faff-wtf` to see what shipped, what is stuck and what is ready.
+4. Run `/faff-prep ISSUE-XX`, then `/faff-graft ISSUE-XX`, to specify and build one issue.
+5. Run `/faff-beep-boop` to drain eligible work unattended and inspect parked decisions afterwards.
 
-Each step offers to chain into the next, so you can just keep saying yes. That's the whole loop. For worked examples, see the [Walkthroughs](docs/guide/walkthroughs.md).
+Each stage can offer the next transition. The gate at that transition determines whether work proceeds, stops or returns for a decision. See the [walkthroughs](docs/guide/walkthroughs.md) for worked examples.
 
 ## Commands
 
 | Command | What it does |
-|---------|-------------|
-| `/faff` | "What should I work on?" (default) |
-| `/faff-onboard` | First-run setup — autodetect your tracker and write a working `.faffrc.yaml` |
-| `/faff-jot` | Start something new — capture a feature/bug/idea (or kick off a project) and turn it into tickets |
-| `/faff-plot` | Decompose an application-scale idea top-down into a roadmap — initiatives → projects → first-slice epics |
-| `/faff-wtf` | Where to focus — what shipped, what's stuck, what's next |
-| `/faff-map` | The strategic roadmap view above wtf — outcomes, workstreams, dependency chains |
-| `/faff-tidy` | Tidy the backlog — find the mess, clean, and surface what's ready to pick up |
-| `/faff-prep ISSUE-XX` | Turn a vague ticket into a buildable spec |
-| `/faff-graft ISSUE-XX` | Set up a worktree and start building |
-| `/faff-beep-boop` | Unattended run — drain the ready queue overnight, park anything ambiguous for morning review |
+|---|---|
+| `/faff` | Show what to focus on. |
+| `/faff-onboard` | Detect repository settings and write `.faffrc.yaml`. |
+| `/faff-jot` | Capture an idea, feature or bug and turn it into tracker work. |
+| `/faff-plot` | Decompose an application-scale idea into a roadmap. |
+| `/faff-wtf` | Report what shipped, what is stuck and what comes next. |
+| `/faff-map` | Show outcomes, workstreams and dependency chains. |
+| `/faff-tidy` | Diagnose and groom the backlog. |
+| `/faff-prep ISSUE-XX` | Turn a ticket into a buildable specification. |
+| `/faff-graft ISSUE-XX` | Build one specified issue in an isolated worktree. |
+| `/faff-beep-boop` | Run the eligible queue unattended and park ambiguity. |
 
-## Going further
+## Naming status
 
-Everything past the pitch lives in `docs/`:
+SuperDomestique and Commissaire are target public names adopted through [ADR 0096](docs/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md). The technical rename and any separate Commissaire distribution remain unsettled. Until separate migration work ships, use `faff` literally for every technical identifier.
 
-- [Glossary](docs/GLOSSARY.md) — every load-bearing faff noun, one sentence and the artifact it names.
-- [Walkthroughs](docs/guide/walkthroughs.md) — two guided runs: idea → tickets, and a first build start to finish.
-- [Unattended runs](docs/guide/unattended.md) — the L3 deep-dive: the loop, fire-and-forget, park protocol, run-ledger, tracker-as-control-plane, and running over SSH.
-- [Adopting by change-class](docs/guide/adopting-by-change-class.md) — the adoption pattern: risk-tiered delegation per change-class, not a per-team level, built on per-ticket eligibility, appetite, and the verdict gate.
-- [Configuration](docs/guide/configuration.md) — the `.faffrc.yaml` reference, plus the two knobs (appetite, slots).
-- [Skills & slots](docs/guide/skills.md) — the skill catalogue, the slot model, and swapping in third-party or your own doing-skills.
-- [The `faff` CLI](docs/guide/cli.md) — the bundled command-line tool and its subcommands, grouped by purpose.
-- [governance-check](docs/guide/governance-check.md) — the harness-independent enforcement binding: wiring the GitHub Action as a required status check, the artifact-passing convention per emitter class, and sha-pinning the binary fetch.
-- [Public trust claim audit](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md) — dated, evidence-bounded status for public trust and enforcement claims.
-- [Architecture](docs/guide/architecture.md) — the segregated orchestrator / implementor / evaluator agent lanes.
-- [What faff costs to run](docs/reports/adopter-cost-2026-07.md) — measured $/PR, what an unattended night costs, and the two levers that cut it.
+## Documentation
+
+- [Positioning and language](docs/concept/positioning-and-language.md) defines the canonical product story, names and maturity rules.
+- [Glossary](docs/GLOSSARY.md) defines the repository's delivery and governance terms.
+- [Walkthroughs](docs/guide/walkthroughs.md) cover idea capture and a first build.
+- [Unattended runs](docs/guide/unattended.md) covers L3 eligibility, parking, ledgers and remote operation.
+- [Adopting by change-class](docs/guide/adopting-by-change-class.md) explains per-workload trust.
+- [Configuration](docs/guide/configuration.md) documents `.faffrc.yaml`, appetite and slots.
+- [Skills and slots](docs/guide/skills.md) lists the skill surface and extension model.
+- [CLI guide](docs/guide/cli.md) documents the bundled command-line tool.
+- [Governance check](docs/guide/governance-check.md) explains the harness-independent required-check binding.
+- [Public trust-claim audit](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md) records dated evidence statuses and gaps.
+- [Evidence formats](docs/evidence/README.md) describes the run artefacts external consumers can inspect.
+- [Architecture](docs/guide/architecture.md) describes the orchestrator, implementor and evaluator lanes.
+- [Adopter cost report](docs/reports/adopter-cost-2026-07.md) records first-party cost observations.
 
 ## Credits
 
 The nlspec format used by `faffter-dark-nlspec` draws on [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie, licensed under Apache 2.0. See `NOTICE`.
 
-## License
+## Licence
 
 Apache 2.0

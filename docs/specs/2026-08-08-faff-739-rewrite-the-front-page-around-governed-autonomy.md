@@ -20,7 +20,7 @@ The entry points must explain governed autonomy before they explain commands. Th
 | `website/src/pages/index.js` | Short documentation-site entrance |
 | `website/docusaurus.config.js` | Site metadata and navigation labels |
 
-**Scope:** Rewrite the public entry points and add a small semantic regression test. Do not change runtime behaviour.
+**Scope:** Rewrite the public entry points. Do not change runtime behaviour or add copy-specific validation machinery.
 
 ## 2. Out of scope
 
@@ -75,20 +75,13 @@ The Docusaurus site title and navbar title are exactly `SuperDomestique`. The ta
 
 **Chosen:** Keep the website short and point to canonical documents rather than duplicating the README.
 
-### Regression test
-
-Add `test/docs-positioning.test.mjs` using `node:test`. It resolves the repository root as the parent of the test directory from `import.meta.url`, asserts that the expected README and canonical authority files exist there, and reads each edited file by its canonical path. README and landing-page assertions are separate: each checks the naming bridge, the exact governed-autonomy sentence above, current Commissaire boundary and incomplete L4 boundary. README-only assertions check L3 park/run-ledger wording and reject `/\\*Faff\\* \\(n\\.\\):|tedious palaver/i` anywhere in the file. Configuration assertions check the exact site title, navbar title, tagline and the named guide, concept and GitHub route targets. The test does not parse Markdown, JSX, links or generated output.
-
-**Chosen:** Test a small set of stable semantic anchors and leave rendering and link handling to the existing Docusaurus build and repository gates.
-
 ## 4. How: implementation approach
 
 1. Read the canonical guide and dated audit before editing.
 2. Replace the README opening and explanatory sections as one coherent rewrite.
 3. Retain accurate installation, requirements, command, credit and licence facts below the new story.
 4. Synchronise the landing-page copy, metadata, calls to action, tagline and navbar label.
-5. Add the focused semantic test.
-6. Run the focused test, Docusaurus production build and repository gates inside the existing worktree sandbox. These trusted repository commands may write ignored build and test outputs; they do not author runtime source changes and must not install or fetch new dependencies.
+5. Let the normal pull-request checks validate the documentation build. Do not add unit tests that merely pin prose strings.
 
 **Anti-pattern:** Strengthen an audit status to make the front page sound more complete. The audit remains authoritative.
 
@@ -108,25 +101,21 @@ Given the README describes an unattended L3 run
 When it explains what happens to ambiguous work
 Then it says that the work is parked for a human decision rather than silently advanced.
 
-Given a later edit restores convenience-first wording or removes a maturity qualifier
-When the focused documentation test runs
-Then it fails on the missing semantic anchor before publication.
-
 ## 6. Design decision rationale
 
 **Which public surfaces change?** README-only would leave the published site inconsistent. A broader documentation rewrite would duplicate FAFF-737 and FAFF-738.
 
-**Chosen:** Change `README.md`, `website/src/pages/index.js`, brand-bearing metadata in `website/docusaurus.config.js`, and one focused test.
+**Chosen:** Change `README.md`, `website/src/pages/index.js`, and brand-bearing metadata in `website/docusaurus.config.js`.
 
-**How much validation is appropriate?** Custom parsers caused the previous spec to exceed the value of this documentation slice.
+**How much validation is appropriate?** Custom parsers and copy-specific unit tests exceed the value of this documentation slice.
 
-**Chosen:** Use direct semantic assertions plus existing Docusaurus and repository checks.
+**Chosen:** Use the existing documentation build and normal pull-request checks.
 
 ## 7. Open questions and assumptions
 
 There are no open questions.
 
-**Assumes:** FAFF-732 and FAFF-733 remain the current audit and language authorities. The focused test requires both canonical files at their current paths, so a move or deletion fails before publication.
+**Assumes:** FAFF-732 and FAFF-733 remain the current audit and language authorities.
 
 ## 8. Done
 
@@ -142,23 +131,20 @@ There are no open questions.
 ### From How
 
 - [ ] Current `faff` commands, package names, paths, URLs and configuration identifiers remain unchanged.
-- [ ] `test/docs-positioning.test.mjs` checks only stable semantic anchors and passes.
 - [ ] The Docusaurus production build passes.
-- [ ] The repository gate suite passes.
-- [ ] No runtime source file changes; verification runs only the existing trusted test and build commands inside the worktree sandbox.
+- [ ] Normal pull-request checks pass.
+- [ ] No runtime source file changes and no copy-specific test machinery is added.
 
 ### Integration smoke test
 
-1. Run `node --test test/docs-positioning.test.mjs`.
-2. Build the Docusaurus site.
-3. Confirm both landing-page calls to action resolve to existing routes.
-4. Run the repository gates.
+1. Build the Docusaurus site through the normal pull-request checks.
+2. Confirm both landing-page calls to action resolve to existing routes.
 
 ## Methodology critique
 
 Methodology: faffter-dark-methodology-agile-delivery
 
-The slice is one reader-visible documentation increment. It keeps the public entries consistent while preserving the separate harness, corpus naming, guide organisation and evidence workstreams. It changes no runtime source and uses only the repository's existing sandboxed verification commands.
+The slice is one reader-visible documentation increment. It keeps the public entries consistent while preserving the separate harness, corpus naming, guide organisation and evidence workstreams. It changes no runtime source and relies on the repository's normal pull-request checks.
 
 spec-review: approve
 

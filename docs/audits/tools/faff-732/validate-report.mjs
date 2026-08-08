@@ -19,6 +19,10 @@ function scopedPaths(sourceCommit) {
   return result.stdout.trim().split("\n").filter(Boolean).sort();
 }
 
+function sourceCommitAvailable(sourceCommit) {
+  return spawnSync("git", ["cat-file", "-e", `${sourceCommit}^{commit}`], { encoding: "utf8" }).status === 0;
+}
+
 function sourceText(sourceCommit, path) {
   const result = spawnSync("git", ["show", `${sourceCommit}:${path}`], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
   if (result.status !== 0) throw new Error(`git show failed for ${path}: ${result.stderr.trim()}`);
@@ -52,7 +56,8 @@ export function validateLedger(ledger, { checkInventory = true } = {}) {
   const files = list(ledger?.files);
   const paths = files.map((entry) => entry.path);
   if (new Set(paths).size !== paths.length) errors.push("files contains duplicate paths");
-  if (checkInventory && sha(ledger?.source_commit)) {
+  const sourceAvailable = checkInventory && sha(ledger?.source_commit) && sourceCommitAvailable(ledger.source_commit);
+  if (sourceAvailable) {
     try {
       const expected = scopedPaths(ledger.source_commit);
       const actual = [...paths].sort();
@@ -98,7 +103,7 @@ export function validateLedger(ledger, { checkInventory = true } = {}) {
     if (candidate.disposition === "claim" && !claimById.has(candidate.claim_id)) errors.push(`${key}: claim disposition requires valid claim_id`);
     if (candidate.disposition !== "claim" && !text(candidate.rationale)) errors.push(`${key}: non-claim disposition requires rationale`);
   }
-  if (checkInventory && sha(ledger?.source_commit)) {
+  if (sourceAvailable) {
     try {
       for (const match of scannerMatches(ledger.source_commit, files)) {
         const key = `${match.source.path}#${match.source.section}#${match.matched_text}`;
@@ -191,5 +196,5 @@ else {
   }
   if (errors.length) { errors.forEach((error) => console.error(error)); process.exit(1); }
   if (renderOnly) process.stdout.write(rendered);
-  else console.log(JSON.stringify({ valid: true, files: ledger.files.length, claims: ledger.claims.length, candidates: ledger.candidates.length }));
+  else console.log(JSON.stringify({ valid: true, source_commit_available: sourceCommitAvailable(ledger.source_commit), files: ledger.files.length, claims: ledger.claims.length, candidates: ledger.candidates.length }));
 }

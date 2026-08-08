@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildInvocation, frontierDriver, localDriver, frontierOpts, localOpts, DEFAULT_PLUGIN_DIR, loadTidyJudgementProse, loadSynthesisGlossProse, loadJudgementCriteria, forwardCredentials, loadConfidenceRubricProse, loadMarkerDialectProse, loadReconciliationProse, criteriaFor, buildEvalPrompt, loadReviewVerdictProse, VERDICT_REVERT_INSTRUCTION, loadTidyChainGapProse, loadHoldoutJudgementProse, HOLDOUT_EXERCISE_MODE_INSTRUCTION, instructionFor, renderFixturePrompt, EVAL_MODE_INSTRUCTION, ROUTING_MODE_INSTRUCTION, PREP_ARCHITECTURE_TRIGGER_INSTRUCTION, RESOLVED_ELSEWHERE_MODE_INSTRUCTION, loadPrepArchitectureTriggerProse, loadGroupingProse, loadAdrDriftProse, loadResolvedElsewhereProse } from "../eval/cli-driver.mjs";
-import { resolveDriver, resolveLocalParams, resolvePluginDir } from "../eval/run-evals.mjs";
+import { resolveDriver, resolveLocalParams, resolvePluginDir, resolveEffort, EFFORT_LEVELS } from "../eval/run-evals.mjs";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -89,6 +89,41 @@ test("resolveDriver rejects an unknown --driver", () => {
   assert.throws(() => resolveDriver(["--driver", "frobnicate"], PRESETS), /unknown --driver/);
 });
 
+// --- FAFF-722: --effort vocabulary + threading into the frontier preset (localOpts never gets it) ---
+test("resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)", () => {
+  assert.equal(resolveEffort(["--effort", "max"]), "max");
+  assert.equal(resolveEffort([]), null, "no --effort ⇒ null (byte-for-byte)");
+  assert.deepEqual(EFFORT_LEVELS, ["low", "medium", "high", "xhigh", "max"]);
+  assert.throws(() => resolveEffort(["--effort", "turbo"]), /unknown level.*low\|medium\|high\|xhigh\|max/);
+});
+
+test("resolveDriver rejects an off-vocabulary --effort loudly, before building anything (FAFF-722)", () => {
+  // resolveEffort runs before the driver branch, so a bad value throws before any preset/spawn.
+  assert.throws(() => resolveDriver(["--driver", "frontier", "--effort", "bogus"], PRESETS), /unknown level/);
+});
+
+test("resolveDriver threads --effort into the frontier preset; omits it when unset (FAFF-722)", () => {
+  let captured = null;
+  const cap = { frontierDriver: (opts) => { captured = opts; return () => {}; }, localDriver };
+  resolveDriver(["--driver", "frontier", "--model", "M", "--effort", "high"], cap);
+  assert.equal(captured.effort, "high", "frontier preset receives the resolved effort");
+  captured = null;
+  resolveDriver(["--driver", "frontier", "--model", "M"], cap);
+  assert.equal(captured.effort, null, "no --effort ⇒ effort null passed to the preset (byte-for-byte)");
+});
+
+test("resolveDriver(--driver local) warns that --effort is ignored and never passes it down (FAFF-722)", () => {
+  let capturedLocal = null;
+  const cap = { frontierDriver, localDriver: (opts) => { capturedLocal = opts; return () => {}; } };
+  const warns = [];
+  const orig = console.warn; console.warn = (m) => warns.push(String(m));
+  try {
+    resolveDriver(["--driver", "local", "--base-url", "http://x:11434", "--model", "m", "--effort", "high"], cap);
+  } finally { console.warn = orig; }
+  assert.ok(!("effort" in capturedLocal), "localDriver opts never carry effort");
+  assert.ok(warns.some((w) => /--effort is ignored for --driver local/.test(w)), "a warning names the ignored --effort");
+});
+
 // --- resolveLocalParams: flag beats env; both missing is fatal ---
 test("resolveLocalParams resolves --base-url and --model from flags", () => {
   const { baseUrl, model } = resolveLocalParams(
@@ -101,7 +136,7 @@ test("resolveLocalParams resolves --base-url and --model from flags", () => {
 
 // --- presets load the repo plugin; frontier drops --bare (FAFF-138: incompatible with OAuth auth) ---
 test("frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true", () => {
-  assert.deepEqual(frontierOpts(), { bin: "claude", model: null, bare: false, pluginDir: DEFAULT_PLUGIN_DIR, forwardCreds: true });
+  assert.deepEqual(frontierOpts(), { bin: "claude", model: null, effort: null, bare: false, pluginDir: DEFAULT_PLUGIN_DIR, forwardCreds: true });
   assert.ok(DEFAULT_PLUGIN_DIR.endsWith("/plugin"), "DEFAULT_PLUGIN_DIR points at the repo plugin");
 });
 

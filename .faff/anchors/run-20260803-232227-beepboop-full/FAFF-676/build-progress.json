@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-676",
+  "build": {
+    "status": "complete",
+    "diff_hash": "156c8666f16a22e7dd72f659ade71573b5c5f95189bc2a750a95257cd35dce81",
+    "branch": "faff-676-faff-doctor-scans-one-directory-so-a-half-install-reports",
+    "pushed_at": "2026-08-04T09:22:06.437Z"
+  },
+  "updated_at": "2026-08-04T09:22:06.437Z"
+}

@@ -193,7 +193,13 @@ for (const name of ELIGIBLE) {
         cwd: sutRoot,
         env: { ...process.env, ...gitEnv, SUT_ROOT: sutRoot, FORCE: "1", PATH: "/usr/bin:/bin:/usr/local/bin" },
         encoding: "utf8",
-        timeout: 30_000,
+        // FAFF-715: the scaffolder is a real bash+git process; its FIRST (cold git/filesystem) run
+        // measures ~22s even on an idle box. Under the concurrent full `node --test` suite on a
+        // contended `validate` runner that cold spawn exceeds a 30s cap and returns a null status,
+        // spuriously failing the `result.status === 0` assert below (the `not ok 2317` flake). Size
+        // the ceiling to ~5-6x the cold worst case (the FAFF-635 rationale) — generous on a healthy
+        // run, yet a genuinely hung scaffolder still trips it. Do NOT tighten back.
+        timeout: 120_000,
       });
       assert.equal(result.status, 0, `${name}: scaffolder exited non-zero: ${result.stderr}`);
 

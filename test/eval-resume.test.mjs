@@ -474,3 +474,56 @@ test("summarize still emits the same shape and values after the aggregateKind re
   assert.equal(s.total_cost_tokens, 15);
   assert.equal(s.status, "complete");
 });
+
+// ── FAFF-722 — effort is recorded in the stamp/meta and joins the --resume stamp-guard ────────────
+test("effort is recorded in baseline meta only when the stamp carries it — byte-for-byte meta when unset (FAFF-722)", () => {
+  const dir = tmp();
+  const baselinePath = join(dir, "b.json");
+  const path = seedProgress(dir, { driver: "frontier", model: "M", base_reps: 1, started_at: "z", effort: "high" }, {
+    dupe: { accuracy: 0.9, stability: 0.9, format_adherence: 1, case_ids: ["d1"], captured_at: "z" },
+  });
+  foldInAndWriteBaseline(baselinePath, path, new Set(["dupe"]), { driver: "frontier", model: "M", base_reps: 1, effort: "high" }, { per_kind: {} }, { only: false });
+  const withE = JSON.parse(readFileSync(baselinePath, "utf8"));
+  assert.equal(withE.meta.effort, "high", "effort in stamp ⇒ meta.effort recorded");
+  foldInAndWriteBaseline(baselinePath, path, new Set(["dupe"]), { driver: "frontier", model: "M", base_reps: 1 }, { per_kind: {} }, { only: false });
+  const withoutE = JSON.parse(readFileSync(baselinePath, "utf8"));
+  assert.ok(!("effort" in withoutE.meta), "no effort in stamp ⇒ no effort key in meta (byte-for-byte)");
+});
+
+test("--resume (full sweep) refuses to blend on an effort mismatch, before any rep (FAFF-722)", async () => {
+  cleanReal();
+  const cases = loadCases();
+  const byKind = {};
+  for (const c of cases) (byKind[c.kind] ??= []).push(c.id);
+  const seeded = {};
+  for (const k of Object.keys(byKind)) seeded[k] = { accuracy: 1, stability: 1, format_adherence: 1, case_ids: [...byKind[k]].sort(), captured_at: "z" };
+  seedProgressAt(REAL_PROGRESS, { driver: "frontier", model: "M", base_reps: 1, started_at: "z", effort: "low" }, seeded);
+  const spy = [];
+  const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
+  const dir = tmp();
+  await assert.rejects(
+    () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", join(dir, "f.json"), "--effort", "high", "--resume"], presets, join(dir, "f.json"))),
+    /refusing to blend/,
+  );
+  assert.equal(spy.length, 0, "no rep dispatched before the effort stamp-guard threw");
+  cleanReal();
+});
+
+test("--kind --resume refuses to blend on an effort mismatch, before any rep (scoped path — FAFF-722)", async () => {
+  cleanReal(); cleanScoped();
+  const cases = loadCases();
+  const byKind = {};
+  for (const c of cases) (byKind[c.kind] ??= []).push(c.id);
+  seedProgressAt(REAL_SCOPED, { driver: "frontier", model: "M", base_reps: 1, started_at: "z", effort: "low" }, {
+    dupe: { accuracy: 1, stability: 1, format_adherence: 1, case_ids: [...byKind.dupe].sort(), captured_at: "z" },
+  });
+  const spy = [];
+  const presets = { frontierDriver: () => async (c) => { spy.push(c.id); return jEnv(c, true); } };
+  const dir = tmp();
+  await assert.rejects(
+    () => capture(() => updateBaseline(["--driver", "frontier", "--model", "M", "--reps", "1", "--update-baseline", join(dir, "f.json"), "--kind", "dupe,vague", "--effort", "high", "--resume"], presets, join(dir, "f.json"))),
+    /refusing to blend/,
+  );
+  assert.equal(spy.length, 0, "no rep dispatched before the scoped effort stamp-guard threw");
+  cleanScoped();
+});

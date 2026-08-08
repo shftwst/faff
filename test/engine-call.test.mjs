@@ -519,3 +519,53 @@ test("FAFF-604 REGRESSION: codex cached input is a SUBSET of input_tokens, never
   const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 9 } }]);
   assert.equal(weird.input, 0);
 });
+
+// --- FAFF-666: cache_write_input_tokens and reasoning_output_tokens --------
+// The two fields codex reports on turn.completed.usage that sumCodexUsage
+// used to drop entirely, leaving totals.cache_write structurally dead for
+// every codex backend. Oracles below are hand-derived from each fixture's own
+// raw fields, never produced by running sumCodexUsage — an independent check,
+// not a self-recompute.
+
+test("FAFF-666: the committed real observed payload (codex-cli-observed.md) totals to the hand-derived oracle", () => {
+  // docs/architecture/codex-cli-observed.md, the read-only-producer capture:
+  // {"input_tokens":14775,"cached_input_tokens":12032,"cache_write_input_tokens":0,"output_tokens":6,"reasoning_output_tokens":0}
+  const u = sumCodexUsage([
+    { type: "turn.completed", usage: { input_tokens: 14775, cached_input_tokens: 12032, cache_write_input_tokens: 0, output_tokens: 6, reasoning_output_tokens: 0 } },
+  ]);
+  // 14775 - 12032 - 0 = 2743
+  assert.deepEqual(u, { input: 2743, output: 6, cache_write: 0, cache_read: 12032 });
+});
+
+test("FAFF-666: a synthetic non-zero cache_write_input_tokens/reasoning_output_tokens payload proves the wiring", () => {
+  const u = sumCodexUsage([
+    { type: "turn.completed", usage: { input_tokens: 1000, cached_input_tokens: 200, cache_write_input_tokens: 150, output_tokens: 40, reasoning_output_tokens: 9 } },
+  ]);
+  // cache_write_input_tokens now reaches totals.cache_write (structural deadness gone);
+  // input subtracts BOTH cached and cache_write (1000 - 200 - 150 = 650, subset handling);
+  // reasoning_output_tokens is NOT added to output (9 excluded, already-inside handling).
+  assert.deepEqual(u, { input: 650, output: 40, cache_write: 150, cache_read: 200 });
+});
+
+test("FAFF-666: an incoherent stream where cache_write_input_tokens alone exceeds input_tokens clamps at 0", () => {
+  const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cache_write_input_tokens: 9 } }]);
+  assert.equal(weird.input, 0);
+  assert.equal(weird.cache_write, 9, "cache_write is still recorded even when the input clamp fires");
+});
+
+test("FAFF-666: an incoherent stream where cached + cache_write TOGETHER exceed input_tokens clamps at 0 (the actual widened guard)", () => {
+  // The single-term `weird` cases above each exercise one subtracted term alone.
+  // This is the case the widened subtraction (input - cached - cache_write) actually
+  // guards: 4 + 4 = 8 > 5, so neither term alone overflows but their sum does.
+  const weird = sumCodexUsage([{ type: "turn.completed", usage: { input_tokens: 5, cached_input_tokens: 4, cache_write_input_tokens: 4 } }]);
+  assert.equal(weird.input, 0, "the combined subtraction clamps at 0, not a negative number");
+  // cache_read and cache_write are still recorded at their full reported values —
+  // per spec §4 "Edge cases", only `input` is floored; the other three classes are
+  // direct sums of n()-guarded values. An incoherent stream (raw fields whose
+  // subsets exceed the base) is out of contract for a real codex payload — every
+  // class comes off the same turn.completed.usage object — so this is the existing
+  // undercount-on-`input`-only posture (unchanged since the pre-FAFF-666 `cached`-only
+  // clamp), not a new double-count introduced here.
+  assert.equal(weird.cache_read, 4);
+  assert.equal(weird.cache_write, 4);
+});

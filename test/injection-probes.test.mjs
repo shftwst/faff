@@ -29,7 +29,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, basename, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -84,6 +84,20 @@ function seedRunDir(runDir, issue, { ac = true, review = "pass", holdout = null,
 
 const ISSUE = "FAFF-566";
 const localArgs = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--json", ...extra];
+
+// FAFF-690 (F1): `merge-gate --local` now sources the governing level from the COMMITTED anchor at
+// the branch head (git-show, local object store), not the live run-ledger.json. So the probes commit
+// the real anchor onto `feature` (scaffoldSut leaves the repo there) at the level the probe means to
+// exercise — an L4 probe commits an L4 anchor, an L3 probe an L3 anchor. This is a STRENGTHENING: the
+// forged live run-ledger.json level the fixtures used to set is now inert, and the level is anchored
+// to committed, head-sha-pinned evidence the same-uid attacker cannot rewrite without a new commit.
+function commitAnchor(sut, runDir, level = "L3") {
+  const abs = join(sut, ".faff", "anchors", basename(runDir), ISSUE, "run-ledger.json");
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, JSON.stringify({ run_id: basename(runDir), level }));
+  git(sut, "add", "-A");
+  git(sut, "commit", "-qm", "commit anchor");
+}
 
 // Drive `faff merge-gate --local` against a fixture SUT + run-dir; return the parsed verdict.
 function driveMergeGate(sut, runDir, extra = []) {
@@ -142,6 +156,7 @@ test("P-S2-a [S2/blocked-by-construction]: a forged review-verdict=pass ALONE �
   const sut = scaffoldSut({ testScript: null });        // discovery:none ⇒ no-ci-coverage
   const runDir = mkTmp("faff566-run-");
   seedRunDir(runDir, ISSUE, { review: "pass", omit: ["ac"] }); // ONLY a forged pass verdict
+  commitAnchor(sut, runDir); // L3 committed anchor (the level source; forged live ledger is inert)
   const baseBefore = git(sut, "rev-parse", "main").stdout.trim();
   const { code, out } = driveMergeGate(sut, runDir);
   assert.equal(out.verdict, "refuse");
@@ -156,6 +171,7 @@ test("P-S2-b [S2/blocked-by-construction]: a forged ac-checklist=verified ALONE 
   const sut = scaffoldSut({ testScript: null });
   const runDir = mkTmp("faff566-run-");
   seedRunDir(runDir, ISSUE, { ac: true, omit: ["review"] }); // ONLY a forged AC-verified
+  commitAnchor(sut, runDir);
   const { code, out } = driveMergeGate(sut, runDir);
   assert.equal(out.verdict, "refuse");
   assert.equal(code, 1);
@@ -189,6 +205,7 @@ test("P-S2-d [S2/blocked-by-construction]: a fully-forged floor still refuses at
     ac: true, review: "pass", ledgerLevel: "L4", checkpoint: true,
     holdout: { aggregate: "meets-spec", code_blind: true, criteria: [], violations: [] },
   });
+  commitAnchor(sut, runDir, "L4"); // the L4 anchor is the true level source (forged live L4 is inert)
   const baseBefore = git(sut, "rev-parse", "main").stdout.trim();
   const { code, out } = driveMergeGate(sut, runDir);
   assert.equal(out.verdict, "refuse", "L4 refuses the forged floor");
@@ -216,9 +233,10 @@ test("P-S2-e [S2/blocked-by-construction]: a forged holdout=meets-spec with no f
 test("P-S2-f [S2/reached-merge @ L3-no-integrity]: forged review+ac + genuinely-green CI at L3 MERGES — the review leg was met only by forgery", () => {
   const sut = scaffoldSut({ testScript: "true" });      // CI-equivalent genuinely green
   const runDir = mkTmp("faff566-run-");
-  // NB: no ledger level ⇒ resolveGateLevel defaults to L3; integrity unasserted ⇒ unasserted-ok (not a blocker)
+  // NB: L3 committed anchor ⇒ no holdout leg; integrity unasserted ⇒ unasserted-ok (not a blocker)
   seedRunDir(runDir, ISSUE, { ac: true, review: "pass" });
-  const featureSha = git(sut, "rev-parse", "feature").stdout.trim();
+  commitAnchor(sut, runDir, "L3");
+  const featureSha = git(sut, "rev-parse", "feature").stdout.trim(); // after the anchor commit
   const { code, out } = driveMergeGate(sut, runDir);
   // Record the finding: the merge FIRED. The review/AC legs were satisfied ONLY by the same-uid
   // forgery; the integrity backstop is opportunistic at L3 and did not fire (no attestation declared).
@@ -298,6 +316,7 @@ test("P-S4-a [S4/blocked-by-backstop]: hostile committed SUT config executes dur
   git(sut, "add", "-A"); git(sut, "commit", "-qm", "hostile config"); // committed repo config (source c)
   const runDir = mkTmp("faff566-run-");
   seedRunDir(runDir, ISSUE, { ac: true, review: "pass" });
+  commitAnchor(sut, runDir); // L3 anchor so the gate resolves the level and reaches the CI-equivalent ladder
   driveMergeGate(sut, runDir); // runs the fresh gate ladder ⇒ executes `npm test` ⇒ the hostile script
   assert.ok(existsSync(sentinel), "the committed hostile script executed — allowlist source (c) trusts unreviewed repo config");
   assert.match(readFileSync(sentinel, "utf8"), /^reached /, "execution was real (the sentinel proves reachability), but bounded to a no-op");
@@ -316,6 +335,7 @@ test("P-S4-b [S4/blocked-by-construction @ L4]: the S4→S2 chain (hostile confi
     ac: true, review: "pass", ledgerLevel: "L4", checkpoint: true,
     holdout: { aggregate: "meets-spec", code_blind: true, criteria: [], violations: [] },
   });
+  commitAnchor(sut, runDir, "L4"); // the true (committed) level source
   const { out } = driveMergeGate(sut, runDir);
   assert.equal(out.verdict, "refuse", "at L4 the S4→S2 chain is closed by the mandatory integrity bracket");
 });
@@ -326,6 +346,7 @@ test("SMOKE [S2 holdout scenario]: `faff merge-gate --local` refuses a forged fl
   const sut = scaffoldSut({ testScript: null }); // no independent CI ⇒ the forgery is truly "on its own"
   const runDir = mkTmp("faff566-run-");
   seedRunDir(runDir, ISSUE, { ac: true, review: "pass" }); // both file legs forged, nothing else genuine
+  commitAnchor(sut, runDir); // L3 anchor so the gate reaches the floor (the forgery-on-its-own case)
   const { out, code } = driveMergeGate(sut, runDir);
   assert.equal(out.verdict, "refuse", "the forged floor artifacts alone do NOT produce a merge-ok");
   assert.equal(code, 1);

@@ -11,7 +11,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, basename, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -62,13 +62,27 @@ function seedRunDir(runDir, issue, { acVerified = true, reviewSignal = "pass" } 
 const ISSUE = "FAFF-526";
 const baseArgs = (runDir, extra = []) => ["merge-gate", "--local", "--issue", ISSUE, "--run-dir", runDir, "--level", "L3", "--json", ...extra];
 
+// FAFF-690 (F1): --local now sources the governing level from the committed anchor at the branch head
+// (git-show, local object store only — no forge fallback). Commit
+// .faff/anchors/<basename(runDir)>/<issue>/run-ledger.json onto the branch under merge (scaffoldRepo
+// leaves the repo on `feature`) so the anchor is in that branch's history. Returns the new branch head
+// sha (the anchor commit) so callers that assert base-advanced-to-feature-tip re-read it AFTER.
+function commitAnchor(repo, runDir, { issue = ISSUE, level = "L3" } = {}) {
+  const abs = join(repo, ".faff", "anchors", basename(runDir), issue, "run-ledger.json");
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, JSON.stringify({ run_id: basename(runDir), level }));
+  git(repo, "add", "-A");
+  git(repo, "commit", "-qm", "commit anchor");
+  return git(repo, "rev-parse", "feature").stdout.trim();
+}
+
 // --- the CLI entrypoint dispatches --local correctly, end to end ---
 
 test("CLI: --local on a clean no-remote repo → exit 0, merge-ok, base ref advances, merge-record.json on disk", () => {
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  const featureSha = commitAnchor(repo, runDir); // level L3 anchor on feature; new feature tip
 
   const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(code, 0);
@@ -88,6 +102,7 @@ test("CLI: --local via --check-only never lands the merge (base ref unchanged)",
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
 
   const { code, stdout } = runCli(baseArgs(runDir, ["--check-only"]), { cwd: repo });
@@ -114,6 +129,7 @@ test("CLI: --local with a failing declared gate → exit 1 refuse, ci_state ci-r
   const repo = scaffoldRepo({ testScript: "false" });
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
 
   const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
@@ -128,6 +144,7 @@ test("CLI: --local with no declared gates (discovery:none) → exit 1 refuse, ci
   const repo = scaffoldRepo({ testScript: null });
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
 
   const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(code, 1);
@@ -140,6 +157,7 @@ test("CLI: --local with AC not verified → exit 1 refuse, base ref unchanged", 
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE, { acVerified: false });
+  commitAnchor(repo, runDir);
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
 
   const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
@@ -152,6 +170,7 @@ test("CLI: --local with a non-pass review verdict → exit 1 refuse", () => {
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE, { reviewSignal: "fail" });
+  commitAnchor(repo, runDir);
 
   const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(code, 1);
@@ -162,11 +181,42 @@ test("CLI: --local twice on an already-merged branch is idempotent (second call 
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
   const first = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(first.code, 0);
   const second = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(second.code, 0);
   assert.equal(JSON.parse(second.stdout).note, "already merged");
+});
+
+test("FAFF-690: --local with NO committed anchor on the branch → exit 2 anchor-missing, base ref unchanged (git-show local-only, no fallback)", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  // Deliberately DO NOT commit an anchor — the branch head has no .faff/anchors/…/run-ledger.json.
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  const { code, stderr } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 2);
+  assert.match(stderr, /no trusted committed anchor level/);
+  assert.match(stderr, /anchor-missing/);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore, "fail-closed: nothing merged");
+});
+
+test("FAFF-690: --local with a committed anchor carrying no usable level → exit 2 anchor-malformed", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("mg-local-run-");
+  seedRunDir(runDir, ISSUE);
+  // Commit an anchor whose run-ledger.json has no `level` field → level not in FLOOR_LEVELS.
+  const abs = join(repo, ".faff", "anchors", basename(runDir), ISSUE, "run-ledger.json");
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, JSON.stringify({ run_id: basename(runDir) })); // no level
+  git(repo, "add", "-A");
+  git(repo, "commit", "-qm", "anchor without a level");
+  const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
+  const { code, stderr } = runCli(baseArgs(runDir), { cwd: repo });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-malformed/);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), baseBefore);
 });
 
 test("CLI: --local requires --issue and --run-dir (usage exit 2)", () => {
@@ -180,6 +230,7 @@ test("CLI: --local ignores/does not require --pr (no PR flag passed, still dispa
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir);
   // Deliberately omit --pr entirely — the PR-path's own "--pr required" usage error must NOT fire.
   const { code, stderr } = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(code, 0);
@@ -212,11 +263,10 @@ test("CLI: --local invoked FROM the base worktree itself (via --branch override)
   // tree mid-command. The land step must exclude cwd's own entry BEFORE matching, so this
   // contrived-but-reachable case still lands via the plain update-ref (Case A), not a self-merge.
   const repo = scaffoldRepo();
-  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
-  git(repo, "checkout", "-q", "main"); // now sitting ON the base branch itself
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-
+  const featureSha = commitAnchor(repo, runDir); // anchor on feature (repo still on feature); new tip
+  git(repo, "checkout", "-q", "main"); // now sitting ON the base branch itself
   const { code, stdout } = runCli(baseArgs(runDir, ["--branch", "feature"]), { cwd: repo });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
@@ -239,7 +289,7 @@ test("CLI: --local when base is checked out in a CLEAN peer worktree → lands v
   git(repo, "worktree", "add", peerDir, "main");
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  const featureSha = commitAnchor(repo, runDir); // anchor on feature; new tip
 
   const { code, stdout } = runCli(baseArgs(runDir), { cwd: repo });
   assert.equal(code, 0);
@@ -263,7 +313,7 @@ test("CLI: --local single-worktree regression — base checked out nowhere else 
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
-  const featureSha = git(repo, "rev-parse", "feature").stdout.trim();
+  const featureSha = commitAnchor(repo, runDir); // anchor on feature; new tip
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
   assert.notEqual(baseBefore, featureSha);
 
@@ -279,6 +329,7 @@ test("CLI: --local when base is checked out in MORE THAN ONE peer worktree → r
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir); // anchor on feature before the checkout dance
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
 
   // Git normally refuses to check the same branch out twice — fake the anomaly the same way the
@@ -327,6 +378,7 @@ test("CLI: --local when base is checked out in a DIRTY peer worktree → refuses
   writeFileSync(join(peerDir, "uncommitted.txt"), "dirty");
   const runDir = mkTmp("mg-local-run-");
   seedRunDir(runDir, ISSUE);
+  commitAnchor(repo, runDir); // anchor on feature (peer holds main)
   const baseBefore = git(repo, "rev-parse", "main").stdout.trim();
   const peerHeadBefore = git(peerDir, "rev-parse", "HEAD").stdout.trim();
 

@@ -1,0 +1,2 @@
+{"schema":2,"run_id":"faff-754-interactive-20260809","seq":0,"ts":"2026-08-09T01:53:02.126Z","prev":"ca3889d7bff02ea6ecccf99277b5e325ed442cacba9a8b79a29999a228a03d8a","phase":"run","type":"run-start","issue":"FAFF-754","data":{"mode":"interactive","level":"L2"}}
+{"schema":2,"run_id":"faff-754-interactive-20260809","seq":1,"ts":"2026-08-09T01:53:02.267Z","prev":"565cc4479096ef38c2aa9b6d6904630c008c5e74263787400a3b4004792a2ebd","phase":"run","type":"ledger-write","data":{"ledger_sha256":"c773fa45c7a561101722023d2037b8bad58add74159be94cc2e0d06f13771a2e"}}

@@ -17,6 +17,11 @@ export function computeAggregate(report) {
   // digest of what it actually saw) before the "three isolated clusters" claim counts.
   // Additive on top of the shape check above — never a replacement for it.
   if ((report.reader_contexts || []).some((reader) => !reader.invocation_id || !reader.digest)) return "audit-incomplete";
+  // Adversarial-review finding: presence alone isn't enough — three contexts sharing
+  // the SAME invocation_id (a central read relabeled three times) would satisfy the
+  // presence check above while proving nothing. invocation_id must be distinct per
+  // context, exactly like `id` above, or the field evidences nothing.
+  if (new Set(report.reader_contexts.map((reader) => reader.invocation_id)).size !== 3) return "audit-incomplete";
   if ((report.findings || []).some((finding) => !["fixed", "ticketed", "accepted"].includes(finding.disposition))) return "audit-incomplete";
   if ((report.findings || []).some((finding) => finding.disposition === "ticketed" && !/FAFF-[1-9][0-9]*/.test(finding.disposition_detail || ""))) return "audit-incomplete";
   if ((report.probes || []).some((probe) => probe.disposition === "subverted" && probe.tier === "mechanical")) return "mechanical-subverted";
@@ -49,6 +54,9 @@ function selftest() {
     // FAFF-700: three well-shaped, unique ids but a context missing its per-context
     // invocation evidence (invocation_id / digest) → audit-incomplete, not a silent pass.
     ["reader context missing invocation_id/digest", {...base, reader_contexts: [{id:"a",invocation_id:"inv-a",digest:"d-a"},{id:"b",invocation_id:"inv-b",digest:"d-b"},{id:"c"}]}, "audit-incomplete"],
+    // Adversarial-review finding: three contexts sharing the SAME invocation_id (a
+    // central read relabeled three times) must not pass — presence alone proves nothing.
+    ["reader contexts share one invocation_id (central read relabeled)", {...base, reader_contexts: [{id:"a",invocation_id:"inv-x",digest:"d-a"},{id:"b",invocation_id:"inv-x",digest:"d-b"},{id:"c",invocation_id:"inv-x",digest:"d-c"}]}, "audit-incomplete"],
   ];
   for (const [name, fixture, expected] of cases) {
     const actual = computeAggregate(fixture);

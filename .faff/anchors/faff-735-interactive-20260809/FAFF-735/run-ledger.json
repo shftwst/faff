@@ -1,0 +1,12 @@
+{
+  "run_id": "faff-735-interactive-20260809",
+  "level": "L2",
+  "requested": ["FAFF-735"],
+  "admitted": ["FAFF-735"],
+  "outcomes": {},
+  "owner": {
+    "status": "running",
+    "started_at": "2026-08-09T07:33:56Z",
+    "last_heartbeat": "2026-08-09T07:33:56Z"
+  }
+}

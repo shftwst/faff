@@ -14,6 +14,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, realpathSync, ex
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -108,6 +109,41 @@ function mkFencedRoot() {
 }
 
 const clean = (paths) => { for (const p of paths) rmSync(p, { recursive: true, force: true }); };
+
+// ---- FAFF-675: plugin-root doctor scan fixtures ----
+//
+// A marketplace-plugin install places faff skills as REAL directories (copies) under
+// $CLAUDE_PLUGIN_ROOT/skills, not symlinks — this builds exactly that shape. `home` is
+// deliberately a bare temp dir by default (no .local/bin/faff, no ~/.claude) so the plugin-root
+// scan is the ONLY thing under test; mkPluginHomeWithRealBin below is the opt-in fixture for
+// the advisory bin_faff pin.
+function mkPluginRoot(skillNames) {
+  const root = mkdtempSync(join(tmpdir(), "ls-pluginroot-"));
+  const skillsDir = join(root, "skills");
+  mkdirSync(skillsDir, { recursive: true });
+  for (const name of skillNames) {
+    mkdirSync(join(skillsDir, name), { recursive: true });
+    writeFileSync(join(skillsDir, name, "SKILL.md"), `# ${name}\n`);
+  }
+  return root;
+}
+
+function mkPluginHomeWithRealBin() {
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  mkdirSync(join(home, ".local", "bin"), { recursive: true });
+  writeFileSync(join(home, ".local", "bin", "faff"), "#!/usr/bin/env node\n"); // a real file — the realistic plugin-machine shape (installed via a package manager, not dev-linked)
+  return home;
+}
+
+// Runs `faff doctor` with $CLAUDE_PLUGIN_ROOT set to `pluginRoot` (no --target — so
+// resolveDoctorScanSet's pluginRootEnv branch fires), $HOME set to `home`, and `--root
+// fenceRoot`. Uses spawnSync (not execFileSync) so stdout/stderr are captured on every exit
+// code, not just the successful one.
+function doctorPlugin(pluginRoot, fenceRoot, home, ...extraArgs) {
+  const env = { ...process.env, HOME: home, CLAUDE_PLUGIN_ROOT: pluginRoot };
+  const r = spawnSync("node", [CLI, "doctor", "--root", fenceRoot, ...extraArgs], { encoding: "utf8", env });
+  return { code: r.status ?? 1, out: r.stdout ?? "", err: r.stderr ?? "" };
+}
 
 // FAFF-684: write a committed-base .faffrc.yaml carrying `install.skill_targets` at `dir`
 // (the SRC_ROOT the installer's config read runs against — the main checkout, never the
@@ -498,4 +534,204 @@ test("FAFF-684: doctor --target DIR scans exactly that directory and does not re
     assert.equal(r.code, 0, "the pinned target is healthy, and the (unconfigured/unscanned) .h3/skills must not affect the verdict");
     assert.doesNotMatch(r.out, /\.h3\/skills/, "--target never reads install.skill_targets");
   } finally { clean([main, home, fence]); }
+});
+
+// ---- FAFF-675: the plugin-root copy-classifier carve-out ----
+//
+// ADR-0097: $CLAUDE_PLUGIN_ROOT is authoritative for the invoking harness — a marketplace
+// plugin install ships its skills as real (copied) directories by construction, so a copy
+// there is the EXPECTED shape, not the dev-linked COPY fault the classifier was written for.
+
+test("FAFF-675: plugin-root copy install with fence present reads as an expected install (exit 0)", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft", "faff-prep"]);
+  const fence = mkFencedRoot();
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const r = doctorPlugin(pluginRoot, fence, home);
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.match(r.out, /✓ faff-graft {2}plugin install \(copy under \$CLAUDE_PLUGIN_ROOT — expected, not dev-linked\)/);
+    assert.match(r.out, /✓ faff-prep {2}plugin install \(copy under \$CLAUDE_PLUGIN_ROOT — expected, not dev-linked\)/);
+    assert.doesNotMatch(r.out, /COPY/, "no copy-fault finding for an expected plugin install");
+    assert.doesNotMatch(r.out, /link-skills\.sh/, "no unrunnable repair for a plugin user");
+    assert.match(r.out, /RESULT: faff skills are a marketplace-plugin install \(copies under \$CLAUDE_PLUGIN_ROOT\) — expected\. Nothing to repair\./);
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: plugin-root copy install with fence ABSENT → exit 1, faff hooks-ensure only (no link-skills.sh)", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft"]);
+  const noFenceRoot = mkdtempSync(join(tmpdir(), "ls-nofence-"));
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const r = doctorPlugin(pluginRoot, noFenceRoot, home);
+    assert.equal(r.code, 1);
+    assert.match(r.out, /Fix: faff hooks-ensure\s*$/m);
+    assert.doesNotMatch(r.out, /link-skills\.sh/, "the copy contribution is excluded — only the fence fix is offered");
+    assert.match(r.out, /✓ faff-graft {2}plugin install/, "the copied skill still renders as expected, not a fault");
+  } finally { clean([pluginRoot, noFenceRoot, home]); }
+});
+
+test("FAFF-675: faff doctor --json on a plugin-root install names the scanned directory, expected_install:true, copies:0", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft"]);
+  const fence = mkFencedRoot();
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const r = doctorPlugin(pluginRoot, fence, home, "--json");
+    assert.equal(r.code, 0, r.out + r.err);
+    const json = JSON.parse(r.out);
+    assert.equal(json.exit, 0);
+    assert.equal(json.ok, true);
+    assert.equal(json.plugin_root, join(pluginRoot, "skills"));
+    assert.equal(json.scanned.length, 1);
+    assert.equal(json.scanned[0].directory, join(pluginRoot, "skills"));
+    assert.equal(json.scanned[0].expected_install, true);
+    assert.equal(json.scanned[0].copies, 0);
+    assert.ok(json.scanned[0].expected > 0);
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: exit-1 parity — plugin-root with fence absent returns exit 1 with and without --json", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft"]);
+  const noFenceRoot = mkdtempSync(join(tmpdir(), "ls-nofence-"));
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const human = doctorPlugin(pluginRoot, noFenceRoot, home);
+    const asJson = doctorPlugin(pluginRoot, noFenceRoot, home, "--json");
+    assert.equal(human.code, 1);
+    assert.equal(asJson.code, 1, "exit parity: --json must return the SAME exit as the human path for the same state");
+    assert.match(human.out, /Fix: faff hooks-ensure\s*$/m);
+    assert.doesNotMatch(human.out, /link-skills\.sh/);
+    const parsed = JSON.parse(asJson.out);
+    assert.equal(parsed.exit, 1);
+    assert.equal(parsed.ok, false);
+  } finally { clean([pluginRoot, noFenceRoot, home]); }
+});
+
+test("FAFF-675: exit-2 parity + shape — an empty plugin-root skills dir returns exit 2 with and without --json; the breadcrumb reaches stderr both times", () => {
+  const pluginRoot = mkdtempSync(join(tmpdir(), "ls-pluginroot-empty-"));
+  mkdirSync(join(pluginRoot, "skills"), { recursive: true }); // present but empty — no faff skills at all
+  const fence = mkFencedRoot();
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const human = doctorPlugin(pluginRoot, fence, home);
+    assert.equal(human.code, 2);
+    assert.match(human.err, /faff doctor: no faff skills found under any of:/);
+    assert.equal(human.out, "", "the human path's empty-union case prints nothing to stdout — unchanged from main");
+
+    const asJson = doctorPlugin(pluginRoot, fence, home, "--json");
+    assert.equal(asJson.code, 2, "exit parity holds at exit 2 too");
+    assert.match(asJson.err, /faff doctor: no faff skills found under any of:/, "the --json path ALSO writes the breadcrumb to stderr");
+    const parsed = JSON.parse(asJson.out);
+    assert.equal(parsed.exit, 2);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.scanned[0].directory, join(pluginRoot, "skills"));
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: advisory fields pin the realistic plugin-machine shape — merge_fence true, bin_faff 'copy', live==0", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft", "faff-prep"]);
+  const fence = mkFencedRoot();
+  const home = mkPluginHomeWithRealBin();
+  try {
+    const r = doctorPlugin(pluginRoot, fence, home, "--json");
+    assert.equal(r.code, 0, r.out + r.err);
+    const json = JSON.parse(r.out);
+    assert.equal(json.merge_fence, true);
+    assert.equal(json.bin_faff, "copy", "a real-file ~/.local/bin/faff is the realistic plugin-machine shape, not symlink-live");
+    assert.equal(json.scanned[0].live, 0, "the live formula subtracts expected — an all-expected scan has zero live");
+    assert.equal(json.scanned[0].expected, 2);
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: a dangling symlink under the plugin root is classified normally, not swallowed by expectCopies (exit 1)", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft"]);
+  execFileSync("ln", ["-s", join(pluginRoot, "skills", "gone-xyz"), join(pluginRoot, "skills", "faff-prep")]);
+  const fence = mkFencedRoot();
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const r = doctorPlugin(pluginRoot, fence, home);
+    assert.equal(r.code, 1, "a genuine dangling symlink still drives a non-clean exit under the plugin root");
+    assert.match(r.out, /✗ faff-prep {2}symlink-dangling \(target gone — stale orphan\)/);
+    assert.match(r.out, /✓ faff-graft {2}plugin install/, "the copied sibling is still read as expected, not swept up by the dangling finding");
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: --target pointed at a plugin root still classifies copies as faults, naming the --target-audits reason", () => {
+  const pluginRoot = mkPluginRoot(["faff-graft"]);
+  const fence = mkFencedRoot();
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const env = { ...process.env, HOME: home, CLAUDE_PLUGIN_ROOT: pluginRoot };
+    const r = spawnSync("node", [CLI, "doctor", "--target", join(pluginRoot, "skills"), "--root", fence], { encoding: "utf8", env });
+    assert.equal(r.status, 1, "an explicit --target audits as dev-linked even with a plugin root present — exit 1");
+    assert.match(r.stdout, /✗ faff-graft {2}COPY — --target audits as a dev-linked install; omit --target to audit as a plugin install/);
+    assert.match(r.stdout, /link-skills\.sh --global --replace/, "--target's COPY fault still offers the (here, runnable-for-the-operator) repair");
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: $CLAUDE_PLUGIN_ROOT set but its skills/ is absent → exit 2, not a false exit 0", () => {
+  const pluginRoot = mkdtempSync(join(tmpdir(), "ls-pluginroot-nosk-"));
+  // deliberately no `skills/` subdirectory under pluginRoot
+  const fence = mkFencedRoot();
+  const home = mkdtempSync(join(tmpdir(), "ls-pr-home-"));
+  try {
+    const r = doctorPlugin(pluginRoot, fence, home);
+    assert.equal(r.code, 2, "a plugin harness with no skills dir is genuinely nothing-installed, not an expected install");
+  } finally { clean([pluginRoot, fence, home]); }
+});
+
+test("FAFF-675: DoctorJson is a total projection of DoctorState — every axis is reflected", () => {
+  const require = createRequire(import.meta.url);
+  const { gatherDoctorState, buildDoctorJson } = require("../plugin/skills/faff/bin/lib/gates.js");
+  const pluginRoot = mkPluginRoot(["faff-graft"]);
+  const fence = mkFencedRoot();
+  try {
+    const scanSet = [join(pluginRoot, "skills")];
+    const state = gatherDoctorState(scanSet, [], true, fence, false);
+    const json = buildDoctorJson(state);
+
+    assert.equal(json.plugin_root, state.pluginRoot);
+    assert.equal(json.merge_fence, state.fenceOk);
+    assert.equal(json.bin_faff, state.binFaff);
+    assert.equal(json.exit, state.exit);
+    assert.equal(json.ok, state.exit === 0);
+
+    const s = state.scans[0];
+    const j = json.scanned[0];
+    assert.equal(j.directory, s.directory);
+    assert.equal(j.readable, s.readable);
+    assert.equal(j.reason, s.reason);
+    assert.equal(j.copies, s.copies);
+    assert.equal(j.dangling, s.dangling);
+    assert.equal(j.into_worktree, s.intoWorktree);
+    assert.equal(j.expected, s.expected);
+    assert.deepEqual(j.missing_here, s.missingHere ?? []);
+    assert.deepEqual(j.findings, s.findings);
+    assert.deepEqual(j.names_found, [...s.namesFound].sort());
+
+    // The meta-check this test exists for: every axis gatherDoctorState returns today is
+    // accounted for above (either as a direct DoctorJson field or as a per-scan field checked
+    // against `s`/`j`). A future axis added to DoctorState and not added HERE fails loudly,
+    // rather than silently missing from --json.
+    const accountedFor = new Set([
+      "scanSet", "scans", "collapseNotices", "unionSize", "emptyUnion",
+      "copies", "dangling", "intoWorktree", "expected",
+      "binFaff", "fenceOk", "pluginRoot", "anyMissingHere", "exit",
+    ]);
+    for (const key of Object.keys(state)) {
+      assert.ok(accountedFor.has(key), `DoctorState gained an axis ("${key}") not reflected in this completeness test / buildDoctorJson — extend both.`);
+    }
+  } finally { clean([pluginRoot, fence]); }
+});
+
+test("FAFF-675: the resolveDoctorScanSet return-site invariant throws on a synthetic multi-element expectCopies scan set", () => {
+  const require = createRequire(import.meta.url);
+  const { assertScanSetExpectCopiesInvariant } = require("../plugin/skills/faff/bin/lib/gates.js");
+  assert.throws(
+    () => assertScanSetExpectCopiesInvariant({ scanSet: ["/a", "/b"], collapseNotices: [], expectCopies: true }),
+    /invariant violated/,
+    "a multi-element scanSet with expectCopies:true must trip the guard rather than pass silently",
+  );
+  // The legitimate shapes must NOT throw: single-element + true, and any-length + false.
+  assert.doesNotThrow(() => assertScanSetExpectCopiesInvariant({ scanSet: ["/a"], collapseNotices: [], expectCopies: true }));
+  assert.doesNotThrow(() => assertScanSetExpectCopiesInvariant({ scanSet: ["/a", "/b"], collapseNotices: [], expectCopies: false }));
 });

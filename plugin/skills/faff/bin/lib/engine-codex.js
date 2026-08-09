@@ -30,6 +30,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { ENGINE_EXIT } = require("./engine");
+const { reasoningEffortForTransport } = require("./config");
 
 const SEAT_PROBE_TIMEOUT_MS = 5000;
 const DEFAULT_CODEX_TIMEOUT_MS = 120000;
@@ -41,9 +42,14 @@ function excerpt(s, n = 200) { return String(s || "").trim().slice(0, n); }
 // accrete session files; --skip-git-repo-check + temp cwd — a pure-data-in
 // producer gets no repo; --sandbox read-only — the child gets no hands; the
 // trailing "-" requests the prompt from stdin.
-function buildCodexArgv(model) {
+function buildCodexArgv(model, effort = null) {
   if (!model) throw new Error("buildCodexArgv requires a model");
-  return ["exec", "--json", "--ephemeral", "--skip-git-repo-check", "--sandbox", "read-only", "-m", String(model), "-"];
+  const base = ["exec", "--json", "--ephemeral", "--skip-git-repo-check", "--sandbox", "read-only", "-m", String(model)];
+  // FAFF-705: a graded effort rides as a `-c model_reasoning_effort=<mapped>` config override
+  // (codex's own reasoning-effort dial), before the trailing stdin `-`. The faff level is mapped
+  // onto codex's three-level target (xhigh/max clamp to high). Absent effort → unchanged argv.
+  if (effort) base.push("-c", `model_reasoning_effort=${reasoningEffortForTransport(effort)}`);
+  return [...base, "-"];
 }
 
 // PURE: parse the complete stdout JSONL after child exit. Fail-loud: ANY
@@ -204,7 +210,7 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
   }
   let r;
   try {
-    r = spawnFn(binPath, buildCodexArgv(engine.model), {
+    r = spawnFn(binPath, buildCodexArgv(engine.model, engine.effort), {
       encoding: "utf8",
       input: `${String(system ?? "")}\n\n${String(user ?? "")}`,
       cwd: tmp,
@@ -269,6 +275,10 @@ function runCodexCall({ engine, system, user, spawnFn = spawnSync, env = process
         provider: engine.provider,
         model: engine.model,
         source: "exec-json-events",
+        // FAFF-705: carry the resolved faff effort level so `economics --by effort` buckets an
+        // engine-lane call like an Agent-lane one. Omit the key entirely when null (inherit) —
+        // NOT `effort: null` — so an inherit call's record is byte-identical to today.
+        ...(engine.effort ? { effort: engine.effort } : {}),
         ...sumCodexUsage(parsed.events),
       });
     } catch (e) {
@@ -304,6 +314,13 @@ function codexSelftest() {
   // argv shape — pure, stable order
   ok("argv is exactly the posture flags in stable order",
     buildCodexArgv("m").join(" ") === "exec --json --ephemeral --skip-git-repo-check --sandbox read-only -m m -");
+  // FAFF-705: a graded effort appends -c model_reasoning_effort=<mapped> before the trailing -.
+  ok("argv: graded effort appends model_reasoning_effort before trailing -",
+    buildCodexArgv("m", "medium").join(" ") === "exec --json --ephemeral --skip-git-repo-check --sandbox read-only -m m -c model_reasoning_effort=medium -");
+  ok("argv: above-ceiling effort clamps to high in argv",
+    buildCodexArgv("m", "xhigh").join(" ") === "exec --json --ephemeral --skip-git-repo-check --sandbox read-only -m m -c model_reasoning_effort=high -");
+  ok("argv: absent effort → unchanged argv (byte-identity)",
+    buildCodexArgv("m", null).join(" ") === "exec --json --ephemeral --skip-git-repo-check --sandbox read-only -m m -");
 
   // parser — fail-loud, events kept (FAFF-604 seam)
   {
@@ -350,6 +367,26 @@ function codexSelftest() {
     ok("sink: record carries the class-mapped usage sums",
       r && r.input === 10 && r.output === 5 && r.cache_read === 0 && r.cache_write === 0);
     ok("sink: TURN_LINE carries no cached tokens, so input is unsplit here", r && r.input === 10);
+    // FAFF-705: an inherit (no effort) call records NO effort key — byte-identity for pre-705 runs.
+    ok("sink: inherit call omits the effort key (byte-identity)", r && !("effort" in r));
+  }
+  // FAFF-705: a graded-effort codex call carries -c model_reasoning_effort in argv AND the
+  // resolved faff level on the SpendRecord (stored pre-map, for the economics effort axis).
+  {
+    const recorded = [];
+    const calls = [];
+    const effEngine = { ...engine, effort: "high" };
+    const code = runCodexCall({
+      engine: effEngine, system: "S", user: "U",
+      spawnFn: seq(probeOk, { status: 0, stdout: `${TURN_LINE}\n${AGENT_LINE}\n`, stderr: "", error: null, signal: null }, calls),
+      stdoutWrite: sink, stderrWrite: sink,
+      spendSink: (r) => recorded.push(r), nowFn: () => "2026-08-09T00:00:00Z",
+    });
+    const exec = calls.find((c) => c.args[0] === "exec");
+    ok("sink: graded effort argv carries -c model_reasoning_effort=high",
+      code === ENGINE_EXIT.OK && exec && exec.args.join(" ").includes("-c model_reasoning_effort=high"));
+    ok("sink: graded effort record carries the faff level (pre-map)",
+      recorded[0] && recorded[0].effort === "high");
   }
   {
     // A failed call records nothing — attributing partial usage from a failure is

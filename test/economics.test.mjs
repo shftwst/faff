@@ -543,6 +543,60 @@ test("FAFF-415 INTEGRATION: --by effort surfaces malformed_lines (honest coverag
   } finally { f.cleanup(); }
 });
 
+test("FAFF-705 INTEGRATION: --by effort folds engine-spend into the effort buckets (two-source)", () => {
+  const ECON_MIXED = "backends:\n  seat:\n    provider: codex\n    model: claude-sonnet-5\nmodels:\n  methodology: engine:seat\n";
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: ECON_MIXED, ledger });
+  try {
+    const sid = "sess-effort-fold";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 1000 } }, timestamp: "2026-08-09T10:00:00Z" },
+      ],
+    });
+    // events.jsonl: an Agent-lane dispatch tagged low. engine-spend.jsonl: codex calls tagged
+    // high + medium (the effort field FAFF-705 adds to the SpendRecord).
+    writeFileSync(join(f.runDir, "events.jsonl"),
+      JSON.stringify({ schema: 1, run_id: "run-test", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "low", tokens: { input: 50, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }));
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify({ ts: "t", engine: "seat", provider: "codex", model: "claude-sonnet-5", source: "exec-json-events", effort: "high", input: 300, output: 0, cache_read: 0, cache_write: 0 }) + "\n" +
+      JSON.stringify({ ts: "t", engine: "seat", provider: "codex", model: "claude-sonnet-5", source: "exec-json-events", effort: "medium", input: 100, output: 0, cache_read: 0, cache_write: 0 }) + "\n");
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "events+engine-spend", "the effort census names both sources");
+    const keys = bd.rows.map((x) => x.key);
+    assert.ok(keys.includes("low") && keys.includes("medium") && keys.includes("high"),
+      "the low (event) + high/medium (engine) buckets are all populated");
+    assert.equal(bd.rows.find((x) => x.key === "high").input, 300);
+    assert.equal(bd.rows.find((x) => x.key === "medium").input, 100);
+    assert.equal(bd.reconciliation.engine_token_total, 400);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-705 REGRESSION: --by effort on a transcript-only run stays source:events (byte-identity)", () => {
+  const ledger = baseLedger({ budget: { tokens_at_start: 0 } });
+  const f = fixture({ rc: null, ledger });
+  try {
+    const sid = "sess-effort-noeng";
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [
+        { message: { model: "claude-opus-4-8", usage: { input_tokens: 1000 } }, timestamp: "2026-08-09T10:00:00Z" },
+      ],
+    });
+    writeFileSync(join(f.runDir, "events.jsonl"),
+      JSON.stringify({ schema: 1, run_id: "run-test", seq: 0, ts: "t", phase: "build", type: "build-start", issue: "FAFF-1", data: { effort: "high", tokens: { input: 100, output: 0, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } }));
+    // No engine-spend.jsonl → the fold must not fire.
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid });
+    assert.equal(r.code, 0, r.err);
+    const bd = JSON.parse(r.out).breakdown;
+    assert.equal(bd.source, "events");
+    assert.ok(!("engine_token_total" in bd.reconciliation), "no engine field leaks into a transcript-only census");
+  } finally { f.cleanup(); }
+});
+
 test("INTEGRATION: empty-outcome ledger renders without erroring (0 counts)", () => {
   const ledger = baseLedger({ admitted: [], outcomes: {} });
   const f = fixture({ rc: null, ledger });

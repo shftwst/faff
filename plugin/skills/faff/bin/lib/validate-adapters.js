@@ -39,7 +39,7 @@ const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "p
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
-const SKILL_LINE_CAP_OVERRIDE = { faff: 1152, "faff-beep-boop": 719, "faff-graft": 620 };   // the gateway is the shared-prose hub (single-source home, FAFF-115); it grows (FAFF-749: +2 for concurrency obligation 6; FAFF-758: +2 for the second monotonicity carve-out + the split labels-manifest paragraph)   // FAFF-728: +1 gateway (GitHub-auth preflight bullet) + 14 beep-boop (GitHub-auth preflight surfacing section)   // FAFF-700: +7 gateway (Producer-dispatch section's dispatch-observability clause)   // FAFF-727: +10 gateway (Interactive park resolution section)
+const SKILL_LINE_CAP_OVERRIDE = { faff: 1154, "faff-beep-boop": 719, "faff-graft": 622 };   // per-file SKILL.md line caps (FAFF-115 single-source gateway grows): FAFF-749 +2, FAFF-758 +2, FAFF-728 +1 gateway +14 beep-boop, FAFF-700 +7 gateway, FAFF-727 +10 gateway, FAFF-750 +2 gateway (concurrency obligation 7) + faff-graft +2 (Step 10 dispatch-cut split + pr-ready return)
                                                   // FAFF-695 added the "Tracker availability resolution" shared rule to the gateway (+ a beep-boop pointer to it).
                                                   // structurally with each new slot/contract — FAFF-335's spec_review/grounding slot rows + the
                                                   // "Spec-review verdict (fixed)" contract section pushed it past 1100. faff-beep-boop is the L4

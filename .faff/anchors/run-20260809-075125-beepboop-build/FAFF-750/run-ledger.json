@@ -1,0 +1,26 @@
+{
+  "run_id": "run-20260809-075125-beepboop-build",
+  "level": "L3",
+  "phase_select": "build",
+  "admitted": [
+    "FAFF-750"
+  ],
+  "outcomes": {},
+  "owner": {
+    "status": "running",
+    "pid": 170517,
+    "session_id": "run-20260809-075125-beepboop-build",
+    "started_at": "2026-08-09T07:51:25Z",
+    "last_heartbeat": "2026-08-09T07:51:25Z"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 3
+      },
+      "at_ceiling": "stop",
+      "price_per_mtok": 0
+    },
+    "tokens_at_start": 0
+  }
+}

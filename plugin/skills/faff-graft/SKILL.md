@@ -90,7 +90,8 @@ The gate ensures no one starts building without a validated spec. Per the shared
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 [ -x "$faff" ] || faff=$(find ~/.claude -path '*/skills/faff/bin/faff' -type f | head -1)
 default=$("$faff" config get automation_default)                    # registry-defaulted — CLI only, never hand-read .faffrc
-verdict=$("$faff" eligible --label "$L1" --label "$L2" ... --default "$default")   # one --label per Step-1 label
+# FAFF-753: thread the tracker signal (Tracker availability resolution) — this gate runs on a FETCHED tracker issue ⇒ tracker-present by construction (git-only has no labels, never reaches here); opt-out is inert under a tracker.
+verdict=$("$faff" eligible --label "$L1" --label "$L2" ... --default "$default" --tracker present)   # one --label per Step-1 label
 # read STDOUT ("true"/"false") — NOT $? (faff eligible always exits 0)
 ```
 

@@ -1363,6 +1363,21 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   const mergedDoc = overlayDoc ? deepMergeConfig(baseDoc || {}, overlayDoc) : (baseDoc || {});
   findings.push(...backendsConfigCheckFindings(mergedDoc));
 
+  // Check 7 (FAFF-753): automation_default: opt-out is INERT on a tracker-bound repo —
+  // it opens the unlabelled surface only in git-only mode. Warn when a tracker is
+  // pinned AND opt-out is set, so the ignored knob is surfaced. Read the pin inline
+  // (no require("./tracker") — config.js is on tracker.js's require path) and replicate
+  // classifyTracker's trim/blank normalisation so this linter and `faff tracker probe`
+  // never disagree: a whitespace-only pin is unpinned, so no warn.
+  const pinRaw = dig(mergedDoc, "tracking.tracker");
+  // Exact parity with classifyTracker (tracker.js): null/undefined/blank-after-trim ⇒ unpinned;
+  // otherwise coerce via String().trim() (a non-string pin is classified the same way there).
+  const pinned = pinRaw !== null && pinRaw !== undefined && String(pinRaw).trim() !== "";
+  const autoDefault = dig(mergedDoc, "automation_default");
+  if (pinned && autoDefault === "opt-out") {
+    findings.push({ severity: "warn", surface: "automation_default", message: "`automation_default: opt-out` is ignored on a tracker-bound repo — it applies only in git-only mode; the two faff-* labels are the control surface here." });
+  }
+
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }
 
@@ -1574,6 +1589,46 @@ function configCheckSelftest() {
     });
     check("malformed base: error finding naming file + detail, exit 1",
       r.exit === 1 && r.findings.some((f) => f.severity === "error" && f.surface === ".faffrc.yaml" && /malformed base config/.test(f.message) && /does not parse to a mapping/.test(f.message)));
+  }
+  {
+    // FAFF-753: pinned tracker + automation_default:opt-out → warn (opt-out inert on a tracker repo).
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "linear" }, automation_default: "opt-out" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-753: pinned tracker + opt-out → warn finding, exit 1",
+      r.exit === 1 && r.findings.some((f) => f.severity === "warn" && f.surface === "automation_default" && /ignored on a tracker-bound repo/.test(f.message)));
+  }
+  {
+    // FAFF-753: opt-out but tracker UNPINNED (git-only) → no warn (opt-out is legitimately honoured).
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { automation_default: "opt-out" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-753: opt-out git-only (no pin) → no opt-out warn",
+      !r.findings.some((f) => f.surface === "automation_default"));
+  }
+  {
+    // FAFF-753: whitespace-only tracker pin is UNPINNED (classifyTracker parity) → no warn.
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "   " }, automation_default: "opt-out" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-753: whitespace-only pin ⇒ unpinned ⇒ no opt-out warn (trim parity)",
+      !r.findings.some((f) => f.surface === "automation_default"));
+  }
+  {
+    // FAFF-753: pinned tracker + opt-in → no opt-out warn (opt-in is the normal safe posture).
+    const r = computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: { tracking: { tracker: "linear" }, automation_default: "opt-in" },
+      overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    check("FAFF-753: pinned tracker + opt-in → no opt-out warn",
+      !r.findings.some((f) => f.surface === "automation_default"));
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (config check, ${fail} failed)`);

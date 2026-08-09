@@ -2,6 +2,7 @@
 # (Corrected 2026-07-01: previously carried a copied P1-link-shortener SUT / git-only header — a relic.)
 
 tracking:
+    tracker: linear # pin the tracker so the deterministic half of Tracker-availability resolution carries the eligibility guard without relying on live discovery (FAFF-753)
     spec_docs_path: docs/specs/ # where graft commits specs (git-only spec store is .faff/specs/)
     repo: shftwst/faff
 
@@ -16,7 +17,7 @@ slots:
     # evaluator (faffter-noon-evaluate) is invoked via the holdout → prdr-coverage path, not an rc slot.
 
 appetite: high
-automation_default: opt-in # fail-safe: a ticket is automatable ONLY when a human adds `faff-automate` in the tracker (the control-plane gesture, FAFF-19/125/218)
+automation_default: opt-in # fail-safe: a ticket is automatable ONLY when a human adds `faff-automate` in the tracker (the control-plane gesture, FAFF-19/125/218). On this tracker-bound repo opt-out would be inert anyway (FAFF-753 — opt-out is git-only-only).
 intake_gate: warn
 
 budget:

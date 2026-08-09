@@ -40,6 +40,11 @@ test("classifyGithubAuth: the closed classification (FAFF-728)", async () => {
   assert.equal(classifyGithubAuth({ error: new Error("spawnSync gh ENOENT"), status: null, stdout: "", stderr: "" }).status, "indeterminate");
   assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: server error (HTTP 500)" }).status, "indeterminate");
   assert.equal(classifyGithubAuth({ error: null, status: 0, stdout: "not json", stderr: "" }).status, "indeterminate");
+  // fail-open boundary: a non-auth fault mentioning "authentication" must NOT become auth-failed
+  // (a proxy 407, a transient auth-service 5xx) — the spec anti-pattern; a real 401 still classifies.
+  assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: request failed: 407 Proxy Authentication Required" }).status, "indeterminate");
+  assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: authentication service temporarily unavailable (HTTP 500)" }).status, "indeterminate");
+  assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Requires authentication (HTTP 401)" }).status, "auth-failed");
   // token-safety: an auth-failed basis never carries the token — only the gh stderr line (no token in it)
   const badTok = classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Bad credentials (HTTP 401)" });
   assert.ok(!/ghp_|github_pat_/.test(badTok.basis));

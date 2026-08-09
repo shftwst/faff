@@ -1103,7 +1103,12 @@ function classifyGithubAuth(r) {
   const stderr = String((r && r.stderr) || "");
   const firstLine = stderr.split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
   const status = r ? r.status : null;
-  if (/\b(401|403)\b|bad credentials|not logged in|requires authentication|authentication/i.test(stderr)) {
+  // Key on the HTTP status FIRST (401/403), then on specific credential-rejection phrases. A bare
+  // `authentication` substring is deliberately NOT matched — it false-positives on non-auth
+  // network/infra faults that merely mention the word (a proxy "407 Proxy Authentication Required",
+  // an "authentication service unavailable" 5xx), which the DoD requires stay `indeterminate` (never
+  // a re-auth claim). Every genuine GitHub auth failure carries a 401/403 or one of these phrases.
+  if (/\b(401|403)\b|bad credentials|not logged in|requires authentication/i.test(stderr)) {
     return { status: "auth-failed", basis: `gh api user rejected credential: ${firstLine}`, login: null };
   }
   return { status: "indeterminate", basis: `gh api error (${status}): ${firstLine}`, login: null };
@@ -1148,6 +1153,11 @@ function githubAuthSelftest() {
   check("gh-missing basis says unavailable", /gh unavailable/.test(ghMissing.basis));
   check("gh-missing is NOT auth-failed", ghMissing.status !== "auth-failed");
   check("non-auth error (500) → indeterminate", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Something broke (HTTP 500)" }).status === "indeterminate");
+  // fail-open boundary: a non-auth fault that merely MENTIONS "authentication" must stay indeterminate,
+  // never a false re-auth claim (the spec anti-pattern; a bare `authentication` match would break these).
+  check("proxy 407 (network fault mentioning authentication) → indeterminate, not auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: request failed: 407 Proxy Authentication Required" }).status === "indeterminate");
+  check("authentication-service 5xx (transient) → indeterminate, not auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: authentication service temporarily unavailable (HTTP 500)" }).status === "indeterminate");
+  check("real GitHub 401 wording (Requires authentication) → auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Requires authentication (HTTP 401)" }).status === "auth-failed");
   check("null result → indeterminate (defensive)", classifyGithubAuth(null).status === "indeterminate");
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (github-auth pure classifier, ${fail} failed)`);
   return fail ? 1 : 0;

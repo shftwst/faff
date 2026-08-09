@@ -290,6 +290,7 @@ const REGION_SELFTEST_ARGV = {
   "cli-surface": ["cli-surface", "--selftest"],
   "merge-gate": ["merge-gate", "--selftest"],
   "branch-protection-check": ["branch-protection-check", "--selftest"],
+  "github-auth-check": ["github-auth-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],
   "ci-triage": ["ci-triage", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],

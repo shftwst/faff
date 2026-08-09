@@ -26,6 +26,8 @@ const CONTROL_LABELS = [
     description: "Built work holding for review-provider recovery; the next drain resumes at review (no rebuild). Applied by faff-graft; cleared by faff-graft (on terminal disposition) or faff-tidy (stale-label auto-clear on state moves). NOT a park (faff-parked, above) — a hold means automation is waiting on a machine, not a human (FAFF-403)." },
   { name: "faff-repeat-parked", color: "#d97706",
     description: "Cosmetic breadcrumb: an active issue demoted Todo->Backlog because faff park-history flagged it repeat-parked (3+ parks, same root-cause class, within the rolling window). Detection is seam-computed (faff park-history), NOT read from this label — the label only marks the demotion for /faff-wtf. Distinct from the repeat-parked routing verdict (contract-defs.js). CLI-writable (no tracker_owned flag)." },
+  { name: "faff-claimed", color: "#9b51e0",
+    description: "faff set this issue's In Progress claim; eligible for stale-claim reclaim (FAFF-758). Applied by faff-graft at the Step-5 claim, cleared by faff-graft (on terminal disposition and the FAFF-403 retry-later release) or faff-tidy (state-driven stale-label sweep). Its presence is the PROVENANCE that lets tidy auto-reclaim a stale (past claim_ttl_hours) claim — a claim WITHOUT it is human-set or unprovable and is only surfaced, never reverted. Machine-writable like faff-parked/faff-awaiting-review (no tracker_owned flag), NOT an eligibility throttle." },
 ];
 
 const { parseArgs, usageError } = require("./argv");

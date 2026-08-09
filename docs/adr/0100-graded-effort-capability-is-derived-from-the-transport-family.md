@@ -1,4 +1,4 @@
-# ADR 0098 — Graded-effort capability is derived from the transport family
+# ADR 0100 — Graded-effort capability is derived from the transport family
 
 - **Status:** Proposed
 - **Provenance:** loop

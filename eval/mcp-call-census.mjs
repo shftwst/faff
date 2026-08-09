@@ -272,7 +272,7 @@ function main(argv) {
 
   // Default out is a TRACKED path (eval/report/ is gitignored as real-model run output) so the spike's
   // committed report ships with the code. Override with --out for an ad-hoc scratch run.
-  const outDir = argFlag(argv, "--out") || join(REPO_ROOT, "docs", "reports", "mcp-call-census");
+  const outDir = argFlag(argv, "--out") || join(REPO_ROOT, "verification", "reports", "mcp-call-census");
   mkdirSync(outDir, { recursive: true });
   const jsonPath = join(outDir, "report.json");
   const mdPath = join(outDir, "report.md");

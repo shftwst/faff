@@ -6,9 +6,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const VALIDATOR = join(ROOT, "docs/audits/tools/faff-732/validate-report.mjs");
-const LEDGER = join(ROOT, "docs/audits/2026-08-07-FAFF-732-public-trust-claims/claim-ledger.json");
-const REPORT = join(ROOT, "docs/audits/2026-08-07-FAFF-732-public-trust-claims.md");
+const VALIDATOR = join(ROOT, "verification/audits/tools/faff-732/validate-report.mjs");
+const LEDGER = join(ROOT, "verification/audits/2026-08-07-FAFF-732-public-trust-claims/claim-ledger.json");
+const REPORT = join(ROOT, "verification/audits/2026-08-07-FAFF-732-public-trust-claims.md");
 const run = (...args) => spawnSync(process.execPath, [VALIDATOR, ...args], { cwd: ROOT, encoding: "utf8" });
 
 test("FAFF-732 validator self-test covers the validation rule families", () => {

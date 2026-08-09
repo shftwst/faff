@@ -12,7 +12,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const MODELS_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 2, name: "verb confidence" } };
-// Union across every `config` sub-verb (path|get|set|check|init|spec-docs-path|prd-docs-path). The gate
+// Union across every `config` sub-verb (path|get|set|check|init and the docs-path resolvers). The gate
 // rejects unknown flags / missing values; each sub-verb's own body reads the validated flags below.
 const CONFIG_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--force": { arity: 0 }, "--dry-run": { arity: 0 }, "--create": { arity: 0 },
@@ -31,6 +31,9 @@ const CONFIG_SURFACE = {
     defaults: { required_flags: [] },
     "spec-docs-path": { required_flags: [] },
     "prd-docs-path": { required_flags: [] },
+    "prdr-docs-path": { required_flags: [] },
+    "adr-docs-path": { required_flags: [] },
+    "spike-docs-path": { required_flags: [] },
     dump: { required_flags: [] },
     init: { required_flags: [] },
     resolved: { required_flags: [] },
@@ -499,7 +502,7 @@ function loadConfig(root) {
   return [deepMergeConfig(baseData, overlayData), p, overlayPath];
 }
 
-// One docs-path resolver for the spec / PRD / PRDR axes (FAFF-252, FAFF-245).
+// One docs-path resolver for repository record stores (FAFF-252, FAFF-245, FAFF-754).
 // `configKey` is the tracking.* override; `subdir` is the leaf under docs/ (or
 // doc/ when only doc/ exists). An explicit override wins; otherwise prefer an
 // existing docs/, then doc/, defaulting to docs/<subdir>.
@@ -516,6 +519,8 @@ function resolveDocsPath(root, data, create, configKey, subdir) {
 const resolveSpecDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.spec_docs_path", "specs");
 const resolvePrdDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prd_docs_path", "prd");
 const resolvePrdrDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.prdr_docs_path", "prdr");
+const resolveAdrDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.adr_docs_path", "adr");
+const resolveSpikeDocsPath = (root, data, create) => resolveDocsPath(root, data, create, "tracking.spike_docs_path", "spikes");
 
 // ---------------------------------------------------------------------------
 // config init — FAFF-5: the deterministic WRITE half of the config surface.
@@ -535,6 +540,8 @@ const TRACKING_KEYS = [
   "tracking.spec_docs_path",
   "tracking.prd_docs_path",
   "tracking.prdr_docs_path",
+  "tracking.adr_docs_path",
+  "tracking.spike_docs_path",
 ];
 const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
 
@@ -1210,7 +1217,20 @@ function configInitSelftest() {
 
   // unknown-key rejection is enforced in cmdConfigInit (arg parse) — assert the allowlist shape here.
   check("allowlist: known key normalises", TRACKING_KEYS.includes("tracking.team_key"));
+  check("allowlist: ADR docs path is writable", TRACKING_KEYS.includes("tracking.adr_docs_path"));
+  check("allowlist: spike docs path is writable", TRACKING_KEYS.includes("tracking.spike_docs_path"));
   check("allowlist: unknown key absent", !TRACKING_KEYS.includes("tracking.slug"));
+
+  // FAFF-754: ADR and spike stores share the configurable docs-path contract while
+  // retaining the established docs/* defaults for repositories that do not opt in.
+  check("docs paths: ADR resolver keeps the legacy default",
+    typeof resolveAdrDocsPath === "function" && resolveAdrDocsPath("/tmp/no-doc-tree", {}, false) === "docs/adr");
+  check("docs paths: ADR resolver honours tracking.adr_docs_path",
+    typeof resolveAdrDocsPath === "function" && resolveAdrDocsPath("/tmp/no-doc-tree", { tracking: { adr_docs_path: "records/adr/" } }, false) === "records/adr");
+  check("docs paths: spike resolver keeps the legacy default",
+    typeof resolveSpikeDocsPath === "function" && resolveSpikeDocsPath("/tmp/no-doc-tree", {}, false) === "docs/spikes");
+  check("docs paths: spike resolver honours tracking.spike_docs_path",
+    typeof resolveSpikeDocsPath === "function" && resolveSpikeDocsPath("/tmp/no-doc-tree", { tracking: { spike_docs_path: "records/spikes/" } }, false) === "records/spikes");
 
   // empty tracking block (key with null body): inserts children.
   {
@@ -1856,6 +1876,21 @@ function cmdConfig(args) {
       console.log(resolvePrdDocsPath(root, data, rest.includes("--create")));
       return 0;
     }
+    if (cmd === "prdr-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolvePrdrDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
+    if (cmd === "adr-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolveAdrDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
+    if (cmd === "spike-docs-path") {
+      const [data] = loadConfig(root);
+      console.log(resolveSpikeDocsPath(root, data, rest.includes("--create")));
+      return 0;
+    }
     if (cmd === "dump") {
       const [data] = loadConfig(root);
       console.log(JSON.stringify(data, null, 2));
@@ -2064,4 +2099,4 @@ function modelsSelftest() {
 }
 
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, EFFORT_GRADED_FAMILIES, EFFORT_LANE_VOCAB, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, INIT_HEADER, MODEL_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdModels, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, modelsSelftest, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveDocsPath, resolveEngineForLane, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, scanDocForSecrets, secretScanLeaf, validateEffortLane, validateEngineRef, validateModelLane };

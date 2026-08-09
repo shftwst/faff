@@ -22,7 +22,7 @@ A slot skill that omits the refer-back prose is a latent bug: it works as a dele
 
 ## Two faces
 
-- **Author** (scaffold): given a target slot and a description, produce the skeleton of a conformant slot skill — with the refer-back prose, the two-face structure, and the map-onto-fixed-contract section already in place. The author fills in the dialect. Write the prose **to the skill-authoring charter** (`docs/skill-authoring.md`) — lean, deduplicated, skimmable — whose lintable subset `faff validate-adapters` enforces.
+- **Author** (scaffold): given a target slot and a description, produce the skeleton of a conformant slot skill — with the refer-back prose, the two-face structure, and the map-onto-fixed-contract section already in place. The author fills in the dialect. Write the prose **to the skill-authoring charter** (`docs/reference/skill-authoring.md`) — lean, deduplicated, skimmable — whose lintable subset `faff validate-adapters` enforces.
 - **Validate** (audit): given an existing slot skill (by name or path), check it against the conformance checklist below and return `pass` / `fail` + specific violations. Run it before adopting a third-party slot skill, in CI over the shipped ones, or **at runtime** — the pipeline **always** invokes this face on a configured **foreign** occupant (one not in `REGISTRY`; a bundled `faffter-*` occupant is exempt by the `--is-bundled` predicate) before first use and parks/surfaces on `fail` (gateway → _Slot conformance validation_).
 
 ## The fixed contract each slot maps onto

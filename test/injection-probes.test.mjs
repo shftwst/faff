@@ -22,7 +22,7 @@
 //   needs-live               cannot be demonstrated hermetically; a human-supervised model-in-the-loop run is required (Tier 2)
 //
 // The full disposition table + reproduction pointers + aggregate answer live in
-// docs/audits/2026-07-22-FAFF-566-injection-to-merge-probe-set.md. This suite IS the
+// verification/audits/2026-07-22-FAFF-566-injection-to-merge-probe-set.md. This suite IS the
 // re-runnable evidence for every mechanical (Tier-1) disposition: `node --test test/injection-probes.test.mjs`.
 
 import { test } from "node:test";

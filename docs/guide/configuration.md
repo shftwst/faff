@@ -23,6 +23,21 @@ tracking:
 
 That's the whole minimum. Everything else has a sensible default. (`/faff-onboard` writes this file for you on a first run — autodetecting what it can.) Copy `.faffrc.example.yaml` for the full list of knobs.
 
+## Record locations
+
+Specs, PRDs, PRDRs, ADRs, and spikes default to `docs/specs/`, `docs/prd/`, `docs/prdr/`, `docs/adr/`, and `docs/spikes/`. Repositories with another structure can override any location:
+
+```yaml
+tracking:
+  spec_docs_path: records/specs/
+  prd_docs_path: records/prd/
+  prdr_docs_path: records/prdr/
+  adr_docs_path: records/adr/
+  spike_docs_path: records/spikes/
+```
+
+Paths are relative to the repository root. Existing repositories need no change; the `docs/*` defaults remain in place.
+
 ## Appetite
 
 ```yaml

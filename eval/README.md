@@ -118,7 +118,7 @@ node eval/run-evals.mjs --compare
 ```
 (`--base-url`/`--model` may instead come from `FAFF_EVAL_LOCAL_BASE_URL` / `FAFF_EVAL_LOCAL_MODEL`.)
 
-FAFF-131 then fills `docs/adr/0004-*.md` (FAFF-130 shipped the **scaffold**) with the measured
+FAFF-131 then fills `records/adr/0004-*.md` (FAFF-130 shipped the **scaffold**) with the measured
 per-kind accuracy + flakiness + $/case cost + the gloss judge↔human delta — now tabulable
 **frontier vs local** — and the fork recommendation (evals-only / live-driver / both).
 

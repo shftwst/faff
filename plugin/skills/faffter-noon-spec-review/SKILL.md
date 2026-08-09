@@ -24,13 +24,13 @@ The consumer passes:
 - The spec body (the freshly-produced, confidence-rated spec).
 - The **selected lens-set + mode** from the consumer's change-surface lens-selection step. Fire exactly the named lenses; absent a set, fire all four. `mode` is `single-pass` here (the `adversarial` mode routes to the L4 occupant).
 - The attached `## Methodology critique` block, when prep wrote one (the methodology slot's already-computed value/scope signal).
-- Repo architecture context, including `docs/adr/` for cross-slice decisions.
+- Repo architecture context, including the configured ADR directory for cross-slice decisions.
 
 ## The four lenses (single-pass checklist)
 
 | Lens | Asks | Source it draws on |
 |---|---|---|
-| `architectural` | Is the design sound? Does it fit the system? Is there a simpler/cheaper design? Are cross-slice decisions ADR-worthy and consistent with existing ADRs? | The spec body + repo architecture + `docs/adr/`. |
+| `architectural` | Is the design sound? Does it fit the system? Is there a simpler/cheaper design? Are cross-slice decisions ADR-worthy and consistent with existing ADRs? | The spec body + repo architecture + configured ADR directory. |
 | `infosec` | What is the threat surface? authz/authn, secrets handling, blast radius. | A **generic** security checklist — no learned per-repo threat prior. |
 | `methodology` | Right-sized? Right increment? Worth doing now? | **Consumes** the attached `## Methodology critique`. It never re-derives value/scope/risk. |
 | `QA` | Is it *verifiable*? Can we tell when it is done and right? | The spec's scenarios / DONE criteria. |

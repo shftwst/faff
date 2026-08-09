@@ -576,7 +576,7 @@ test("FAFF-604 REGRESSION: codex cached input is a SUBSET of input_tokens, never
 // not a self-recompute.
 
 test("FAFF-666: the committed real observed payload (codex-cli-observed.md) totals to the hand-derived oracle", () => {
-  // docs/architecture/codex-cli-observed.md, the read-only-producer capture:
+  // docs/reference/architecture/codex-cli-observed.md, the read-only-producer capture:
   // {"input_tokens":14775,"cached_input_tokens":12032,"cache_write_input_tokens":0,"output_tokens":6,"reasoning_output_tokens":0}
   const u = sumCodexUsage([
     { type: "turn.completed", usage: { input_tokens: 14775, cached_input_tokens: 12032, cache_write_input_tokens: 0, output_tokens: 6, reasoning_output_tokens: 0 } },

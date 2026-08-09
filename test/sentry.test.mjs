@@ -614,7 +614,7 @@ test("FAFF-326: an unparseable --authority value fails loud (exit 2), never a si
 // Each probe below demonstrates a genuine trip, then performs the SAME on-disk
 // rewrite a build lane could perform, and shows the trip is suppressed. This is
 // the evidence base for the ADR-0034 "Re-examination under the shared-fs
-// container model (FAFF-324)" amendment (docs/adr/0034-*.md) — each probe name
+// container model (FAFF-324)" amendment (records/adr/0034-*.md) — each probe name
 // maps 1:1 to a row of that amendment's forgery-vector table.
 // ===========================================================================
 

@@ -245,7 +245,7 @@ The explore subagent's dispatch resolves the per-lane model (FAFF-315): `faff co
 2. **Candidates** = the spec's `**Chosen:**` decisions that are *architecturally significant* — cross-slice and durable (constrains future slices), not local. v1 does **not** auto-classify; surface only decisions the spec already frames as significant. If none → skip.
 3. **Interactive:** `surface` → list the candidates (one line each) and stop. `offer` → a human-gated y/n per candidate; keep the confirmed set.
 4. **Autonomous (appetite-gated** — gateway → **Appetite for destruction**, the same dial that gates discovered/chain-gap auto-create): `low`/`medium` → surface only (list in the prep log, promote nothing); `high`/`full` → record every significant candidate (the ADR ships in the PR, so it is reviewable + revertible — not a side-effect outside the PR flow).
-5. **Record** the confirmed promotions as a tracker comment headed `## ADR promotion intent`, listing each decision (its title + the spec section it came from). `/faff-graft` reads this and materialises the ADRs on the feature branch via `faff adr new`. Prep writes nothing under `docs/adr/`.
+5. **Record** the confirmed promotions as a tracker comment headed `## ADR promotion intent`, listing each decision (its title + the spec section it came from). `/faff-graft` reads this and materialises the ADRs on the feature branch via `faff adr new`. Prep writes nothing to the configured ADR directory.
 
 This is the L3 "offer + write-on-confirm" rung (the write deferred to graft); L4 (require-before-admit) is FAFF-9's.
 

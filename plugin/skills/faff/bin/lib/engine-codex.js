@@ -21,7 +21,7 @@
 // codex-cli 0.145.0 on 2026-07-28 (FAFF-665): the argv below runs exit 0, the
 // `item.completed` → `agent_message` envelope holds, taking the LAST agent_message
 // is what returns the answer on a multi-message turn, and the usage subtraction
-// checks out. Captures in `docs/architecture/codex-cli-observed.md`.
+// checks out. Captures in `docs/reference/architecture/codex-cli-observed.md`.
 // The drift observable still stands for future versions — re-pin
 // parseCodexEvents/buildCodexArgv if a healthy run exits 7 "no agent message".
 
@@ -83,7 +83,7 @@ function parseCodexEvents(raw) {
 // PURE (FAFF-604, extended FAFF-666): total the usage carried on the stream's
 // `turn.completed` events into the four token classes budget/economics bucket
 // by. `turn.completed.usage` reports FIVE fields (codex-cli 0.145.0,
-// docs/architecture/codex-cli-observed.md); every one is either summed into a
+// docs/reference/architecture/codex-cli-observed.md); every one is either summed into a
 // class below or dispositioned in this comment — none is silently dropped.
 //
 // The class model comes from the Anthropic transcript, where the classes are

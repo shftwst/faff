@@ -13,7 +13,7 @@ The default occupant of the **`architecture`** slot — the generative half of f
 
 ## What it does
 
-One LLM pass turns the brief/spec + infra profile into one proposal envelope. It **proposes, never commits**: it emits the envelope + ADR candidates as *intent* and stops. It writes nothing under `docs/adr/` and makes **no `faff adr new` call** — graft Step 4b materialises any candidate. It runs no review or verdict logic; the only contact with the downstream spec-review `architectural` lens (the critic) is the spec artifact the proposal lands in — the proposer/critic boundary, where the proposer generates and the critic judges, sharing no logic.
+One LLM pass turns the brief/spec + infra profile into one proposal envelope. It **proposes, never commits**: it emits the envelope + ADR candidates as *intent* and stops. It writes nothing to the configured ADR directory and makes **no `faff adr new` call** — graft Step 4b materialises any candidate. It runs no review or verdict logic; the only contact with the downstream spec-review `architectural` lens (the critic) is the spec artifact the proposal lands in — the proposer/critic boundary, where the proposer generates and the critic judges, sharing no logic.
 
 The contract (`faff contract architecture-proposal`) validates the envelope's **shape** only. This producer owns the **proposing strategy** — how the design is fitted. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
 

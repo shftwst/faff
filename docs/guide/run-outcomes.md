@@ -65,7 +65,7 @@ attestations. Their contracts and presence are checked, but their underlying
 judgements remain claims made by their producers. A merged pull request proves
 that a change reached the repository, not that every judgement was correct.
 
-[Inspect the two committed run records](https://github.com/shftwst/faff/blob/main/docs/evidence/paired-run-walkthroughs.md)
+[Inspect the two committed run records](https://github.com/shftwst/faff/blob/main/verification/evidence/paired-run-walkthroughs.md)
 for the run ledgers, event sequences, merge records, verification command, and
 the limits of each evidence type. That page is an explanatory reconstruction;
 its links point to the machine records themselves.

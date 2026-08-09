@@ -7,7 +7,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
@@ -135,6 +135,17 @@ test("flaky register: absent file -> empty register (never crash), and a write r
     writeFlakyRegister(tmp, reg);
     assert.deepEqual(readFlakyRegister(tmp), reg);
     assert.equal(flakyRegisterPath(tmp), join(tmp, "docs", "ci", "flaky-register.json"));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("flaky register: an established operations/ci store wins without changing the docs/ci fallback", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "faff-ci-triage-operations-"));
+  try {
+    mkdirSync(join(tmp, "operations", "ci"), { recursive: true });
+    writeFileSync(join(tmp, "operations", "ci", "flaky-register.json"), '{"entries":[]}\n');
+    assert.equal(flakyRegisterPath(tmp), join(tmp, "operations", "ci", "flaky-register.json"));
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

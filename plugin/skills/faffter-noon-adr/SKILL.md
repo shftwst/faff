@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-adr
-description: "Default `adr` producer — authors the Nygard body (Context/Decision/Consequences) of an architecture decision record at graft time, from a settled decision plus the spec rationale and the existing docs/adr log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu."
+description: "Default `adr` producer — authors the Nygard body (Context/Decision/Consequences) of an architecture decision record at graft time, from a settled decision plus the spec rationale and the configured ADR log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
 judgement_seam: adr-gloss
 ---
@@ -44,5 +44,5 @@ The confidence is **advisory only** — there is **no gated contract block** and
 ## Rules
 
 - Author only **settled** decisions — a `Punt:` is not yet a decision and is never promoted.
-- Write to the skill-authoring charter (`docs/skill-authoring.md`): terse, factual, skimmable; the *Consequences* earn their place, no filler.
+- Write to the skill-authoring charter (`docs/reference/skill-authoring.md`): terse, factual, skimmable; the *Consequences* earn their place, no filler.
 - Stay in the producer lane: author the body + self-rate. Numbering, scaffold, validate, and the commit belong to the `faff adr` CLI and graft; routing on confidence belongs to graft.

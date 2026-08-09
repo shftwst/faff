@@ -5,7 +5,7 @@
 //   fixtures realise [--file PATH] [--out DIR]   trivial reference generator — deterministically realise a dataset from (manifest, seed)
 // The MANIFEST is the load-bearing contract FAFF-34 consumes; the generation STRATEGY is a
 // separate `fixtures` slot (deferred slice). Mirrors `faff profile` (FAFF-26): schema + merge
-// live here, not in skill prose. Storage-split + conflict-authority per docs/adr/0013.
+// live here, not in skill prose. Storage-split + conflict-authority per records/adr/0013.
 // ===========================================================================
 
 const fs = require("node:fs");

@@ -6,7 +6,7 @@ conformance-by-construction substrate from FAFF-21 (contract-as-code).
 - **What lives here:** one `*.schema.json` per fixed contract (`spec-readiness`,
   and — added by later roll-out tickets — `review-verdict`, `delivery-outcome`,
   `automation-routing`). Schemas are **normative for shape only**; the *semantics*
-  of each value live in the gateway prose. See `docs/adr/0001-contract-as-code-foundations.md`.
+  of each value live in the gateway prose. See `records/adr/0001-contract-as-code-foundations.md`.
 - **`validate-schema.mjs`:** a minimal, dependency-free JSON Schema (Draft 2020-12
   **subset**) validator — the FAFF-76 spike's proof that the chosen language works
   with zero installed dependencies (`JSON.parse` + Node builtins only). It is the

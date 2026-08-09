@@ -35,7 +35,7 @@ const REGISTRY = {
 const SKIP = new Set(["faffter-dark-authoring-adaptors"]);
 const REQUIRED_METHODOLOGY_OUTPUTS = ["backlog-diagnostics", "pick-ordering", "promotion-readiness", "build-queue"];
 
-// FAFF-120: the machine-checkable subset of the skill-authoring charter (docs/skill-authoring.md).
+// FAFF-120: the machine-checkable subset of the skill-authoring charter (docs/reference/skill-authoring.md).
 // Thresholds are calibrated against the post-FAFF-114–119 tree as lenient CEILINGS (ratchet down as
 // prose is leaned), not tight targets — same philosophy as the advisory eval/size-census prompt-size gate.
 const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap
@@ -800,7 +800,7 @@ function cmdValidateAdapters(args) {
     }
   }
 
-  // FAFF-120: skill-authoring charter — the lintable subset (docs/skill-authoring.md). Per-file
+  // FAFF-120: skill-authoring charter — the lintable subset (docs/reference/skill-authoring.md). Per-file
   // rules (line cap, paragraph length, stray markers) run in one pass; the cross-file dedup detector
   // collects significant-line windows here and reports after the loop. Reuses allSkills above.
   const dupWindows = new Map(); // block-key -> Set of skill names that contain it

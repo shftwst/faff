@@ -12,7 +12,7 @@ through the normal path.
 This guide explains how to add the check to a repository. For command flags,
 see the [`governance-check` row in the CLI reference](cli.md). For the schemas
 behind the check, see the
-[Agent Delivery Evidence specification](https://github.com/shftwst/faff/blob/main/docs/evidence/v0.2/conformance.md).
+[Agent Delivery Evidence specification](https://github.com/shftwst/faff/blob/main/verification/evidence/v0.2/conformance.md).
 
 ## What the check can prove
 

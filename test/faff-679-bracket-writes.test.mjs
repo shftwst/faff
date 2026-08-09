@@ -244,7 +244,7 @@ test("DONE-9 (mechanical): faff validate-adapters reports no duplicated block an
 });
 
 test("ADR-0078 states the chain's actual promise ('no unobserved window'), not the stronger, false 'frozen for the dispatch' property", () => {
-  const adr = readFileSync(join(repoRoot, "docs", "adr", "0078-digest-custody-bracket-as-concurrency-contract-obligation-5.md"), "utf8");
+  const adr = readFileSync(join(repoRoot, "records", "adr", "0078-digest-custody-bracket-as-concurrency-contract-obligation-5.md"), "utf8");
   assert.match(adr, /no unobserved window/i);
   assert.match(adr, /not\*\*[\s\S]{0,40}frozen for the dispatch/i);
 });

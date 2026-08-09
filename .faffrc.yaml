@@ -3,7 +3,11 @@
 
 tracking:
     tracker: linear # pin the tracker so the deterministic half of Tracker-availability resolution carries the eligibility guard without relying on live discovery (FAFF-753)
-    spec_docs_path: docs/specs/ # where graft commits specs (git-only spec store is .faff/specs/)
+    spec_docs_path: records/specs/ # where graft commits specs (git-only spec store is .faff/specs/)
+    prd_docs_path: records/prd/
+    prdr_docs_path: records/prdr/
+    adr_docs_path: records/adr/
+    spike_docs_path: records/spikes/
     repo: shftwst/faff
 
 slots:

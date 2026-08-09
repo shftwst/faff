@@ -1,4 +1,4 @@
-// FAFF-16 — the `faff adr` subcommand: deterministic mechanics over the docs/adr/ Nygard log
+// FAFF-16 — the `faff adr` subcommand: deterministic mechanics over a configured Nygard log
 // (next-number / new / list / validate). Append-only; the real repo tree must validate clean.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -14,7 +14,7 @@ const BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
 
 const run = (args, cwd = REPO) => spawnSync(process.execPath, [BIN, "adr", ...args], { cwd, encoding: "utf8" });
 
-// A temp repo root with a docs/adr/ holding the given {name: body} ADR fixtures.
+// A temp repo root with the default docs/adr/ holding the given {name: body} ADR fixtures.
 function tmpRepo(adrs = {}) {
   const root = mkdtempSync(join(tmpdir(), "faff-adr-it-"));
   const dir = join(root, "docs", "adr");
@@ -99,9 +99,9 @@ test("--selftest passes", () => {
   assert.match(r.stdout, /RESULT: PASS/);
 });
 
-test("regression: the real repo docs/adr tree validates clean", () => {
+test("regression: the real repo records/adr tree validates clean", () => {
   const r = run(["validate"]);
-  assert.equal(r.status, 0, `shipped docs/adr/ must validate:\n${r.stdout}`);
+  assert.equal(r.status, 0, `shipped records/adr/ must validate:\n${r.stdout}`);
   assert.match(r.stdout, /^OK —/m);
 });
 

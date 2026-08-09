@@ -42,10 +42,10 @@ drive the handoffs yourself.
 | Producer dispatch | [Supported](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/SKILL.md) | [Experimental, read-only](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/bin/lib/engine-codex.js) | Not supported; no work scheduled |
 | Independent review | [Supported](https://github.com/shftwst/faff/blob/main/plugin/skills/faffter-dark-adversarial-review/SKILL.md) | [Demonstrated with limitations](https://github.com/shftwst/faff/pull/510) | Not supported; no work scheduled |
 | Parallel review fan-out | [Supported](https://github.com/shftwst/faff/blob/main/plugin/skills/faffter-dark-spec-review/SKILL.md) | [Experimental](https://github.com/shftwst/faff/pull/579) | Not supported; no work scheduled |
-| L3 unattended entry | [Supported](unattended.md) | [Planned](https://github.com/shftwst/faff/blob/main/docs/architecture/harness-coupling.md#headless-session-entry) | Not supported; no work scheduled |
-| L4 isolation and holdout | [Supported as preview](/concept/levels) | [Not supported](https://github.com/shftwst/faff/blob/main/docs/architecture/harness-coupling.md#headless-session-entry) | Not supported; no work scheduled |
-| Usage telemetry | [Supported](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/bin/lib/budget.js) | [Experimental](https://github.com/shftwst/faff/blob/main/docs/architecture/codex-cli-observed.md#token-usage) | Not supported; no work scheduled |
-| Live event stream | [Supported](self-hosted-rig.md#watching-a-run-live) | [Experimental CLI stream](https://github.com/shftwst/faff/blob/main/docs/architecture/codex-cli-observed.md#event-stream) | Not supported; no work scheduled |
+| L3 unattended entry | [Supported](unattended.md) | [Planned](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/harness-coupling.md#headless-session-entry) | Not supported; no work scheduled |
+| L4 isolation and holdout | [Supported as preview](/concept/levels) | [Not supported](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/harness-coupling.md#headless-session-entry) | Not supported; no work scheduled |
+| Usage telemetry | [Supported](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/bin/lib/budget.js) | [Experimental](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/codex-cli-observed.md#token-usage) | Not supported; no work scheduled |
+| Live event stream | [Supported](self-hosted-rig.md#watching-a-run-live) | [Experimental CLI stream](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/codex-cli-observed.md#event-stream) | Not supported; no work scheduled |
 
 L4 is preview-labelled on every harness. The mechanisms exist, but the public
 repository does not yet have enough external evidence for an unqualified
@@ -95,7 +95,7 @@ policy blocked some adversarial work.
 
 ## Evidence
 
-- The [Codex CLI observation](https://github.com/shftwst/faff/blob/main/docs/architecture/codex-cli-observed.md)
+- The [Codex CLI observation](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/codex-cli-observed.md)
   records flags, event shapes, auth, state, and skill discovery observed with
   Codex CLI 0.145.0 on 2026-07-28.
 - [PR #510](https://github.com/shftwst/faff/pull/510) is the durable repository
@@ -103,7 +103,7 @@ policy blocked some adversarial work.
   record both the successful delivery path and the failed L4 audit result.
 - The [Codex engine implementation](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/bin/lib/engine-codex.js)
   defines the experimental read-only producer boundary.
-- The [harness coupling inventory](https://github.com/shftwst/faff/blob/main/docs/architecture/harness-coupling.md)
+- The [harness coupling inventory](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/harness-coupling.md)
   classifies the architectural seams. It is a design inventory, not a support
   promise.
 
@@ -118,5 +118,5 @@ documented environment that meets the level's floor. Codex L4 support also
 needs the external B10 portability run and evidence that isolation, holdout,
 attribution, and review still work together. Until then, a successful
 interactive session does not imply unattended support. The
-[harness coupling inventory](https://github.com/shftwst/faff/blob/main/docs/architecture/harness-coupling.md)
+[harness coupling inventory](https://github.com/shftwst/faff/blob/main/docs/reference/architecture/harness-coupling.md)
 records the current implementation owners.

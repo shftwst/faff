@@ -38,7 +38,7 @@ letting routine, well-covered work run at L3 on the same board.
 | **L4** | A run is intended to proceed without scheduled supervision. | Preview; mechanisms exist, external proof is incomplete |
 
 The [levels guide](docs/concept/levels.md) explains the controls and evidence
-behind each level. The [public trust-claim audit](docs/audits/2026-08-07-FAFF-732-public-trust-claims.md)
+behind each level. The [public trust-claim audit](verification/audits/2026-08-07-FAFF-732-public-trust-claims.md)
 records what is enforced, what has been observed, and what remains unproven.
 
 ## Install

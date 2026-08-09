@@ -5,7 +5,7 @@ reference workflows. Read [Unattended runs at L3](unattended.md) first. Continue
 with [Add governance-check to GitHub](governance-check.md) before relying on
 merge-side enforcement.
 
-The reference workflows under `docs/ci/` (`l3-watcher.yml` and
+The reference workflows under `operations/ci/` (`l3-watcher.yml` and
 `l4-watcher.yml`) need a self-hosted runner. The smallest setup is one machine,
 one runner, and the operator's existing subscription seat. On this path the
 machine runs the job and holds the harness login, so no API key is required.
@@ -102,13 +102,13 @@ GitHub Actions is only one way to wake the watcher — the trigger owns wake-up,
 - **Cost.** As of **2026-03-01** GitHub charges a per-minute platform fee (about $0.002/min) for **self-hosted** runner usage on *private* repos, and self-hosted runners now draw down the free-minutes quota the way hosted ones do — so keeping Actions in the loop costs money even though the job runs on your own hardware. Public repos and GitHub Enterprise Server are exempt. Taking Actions out of the loop avoids that fee entirely. (Pricing moves — verified against GitHub's runner-pricing docs on 2026-08-04; check <https://docs.github.com/billing/reference/actions-runner-pricing> for the current numbers before you rely on them.)
 - **Simplicity.** A machine that wakes itself needs no runner registration and no Actions dependency — the natural shape for an always-on factory.
 
-The wrapper is `docs/ci/faff-cron.sh` — the shell equivalent of `l3-watcher.yml`: it runs the admission gate first, then `/faff-beep-boop`, then `faff disposition` as the exit-propagating last step. Point a timer at it (an example hourly crontab line is in the script's header). A few things carry over from the workflow, restated for the shell:
+The wrapper is `operations/ci/faff-cron.sh` — the shell equivalent of `l3-watcher.yml`: it runs the admission gate first, then `/faff-beep-boop`, then `faff disposition` as the exit-propagating last step. Point a timer at it (an example hourly crontab line is in the script's header). A few things carry over from the workflow, restated for the shell:
 
 - **Concurrency** is a `flock` in the wrapper — the equivalent of the workflow's `concurrency:` block. One difference worth knowing: the non-blocking `flock` **skips** an overlapping firing until the next tick, where the workflow would **queue** it to run after the first; both keep two firings off the same ledger, and claim-before-admit is the correctness backstop either way.
 - **A wall-clock cap** (`timeout 300m` in the wrapper) replaces the workflow's `timeout-minutes` — and it matters *more* here. Without Actions killing a wedged job, a hung drain would hold the `flock` forever and every later tick would skip green: the factory stalls silently. The `timeout` kills a hang, releases the lock, and hands the failure to `faff disposition`. Set it to a fraction of your cron interval.
 - **Live logs**: without the Actions UI you stream the run yourself — see "Watching a run live" above (`--output-format stream-json`).
 - **`governance-check` still runs.** It is a check on the PR, on GitHub's side, when the PR opens — not part of the trigger — so you keep it whether or not the trigger is Actions.
-- **For the L4 shape** (resume-segmentation across firings), the wrapper stays L3; the resolve-open-run-or-mint and the resume-vs-terminal reconciliation live in `docs/ci/l4-watcher.yml` and translate to the same shell. That path additionally needs a **persistent, non-cleaned single-runner workspace** (the ledger under `.faff/runs/` must survive between firings for `lights-out --resume`) and a **sequential** dispatch slot.
+- **For the L4 shape** (resume-segmentation across firings), the wrapper stays L3; the resolve-open-run-or-mint and the resume-vs-terminal reconciliation live in `operations/ci/l4-watcher.yml` and translate to the same shell. That path additionally needs a **persistent, non-cleaned single-runner workspace** (the ledger under `.faff/runs/` must survive between firings for `lights-out --resume`) and a **sequential** dispatch slot.
 
 ## The disposable-microVM alternative
 

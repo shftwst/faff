@@ -31,6 +31,15 @@ test("validateRequests: accepts a well-shaped non-empty array", () => {
   assert.equal(v.ok, true);
 });
 
+// FAFF-706 adversarial review finding: a non-string argv element (e.g. a caller interpolating an
+// undefined variable) must be refused loudly, not silently coerced by spawn() downstream.
+test("validateRequests: rejects an argv array containing a non-string element", () => {
+  assert.equal(validateRequests([{ lens: "x", argv: ["--system", 42] }]).ok, false);
+  assert.equal(validateRequests([{ lens: "x", argv: ["--system", null] }]).ok, false);
+  assert.equal(validateRequests([{ lens: "x", argv: ["--system", undefined] }]).ok, false);
+  assert.equal(validateRequests([{ lens: "x", argv: ["--a", "--b"] }]).ok, true, "all-string argv still passes");
+});
+
 // ── fanOut with an injected spawnFn stub (no live processes) ──
 
 // A fake ChildProcess: an EventEmitter with .stdout/.stderr sub-emitters, driven manually by the test
@@ -151,6 +160,29 @@ test("fanOut: a spawn()-level fault via the child's 'error' event (real spawn's 
   assert.match(outcome.fault, /ENOENT/);
 });
 
+// FAFF-706 adversarial review finding: when MULTIPLE children fail to spawn in the same batch, the
+// fault message must not silently drop all but the first — a 2-of-4 spawn-fault cascade reads very
+// differently from one isolated ENOENT during root-cause triage.
+test("fanOut: multiple spawn()-level faults in one batch are ALL surfaced, not just the first", async () => {
+  const spawnFn = (nodePath, args) => {
+    const lens = args[1];
+    if (lens === "bad1.md") throw Object.assign(new Error("spawn node ENOENT"), { code: "ENOENT" });
+    if (lens === "bad2.md") throw Object.assign(new Error("spawn node EACCES"), { code: "EACCES" });
+    const child = fakeChild();
+    queueMicrotask(() => { child.stdout.emit("data", "### observation: no findings"); child.emit("close", 0); });
+    return child;
+  };
+  const outcome = await fanOut([
+    { lens: "ok", argv: ["ok.md"] },
+    { lens: "broken1", argv: ["bad1.md"] },
+    { lens: "broken2", argv: ["bad2.md"] },
+  ], { spawnFn });
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.fault, /2 of 3/);
+  assert.match(outcome.fault, /ENOENT/);
+  assert.match(outcome.fault, /EACCES/, "both faults are named, not just the first");
+});
+
 test("fanOut: a null exit code (killed) is reported as exit 1, not left undefined", async () => {
   const spawnFn = () => {
     const child = fakeChild();
@@ -234,6 +266,24 @@ test("main(): a --requests file that does not exist → exit 1, diagnosis on std
   assert.equal(code, 1);
   assert.equal(out, "");
   assert.match(err, /fan-out:/);
+});
+
+// FAFF-706 adversarial review finding: a trailing `--requests` with no filename must produce a clear
+// diagnosis ("requires a FILE argument"), not an opaque internal TypeError from readFileSync(undefined).
+test("main(): a trailing --requests with no filename → exit 1, a clear diagnosis (not an internal TypeError)", async () => {
+  let out = "";
+  let err = "";
+  const origOut = process.stdout.write.bind(process.stdout);
+  const origErr = process.stderr.write.bind(process.stderr);
+  process.stdout.write = (s) => { out += s; return true; };
+  process.stderr.write = (s) => { err += s; return true; };
+  let code;
+  try { code = await main(["--requests"], { spawnFn: () => fakeChild() }); }
+  finally { process.stdout.write = origOut; process.stderr.write = origErr; }
+  assert.equal(code, 1);
+  assert.equal(out, "");
+  assert.match(err, /--requests requires a FILE argument/);
+  assert.doesNotMatch(err, /ERR_INVALID_ARG_TYPE/, "not the raw internal TypeError");
 });
 
 test("main(): malformed JSON in --requests → exit 1, no stdout", async () => {

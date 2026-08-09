@@ -63,10 +63,13 @@ timeout=$("$faff" config get faffter_dark.adversarial.timeout -d 120)
 
 case "$backends_exit" in
   0)
-    # One LensRequest per enabled lens — every argv field byte-identical to the old per-lens call
-    # except --system, which is the lens's own refute-<lens>.md. Written to one temp JSON file.
+    # Build the full LensRequest[] in ONE pass over $enabled_lenses (never a per-lens loop that
+    # calls fan-out.mjs once per lens — the array is what fans out, not the assembly loop) — every
+    # argv field byte-identical to the old per-lens call except --system, which is the lens's own
+    # refute-<lens>.md. Written to one temp JSON file, e.g.:
+    #   [{"lens":"architectural","argv":["--backends-json","...","--system","refute-architectural.md",...]}, ...]
     requests_json=$(mktemp)
-    node -e '...' <<< "$enabled_lenses" > "$requests_json"   # build [{lens, argv:[...]}, ...]
+    node -e 'const lenses = process.argv.slice(1); const reqs = lenses.map((lens) => ({ lens, argv: [/* --backends-json, --timeout, --system refute-<lens>.md, --context..., --diff */] })); process.stdout.write(JSON.stringify(reqs));' "${enabled_lenses[@]}" > "$requests_json"
     node "$FANOUT" --requests "$requests_json"   # ONE call — spawns every lens concurrently, waits for all
     ;;
   3) : ;; # unconfigured (FAFF-213) — every lens's outcome is unavailable/config-fault, below; no chain to call

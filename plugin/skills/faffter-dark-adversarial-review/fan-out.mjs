@@ -40,6 +40,12 @@ export function validateRequests(requests) {
     if (!r || typeof r.lens !== "string" || !r.lens || !Array.isArray(r.argv)) {
       return { ok: false, reason: "each request must be {lens: string, argv: string[]}" };
     }
+    // FAFF-706 adversarial review: a non-string argv element (e.g. an undefined interpolated into
+    // the caller's argv assembly, coerced to "undefined") would otherwise pass silently — spawn()
+    // itself coerces non-strings to strings, masking a caller bug rather than refusing loudly.
+    if (!r.argv.every((a) => typeof a === "string")) {
+      return { ok: false, reason: "each request's argv must be an array of strings" };
+    }
   }
   return { ok: true };
 }
@@ -69,6 +75,14 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
     }
     let stdout = "";
     let stderr = "";
+    // FAFF-706 adversarial review: `error` and `close` are not mutually exclusive on every platform
+    // (a pipe-teardown fault can fire `error` after a normal `close` already resolved, or vice
+    // versa) — `settled` is the single source of truth for "has this child's promise already
+    // settled", so whichever event fires FIRST wins and every later event on this child is a no-op.
+    // This is the only thing standing between a documented single-settle promise and a
+    // silently-ignored second `resolve`/`reject` call (which Node's Promise itself already no-ops,
+    // but relying on that implicitly rather than checking `settled` explicitly would leave the
+    // invariant undocumented for the next reader).
     let settled = false;
     child.stdout.on("data", (c) => { stdout += c; });
     child.stderr.on("data", (c) => { stderr += c; });
@@ -99,10 +113,16 @@ function runOne(request, { spawnFn, nodePath, reviewCallPath }) {
 export async function fanOut(requests, { spawnFn = spawn, nodePath = "node", reviewCallPath = REVIEW_CALL_PATH } = {}) {
   const promises = requests.map((r) => runOne(r, { spawnFn, nodePath, reviewCallPath }));
   const settled = await Promise.allSettled(promises);
-  const rejected = settled.find((s) => s.status === "rejected");
-  if (rejected) {
-    const err = rejected.reason;
-    const fault = err instanceof Error ? err.message : String(err);
+  const rejections = settled.filter((s) => s.status === "rejected");
+  if (rejections.length > 0) {
+    // FAFF-706 adversarial review: surface EVERY rejection, not just the first — a batch where two
+    // children both fail to spawn (a resource-exhaustion cascade) reads very differently from one
+    // isolated ENOENT, and the downstream "treat the whole batch as unavailable" handling is
+    // unaffected either way (still ok:false), so this only improves diagnosability.
+    const messages = rejections.map((r) => (r.reason instanceof Error ? r.reason.message : String(r.reason)));
+    const fault = rejections.length === 1
+      ? messages[0]
+      : `${rejections.length} of ${requests.length} children failed to spawn — first: ${messages[0]}; all: ${messages.join(" | ")}`;
     return { ok: false, fault };
   }
   return { ok: true, results: settled.map((s) => s.value) };
@@ -113,6 +133,12 @@ export async function fanOut(requests, { spawnFn = spawn, nodePath = "node", rev
 // { requests: [...] } — mirrors aggregate.mjs's dual-mode CLI shape.
 function readRequestsInput(argv) {
   const fi = argv.indexOf("--requests");
+  // FAFF-706 adversarial review: a trailing `--requests` with no filename (fi is the last index)
+  // would otherwise reach readFileSync(undefined) and surface an unhelpful internal TypeError —
+  // catch it here with a message that actually names the mistake.
+  if (fi !== -1 && fi + 1 >= argv.length) {
+    throw new Error("--requests requires a FILE argument");
+  }
   const raw = fi !== -1 ? readFileSync(argv[fi + 1], "utf8") : readFileSync(0, "utf8");
   const parsed = JSON.parse(raw);
   if (Array.isArray(parsed)) return parsed;

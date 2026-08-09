@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-760",
+  "build": {
+    "status": "complete",
+    "diff_hash": "84539c4fb56b95a05cfefdce9d477eb578f563183773100c60a429e0c96cfdec",
+    "branch": "faff-760-beep-boop-build-only-phase-select-mode-build-worker-runs",
+    "pushed_at": "2026-08-09T05:46:31.900Z"
+  },
+  "updated_at": "2026-08-09T05:46:31.900Z"
+}

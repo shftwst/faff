@@ -1,0 +1,2 @@
+{"schema":1,"run_id":"graft-20260809-FAFF-760","seq":0,"ts":"2026-08-09T05:00:00.000Z","phase":"run","type":"run-start"}
+{"schema":1,"run_id":"graft-20260809-FAFF-760","seq":1,"ts":"2026-08-09T07:30:00.000Z","phase":"build","type":"issue-outcome","issue":"FAFF-760","data":{"outcome":"shipped"}}

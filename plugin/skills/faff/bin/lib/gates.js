@@ -35,7 +35,7 @@ const GATES_SURFACE = {
   },
 };
 const SYNC_SPEC = { flags: { "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--script": { arity: 1 } } };
-const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 } } };
+const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 }, "--json": { arity: 0 } } };
 const { loadConfig } = require("./config");
 const { contractQualityGates } = require("./contract-defs");
 const { commandInvokesFaffHook, preToolUseCommands } = require("./hooks-ensure");
@@ -548,14 +548,44 @@ function readConfiguredInstallTargets(root, home) {
 // config key when it resolves to a non-empty, usable list; `root` is threaded in only for
 // that read (cmdDoctor already resolves it via findRoot()). Unset/unusable falls back to
 // exactly the hardcoded pair below — unchanged from FAFF-676.
+//
+// FAFF-675: every return now also carries `expectCopies` — true ONLY on the pluginRootEnv
+// branch below. A marketplace-plugin install ships its skills as copied (real) directories
+// under $CLAUDE_PLUGIN_ROOT by construction — that is the correct shape there and nowhere
+// else (ADR-0097: the plugin root is authoritative for the invoking harness, an alternative
+// to the global pair, never folded in alongside it — see that record for the full
+// rationale and FAFF-685 as the named revisit trigger). `expectCopies` is what tells
+// scanDoctorDirectory to read a copied entry as an expected install rather than a copy
+// fault.
+function assertScanSetExpectCopiesInvariant(result) {
+  // FAFF-675: `expectCopies` is a SCAN-SET-WIDE boolean, sound only while its sole `true`
+  // branch (pluginRootEnv, below) stays single-element — there is no per-directory record to
+  // get wrong today. A future change that makes that branch multi-element (the FAFF-685
+  // additive fold) MUST switch to per-directory {directory, expectCopies} records FIRST; this
+  // assert is the tripwire that forces that ordering — it throws here, at the return site,
+  // rather than letting a real copy fault on a non-plugin directory silently render as
+  // "✓ … expected".
+  if (result.expectCopies && result.scanSet.length !== 1) {
+    throw new Error(
+      `resolveDoctorScanSet invariant violated: expectCopies=true with a ${result.scanSet.length}-element ` +
+      "scanSet — expectCopies is scan-set-wide and only sound while single-element; switch to " +
+      "per-directory {directory, expectCopies} records before making this branch multi-element (FAFF-685).",
+    );
+  }
+  return result;
+}
+
 function resolveDoctorScanSet(targetFlag, pluginRootEnv, home, root) {
-  if (targetFlag) return { scanSet: [targetFlag], collapseNotices: [] };
-  if (pluginRootEnv) return { scanSet: [path.join(pluginRootEnv, "skills")], collapseNotices: [] };
+  if (targetFlag) return assertScanSetExpectCopiesInvariant({ scanSet: [targetFlag], collapseNotices: [], expectCopies: false });
+  // ADR-0097: the plugin root is authoritative for the invoking harness — an alternative
+  // scan target, never additive with the global pair below. See that record before changing
+  // this branch's shape.
+  if (pluginRootEnv) return assertScanSetExpectCopiesInvariant({ scanSet: [path.join(pluginRootEnv, "skills")], collapseNotices: [], expectCopies: true });
   const configured = root ? readConfiguredInstallTargets(root, home) : [];
   const candidates = configured.length > 0
     ? configured
     : [path.join(home, ".claude", "skills"), path.join(home, ".agents", "skills")];
-  return dedupeByResolvedPath(candidates);
+  return assertScanSetExpectCopiesInvariant({ ...dedupeByResolvedPath(candidates), expectCopies: false });
 }
 
 // Mirrors dedupe_by_resolved_path in scripts/link-skills.sh (same rule, kept honest by the
@@ -585,16 +615,26 @@ const isFaffSkillName = (n) => n === "faff" || n.startsWith("faff-") || n.starts
 // absent directory is recorded as such and returned, not an early exit — the caller decides
 // what an all-unreadable scan set means (FAFF-676's whole point: a single bad directory must
 // not go silent while another scanned directory is healthy).
-function scanDoctorDirectory(directory) {
+//
+// FAFF-675: `expectCopies` (true only for the plugin-root scan, see resolveDoctorScanSet)
+// makes a copied, non-symlink entry read as an EXPECTED install rather than a copy FAULT —
+// `expected` is a distinct counter from `copies`, so an expected copy never contributes to
+// the exit-driving fault count. `targetOverridesPluginRoot` is narrower: true only when an
+// explicit --target was given WHILE $CLAUDE_PLUGIN_ROOT is also set, so the operator
+// auditing that target as dev-linked (the --target semantics, unchanged) gets a COPY line
+// that names WHY it's being read as a fault despite a plugin root being present, rather than
+// the plain classic wording — see the --target edge case in the FAFF-675 spec §4.
+function scanDoctorDirectory(directory, expectCopies, targetOverridesPluginRoot) {
   let entries;
   try { entries = fs.readdirSync(directory).filter(isFaffSkillName).sort(); }
   catch (e) {
     const reason = e.code === "ENOENT" ? "not present" : `unreadable: ${e.message}`;
-    return { directory, readable: false, reason, namesFound: new Set(), copies: 0, dangling: 0, intoWorktree: 0, findings: [] };
+    return { directory, readable: false, reason, namesFound: new Set(), copies: 0, dangling: 0, intoWorktree: 0, expected: 0, findings: [] };
   }
   let copies = 0;
   let dangling = 0;
   let intoWorktree = 0;
+  let expected = 0;
   const findings = [];
   const namesFound = new Set();
   for (const name of entries) {
@@ -617,12 +657,18 @@ function scanDoctorDirectory(directory) {
         dangling++;
         findings.push(`✗ ${name}  symlink-dangling (target gone — stale orphan)`);
       }
+    } else if (expectCopies) {
+      expected++;
+      findings.push(`✓ ${name}  plugin install (copy under $CLAUDE_PLUGIN_ROOT — expected, not dev-linked)`);
+    } else if (targetOverridesPluginRoot) {
+      copies++;
+      findings.push(`✗ ${name}  COPY — --target audits as a dev-linked install; omit --target to audit as a plugin install`);
     } else {
       copies++;
       findings.push(`✗ ${name}  COPY — not dev-linked; shipped changes won't go live`);
     }
   }
-  return { directory, readable: true, reason: entries.length === 0 ? "no faff skills here" : null, namesFound, copies, dangling, intoWorktree, findings };
+  return { directory, readable: true, reason: entries.length === 0 ? "no faff skills here" : null, namesFound, copies, dangling, intoWorktree, expected, findings };
 }
 
 // render_missing (spec HOW → "How much an empty directory prints"): a directory that found
@@ -640,105 +686,201 @@ function renderDoctorScanBody(scan, unionSize) {
   return lines;
 }
 
-function cmdDoctor(args) {
-  const { values, errors } = parseArgs(args, DOCTOR_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff doctor [--target live|intoWorktree] [--root DIR]");
-  const targetFlag = values["--target"] === undefined ? null : values["--target"];
-  let root = values["--root"] === undefined ? null : values["--root"];
-  root = root || findRoot();
+// FAFF-675: gathers EVERY install-health axis into one DoctorState, computing `exit` exactly
+// ONCE — before either renderer runs. renderHuman/renderJson below differ only in how they
+// PRESENT this same state; neither recomputes, short-circuits, or skips an axis. This is what
+// makes human/--json exit parity a structural property (both return `state.exit` verbatim)
+// rather than a discipline the two renderers would each have to remember to honour — see the
+// "compute-once-then-branch" anti-pattern note in the FAFF-675 spec for the failure this
+// closes (an early return inside one branch silently skipping an axis like the fence check).
+function gatherDoctorState(scanSet, collapseNotices, expectCopies, root, targetOverridesPluginRoot) {
+  // Explicit arrow, not a bare `.map(scanDoctorDirectory)` reference — Array.map passes
+  // (element, index, array), so a bare reference would silently pass the scan-set INDEX as
+  // `expectCopies` (0/falsy for the sole element of a single-directory scan set, defeating
+  // the carve-out while looking like it worked).
+  const scans = scanSet.map((d) => scanDoctorDirectory(d, expectCopies, targetOverridesPluginRoot));
 
-  const { scanSet, collapseNotices } = resolveDoctorScanSet(targetFlag, process.env.CLAUDE_PLUGIN_ROOT, homeDir(), root);
-  const scans = scanSet.map(scanDoctorDirectory);
-
-  // FAFF-676: exit 2 ("nothing installed anywhere") is now evaluated ACROSS every scanned
-  // directory rather than the first one — the old behaviour returned early the instant any
-  // one directory was unreadable or empty, which is exactly the state ~/.agents/skills is in
-  // on every pre-FAFF-672 machine even though ~/.claude/skills is perfectly healthy. That
-  // early return is the bug this ticket exists to fix: it must never come back as a
-  // per-directory early exit inside the loop above.
+  // FAFF-676: exit 2 ("nothing installed anywhere") is evaluated ACROSS every scanned
+  // directory, never per-directory-early — a single bad directory must not go silent while
+  // another scanned directory is healthy. FAFF-675: this no longer returns early to stderr;
+  // it folds into `state.exit` like every other axis, so the --json renderer cannot skip it.
   const union = new Set();
   for (const s of scans) for (const n of s.namesFound) union.add(n);
-  if (union.size === 0) {
-    process.stderr.write(`faff doctor: no faff skills found under any of: ${scanSet.join(", ")}\n`);
-    return 2;
-  }
+  const emptyUnion = union.size === 0;
 
   for (const s of scans) {
-    s.missingHere = s.namesFound.size === 0
+    s.missingHere = emptyUnion ? [] : (s.namesFound.size === 0
       ? [...union].sort()
-      : [...union].filter((n) => !s.namesFound.has(n)).sort();
-  }
-
-  const multi = scans.length > 1;
-  const out = [];
-  out.push(multi
-    ? `faff doctor — install health (${scans.length} directories scanned)`
-    : `faff doctor — install health (${scans[0].directory})`);
-  for (const notice of collapseNotices) out.push(`  ${notice}`);
-  if (multi) {
-    for (const s of scans) {
-      out.push("");
-      out.push(`  ${s.directory}`);
-      for (const line of renderDoctorScanBody(s, union.size)) out.push(`    ${line}`);
-    }
-    out.push("");
-  } else {
-    for (const line of renderDoctorScanBody(scans[0], union.size)) out.push(`  ${line}`);
+      : [...union].filter((n) => !s.namesFound.has(n)).sort());
   }
 
   let copies = 0;
   let dangling = 0;
   let intoWorktree = 0;
-  for (const s of scans) { copies += s.copies; dangling += s.dangling; intoWorktree += s.intoWorktree; }
+  let expected = 0;
+  for (const s of scans) { copies += s.copies; dangling += s.dangling; intoWorktree += s.intoWorktree; expected += s.expected; }
 
+  // FAFF-443: same fragility check for the CLI link as the per-skill symlinks above — a
+  // worktree-sourced bin/faff dangles too. Machine-wide: runs exactly once per invocation,
+  // independent of the scan set size, and independent of whether the union was empty (the
+  // bin/faff and merge-fence axes are unrelated to what skills were found).
+  let binFaff = "absent";
   const bin = path.join(homeDir(), ".local", "bin", "faff");
   try {
     const bst = fs.lstatSync(bin);
     if (bst.isSymbolicLink()) {
-      // FAFF-443: same fragility check for the CLI link — a worktree-sourced bin/faff dangles too.
-      // Machine-wide: this runs exactly once per invocation, independent of the scan set size.
-      if (classifyGlobalLink(bin) === "intoWorktree") {
-        intoWorktree++;
-        out.push(`  ⚠ bin/faff  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
-      } else {
-        out.push(`  ✓ bin/faff  symlink (live)`);
-      }
+      if (classifyGlobalLink(bin) === "intoWorktree") { binFaff = "symlink-worktree"; intoWorktree++; }
+      else binFaff = "symlink-live";
     } else {
-      out.push(`  • bin/faff  real file (copy)`);
+      binFaff = "copy";
     }
-  } catch { /* bin link optional */ }
+  } catch { /* bin link optional — stays "absent" */ }
 
-  // FAFF-434: the merge-fence PreToolUse registration — a distinct install-health axis
-  // from the skill-link scan above (reads <root>/.claude/settings.json, not a scanned skills
-  // dir), reported alongside it and folded into the same non-clean exit. Machine-wide: runs
-  // exactly once per invocation regardless of how many directories were scanned.
+  // FAFF-434: the merge-fence PreToolUse registration — a distinct install-health axis from
+  // the skill-link scan above (reads <root>/.claude/settings.json, not a scanned skills dir),
+  // folded into the same non-clean exit. Machine-wide: runs exactly once per invocation.
   const fenceOk = mergeFencePresentAt(root);
-  out.push(fenceOk
+
+  // The plugin root this run's scan short-circuited to, or null. expectCopies is
+  // scan-set-wide and (by the return-site invariant on resolveDoctorScanSet) sound only
+  // while its sole `true` branch is single-element, so `scanSet[0]` names it exactly.
+  const pluginRoot = expectCopies ? scanSet[0] : null;
+
+  const anyMissingHere = scans.some((s) => s.missingHere.length > 0);
+  const exit = emptyUnion ? 2 : ((copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk) ? 1 : 0);
+
+  return {
+    scanSet, scans, collapseNotices, unionSize: union.size, emptyUnion,
+    copies, dangling, intoWorktree, expected,
+    binFaff, fenceOk, pluginRoot, anyMissingHere, exit,
+  };
+}
+
+function renderHuman(state) {
+  if (state.emptyUnion) {
+    process.stderr.write(`faff doctor: no faff skills found under any of: ${state.scanSet.join(", ")}\n`);
+    return state.exit;
+  }
+
+  const multi = state.scans.length > 1;
+  const out = [];
+  out.push(multi
+    ? `faff doctor — install health (${state.scans.length} directories scanned)`
+    : `faff doctor — install health (${state.scans[0].directory})`);
+  for (const notice of state.collapseNotices) out.push(`  ${notice}`);
+  if (multi) {
+    for (const s of state.scans) {
+      out.push("");
+      out.push(`  ${s.directory}`);
+      for (const line of renderDoctorScanBody(s, state.unionSize)) out.push(`    ${line}`);
+    }
+    out.push("");
+  } else {
+    for (const line of renderDoctorScanBody(state.scans[0], state.unionSize)) out.push(`  ${line}`);
+  }
+
+  if (state.binFaff === "symlink-worktree") {
+    out.push(`  ⚠ bin/faff  symlink (live → WORKTREE, not main checkout — will dangle when the worktree is removed)`);
+  } else if (state.binFaff === "symlink-live") {
+    out.push(`  ✓ bin/faff  symlink (live)`);
+  } else if (state.binFaff === "copy") {
+    out.push(`  • bin/faff  real file (copy)`);
+  }
+
+  out.push(state.fenceOk
     ? `  ✓ merge-fence PreToolUse fence present`
     : `  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
 
-  const anyMissingHere = scans.some((s) => s.missingHere.length > 0);
-  if (copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk) {
+  if (state.exit === 1) {
     const problems = [];
-    if (copies > 0 || dangling > 0) problems.push(`${copies} copy / ${dangling} dangling skill link(s)`);
-    if (intoWorktree > 0) problems.push(`${intoWorktree} worktree-sourced link(s) (fragile — will dangle on worktree removal)`);
-    for (const s of scans) {
+    if (state.copies > 0 || state.dangling > 0) problems.push(`${state.copies} copy / ${state.dangling} dangling skill link(s)`);
+    if (state.intoWorktree > 0) problems.push(`${state.intoWorktree} worktree-sourced link(s) (fragile — will dangle on worktree removal)`);
+    for (const s of state.scans) {
       if (s.missingHere.length > 0) problems.push(`${s.missingHere.length} skill(s) missing from ${s.directory}`);
     }
-    if (!fenceOk) problems.push("merge-fence PreToolUse fence missing");
+    if (!state.fenceOk) problems.push("merge-fence PreToolUse fence missing");
     out.push("");
     out.push(`RESULT: ${problems.join(" + ")} — install is not clean.`);
     const fixes = [];
-    if (copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
-    if (!fenceOk) fixes.push("faff hooks-ensure");
+    if (state.copies > 0 || state.dangling > 0 || state.intoWorktree > 0 || state.anyMissingHere) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
+    if (!state.fenceOk) fixes.push("faff hooks-ensure");
     out.push(`Fix: ${fixes.join(" && ")}`);
     console.log(out.join("\n"));
-    return 1;
+    return state.exit;
   }
+
   out.push("");
-  out.push(`RESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
+  // FAFF-675: a clean plugin-root scan (expected > 0) is not a dev-linked repo — say so.
+  out.push(state.expected > 0
+    ? `RESULT: faff skills are a marketplace-plugin install (copies under $CLAUDE_PLUGIN_ROOT) — expected. Nothing to repair.`
+    : `RESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
   console.log(out.join("\n"));
-  return 0;
+  return state.exit;
+}
+
+// FAFF-675: pure state → DoctorJson object builder, no I/O — the total projection of
+// DoctorState onto the --json wire shape. Kept separate from renderJson (which owns the
+// stdout/stderr side effects) so tests can assert the object shape directly.
+function buildDoctorJson(state) {
+  if (state.emptyUnion) {
+    return {
+      scanned: state.scanSet.map((d) => ({
+        directory: d, readable: false, reason: "not present", expected_install: d === state.pluginRoot,
+        names_found: [], live: 0, copies: 0, dangling: 0, into_worktree: 0, expected: 0, missing_here: [], findings: [],
+      })),
+      plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff, exit: state.exit, ok: state.exit === 0,
+    };
+  }
+  return {
+    scanned: state.scans.map((s) => ({
+      directory: s.directory,
+      readable: s.readable,
+      reason: s.reason,
+      expected_install: s.directory === state.pluginRoot,
+      names_found: [...s.namesFound].sort(),
+      live: s.namesFound.size - s.copies - s.dangling - s.intoWorktree - s.expected,
+      copies: s.copies,
+      dangling: s.dangling,
+      into_worktree: s.intoWorktree,
+      expected: s.expected,
+      missing_here: s.missingHere ?? [],
+      findings: s.findings,
+    })),
+    plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff, exit: state.exit, ok: state.exit === 0,
+  };
+}
+
+function renderJson(state) {
+  if (state.emptyUnion) {
+    // FAFF-675: the empty-union case still writes the human-readable breadcrumb to stderr
+    // (unchanged from main, so a stderr-scraping consumer isn't silently starved by the
+    // channel swap) IN ADDITION to the machine-readable object on stdout below.
+    process.stderr.write(`faff doctor: no faff skills found under any of: ${state.scanSet.join(", ")}\n`);
+  }
+  console.log(JSON.stringify(buildDoctorJson(state), null, 2));
+  return state.exit;
+}
+
+function cmdDoctor(args) {
+  const { values, errors } = parseArgs(args, DOCTOR_SPEC);
+  if (errors.length) return usageError(errors, "usage: faff doctor [--target live|intoWorktree] [--root DIR] [--json]");
+  const targetFlag = values["--target"] === undefined ? null : values["--target"];
+  let root = values["--root"] === undefined ? null : values["--root"];
+  root = root || findRoot();
+  const asJson = !!values["--json"];
+
+  const pluginRootEnv = process.env.CLAUDE_PLUGIN_ROOT;
+  const { scanSet, collapseNotices, expectCopies } = resolveDoctorScanSet(targetFlag, pluginRootEnv, homeDir(), root);
+  // FAFF-675: --target wins the short-circuit outright (expectCopies is false whenever a
+  // target was given), but when a plugin root is ALSO set the operator is deliberately
+  // auditing it as dev-linked — name that in the COPY line rather than the plain wording.
+  const targetOverridesPluginRoot = !!(targetFlag && pluginRootEnv);
+
+  const state = gatherDoctorState(scanSet, collapseNotices, expectCopies, root, targetOverridesPluginRoot);
+
+  // Neither renderer computes an exit; both return state.exit verbatim — parity by
+  // construction, not by discipline (see gatherDoctorState's header comment).
+  return asJson ? renderJson(state) : renderHuman(state);
 }
 
 // FAFF-204: locate scripts/link-skills.sh by a layered resolver that survives the
@@ -808,4 +950,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, extractRunCommands, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, mergeFencePresentAt, resolveSyncScript, runLadder, runRung };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, assertScanSetExpectCopiesInvariant, buildDoctorJson, ciRunnerKind, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRungs, extractRunCommands, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, runLadder, runRung, scanDoctorDirectory };

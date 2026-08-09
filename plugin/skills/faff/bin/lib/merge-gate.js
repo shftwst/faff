@@ -24,6 +24,9 @@ const MERGE_GATE_SPEC = { flags: {
   "--squash": { arity: 0 }, "--merge": { arity: 0 }, "--rebase": { arity: 0 }, "--delete-branch": { arity: 0 }, "--auto": { arity: 0 },
   "--base": { arity: 1 }, "--branch": { arity: 1 }, "--issue": { arity: 1 }, "--level": { arity: 1 },
   "--merge-args": { arity: 1, greedy: true }, "--pr": { arity: 1 }, "--repo": { arity: 1 }, "--run-dir": { arity: 1 },
+  // FAFF-673: the justification a human non-graft merge records on merge-gate-override.json —
+  // required whenever --human-override is present (fenceHumanFlags), so no override lands unexplained.
+  "--override-reason": { arity: 1 },
 } };
 const BRANCH_PROTECTION_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 },
@@ -91,8 +94,28 @@ function fenceHumanFlags(i) {
   if (i.allow_no_ci && !i.stdin_is_tty) violations.push(`--allow-no-ci is human-only: stdin is not a TTY — ${remedy}`);
   if (i.human_override && !i.interactive) violations.push("--human-override requires --interactive");
   if (i.allow_no_ci && !i.interactive) violations.push("--allow-no-ci requires --interactive");
+  // FAFF-673: a human non-graft override must carry a justification — the reason is the explainable
+  // record `faff audit` reconciles, so an override with no reason is a loud caller error (exit 2),
+  // never a silent unexplained merge. Required whenever --human-override is present, on both paths.
+  if (i.human_override && (i.override_reason === undefined || i.override_reason === null || String(i.override_reason).trim() === "")) {
+    violations.push('--human-override requires --override-reason "<what merged + why no floor applies>"');
+  }
   return { ok: violations.length === 0, violations };
 }
+
+// FAFF-673: the NON-GRAFT floor signature — a refuse whose ONLY unmet legs are "no AC checklist"
+// AND "no review verdict" is a change that never came through /faff-graft (a spike's findings, a
+// docs capture, a one-line fix), not a graft change awaiting review/CI. Keyed on the SAME floor
+// inputs decideFloor already saw — never re-derived, and decideFloor stays provenance-blind. A
+// graft floor (review_verdict "fail"/"pass", or ac_complete true) never matches this key.
+function nonGraftFloorSignature(floor) {
+  return floor.ac_complete === false && floor.review_verdict === "missing";
+}
+
+// FAFF-673: the human-merge remedy named beside the blockers ON THE NON-GRAFT SIGNATURE ONLY.
+// Names the sanctioned declare-then-merge path so the reader is not left inferring it; a bare raw
+// `gh pr merge` is never the sanctioned path (it leaves no observe / no merge-record — invisible).
+const NON_GRAFT_REMEDY_STRING = "this change has no graft origin (no ACs, no review). If it is a legitimate non-graft change (a spike's findings, a docs capture, a one-line fix), landing it is a human action, not an autonomous one: declare the merge effect (faff effects declare --run <run> --issue <issue> --step merge) then merge it yourself with faff merge-gate … --human-override --interactive --override-reason \"<what merged + why no floor applies>\". The declaration and the reason are the explainable record faff audit reconciles.";
 
 // PURE: classify the check set FOR THE HEAD SHA into the FAFF-3 trichotomy (+ indeterminate).
 // `runs` = check-runs API rows [{status, conclusion}]; `statusState`/`statusCount` = the legacy
@@ -664,13 +687,17 @@ function gatesSignalToCiState(outcome) {
   return "no-ci-coverage";
 }
 
-function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, allowNoCi, noCiPolicy, mergeArgsRaw, json, cwd }) {
+function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json, cwd }) {
   const emit = (res, status) => {
     if (json) process.stdout.write(JSON.stringify(res) + "\n");
     else {
       console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}, integrity ${res.integrity || "unasserted"}`);
       for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
       for (const w of (res.warnings || [])) console.log(`  ⚠ ${w}`);
+      // FAFF-673: render the human-merge remedy (set on the non-graft-signature refuse) after the
+      // blockers, the fenceHumanFlags/anchorRefusal shell-remedy precedent. --json carries it as the
+      // `remedy` field automatically (the whole result object is serialised above).
+      if (res.remedy) console.log(`  → ${res.remedy}`);
     }
     return status;
   };
@@ -687,7 +714,7 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
   const parsedMerge = parseMergeArgs(mergeArgsRaw);
   if (parsedMerge.rejected.length) { process.stderr.write(`faff merge-gate: unrecognised --merge-args token(s): ${parsedMerge.rejected.join(", ")} (allowed: ${[...MERGE_FLAG_ALLOW].join(", ")})\n`); return 2; }
 
-  const fence = fenceHumanFlags({ human_override: humanOverride, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
+  const fence = fenceHumanFlags({ human_override: humanOverride, override_reason: overrideReason, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
   if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
 
   // FAFF-690 (F1): resolve the branch BEFORE the level — the anchor is pinned to the branch head sha.
@@ -747,10 +774,16 @@ function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLevel, mod
     if (interactive && humanOverride) {
       try {
         fs.mkdirSync(path.join(runDir, issue), { recursive: true });
-        fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ issue, head_sha: headShaBefore, blockers, overridden_at: new Date().toISOString() }, null, 2) + "\n");
+        // FAFF-673: the override record carries the justification (`reason`, fenced non-empty above)
+        // + the `source:"human-override"` marker FAFF-698's classifier composes with — the explainable
+        // record `faff audit` reconciles, never a justification-less write read by nothing (FAFF-375).
+        fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ issue, head_sha: headShaBefore, blockers, overridden_at: new Date().toISOString(), reason: overrideReason, source: "human-override" }, null, 2) + "\n");
       } catch (e) { process.stderr.write(`faff merge-gate: could not record human override: ${e.message}\n`); return 2; }
       // fall through to execute — the recorded human override REPLACES the autonomous refusal.
     } else {
+      // FAFF-673: name the human-merge remedy beside the blockers, ONLY on the non-graft signature
+      // (never on a graft change awaiting review/CI). Shell-level; decideFloor stays provenance-blind.
+      if (nonGraftFloorSignature(floor)) result.remedy = NON_GRAFT_REMEDY_STRING;
       return emit(result, 1);
     }
   }
@@ -866,6 +899,7 @@ function cmdMergeGate(args) {
   const mode = args.includes("--check-only") ? "check-only" : "execute";
   const interactive = args.includes("--interactive");
   const humanOverride = args.includes("--human-override");
+  const overrideReason = get("--override-reason"); // FAFF-673: required with --human-override (fenceHumanFlags)
   const allowNoCi = args.includes("--allow-no-ci");
   const noCiPolicy = allowNoCi ? "allow" : "needs-human";
   const mergeArgsRaw = get("--merge-args") || "";
@@ -879,7 +913,7 @@ function cmdMergeGate(args) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) { process.stderr.write(`faff merge-gate: --issue ${JSON.stringify(issue)} is not a valid issue id\n`); return 2; }
     return cmdMergeGateLocal({
       issue, runDir, branchFlag: get("--branch"), baseFlag: get("--base"),
-      flagLevel, mode, interactive, humanOverride, allowNoCi, noCiPolicy, mergeArgsRaw, json,
+      flagLevel, mode, interactive, humanOverride, overrideReason, allowNoCi, noCiPolicy, mergeArgsRaw, json,
       cwd: process.cwd(),
     });
   }
@@ -905,7 +939,7 @@ function cmdMergeGate(args) {
   // a fenced flag from a non-interactive context is a caller bug, surfaced loudly (exit 2) rather
   // than silently ignored. Pre-network ordering also makes the refusal CLI-boundary-testable with
   // zero mocking (the spawned test child is non-TTY by construction).
-  const fence = fenceHumanFlags({ human_override: humanOverride, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
+  const fence = fenceHumanFlags({ human_override: humanOverride, override_reason: overrideReason, allow_no_ci: allowNoCi, interactive, stdin_is_tty: process.stdin.isTTY === true });
   if (!fence.ok) { for (const v of fence.violations) process.stderr.write(`faff merge-gate: ${v}\n`); return 2; }
 
   const emit = (res, status) => {
@@ -914,6 +948,10 @@ function cmdMergeGate(args) {
       console.log(`${res.verdict}${res.merged ? " (merged)" : ""} — CI ${res.ci_state}, head ${res.head_sha || "?"}, integrity ${res.integrity || "unasserted"}`);
       for (const b of (res.blockers || [])) console.log(`  ✗ ${b}`);
       for (const w of (res.warnings || [])) console.log(`  ⚠ ${w}`);
+      // FAFF-673: render the human-merge remedy (set on the non-graft-signature refuse) after the
+      // blockers, the fenceHumanFlags/anchorRefusal shell-remedy precedent. --json carries it as the
+      // `remedy` field automatically (the whole result object is serialised above).
+      if (res.remedy) console.log(`  → ${res.remedy}`);
     }
     return status;
   };
@@ -976,10 +1014,16 @@ function cmdMergeGate(args) {
     if (interactive && humanOverride) {
       try {
         fs.mkdirSync(path.join(runDir, issue), { recursive: true });
-        fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ pr, issue, head_sha: headSha, blockers, overridden_at: new Date().toISOString() }, null, 2) + "\n");
+        // FAFF-673: the override record carries the justification (`reason`, fenced non-empty above)
+        // + the `source:"human-override"` marker FAFF-698's classifier composes with — the explainable
+        // record `faff audit` reconciles, never a justification-less write read by nothing (FAFF-375).
+        fs.writeFileSync(path.join(runDir, issue, "merge-gate-override.json"), JSON.stringify({ pr, issue, head_sha: headSha, blockers, overridden_at: new Date().toISOString(), reason: overrideReason, source: "human-override" }, null, 2) + "\n");
       } catch (e) { process.stderr.write(`faff merge-gate: could not record human override: ${e.message}\n`); return 2; }
       // fall through to execute — the recorded human override REPLACES the autonomous refusal.
     } else {
+      // FAFF-673: name the human-merge remedy beside the blockers, ONLY on the non-graft signature
+      // (never on a graft change awaiting review/CI). Shell-level; decideFloor stays provenance-blind.
+      if (nonGraftFloorSignature(floor)) result.remedy = NON_GRAFT_REMEDY_STRING;
       return emit(result, 1);
     }
   }
@@ -1256,7 +1300,9 @@ function mergeGateSelftest() {
   check("resolve: bad --merge-args token still rejected", (() => { const r = resolveMergeFlags(["--squash"], "--admin"); return r.rejected.includes("--admin"); })());
   check("resolve: --merge-args \"--squash --delete-branch\" unchanged, no bare harvest", (() => { const r = resolveMergeFlags(["--merge-args", "--squash --delete-branch"], "--squash --delete-branch"); return r.method_present && r.flags.length === 2 && r.flags.includes("--squash") && r.flags.includes("--delete-branch") && !r.conflict; })());
   // fenceHumanFlags (FAFF-375): human-only flags fenced on a genuine interactivity signal (TTY + --interactive)
-  const fence = (o) => fenceHumanFlags({ human_override: false, allow_no_ci: false, interactive: false, stdin_is_tty: false, ...o });
+  // FAFF-673: the default carries a non-empty override_reason so the pre-existing --human-override
+  // ok-cases below stay ok (the reason requirement is exercised by its own cases further down).
+  const fence = (o) => fenceHumanFlags({ human_override: false, override_reason: "spike findings; no floor", allow_no_ci: false, interactive: false, stdin_is_tty: false, ...o });
   check("fence: --human-override + non-TTY → violation", !fence({ human_override: true, interactive: true }).ok);
   check("fence: --human-override + TTY + no --interactive → violation", !fence({ human_override: true, stdin_is_tty: true }).ok);
   check("fence: --human-override + TTY + --interactive → ok", fence({ human_override: true, interactive: true, stdin_is_tty: true }).ok);
@@ -1265,6 +1311,20 @@ function mergeGateSelftest() {
   check("fence: --allow-no-ci + TTY + --interactive → ok", fence({ allow_no_ci: true, interactive: true, stdin_is_tty: true }).ok);
   check("fence: neither human-only flag + non-TTY → ok (ordinary autonomous path untouched)", fence({}).ok);
   check("fence: non-TTY names the real-terminal remedy", /real terminal/.test(fence({ human_override: true, interactive: true }).violations.join(" ")));
+  // FAFF-673: --human-override REQUIRES a non-empty --override-reason (the explainable-record guard)
+  check("fence: --human-override + TTY + --interactive + NO reason → violation", !fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: "" }).ok);
+  check("fence: --human-override + whitespace-only reason → violation", !fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: "   " }).ok);
+  check("fence: --human-override + absent reason → violation", !fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: undefined }).ok);
+  check("fence: --human-override + reason present → ok", fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: "spike; no floor" }).ok);
+  check("fence: missing-reason violation names --override-reason", /--override-reason/.test(fence({ human_override: true, interactive: true, stdin_is_tty: true, override_reason: "" }).violations.join(" ")));
+  check("fence: --override-reason WITHOUT --human-override → ok (reason only meaningful paired)", fence({ human_override: false, override_reason: "" }).ok);
+  // FAFF-673: nonGraftFloorSignature — the non-graft tell (!ac_complete && review missing); a graft
+  // floor (review fail/pass, or ac_complete true) never matches. Signature-boundary coverage.
+  check("nonGraftFloorSignature: !ac_complete && review missing → true", nonGraftFloorSignature({ ac_complete: false, review_verdict: "missing" }) === true);
+  check("nonGraftFloorSignature: review fail (graft, not yet cleared) → false", nonGraftFloorSignature({ ac_complete: false, review_verdict: "fail" }) === false);
+  check("nonGraftFloorSignature: review pass → false", nonGraftFloorSignature({ ac_complete: false, review_verdict: "pass" }) === false);
+  check("nonGraftFloorSignature: ac_complete true (graft) → false", nonGraftFloorSignature({ ac_complete: true, review_verdict: "missing" }) === false);
+  check("nonGraftFloorSignature: unavailable review verdict → false (not the missing tell)", nonGraftFloorSignature({ ac_complete: false, review_verdict: "unavailable" }) === false);
   // classifyCiObservation (FAFF-376): primary check-runs signal is required; legacy status is an optional supplement
   check("ci-obs: both APIs down → indeterminate + reason", (() => { const r = classifyCiObservation(false, [], false, null, 0); return r.ci_state === "indeterminate" && !!r.api_degraded_reason; })());
   check("ci-obs: check-runs down + legacy success(n>0) → indeterminate (FAFF-376)", classifyCiObservation(false, [], true, "success", 1).ci_state === "indeterminate");
@@ -1494,6 +1554,69 @@ function mergeGateSelftest() {
       commitAnchor(repoG, runDirG, "FAFF-526G", "L3");
       const acRes = runLocal("FAFF-526G", runDirG, repoG);
       check("cmdMergeGateLocal: AC not all verified → refuse", acRes === 1);
+
+      // === FAFF-673: non-graft remedy + explainable-record integration on the local path ========
+      // Capture the emitted JSON (runLocal passes json:true → the result object is written to stdout).
+      const captureStdout = (fn) => {
+        const orig = process.stdout.write; let out = "";
+        process.stdout.write = (c) => { out += c; return true; };
+        let ret; try { ret = fn(); } finally { process.stdout.write = orig; }
+        return { out, ret };
+      };
+
+      // --- repo H: NON-GRAFT refuse (no ac-checklist, no review-verdict) → refuse names the remedy ---
+      const repoH = path.join(gitTmp, "repo-h");
+      makeRepo(repoH, "true");
+      const runDirH = path.join(gitTmp, "run-dir-h");
+      fs.mkdirSync(path.join(runDirH, "FAFF-673H"), { recursive: true }); // no floor artifacts written
+      commitAnchor(repoH, runDirH, "FAFF-673H", "L3");
+      const capH = captureStdout(() => runLocal("FAFF-673H", runDirH, repoH));
+      const resH = JSON.parse(capH.out);
+      check("FAFF-673: non-graft refuse (no AC, no review) → exit 1", capH.ret === 1);
+      check("FAFF-673: non-graft refuse → remedy names the human-merge path (--override-reason)", typeof resH.remedy === "string" && /--override-reason/.test(resH.remedy) && /faff effects declare/.test(resH.remedy));
+
+      // --- repo I: GRAFT refuse (AC verified, review FAIL) → signature does NOT match → NO remedy ---
+      const repoI = path.join(gitTmp, "repo-i");
+      makeRepo(repoI, "true");
+      const runDirI = path.join(gitTmp, "run-dir-i");
+      writeFloor(runDirI, "FAFF-673I", true, "fail"); // ac_complete true, review "fail" → not the non-graft key
+      commitAnchor(repoI, runDirI, "FAFF-673I", "L3");
+      const capI = captureStdout(() => runLocal("FAFF-673I", runDirI, repoI));
+      const resI = JSON.parse(capI.out);
+      check("FAFF-673: graft refuse (review fail, AC ok) → refuse, NO remedy (signature mismatch)", capI.ret === 1 && resI.remedy === undefined);
+
+      // --- repo J: sanctioned local override (TTY stubbed) → override JSON carries reason + source ---
+      const repoJ = path.join(gitTmp, "repo-j");
+      makeRepo(repoJ, "true");
+      const runDirJ = path.join(gitTmp, "run-dir-j");
+      fs.mkdirSync(path.join(runDirJ, "FAFF-673J"), { recursive: true }); // non-graft refuse, then override
+      commitAnchor(repoJ, runDirJ, "FAFF-673J", "L3");
+      const origTty = process.stdin.isTTY;
+      let overrideExit;
+      try {
+        process.stdin.isTTY = true; // the fence requires a real terminal; stub it for the test
+        overrideExit = captureStdout(() => runLocal("FAFF-673J", runDirJ, repoJ, { interactive: true, humanOverride: true, overrideReason: "spike findings; no floor applies" })).ret;
+      } finally { process.stdin.isTTY = origTty; }
+      check("FAFF-673: local override with reason → exit 0 (override replaces the refusal, merges)", overrideExit === 0);
+      const ovrJ = JSON.parse(fs.readFileSync(path.join(runDirJ, "FAFF-673J", "merge-gate-override.json"), "utf8"));
+      check("FAFF-673: local override JSON carries the reason", ovrJ.reason === "spike findings; no floor applies");
+      check("FAFF-673: local override JSON carries source:human-override", ovrJ.source === "human-override");
+
+      // --- repo K: --human-override with NO reason → exit 2 (fenced), NO override JSON written ---
+      const repoK = path.join(gitTmp, "repo-k");
+      makeRepo(repoK, "true");
+      const runDirK = path.join(gitTmp, "run-dir-k");
+      fs.mkdirSync(path.join(runDirK, "FAFF-673K"), { recursive: true });
+      commitAnchor(repoK, runDirK, "FAFF-673K", "L3");
+      let noReasonExit;
+      const origStderr673 = process.stderr.write;
+      try {
+        process.stdin.isTTY = true;
+        process.stderr.write = () => true; // swallow the expected fence stderr
+        noReasonExit = runLocal("FAFF-673K", runDirK, repoK, { interactive: true, humanOverride: true, overrideReason: null });
+      } finally { process.stdin.isTTY = origTty; process.stderr.write = origStderr673; }
+      check("FAFF-673: --human-override with NO --override-reason → exit 2 (fenced, never a silent override)", noReasonExit === 2);
+      check("FAFF-673: --human-override with NO reason → NO merge-gate-override.json written", !fs.existsSync(path.join(runDirK, "FAFF-673K", "merge-gate-override.json")));
     } finally {
       fs.rmSync(gitTmp, { recursive: true, force: true });
     }
@@ -1532,4 +1655,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

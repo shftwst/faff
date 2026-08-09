@@ -1,0 +1,2 @@
+{"schema":1,"run_id":"run-20260809-075125-beepboop-build","seq":0,"ts":"2026-08-09T07:51:25Z","phase":"run","type":"run-start","data":{"mode":"beepboop-build","requested":1}}
+{"schema":1,"run_id":"run-20260809-075125-beepboop-build","seq":1,"ts":"2026-08-09T08:28:12Z","phase":"run","type":"issue-outcome","issue":"FAFF-750","data":{"outcome":"pr-open"}}

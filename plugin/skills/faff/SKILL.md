@@ -809,6 +809,16 @@ Surfaced signals are **advisory** — they suggest a fix but never auto-apply ru
 
 **Threshold (fixed):** signals surface when ≥4 events of the same root-cause class accumulate in the last 14 days; the Todo→Backlog repeat-park demotion fires at 3+ parks in 21 days. These are built-in defaults, not `.faffrc` knobs — a user has no basis to hand-tune them, and the surfaced signal is advisory anyway: a human closes the loop. **Closing that loop automatically** — auto-tuning appetite / specs / resolve-rules from this accumulated evidence, and widening the evidence to include evaluator-lane (business-value / QA) outcomes rather than just parks and reverts — is an **L4 capability**, gated on the evaluator lane existing. Not built; today the loop stays advisory.
 
+### Interactive park resolution (surface, don't settle) — FAFF-727
+
+**Resolve-attempt before park** (above) is the autonomous boundary: an unattended run parks a `needs-decision-first` / `gap-blocked` / `circular-blocked` verdict and never self-resolves it. The **interactive** path (L1/L2, human at the keyboard) needs the equivalent stated — nothing else stops a "helpful" pass from investigating a `needs-human` park, deciding the call itself, and writing a settled resolution: it looks like progress but is the AI-makes-the-call outcome the park exists to prevent, harder to notice because it arrives wrapped in the analysis the human asked for. Mirrors *Resolve-attempt before park* and applies **Human curation is authoritative**: the human's call is authoritative; the agent's job is to inform it, not make it.
+
+1. **Surface, don't settle.** Resolving a `needs-human` park interactively requires the **human's actual judgment** on any architecture / scope / taste decision the park names. The agent **surfaces** the decision and may offer a **recommendation**; it does **not** author a settled `**Chosen:**` / Resolution on the human's behalf. More subagent analysis does not discharge this — the judgment, not the investigation, is reserved for the human. Analysis and recommendation are welcome; only *authorship of the verdict* transfers.
+2. **Correctness carve-out.** An agent **may** close a park whose fix is a **matter of fact, not taste** — a genuine bug, a falsified measurement, a rule already written down — because there is a *right answer*, not a *choice*. Architecture / scope / taste are **never** in this carve-out. **In doubt → treat as taste and surface it.**
+3. **Verify subagent findings against the source.** A finding is checked against the authoritative source before it is acted on; a summary that contradicts its cited source loses to the source (an investigator once claimed a decision record mandated a behaviour the cited ticket's own text called deliberately otherwise — the source won).
+
+**Symmetry, not licence.** The autonomous rule *parks* a needs-human call; this one *surfaces* it — both refuse to let the agent settle it, but this is the mirror, not a restatement, and is never licence for mid-run prompts on an **autonomous** run (stays forbidden by the **no-prompt invariant**, **Autonomous Mode Contract**). `faff-tidy` and `faff-prep` point back here rather than restating it.
+
 ### Park protocol (shared)
 
 Every faff skill that can park work follows the same protocol:

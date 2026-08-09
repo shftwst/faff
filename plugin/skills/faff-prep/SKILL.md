@@ -263,6 +263,8 @@ Then the build gate — a separate yes/no, confidence-aware:
 
 On `high` confirm (or `medium` → `build`), invoke the `faff-graft` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**) on `ISSUE-XX` in the same conversation — **only on this standalone affirmative; the build decision is never bundled into the spec-resolution choice** (gateway → **Chaining pattern**). On `medium` → `resolve` (or `low` → `resolve`), walk the open punts/unknowns with the user and re-attach, then **re-present this standalone build gate** — resolving a punt is not itself build consent. On `medium` → `leave`, stop — the spec stays on the tracker at its retained `medium` rating, which `/faff-wtf` surfaces as `needs-decision-first` (no park label needed; it's attached-pending-review, not parked). On `low` → `park`, **apply the shared Park / Unpark protocol** (gateway): tag `faff-parked` via the op (`faff label add <issue> faff-parked`), record `disposition:"parked"` on the attach-state marker (so `prepcheck` doesn't false-block a by-design non-attach), and log the cause, so `/faff-wtf`'s _Parked work_ section resurfaces it for the manual user. Interactive parks must carry the label just like autonomous ones — otherwise a hand-parked spec silently disappears.
 
+**When the open item is an architecture / scope / taste call rather than a fact,** "walk the open punts/unknowns with the user" above is where the gateway's **Interactive park resolution (surface, don't settle)** rule applies: surface the punt and a recommendation, let the human author the `**Chosen:**`; the correctness carve-out lets prep close a fact-not-taste punt directly.
+
 ### Scenario B: Resume (existing spec found)
 
 The ticket already has a spec from a previous prep session. Apply the shared **Spec discovery** rule (the sibling `faff/SKILL.md`) — check tracker comments, the main description, and committed `docs/` paths. Any hit counts.
@@ -275,7 +277,7 @@ The ticket already has a spec from a previous prep session. Apply the shared **S
 - **Context** — substantive information that doesn't challenge or resolve but is worth knowing while building: a relevant link, a related discovery, a constraint to watch out for, a stakeholder note. Doesn't force re-prep but **must be surfaced** to the user (interactive) or carried into the spec annotations (autonomous refresh) so it doesn't get lost.
 - **Noise** — status pings, "+1", "any update?", unrelated chatter. Ignore.
 
-If any challenge or resolution exists, the spec is **out of date** even if the codebase hasn't moved — the conversation has. Treat this exactly like a stale-spec finding: the spec must be re-prepped (or refreshed) to incorporate the comment thread before any build can proceed. Context-only comments do not force re-prep but should be appended to the spec as an annotation block (and shown in the brief). Log each challenge / resolution / context entry with its commenter, timestamp, and a one-line summary.
+If any challenge or resolution exists, the spec is **out of date** even if the codebase hasn't moved — the conversation has. Treat this exactly like a stale-spec finding: the spec must be re-prepped (or refreshed) to incorporate the comment thread before any build can proceed. Context-only comments do not force re-prep but should be appended to the spec as an annotation block (and shown in the brief). Log each challenge / resolution / context entry with its commenter, timestamp, and a one-line summary. If folding a challenge in means closing an architecture / scope / taste decision the spec left open, that's the gateway's **Interactive park resolution (surface, don't settle)** rule again: surface the call + a recommendation, the human authors the `**Chosen:**` — the correctness carve-out covers only fact-not-taste closes (a genuine bug, a rule already written down).
 
 **Step 2b: Validate freshness against the codebase** — read the spec against the current code state. Check: have dependencies shipped since this was scoped? Has the codebase changed in ways that affect the spec? Are the technical decisions still valid? If stale: flag what changed and why it needs updating.
 
@@ -308,6 +310,7 @@ At any point, the user (or `/faff-graft` mid-build) can say "reprep this" or "up
 - Produce the revised spec → replace on the issue immediately
 - Add a note: "Revised on [date] — [brief reason]"
 - If the issue was already in Todo, it stays in Todo
+- If revising closes an architecture / scope / taste decision — including unparking a `needs-human` — the gateway's **Interactive park resolution (surface, don't settle)** rule governs: surface the call and a recommendation, let the human author the `**Chosen:**`. The correctness carve-out still lets prep close a fact-not-taste item (a genuine bug, a rule already written down) itself.
 
 ## Where Artifacts Live
 

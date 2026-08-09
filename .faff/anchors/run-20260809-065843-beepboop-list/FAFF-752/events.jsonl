@@ -1,0 +1,2 @@
+{"schema":1,"run_id":"run-20260809-065843-beepboop-list","seq":0,"ts":"2026-08-09T06:58:00.000Z","phase":"run","type":"run-start"}
+{"schema":1,"run_id":"run-20260809-065843-beepboop-list","seq":1,"ts":"2026-08-09T07:40:00.000Z","phase":"build","type":"issue-outcome","issue":"FAFF-752","data":{"outcome":"shipped"}}

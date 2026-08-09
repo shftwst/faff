@@ -174,7 +174,7 @@ effort:            # optional per-lane reasoning-EFFORT selection (FAFF-416); ev
 concurrency_max: 4           # max concurrent builds for faffter-dark-concurrency-parallel (ignored by the sequential default)
 worktree_root: ~/.faff/worktrees/myrepo   # where /faff-graft creates worktrees; default ~/.faff/worktrees/<repo> (see Worktree policy)
 logging: full                # full | essential — full (default) writes the per-invocation narrative log; essential silences it (the machine-consumed hard floor is always written; see .faff/ logging directory)
-automation_default: opt-in   # opt-in (default, fail-safe) | opt-out — eligibility for an UNLABELLED ticket (see Automation eligibility). opt-in ⇒ nothing is automatable without an explicit faff-automate label
+automation_default: opt-in   # opt-in (default, fail-safe) | opt-out — eligibility for an UNLABELLED ticket (see Automation eligibility). opt-in ⇒ nothing is automatable without an explicit faff-automate label. opt-out is git-only-only (FAFF-753): inert under a tracker
 ```
 
 **Stable config only — never mutable state.** `.faffrc` holds stable identifiers and preferences (project ids, team keys, repo slugs, slot choices). It must never carry milestone lists, target dates, progress percentages, issue snapshots, or "current cycle" notes — anything that can change in the tracker is fetched live on every invocation. If a sub-skill needs mutable data, it refetches from the tracker via the configured MCP.
@@ -382,17 +382,17 @@ Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, a
 
 - `faff-automate` — explicit **include**: this ticket may be picked up by the autonomous pipeline.
 - `faff-automation-hold` — explicit **hard exclude**: never automate this ticket, even if it also carries `faff-automate`. (For work captured but not yet validated — "on paper, way off building" — or a human's own territory.)
-- `automation_default` (`.faffrc`, `opt-in | opt-out`, **ships `opt-in`**) — decides an **unlabelled** ticket. Read via `faff config get automation_default` (the CLI applies the `opt-in` default — FAFF-182).
+- `automation_default` (`.faffrc`, `opt-in | opt-out`, **ships `opt-in`**) — decides an **unlabelled** ticket. Read via `faff config get automation_default` (the CLI applies the `opt-in` default — FAFF-182). **`opt-out` is scoped to git-only mode (FAFF-753):** on a tracker-bound repo it is **inert** (eligibility stays fail-safe opt-in), because the two labels above are the safe-space control surface there; it opens the unlabelled surface only where no tracker resolves. `faff config check` warns if you set `opt-out` with a tracker pinned.
 
-Labels are *orthogonal to status* — they ride on whatever status the ticket has. The eligibility decision is the pure function `automation_eligible(labels, automation_default)` (the CLI's `faff eligible` / its `--selftest`):
+Labels are *orthogonal to status* — they ride on whatever status the ticket has. The eligibility decision is the pure function `automation_eligible(labels, automation_default, tracker_present)` (the CLI's `faff eligible` / its `--selftest`); `tracker_present` is resolved by the caller from the **Tracker availability resolution** rule and passed as `--tracker present|absent`:
 
 ```
 faff-automation-hold present → NOT eligible   (hard exclude wins, always)
 faff-automate present        → eligible        (explicit include)
-neither                      → (automation_default == "opt-out")   (default opt-in ⇒ NOT eligible)
+neither                      → (automation_default == "opt-out" AND tracker absent)   (default opt-in ⇒ NOT eligible; opt-out opens only in git-only)
 ```
 
-Precedence: **hard-exclude > include > default.** Any `automation_default` value other than `opt-out` coerces to opt-in (fail-safe).
+Precedence: **hard-exclude > include > default.** Any `automation_default` value other than `opt-out` coerces to opt-in (fail-safe); `opt-out` itself coerces to opt-in whenever a tracker is present (so the only way it opens the surface is git-only). An omitted/garbage `--tracker` fails safe to *present* (opt-out inert).
 
 > **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automate`, `faff-automation-hold`, `faff-parked`, `faff-jot-intake`, `faff-chain-gap-fill`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
 
@@ -404,7 +404,7 @@ Precedence: **hard-exclude > include > default.** Any `automation_default` value
 - **graft** is the only skill that autonomously builds. Autonomous graft refuses to build a not-eligible issue — the build backstop.
 - **Any queue-side filtering in `/faff-beep-boop`** (skipping not-eligible items at queue assembly / wave re-entry) is a non-load-bearing **efficiency early-exit** — it avoids wasting a prep/verdict invocation, but is not the guarantee. Items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
 
-Each chokepoint computes eligibility (resolve the issue's labels + `automation_default`, via `faff eligible`) and, when consulting `faff next` (gateway → **Next-step transition**), passes `--not-eligible` for a not-eligible issue. `faff next` returns `skip-ineligible`.
+Each chokepoint computes eligibility (resolve the issue's labels + `automation_default` + the tracker-present signal from **Tracker availability resolution**, via `faff eligible … --tracker present|absent`) and, when consulting `faff next` (gateway → **Next-step transition**), passes `--not-eligible` for a not-eligible issue. `faff next` returns `skip-ineligible`. (Every `faff eligible` resolver threads `--tracker`; a site that omits it fails safe to *present* — opt-out inert — which drops a git-only lane's on-switch, so the census is kept complete.)
 
 **Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` any ticket regardless of eligibility; those skills proceed (emitting a "not automation-eligible" note when relevant) and **never auto-crank-up or auto-exclude** (they never add/remove `faff-automate` or `faff-automation-hold`).
 
@@ -414,9 +414,9 @@ Each chokepoint computes eligibility (resolve the issue's labels + `automation_d
 
 **Surfacing (so held-back work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing not-automation-eligible issues that a human may want to crank up (separate from *Parked work*). Interactive `/faff-tidy` offers to crank up/crank down; autonomous passes only list, never mutate the labels.
 
-**Migration.** No migration of existing `faff-automation-hold` tickets is needed: under the shipped `opt-in` default they are already not-eligible (no `faff-automate`), so the holds are redundant-but-harmless hard stops and keep working unchanged. Setting `automation_default: opt-out` restores the legacy opt-out behaviour exactly.
+**Migration.** No migration of existing `faff-automation-hold` tickets is needed: under the shipped `opt-in` default they are already not-eligible (no `faff-automate`), so the holds are redundant-but-harmless hard stops and keep working unchanged. On a **git-only** repo, setting `automation_default: opt-out` restores the legacy opt-out behaviour exactly; on a **tracker-bound** repo `opt-out` is now inert (FAFF-753) — a whole-tracker opt-out escape no longer exists, so `faff-automate` is the only way in. A tracker repo that was relying on `opt-out` to auto-build unlabelled tickets must crank each up with `faff-automate` instead (and `faff config check` surfaces the now-inert setting).
 
-**Git-only mode (no tracker).** With no tracker there are no labels, so eligibility resolves purely from `automation_default` — `opt-in` (the default) means the autonomous surface is off by default, consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate). Setting `automation_default: opt-out` turns it on.
+**Git-only mode (no tracker).** With no tracker there are no labels, so eligibility resolves purely from `automation_default` — `opt-in` (the default) means the autonomous surface is off by default, consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate). Setting `automation_default: opt-out` turns it on — and git-only is the **only** mode where it does (FAFF-753): the caller resolves no tracker, passes `--tracker absent`, and the opt-out branch fires. On a tracker-bound repo the same setting is inert.
 
 ### Ordering & judgement delegation (the orchestration layer holds no opinion)
 
@@ -445,7 +445,7 @@ faff next --status <S> --spec none|low|medium|high [--not-eligible] [--parked] [
 
 - `--status` ← the issue's tracker state, mapped to `backlog|todo|in-progress|in-review|done|cancelled|duplicate`.
 - `--spec` ← the **Spec discovery** result: `none` when no spec exists, else the spec's retained `confidence` rating (`low|medium|high`).
-- `--not-eligible` ← the issue is **not automation-eligible** (gateway → **Automation eligibility**): the agent computes `faff eligible` from the issue's labels (`faff-automate` / `faff-automation-hold`) + `automation_default`, and passes `--not-eligible` when that returns `false`. (`--held` is accepted as a deprecated, fail-safe alias.) `--parked` ← the `faff-parked` label. `--blocked` ← any open **external** blocker (in-queue dependencies are **not** `--blocked` — they are serialised by faff-beep-boop's conflict analysis; nor is a satisfied edge to a terminal-complete target — gateway → **Satisfied blockers — edges to terminal work**). Resolve each blocker's live status before computing this flag.
+- `--not-eligible` ← the issue is **not automation-eligible** (gateway → **Automation eligibility**): the agent computes `faff eligible` from the issue's labels (`faff-automate` / `faff-automation-hold`) + `automation_default` + the tracker-present signal (`--tracker present|absent`, resolved from **Tracker availability resolution**), and passes `--not-eligible` when that returns `false`. (`--held` is accepted as a deprecated, fail-safe alias.) `--parked` ← the `faff-parked` label. `--blocked` ← any open **external** blocker (in-queue dependencies are **not** `--blocked` — they are serialised by faff-beep-boop's conflict analysis; nor is a satisfied edge to a terminal-complete target — gateway → **Satisfied blockers — edges to terminal work**). Resolve each blocker's live status before computing this flag.
 
 It prints `{next, reason}` where `next` ∈ `prep | graft | skip-ineligible | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
 

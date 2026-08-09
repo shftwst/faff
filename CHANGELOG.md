@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.14.0](https://github.com/shftwst/faff/compare/faff--v0.13.0...faff--v0.14.0) (2026-08-09)
+
+
+### Features
+
+* enforce conventional PR titles for release automation ([#591](https://github.com/shftwst/faff/issues/591)) ([b7c40e4](https://github.com/shftwst/faff/commit/b7c40e455085ff59daa3ef45fe2354cb5edfbaa4))
+* **FAFF-616:** add calibrated seam-registry tier + C3 accuracy-floor gate ([#594](https://github.com/shftwst/faff/issues/594)) ([4af407f](https://github.com/shftwst/faff/commit/4af407f5fd1631c60623337d1e2008ad39fcc9ac))
+* **FAFF-705:** allow reasoning-effort tuning on engine/seat lanes (lift the effort × engine refusal) ([#589](https://github.com/shftwst/faff/issues/589)) ([2232e46](https://github.com/shftwst/faff/commit/2232e462cb4a16ca03a1b427e4c860180c3daf43))
+* **FAFF-707:** detect prep&lt;-&gt;review spec-review loop churn, stop the respec treadmill ([#597](https://github.com/shftwst/faff/issues/597)) ([4858ed1](https://github.com/shftwst/faff/commit/4858ed1b7e88d8418ae1da50643b4293cb49e35b))
+* **FAFF-750:** relocate the merge locus above the dispatch cut ([#588](https://github.com/shftwst/faff/issues/588)) ([b20b8ab](https://github.com/shftwst/faff/commit/b20b8ab07e071623afff5e54438f6e4e8faf0b53))
+* **FAFF-752:** add faff eval affected to derive the eval --kind subset from touched judgement seams ([#587](https://github.com/shftwst/faff/issues/587)) ([8fc7e31](https://github.com/shftwst/faff/commit/8fc7e31453826241dd59d6f8fa66d9f94fab5ed6))
+* make subagent fan-out observable via a dispatch-claim event + audit recompute ([#596](https://github.com/shftwst/faff/issues/596)) ([80d9077](https://github.com/shftwst/faff/commit/80d90776c70282b7ddac7ec9ca0c264ce6b6ff91))
+* **merge-gate:** sanctioned, explainable human-merge path for non-graft changes (FAFF-673) ([#593](https://github.com/shftwst/faff/issues/593)) ([c09b92f](https://github.com/shftwst/faff/commit/c09b92fb504d988754c4a7a68b23d9e242ef5a30))
+
 ## [0.13.0](https://github.com/shftwst/faff/compare/faff--v0.12.0...faff--v0.13.0) (2026-08-08)
 
 

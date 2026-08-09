@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { diffAgainstBaseline, toleranceFor, DEFAULT_POLICY, loadBaseline } from "../eval/run-evals.mjs";
+import { CLOSED_SET_KINDS, BINARY_SETEQ_KINDS } from "../eval/grader.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE_PATH = join(HERE, "..", "eval", "baselines", "frontier.json");
@@ -31,6 +32,46 @@ test("toleranceFor: grader-class drives the tolerance (closed_set/ordering 0, fr
   assert.equal(toleranceFor("gloss"), 0.03);      // free-text
   assert.equal(toleranceFor("shaping"), 0.03);    // free-text
   assert.equal(toleranceFor("decomposition"), 0.03);
+});
+
+// FAFF-692 — splittable/chain-gap/resolved-elsewhere are binary set-equality graders (score 0 or 1,
+// no partial credit) that were mis-keyed to the free_text (0.03) band by falling through toleranceFor's
+// default else-branch. They belong at the closed_set (0.0) tolerance instead — any drop is real.
+test("toleranceFor: the three binary set-equality kinds resolve to 0.0, not the free-text 0.03", () => {
+  assert.equal(toleranceFor("splittable"), 0);
+  assert.equal(toleranceFor("chain-gap"), 0);
+  assert.equal(toleranceFor("resolved-elsewhere"), 0);
+  // the free-text band is unchanged for genuinely generative kinds
+  assert.equal(toleranceFor("gloss"), 0.03);
+  assert.equal(toleranceFor("shaping"), 0.03);
+  assert.equal(toleranceFor("decomposition"), 0.03);
+});
+
+test("FAFF-692 invariant: BINARY_SETEQ_KINDS members are NOT in CLOSED_SET_KINDS (grade dispatch untouched)", () => {
+  for (const kind of BINARY_SETEQ_KINDS) {
+    assert.equal(CLOSED_SET_KINDS.has(kind), false, `${kind} must not be in CLOSED_SET_KINDS — it would silently repoint grade dispatch`);
+  }
+});
+
+test("FAFF-692 invariant: none of the three binary set-equality kinds is in the active warn_kinds set", () => {
+  for (const kind of BINARY_SETEQ_KINDS) {
+    assert.equal(DEFAULT_POLICY.warn_kinds.includes(kind), false, `${kind} must not be a warn-kind — that would silently flip its gate result from "fail" back to "warn"`);
+  }
+});
+
+// FAFF-692 gate-effect test, over a concrete hermetic fixture (not the committed frontier.json) —
+// oracle pinned per the 2026-08-06 spec-review QA-lens major. format_adherence is left unset on both
+// sides so the diffAgainstBaseline formatBad branch stays out of this assertion.
+test("FAFF-692: a splittable accuracy drop of 0.02 now FAILS the gate (was absorbed as a warn at the old 0.03 tolerance)", () => {
+  const hermeticBaseline = {
+    per_kind: { splittable: { accuracy: 1.0, stability: 1.0 } },
+    policy: DEFAULT_POLICY,
+  };
+  const r = diffAgainstBaseline(summary({ splittable: { accuracy: 0.98, stability: 1.0 } }), hermeticBaseline);
+  const entry = r.kinds.find((k) => k.kind === "splittable");
+  assert.equal(entry.status, "fail");
+  assert.equal(r.failed, true);
+  assert.equal(r.warned, false);
 });
 
 test("a closed-set accuracy drop FAILS the gate (tolerance 0)", () => {

@@ -164,6 +164,15 @@ function computeDispatchObservability(dispatchEvents, substrate) {
     byId.get(id).claimed += size;
   }
   const grouped = [...byId.values()];
+  // FAFF-700 review fix: dispatchEvents was non-empty, but EVERY entry lacked a
+  // usable cluster_id (defensive-branch territory — events.js validates this at
+  // append time, so this only fires on a hand-edited/foreign-written events.jsonl).
+  // Without this guard, `clusters.every(...)` on the resulting EMPTY array is
+  // vacuously true, silently reporting overall "verified" with zero clusters —
+  // exactly the false-all-clear this ticket exists to eliminate, just from a
+  // different direction (malformed claims, not unattributed children). Treat it
+  // the same as no coherent claim: absent, not a silent pass.
+  if (!grouped.length) return { status: "absent", substrate_reachable: null, clusters: [] };
 
   if (!substrate.reachable) {
     const clusters = grouped.map((c) => ({ cluster_id: c.cluster_id, kind: c.kind, claimed: c.claimed, observed: null, status: "unverifiable-substrate" }));
@@ -969,6 +978,18 @@ function auditSelftest() {
     const substrate = { reachable: true, children: [["R12"]] }; // stamped R12, not R1
     const r = computeDispatchObservability(dispatchEvents, substrate);
     check("dispatch exact-token: R12 does not satisfy cluster R1", r.clusters[0].status === "unverifiable-substrate" && r.clusters[0].observed === null);
+  }
+
+  // 26. FAFF-700 (review fix): dispatchEvents non-empty but EVERY entry lacks a
+  // usable cluster_id (a hand-edited/foreign-written events.jsonl — events.js
+  // itself refuses this at append time) → "absent", never a vacuous "verified"
+  // over an empty clusters array.
+  {
+    const dispatchEvents = [
+      { seq: 0, type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_size: 3 } }, // no cluster_id
+    ];
+    const r = computeDispatchObservability(dispatchEvents, { reachable: true, children: [] });
+    check("dispatch all-malformed-claims: absent, not a vacuous verified", r.status === "absent" && r.clusters.length === 0);
   }
 
   if (failed) { console.log(`RESULT: audit --selftest FAILED (${failed} failure(s))`); return 1; }

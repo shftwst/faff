@@ -72,5 +72,6 @@
     "session_id": "run-20260808-235832-fly-l3",
     "started_at": "2026-08-09T00:02:06Z",
     "last_heartbeat": "2026-08-09T00:02:06Z"
-  }
+  },
+  "level": "L3"
 }

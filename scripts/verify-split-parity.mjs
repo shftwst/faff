@@ -13,7 +13,7 @@
 // resolveHookBin, cwd diagnostics) is byte-identical across phases with ZERO normalization. The
 // only residual cross-phase difference source is wall-clock/entropy in a row's output — such rows
 // are EXCLUDED (or their pure `--selftest` form is used), never normalized (a normalizer is a place
-// a real deviation hides). See docs/specs/2026-07-10-FAFF-440-…-design.md.
+// a real deviation hides). See records/specs/2026-07-10-FAFF-440-…-design.md.
 //
 //   node scripts/verify-split-parity.mjs --baseline-ref <git-ref> [--candidate-ref <ref>] [--keep]
 //   node scripts/verify-split-parity.mjs --selftest

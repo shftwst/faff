@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "faff/contracts/integrity-floor",
   "title": "integrity-floor contract data",
-  "description": "Reference schema (FAFF-350). The SHAPE of the merge-floor decision `faff merge-gate` routes its merge through. `verdict` is merge-ok only when `violations` (the blockers) is empty. There is NO safe coerce to pass — an out-of-enum input fail-louds (exit 2), never a mergeable state. The floor SEMANTICS (which legs, why) live in the gateway + docs/specs; shape is normative here.",
+  "description": "Reference schema (FAFF-350). The SHAPE of the merge-floor decision `faff merge-gate` routes its merge through. `verdict` is merge-ok only when `violations` (the blockers) is empty. There is NO safe coerce to pass — an out-of-enum input fail-louds (exit 2), never a mergeable state. The floor SEMANTICS (which legs, why) live in the gateway + records/specs; shape is normative here.",
   "type": "object",
   "additionalProperties": false,
   "required": ["verdict", "ci_state", "level", "conformant", "violations"],

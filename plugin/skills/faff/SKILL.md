@@ -126,7 +126,7 @@ It parses the documented YAML subset with a built-in parser — no dependencies.
 **CLI-only config access (load-bearing).** Every config read — slots, `appetite`, `tracking.*`, the spec-docs path — goes through `faff config`:
 
 - **No hand-reading.** No sub-skill, and no agent acting for one, reads the rc file by hand — no shell-reading it, no `Read` tool on it, no eyeballing the raw bytes. Softer values the agent only reasons with (e.g. `appetite`) go the same way — `faff config get appetite`.
-- **No hand-writing (FAFF-387).** The rule runs both directions: no skill or agent hand-*writes* any rc file either (base or overlay). **`faff config init`** bootstraps the 7 flat `tracking.*` keys (the onboarding / create-from-scratch path, matching `/faff-onboard`'s existing rule); **`faff config set <dotted.key> <value>`** (FAFF-667) is the general writer for every OTHER scalar behaviour key, at any nesting depth — `appetite`, `models.*`, `slots.*`, `backends.<name>.<field>`, and the rest. Both are surgical raw-text edits that round-trip through the real reader before committing — never a hand-written wholesale rewrite, which is exactly the silent-corruption failure the committed-base posture exists to catch. **The one named carve-out:** sequence-valued keys a `key value` grammar cannot express — `faffter_dark.adversarial.refs` / `.fallbacks` / `.backends` — are refused by `config set` (by name, whatever form they're stored in) and stay a committed-base hand-edit; git is the drift alarm for that one class of keys.
+- **No hand-writing (FAFF-387).** The rule runs both directions: no skill or agent hand-*writes* any rc file either (base or overlay). **`faff config init`** bootstraps the 9 flat `tracking.*` keys (the onboarding / create-from-scratch path, matching `/faff-onboard`'s existing rule); **`faff config set <dotted.key> <value>`** (FAFF-667) is the general writer for every OTHER scalar behaviour key, at any nesting depth — `appetite`, `models.*`, `slots.*`, `backends.<name>.<field>`, and the rest. Both are surgical raw-text edits that round-trip through the real reader before committing — never a hand-written wholesale rewrite, which is exactly the silent-corruption failure the committed-base posture exists to catch. **The one named carve-out:** sequence-valued keys a `key value` grammar cannot express — `faffter_dark.adversarial.refs` / `.fallbacks` / `.backends` — are refused by `config set` (by name, whatever form they're stored in) and stay a committed-base hand-edit; git is the drift alarm for that one class of keys.
 - **Why.** Reading by hand silently dropped configured slots **twice**: an agent shell-read a bare-named rc file, found nothing (the real one is `.faffrc.yaml`), and fell through to defaults. The resolver handles every accepted name and errors loudly on a legacy one, so the CLI is the only correct path.
 - **Enforced mechanically.** `faff validate-adapters` **fails** any skill `SKILL.md` that shell-reads the rc file directly (it runs in the CI gate).
 
@@ -140,7 +140,11 @@ tracking:
   project_id: "abc-123"      # tracker project/team id
   repo: shftwst/faff         # org/repo slug
   git_host: github           # github | gitlab | gitea | … (autodetected if omitted)
-  spec_docs_path: docs/specs/                                   # where faff-graft commits specs (see Spec docs location)
+  spec_docs_path: docs/specs/ # where faff-graft commits specs (see Spec docs location)
+  prd_docs_path: docs/prd/
+  prdr_docs_path: docs/prdr/
+  adr_docs_path: docs/adr/
+  spike_docs_path: docs/spikes/
 
 install:
   skill_targets:   # optional block-sequence (FAFF-684, see docs/guide/cli.md); unset ⇒ ~/.claude+.agents/skills
@@ -192,22 +196,16 @@ Faff auto-detects which issue tracker and git host MCP servers are available and
 
 ### Spec docs location
 
-When `/faff-graft` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-graft artifact lifecycle). The in-repo directory is configurable via the `tracking.spec_docs_path` key in `.faffrc`:
+When `/faff-graft` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-graft artifact lifecycle). The in-repo directory is configurable via `tracking.spec_docs_path`.
 
-```yaml
-tracking:
-  spec_docs_path: docs/specs/
-```
-
-- **Default when unset:** a `specs/` directory inside the repo's docs folder, resolved at use time:
-  1. If `docs/` exists at the repo root → `docs/specs/`.
-  2. Else if `doc/` exists at the repo root → `doc/specs/`.
-  3. Else → create `docs/` and use `docs/specs/` (prefer `docs/` if both `docs/` and `doc/` exist; create the `specs/` subdirectory if it's missing).
+- **Default when unset:** `docs/specs/` when `docs/` exists, otherwise `doc/specs/` when `doc/` exists, otherwise create and use `docs/specs/`.
 - The value is a directory **relative to the repo root**. A trailing slash is optional.
 - The filename within it is unchanged: `YYYY-MM-DD-<issue-id>-<slug>-design.md`.
 - This only relocates the spec **within the same repo** — the spec still lands on the feature branch and ships with the PR. It is not a pointer to a separate repository.
 
 Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. The `faff config spec-docs-path [--create]` resolver applies this exact rule — sub-skills call it rather than re-deriving the path. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
+
+PRDs, PRDRs, ADRs, and spikes follow the same rule through `tracking.prd_docs_path`, `tracking.prdr_docs_path`, `tracking.adr_docs_path`, and `tracking.spike_docs_path`. Their resolver commands are `faff config prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, and `spike-docs-path`. The default locations remain `docs/prd/`, `docs/prdr/`, `docs/adr/`, and `docs/spikes/`; a repository can opt into another structure without changing SuperDomestique's defaults for everyone else.
 
 ### Slots (optional delegation)
 
@@ -240,7 +238,7 @@ Each slot has a built-in default when unset. The default skill owns its own beha
 |---|---|---|
 | `intake` | `faffter-noon-intake` | Runs new-work discovery for `/faff-jot` and emits a discovery brief. A producer doing-skill. |
 | `spec` | `faffter-noon-spec` | Produces the spec (lite nlspec arc). A producer doing-skill. |
-| `adr` | `faffter-noon-adr` | Authors the Nygard ADR body (Context/Decision/Consequences) at faff-graft Step 4b, from a settled `Chosen:` decision + the spec rationale + the existing `docs/adr` log. Intake-shaped producer — a documented body output with an **advisory** confidence self-rating and **no** gated contract (the ADR body is never pass/fail-gated). The single ADR-authoring producer (FAFF-27 reuses it). |
+| `adr` | `faffter-noon-adr` | Authors the Nygard ADR body (Context/Decision/Consequences) at faff-graft Step 4b, from a settled `Chosen:` decision + the spec rationale + the configured ADR log. Intake-shaped producer — a documented body output with an **advisory** confidence self-rating and **no** gated contract (the ADR body is never pass/fail-gated). The single ADR-authoring producer (FAFF-27 reuses it). |
 | `architecture` | `faffter-noon-architecture` | Generative architecture/infra **proposer**: reads the brief/spec + the acquired infra profile (`faff profile show`) and proposes one best-fit, build-biased, production-grade architecture. Emits a `faff-contract:architecture-proposal` block (`{chosen_architecture, rationale, adr_candidates[], assumptions[], recommendation}`) + an `## ADR promotion intent` section — it **proposes, never commits** (no `faff adr new` call; graft Step 4b materialises candidates). The PROPOSE box; the spec-review `architectural` lens is the downstream CRITIC — they meet only through the spec artifact (the proposer/critic boundary). **Invoked by faff-prep's conditional architecture step** (new-runnable-surface work only, precision-biased — see `faff-prep` → Architecture proposal step): the validated proposal block lands **verbatim in the attached spec**, and downstream consumers — the spec-review `architectural` lens and the holdout `env` step — read it from the spec, never out-of-band. A producer doing-skill. |
 | `env` | `faffter-noon-env-compose` | Environment **provisioner**: reads the architecture proposal + the acquired infra profile (`faff profile show`) and stands up a representative, health-checked **stand-in** for the system under build — the default brings one up locally via docker-compose, seeds it with a synthetic dataset, and emits a `faff-contract:env-handle` block (`{status, endpoint, endpoints?, health_checks[], teardown_ref, …}`) the holdout evaluator points at and tears down. The PROVISION box (propose → provision → seed → evaluate); the handle is the fixed interface, the provisioning mechanism (compose now, cloud later) is swappable behind it. On `recommendation ≠ build` it provisions nothing and surfaces for a human; a non-ready handle never passes the gate (`status: ready` → contract exit 0). A producer doing-skill. |
 | `evaluator` | `faffter-noon-evaluate` | Code-blind holdout **evaluator**: the EVALUATE box (propose → provision → seed → evaluate). Given a spec + a running env (it provisions via the `env` slot, or accepts a handed `env-handle`) and **never the codebase**, it classifies the spec's DoD with `faff dod classify` (deterministic), exercises the born-verifiable criteria against the running feature, forces a criterion that can't be machine-judged to the human-judgement value, and emits a `faff-contract:holdout-verdict` block before tearing the env down (canonical semantics: `faff contract holdout-verdict --describe`). The trust boundary is fixed: classify + verdict-validate are deterministic CLI, exercising the criteria is the LLM's job, the unjudgeable-criterion coercion is mechanical. A non-blind or incoherent verdict never gate-passes. A producer doing-skill. |

@@ -1,5 +1,5 @@
 // FAFF-120 — the skill-authoring charter's lintable subset in `faff validate-adapters`
-// (docs/skill-authoring.md): per-file line cap, wall-of-text paragraph cap, stray transcript/
+// (docs/reference/skill-authoring.md): per-file line cap, wall-of-text paragraph cap, stray transcript/
 // retrospective markers, and a cross-file duplicated-block detector. Thresholds are calibrated
 // against the post-FAFF-114–119 tree as lenient ceilings; the real tree must pass clean.
 import { test } from "node:test";

@@ -15,7 +15,7 @@ const CLI_DOC_PATH = "docs/guide/cli.md";
 
 // Documented base-command set: the first command-shaped token of the LEADING
 // inline-backtick span of each markdown table row. Anchored to the row's first
-// column (^\|\s*`) so `--flags`, `.faffrc.yaml`, `docs/adr/` spans never match;
+// column (^\|\s*`) so `--flags`, `.faffrc.yaml`, `records/adr/` spans never match;
 // deduped so alternate-form rows (`config` / `config init`) collapse to one base.
 function parseDocumentedCommands(text) {
   const documented = new Set();
@@ -85,7 +85,7 @@ function lintCliDocSelftest() {
     "| `config <path\\|get…> …` | reads `.faffrc.yaml`, the `--json` form |",
     "| `config init --set k=v` | merge a `tracking:` block |",
     "| `validate-adapters --configured` | pre-flight `.faff/` occupants |",
-    "| `worktree-prune [--own PATH]` | scoped prune; never touch `docs/adr/` |",
+    "| `worktree-prune [--own PATH]` | scoped prune; never touch `records/adr/` |",
     "some prose with a `--flag` and `.faffrc.yaml` span, not a table row",
   ].join("\n");
   const parsed = parseDocumentedCommands(doc);

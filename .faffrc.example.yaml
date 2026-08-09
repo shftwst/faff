@@ -32,10 +32,13 @@ tracking:
   repo: org/repo # org/repo slug
   git_host: github # github | gitlab | gitea | … (autodetected if omitted)
 
-  # Where /faff-graft commits the spec inside the repo (ships in the same PR as the code).
-  # Unset → resolved at use time: docs/specs if docs/ exists, else doc/specs if doc/ exists,
-  # else docs/specs (creating docs/). Path is relative to the repo root.
-  spec_docs_path: docs/specs/
+  # Repository record stores. Each path is relative to the repo root. Defaults stay under
+  # docs/ (or doc/ when that is the repository's established documentation directory).
+  spec_docs_path: docs/specs/ # where /faff-graft commits the build spec
+  prd_docs_path: docs/prd/
+  prdr_docs_path: docs/prdr/
+  adr_docs_path: docs/adr/
+  spike_docs_path: docs/spikes/
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 # Producers DO the work; adaptors TRANSLATE a producer's output onto a fixed
@@ -239,7 +242,7 @@ sentry:
 
 # Architecture decision records (FAFF-16). After faff-prep attaches a spec, this controls
 # whether it offers to promote that spec's architecturally-significant Chosen: decisions into
-# the repo's append-only docs/adr/ log. The `faff adr` CLI (next-number/new/list/validate) is
+# the configured append-only ADR log. The `faff adr` CLI (next-number/new/list/validate) is
 # always available regardless; this only gates the prep-time promotion offer.
 adr:
   mode: offer   # offer (default): surface candidates + human-gated y/n write · surface: list only · off: nothing

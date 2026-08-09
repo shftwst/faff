@@ -87,5 +87,5 @@ and the remaining external-verification work.
   validates generic contract shapes and failure directions.
 - [`contract-defs.js`](https://github.com/shftwst/faff/blob/main/plugin/skills/faff/bin/lib/contract-defs.js)
   defines delivery-specific verdicts.
-- [ADR 0042](https://github.com/shftwst/faff/blob/main/docs/adr/0042-three-tier-region-model-shared-infra-governance-factory-with-a-one-way-direction.md)
+- [ADR 0042](https://github.com/shftwst/faff/blob/main/records/adr/0042-three-tier-region-model-shared-infra-governance-factory-with-a-one-way-direction.md)
   records the current architecture decision.

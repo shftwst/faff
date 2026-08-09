@@ -47,7 +47,7 @@ Treat delivery and governance as equal parts of the product:
 ## Evidence language
 
 Use the status recorded by the dated
-[public trust-claim audit](https://github.com/shftwst/faff/blob/main/docs/audits/2026-08-07-FAFF-732-public-trust-claims.md):
+[public trust-claim audit](https://github.com/shftwst/faff/blob/main/verification/audits/2026-08-07-FAFF-732-public-trust-claims.md):
 
 - **enforced** means a named mechanism applies the rule;
 - **attested** means the system reports the condition but the boundary does not
@@ -70,7 +70,7 @@ quietly strengthening copy elsewhere.
 - Avoid presenting the product as a project-management shortcut, a chore
   remover, or unqualified full autonomy.
 
-[ADR 0096](https://github.com/shftwst/faff/blob/main/docs/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md)
-records the naming decision. The [July 2026 positioning brief](https://github.com/shftwst/faff/blob/main/docs/superpowers/specs/2026-07-20-docs-positioning-design.md)
-still governs the evidence-first position, trust-per-level model, two-part
-information architecture, and public tone.
+[ADR 0096](https://github.com/shftwst/faff/blob/main/records/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md)
+records the naming decision. This page is the current authority for the
+evidence-first position, trust-per-level model, information architecture, and
+public tone.

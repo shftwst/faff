@@ -36,7 +36,7 @@ import { extractHeredoc } from "./helpers/scaffolder-heredocs.mjs"; // FAFF-538:
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.join(HERE, "..");
-const EV_DIR = path.join(REPO, "docs", "external-verification");
+const EV_DIR = path.join(REPO, "verification", "external-verification");
 
 // The allowlists are Sets of exactly one occupant each today (FAFF-513's fix target); take the
 // sole member rather than hardcoding the string literal.

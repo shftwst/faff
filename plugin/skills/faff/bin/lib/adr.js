@@ -1,6 +1,6 @@
 // ===========================================================================
 // === region:factory — adr — architecture decision records (FAFF-16). Deterministic mechanics over the ===
-// repo's append-only docs/adr/NNNN-title.md Nygard log: number / scaffold / list / validate.
+// repo's configurable append-only ADR log: number / scaffold / list / validate.
 // The judgement (is a decision significant? record it?) stays with the human in faff-prep;
 // this command owns only the mechanical parts. Append-only: `new` never overwrites.
 // FAFF-199 (ADR L4): adds an optional Provenance field (human|loop, default human — the
@@ -46,14 +46,14 @@ const ADR_SURFACE = {
 // enum constants where identical, don't fork a byte-identical enum under a new name).
 const { PRDR_ACTORS: ADR_ACTORS, PRDR_SUPERSEDES: ADR_SUPERSEDES, computeAdrAdmission, computeAdrAdmissionVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
-const { DEFAULTS, loadConfig } = require("./config");
+const { DEFAULTS, loadConfig, resolveAdrDocsPath } = require("./config");
 const { dig, findRoot } = require("./shared-infra");
 
 const ADR_STATUSES = ["Proposed", "Accepted", "Superseded", "Deprecated", "Rejected"];
 const ADR_PROVENANCES = ["human", "loop"];
 const ADR_FILE_RE = /^(\d{4})-(.+)\.md$/;
 
-function adrDir(root) { return path.join(root, "docs", "adr"); }
+function adrDir(root) { return path.join(root, resolveAdrDocsPath(root, loadConfig(root)[0], false)); }
 
 function adrSlug(title) {
   return String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "adr";
@@ -274,7 +274,7 @@ function renumberRefsTo(text, oldNum, newNum, prefix) {
 // a failure leaves no half-renamed tree (the rename is applied only AFTER the target slot is
 // confirmed free). git-agnostic (pure `fs`, parity with `new`/`supersede`); graft stages the
 // rename with `git add -A` so git records it by similarity. Returns { code, out, err }.
-//   selector  a docs/adr filename OR a bare number (a duplicated bare number is REJECTED —
+//   selector  an ADR filename OR a bare number (a duplicated bare number is REJECTED —
 //             ambiguous under exactly the collision this addresses; pass the filename).
 //   target    a 1–4 digit number OR the literal "next" (→ adrNextNumber against the tree).
 //   refScope  filenames (basenames or repo-relative) within which back-refs to the moved
@@ -310,7 +310,7 @@ function adrRenumber(dir, selector, target, refScope) {
   const newPath = path.join(dir, newFile);
   // ref-scope: normalise to basenames and keep ONLY real ADR filenames (matching ADR_FILE_RE) —
   // never read/rewrite a non-ADR path handed in, so an arbitrary or traversed entry can neither
-  // corrupt an unrelated file nor escape docs/adr/ (basename + ADR-shape bound the blast radius to
+  // corrupt an unrelated file nor escape the configured ADR directory (basename + ADR-shape bound the blast radius to
   // this-PR ADRs, upholding the spec's "never touch main's untouched files" invariant). The moved
   // file is always in scope for its own heading/refs.
   const scope = new Set((refScope || []).map((f) => path.basename(String(f).trim())).filter((f) => ADR_FILE_RE.test(f)));
@@ -520,7 +520,7 @@ function cmdAdr(args) {
     // faff adr accept <selector> [--root <path>] — FAFF-546: the sole writer of `Status: Accepted`
     // on the ADR axis. Deliberately authority-blind (no --actor/--admit-verdict) — see adrAccept.
     const selector = args[1];
-    if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr accept: <selector> (a docs/adr filename or a bare number) is required\n"); return 2; }
+    if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr accept: <selector> (an ADR filename or a bare number) is required\n"); return 2; }
     const r = adrAccept(dir, selector);
     if (r.out) process.stdout.write(r.out);
     if (r.err) process.stderr.write(r.err);
@@ -597,7 +597,7 @@ function cmdAdr(args) {
     // collision-repair primitive. Moves ONE ADR to a free number, fixes heading + in-scope back-refs,
     // and re-validates; graft's Step-10 merge guard calls it, never free-hands git mv + heading edits.
     const selector = args[1];
-    if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr renumber: <selector> (a docs/adr filename or a bare number) is required\n"); return 2; }
+    if (!selector || selector.startsWith("--")) { process.stderr.write("faff adr renumber: <selector> (an ADR filename or a bare number) is required\n"); return 2; }
     const reqErr = requireFlags(parsed.values, ADR_SURFACE.subcommands.renumber, "adr", "renumber");
     if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
     const to = get("--to");
@@ -622,6 +622,16 @@ function adrSelftest() {
   fs.mkdirSync(dir, { recursive: true });
   const mk = (n, slug, body) => fs.writeFileSync(path.join(dir, `${n}-${slug}.md`),
     body != null ? body : `# ADR ${n} — ${slug}\n\n- **Status:** Accepted\n- **Date:** 2026-06-21\n\n## Context\nx\n`);
+
+  {
+    const configuredRoot = path.join(tmp, "configured");
+    const configuredDir = path.join(configuredRoot, "records", "adr");
+    fs.mkdirSync(configuredDir, { recursive: true });
+    fs.writeFileSync(path.join(configuredRoot, ".faffrc.yaml"), "tracking:\n  adr_docs_path: records/adr/\n");
+    fs.writeFileSync(path.join(configuredDir, "0001-configured.md"), "# ADR 0001 — configured\n\n- **Status:** Accepted\n- **Date:** 2026-08-09\n\n## Context\nx\n");
+    t("configured ADR path is the command's record source",
+      path.normalize(adrDir(configuredRoot)) === path.normalize(configuredDir) && listAdrs(adrDir(configuredRoot)).length === 1);
+  }
 
   t("next-number on empty → 0001", adrNextNumber(dir) === "0001");
   mk("0001", "alpha"); mk("0002", "beta");

@@ -58,7 +58,7 @@ Gather everything that can be inferred, so the human confirms rather than types.
   - `org/repo` → `tracking.repo`.
   - Map the host → `tracking.git_host` token: `github.com`→`github`, `gitlab.com`→`gitlab`, `*.gitea.*`/known gitea → `gitea`, etc. An **unrecognised or self-hosted host** is surfaced as a **guess to confirm** (e.g. "host `git.acme.internal` looks self-hosted — set `git_host: github`? (it's the common GitHub-Enterprise case) / type the right token / skip"), never silently guessed wrong.
   - No `origin` (or no remote) → skip `repo`/`git_host`; faff resolves them at use time.
-- **Docs layout** → `tracking.spec_docs_path`, **only when it diverges from the default rule.** The default resolution is: `docs/` → `docs/specs/`, else `doc/` → `doc/specs/`, else create `docs/` (gateway → **Spec docs location**). So only write `spec_docs_path` when the layout would otherwise resolve wrong — e.g. `doc/` exists but no `docs/` (write `doc/specs/`), or the project keeps specs somewhere non-standard the human names. When the default rule already lands right, **leave the key unset** (defaults are not clutter).
+- **Record layout** → `tracking.spec_docs_path`, `tracking.adr_docs_path`, and `tracking.spike_docs_path`, **only when an established path diverges from the default rule.** Defaults are `docs/<kind>/`, or `doc/<kind>/` when only `doc/` exists (gateway → **Spec docs location**). If an existing repository clearly keeps one of these stores elsewhere, include that override; otherwise leave it unset. Do not create or relocate records during onboarding.
 
 Present the detected set as a short skimmable list ("Here's what I found: …") so the human sees what's about to be confirmed in one glance.
 
@@ -77,7 +77,7 @@ Query the configured tracker MCP for the team list (autodetect the tracker's lis
 
 Assemble a **single** `faff config init` call with one `--set tracking.<key>=<value>` per detected/confirmed value:
 
-- Only the allowlisted keys: **`tracker`, `team_key`, `repo`, `git_host`, `spec_docs_path`**. **Never `project_id`** — it is not in the writer's allowlist and `config init` exits 2 on it (deferred to a separate ticket). Omit any key that wasn't detected/confirmed.
+- Only keys this flow detects: **`tracker`, `team_key`, `repo`, `git_host`, `spec_docs_path`, `adr_docs_path`, `spike_docs_path`**. **Never `project_id`** — it is not in the writer's allowlist and `config init` exits 2 on it (deferred to a separate ticket). Omit any key that wasn't detected/confirmed.
 - **Dry-run first:** run the same command with `--dry-run` and show the human the exact `.faffrc.yaml` text that will be written. One confirm gate ("Write this config? (y/n)").
 - On confirm, run it **without** `--dry-run` to write. The writer is surgical and round-trip-verified; it creates `.faffrc.yaml` (the single canonical filename).
 
@@ -111,6 +111,6 @@ Close with a skimmable summary: the config path written, the keys set, the gitig
 - **Bail before bootstrap.** Always run the `config path` exit-code check first; exit 0 → report+stop, exit 2 → loud rename error+stop, exit 3 → proceed. Never write over an existing or legacy-named config.
 - **Persist only via `faff config init`.** Onboard **never** hand-writes the rc file — no shell redirect, no in-place stream edit, no `Read`-then-rewrite — the CLI is the only writer (gateway → **CLI-only config access**). This is what keeps the `validate-adapters` config-access lint green.
 - **Discovery, not interrogation.** Detected values are confirmed, not blank-prompted. `team_key` is the one genuinely-irreducible input.
-- **Allowlist only.** `tracker, team_key, repo, git_host, spec_docs_path` — never `project_id` (config init exits 2 on it).
+- **Detected keys only.** `tracker, team_key, repo, git_host, spec_docs_path, adr_docs_path, spike_docs_path` — never `project_id` (config init exits 2 on it).
 - **One write, gated.** Dry-run preview → one confirm → one `config init` call → `gitignore-ensure`.
 - **Interactive-only.** No autonomous path; autonomous/beep-boop runs never onboard and never emit the first-run offer.

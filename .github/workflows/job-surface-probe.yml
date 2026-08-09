@@ -80,7 +80,7 @@ jobs:
           # after the failing command runs, so the output would never print on
           # the one path it matters. The `if` keeps the failure AND the output.
           f="$RUNNER_TEMP/selftest-hosted-direct.txt"
-          if ! sh docs/spikes/2026-07-26-FAFF-654/probe.sh --selftest > "$f"; then
+          if ! sh records/spikes/2026-07-26-FAFF-654/probe.sh --selftest > "$f"; then
             cat "$f"
             exit 1
           fi
@@ -91,7 +91,7 @@ jobs:
           PROBE_ENVIRON_KEYS: ${{ inputs.environ_keys }}
         run: |
           set -u
-          sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+          sh records/spikes/2026-07-26-FAFF-654/probe.sh \
             --shape hosted-direct \
             --environ-keys "$PROBE_ENVIRON_KEYS" \
             > "$RUNNER_TEMP/hosted-direct.txt"
@@ -110,7 +110,7 @@ jobs:
           sudo rm -f /var/run/docker.sock /run/docker.sock
           PROBE_SOCKET_REMOVED=1 \
           PROBE_NOTES='same-job removal: the socket was removed by a step INSIDE this job, not on the host before it started' \
-            sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+            sh records/spikes/2026-07-26-FAFF-654/probe.sh \
               --shape hosted-direct \
               --environ-keys "$PROBE_ENVIRON_KEYS" \
             > "$RUNNER_TEMP/hosted-direct-after-removal.txt"
@@ -206,7 +206,7 @@ jobs:
           # after the failing command runs, so the output would never print on
           # the one path it matters. The `if` keeps the failure AND the output.
           f="$RUNNER_TEMP/selftest-hosted-container.txt"
-          if ! sh docs/spikes/2026-07-26-FAFF-654/probe.sh --selftest > "$f"; then
+          if ! sh records/spikes/2026-07-26-FAFF-654/probe.sh --selftest > "$f"; then
             cat "$f"
             exit 1
           fi
@@ -220,7 +220,7 @@ jobs:
           PROBE_ENVIRON_KEYS: ${{ inputs.environ_keys }}
         run: |
           set -u
-          sh docs/spikes/2026-07-26-FAFF-654/probe.sh \
+          sh records/spikes/2026-07-26-FAFF-654/probe.sh \
             --shape hosted-container \
             --environ-keys "$PROBE_ENVIRON_KEYS" \
             > "$RUNNER_TEMP/hosted-container.txt"

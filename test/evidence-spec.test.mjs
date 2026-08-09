@@ -1,4 +1,4 @@
-// FAFF-601 — the drift alarm for docs/evidence/: every new schema's example must
+// FAFF-601 — the drift alarm for verification/evidence/: every new schema's example must
 // validate against its own schema (via the shared validate-schema.mjs subset checker —
 // reused as the CLI it is, never forked; it self-executes on import so it is invoked as
 // a subprocess, matching its own documented usage), the events example must pass `faff
@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
 const BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
-const EVIDENCE = join(REPO, "docs", "evidence");
+const EVIDENCE = join(REPO, "verification", "evidence");
 const VALIDATOR = join(REPO, "plugin", "skills", "faff", "contracts", "validate-schema.mjs");
 
 function load(path) {

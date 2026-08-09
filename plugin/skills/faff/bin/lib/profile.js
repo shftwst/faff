@@ -8,7 +8,7 @@
 //                                    inspection: NO network/install/subprocess (constraint ①), writes no files.
 // The schema is the load-bearing contract downstream (FAFF-27/30) consumes; acquisition is a
 // separate `profile` slot (FAFF-231). Deterministic-tools-over-prose: schema + merge + mining live here,
-// not in skill prose. See docs/adr/0013 for the storage-split + conflict-authority decision.
+// not in skill prose. See records/adr/0013 for the storage-split + conflict-authority decision.
 // ===========================================================================
 
 // FAFF-231 repo-miner — the archaeologist, not a probe: learns a repo's infra by READING artifacts

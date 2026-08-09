@@ -1,6 +1,6 @@
 // FAFF-538/628 — CLI-surface drift-guard for the external-verification scaffolders.
 //
-// The six SUT scaffolders (docs/external-verification/scaffold-p{1..5}-*.sh + scaffold-faff-lab.sh)
+// The six SUT scaffolders (verification/external-verification/scaffold-p{1..5}-*.sh + scaffold-faff-lab.sh)
 // embed `.faffrc.yaml` + `RUNBOOK.md` here-docs of faff CLI gestures that rot silently as the CLI
 // surface moves — already three manual repair passes (FAFF-512/513/524/529), each caught only by a
 // human eyeballing the scripts against main. This static guard makes a stale scaffolder fail CI
@@ -47,7 +47,7 @@ const SURFACES = assembleSurfaces(COMMANDS);
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.join(HERE, "..");
-const EV_DIR = path.join(REPO, "docs", "external-verification");
+const EV_DIR = path.join(REPO, "verification", "external-verification");
 const SKILLS_DIR = path.join(REPO, "plugin", "skills");
 
 // The six scaffolders the guard iterates. Discovered by glob so a future scaffolder is auto-covered;
@@ -232,7 +232,7 @@ function faffrcFindings(body, source) {
 
 test("all six canonical scaffolders are present and discovered", () => {
   for (const name of CANONICAL_SIX) {
-    assert.ok(SCAFFOLDERS.includes(name), `expected scaffolder ${name} under docs/external-verification/`);
+    assert.ok(SCAFFOLDERS.includes(name), `expected scaffolder ${name} under verification/external-verification/`);
   }
   assert.ok(SCAFFOLDERS.length >= 6, `expected >=6 scaffolders, found ${SCAFFOLDERS.length}`);
 });

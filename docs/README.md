@@ -1,51 +1,22 @@
 # Documentation map
 
-If you want to use SuperDomestique, start with the **[guide](guide/intro.md)**. It covers installation, configuration, everyday commands, and the paths through a governed delivery run.
+Start with the **[guide](guide/intro.md)** to install and use SuperDomestique. Read the **[concepts](concept/intro.md)** for the ideas behind governed autonomy, delivery, evidence, and Commissaire.
 
-For the ideas behind the product, read the **[concepts](concept/intro.md)**. They explain governed autonomy, the delivery model, evidence, and the boundary between execution and governance.
+The rest of the repository is separated by purpose so consumer guidance no longer sits beside historical records, generated evidence, and executable operations assets.
 
-Those are the two public documentation collections. The website publishes only `docs/guide/` and `docs/concept/`; everything else below is repository material for contributors, operators, agents, or people investigating how a decision was reached.
-
-## Repository material
-
-### Contributor and technical reference
-
-| Path | What it contains |
+| Collection | Contents |
 |---|---|
-| [Glossary](GLOSSARY.md) | Short definitions for SuperDomestique's commands, contracts, and coined vocabulary. |
-| [Skill authoring](skill-authoring.md) | The standard for contributors who edit a `SKILL.md`. |
-| [Architecture](architecture/) | Current technical boundaries and coupling notes. |
-| [CI](ci/) | Operational CI guidance and assets used by commands and workflows. |
+| [`docs/guide/`](guide/) | Consumer tasks and workflows. |
+| [`docs/concept/`](concept/) | Product concepts, positioning, and governance model. |
+| [`docs/reference/`](reference/) | Contributor and technical reference, including the [glossary](reference/GLOSSARY.md), [skill-authoring standard](reference/skill-authoring.md), and [architecture notes](reference/architecture/). |
+| [`records/`](../records/) | Durable project records: [ADRs](../records/adr/), [specs](../records/specs/), and [spikes](../records/spikes/). |
+| [`verification/`](../verification/) | Audits, evidence packages, external verification, and captured measurements. |
+| [`operations/`](../operations/) | Operational assets used by CI and automation. |
 
-### Controlled records
+The website publishes only `docs/guide/` and `docs/concept/`. Repository records and verification material remain inspectable in GitHub, but they are not consumer documentation and should be read in the context of their date and status.
 
-| Path | What it contains |
-|---|---|
-| [ADRs](adr/) | Immutable architecture decisions and their status. |
-| [Specs](specs/) | Per-ticket build specifications discovered by the delivery workflow. |
+## Configured record paths
 
-The CLI can also create records under `docs/prd/` and `docs/prdr/`. Those directories do not need to exist until the relevant record is created.
+This repository opts into `records/specs/`, `records/prd/`, `records/prdr/`, `records/adr/`, and `records/spikes/` through `.faffrc.yaml`. Other repositories retain SuperDomestique's existing `docs/*` defaults unless they configure their own locations.
 
-### Operational assets
-
-| Path | What it contains |
-|---|---|
-| [Spikes](spikes/) | Time-boxed investigations, including scripts and probes that may still be executed by workflows. |
-| [Superpowers](superpowers/) | Repository assets used by scaffolding and integration checks. |
-
-### Evidence and research
-
-| Path | What it contains |
-|---|---|
-| [Audits](audits/) | Point-in-time findings and follow-up records. |
-| [Evidence](evidence/) | Evidence packages used to support product and governance claims. |
-| [External verification](external-verification/) | Cross-project verification fixtures, results, and supporting material. |
-| [Reports](reports/) | Generated measurements and dated analysis. Treat a report as point-in-time evidence, not current consumer guidance. |
-
-## Paths are part of the interface
-
-This map improves navigation without reorganising the tree. Several documentation paths are read, generated, copied, or executed by configuration, CLI commands, skills, tests, workflows, and the website.
-
-In particular, treat `docs/adr/`, `docs/specs/`, `docs/prd/`, `docs/prdr/`, `docs/ci/`, `docs/spikes/`, `docs/evidence/`, `docs/external-verification/`, `docs/audits/`, `docs/superpowers/`, and generated report paths as compatibility-sensitive. Before moving one, inventory every consumer and change the path and its checks together.
-
-Repository-only does not mean unimportant or obsolete. It means the material is not part of the consumer documentation site and should be read in the context of its date, status, and purpose.
+These paths are consumed by commands, skills, tests, workflows, and generators. Move them only with their configuration and consumers.

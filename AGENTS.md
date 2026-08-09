@@ -4,7 +4,7 @@ This file is auto-loaded into every coding agent session in this repo, so the pr
 
 > **Not faff config.** This is contributor guidance for *people and agents working on faff*. The faff CLI reads its own configuration only via `faff config` (from `.faffrc.yaml`) — `CLAUDE.md` is never a config source (FAFF-50).
 
-Unfamiliar with faff's coined vocabulary (gate, contract, lane, slot, rung, …)? See the **[Glossary](docs/GLOSSARY.md)** — one sentence and the artifact each term names.
+Unfamiliar with faff's coined vocabulary (gate, contract, lane, slot, rung, …)? See the **[Glossary](docs/reference/GLOSSARY.md)** — one sentence and the artifact each term names.
 
 ## Product names
 
@@ -26,7 +26,7 @@ not reintroduce faff as the public product name in new documentation.
 
 ## Skill-authoring standard
 
-Every skill prompt (`SKILL.md`) is written **lean, deduplicated, skimmable**. The full standard — principles plus the machine-checkable lint rules `faff validate-adapters` enforces — lives in **[`docs/skill-authoring.md`](docs/skill-authoring.md)**. Read it before editing or adding a `SKILL.md`.
+Every skill prompt (`SKILL.md`) is written **lean, deduplicated, skimmable**. The full standard — principles plus the machine-checkable lint rules `faff validate-adapters` enforces — lives in **[`docs/reference/skill-authoring.md`](docs/reference/skill-authoring.md)**. Read it before editing or adding a `SKILL.md`.
 
 In short:
 

@@ -11,7 +11,7 @@
 //
 // SCOPE: this is the spike's proof harness, NOT the production validator. Porting
 // `validateAgainstSchema` into the faff CLI (`faff validate-contract` / the wiring
-// of the spec contract script) is FAFF-77. See docs/adr/0001-contract-as-code-foundations.md.
+// of the spec contract script) is FAFF-77. See records/adr/0001-contract-as-code-foundations.md.
 //
 // Usage:
 //   node validate-schema.mjs <data.json> <schema.json>   # exit 0 = valid, 1 = violations

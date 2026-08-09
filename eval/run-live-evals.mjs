@@ -277,7 +277,7 @@ async function main(argv) {
     writeFileSync(join(reportDir, `${kind}-live-baseline.json`), JSON.stringify(summary, null, 2));
     writeFileSync(join(reportDir, `FAFF-163-${kind}-baseline.md`), renderBaselineMarkdown(kind, summary));
     printHeadline(kind, summary);
-    console.log(`\nReports written:\n  eval/report/${kind}-live-baseline.json (gitignored summarize dump)\n  eval/report/FAFF-163-${kind}-baseline.md (gitignored — copy the table into docs/adr/0004 addendum)`);
+    console.log(`\nReports written:\n  eval/report/${kind}-live-baseline.json (gitignored summarize dump)\n  eval/report/FAFF-163-${kind}-baseline.md (gitignored — copy the table into records/adr/0004 addendum)`);
     return summary.status === "complete" ? 0 : 1;
   } finally {
     try { repo.teardown?.(); } catch { /* best-effort */ }

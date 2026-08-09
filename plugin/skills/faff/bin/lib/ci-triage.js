@@ -71,12 +71,14 @@ function flakySignature(checkName) {
   return checkName;
 }
 
-// === Flaky register — docs/ci/flaky-register.json, the single committed carrier of cross-run =====
+// === Flaky register — operations/ci/flaky-register.json, the single committed carrier of cross-run =====
 // flaky history (ratified 2026-07-06). ALL access goes through readFlakyRegister/writeFlakyRegister
 // (the spec's "single read/append accessor") so a future carrier swap touches one seam.
 const QUARANTINE_THRESHOLD = 3;
 
 function flakyRegisterPath(root) {
+  const operationsPath = path.join(root, "operations", "ci", "flaky-register.json");
+  if (fs.existsSync(operationsPath)) return operationsPath;
   return path.join(root, "docs", "ci", "flaky-register.json");
 }
 

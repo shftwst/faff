@@ -1,9 +1,9 @@
 // ===========================================================================
 // === region:factory — lint-refs — FAFF-238: ban external-artifact refs (ticket tags / ADR citations / ===
-// numbered docs/adr pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
+// numbered ADR-file pointers) in prose the reader EXECUTES or PUBLICLY CONSUMES.
 // Slice 1 enforces docs/guide/** (the public user-guide surface); the SKILL.md
 // surface is slice 2 (FAFF-239). docs/ outside docs/guide/ is allow-by-default
-// (ADRs / specs / contributor guidance legitimately cite provenance); docs/adr/**
+// (ADRs / specs / contributor guidance legitimately cite provenance); ADR records
 // is exempt because `faff adr validate` REQUIRES its supersession back-refs. Within-
 // prose anchors (gateway -> Section, sibling skill names like faff/SKILL.md) never
 // match the patterns. This source file is not scanned, so its own refs are exempt.
@@ -18,7 +18,7 @@ const { findRoot } = require("./shared-infra");
 const REF_PATTERNS = [
   ["ticket", /\bFAFF-\d+\b/g],            // ticket tag, e.g. FAFF-238 (case-sensitive — a lowercase branch name is not a cite)
   ["adr-cite", /\bADR[-\s]?\d{3,4}\b/gi], // "ADR 0013" / "ADR 013" — canonical 3-4 digit form (ADRs are zero-padded to 4); a 1-2 digit "ADR 9" is not a project ADR id and is not flagged
-  ["adr-ptr", /\bdocs\/adr\/\d{1,4}[-\w]*/g], // numbered pointer only — a bare docs/adr/ dir mention does not match
+  ["adr-ptr", /\b(?:docs|records)\/adr\/\d{1,4}[-\w]*/g], // numbered pointer only; both the default and this repo's configured layout
 ];
 
 // Pure core: every external-artifact ref on one line, each { match, pattern }.
@@ -84,11 +84,12 @@ function lintRefsSelftest() {
     ["per ADR 0013 the split", 1, "adr citation (4-digit)"],
     ["per ADR 013 the split", 1, "adr citation (3-digit)"],
     ["per ADR-9 the call", 0, "1-2 digit ADR ref is below the canonical form — not flagged"],
-    ["see docs/adr/0013-storage-split.md", 1, "numbered adr pointer"],
-    ["citing ADR 0010 and docs/adr/0010-foo.md", 2, "adr cite + numbered pointer"],
+    ["see records/adr/0013-storage-split.md", 1, "numbered adr pointer"],
+    ["see docs/adr/0013-storage-split.md", 1, "numbered default-layout adr pointer"],
+    ["citing ADR 0010 and records/adr/0010-foo.md", 2, "adr cite + numbered pointer"],
     ["the gateway → Automation eligibility section", 0, "within-prose section anchor"],
     ["the sibling faff/SKILL.md holds it", 0, "sibling skill name"],
-    ["the faff adr command operates on docs/adr/", 0, "bare docs/adr dir mention"],
+    ["the faff adr command operates on records/adr/", 0, "bare records/adr dir mention"],
     ["delegated to faffter-dark-nlspec", 0, "slot skill name (no number)"],
     ["build the faff-238-foo branch", 0, "lowercase branch name is not a cite"],
     ["plain prose with no refs at all", 0, "clean line"],

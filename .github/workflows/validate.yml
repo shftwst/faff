@@ -56,12 +56,12 @@ jobs:
       - name: Validate label-op descriptor table
         run: node plugin/skills/faff/bin/faff label --selftest
 
-      - name: Validate ADR command + the repo's own docs/adr tree
+      - name: Validate ADR command + the repo's own records/adr tree
         run: |
           node plugin/skills/faff/bin/faff adr --selftest
           node plugin/skills/faff/bin/faff adr validate
 
-      - name: Validate PRDR command + the repo's own docs/prdr tree (FAFF-463 — shape + numbering + git-landing tier)
+      - name: Validate PRDR command + the repo's configured records/prdr tree (FAFF-463 — shape + numbering + git-landing tier)
         run: node plugin/skills/faff/bin/faff prdr validate
 
       - name: Validate spec-readiness contract script

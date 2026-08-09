@@ -174,6 +174,9 @@ const REGION_MAP = {
   // mirrors the factory container-check assert-don't-enforce probe.
   "merge-gate": "factory",
   "branch-protection-check": "factory",
+  // FAFF-728: the run-start GitHub-auth preflight probe — colocated in merge-gate.js, reuses its
+  // spawnSync gh idiom, mirrors the branch-protection-check assert-don't-enforce probe → factory.
+  "github-auth-check": "factory",
   // FAFF-385: post-merge-check reuses gates.js's discoverRungs/runRung (factory identifiers,
   // same family as gates itself) and reads merge-gate.js's merge-record.json convention —
   // factory, not governance, for the identical reason merge-gate sits here.

@@ -22,6 +22,29 @@ test("branch-protection-check --selftest: the pure classifier passes", () => {
   assert.equal(code, 0);
 });
 
+test("github-auth-check --selftest: the pure classifier passes (FAFF-728)", () => {
+  const { code } = runCli(["github-auth-check", "--selftest"]);
+  assert.equal(code, 0);
+});
+
+test("classifyGithubAuth: the closed classification (FAFF-728)", async () => {
+  const { classifyGithubAuth } = await import("../plugin/skills/faff/bin/lib/merge-gate.js");
+  // authed — exit 0 + parseable .login
+  const authed = classifyGithubAuth({ error: null, status: 0, stdout: JSON.stringify({ login: "octocat" }), stderr: "" });
+  assert.equal(authed.status, "authed");
+  assert.equal(authed.login, "octocat");
+  // auth-failed — the API rejected the credential (keys on the HTTP status)
+  assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Bad credentials (HTTP 401)" }).status, "auth-failed");
+  assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "HTTP 403: Forbidden" }).status, "auth-failed");
+  // indeterminate — gh missing / non-auth error / unparseable body all fail OPEN, never a re-auth claim
+  assert.equal(classifyGithubAuth({ error: new Error("spawnSync gh ENOENT"), status: null, stdout: "", stderr: "" }).status, "indeterminate");
+  assert.equal(classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: server error (HTTP 500)" }).status, "indeterminate");
+  assert.equal(classifyGithubAuth({ error: null, status: 0, stdout: "not json", stderr: "" }).status, "indeterminate");
+  // token-safety: an auth-failed basis never carries the token — only the gh stderr line (no token in it)
+  const badTok = classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Bad credentials (HTTP 401)" });
+  assert.ok(!/ghp_|github_pat_/.test(badTok.basis));
+});
+
 test("contract integrity-floor --selftest: the pure floor decision table passes", () => {
   const { code } = runCli(["contract", "integrity-floor", "--selftest"]);
   assert.equal(code, 0);

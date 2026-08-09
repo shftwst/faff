@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-675",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b7f470bf22751c39a16ad4b232c88d8252a11ee0080fa4e8f97efb5127b1384c",
+    "branch": "faff-675-faff-doctor-reports-differently-on-the-same-machine",
+    "pushed_at": "2026-08-09T05:16:22.161Z"
+  },
+  "updated_at": "2026-08-09T05:16:22.161Z"
+}

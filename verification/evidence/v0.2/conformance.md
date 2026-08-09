@@ -47,7 +47,7 @@ Unchanged from v0.1, restated: the witness raises the bar from "shape-valid" to
 emitter-authored — a forging emitter that never calls the real `anchor` verb can
 fabricate a self-consistent `chain-head.json` from whole cloth. The integrity leg closes
 the *post-anchor tamper* gap, not the *forging emitter* gap; the boundary itself
-(inherited from [`docs/guide/governance-check.md`](../../guide/governance-check.md)) is
+(inherited from [`docs/guide/governance-check.md`](../../../docs/guide/governance-check.md)) is
 unchanged from v0.1's stated posture.
 
 ## 6. Version binding

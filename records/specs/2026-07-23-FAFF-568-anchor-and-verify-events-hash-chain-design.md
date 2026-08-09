@@ -2,7 +2,7 @@
 
 > Spec: faffter-dark-nlspec · 2026-07-22 · autonomous · confidence: high. Full spec on Linear FAFF-568.
 
-This spec addresses FAFF-568 (a hash chain nobody verifies defends nothing) for the build agent implementing it and human reviewers. It is the **verification half** of `records/rfc/rfc-governance-tamper-evidence.md`: once FAFF-564 writes the chain, this change (1) anchors the chain head into a committed PR artifact the build lane can't silently rewrite, and (2) adds a gating `integrity` leg to `governance-check` (plus a standalone `faff events verify`) that fails a merge on a broken chain. Writing the chain is FAFF-564, not this ticket.
+This spec addresses FAFF-568 (a hash chain nobody verifies defends nothing) for the build agent implementing it and human reviewers. It is the **verification half** of `docs/rfc/rfc-governance-tamper-evidence.md`: once FAFF-564 writes the chain, this change (1) anchors the chain head into a committed PR artifact the build lane can't silently rewrite, and (2) adds a gating `integrity` leg to `governance-check` (plus a standalone `faff events verify`) that fails a merge on a broken chain. Writing the chain is FAFF-564, not this ticket.
 
 ## 1. WHY — Problem and Principles
 
@@ -21,7 +21,7 @@ This spec addresses FAFF-568 (a hash chain nobody verifies defends nothing) for 
 
 | System | Relevance |
 |---|---|
-| `records/rfc/rfc-governance-tamper-evidence.md` | The committed design this implements — proposal steps 3 (anchor) and 4 (integrity leg) of its sequencing table |
+| `docs/rfc/rfc-governance-tamper-evidence.md` | The committed design this implements — proposal steps 3 (anchor) and 4 (integrity leg) of its sequencing table |
 | `plugin/skills/faff/bin/lib/events.js` | `cmdEvents` dispatches `append`/`validate`/`read`; this change adds the `verify` subcommand — the owning verb the leg composes. After FAFF-564 the file holds the schema-2 chain rules |
 | `plugin/skills/faff/bin/lib/governance-check.js` | The five pure `evaluate*Leg` functions + `evaluateRunDir` that composes them; `pass = completeness && budget && merge_floor && liveness` (coherence is report-only). Exit 0/1/2. Where the new gating `integrity` leg is added |
 | `plugin/skills/faff/bin/lib/merge-gate.js` | Pins the PR head commit sha (`--match-head-commit`, refuses on drift). This is what makes a committed anchor trustworthy — the head is inside the sha merge-gate observes |

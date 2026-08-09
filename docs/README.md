@@ -9,8 +9,8 @@ The rest of the repository is separated by purpose so consumer guidance no longe
 | [`docs/guide/`](guide/) | Consumer tasks and workflows. |
 | [`docs/concept/`](concept/) | Product concepts, positioning, and governance model. |
 | [`docs/reference/`](reference/) | Contributor and technical reference, including the [glossary](reference/GLOSSARY.md), [skill-authoring standard](reference/skill-authoring.md), and [architecture notes](reference/architecture/). |
-| [`records/`](../records/) | Durable project records: [ADRs](../records/adr/), [specs](../records/specs/), [RFCs](../records/rfc/), [spikes](../records/spikes/), and historical scaffolding records. |
-| [`verification/`](../verification/) | Audits, evidence packages, external verification, reports, and dated findings. |
+| [`records/`](../records/) | Durable project records: [ADRs](../records/adr/), [specs](../records/specs/), and [spikes](../records/spikes/). |
+| [`verification/`](../verification/) | Audits, evidence packages, external verification, captured measurements, and dated findings. |
 | [`operations/`](../operations/) | Operational assets used by CI and automation. |
 
 The website publishes only `docs/guide/` and `docs/concept/`. Repository records and verification material remain inspectable in GitHub, but they are not consumer documentation and should be read in the context of their date and status.

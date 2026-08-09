@@ -2,6 +2,8 @@
 
 design/
 reports/
+records/rfc/
+records/superpowers/
 
 # Local Claude Code config (shared .claude/settings.json stays tracked)
 .claude/settings.json

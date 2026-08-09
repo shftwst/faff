@@ -23,10 +23,8 @@ for that trust belongs in public records, close to the claims it supports.
   is the current claim-by-claim status record.
 - The [L4 capabilities audit](https://github.com/shftwst/faff/blob/main/verification/audits/2026-07-20-l4-capabilities-audit.md)
   compares shipped mechanisms, documentation claims, and external runs.
-- The [governance explainer](https://github.com/shftwst/faff/blob/main/verification/reports/governance-layer-explainer-2026-07.md)
-  describes the reusable governance work and its current limits.
-- The [adopter cost report](https://github.com/shftwst/faff/blob/main/verification/reports/adopter-cost-2026-07.md) records measured
-  first-party cost observations.
+- The [MCP call census](https://github.com/shftwst/faff/blob/main/verification/reports/mcp-call-census/report.md)
+  is a dated first-party measurement of Linear connector traffic during development.
 - The [evidence format guide](https://github.com/shftwst/faff/blob/main/verification/evidence/README.md) describes the records
   emitted by governed runs.
 

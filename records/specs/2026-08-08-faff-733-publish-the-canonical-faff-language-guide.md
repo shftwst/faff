@@ -26,7 +26,7 @@ Current public prose already says that Faff is "safe to stop watching" and that 
 
 ### Reference context
 
-- `records/superpowers/specs/2026-07-20-docs-positioning-design.md` is the earlier positioning decision. Its evidence-first and governance-product decisions remain useful; its rejection of separate branding conflicts with the current direction.
+- `docs/superpowers/specs/2026-07-20-docs-positioning-design.md` is the earlier positioning decision. Its evidence-first and governance-product decisions remain useful; its rejection of separate branding conflicts with the current direction.
 - `docs/concept/what-is-faff.md`, `docs/concept/levels.md`, and `docs/concept/governing-principles.md` contain the present public model.
 - `docs/reference/GLOSSARY.md` defines itself as a one-sentence lookup whose normative prose lives elsewhere.
 - FAFF-359, "Carve the logical governance boundary", shipped the in-repo governance region and its dependency-direction checks. This is evidence for a distinct governance responsibility, not evidence of a separately packaged product.
@@ -122,7 +122,7 @@ The page must also carry a terminology-lifecycle list with four categories: pref
 
 Create a new ADR recording the target SuperDomestique identity, the Commissaire responsibility, and the staged transition that preserves current technical identifiers. The ADR must name the July 2026 positioning brief and state exactly which prior decisions it supersedes: the rejection of a separate brand and the "no renaming" non-goal. The earlier brief's evidence-first policy, trust-per-rung model, and treatment of governance as a product remain in force.
 
-The July brief currently exists under the ignored `records/superpowers/` planning tree. Add this one file to version control as a historical record with an explicit path-scoped force-add, without changing the ignore rule or admitting sibling planning files. At byte zero, prepend this owned notice region:
+The July brief currently exists under the ignored `docs/superpowers/` planning tree. Add this one file to version control as a historical record with an explicit path-scoped force-add, without changing the ignore rule or admitting sibling planning files. At byte zero, prepend this owned notice region:
 
 ```text
 <!-- faff-positioning-supersession:FAFF-733 -->

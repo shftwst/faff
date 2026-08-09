@@ -172,7 +172,7 @@ Options: (a) resident from first-seen to lineage end; (b) resident until a detec
 **Chosen:** partition records into lineages (`sessionId` + `isSidechain` chain) and attribute strictly within each — never cross a lineage boundary (mirrors the FAFF-229 child-transcript separation).
 
 **Deliverable form: analytical extension + report, or a shipped command?**
-**Chosen:** a read-only analytical extension plus the updated `verification/reports/token-usage-breakdown/` report — matching FAFF-407's "not a shipped product" framing. Promotion to a durable `faff tokens` command stays FAFF-407's open recommendation (Out of scope).
+**Chosen:** a read-only analytical extension plus the updated `docs/reports/token-usage-breakdown/` report — matching FAFF-407's "not a shipped product" framing. Promotion to a durable `faff tokens` command stays FAFF-407's open recommendation (Out of scope).
 
 ## 7. OPEN QUESTIONS AND ASSUMPTIONS
 

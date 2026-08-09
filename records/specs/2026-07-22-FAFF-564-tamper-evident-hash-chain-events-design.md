@@ -2,7 +2,7 @@
 
 > Spec: faffter-dark-nlspec · 2026-07-22 · autonomous · confidence: high. Full spec on Linear FAFF-564.
 
-This spec addresses FAFF-564 (post-hoc falsification of the run record is undefended) for the build agent implementing it and human reviewers. It implements the chain-writing half of `records/rfc/rfc-governance-tamper-evidence.md`: every `events.jsonl` record carries the SHA-256 of the previous line, and every `run-ledger.json` write is folded into that chain as a `ledger-write` event. Anchoring the chain head and verifying it are FAFF-568, not this ticket.
+This spec addresses FAFF-564 (post-hoc falsification of the run record is undefended) for the build agent implementing it and human reviewers. It implements the chain-writing half of `docs/rfc/rfc-governance-tamper-evidence.md`: every `events.jsonl` record carries the SHA-256 of the previous line, and every `run-ledger.json` write is folded into that chain as a `ledger-write` event. Anchoring the chain head and verifying it are FAFF-568, not this ticket.
 
 ## 1. WHY — Problem and Principles
 
@@ -21,7 +21,7 @@ This spec addresses FAFF-564 (post-hoc falsification of the run record is undefe
 
 | System | Relevance |
 |---|---|
-| `records/rfc/rfc-governance-tamper-evidence.md` | The committed design this implements (proposal steps 1–2 of its sequencing table) |
+| `docs/rfc/rfc-governance-tamper-evidence.md` | The committed design this implements (proposal steps 1–2 of its sequencing table) |
 | `plugin/skills/faff/bin/lib/events.js` | The envelope owner; after FAFF-574, the single lock-guarded append core all writers route through — where `prev` is minted |
 | `plugin/skills/faff/bin/lib/heartbeat.js` | `atomicWriteLedger` (line ~163) + `atomicWriteLedgerFenced` (~203) — the chokepoint every CLI-side ledger write already routes through (events.js `--tokens` checkpoint, budget baseline, lights-out mint/resume, sentry abort); where the `ledger-write` fold hooks in |
 | `plugin/skills/faff/bin/lib/governance-profile.js` | `DELIVERY_PROFILE.event_types` (~line 64) — the closed vocabulary the new `ledger-write` type joins |

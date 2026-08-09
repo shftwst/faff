@@ -23,7 +23,7 @@ The shipped tree contains 724 tracked documentation files across reader guides, 
 - **`plugin/skills/faff/bin/lib/prdr.js` and graft flows:** PRDR commands and merge checks use `docs/prdr/`, including when no tracked PRDR exists.
 - **`.github/workflows/job-surface-probe.yml`:** Executes `records/spikes/2026-07-26-FAFF-654/probe.sh`.
 - **`website/docusaurus.config.js`:** Publishes `docs/guide/` at `/guide` and `docs/concept/` at `/concept`.
-- **Evidence, audit, positioning, and scaffolder tests:** Load exact paths under `verification/evidence/`, `verification/audits/`, `records/superpowers/`, and `verification/external-verification/`.
+- **Evidence, audit, positioning, and scaffolder tests:** Load exact paths under `verification/evidence/`, `verification/audits/`, `docs/superpowers/`, and `verification/external-verification/`.
 - **`faff ci-triage` and guide instructions:** Read or use assets under `operations/ci/`.
 - **FAFF-737, consumer-guide reorganisation:** Already reorganised the consumer guide.
 - **FAFF-741, run-outcome documentation:** Already added run-outcome guidance and evidence.
@@ -109,7 +109,7 @@ The inventory uses three outcomes:
 - `presentation-only`: later work may improve navigation or explanation without changing the path.
 - `separately-verified-move-candidate`: a later ticket may propose a move after naming all consumers, compatibility work, and checks.
 
-The report must include known machine-consumed surfaces under `records/specs/`, `records/adr/`, `docs/prdr/`, `records/spikes/`, `docs/guide/`, `docs/concept/`, `verification/evidence/`, `operations/ci/`, `verification/external-verification/`, `verification/audits/`, and `records/superpowers/`. It must also record tracked root files and locally present or referenced paths such as `records/rfc/`, ignored reports, and absent design or report targets.
+The report must include known machine-consumed surfaces under `records/specs/`, `records/adr/`, `docs/prdr/`, `records/spikes/`, `docs/guide/`, `docs/concept/`, `verification/evidence/`, `operations/ci/`, `verification/external-verification/`, `verification/audits/`, and `docs/superpowers/`. It must also record tracked root files and locally present or referenced paths such as `docs/rfc/`, ignored reports, and absent design or report targets.
 
 Docusaurus continues to publish only `docs/guide/` and `docs/concept/` until a later ticket changes that boundary. Other material remains repository-only, including material reached by a direct GitHub link.
 

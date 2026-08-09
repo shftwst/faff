@@ -617,5 +617,5 @@ Log the full per-issue trace to `.faff/runs/<run-id>/ISSUE-XX/graft.md` (beep-bo
 ## Notes
 - Don't ask for confirmation before creating the worktree — the user said the issue ID, that's the intent.
 - The prep gate is non-negotiable. Even quick fixes benefit from a lightweight prep pass.
-- The spec is committed to the feature branch, not main — it only reaches main when the PR merges; any detailed implementation plans are the implementer's concern (commit alongside code, e.g. `records/superpowers/plans/`, or not — faff-graft doesn't prescribe).
+- The spec is committed to the feature branch, not main — it only reaches main when the PR merges; any detailed implementation plans are the implementer's concern (keep them in an ignored local planning tree such as `docs/superpowers/plans/`, or do not retain them — faff-graft doesn't prescribe).
 - AC verification is not optional. A PR without a ticked-or-explained AC checklist is not complete.

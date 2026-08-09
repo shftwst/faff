@@ -10,7 +10,7 @@ Tracked code, skills, architecture notes, ADRs, specs, and audits refer to desig
 
 - Redirect maintained skill and source comments away from absent `design/*.md` targets.
 - Remove maintained documentation dependencies on the two unshipped reports.
-- Restore `records/rfc/rfc-governance-tamper-evidence.md` as the tracked design input its implementation records describe.
+- Restore `docs/rfc/rfc-governance-tamper-evidence.md` as the tracked design input its implementation records describe.
 - Add one reference register that gives every inventoried target an explicit disposition while retaining historical citations.
 
 ## Boundaries

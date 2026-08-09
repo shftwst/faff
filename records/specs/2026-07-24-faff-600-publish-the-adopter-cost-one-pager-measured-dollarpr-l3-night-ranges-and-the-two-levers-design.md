@@ -2,13 +2,13 @@
 
 > Spec: faffter-dark-nlspec · 2026-07-23 · autonomous · confidence: high. Full spec on Linear FAFF-600.
 
-This spec defines a documentation deliverable: a committed, adopter-facing cost one-pager under `verification/reports/`, built from the FAFF-407/409 measurement, linked from the README. Audience: the build agent producing the page, and human reviewers checking the figures are honest. No runtime code changes.
+This spec defines a documentation deliverable: a committed, adopter-facing cost one-pager under `docs/reports/`, built from the FAFF-407/409 measurement, linked from the README. Audience: the build agent producing the page, and human reviewers checking the figures are honest. No runtime code changes.
 
 ## 1. WHY — Problem and Principles
 
 **The load-bearing idea:** faff already *measured* what it costs to run itself — a reconciled, per-class, per-model token breakdown with a committed report — but that evidence is buried in an internal analysis artifact. An adopter asking "what will an unattended night cost me?" has no page to read. This issue publishes the existing measurement in adopter-facing form; it creates no new measurement machinery.
 
-**Problem statement.** Prospective adopters' first question about unattended runs is cost, and today the answer lives in an internal spike report (`verification/reports/token-usage-breakdown/report.md`) written for faff's own optimisation work. Nothing states the cost per shipped PR, what a night of L3 actually costs, or which knobs cut the bill. This change commits a one-pager that answers those three questions with measured figures only, and links it from the README.
+**Problem statement.** Prospective adopters' first question about unattended runs is cost, and today the answer lives in an internal spike report (`docs/reports/token-usage-breakdown/report.md`) written for faff's own optimisation work. Nothing states the cost per shipped PR, what a night of L3 actually costs, or which knobs cut the bill. This change commits a one-pager that answers those three questions with measured figures only, and links it from the README.
 
 **Design principles** (each would reject an otherwise-valid page):
 
@@ -21,29 +21,29 @@ This spec defines a documentation deliverable: a committed, adopter-facing cost 
 
 | System | Relevance |
 |---|---|
-| `verification/reports/token-usage-breakdown/report.md` + `report.json` | The FAFF-407/409 measurement this page publishes (window 2026-05-29→07-09, $16,763, per-class/per-model/per-MCP-tool axes) |
+| `docs/reports/token-usage-breakdown/report.md` + `report.json` | The FAFF-407/409 measurement this page publishes (window 2026-05-29→07-09, $16,763, per-class/per-model/per-MCP-tool axes) |
 | `scripts/token-breakdown.mjs` | Regenerates the measurement; run before publishing for a current snapshot |
 | `.faff/runs/*/summary.md` + `faff economics` | Per-run unit economics — source for the recent-night data point (e.g. run-20260723-144253: 79.3M tokens / $57.94 / 5 shipped) |
 | `records/adr/0048-…token-pricing-model.md` | The per-model × per-class price map the costs are priced against |
 | `README.md` (docs list, "Everything past the pitch lives in `docs/`") | Where the link lands |
-| `verification/reports/governance-layer-explainer-2026-07.md` | Naming/tone precedent for adopter-facing reports |
+| `docs/reports/governance-layer-explainer-2026-07.md` | Naming/tone precedent for adopter-facing reports |
 
-**Scope statement.** This is an evidence-publication page in `verification/reports/`, downstream of the measurement tickets (FAFF-407/409/410) and upstream of nothing — no code, config, or CLI behaviour changes.
+**Scope statement.** This is an evidence-publication page in `docs/reports/`, downstream of the measurement tickets (FAFF-407/409/410) and upstream of nothing — no code, config, or CLI behaviour changes.
 
 ## 2. OUT OF SCOPE
 
-- **New telemetry or measurement passes** — why: the page publishes existing measurement; extension point: the telemetry-gap register in `verification/reports/token-usage-breakdown/report.md`.
+- **New telemetry or measurement passes** — why: the page publishes existing measurement; extension point: the telemetry-gap register in `docs/reports/token-usage-breakdown/report.md`.
 - **Changes to `faff economics` / the price map / budget ceilings** — why: publication, not instrumentation; extension point: `bin/lib/` economics/budget modules and ADR-0048.
-- **Re-running the MCP call census** — why: the FAFF-409 measured per-tool figures supersede it; extension point: `verification/reports/mcp-call-census/`.
+- **Re-running the MCP call census** — why: the FAFF-409 measured per-tool figures supersede it; extension point: `docs/reports/mcp-call-census/`.
 - **A marketing/landing-page treatment** — why: this is a docs report with the repo's plain delivery-lead tone; extension point: any future site work under "Front door & packaging".
 - **Refreshing the internal `token-usage-breakdown/report.md` prose** — why: the regeneration is for the one-pager's snapshot; the internal report stays as the committed FAFF-407/409 record. If the regenerated JSON is committed, it lands with the one-pager, not as a rewrite of the internal report's analysis.
 
 ## 3. WHAT — the page, its figures, and the README link
 
-**Deliverable:** one new markdown file under `verification/reports/`, plus one README edit.
+**Deliverable:** one new markdown file under `docs/reports/`, plus one README edit.
 
 **File name.** Existing adopter-facing reports use `<topic>-YYYY-MM.md` (`governance-layer-explainer-2026-07.md`).
-**Chosen:** `verification/reports/adopter-cost-2026-07.md` — matches the sibling naming convention; the date suffix makes the snapshot window part of the identity.
+**Chosen:** `docs/reports/adopter-cost-2026-07.md` — matches the sibling naming convention; the date suffix makes the snapshot window part of the identity.
 
 **Page content requirements** (each is a DONE item):
 
@@ -67,10 +67,10 @@ This spec defines a documentation deliverable: a committed, adopter-facing cost 
 Rationale: the report's own conclusion is "the primary lever is context, the secondary is model routing"; the issue's four quantified items pair naturally two-and-two under those heads. The "skill corpus ≈ 40% of the average turn's cached prefix" figure is from the external package with no in-repo measurement — include it **only** if the build can substantiate it cheaply (e.g. skill-corpus bytes ÷ a measured average cached-prefix size from `report.json`); otherwise describe the gateway diet qualitatively and keep the measured $1,348 MCP figure as lever 2's number. Measured-only outranks completeness.
 
 **README link.**
-**Chosen:** one bullet in the existing "Everything past the pitch lives in `docs/`" list (README.md ~line 69): `[What faff costs to run](verification/reports/adopter-cost-2026-07.md) — measured $/PR, what an unattended night costs, and the two levers that cut it.` No other README restructuring.
+**Chosen:** one bullet in the existing "Everything past the pitch lives in `docs/`" list (README.md ~line 69): `[What faff costs to run](docs/reports/adopter-cost-2026-07.md) — measured $/PR, what an unattended night costs, and the two levers that cut it.` No other README restructuring.
 
 **Snapshot regeneration.**
-**Chosen:** run `node scripts/token-breakdown.mjs --json` at build time and source the page's breakdown figures from that regenerated snapshot (window end = regeneration date), not from the committed 07-09 report. The corpus is live, so absolute figures will have moved; percentages are stable. If the regenerated headline figures differ from the committed report's by more than ~15%, commit the regenerated `report.json` alongside the page (under `verification/reports/token-usage-breakdown/`, superseding snapshot noted in its header) so the published figures remain pointable-at; below that threshold, cite the regenerated numbers with their window and leave the committed report as-is.
+**Chosen:** run `node scripts/token-breakdown.mjs --json` at build time and source the page's breakdown figures from that regenerated snapshot (window end = regeneration date), not from the committed 07-09 report. The corpus is live, so absolute figures will have moved; percentages are stable. If the regenerated headline figures differ from the committed report's by more than ~15%, commit the regenerated `report.json` alongside the page (under `docs/reports/token-usage-breakdown/`, superseding snapshot noted in its header) so the published figures remain pointable-at; below that threshold, cite the regenerated numbers with their window and leave the committed report as-is.
 
 **Assumes:** the build runs on the machine holding the transcript corpus (`~/.claude/projects/<encoded-cwd>/`) — `scripts/token-breakdown.mjs` reads it directly. Validate before starting: run the script; if the corpus is absent/empty the regeneration cannot happen and the build must not fall back to republishing stale external-package numbers as current.
 
@@ -87,7 +87,7 @@ PROCEDURE build_one_pager:
   4. $/PR := grand_total / pr_count   (round to whole dollars; state both inputs on the page)
   5. Pull the recent-night data point from .faff/runs/run-20260723-144253-beepboop-full/summary.md
      (or a newer completed beep-boop run's summary if one exists at build time — cite whichever is used)
-  6. Write verification/reports/adopter-cost-2026-07.md per the content requirements (WHAT)
+  6. Write docs/reports/adopter-cost-2026-07.md per the content requirements (WHAT)
   7. Add the README bullet
 ```
 
@@ -115,7 +115,7 @@ Then they can recompute the published figure from the repo + corpus without any 
 ```
 Given the README docs list
 When a prospective adopter looks for cost information
-Then a link to the one-pager is present and resolves to verification/reports/adopter-cost-2026-07.md
+Then a link to the one-pager is present and resolves to docs/reports/adopter-cost-2026-07.md
 ```
 
 - Assertion: every dollar figure on the page has a measurement window or run-id within one sentence of it.
@@ -143,7 +143,7 @@ Then a link to the one-pager is present and resolves to verification/reports/ado
 - [ ] The faff-on-faff caveat appears prominently (above the fold, not a trailing footnote)
 
 ### From WHAT (content)
-- [ ] `verification/reports/adopter-cost-2026-07.md` exists with: headline $/PR + stated method, L3-night range (heavy days + recent routed night, both sourced), where-the-money-goes table, the two levers with their quantified instruments, subscription framing, pricing-basis line
+- [ ] `docs/reports/adopter-cost-2026-07.md` exists with: headline $/PR + stated method, L3-night range (heavy days + recent routed night, both sourced), where-the-money-goes table, the two levers with their quantified instruments, subscription framing, pricing-basis line
 - [ ] The $/PR figure is the recomputed quotient (regenerated grand total ÷ mechanically-counted PR merges), with both inputs stated on the page
 - [ ] The ~40% cached-prefix claim appears only if substantiated from measured data; otherwise omitted
 - [ ] README docs list links the page with a one-line description

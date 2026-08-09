@@ -33,7 +33,7 @@ satisfy the cross-artifact invariants below.
 
 ## 4. Authenticity boundary
 
-Restated from [`docs/guide/governance-check.md`](../../guide/governance-check.md), which
+Restated from [`docs/guide/governance-check.md`](../../../docs/guide/governance-check.md), which
 is the canonical statement: run artifacts are authored by the same emitter the check is
 judging — a hostile or careless agent can commit a forged clean ledger and fabricated
 `pass` verdicts, and the check reads that indistinguishably from the real thing. What it

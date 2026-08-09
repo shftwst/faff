@@ -33,7 +33,7 @@ This spec is for the build agent (and human reviewers) applying a contained pros
 ## 2. OUT OF SCOPE
 
 - **The gateway levels table/bullet** — Why excluded: FAFF-583 (prepped this same run) owns `plugin/skills/faff/SKILL.md`; different file, same framing, explicitly not merged. Extension point: FAFF-583.
-- **The `verification/reports/governance-layer-explainer-2026-07.md` residual overclaims** — Why excluded: the absolute "no reduced mode" mermaid node (`:43`) and the `pause → correct → abort` sentry node narrate the same class of imprecision, but that report is a **third doc neither this ticket nor FAFF-583 names**, and widening into it breaks the minimal-blast-radius symmetry FAFF-583 set. Extension point: a peer follow-up ticket (recommended in §7) scoped to that report.
+- **The `docs/reports/governance-layer-explainer-2026-07.md` residual overclaims** — Why excluded: the absolute "no reduced mode" mermaid node (`:43`) and the `pause → correct → abort` sentry node narrate the same class of imprecision, but that report is a **third doc neither this ticket nor FAFF-583 names**, and widening into it breaks the minimal-blast-radius symmetry FAFF-583 set. Extension point: a peer follow-up ticket (recommended in §7) scoped to that report.
 - **The lights-out banner and any change to what L4 *is*** — Why excluded: the maturity grade (holdout lane not yet run end-to-end) is unchanged; this is a wording fix, not a re-grade. Extension point: FAFF-351's guarantee-table framing / the holdout end-to-end run tickets (FAFF-381, FAFF-276).
 - **Any code, CLI, or behaviour change** — Why excluded: the enforcement gaps themselves (FAFF-276 sandboxed code-blindness, FAFF-517 read-only mount, FAFF-562 required governance-check) are their own tickets; this ticket only makes the docs tell the truth about today's state. Extension point: those tickets.
 
@@ -155,7 +155,7 @@ Then code-blindness is qualified as an attested (compliance) property today, not
 
 **Open Questions:** none — no **Punt:** items. (The scope-widen question is closed as a **Chosen** above, with a recommended peer follow-up below rather than a blocking punt.)
 
-**Recommended follow-up (chain-gap, not a blocker for this ticket):** file a peer ticket to sweep `verification/reports/governance-layer-explainer-2026-07.md` for the same overclaim class — the absolute "no reduced mode" mermaid node (`:43`) and the `pause → correct → abort` sentry node that narrates the dormant `correct` rung as operational. Same trust-doc principle, third file, out of both FAFF-570's and FAFF-583's named scope.
+**Recommended follow-up (chain-gap, not a blocker for this ticket):** file a peer ticket to sweep `docs/reports/governance-layer-explainer-2026-07.md` for the same overclaim class — the absolute "no reduced mode" mermaid node (`:43`) and the `pause → correct → abort` sentry node that narrates the dormant `correct` rung as operational. Same trust-doc principle, third file, out of both FAFF-570's and FAFF-583's named scope.
 
 **Assumptions:**
 - **Assumes:** the two named files still carry only the evaluator-cage and corrective-integrity overclaims at build time. Validate: re-grep `docs/guide/unattended.md` and `architecture.md` for the cited passages before editing; if new overclaiming text appeared since 2026-07-22, treat it under the same correct-if-overstates / verify-if-honest rule.
@@ -176,7 +176,7 @@ Then code-blindness is qualified as an attested (compliance) property today, not
 - [ ] The stale "unavailable on this account tier" branch-protection rationale is confirmed absent from both files (it was never present at HEAD).
 
 ### From HOW (blast radius)
-- [ ] No file other than `docs/guide/unattended.md` and `docs/guide/architecture.md` is edited — the gateway, the lights-out banner, and `verification/reports/governance-layer-explainer-2026-07.md` are untouched.
+- [ ] No file other than `docs/guide/unattended.md` and `docs/guide/architecture.md` is edited — the gateway, the lights-out banner, and `docs/reports/governance-layer-explainer-2026-07.md` are untouched.
 - [ ] Each edited passage was re-read against its cited module and neither overclaims nor understates (no "vaporware" understatement of built primitives).
 
 **Integration smoke test:**

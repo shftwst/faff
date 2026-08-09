@@ -55,7 +55,7 @@ $ node score.mjs gaps quorum
 
 Reads the control's committed `economics.json`, pulls the per-token-type counts
 (`input` / `output` / `cache_write` / `cache_read`) and the run's model, and prices them against
-[`pricing.json`](pricing.json) — `counts × rate ÷ 1e6`, summed. Output-tokens are reported alongside as
+[`pricing.json`](../results/pricing.json) — `counts × rate ÷ 1e6`, summed. Output-tokens are reported alongside as
 the effort proxy. The economics shapes vary across controls (totals under `totals` or `usage_totals`;
 model under `session.model_id`, `session.model`, or a top-level `model`), so both are resolved from a set
 of candidate locations rather than assumed; an unrecognised shape says so instead of guessing.

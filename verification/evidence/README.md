@@ -57,7 +57,7 @@ v1.0 is reserved for the first version an external consumer pins.
 ## Conformance ≠ authenticity
 
 Every conformance claim in this directory inherits the posture stated in
-[`docs/guide/governance-check.md`](../guide/governance-check.md): artifacts are
+[`docs/guide/governance-check.md`](../../docs/guide/governance-check.md): artifacts are
 **emitter-authored**. Validation catches a cooperating-but-fallible emitter — incomplete
 runs, budget breaches, tampered/missing floor artifacts — never a forging one. Signing
 and attestation are a separate trust layer, out of scope for this directory.

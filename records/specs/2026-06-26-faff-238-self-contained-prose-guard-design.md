@@ -23,7 +23,7 @@
 
 - **The `SKILL.md` ref sweep + enforcing the ban on skills (slice 2 / FAFF-239).** ~125 refs across 17 skills, each a delete-or-rewrite judgement. *Extension:* slice 2 reuses this slice's ref-matcher over `plugin/skills/*/SKILL.md`.
 - **`docs/configuration.md` config-key coverage / `docs/skills.md` slot coverage checks.** Same theme, different mechanism.
-- **Touching `records/specs/`, `records/adr/`, `verification/audits/`, `verification/reports/`, `design/`.** Allow-by-default.
+- **Touching `records/specs/`, `records/adr/`, `verification/audits/`, `docs/reports/`, `design/`.** Allow-by-default.
 - **The `docs/cli.md` ⊇ `faff --help` coverage check** — its own sibling ticket; targets the relocated `docs/guide/cli.md` path.
 
 ## 3. WHAT — Vocabulary, Types, and Interfaces

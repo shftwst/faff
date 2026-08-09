@@ -71,6 +71,6 @@ quietly strengthening copy elsewhere.
   remover, or unqualified full autonomy.
 
 [ADR 0096](https://github.com/shftwst/faff/blob/main/records/adr/0096-adopt-superdomestique-and-commissaire-through-staged-naming.md)
-records the naming decision. The [July 2026 positioning brief](https://github.com/shftwst/faff/blob/main/records/superpowers/specs/2026-07-20-docs-positioning-design.md)
-still governs the evidence-first position, trust-per-level model, two-part
-information architecture, and public tone.
+records the naming decision. This page is the current authority for the
+evidence-first position, trust-per-level model, information architecture, and
+public tone.

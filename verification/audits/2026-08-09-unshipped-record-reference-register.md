@@ -1,6 +1,6 @@
 # Unshipped record reference register
 
-This register resolves the missing-path inventory produced by FAFF-754 and implemented by FAFF-756. It distinguishes current dependencies from citations preserved inside dated ADRs, specs, audits, and spikes.
+This register records the disposition of the missing-path inventory produced by FAFF-754. It distinguishes current dependencies from citations preserved inside dated ADRs, specs, audits, and spikes.
 
 Historical citations remain unchanged. They record the source material an author used at the time, even when that source was local and never committed. Current skills, source comments, and maintained reference pages must be self-contained or point to a tracked source.
 
@@ -34,7 +34,7 @@ The original inventory reported 19 distinct `design/*.md` matches. Eighteen are 
 
 | Referenced path | Disposition |
 |---|---|
-| `records/rfc/rfc-governance-tamper-evidence.md` | Restored as a tracked historical RFC. Its shipped implementation specs and ADR establish its provenance. |
+| `records/rfc/rfc-governance-tamper-evidence.md` | Remains unshipped. The ignored historical input is not required because the implementation specs and ADR carry the resulting decisions. |
 | `verification/reports/tracker-filing-plan.md` | Remains unshipped. The local file is a spent tracker execution plan. The active harness-coupling page no longer depends on it; citations in the FAFF-482 spec remain historical. |
 | `verification/reports/governance-landscape-2026-07.md` | Remains unshipped. The local file labels itself unpublished research and requires claim re-verification. The dated L4 audit now records that limitation directly. |
 

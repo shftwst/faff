@@ -2,13 +2,13 @@
 
 > Spec: faffter-dark-nlspec · 2026-07-24 · autonomous · confidence: high. Full spec on Linear FAFF-622.
 
-This spec is for the build agent and human reviewers. It defines a documentation-only correction of `verification/reports/governance-layer-explainer-2026-07.md`: bring every enforcement claim in the explainer into line with what the code actually enforces, or say plainly where a guarantee is attested rather than enforced. It is the peer follow-up to FAFF-570 (the guide-pages truth pass, shipped in PR #460) and FAFF-583, and applies the same standard those did.
+This spec is for the build agent and human reviewers. It defines a documentation-only correction of `docs/reports/governance-layer-explainer-2026-07.md`: bring every enforcement claim in the explainer into line with what the code actually enforces, or say plainly where a guarantee is attested rather than enforced. It is the peer follow-up to FAFF-570 (the guide-pages truth pass, shipped in PR #460) and FAFF-583, and applies the same standard those did.
 
 ## 1. WHY — Problem and Principles
 
 **The one idea:** a trust product's docs must not narrate an *attested* guarantee as an *enforced* one. faff earns trust one rung at a time by naming exactly what a machine enforces versus what holds only while the agent plays along. When a doc claims enforcement the code doesn't deliver, the doc itself becomes the trust bug — and this ticket is literally about that rule.
 
-**Problem statement.** The July L4 capabilities audit found the docs "narrate attested guarantees as enforced ones in roughly five places." FAFF-570 and FAFF-583 corrected the guide pages and the gateway levels table; during FAFF-570's build, `verification/reports/governance-layer-explainer-2026-07.md` was flagged as carrying the same overclaim class, outside both their scopes. This change closes that gap in the explainer.
+**Problem statement.** The July L4 capabilities audit found the docs "narrate attested guarantees as enforced ones in roughly five places." FAFF-570 and FAFF-583 corrected the guide pages and the gateway levels table; during FAFF-570's build, `docs/reports/governance-layer-explainer-2026-07.md` was flagged as carrying the same overclaim class, outside both their scopes. This change closes that gap in the explainer.
 
 **Design principles:**
 
@@ -20,7 +20,7 @@ This spec is for the build agent and human reviewers. It defines a documentation
 
 | System | Type | Relevance |
 |---|---|---|
-| `verification/reports/governance-layer-explainer-2026-07.md` | Markdown report | The file under correction |
+| `docs/reports/governance-layer-explainer-2026-07.md` | Markdown report | The file under correction |
 | `verification/audits/2026-07-20-l4-capabilities-audit.md` | Markdown audit | The enforced-vs-attested boundary (source of truth) |
 | `plugin/skills/faff/bin/lib/sentry.js` | CLI module | Grounds the `correct`-rung dormancy |
 | `plugin/skills/faff/bin/lib/lights-out.js` | CLI module | Grounds the "no reduced mode" refusal |
@@ -38,7 +38,7 @@ This spec is for the build agent and human reviewers. It defines a documentation
 
 Related Done work, checked and confirmed **not** superseding this ticket:
 
-- **FAFF-570** (Done, PR #460) — corrected the same attested-as-enforced overclaim class in the L4 *guide* pages (`unattended.md`, `architecture.md`). Confirmed by diff: PR #460 did **not** touch `verification/reports/governance-layer-explainer-2026-07.md`. It is the standard this sweep matches, not a delivery of it.
+- **FAFF-570** (Done, PR #460) — corrected the same attested-as-enforced overclaim class in the L4 *guide* pages (`unattended.md`, `architecture.md`). Confirmed by diff: PR #460 did **not** touch `docs/reports/governance-layer-explainer-2026-07.md`. It is the standard this sweep matches, not a delivery of it.
 - **FAFF-583** (Done) — fixed the gateway levels table's "(preview)"/"shipped" clash. Different file, different claim; does not touch the explainer.
 
 The explainer's overclaims remain present and undelivered by either — the ticket's premise holds in full.
@@ -101,7 +101,7 @@ A single editing pass over the one file, applying F1, F2, C1, C2 exactly as thei
 - [ ] Each "leave" claim in section 3 is re-checked against the cited module/audit line and confirmed still honest at build time (the audit trail holds).
 
 ### Hygiene
-- [ ] The change is confined to `verification/reports/governance-layer-explainer-2026-07.md`; no code, CI, or other doc is touched.
+- [ ] The change is confined to `docs/reports/governance-layer-explainer-2026-07.md`; no code, CI, or other doc is touched.
 - [ ] Mermaid blocks still parse (node-label edits only; no structural graph change).
 - [ ] Prose reads casual-but-credible, no banned vocab (no "receipts", "marquee", "spine"-as-metaphor, "footgun", "smoking gun", gun metaphors), no PM jargon.
 

@@ -23,7 +23,7 @@ The load-bearing model is that a trust claim is useful only when its current sta
 - **`verification/audits/2026-08-02-FAFF-435-l4-gate-subversion/audit-report.json`**: machine-readable audit precedent.
 - **`verification/audits/tools/faff-435/validate-report.mjs`**: dependency-free validator and self-test precedent.
 - **`verification/evidence/README.md`**: existing distinction between conformance and authenticity.
-- **`README.md`, `docs/guide/**`, `docs/concept/**`, `verification/reports/**`, `verification/external-verification/**`, and `website/src/pages/index.js`**: high-signal current public prose.
+- **`README.md`, `docs/guide/**`, `docs/concept/**`, `docs/reports/**`, `verification/external-verification/**`, and `website/src/pages/index.js`**: high-signal current public prose.
 
 **Scope:** classify material trust and enforcement claims across every tracked path under `README.md`, `docs/**`, and `website/**`, then publish the current audit state without changing the claims themselves.
 

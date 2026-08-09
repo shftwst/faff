@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import http from "node:http";
 import https from "node:https";
 import { execSync, spawnSync } from "node:child_process";
-import { grade, aggregateCase, validateCase, hasDisagreement, erroredRep, CLOSED_SET_KINDS } from "./grader.mjs";
+import { grade, aggregateCase, validateCase, hasDisagreement, erroredRep, CLOSED_SET_KINDS, BINARY_SETEQ_KINDS } from "./grader.mjs";
 import { parseJudgementEnvelope, EnvelopeError } from "./envelope.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -255,12 +255,25 @@ function argFlag(argv, name) {
 // a ~1-rep dip. `warn_kinds` is ORTHOGONAL to grader-class: a listed kind is reported-not-failed
 // regardless of how it grades (today: confidence — closed-set-graded but empirically flaky per ADR-0004,
 // pending fixture widening). `escalated_cases` is NEVER a gate input (which cases escalate is run-to-run noise).
+//
+// FAFF-692 — `splittable` / `chain-gap` / `resolved-elsewhere` grade by exact synonym-tolerant
+// SET-EQUALITY (score 0 or 1, no partial credit — grader.mjs's BINARY_SETEQ_KINDS) but are deliberately
+// NOT in CLOSED_SET_KINDS (they grade through their own folding branches, not closed-set membership
+// math). By the "any drop is real" reasoning above they belong at the closed_set (0.0) tolerance, not
+// free_text (0.03) — the 0.03 slack exists for generation variance these binary graders don't have. If
+// one of the three later proves empirically flaky, the fix is adding it to `warn_kinds` (reported, not
+// failed) — same lever as `confidence` — NEVER reintroducing tolerance slack for it.
 export const DEFAULT_POLICY = { warn_kinds: ["confidence"], tolerances: { closed_set: 0.0, ordering: 0.0, free_text: 0.03, format: 0.0 } };
 
-// PURE: classify a kind to its grader-class tolerance. closed_set ← CLOSED_SET_KINDS; ordering ← its
-// rank-correlation kind; everything else (gloss/shaping/decomposition/splittable) is free_text.
+// PURE: classify a kind to its grader-class tolerance. closed_set ← CLOSED_SET_KINDS and (FAFF-692)
+// BINARY_SETEQ_KINDS (both exact-equality, "any drop is real"); ordering ← its rank-correlation kind;
+// everything else (gloss/shaping/decomposition) is free_text.
 export function toleranceFor(kind, tolerances = DEFAULT_POLICY.tolerances) {
   if (CLOSED_SET_KINDS.has(kind)) return tolerances.closed_set ?? 0;
+  // FAFF-692 — splittable/chain-gap/resolved-elsewhere are binary set-equality graders (same "any drop
+  // is real" class as CLOSED_SET_KINDS) but stay out of that set so their own grade-dispatch branches
+  // in grader.mjs are untouched; route them to the same closed_set tolerance here instead.
+  if (BINARY_SETEQ_KINDS.has(kind)) return tolerances.closed_set ?? 0;
   // FAFF-203 — explanatory-order grades via rankCorrelation (the ordering grader-class), so it carries
   // the ordering tolerance (0.0) — any inversion is a real regression, same as `ordering`.
   if (kind === "ordering" || kind === "explanatory-order") return tolerances.ordering ?? 0;

@@ -237,6 +237,14 @@ import { fileURLToPath } from "node:url";
 export const KINDS = ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "reconciliation", "splittable", "verdict-revert", "verdict-build", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "grouping", "adr-drift", "resolved-elsewhere"];
 export const CLOSED_SET_KINDS = new Set(["dupe", "vague", "stale", "superseded", "confidence", "marker", "reconciliation", "verdict-revert", "verdict-build", "routing", "modedetect", "holdout", "holdout-exercise", "spec-verdict", "refutation-spec", "refutation-code", "prd-readiness", "prep-architecture-trigger", "adr-drift"]);
 
+// FAFF-692 — kinds graded by exact synonym-tolerant SET-EQUALITY (score 0 or 1, no partial credit —
+// gradeSplittable / gradeChainGap) but deliberately NOT in CLOSED_SET_KINDS above, because they grade
+// through their own synonym-folding branches rather than the closed-set membership math CLOSED_SET_KINDS
+// drives. Kept as a SEPARATE named set (not folded into CLOSED_SET_KINDS) so grade dispatch stays
+// untouched — this set exists purely so run-evals.mjs's toleranceFor() can route them to the
+// closed_set (0.0) tolerance class they actually belong to instead of the free_text (0.03) default.
+export const BINARY_SETEQ_KINDS = new Set(["splittable", "chain-gap", "resolved-elsewhere"]);
+
 // FAFF-149 — the closed SIX automation-routing verdicts (the gateway's vocabulary, verbatim) + the
 // fixed build-queue admission rule. `admits(verdict)` is a PURE function of the verdict — the spec's
 // deterministic derived check (§6.B), so cases/tests assert admission without a second LLM judgement.

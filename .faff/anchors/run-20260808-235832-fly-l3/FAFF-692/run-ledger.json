@@ -1,0 +1,89 @@
+{
+  "run_id": "run-20260808-235832-fly-l3",
+  "admitted": [
+    "FAFF-735",
+    "FAFF-707",
+    "FAFF-706",
+    "FAFF-705",
+    "FAFF-700",
+    "FAFF-699",
+    "FAFF-692",
+    "FAFF-662",
+    "FAFF-621",
+    "FAFF-616",
+    "FAFF-675",
+    "FAFF-752",
+    "FAFF-750",
+    "FAFF-747",
+    "FAFF-673",
+    "FAFF-728"
+  ],
+  "outcomes": {
+    "FAFF-734": "routed-out",
+    "FAFF-703": "routed-out",
+    "FAFF-607": "routed-out",
+    "FAFF-597": "routed-out",
+    "FAFF-584": "routed-out",
+    "FAFF-581": "routed-out",
+    "FAFF-528": "routed-out",
+    "FAFF-486": "routed-out",
+    "FAFF-483": "routed-out",
+    "FAFF-748": "parked",
+    "FAFF-706": "shipped",
+    "FAFF-747": "shipped"
+  },
+  "discovered_scope_filed": 0,
+  "review_adversarial_skipped": [],
+  "review_outage_pending": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": [],
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "park-until-window-reset",
+      "pricing": "map"
+    },
+    "tokens_at_start": 5043219,
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "c523a6c3-e30b-4e34-9733-0e6d2e9d8fb0",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 87,
+        "output": 35812,
+        "cache_write": 317339,
+        "cache_read": 4689981
+      }
+    },
+    "window": {
+      "anchor_epoch": 1786233747261,
+      "reset_epoch": 1786251747261,
+      "tokens_at_anchor": 379443
+    },
+    "tokens_at_last_event": {
+      "input": 263,
+      "output": 227215,
+      "cache_write": 552675,
+      "cache_read": 18396388
+    }
+  },
+  "owner": {
+    "status": "running",
+    "session_id": "run-20260808-235832-fly-l3",
+    "started_at": "2026-08-09T00:02:06Z",
+    "last_heartbeat": "2026-08-09T00:02:06Z"
+  },
+  "level": "L3",
+  "outcome_details": {
+    "FAFF-706": {
+      "pr": 579,
+      "merge_sha": "807ce245476618f331f1f7d941b6ae87265cdce6"
+    },
+    "FAFF-747": {
+      "pr": 578,
+      "merge_sha": "015958abcf689552c722c6cbcd7ae781937f9f76"
+    }
+  }
+}

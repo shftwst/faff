@@ -624,12 +624,18 @@ function appendEngineSpend(runDir, record) {
 function readEngineSpend(runDir) {
   const totals = { input: 0, output: 0, cache_write: 0, cache_read: 0 };
   const by_model = new Map();
+  // FAFF-705: a JOINT model×effort aggregation the `economics --by effort` fold reads.
+  // Keyed "<model> <effort>" (effort "(none)" when a record carries no effort field), so
+  // the fold can bucket by effort AND price each cell at its own model. Additive — every
+  // existing consumer (measureRunSpend) ignores it, and by_model/totals/records/engines
+  // stay byte-for-byte unchanged.
+  const by_model_effort = new Map();
   const engines = new Set();
   let records = 0, malformed = 0;
-  if (!runDir) return { totals, by_model, engines: [], records, malformed };
+  if (!runDir) return { totals, by_model, by_model_effort, engines: [], records, malformed };
   let text;
   try { text = fs.readFileSync(engineSpendPath(runDir), "utf8"); }
-  catch { return { totals, by_model, engines: [], records, malformed }; }
+  catch { return { totals, by_model, by_model_effort, engines: [], records, malformed }; }
   for (const line of text.split("\n")) {
     const s = line.trim();
     if (!s) continue;
@@ -639,14 +645,18 @@ function readEngineSpend(runDir) {
     const model = (typeof rec.model === "string" && rec.model) || "unknown";
     if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
     const mb = by_model.get(model);
+    const effort = (typeof rec.effort === "string" && rec.effort) || "(none)";
+    const meKey = `${model} ${effort}`;
+    if (!by_model_effort.has(meKey)) by_model_effort.set(meKey, { input: 0, output: 0, cache_write: 0, cache_read: 0 });
+    const meb = by_model_effort.get(meKey);
     for (const cls of TOKEN_DELTA_CLASSES) {
       const v = rec[cls];
-      if (typeof v === "number" && Number.isFinite(v)) { totals[cls] += v; mb[cls] += v; }
+      if (typeof v === "number" && Number.isFinite(v)) { totals[cls] += v; mb[cls] += v; meb[cls] += v; }
     }
     if (typeof rec.engine === "string" && rec.engine) engines.add(rec.engine);
     records++;
   }
-  return { totals, by_model, engines: [...engines], records, malformed };
+  return { totals, by_model, by_model_effort, engines: [...engines], records, malformed };
 }
 
 // FAFF-604 — the combining layer. Measures BOTH sources and reports which
@@ -1723,6 +1733,21 @@ function budgetSelftest(now = Date.now()) {
       two.records === 2 && two.totals.input === 105 && two.totals.output === 55 && two.totals.cache_read === 10
       && two.by_model.get("gpt-5-codex").input === 105);
     ok("readEngineSpend: the engine names are carried for labelling", two.engines.length === 1 && two.engines[0] === "seat");
+    // FAFF-705: the additive joint by_model_effort aggregation. The two effort-less records
+    // above fold under the "(none)" effort key; by_model/totals stay byte-for-byte unchanged.
+    ok("readEngineSpend: by_model_effort folds effort-less records under (none)",
+      two.by_model_effort instanceof Map && two.by_model_effort.get("gpt-5-codex (none)").input === 105
+      && two.by_model.get("gpt-5-codex").input === 105);
+    const esd2 = fs.mkdtempSync(path.join(os.tmpdir(), "faff-budget-effort-"));
+    try {
+      appendEngineSpend(esd2, { ts: "t", engine: "seat", provider: "codex", model: "gpt-5-codex", source: "exec-json-events", effort: "high", input: 100, output: 0, cache_read: 0, cache_write: 0 });
+      appendEngineSpend(esd2, { ts: "t", engine: "seat", provider: "codex", model: "gpt-5-codex", source: "exec-json-events", effort: "medium", input: 40, output: 0, cache_read: 0, cache_write: 0 });
+      const e = readEngineSpend(esd2);
+      ok("readEngineSpend: by_model_effort keys carry model AND effort, priced-per-cell ready",
+        e.by_model_effort.get("gpt-5-codex high").input === 100
+        && e.by_model_effort.get("gpt-5-codex medium").input === 40
+        && e.by_model.get("gpt-5-codex").input === 140);
+    } finally { fs.rmSync(esd2, { recursive: true, force: true }); }
 
     fs.appendFileSync(engineSpendPath(esd), "{not json\n", "utf8");
     const withBad = readEngineSpend(esd);

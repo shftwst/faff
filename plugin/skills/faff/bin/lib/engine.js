@@ -21,7 +21,7 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const https = require("node:https");
-const { ENGINE_CALL_LANES, loadConfig, resolveEngineForLane } = require("./config");
+const { ENGINE_CALL_LANES, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
 const { CANONICAL_CONFIG, findRoot, latestRunDir } = require("./shared-infra");
 
 // engine-call's own small exit taxonomy (distinct named codes; NOT review-call's EXIT
@@ -40,7 +40,7 @@ function joinUrl(base, path_) {
 // precedent; reasoning_off → think:false per FAFF-137). openai-compatible:
 // /v1/chat/completions with stream:false (reasoning_off → chat_template_kwargs, the
 // adversarial-block idiom). No localhost default — host comes from config or not at all.
-function buildEngineRequest({ family, host, model, system, user, reasoningOff = false, apiKey = null } = {}) {
+function buildEngineRequest({ family, host, model, system, user, reasoningOff = false, effort = null, apiKey = null } = {}) {
   if (!host) throw new Error("buildEngineRequest requires a host (no localhost default)");
   if (!model) throw new Error("buildEngineRequest requires a model");
   const messages = [{ role: "system", content: String(system ?? "") }, { role: "user", content: String(user ?? "") }];
@@ -49,9 +49,15 @@ function buildEngineRequest({ family, host, model, system, user, reasoningOff = 
   if (family === "ollama") {
     url = new URL("/api/chat", host).toString();
     if (reasoningOff) payload.think = false;
+    // FAFF-705: ollama has no graded reasoning-effort transport (effort is refused at
+    // resolve for this family, so it never reaches here); ignore a stray effort, never throw.
   } else if (family === "openai") {
     url = joinUrl(host, "/chat/completions");
+    // FAFF-705: emit reasoning_effort only when a graded effort is present AND reasoning is not
+    // being silenced (the two knobs are mutually exclusive — resolve refuses the pair). The faff
+    // level is mapped onto the three-level transport target (xhigh/max clamp to high).
     if (reasoningOff) payload.chat_template_kwargs = { thinking: false };
+    else if (effort) payload.reasoning_effort = reasoningEffortForTransport(effort);
   } else {
     throw new Error(`buildEngineRequest: unknown engine family "${family}"`);
   }
@@ -155,7 +161,7 @@ async function runEngineCall({ engine, apiKey = null, system, user, getFn = defa
   if (pf.authFailed) return { status: "auth-failed", note: pf.error };
   if (pf.unreachable) return { status: "engine-unreachable", note: pf.error };
   if (!pf.served) return { status: "model-not-served", names: pf.names };
-  const req = buildEngineRequest({ family: engine.family, host: engine.host, model: engine.model, system, user, reasoningOff: engine.reasoningOff, apiKey });
+  const req = buildEngineRequest({ family: engine.family, host: engine.host, model: engine.model, system, user, reasoningOff: engine.reasoningOff, effort: engine.effort, apiKey });
   let raw;
   try { raw = await postFn(req, { timeoutMs: engine.timeoutMs }); }
   catch (e) {
@@ -255,6 +261,16 @@ function cmdEngine(args) {
   }
   const res = resolveEngineForLane(cfg, lane);
   if (res.error) { process.stderr.write(`faff engine call: ${res.error}\n`); return ENGINE_EXIT.CONFIG; }
+  // FAFF-705: one informational stderr note when the requested effort is clamped to the
+  // transport ceiling (xhigh/max → high) — mirrors resolveSpendSink's "spend not metered"
+  // note. A note, not a refusal (the ticket sanctions mapping to the nearest supported);
+  // emitted once per call at dispatch, never per token. low/medium/high pass through silently.
+  if (res.effort) {
+    const mapped = reasoningEffortForTransport(res.effort);
+    if (mapped !== res.effort) {
+      process.stderr.write(`faff engine call: effort.${lane} "${res.effort}" clamped to "${mapped}" — engines.${res.name} (${res.provider}) reasoning-effort tops out at ${mapped}; set effort.${lane} to ${mapped} to silence this note.\n`);
+    }
+  }
   // FAFF-593/FAFF-647: a SPAWN transport family (codex today) is not HTTP — fork
   // after config resolution to the registered runner, which owns its whole
   // procedure (api-key guard, seat probe, exec spawn, parse, classify) and its
@@ -328,6 +344,18 @@ async function engineSelftest() {
     ok("openai: no auth header without key", !("authorization" in r2.headers));
     const r3 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", reasoningOff: true });
     ok("openai: reasoning_off → chat_template_kwargs", JSON.parse(r3.body).chat_template_kwargs.thinking === false);
+    // FAFF-705: a graded effort emits reasoning_effort (mapped onto the transport target).
+    const r4 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", effort: "high" });
+    ok("openai: effort high → reasoning_effort:high", JSON.parse(r4.body).reasoning_effort === "high");
+    const r5 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", effort: "max" });
+    ok("openai: effort max → reasoning_effort:high (clamped)", JSON.parse(r5.body).reasoning_effort === "high");
+    const r6 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "" });
+    ok("openai: no effort → no reasoning_effort key (byte-identity)", !("reasoning_effort" in JSON.parse(r6.body)));
+    const r7 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", reasoningOff: true, effort: "high" });
+    ok("openai: reasoning_off wins over effort (mutually exclusive)", JSON.parse(r7.body).chat_template_kwargs.thinking === false && !("reasoning_effort" in JSON.parse(r7.body)));
+    // FAFF-705: a stray effort on ollama is ignored, never thrown, never emitted.
+    const r8 = buildEngineRequest({ family: "ollama", host: "http://h", model: "m", system: "", user: "", effort: "high" });
+    ok("ollama: stray effort ignored, no reasoning_effort key", !("reasoning_effort" in JSON.parse(r8.body)));
   }
   { let threw = false; try { buildEngineRequest({ family: "ollama", model: "m" }); } catch { threw = true; } ok("no host → throws (no localhost default)", threw); }
   { let threw = false; try { buildEngineRequest({ family: "nope", host: "http://h", model: "m" }); } catch { threw = true; } ok("unknown family → throws", threw); }
@@ -413,8 +441,32 @@ async function engineSelftest() {
     /anthropic/.test(resolveEngineForLane({ engines: { s: { provider: "anthropic", model: "m", host: "http://h" } }, models: { intake: "engine:s" } }, "intake").error || ""));
   ok("resolve: unknown provider refused",
     /provider/.test(resolveEngineForLane({ engines: { s: { provider: "llamacpp", model: "m", host: "http://h" } }, models: { intake: "engine:s" } }, "intake").error || ""));
-  ok("resolve: non-inherit effort × engine refused",
-    /effort/.test(resolveEngineForLane({ ...cfgOk, effort: { methodology: "high" } }, "methodology").error || ""));
+  // FAFF-705: a graded effort on a NON-graded family (ollama) stays refused, now with a
+  // capability-specific message naming the missing transport + the remedy.
+  {
+    const r = resolveEngineForLane({ ...cfgOk, effort: { methodology: "high" } }, "methodology");
+    ok("resolve: graded effort on ollama (non-graded family) refused, capability-named",
+      /effort\.methodology/.test(r.error || "") && /no graded reasoning-effort transport/.test(r.error || "") && /reasoning_off/.test(r.error || ""));
+  }
+  // FAFF-705: a graded effort on a GRADED-effort family (openai) is carried on the record.
+  {
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, models: { methodology: "engine:s" }, effort: { methodology: "high" } }, "methodology");
+    ok("resolve: graded effort on openai family carried (not refused)", !r.error && r.effort === "high" && r.family === "openai");
+  }
+  // FAFF-705: an above-ceiling effort (max) is carried pre-map on the record (the encode
+  // sites clamp; the record stores the faff level so economics buckets it uniformly).
+  {
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, models: { intake: "engine:s" }, effort: { intake: "max" } }, "intake");
+    ok("resolve: above-ceiling effort (max) carried pre-map", !r.error && r.effort === "max");
+  }
+  // FAFF-705: a graded effort contradicting reasoning_off on one openai engine is refused.
+  {
+    const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", reasoning_off: true } }, models: { methodology: "engine:s" }, effort: { methodology: "low" } }, "methodology");
+    ok("resolve: graded effort + reasoning_off refused, contradiction named",
+      /reasoning_off: true/.test(r.error || "") && /contradictory/.test(r.error || ""));
+  }
+  // FAFF-705: an inherit/unset engine lane resolves effort:null (byte-for-byte the old path).
+  ok("resolve: inherit effort → effort:null", resolveEngineForLane(cfgOk, "methodology").effort === null);
   {
     const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1", api_key_env: "K", timeout: 30, reasoning_off: true } }, models: { intake: "engine:s" } }, "intake");
     ok("resolve: openai-compatible family + options", !r.error && r.family === "openai" && r.apiKeyEnv === "K" && r.timeoutMs === 30000 && r.reasoningOff === true);

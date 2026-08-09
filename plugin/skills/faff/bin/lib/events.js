@@ -91,6 +91,25 @@ const EFFORT_LEVELS = new Set(["low", "medium", "high", "xhigh", "max"]);
 // QUALITY_GATE_ORDER (factory) which the report renders in.
 const QUALITY_GATE_CATCHES = new Set(["structural", "adversarial", "holdout", "ci"]);
 
+// FAFF-700: the closed vocabulary an `agent-dispatch` event's data.kind must be a
+// member of — WHAT KIND of subagent cluster this fan-out claims (mirrors the
+// producer/build/reader/verify split the audit's own dispatch sites use).
+const DISPATCH_KINDS = new Set(["producer", "build", "reader", "verify"]);
+
+// FAFF-700: the closed, ENUMERATED top-level `data.*` field set an `agent-dispatch`
+// event may carry — the four dispatch-claim fields plus the pre-existing global-
+// optional telemetry tags (tokens/tokens_source/effort/gate/rework_turns). This is a
+// NEW kind of check (no other event type scans its top-level `data` keys — the
+// data.tokens "unexpected field(s)" reject a few lines down is a NESTED sub-key scan
+// inside data.tokens, not a top-level one): without it a stray data.prompt /
+// data.transcript would pass clean, which is exactly the non-leak invariant this
+// event exists to hold (the dispatch claim carries counts and ids only, never a
+// child's prompt/response payload).
+const DISPATCH_ALLOWED_DATA_KEYS = new Set([
+  "kind", "dispatch_id", "cluster_id", "cluster_size",
+  "tokens", "tokens_source", "effort", "gate", "rework_turns",
+]);
+
 // FAFF-564: the chain-hash shape — 64 lowercase hex chars (SHA-256). Shared by the
 // `prev` envelope check and the `ledger-write` data.ledger_sha256 check.
 const HEX64_RE = /^[0-9a-f]{64}$/;
@@ -157,6 +176,31 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
     const outcome = obj.data && typeof obj.data === "object" ? obj.data.outcome : undefined;
     if (!ledgerOutcomes.has(outcome)) {
       v.push(`${obj.type}.data.outcome '${outcome}' not in ledger outcome vocabulary {${[...ledgerOutcomes].join(", ")}}`);
+    }
+  }
+  // FAFF-700: agent-dispatch — the dispatch-CLAIM event, one per subagent-cluster
+  // fan-out, emitted before the children run. Mirrors the data.effort / data.gate
+  // closed-vocab checks above for the four required fields, PLUS a NEW top-level
+  // data.* allow-set scan (non-leak: counts/ids only, never a prompt/response
+  // payload — see DISPATCH_ALLOWED_DATA_KEYS above).
+  if (obj.type === "agent-dispatch") {
+    const d = obj.data && typeof obj.data === "object" && !Array.isArray(obj.data) ? obj.data : {};
+    const kind = d.kind;
+    if (typeof kind !== "string" || !DISPATCH_KINDS.has(kind)) {
+      v.push(`data.kind ${JSON.stringify(kind)} not in DispatchKind {${[...DISPATCH_KINDS].join(", ")}}`);
+    }
+    if (typeof d.dispatch_id !== "string" || d.dispatch_id === "") {
+      v.push("data.dispatch_id must be a non-empty string");
+    }
+    if (typeof d.cluster_id !== "string" || d.cluster_id === "") {
+      v.push("data.cluster_id must be a non-empty string");
+    }
+    if (!Number.isInteger(d.cluster_size) || d.cluster_size < 1) {
+      v.push(`data.cluster_size must be an integer >= 1 (got ${JSON.stringify(d.cluster_size)})`);
+    }
+    const extraTop = Object.keys(d).filter((k) => !DISPATCH_ALLOWED_DATA_KEYS.has(k));
+    if (extraTop.length) {
+      v.push(`agent-dispatch data has unexpected field(s) {${extraTop.join(", ")}} — allowed {${[...DISPATCH_ALLOWED_DATA_KEYS].join(", ")}}`);
     }
   }
   // FAFF-408: optional token-tag telemetry under data (additive; schema stays 1).
@@ -983,6 +1027,17 @@ function eventsSelftest() {
     // self-intake invocation (mandate/target_raw/self snapshot/verdict/reason/exit).
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "self-intake-check", issue: "FAFF-1", data: { mandate: "FAFF-1", target_raw: '{"team":null,"repo":"shftwst/faff"}', self: { team: null, repo: "shftwst/faff", lane_on: true }, verdict: "self", reason: "repo-match", exit: 0 } }, 0, "valid self-intake-check record"],
     [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "self-intake-check", data: { mandate: "FAFF-1", target_raw: "{}", self: { team: null, repo: null, lane_on: false }, verdict: "not-self", reason: "lane-off", exit: 3 } }, 1, "self-intake-check missing required issue field"],
+    // FAFF-700 — agent-dispatch: run-scoped (no issue field, mirrors sentry-checkpoint),
+    // data = the dispatch CLAIM (kind/dispatch_id/cluster_id/cluster_size). The audit
+    // recomputes it against child transcripts; this event is only the claim it checks.
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3 } }, 0, "valid agent-dispatch"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3, tokens: null, tokens_source: "estimate", effort: "high", gate: "adversarial", rework_turns: 0 } }, 0, "valid agent-dispatch with every telemetry tag"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "bogus", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3 } }, 1, "agent-dispatch kind not in vocabulary rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "", cluster_id: "R1", cluster_size: 3 } }, 1, "agent-dispatch empty dispatch_id rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "", cluster_size: 3 } }, 1, "agent-dispatch empty cluster_id rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 0 } }, 1, "agent-dispatch cluster_size below 1 rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 1.5 } }, 1, "agent-dispatch non-integer cluster_size rejected"],
+    [{ schema: 1, run_id: "r", seq: 0, ts: "t", phase: "run", type: "agent-dispatch", data: { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 3, transcript: "child said X" } }, 1, "agent-dispatch unexpected top-level data key rejected (non-leak)"],
   ];
   let failed = 0;
   for (const [obj, wantViol, label] of cases) {
@@ -1250,4 +1305,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyExitCode };
+module.exports = { DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, cmdEvents, computeChainHead, eventLineCount, eventViolations, eventsSelftest, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, verifyChain, verifyExitCode };

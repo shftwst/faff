@@ -300,3 +300,96 @@ test("FAFF-354: discovered_scope_filed > 0 WITH containment-check events present
   const o = JSON.parse(r.stdout);
   assert.equal(o.coherence.unrecorded_creates, false);
 });
+
+// ===========================================================================
+// FAFF-700 — dispatch_observability end-to-end: real child-transcript substrate
+// (a CLAUDE_CONFIG_DIR/projects/<encoded-cwd>/ directory the actual `cmdAudit`
+// wrapper reads), not just the pure core (covered by --selftest above). Proves
+// the wiring — transcriptBaseDir/childOwningSession/meta.json read — actually
+// lands in coherence.dispatch_observability, end to end through the CLI.
+// ===========================================================================
+
+function encodedProjectDir(cwd) { return String(cwd).replace(/[/.]/g, "-"); }
+
+// Writes a child agent-*.jsonl (one record carrying sessionId) + sibling
+// agent-*.meta.json (carrying `description`) into the transcript base dir the
+// real transcriptBaseDir(cwd, env) resolver would compute for `cwd`.
+function writeChildTranscript(configDir, cwd, name, sid, description) {
+  const base = join(configDir, "projects", encodedProjectDir(cwd));
+  mkdirSync(base, { recursive: true });
+  writeFileSync(join(base, `${name}.jsonl`), JSON.stringify({ sessionId: sid }) + "\n");
+  writeFileSync(join(base, `${name}.meta.json`), JSON.stringify({ description }));
+  return base;
+}
+
+test("FAFF-700: no agent-dispatch events → dispatch_observability status absent, text renders 'dispatch: absent'", () => {
+  const { root, runId } = tmpRun({
+    events: [ev(0, "t", "run", "run-start")],
+    ledger: { run_id: "r1", admitted: [], outcomes: {} },
+  });
+  const rj = run([runId, "--json", "--root", root]);
+  assert.equal(rj.status, 0, rj.stderr);
+  const o = JSON.parse(rj.stdout);
+  assert.equal(o.coherence.dispatch_observability.status, "absent");
+  assert.equal(o.coherence.clean, true);
+
+  const rt = run([runId, "--root", root]);
+  assert.match(rt.stdout, /dispatch: absent/);
+});
+
+test("FAFF-700: reader cluster of 2, both children stamped and owned by this session → verified", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t", "run", "agent-dispatch", undefined, { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 2 }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {} },
+  });
+  const configDir = mkdtempSync(join(tmpdir(), "faff-audit-cfg-"));
+  const sid = "sess-abc";
+  writeChildTranscript(configDir, root, "agent-1", sid, "Read the source, subagent-cluster:R1");
+  writeChildTranscript(configDir, root, "agent-2", sid, "Read the tests, subagent-cluster:R1");
+  const r = spawnSync(process.execPath, [BIN, "audit", runId, "--json", "--root", root], {
+    encoding: "utf8", env: { ...process.env, CLAUDE_CONFIG_DIR: configDir, CLAUDE_CODE_SESSION_ID: sid },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.dispatch_observability.status, "verified");
+  assert.equal(o.coherence.dispatch_observability.substrate_reachable, true);
+  assert.equal(o.coherence.dispatch_observability.clusters[0].observed, 2);
+});
+
+test("FAFF-700: a child owned by a DIFFERENT session is excluded (undercount, never overcount)", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t", "run", "agent-dispatch", undefined, { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 2 }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {} },
+  });
+  const configDir = mkdtempSync(join(tmpdir(), "faff-audit-cfg-"));
+  const sid = "sess-mine";
+  writeChildTranscript(configDir, root, "agent-1", sid, "subagent-cluster:R1");
+  writeChildTranscript(configDir, root, "agent-2", "sess-someone-else", "subagent-cluster:R1"); // foreign session
+  const r = spawnSync(process.execPath, [BIN, "audit", runId, "--json", "--root", root], {
+    encoding: "utf8", env: { ...process.env, CLAUDE_CONFIG_DIR: configDir, CLAUDE_CODE_SESSION_ID: sid },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.dispatch_observability.clusters[0].observed, 1);
+  assert.equal(o.coherence.dispatch_observability.clusters[0].status, "mismatch");
+});
+
+test("FAFF-700: no CLAUDE_CODE_SESSION_ID → substrate unreachable, unverifiable-substrate", () => {
+  const { root, runId } = tmpRun({
+    events: [
+      ev(0, "t", "run", "agent-dispatch", undefined, { kind: "reader", dispatch_id: "d1", cluster_id: "R1", cluster_size: 1 }),
+    ],
+    ledger: { run_id: "r1", admitted: [], outcomes: {} },
+  });
+  const env = { ...process.env };
+  delete env.CLAUDE_CODE_SESSION_ID;
+  const r = spawnSync(process.execPath, [BIN, "audit", runId, "--json", "--root", root], { encoding: "utf8", env });
+  assert.equal(r.status, 0, r.stderr);
+  const o = JSON.parse(r.stdout);
+  assert.equal(o.coherence.dispatch_observability.status, "unverifiable-substrate");
+  assert.equal(o.coherence.dispatch_observability.substrate_reachable, false);
+});

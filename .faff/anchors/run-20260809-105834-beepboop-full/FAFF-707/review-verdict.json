@@ -1,0 +1,25 @@
+{
+  "signal": "pass",
+  "findings": [],
+  "conformant": true,
+  "violations": [],
+  "phase1": {
+    "verdict": "pass",
+    "passes": {
+      "ac_coverage": "all 20 DONE checklist items covered by test/spec-review-churn.test.mjs (18 tests) or by the faff-prep/SKILL.md prose edit itself; --selftest fixture cases match the spec's 5 required cases",
+      "obvious_bugs": "none blocking; SPEC_REVIEW_LENSES const is exported but unused within the module (non-blocking, documentation-only)",
+      "scope": "diff touches exactly the files the spec's Reference-context table names (SKILL.md, bin/faff, regions.js, new spec-review-churn.js + test, cli.md) — no smuggled changes",
+      "spec_fidelity": "lens-set-only comparator (no schema change), round-2-only churn check, missing-prev degrade vs malformed fail-loud split — all match spec HOW section verbatim",
+      "human_judgement": "none — pure deterministic CLI + prose addition, no user-facing/security/irreversible effects"
+    }
+  },
+  "phase2": {
+    "outcome": "chain[0] nvidia/z-ai/glm-5.2 responded — no findings",
+    "critical_count": 0,
+    "escalated": false
+  },
+  "autonomous": true,
+  "lights_out": false,
+  "diff_hash": "850858ad06e0700244d03c5364efed51606b68f8a18666813d561c2f3b453a63",
+  "generated_at": "2026-08-09T16:41:00Z"
+}

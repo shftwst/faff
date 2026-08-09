@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-707",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3f68856d06ced2fd06f3e2afbc1b4701ade224820bda6154706d4083e3b9e8e4",
+    "branch": "faff-707-prepreview-loop-confirm-prior-objections-resolved-before-re",
+    "pushed_at": "2026-08-09T16:35:21.455Z"
+  },
+  "updated_at": "2026-08-09T16:35:21.455Z"
+}

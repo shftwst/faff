@@ -1,9 +1,8 @@
 # faff — external-verification SUT scaffolders
 
 These scripts each scaffold one **subject under test** (SUT) — a fresh, isolated repo that
-faff is pointed *at* (faff is the tool; the SUT is the subject). They are the runnable
-companion to [`design/faff-external-verification-brief.md`](../../design/faff-external-verification-brief.md),
-which explains *why* each project exists and *what behaviour* it instruments.
+faff is pointed *at* (faff is the tool; the SUT is the subject). Each project exercises a
+specific behaviour and provides its own runbook and scoring material.
 
 The point of the suite: faff's newest lanes — **architecture → env → evaluate** — are
 structurally un-dogfoodable (faff has no runtime to stand up or judge), so they shipped with

@@ -113,7 +113,7 @@ Hard dependency: FAFF-564 blocks FAFF-568 (the RFC's own sequencing). All other 
 
 - **Code:** `plugin/skills/faff/bin/lib/{lights-out,budget,sentry,reconcile,disposition,governance-check,corrective-integrity,integrity-digest,heartbeat,runcheck}.js`; `.github/actions/governance-check/action.yml`; `.github/workflows/{validate,governance}.yml`.
 - **Forge:** `shftwst/faff` ruleset "Main" (active; requires `validate`, not yet `governance-check`).
-- **Docs/decisions:** ADRs 0034–0080; `docs/rfc/rfc-governance-tamper-evidence.md`; `docs/reports/governance-landscape-2026-07.md`; `docs/guide/{unattended,architecture,governance-check,adopting-by-change-class}.md`.
+- **Docs/decisions:** ADRs 0034–0080; `docs/rfc/rfc-governance-tamper-evidence.md`; `docs/guide/{unattended,architecture,governance-check,adopting-by-change-class}.md`. The landscape report used during this point-in-time audit was an unshipped research input whose claims required re-verification; its disposition is recorded in [`2026-08-09-unshipped-record-reference-register.md`](2026-08-09-unshipped-record-reference-register.md).
 - **SUT run evidence (external, not yet copied into faff):**
   - `shftwst/faff-suts-p1-link-shortener` — interactive git-only run; `.faff/` artifacts + `ECONOMICS.md` (~1.05M metered subagent tokens, clean).
   - `shftwst/faff-suts-p2-task-api` — `/faff-beep-boop --converge` L3 run; `.faff/logs/2026-07-18/225751-beep-boop-findings.md` (findings F1–F5, three major, all self-corrected; F1–F3 fixed on `main`).

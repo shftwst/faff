@@ -1529,12 +1529,18 @@ test("FAFF-746 prompt contract: every allowlisted heading and sentence matches i
   }
 });
 
-test("FAFF-746 spec-review command contract supplies non-empty system, diff, and context paths", () => {
+test("FAFF-746/706 spec-review command contract supplies non-empty system, diff, and context paths", () => {
+  // FAFF-706: the per-lens `node "$REVIEW_CALL" ...` case-block invocation was replaced by a single
+  // fan-out.mjs dispatch (see the "Backend call" section) — the --system/--diff/--context argv
+  // fields it describes for each LensRequest now live in the prose paragraph documenting that argv,
+  // not inside the bash block itself. Scope the match to the "Backend call" section as a whole.
   const skill = readFileSync(new URL("../plugin/skills/faffter-dark-spec-review/SKILL.md", import.meta.url), "utf8");
-  const command = skill.match(/node \"\$REVIEW_CALL\"[\s\S]*?\n    ;;/)?.[0] || "";
-  assert.match(command, /--system\s+plugin\/skills\/faffter-dark-spec-review\/refute-<lens>\.md/);
-  assert.match(command, /--diff\s+<spec-file>/);
-  assert.match(command, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
+  const section = skill.match(/## Backend call[\s\S]*?\n## Aggregation/)?.[0] || "";
+  assert.match(section, /--system\s+plugin\/skills\/faffter-dark-spec-review\/refute-<lens>\.md/);
+  assert.match(section, /--diff\s+<spec-file>/);
+  assert.match(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
+  // FAFF-706: the dispatch mechanism itself must be the concurrent fan-out, never a per-lens loop.
+  assert.match(section, /fan-out\.mjs/);
 });
 
 // ── attributionHeader / ensureHeader (FAFF-361: chain[index] + host provenance) ──

@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-706",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d8fb3ab525f0453344915a7271b9cc202f0a2b1f9e755a645e93802f3ba57f4e",
+    "branch": "faff-706-dispatch-the-spec-review-lenses-concurrently-under-a-non",
+    "pushed_at": "2026-08-09T02:25:09.678Z"
+  },
+  "updated_at": "2026-08-09T02:25:09.678Z"
+}

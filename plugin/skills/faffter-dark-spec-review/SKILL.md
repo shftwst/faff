@@ -50,32 +50,46 @@ Each enabled lens is a single isolated pass with its own "break this spec" syste
 
 Each refuter pass is made by the bundled adversarial-review transport, **`review-call.mjs`** (model preflight, think-suppression, streaming, token budget, the fallback chain, and the exit-code→outcome discipline). It is **reused verbatim** — the helper lives in the sibling `faffter-dark-adversarial-review` skill; do not copy or fork it, and do not hand-roll an API call. The spec-altitude review and the product-altitude PRDR review share exactly this transport plus the "a different model challenges; the loop never self-grades" discipline — nothing above it (artifact, lens count, arbiter, contract) is shared.
 
-**Assemble the chain mechanically (FAFF-261) — never `JSON.parse` `faffter_dark.adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff adversarial-backends` subcommand once (it is the single mechanical path for both a one-backend config and a multi-backend fallback chain — no per-flag `faff config get provider/host/model/api_key_env/reasoning_off` assembly left to retype) and branch on its exit code. Per enabled lens:
+**Dispatch the lenses CONCURRENTLY, via `fan-out.mjs` — never a per-lens loop (FAFF-706).** Under Claude Code, issuing N Bash calls in one message happens to run them concurrently — a harness feature, not something faff asked for by name. A non-Claude harness has no such free batching, so a per-lens bash loop would run the N `review-call.mjs` subprocesses one after another, each a full adversarial-review call — a four-lens pass can stall over an hour. `fan-out.mjs` (bundled beside `review-call.mjs` in the sibling `faffter-dark-adversarial-review` skill) spawns every enabled lens's `review-call.mjs` invocation itself and awaits them together, so any harness capable of running one shell command gets the same speed-up. It is reused verbatim, the same discipline as `review-call.mjs` itself.
+
+**Assemble the chain mechanically (FAFF-261) — never `JSON.parse` `faffter_dark.adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff adversarial-backends` subcommand **once** (it is the single mechanical path for both a one-backend config and a multi-backend fallback chain — no per-flag `faff config get provider/host/model/api_key_env/reasoning_off` assembly left to retype), branch on its exit code, then build one `LensRequest` per enabled lens and fan them all out in a single `fan-out.mjs` call:
 
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
-REVIEW_CALL=<.../skills/faffter-dark-adversarial-review/review-call.mjs>
+FANOUT=<.../skills/faffter-dark-adversarial-review/fan-out.mjs>
 backends_json=$(mktemp)
 "$faff" adversarial-backends > "$backends_json"; backends_exit=$?
 timeout=$("$faff" config get faffter_dark.adversarial.timeout -d 120)
 
 case "$backends_exit" in
   0)
-    node "$REVIEW_CALL" --backends-json "$backends_json" --timeout "$timeout" \
-      --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md \
-      --context plugin/skills/faff/SKILL.md --context <each file the spec names> \
-      --diff <spec-file>
+    # Build the full LensRequest[] in ONE pass over $enabled_lenses (never a per-lens loop that
+    # calls fan-out.mjs once per lens — the array is what fans out, not the assembly loop) — every
+    # argv field byte-identical to the old per-lens call except --system, which is the lens's own
+    # refute-<lens>.md. Written to one temp JSON file, e.g.:
+    #   [{"lens":"architectural","argv":["--backends-json","...","--system","refute-architectural.md",...]}, ...]
+    requests_json=$(mktemp)
+    node -e 'const lenses = process.argv.slice(1); const reqs = lenses.map((lens) => ({ lens, argv: [/* --backends-json, --timeout, --system refute-<lens>.md, --context..., --diff */] })); process.stdout.write(JSON.stringify(reqs));' "${enabled_lenses[@]}" > "$requests_json"
+    node "$FANOUT" --requests "$requests_json"   # ONE call — spawns every lens concurrently, waits for all
     ;;
-  3) : ;; # unconfigured (FAFF-213) — this lens's outcome is unavailable/config-fault, below; no chain to call
-  2) : ;; # malformed faffter_dark.adversarial.fallbacks JSON — this lens's outcome is unavailable/config-fault
+  3) : ;; # unconfigured (FAFF-213) — every lens's outcome is unavailable/config-fault, below; no chain to call
+  2) : ;; # malformed faffter_dark.adversarial.fallbacks JSON — every lens's outcome is unavailable/config-fault
 esac
 ```
 
-The **spec** is supplied as `--diff` (the thing under scrutiny); repo files as `--context`; the lens refutation prompt as `--system`. `$backends_json` holds the primary-first JSON array (`{provider, model, host, api_key_env?, reasoning_off?, timeout?}`) `review-call.mjs`'s `--backends-json` mapper consumes verbatim, whether the config is a single backend or a fallback chain — one mechanical assembly path, unified. A `faff adversarial-backends` exit `3` (unconfigured/unset host — the FAFF-213 signal) or `2` (malformed `fallbacks` JSON) means there is no chain to call the helper with; treat either as this lens's **`unavailable`**, kind `config-fault` (the same per-lens outcome the table below assigns a `review-call.mjs` config-fault exit) — never a silent `clear`. Configure the refuter backend to a model **structurally different** from the spec author's; independence is the whole point.
+Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received: `--backends-json "$backends_json" --timeout "$timeout" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context plugin/skills/faff/SKILL.md --context <each file the spec names> --diff <spec-file>`.
+
+- The **spec** is supplied as `--diff` (the thing under scrutiny); repo files as `--context`; the lens refutation prompt as `--system`.
+- `$backends_json` holds the primary-first JSON array (`{provider, model, host, api_key_env?, reasoning_off?, timeout?}`) `review-call.mjs`'s `--backends-json` mapper consumes verbatim, whether the config is a single backend or a fallback chain — assembled **once**, not per lens, since it is identical across every lens in a given spec-review pass.
+- `fan-out.mjs` returns a JSON array of `LensResult` (`{lens, exit, stdout, stderr}`) in the same order as the input requests; apply the existing per-lens outcome table (unchanged, below) to each entry exactly as it was applied to one `review-call.mjs` invocation's exit code.
+- A `faff adversarial-backends` exit `3` (unconfigured/unset host — the FAFF-213 signal) or `2` (malformed `fallbacks` JSON) means there is no chain to call the helper with; treat either as every lens's **`unavailable`**, kind `config-fault` (the same per-lens outcome the table below assigns a `review-call.mjs` config-fault exit) — never a silent `clear`.
+- Configure the refuter backend to a model **structurally different** from the spec author's; independence is the whole point.
+
+A `fan-out.mjs` fault (non-zero exit — an empty/malformed `--requests`, or a `spawn()`-level fault such as `node` missing from `$PATH`) means **no** lens result was obtained for **any** lens this call: treat every enabled lens as **`unavailable`**, kind `config-fault` (mirrors the `faff adversarial-backends` exit-3/2 handling above) — never a silent `clear`.
 
 ### Per-lens outcome (the helper's exit decides — not prose)
 
-Map each pass's `review-call.mjs` exit to a per-lens outcome:
+Map each `LensResult.exit` (the underlying `review-call.mjs` exit code the fan-out carries through unchanged, per lens) to a per-lens outcome:
 
 | exit | meaning | lens outcome |
 |---|---|---|
@@ -131,5 +145,6 @@ Any human-facing summary this skill emits (e.g. the run log line naming the verd
 
 - **Never collapse the lenses into one pass.** Independence (decorrelation) is the only thing this buys over the single-pass default.
 - **Never treat a provider outage as `approve`.** A down or misconfigured refuter surfaces `needs-human` — silently skipping the gate is the exact regression the exit-code discipline exists to prevent.
-- **Reuse, never fork, `review-call.mjs`.** Any need to change the transport is a separate change with its own review.
+- **Reuse, never fork, `review-call.mjs` or `fan-out.mjs`.** Any need to change the transport or the dispatch mechanism is a separate change with its own review.
+- **Dispatch lenses concurrently via `fan-out.mjs`, never a per-lens bash loop.** A serial loop is exactly the harness-shaped stall (FAFF-706) the fan-out exists to remove.
 - **Every objection must be grounded** in the spec text or the supplied context — a refuter inventing requirements is as bad as one rubber-stamping.

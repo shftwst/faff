@@ -2,15 +2,13 @@
   "run_id": "run-20260809-065843-beepboop-list",
   "admitted": [
     "FAFF-752",
-    "FAFF-728",
     "FAFF-662",
     "FAFF-707",
     "FAFF-705",
-    "FAFF-750",
     "FAFF-700",
     "FAFF-699",
     "FAFF-616",
-    "FAFF-673"
+    "FAFF-727"
   ],
   "outcomes": {
     "FAFF-584": "routed-out",
@@ -21,7 +19,8 @@
     "FAFF-597": "routed-out",
     "FAFF-486": "routed-out",
     "FAFF-734": "parked",
-    "FAFF-590": "parked"
+    "FAFF-590": "parked",
+    "FAFF-662": "parked"
   },
   "outcome_details": {
     "FAFF-584": {
@@ -59,6 +58,10 @@
     "FAFF-590": {
       "verdict": "parked-standing",
       "reason": "no spec; standing human decision (harness-layer auth signal); buildable slice already carved to FAFF-728"
+    },
+    "FAFF-662": {
+      "verdict": "needs-human",
+      "reason": "Step 7.5 UNIT rung errored on the gates-runner 600s cap (full node --test cannot complete in this sandbox; single test argv.test.mjs alone ran 532s). LINT passed, diff docs-only, zero not-ok observed. Environmental, not a code defect. Branch pushed, no PR."
     }
   },
   "prep_queue": [
@@ -82,6 +85,12 @@
       "anchor_epoch": 1786259301268,
       "reset_epoch": 1786277301268,
       "tokens_at_anchor": 17823350
+    },
+    "tokens_at_last_event": {
+      "input": 222,
+      "output": 307647,
+      "cache_write": 4513656,
+      "cache_read": 24877589
     }
   },
   "owner": {
@@ -90,5 +99,11 @@
     "session_id": "run-20260809-065843-beepboop-list",
     "started_at": "2026-08-09T07:07:35Z",
     "last_heartbeat": "2026-08-09T07:07:35Z"
+  },
+  "level": "L3",
+  "claimed_by_peer": {
+    "FAFF-728": "Done (peer merged PR #590)",
+    "FAFF-750": "In Review (peer PR #588, CI green)",
+    "FAFF-673": "In Progress (peer)"
   }
 }

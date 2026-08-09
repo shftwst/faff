@@ -39,6 +39,7 @@ const { cmdBuildProgress, cmdEffects, cmdReviewProgress } = require("./lib/effec
 const { cmdEligible } = require("./lib/eligible");
 const { cmdEngine } = require("./lib/engine");
 const { cmdEnv } = require("./lib/env");
+const { cmdEval } = require("./lib/eval-affected");
 const { cmdEvaluatorPreflight } = require("./lib/evaluator-preflight");
 const { cmdEvents } = require("./lib/events");
 const { cmdFixtures } = require("./lib/fixtures");
@@ -155,6 +156,7 @@ const COMMANDS = {
   "profiles": cmdProfiles,
   "fixtures": cmdFixtures,
   "env": cmdEnv,
+  "eval": cmdEval,
   "engine": cmdEngine,
   "events": cmdEvents,
   "effects": cmdEffects,

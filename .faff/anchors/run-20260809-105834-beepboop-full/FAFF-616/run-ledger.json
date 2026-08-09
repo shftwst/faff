@@ -1,6 +1,12 @@
 {
   "run_id": "run-20260809-105834-beepboop-full",
-  "admitted": ["FAFF-727", "FAFF-700", "FAFF-616", "FAFF-707", "FAFF-699"],
+  "admitted": [
+    "FAFF-727",
+    "FAFF-700",
+    "FAFF-616",
+    "FAFF-707",
+    "FAFF-699"
+  ],
   "outcomes": {
     "FAFF-581": "routed-out",
     "FAFF-597": "routed-out",
@@ -8,16 +14,38 @@
     "FAFF-703": "routed-out",
     "FAFF-486": "routed-out",
     "FAFF-528": "routed-out",
-    "FAFF-584": "routed-out"
+    "FAFF-584": "routed-out",
+    "FAFF-700": "shipped"
   },
   "outcome_details": {
-    "FAFF-581": { "verdict": "needs-decision-first", "reason": "open Punt (decides: qa) — coverage-floor; prior autonomous resolve-attempt 2026-08-05 could not close it" },
-    "FAFF-597": { "verdict": "gap-blocked", "reason": "six unvalidated live-Fly-infra Assumes (org/flyctl/API-key) — external state absent from repo; needs real cloud creds" },
-    "FAFF-607": { "verdict": "needs-decision-first", "reason": "two open Punts (decides: architecture) — kernel/reference carve boundaries; L-sized" },
-    "FAFF-703": { "verdict": "needs-decision-first", "reason": "open Punt (decides: architecture) — harness-declares-model contract, the one call gating a high rating" },
-    "FAFF-486": { "verdict": "needs-decision-first", "reason": "two open Punts (decides: architecture) — inline-site rollout order + compaction cadence; spec self-flagged least-ready" },
-    "FAFF-528": { "verdict": "needs-decision-first", "reason": "open Punt (decides: product) — new /faff-prd skill vs jot mode; adds a top-level entry point a product owner must confirm" },
-    "FAFF-584": { "verdict": "needs-decision-first", "reason": "four open Punts incl. decides: architecture (extend baseline to every SKILL.md); also flags sequence-before-FAFF-607" }
+    "FAFF-581": {
+      "verdict": "needs-decision-first",
+      "reason": "open Punt (decides: qa) — coverage-floor; prior autonomous resolve-attempt 2026-08-05 could not close it"
+    },
+    "FAFF-597": {
+      "verdict": "gap-blocked",
+      "reason": "six unvalidated live-Fly-infra Assumes (org/flyctl/API-key) — external state absent from repo; needs real cloud creds"
+    },
+    "FAFF-607": {
+      "verdict": "needs-decision-first",
+      "reason": "two open Punts (decides: architecture) — kernel/reference carve boundaries; L-sized"
+    },
+    "FAFF-703": {
+      "verdict": "needs-decision-first",
+      "reason": "open Punt (decides: architecture) — harness-declares-model contract, the one call gating a high rating"
+    },
+    "FAFF-486": {
+      "verdict": "needs-decision-first",
+      "reason": "two open Punts (decides: architecture) — inline-site rollout order + compaction cadence; spec self-flagged least-ready"
+    },
+    "FAFF-528": {
+      "verdict": "needs-decision-first",
+      "reason": "open Punt (decides: product) — new /faff-prd skill vs jot mode; adds a top-level entry point a product owner must confirm"
+    },
+    "FAFF-584": {
+      "verdict": "needs-decision-first",
+      "reason": "four open Punts incl. decides: architecture (extend baseline to every SKILL.md); also flags sequence-before-FAFF-607"
+    }
   },
   "discovered_scope_filed": 0,
   "review_adversarial_skipped": [],
@@ -47,6 +75,12 @@
       "anchor_epoch": 1786273151355,
       "reset_epoch": 1786291151355,
       "tokens_at_anchor": 180902
+    },
+    "tokens_at_last_event": {
+      "input": 169,
+      "output": 162374,
+      "cache_write": 1297886,
+      "cache_read": 17067429
     }
   },
   "owner": {
@@ -55,5 +89,6 @@
     "session_id": "run-20260809-105834-beepboop-full",
     "started_at": "2026-08-09T10:58:47Z",
     "last_heartbeat": "2026-08-09T10:58:47Z"
-  }
+  },
+  "level": "L3"
 }

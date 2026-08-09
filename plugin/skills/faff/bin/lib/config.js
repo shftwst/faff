@@ -72,6 +72,13 @@ const DEFAULTS = {
   "logging": "full",
   "concurrency_max": "4",
   "automation_default": "opt-in",
+  // FAFF-758: the stale-claim TTL (hours). A claim (issue at `In Progress`) older than this
+  // that faff can PROVE it set (the `faff-claimed` label) is auto-reclaimed to Todo by tidy;
+  // anything else is surfaced, never touched. The default MUST exceed the longest legitimate
+  // build — no build progress is visible across hosts during a long run, so a too-tight TTL
+  // yanks live work; 6h sits well above a typical build while clearing a genuinely crashed
+  // claim within a working session. Operators raise it above their longest observed build.
+  "claim_ttl_hours": "6",
   "appetite": "high",
   "adr.mode": "offer",
   "intake_gate": "warn",

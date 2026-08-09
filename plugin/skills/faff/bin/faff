@@ -24,6 +24,7 @@ const { cmdBackgroundFence } = require("./lib/background-fence");
 const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
 const { cmdBudget } = require("./lib/budget");
 const { cmdCiTriage } = require("./lib/ci-triage");
+const { cmdClaimVerdict } = require("./lib/claim-verdict");
 const { cmdCliSurface } = require("./lib/cli-surface");
 const { cmdConfig, cmdModels } = require("./lib/config");
 const { cmdContain } = require("./lib/contain");
@@ -122,6 +123,7 @@ const COMMANDS = {
   "labels": cmdLabels,
   "label": cmdLabel,
   "eligible": cmdEligible,
+  "claim-verdict": cmdClaimVerdict,
   "admissible": cmdAdmissible,
   "dod": cmdDod,
   "holdout": cmdHoldout,

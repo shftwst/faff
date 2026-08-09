@@ -28,6 +28,8 @@ const MERGE_GATE_SPEC = { flags: {
 const BRANCH_PROTECTION_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 },
 } };
+// FAFF-728: the GitHub-auth preflight probe — user-scoped, so it needs no repo slug.
+const GITHUB_AUTH_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 } } };
 const { FLOOR_LEVELS, computeLaneBoundary, computeReviewVerdict, decideFloor, holdoutGateResult, resolveGateLevel } = require("./contract-defs");
 const { realFsq } = require("./container-check");
 const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate } = require("./corrective-integrity");
@@ -1077,6 +1079,90 @@ function cmdBranchProtectionCheck(args) {
   return st.status === "protected" ? 0 : 1;
 }
 
+// FAFF-728: PURE classifier for the run-start GitHub-auth preflight. Maps a raw `gh api user`
+// spawnSync result — { error, status, stdout, stderr } — onto the closed GithubAuthStatus record
+// { status ∈ authed|auth-failed|indeterminate, basis, login }. Deliberately fail-OPEN: only a
+// credential the API actually rejected is `auth-failed` ("re-auth"); a missing `gh`, a network
+// error, or any non-auth failure is `indeterminate` (advisory, never a re-auth claim). Keys on the
+// HTTP status code (401/403) first, treats stderr string matching as a secondary signal, and never
+// echoes stdout on a failure path — the token value never appears in `basis` (gh's auth-failure
+// stderr reports "Bad credentials" / the HTTP status, not the token).
+function classifyGithubAuth(r) {
+  if (r && r.error) {
+    const msg = typeof r.error === "string" ? r.error : (r.error.message || String(r.error));
+    return { status: "indeterminate", basis: `gh unavailable: ${msg}`, login: null };
+  }
+  if (r && r.status === 0) {
+    let data;
+    try { data = JSON.parse(r.stdout); } catch { data = null; }
+    if (data && typeof data.login === "string" && data.login) {
+      return { status: "authed", basis: "gh api user ok", login: data.login };
+    }
+    return { status: "indeterminate", basis: "gh api user returned unparseable body", login: null };
+  }
+  const stderr = String((r && r.stderr) || "");
+  const firstLine = stderr.split("\n").map((s) => s.trim()).filter(Boolean)[0] || "";
+  const status = r ? r.status : null;
+  // Key on the HTTP status FIRST (401/403), then on specific credential-rejection phrases. A bare
+  // `authentication` substring is deliberately NOT matched — it false-positives on non-auth
+  // network/infra faults that merely mention the word (a proxy "407 Proxy Authentication Required",
+  // an "authentication service unavailable" 5xx), which the DoD requires stay `indeterminate` (never
+  // a re-auth claim). Every genuine GitHub auth failure carries a 401/403 or one of these phrases.
+  if (/\b(401|403)\b|bad credentials|not logged in|requires authentication/i.test(stderr)) {
+    return { status: "auth-failed", basis: `gh api user rejected credential: ${firstLine}`, login: null };
+  }
+  return { status: "indeterminate", basis: `gh api error (${status}): ${firstLine}`, login: null };
+}
+
+// FAFF-728: the run-start GitHub-auth preflight — one read-only `gh api user` call, classified via
+// the pure core above. Reuses the 60s bound the sibling gh probes carry so a hung network never
+// stalls kickoff. exit 0 == authed, exit 1 == auth-failed OR indeterminate (mirrors
+// branch-protection-check: 0 = confirmed-good, 1 = otherwise).
+function cmdGithubAuthCheck(args) {
+  if (args.includes("--selftest")) return githubAuthSelftest();
+  const parsed = parseArgs(args, GITHUB_AUTH_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff github-auth-check [--json]");
+  const json = !!parsed.values["--json"];
+  const r = spawnSync("gh", ["api", "user"], { encoding: "utf8", timeout: 60000 });
+  const st = classifyGithubAuth({ error: r.error || null, status: r.status, stdout: r.stdout || "", stderr: r.stderr || "" });
+  if (json) process.stdout.write(JSON.stringify(st) + "\n");
+  else console.log(`${st.status} (basis: ${st.basis})${st.status === "authed" && st.login ? ` — ${st.login}` : ""}`);
+  return st.status === "authed" ? 0 : 1;
+}
+
+// In-memory selftest: drives the PURE classifier with authed / auth-failed (401) / indeterminate
+// (gh-missing) fixtures — no network (parity with branch-protection-check's pure-only selftest;
+// the live gh path is the spec's integration smoke test).
+function githubAuthSelftest() {
+  let fail = 0;
+  const check = (label, cond) => { if (!cond) { console.log(`FAIL ${label}`); fail++; } else console.log(`ok   ${label}`); };
+  const authed = classifyGithubAuth({ error: null, status: 0, stdout: JSON.stringify({ login: "octocat", id: 1 }), stderr: "" });
+  check("exit0 + parseable .login → authed", authed.status === "authed");
+  check("authed captures login", authed.login === "octocat");
+  check("authed basis names the probe", /gh api user ok/.test(authed.basis));
+  check("exit0 + unparseable body → indeterminate", classifyGithubAuth({ error: null, status: 0, stdout: "not json", stderr: "" }).status === "indeterminate");
+  check("exit0 + no .login field → indeterminate", classifyGithubAuth({ error: null, status: 0, stdout: JSON.stringify({ id: 1 }), stderr: "" }).status === "indeterminate");
+  const auth401 = classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Bad credentials (HTTP 401)" });
+  check("401 bad credentials → auth-failed", auth401.status === "auth-failed");
+  check("auth-failed basis echoes the stderr first line", /Bad credentials/.test(auth401.basis));
+  check("auth-failed carries no login", auth401.login === null);
+  check("403 → auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: HTTP 403: Forbidden" }).status === "auth-failed");
+  check("not-logged-in → auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh auth login required: not logged in to any GitHub hosts" }).status === "auth-failed");
+  const ghMissing = classifyGithubAuth({ error: new Error("spawnSync gh ENOENT"), status: null, stdout: "", stderr: "" });
+  check("gh missing (spawn error) → indeterminate", ghMissing.status === "indeterminate");
+  check("gh-missing basis says unavailable", /gh unavailable/.test(ghMissing.basis));
+  check("gh-missing is NOT auth-failed", ghMissing.status !== "auth-failed");
+  check("non-auth error (500) → indeterminate", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Something broke (HTTP 500)" }).status === "indeterminate");
+  // fail-open boundary: a non-auth fault that merely MENTIONS "authentication" must stay indeterminate,
+  // never a false re-auth claim (the spec anti-pattern; a bare `authentication` match would break these).
+  check("proxy 407 (network fault mentioning authentication) → indeterminate, not auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: request failed: 407 Proxy Authentication Required" }).status === "indeterminate");
+  check("authentication-service 5xx (transient) → indeterminate, not auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: authentication service temporarily unavailable (HTTP 500)" }).status === "indeterminate");
+  check("real GitHub 401 wording (Requires authentication) → auth-failed", classifyGithubAuth({ error: null, status: 1, stdout: "", stderr: "gh: Requires authentication (HTTP 401)" }).status === "auth-failed");
+  check("null result → indeterminate (defensive)", classifyGithubAuth(null).status === "indeterminate");
+  console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (github-auth pure classifier, ${fail} failed)`);
+  return fail ? 1 : 0;
+}
+
 // In-memory selftest: drives the PURE cores (decideFloor via classifyHeadShaChecks + parseMergeArgs
 // + classifyBranchProtection) with NO network. The impure gh/git path is covered by the integration
 // smoke test in the spec, not here (parity with container-check's pure-only selftest).
@@ -1446,4 +1532,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, branchProtectionSelftest, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readReviewVerdict, resolveAnchorLevel, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord };

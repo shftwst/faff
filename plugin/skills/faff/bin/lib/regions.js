@@ -277,6 +277,7 @@ const REGION_SELFTEST_ARGV = {
   "profile": ["profile", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
+  "eval": ["eval", "--selftest"],
   "engine": ["engine", "--selftest"],
   "lights-out": ["lights-out", "--selftest"],
   "gates": ["gates", "--selftest"],

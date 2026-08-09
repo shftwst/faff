@@ -178,4 +178,4 @@ Probes ran live against this session's own harness (Agent + SendMessage), foregr
 structural facts were cross-checked against the shipped `faffter-noon-concurrency-sequential` /
 `faffter-dark-concurrency-parallel` SKILL.md text, and Probe A / D also draw on this run's own
 FAFF-324 incident (a real stall + cold re-dispatch, corroborated by `events.jsonl`). See
-`verification/findings/faff-332-live-resume-finding.md` for the full finding and `Recommendation:` line.
+`docs/faff-332-live-resume-finding.md` for the full finding and `Recommendation:` line.

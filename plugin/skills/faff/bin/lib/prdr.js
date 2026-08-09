@@ -1,5 +1,5 @@
 // ===========================================================================
-// === region:factory — prdr — product requirements DECISION records (FAFF-245; design/prdrs.md). The ===
+// === region:factory — prdr — product requirements DECISION records. The ===
 // supersedable product-axis decision record sitting BETWEEN the immutable PRD
 // (`faff prd`, FAFF-252) and the per-slice spec. PRD *content* given ADR
 // *mechanics*: immutable + globally-numbered + supersedable, so current product

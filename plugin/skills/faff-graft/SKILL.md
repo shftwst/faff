@@ -433,7 +433,7 @@ Reached **only** when Step 9 returned `pass`. The single PR-creation point, the 
 
 ### Discovered scope (record, never file)
 
-While building and reviewing, graft often surfaces **concrete, separable work this PR should not absorb** — a seam the spec didn't foresee, an untracked dependency an AC exposed, a real out-of-scope concern the review flagged. The implementor lane **cannot create backlog tickets** (gateway → **Agent Lanes**); it **records** these so the orchestrator files them (autonomous: `/faff-beep-boop` after the build pass; interactive: via the gate in Step 12). This is bottom-up source (b) — see `design/planning-loop.md`.
+While building and reviewing, graft often surfaces **concrete, separable work this PR should not absorb** — a seam the spec didn't foresee, an untracked dependency an AC exposed, a real out-of-scope concern the review flagged. The implementor lane **cannot create backlog tickets** (gateway → **Agent Lanes**); it **records** these so the orchestrator files them (autonomous: `/faff-beep-boop` after the build pass; interactive: via the gate in Step 12). This is bottom-up source (b).
 
 **What qualifies** — concrete, nameable, separable from this PR: a follow-up the build revealed is also needed, a prerequisite the spec assumed but no ticket tracks, a review finding that names real out-of-this-PR work. **What does not:** fixable-in-PR items (those loop via review `fail`), unverifiable ACs (human-verify flags, not new work), and vague impressions ("logging's inconsistent") — record those as `confidence: vague`, which only ever surface, never auto-file.
 

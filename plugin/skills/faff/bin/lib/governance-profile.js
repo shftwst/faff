@@ -1,7 +1,7 @@
 // ===========================================================================
 // === region:governance — profiles — FAFF-362: profile vocabulary tables (delivery profile = faff's dialect) ===
 //
-// Rung 3 of the governance extraction (design/governance-extraction-layers.md):
+// The governance profile separates generic machinery from delivery vocabulary:
 // the three governance engines (runcheck / events / sentry) are already generic
 // MACHINERY — a completeness check, an envelope validator, a set of derailment
 // predicates. What ties them to faff is not structure but the CLOSED WORD-LISTS

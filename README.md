@@ -51,6 +51,17 @@ records what is enforced, what has been observed, and what remains unproven.
 SuperDomestique currently supports macOS and Linux with Node 20 or later.
 Native Windows is not supported; use WSL2.
 
+## Harness support
+
+Claude Code is the primary supported harness. Codex has completed an
+interactive prep-to-merge run with material limitations, and selected
+read-only producer calls are experimental. Codex unattended L3 and L4 paths
+are not currently supported. pi.dev is planned, with no implementation work
+scheduled.
+
+The [harness support guide](docs/guide/harness-support.md) gives the capability
+matrix, current limitations, and evidence behind each status.
+
 ## Start with one piece of work
 
 1. Run `/faff-onboard` to connect the repository and tracker.

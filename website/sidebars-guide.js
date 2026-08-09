@@ -7,7 +7,12 @@ const sidebars = {
     {
       type: 'category',
       label: 'Start here',
-      items: ['walkthroughs', 'adopting-by-change-class', 'configuration'],
+      items: [
+        'walkthroughs',
+        'adopting-by-change-class',
+        'configuration',
+        'harness-support',
+      ],
     },
     {
       type: 'category',

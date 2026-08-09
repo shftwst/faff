@@ -41,6 +41,12 @@ after(() => { for (const d of tmpDirs) { try { rmSync(d, { recursive: true, forc
 // every stubbed test resolves its level from STUB_ANCHOR_CONTENT (base64 of the committed ledger) or
 // the fail-closed STUB_ANCHOR_MODE (missing→404 / unreadable→403). The money-fixture + smoke test use
 // a REAL git repo instead, exercising the git-show primary path.
+// FAFF-747: the stub also answers the headers-only status PROBE (`gh api -I repos/…/contents/…`)
+// anchorHttpStatus issues on the plain fetch's failure branch. Its answer is driven by the INDEPENDENT
+// STUB_ANCHOR_HTTP_STATUS var, deliberately decoupled from the plain fetch's STUB_ANCHOR_STDERR text —
+// so a test can make them disagree and prove resolveAnchorLevel classifies from the probe's status
+// line, never from the stderr prose (which defaults to a generic, keyword-free message that would not
+// have matched the OLD stderr-regex discriminator at all).
 const STUB_GH = `#!/usr/bin/env bash
 case "$1" in
   repo)
@@ -52,12 +58,22 @@ case "$1" in
       merge)  printf '%s' "$*" > "$STUB_MERGE_SENTINEL"; exit 0 ;;
     esac ;;
   api)
+    if [ "$2" = "-I" ]; then
+      case "$*" in
+        *contents*)
+          case "\${STUB_ANCHOR_HTTP_STATUS:-}" in
+            403) printf 'HTTP/2 403 Forbidden\\r\\n\\r\\n'; exit 1 ;;
+            404) printf 'HTTP/2 404 Not Found\\r\\n\\r\\n'; exit 1 ;;
+            "")  printf 'HTTP/2 200 OK\\r\\n\\r\\n'; exit 0 ;;
+            *)   exit 1 ;;
+          esac ;;
+      esac
+    fi
     case "$*" in
       *contents*)
         case "\${STUB_ANCHOR_MODE:-ok}" in
-          missing)    printf 'gh: Not Found (HTTP 404)\\n' >&2; exit 1 ;;
-          unreadable) printf 'gh: Resource not accessible by integration (HTTP 403)\\n' >&2; exit 1 ;;
-          *)          printf '%s' "$STUB_ANCHOR_CONTENT"; exit 0 ;;
+          missing|unreadable) printf '%s\\n' "\${STUB_ANCHOR_STDERR:-gh: request failed}" >&2; exit 1 ;;
+          *)                   printf '%s' "$STUB_ANCHOR_CONTENT"; exit 0 ;;
         esac ;;
       *check-runs*) printf '%s' "$STUB_CHECK_RUNS"; exit 0 ;;
       *status*)     printf '%s' "$STUB_STATUS"; exit 0 ;;
@@ -87,7 +103,11 @@ function anchorContentFor(anchorMode, anchorLevel) {
   return JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from(body).toString("base64") });
 }
 
-function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-branch", sha = SHA, anchorLevel = "L3", anchorMode = "ok" } = {}) {
+// FAFF-747: `anchorHttpStatus`/`anchorStderr` let a test decouple the -I probe's real status from the
+// plain fetch's stderr text — the default stderr is a generic, keyword-free message (proves the
+// resolver never reads it); the default http status mirrors the legacy stderr-implied class (403 for
+// "unreadable", 404 for "missing") so every pre-existing test keeps its expected outcome unchanged.
+function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-branch", sha = SHA, anchorLevel = "L3", anchorMode = "ok", anchorHttpStatus, anchorStderr } = {}) {
   const stubDir = mkTmp("mg-gh-");
   const ghPath = join(stubDir, "gh");
   writeFileSync(ghPath, STUB_GH);
@@ -98,6 +118,7 @@ function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-br
   // The API stub only distinguishes missing/unreadable from "serve content"; malformed/no-level ride
   // the "ok" mode but with content that decodes to a bad ledger.
   const stubAnchorMode = anchorMode === "missing" || anchorMode === "unreadable" ? anchorMode : "ok";
+  const defaultHttpStatus = stubAnchorMode === "unreadable" ? "403" : stubAnchorMode === "missing" ? "404" : "";
   const env = {
     ...process.env,
     PATH: `${stubDir}:${process.env.PATH}`,
@@ -110,6 +131,8 @@ function stubGhEnv({ prState = "OPEN", ci = "green", headRefName = "stub-head-br
     STUB_MERGE_SENTINEL: sentinel,
     STUB_ANCHOR_MODE: stubAnchorMode,
     STUB_ANCHOR_CONTENT: anchorContentFor(anchorMode, anchorLevel),
+    STUB_ANCHOR_HTTP_STATUS: anchorHttpStatus !== undefined ? String(anchorHttpStatus) : defaultHttpStatus,
+    STUB_ANCHOR_STDERR: anchorStderr !== undefined ? anchorStderr : "gh: request failed",
   };
   return { env, sentinel };
 }
@@ -380,13 +403,58 @@ test("F1: NO committed anchor at the head sha → exit 2 anchor-missing, NO live
   assert.equal(existsSync(sentinel), false, "fail-closed: never a live-ledger fallback, never a merge");
 });
 
-test("F1: unreadable anchor blob (Contents-API 403 / narrow token) → exit 2 anchor-unreadable with the token remedy", () => {
+test("F1: unreadable anchor blob (Contents-API 403 / narrow token) → exit 2 anchor-unreadable with a remedy naming both scope families", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv({ anchorMode: "unreadable" });
   const { code, stderr } = runCli(argsNoLevel(runDir), { env });
   assert.equal(code, 2);
   assert.match(stderr, /anchor-unreadable/);
+  // FAFF-747: the remedy must name BOTH the classic-PAT scope and the fine-grained/App permission —
+  // a classic-PAT operator reading only "contents:read" is misdirected.
+  assert.match(stderr, /\brepo\b/);
+  assert.match(stderr, /public_repo/);
   assert.match(stderr, /contents:read/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+// FAFF-747: the HTTP status probe (`gh api -I`) is now the SOLE discriminator — these two tests make
+// the probe's real status and the plain fetch's stderr text DISAGREE, proving classification follows
+// the status line, not stderr prose. Under the OLD stderr-regex code, both would misclassify.
+test("F1 FAFF-747: real HTTP status governs even when gh stderr wording looks like a 404 (\"Not Found\") — status is 403 → still anchor-unreadable", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({
+    anchorMode: "unreadable",
+    anchorHttpStatus: "403",
+    anchorStderr: "gh: Not Found (HTTP 404)", // misleading — reads like a 404
+  });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-unreadable/, "the real 403 status wins over 404-shaped stderr text");
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("F1 FAFF-747: real HTTP status governs even when gh stderr wording looks like a 403 (\"forbidden\") — status is 404 → still anchor-missing", () => {
+  const runDir = seedRunDir("merge-ok");
+  const { env, sentinel } = stubGhEnv({
+    anchorMode: "missing",
+    anchorHttpStatus: "404",
+    anchorStderr: "gh: Resource not accessible by integration (HTTP 403)", // misleading — reads like a 403
+  });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-missing/, "the real 404 status wins over 403-shaped/forbidden stderr text — the exact old regex-driven misclassification this issue removes");
+  assert.doesNotMatch(stderr, /anchor-unreadable/);
+  assert.equal(existsSync(sentinel), false);
+});
+
+test("F1 FAFF-747: no HTTP status line from the probe (network error / unparseable) → fails safe to anchor-missing", () => {
+  const runDir = seedRunDir("merge-ok");
+  // "none" hits the stub's `*)` fallback for the -I probe: no stdout at all, exit 1 — simulating a
+  // probe that never got back a parseable status line.
+  const { env, sentinel } = stubGhEnv({ anchorMode: "unreadable", anchorHttpStatus: "none" });
+  const { code, stderr } = runCli(argsNoLevel(runDir), { env });
+  assert.equal(code, 2);
+  assert.match(stderr, /anchor-missing/, "an absent/unparseable status line is indeterminate — never over-claim anchor-unreadable");
   assert.equal(existsSync(sentinel), false);
 });
 

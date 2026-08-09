@@ -1,0 +1,10 @@
+{
+  "issue": "FAFF-727",
+  "build": {
+    "status": "complete",
+    "diff_hash": "10dadadc812651c63d7ffe59138d83111e99afc1503758f4356531de121e630f",
+    "branch": "faff-727-interactive-l1l2-resolution-of-a-needs-human-park-must",
+    "pushed_at": "2026-08-09T12:18:16.635Z"
+  },
+  "updated_at": "2026-08-09T12:18:16.635Z"
+}
